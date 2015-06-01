@@ -40,7 +40,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
   real(kind=sg):: time
 
-  real(kind=db):: Enervide, Eimag, p2, tp1, tp2, tp3, tpt1, tpt2, tt1,tt2,tt3,tt4
+  real(kind=db):: Enervide, Eimag, p2, tp1, tp2, tp3, tpt1, tpt2, tt1,tt2,tt3,tt4,tt5,tt6
   
   real(kind=db), dimension(nopsm,nspino):: Kar, Kari
   real(kind=db), dimension(nvois):: cgrad
@@ -61,11 +61,16 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
   mpirank_in_mumps_group = mod( mpirank0, MPI_host_num_for_mumps )
 
+!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr) !==========================================
+  
 !  Define problem in parallel by mumps group
   if( mpirank0 == 0 ) then
     call CPU_TIME(time)
     tp1 = real(time,db)
   endif
+  
+  call CPU_TIME(time)
+  tt1 = real(time,db)
   
   if( Spinorbite ) then
     ispin = 1
@@ -87,9 +92,6 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   smr(:,:) = 0._db
 
   if( Cal_comp ) smi(:,:) = 0._db  
-  
-  call CPU_TIME(time)
-  tt1 = real(time,db)
   
   inz = 0
   do ii = mpirank_in_mumps_group+1,nligne,MPI_host_num_for_mumps
@@ -167,9 +169,11 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   end do      ! end of cycle by lines
   nz = inz
   
+!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr) !==========================================
+  
   call CPU_TIME(time)
   tt2 = real(time,db)
-!  write(6,*) 'Build time = ', tt2-tt1,' rank=',mpirank_in_mumps_group
+  write(6,*) 'Build time = ', tt2-tt1,' rank=',mpirank_in_mumps_group
   
   call MPI_BARRIER(MPI_COMM_MUMPS, mpierr)
   call CPU_TIME(time)
@@ -196,18 +200,15 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     deallocate(A_im)
     nz_i = nzSum
   endif
-  
-!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr)
-!  if (mpirank_in_mumps_group == 0) write(6,*) 'We on barrier 1'
 
   call gather_sm(smr,smi,nlmso,nligne,nlmso_i,nligne_i,MPI_host_num_for_mumps,mpirank_in_mumps_group,Cal_comp)
 
-!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr)
+!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr) !==========================================
 !  if (mpirank_in_mumps_group == 0) write(6,*) 'We on barrier 2'
 
   call CPU_TIME(time)
   tt4 = real(time,db)
-!  write(6,*) 'Gather time = ', tt4-tt3,' rank=',mpirank_in_mumps_group
+  write(6,*) 'Gather time = ', tt4-tt3,' rank=',mpirank_in_mumps_group
 
     
   if ( mpirank_in_mumps_group == 0 ) then
@@ -226,6 +227,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     call CPU_TIME(time)
     tp2 = real(time,db)
     tpt1 = tpt1 + tp2 - tp1
+!    write(6,*) 'Added to rempli: ',tp2-tp1,' rempli=',tpt1
   endif
       
 ! run solver
@@ -239,10 +241,17 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     if( Cal_comp ) deallocate( A_imGather )
   endif
 
+!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr) !==========================================
+  
+  call CPU_TIME(time)
+  tt5 = real(time,db)
+  write(6,*) 'Solve time = ', tt5-tt4,' rank=',mpirank_in_mumps_group
+  
   if( mpirank0 == 0 ) then
     call CPU_TIME(time)
     tp3 = real(time,db)
     tpt2 = tpt2 + tp3 - tp2
+!    write(6,*) 'Added to triang: ',tp3-tp2,' triang=',tpt2
   endif
   
   return
