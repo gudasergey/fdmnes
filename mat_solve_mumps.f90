@@ -15,7 +15,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   integer:: icheck, igrph, ii, isp, ispin, ispinin, j, lb1i, lb1r, lb2i, lb2r, &
     lmaxso, MPI_host_num_for_mumps, mpirank_in_mumps_group, mpirank0, natome, nbm, nbtm, ngrph, nicm, nim, nligne, &
     nligne_i, nligneso, nlmagm, nlmmax, nlmomax, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, & 
-    npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, nvois, ii_1, ii_2, mpierr
+    npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, nvois, mpierr
   
   integer, dimension(0:npoint):: new
   integer, dimension(natome):: ianew, nbord, nbordf, nlmsa
@@ -40,7 +40,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
   real(kind=sg):: time
 
-  real(kind=db):: Enervide, Eimag, p2, tp1, tp2, tp3, tpt1, tpt2
+  real(kind=db):: Enervide, Eimag, p2, tp1, tp2, tp3, tpt1, tpt2, tt1,tt2,tt3,tt4
   
   real(kind=db), dimension(nopsm,nspino):: Kar, Kari
   real(kind=db), dimension(nvois):: cgrad
@@ -88,10 +88,11 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
   if( Cal_comp ) smi(:,:) = 0._db  
   
+  call CPU_TIME(time)
+  tt1 = real(time,db)
+  
   inz = 0
-  ii_1 = 1 + mpirank_in_mumps_group*nligne/MPI_host_num_for_mumps
-  ii_2 = (mpirank_in_mumps_group+1)*nligne/MPI_host_num_for_mumps
-  do ii = ii_1,ii_2
+  do ii = mpirank_in_mumps_group+1,nligne,MPI_host_num_for_mumps
     lb1r = lb1(ii)
     lb2r = lb2(ii)
     if( Cal_comp ) then
@@ -166,67 +167,48 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   end do      ! end of cycle by lines
   nz = inz
   
-! gather array on root node of MUMPS group
-! MPI_GATHERV can't gather more than 2*10^9 elements, so we do it by parts
+  call CPU_TIME(time)
+  tt2 = real(time,db)
+!  write(6,*) 'Build time = ', tt2-tt1,' rank=',mpirank_in_mumps_group
   
   call MPI_BARRIER(MPI_COMM_MUMPS, mpierr)
-!  if (mpirank_in_mumps_group == 0) write(6,*) 'We on barrier 1'
+  call CPU_TIME(time)
+  tt3 = real(time,db)
+  
   call MPI_GATHER( nz, 1, MPI_INTEGER8, nzGather, 1, MPI_INTEGER8, 0, MPI_COMM_MUMPS, mpierr)
   nzSum = sum(nzGather)
   
-!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr)
-!  if (mpirank_in_mumps_group == 0) write(6,*) 'We on barrier 2'
-  
   if( mpirank_in_mumps_group == 0 ) allocate(rowIndexesGather(nzSum))
-  call gather(rowIndexesGather, nzSum, rowIndexes, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
+  call gatherINT8(rowIndexesGather, nzSum, rowIndexes, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
   deallocate(rowIndexes)
   
-!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr)
-!  if (mpirank_in_mumps_group == 0) write(6,*) 'We on barrier 3'
-  
   if( mpirank_in_mumps_group == 0 ) allocate(columnIndexesGather(nzSum))
-  call gather(columnIndexesGather, nzSum, columnIndexes, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
+  call gatherINT8(columnIndexesGather, nzSum, columnIndexes, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
   deallocate(columnIndexes)
   
-!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr)
-!  if (mpirank_in_mumps_group == 0) write(6,*) 'We on barrier 4'
-  
   if( mpirank_in_mumps_group == 0 ) allocate(AGather(nzSum))
-  call gather(AGather, nzSum, A, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
+  call gatherREAL(AGather, nzSum, A, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
   deallocate(A)
-  
-!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr)
-!  if (mpirank_in_mumps_group == 0) write(6,*) 'We on barrier 5'
   
   if( Cal_comp ) then
     if( mpirank_in_mumps_group == 0 ) allocate(A_imGather(nzSum))
-    call gather(A_imGather, nzSum, A_im, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
+    call gatherREAL(A_imGather, nzSum, A_im, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
     deallocate(A_im)
     nz_i = nzSum
   endif
   
 !  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr)
-!  if (mpirank_in_mumps_group == 0) write(6,*) 'We on barrier 6'
-  
-  call MPI_GATHER((ii_2-ii_1+1)*nlmso, 1, MPI_INT, nsmrGather, 1, MPI_INT, 0, MPI_COMM_MUMPS, mpierr)
-  displs(0)=0
-  do j = 1,MPI_host_num_for_mumps-1
-    displs(j) = displs(j-1)+nsmrGather(j-1); 
-  end do
-  
+!  if (mpirank_in_mumps_group == 0) write(6,*) 'We on barrier 1'
+
+  call gather_sm(smr,smi,nlmso,nligne,nlmso_i,nligne_i,MPI_host_num_for_mumps,mpirank_in_mumps_group,Cal_comp)
+
 !  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr)
-!  if (mpirank_in_mumps_group == 0) write(6,*) 'We on barrier 7'
-  
-  if( mpirank_in_mumps_group == 0 ) then
-    call MPI_GATHERV(MPI_IN_PLACE,(ii_2-ii_1+1)*nlmso,MPI_REAL8,smr,nsmrGather,displs,MPI_REAL8,0,MPI_COMM_MUMPS,mpierr)
-    if( Cal_comp ) call MPI_GATHERV(MPI_IN_PLACE,(ii_2-ii_1+1)*nlmso,MPI_REAL8,smi,nligne*nlmso,displs,MPI_REAL8,0,MPI_COMM_MUMPS,mpierr)
-  else
-    call MPI_GATHERV(smr(1,ii_1),(ii_2-ii_1+1)*nlmso,MPI_REAL8,smr,nsmrGather,displs,MPI_REAL8,0,MPI_COMM_MUMPS,mpierr)
-    if( Cal_comp ) call MPI_GATHERV(smi(1,ii_1),(ii_2-ii_1+1)*nlmso,MPI_REAL8,smi,nligne*nlmso,displs,MPI_REAL8,0,MPI_COMM_MUMPS,mpierr)
-  endif
-  
-!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr)
-!  if (mpirank_in_mumps_group == 0) write(6,*) 'We on barrier 8'
+!  if (mpirank_in_mumps_group == 0) write(6,*) 'We on barrier 2'
+
+  call CPU_TIME(time)
+  tt4 = real(time,db)
+!  write(6,*) 'Gather time = ', tt4-tt3,' rank=',mpirank_in_mumps_group
+
     
   if ( mpirank_in_mumps_group == 0 ) then
     if ( icheck > 0 ) write(3,100) nligne, nzGather
@@ -270,7 +252,7 @@ end
 
 !**************************************************************************************************************
 
-subroutine gather(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
+subroutine gatherINT8(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
   use declarations
   implicit none
   include 'mpif.h'
@@ -294,13 +276,16 @@ subroutine gather(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
     displs(j) = displs(j-1)+nzGather(j-1); 
   end do
   
+! gather array on root node of MUMPS group
+! MPI_GATHERV can't gather more than 2*10^9 elements, so we do it by parts
+  
   if ( mpirank == 0 ) then
     xGath(1:nz) = x
     do rank = 1,mpinodes-1
       sendCount = (nzGather(rank)+sz-1)/sz
       do isend = 1,sendCount
         n = MIN(sz, nzGather(rank)-nzSent(rank))
-        call MPI_recv(xGath(1+displs(rank)+nzSent(rank)), n, MPI_DOUBLE_PRECISION, rank, 123, MPI_COMM_MUMPS, status, mpierr)
+        call MPI_recv(xGath(1+displs(rank)+nzSent(rank)), n, MPI_INTEGER8, rank, 123, MPI_COMM_MUMPS, status, mpierr)
         nzSent(rank) = nzSent(rank) + n
       end do
     end do
@@ -309,10 +294,95 @@ subroutine gather(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
     sendCount = (nz+sz-1)/sz
     do isend = 1,sendCount
       n = MIN(sz, nz-nzSent(rank))
-      call MPI_send(x(1+nzSent(rank)), n, MPI_DOUBLE_PRECISION, 0, 123, MPI_COMM_MUMPS, mpierr)
+      call MPI_send(x(1+nzSent(rank)), n, MPI_INTEGER8, 0, 123, MPI_COMM_MUMPS, mpierr)
       nzSent(rank) = nzSent(rank) + n
     end do
   endif
+  return
+end
+
+!**************************************************************************************************************
+
+subroutine gatherREAL(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
+  use declarations
+  implicit none
+  include 'mpif.h'
+  
+  integer:: mpirank, mpinodes, sz, n, sendCount, isend, mpierr, j, rank
+  integer*8:: nzSum, nz
+  integer*8, dimension(0:mpinodes-1):: nzGather,displs, nzSent
+  real(kind=db), dimension(nzSum):: xGath
+  real(kind=db), dimension(nz):: x
+  integer status(MPI_STATUS_SIZE)
+  
+  if ( mpinodes == 0 ) then
+    xGath = x
+    return
+  endif
+  
+  sz = 250000000 !max size for mpi send/recv
+  nzSent(:) = 0
+  
+  displs(0)=0
+  do j = 1,mpinodes-1
+    displs(j) = displs(j-1)+nzGather(j-1); 
+  end do
+  
+! gather array on root node of MUMPS group
+! MPI_GATHERV can't gather more than 2*10^9 elements, so we do it by parts
+  
+  if ( mpirank == 0 ) then
+    xGath(1:nz) = x
+    do rank = 1,mpinodes-1
+      sendCount = (nzGather(rank)+sz-1)/sz
+      do isend = 1,sendCount
+        n = MIN(sz, nzGather(rank)-nzSent(rank))
+        call MPI_recv(xGath(1+displs(rank)+nzSent(rank)), n, MPI_INTEGER8, rank, 123, MPI_COMM_MUMPS, status, mpierr)
+        nzSent(rank) = nzSent(rank) + n
+      end do
+    end do
+  else
+    rank = mpirank
+    sendCount = (nz+sz-1)/sz
+    do isend = 1,sendCount
+      n = MIN(sz, nz-nzSent(rank))
+      call MPI_send(x(1+nzSent(rank)), n, MPI_INTEGER8, 0, 123, MPI_COMM_MUMPS, mpierr)
+      nzSent(rank) = nzSent(rank) + n
+    end do
+  endif
+  return
+end
+
+!**************************************************************************************************************
+
+subroutine gather_sm(smr,smi,nlmso,nligne,nlmso_i,nligne_i,mpinodes,mpirank,Cal_comp)
+  use declarations
+  implicit none
+  include 'mpif.h'
+  
+  integer:: mpirank, mpinodes, nlmso, nlmso_i, nligne, nligne_i, i, j, rank, mpierr
+  real(kind=db), dimension(nlmso,nligne):: smr
+  real(kind=db), dimension(:,:), allocatable:: recvBuf
+  real(kind=db), dimension(nlmso_i,nligne_i):: smi
+  integer status(MPI_STATUS_SIZE)
+  logical:: Cal_comp
+  
+  if ( mpinodes == 1 ) return
+  allocate(recvBuf(nlmso,nligne))
+  if ( mpirank == 0 ) then
+    do rank = 1,mpinodes-1
+      call MPI_recv(recvBuf, nlmso*nligne, MPI_REAL8, rank, 100, MPI_COMM_MUMPS, status, mpierr)
+      smr(:,rank+1:nligne:mpinodes) = recvBuf(:,rank+1:nligne:mpinodes)
+      if ( Cal_comp ) then
+        call MPI_recv(recvBuf, nlmso*nligne, MPI_REAL8, rank, 100, MPI_COMM_MUMPS, status, mpierr)
+        smi(:,rank+1:nligne:mpinodes) = recvBuf(:,rank+1:nligne:mpinodes)
+      endif
+    end do
+  else
+    call MPI_send(smr, nlmso*nligne, MPI_REAL8, 0, 100, MPI_COMM_MUMPS, mpierr)
+    if ( Cal_comp ) call MPI_send(smi, nlmso*nligne, MPI_REAL8, 0, 100, MPI_COMM_MUMPS, mpierr)
+  endif
+  deallocate(recvBuf)
   return
 end
 
