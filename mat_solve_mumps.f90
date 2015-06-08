@@ -78,7 +78,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     ispin = ispinin
   endif
 
-  nz = nligne/100*nligne/MPI_host_num_for_mumps !start value for nz
+  nz = nligne/1000*nligne/MPI_host_num_for_mumps + 1000000 !start value for nz
   allocate( rowIndexes ( nz ) )
   allocate( columnIndexes ( nz ) )
   allocate( A( nz ) )
@@ -171,13 +171,13 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   
 !  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr) !==========================================
   
-  call CPU_TIME(time)
-  tt2 = real(time,db)
-  write(6,*) 'Build time = ', tt2-tt1,' rank=',mpirank_in_mumps_group
+!  call CPU_TIME(time)
+!  tt2 = real(time,db)
+!  write(6,*) 'Build time = ', tt2-tt1,' rank=',mpirank_in_mumps_group
   
-  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr)
-  call CPU_TIME(time)
-  tt3 = real(time,db)
+!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr)
+!  call CPU_TIME(time)
+!  tt3 = real(time,db)
   
   call MPI_GATHER( nz, 1, MPI_INTEGER8, nzGather, 1, MPI_INTEGER8, 0, MPI_COMM_MUMPS, mpierr)
   nzSum = sum(nzGather)
@@ -206,13 +206,13 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 !  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr) !==========================================
 !  if (mpirank_in_mumps_group == 0) write(6,*) 'We on barrier 2'
 
-  call CPU_TIME(time)
-  tt4 = real(time,db)
-  write(6,*) 'Gather time = ', tt4-tt3,' rank=',mpirank_in_mumps_group
+!  call CPU_TIME(time)
+!  tt4 = real(time,db)
+!  write(6,*) 'Gather time = ', tt4-tt3,' rank=',mpirank_in_mumps_group
 
     
   if ( mpirank_in_mumps_group == 0 ) then
-    if ( icheck > 0 ) write(3,100) nligne, nzGather
+    if ( icheck > 0 ) write(3,100) nligne, nzSum
     if ( icheck > 1 ) then
       nligne8 = nligne
       write(6,'(" Sizes of linear equation system:")')
@@ -227,7 +227,6 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     call CPU_TIME(time)
     tp2 = real(time,db)
     tpt1 = tpt1 + tp2 - tp1
-!    write(6,*) 'Added to rempli: ',tp2-tp1,' rempli=',tpt1
   endif
       
 ! run solver
@@ -243,20 +242,19 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
 !  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr) !==========================================
   
-  call CPU_TIME(time)
-  tt5 = real(time,db)
-  write(6,*) 'Solve time = ', tt5-tt4,' rank=',mpirank_in_mumps_group
+!  call CPU_TIME(time)
+!  tt5 = real(time,db)
+!  write(6,*) 'Solve time = ', tt5-tt4,' rank=',mpirank_in_mumps_group
   
   if( mpirank0 == 0 ) then
     call CPU_TIME(time)
     tp3 = real(time,db)
     tpt2 = tpt2 + tp3 - tp2
-!    write(6,*) 'Added to triang: ',tp3-tp2,' triang=',tpt2
   endif
   
   return
   100 format(/' FDM matrix: number of line =',i7, / &
-              '             number of not zero terms =',i8)
+              '             number of non-zero terms =',i8)
 end
 
 !**************************************************************************************************************
@@ -432,8 +430,10 @@ subroutine mat_solver(A, A_im, rowIndexes, columnIndexes, b, b_im, nligne, nlign
     CALL ZMUMPS(zmumps_par)
     zmumps_par%ICNTL(2:3) = -1
     zmumps_par%ICNTL(4) = 2 !printLevel
-    zmumps_par%ICNTL(7) = 5 !ordering
+    zmumps_par%ICNTL(7) = 5 !sequential ordering (meaningles when ICNTL(28)=2)
     zmumps_par%ICNTL(14) = 100 !memIncrease
+    zmumps_par%ICNTL(28) = 1 ! 2 - use parallel ordering, 1 - sequential
+    zmumps_par%ICNTL(29) = 2 ! parallel ordering 
     MYID = zmumps_par%MYID
 !  Define problem on the host (processor 0)      
     IF ( MYID == 0 ) THEN
@@ -485,8 +485,10 @@ subroutine mat_solver(A, A_im, rowIndexes, columnIndexes, b, b_im, nligne, nlign
     CALL DMUMPS(dmumps_par)
     dmumps_par%ICNTL(2:3) = -1
     dmumps_par%ICNTL(4) = 2 !printLevel
-    dmumps_par%ICNTL(7) = 5 !ordering
+    dmumps_par%ICNTL(7) = 5 !sequential ordering (meaningles when ICNTL(28)=2)
     dmumps_par%ICNTL(14) = 100 !memIncrease
+    dmumps_par%ICNTL(28) = 1 ! 2 - use parallel ordering, 1 - sequential
+    dmumps_par%ICNTL(29) = 2 ! parallel ordering 
     MYID = dmumps_par%MYID
 !  Define problem on the host (processor 0)      
     IF ( MYID == 0 ) THEN
