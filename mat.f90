@@ -40,7 +40,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: taull
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind):: Tau_ato
   complex(kind=db), dimension(:), allocatable :: smc
-  complex(kind=db), dimension(:,:), allocatable :: norm
+  complex(kind=db), dimension(:,:), allocatable :: norm,norm_t
   complex(kind=db), dimension(:,:,:), allocatable :: Bessel, Neuman
   complex(kind=db), dimension(:,:,:,:), allocatable :: taull_tem
 
@@ -49,6 +49,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   logical, dimension(natome):: Atom_axe
 
   real(kind=db):: adimp, Eclie, Eimag, Enervide, R_rydb, Rsort, tpt1, tpt2
+  real(kind=sg):: time
 
   real(kind=db), dimension(3):: dcosxyz
   real(kind=db), dimension(nspin):: Ecinetic_out, V0bd_out
@@ -155,7 +156,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
         new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmomax, nlmsa, nlmso, nlmso_i, &
         nphiato1, nphiato7, npoint, npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
         numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, smi, smr, Spinorbite, tpt1, tpt2, Vr, Ylmato, Ylmso)
-
+        
   deallocate( Bessel, Besselr, Neuman, Neumanr )
 
   if( icheck > 2 ) then
@@ -185,6 +186,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
 ! Si le calcul a ete fait sur la base reelle, il faut renormaliser.
 
     allocate( norm(nlmso,nlmso) )
+    allocate( norm_t(nlmso,nlmso) )
 
     do lm = 1,nlmso
       ii = nligneso + lm
@@ -213,7 +215,8 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
     call invcomp(nlmso,norm,nlmso,nlmso,0,Stop_job)
 
   endif
-
+  norm_t = TRANSPOSE(norm)
+  
 ! Amplitude en sortie.
   do ia = 1,natome
 
@@ -249,11 +252,11 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
 
           if( Basereel ) then
             if( Cal_comp ) then
-              ampl1 = sum( norm(lmf,1:nlmso) * cmplx( smr(1:nlmso,ii), smi(1:nlmso,ii), db ))
-              ampl2 = sum( norm(lmf,1:nlmso) * cmplx( smr(1:nlmso,jj), smi(1:nlmso,jj), db ))
+              ampl1 = sum( norm_t(1:nlmso,lmf) * cmplx( smr(1:nlmso,ii), smi(1:nlmso,ii), db ))
+              ampl2 = sum( norm_t(1:nlmso,lmf) * cmplx( smr(1:nlmso,jj), smi(1:nlmso,jj), db ))
             else
-              ampl1 = sum( norm(lmf,1:nlmso) * smr(1:nlmso,ii) )
-              ampl2 = sum( norm(lmf,1:nlmso) * smr(1:nlmso,jj) )
+              ampl1 = sum( norm_t(1:nlmso,lmf) * smr(1:nlmso,ii) )
+              ampl2 = sum( norm_t(1:nlmso,lmf) * smr(1:nlmso,jj) )
             endif
           else
             ampl1 = cmplx(smr(lmf,ii),smi(lmf,ii),db)
@@ -275,7 +278,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
     end do
 
   end do
-
+  
 ! Representation conjugue
   if( Repres_comp .and. .not. Spinorbite ) then
     do ia = 1,natome
@@ -315,7 +318,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
     end do
     deallocate( taull_tem )
   endif
-
+  
   if( icheck > 1 ) then
 
     if( Spinorbite ) then
@@ -392,7 +395,10 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
     if( Basereel ) deallocate(smc)
   endif
 
-  if( Basereel ) deallocate( norm )
+  if( Basereel ) then
+    deallocate( norm ) 
+    deallocate( norm_t )
+  endif
 
   deallocate( smi, smr )
 
@@ -429,7 +435,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
       end do
     end do
   endif
-
+  
   return
   110 format(/' ---- Mat ---------',100('-'))
   120 format(/'   ii   Solution(i,lmf = 1,nlmso)')
@@ -1748,7 +1754,7 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
    'D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'/
 
   Stop_job = .true.
-
+  
 ! Pour l'instant toutes les representations sont de dimension 1.
   I_rep_dim = 1
 
