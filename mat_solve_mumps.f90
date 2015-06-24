@@ -11,8 +11,64 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   use declarations
   implicit none
   include 'mpif.h'
+  
+  INTERFACE 
+    subroutine expandArrayINT(x, n)
+      integer(kind=8):: n
+      integer, dimension(:), pointer:: x
+    end subroutine
+    
+    subroutine expandArrayREAL(x, n)
+      use declarations
+      integer(kind=8):: n
+      real(kind=db), dimension(:), pointer:: x
+    end subroutine
+    
+    subroutine expandArrayCOMPLEX(x, n)
+      use declarations
+      integer(kind=8):: n
+      complex(kind=db), dimension(:), pointer:: x
+    end subroutine
+    
+    subroutine gatherINT(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
+      use declarations
+      integer:: mpirank, mpinodes
+      integer*8:: nzSum, nz
+      integer*8, dimension(0:mpinodes-1):: nzGather
+      integer, dimension(:), pointer:: xGath, x
+    end subroutine
+  
+    subroutine gatherREAL(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
+      use declarations
+      integer:: mpirank, mpinodes
+      integer*8:: nzSum, nz
+      integer*8, dimension(0:mpinodes-1):: nzGather
+      real(kind=db), dimension(:), pointer:: xGath, x
+    end subroutine
+  
+    subroutine gatherCOMPLEX(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
+      use declarations
+      integer:: mpirank, mpinodes
+      integer*8:: nzSum, nz
+      integer*8, dimension(0:mpinodes-1):: nzGather
+      complex(kind=db), dimension(:), pointer:: xGath, x
+    end subroutine
+  
+    subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_i, nz, nlmso, nlmso_i, Cal_comp, &
+                          mpirank0, mpirank_in_mumps_group, MPI_host_num_for_mumps, icheck)
+      use declarations
+      integer:: nligne, nligne_i, nlmso, nlmso_i, mpirank0, mpirank_in_mumps_group, icheck
+      integer*8:: nz
+      integer, dimension(:), pointer:: rowIndexes, columnIndexes
+      logical:: Cal_comp
+      real(kind=db), dimension(:), pointer:: A
+      complex(kind=db), dimension(:), pointer:: AZ
+      real(kind=db), dimension(nlmso,nligne):: b
+      real(kind=db), dimension(nlmso_i,nligne_i):: b_im
+    end subroutine
+  END INTERFACE
 
-  integer:: icheck, igrph, ii, isp, ispin, ispinin, j, lb1i, lb1r, lb2i, lb2r, &
+  integer:: icheck, igrph, ii, isp, ispin, ispinin, i, j, lb1i, lb1r, lb2i, lb2r, &
     lmaxso, MPI_host_num_for_mumps, mpirank_in_mumps_group, mpirank0, natome, nbm, nbtm, ngrph, nicm, nim, nligne, &
     nligne_i, nligneso, nlmagm, nlmmax, nlmomax, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, & 
     npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, nvois, mpierr
@@ -27,10 +83,10 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   integer, dimension(npsom,nvois):: ivois, isvois
   integer, dimension(nligne):: lb1, lb2, newinv
 
-  integer(kind=8):: inz, nz, nzSum, nz_i, nligne8, newSize, oldSize
+  integer(kind=8):: inz, nz, nzSum, nligne8, oldSize
   integer(kind=8), dimension(0:MPI_host_num_for_mumps-1):: nzGather
   integer, dimension(0:MPI_host_num_for_mumps-1):: displs, nsmrGather
-  integer(kind=8), dimension(:), allocatable:: rowIndexes, rowIndexesGather, columnIndexes, columnIndexesGather, tempRI, tempCI
+  integer, dimension(:), pointer:: rowIndexes, rowIndexesGather, columnIndexes, columnIndexesGather
 
   character(len=2), dimension(nligne):: mletl
 
@@ -57,7 +113,9 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   real(kind=db), dimension(nlmso_i,nligne_i):: smi
   real(kind=db), dimension(nsort_r,0:lmaxso,nspinr):: Besselr, Neumanr
 
-  real(kind=db), dimension(:), allocatable:: A, AGather, A_im, A_imGather, tempA, tempAi, abvi, abvr
+  real(kind=db), dimension(:), allocatable:: abvi, abvr
+  real(kind=db), dimension(:), pointer:: A, AGather 
+  complex(kind=db), dimension(:), pointer:: AZ, AZGather
 
   mpirank_in_mumps_group = mod( mpirank0, MPI_host_num_for_mumps )
 
@@ -81,20 +139,16 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   nz = nligne/1000*nligne/MPI_host_num_for_mumps + 1000000 !start value for nz
   allocate( rowIndexes ( nz ) )
   allocate( columnIndexes ( nz ) )
-  allocate( A( nz ) )
   if ( Cal_comp ) then
-    nz_i = nz
+    allocate( AZ( nz ) )
   else
-    nz_i = 0
+    allocate( A( nz ) )
   endif
-  allocate( A_im( nz_i ) )
-  
   smr(:,:) = 0._db
-
   if( Cal_comp ) smi(:,:) = 0._db  
   
   inz = 0
-  do ii = mpirank_in_mumps_group+1,nligne,MPI_host_num_for_mumps
+  do ii = mpirank_in_mumps_group+1, nligne, MPI_host_num_for_mumps
     lb1r = lb1(ii)
     lb2r = lb2(ii)
     if( Cal_comp ) then
@@ -119,34 +173,15 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     smi, smr, Vr, Ylmato, Ylmso )
 
 ! expand arrays            
-    oldSize = size(A)
+    oldSize = size(rowIndexes)
     if ( oldSize < inz+lb2r-lb1r+1 ) then
-      allocate(tempRI(oldSize))
-      allocate(tempCI(oldSize))
-      allocate(tempA(oldSize))
-      if( Cal_comp ) allocate(tempAi(oldSize))
-      tempRI = rowIndexes
-      tempCI = columnIndexes
-      tempA = A
-      if( Cal_comp ) tempAi = A_im
-      deallocate(rowIndexes)
-      deallocate(columnIndexes)
-      deallocate(A)
-      if( Cal_comp ) deallocate(A_im)
-      newSize = inz+lb2r-lb1r+1
-      if (newSize < oldSize*2) newSize = oldSize*2
-      allocate(rowIndexes(newSize))
-      allocate(columnIndexes(newSize))
-      allocate(A(newSize))
-      if( Cal_comp ) allocate(A_im(newSize))
-      rowIndexes(1:oldSize) = tempRI
-      columnIndexes(1:oldSize) = tempCI
-      A(1:oldSize) = tempA
-      if ( Cal_comp ) A_im(1:oldSize) = tempAi
-      deallocate(tempRI)
-      deallocate(tempCI)
-      deallocate(tempA)
-      if ( Cal_comp ) deallocate(tempAi)
+      call expandArrayINT(rowIndexes, oldSize)
+      call expandArrayINT(columnIndexes, oldSize)
+      if( Cal_comp ) then
+        call expandArrayCOMPLEX(AZ, oldSize)
+      else
+        call expandArrayREAL(A, oldSize)
+      endif
     endif
     
 ! Fill matrises
@@ -160,8 +195,11 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
       inz = inz+1
       rowIndexes(inz) = ii
       columnIndexes(inz) = j
-      A(inz) = abvr(j)
-      if( Cal_comp ) A_im(inz) = abvi(j)
+      if( Cal_comp ) then
+        AZ(inz) = CMPLX(abvr(j), abvi(j), db)
+      else
+        A(inz) = abvr(j)
+      endif
     end do
 
     deallocate( abvi, abvr )
@@ -169,57 +207,29 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   end do      ! end of cycle by lines
   nz = inz
   
-!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr) !==========================================
-  
-!  call CPU_TIME(time)
-!  tt2 = real(time,db)
-!  write(6,*) 'Build time = ', tt2-tt1,' rank=',mpirank_in_mumps_group
-  
-!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr)
-!  call CPU_TIME(time)
-!  tt3 = real(time,db)
-  
-  call MPI_GATHER( nz, 1, MPI_INTEGER8, nzGather, 1, MPI_INTEGER8, 0, MPI_COMM_MUMPS, mpierr)
-  nzSum = sum(nzGather)
-  
-  if( mpirank_in_mumps_group == 0 ) allocate(rowIndexesGather(nzSum))
-  call gatherINT8(rowIndexesGather, nzSum, rowIndexes, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
-  deallocate(rowIndexes)
-  
-  if( mpirank_in_mumps_group == 0 ) allocate(columnIndexesGather(nzSum))
-  call gatherINT8(columnIndexesGather, nzSum, columnIndexes, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
-  deallocate(columnIndexes)
-  
-  if( mpirank_in_mumps_group == 0 ) allocate(AGather(nzSum))
-  call gatherREAL(AGather, nzSum, A, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
-  deallocate(A)
-  
-  if( Cal_comp ) then
-    if( mpirank_in_mumps_group == 0 ) allocate(A_imGather(nzSum))
-    call gatherREAL(A_imGather, nzSum, A_im, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
-    deallocate(A_im)
-    nz_i = nzSum
+  if ( MPI_host_num_for_mumps > 1 ) then
+    call MPI_GATHER( nz, 1, MPI_INTEGER8, nzGather, 1, MPI_INTEGER8, 0, MPI_COMM_MUMPS, mpierr)
+    nzSum = sum(nzGather)
+    call gatherINT(rowIndexesGather, nzSum, rowIndexes, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
+    call gatherINT(columnIndexesGather, nzSum, columnIndexes, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
+    if( Cal_comp ) then
+      call gatherCOMPLEX(AZGather, nzSum, AZ, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
+    else
+      call gatherREAL(AGather, nzSum, A, nz, nzGather, mpirank_in_mumps_group, MPI_host_num_for_mumps)
+    endif
+    call gather_sm(smr,smi,nlmso,nligne,nlmso_i,nligne_i,MPI_host_num_for_mumps,mpirank_in_mumps_group,Cal_comp)
+    nz = nzSum
   endif
-
-  call gather_sm(smr,smi,nlmso,nligne,nlmso_i,nligne_i,MPI_host_num_for_mumps,mpirank_in_mumps_group,Cal_comp)
-
-!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr) !==========================================
-!  if (mpirank_in_mumps_group == 0) write(6,*) 'We on barrier 2'
-
-!  call CPU_TIME(time)
-!  tt4 = real(time,db)
-!  write(6,*) 'Gather time = ', tt4-tt3,' rank=',mpirank_in_mumps_group
-
-    
   if ( mpirank_in_mumps_group == 0 ) then
-    if ( icheck > 0 ) write(3,100) nligne, nzSum
+    if ( icheck > 0 ) write(3,100) nligne, nz
+    if ( icheck > 0 ) write(6,100) nligne, nz
     if ( icheck > 1 ) then
       nligne8 = nligne
       write(6,'(" Sizes of linear equation system:")')
       write(6,'(" nligne   =",I24)') nligne
       write(6,'(" nligne^2 =",I24)') nligne8**2
-      p2 = 100 * real(nzSum, db) / ( nligne8**2 )
-      write(6,'(" not zero =",I24,5X,F6.3," %")') nzSum, p2
+      p2 = 100 * real(nz, db) / ( nligne8**2 )
+      write(6,'(" not zero =",I24,5X,F6.3," %")') nz, p2
     endif
   endif
 
@@ -230,15 +240,9 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   endif
       
 ! run solver
-  call mat_solver(AGather, A_imGather, rowIndexesGather, columnIndexesGather, smr, smi, nligne, nligne_i, &
-                  nzSum, nz_i, nlmso, nlmso_i, Cal_comp, mpirank0, icheck)
+  call mat_solver(A, AZ, rowIndexes, columnIndexes, smr, smi, nligne, nligne_i, &
+                nz, nlmso, nlmso_i, Cal_comp, mpirank0, mpirank_in_mumps_group, MPI_host_num_for_mumps, icheck)
   
-  if ( mpirank_in_mumps_group == 0) then
-    deallocate( rowIndexesGather )
-    deallocate( columnIndexesGather )
-    deallocate( AGather )
-    if( Cal_comp ) deallocate( A_imGather )
-  endif
 
 !  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr) !==========================================
   
@@ -259,40 +263,73 @@ end
 
 !**************************************************************************************************************
 
-subroutine gatherINT8(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
+subroutine expandArrayINT(x,n)
+  use declarations
+  implicit none
+  integer(kind=8):: n
+  integer, dimension(:), pointer:: x, x_new
+  allocate(x_new(n*2))
+  x_new(1:n) = x(1:n)
+  deallocate(x)
+  x => x_new
+end
+
+!**************************************************************************************************************
+
+subroutine expandArrayREAL(x,n)
+  use declarations
+  implicit none
+  integer(kind=8):: n
+  real(kind=db), dimension(:), pointer:: x, x_new
+  allocate(x_new(n*2))
+  x_new(1:n) = x(1:n)
+  deallocate(x)
+  x => x_new
+end
+
+!**************************************************************************************************************
+
+subroutine expandArrayCOMPLEX(x,n)
+  use declarations
+  implicit none
+  integer(kind=8):: n
+  complex(kind=db), dimension(:), pointer:: x, x_new
+  allocate(x_new(n*2))
+  x_new(1:n) = x(1:n)
+  deallocate(x)
+  x => x_new
+end
+
+!**************************************************************************************************************
+
+subroutine gatherINT(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
   use declarations
   implicit none
   include 'mpif.h'
   integer:: mpirank, mpinodes, sz, n, sendCount, isend, mpierr, j, rank
   integer*8:: nzSum, nz
   integer*8, dimension(0:mpinodes-1):: nzGather,displs, nzSent
-  integer*8, dimension(nzSum):: xGath
-  integer*8, dimension(nz):: x
+  integer, dimension(:), pointer:: xGath,x
   integer status(MPI_STATUS_SIZE)
   
-  if ( mpinodes == 0 ) then
-    xGath = x
-    return
-  endif
-  
-  sz = 250000000 !max size for mpi send/recv
+  if (mpirank == 0) allocate(xGath(nzSum))
+  sz = 25000000 !max size for mpi send/recv
   nzSent(:) = 0
   
   displs(0)=0
   do j = 1,mpinodes-1
     displs(j) = displs(j-1)+nzGather(j-1); 
   end do
-  
 ! gather array on root node of MUMPS group
 ! MPI_GATHERV can't gather more than 2*10^9 elements, so we do it by parts
   
   if ( mpirank == 0 ) then
-    xGath(1:nz) = x
+    xGath(1:nz) = x(1:nz)
     do rank = 1,mpinodes-1
       sendCount = (nzGather(rank)+sz-1)/sz
       do isend = 1,sendCount
         n = MIN(sz, nzGather(rank)-nzSent(rank))
-        call MPI_recv(xGath(1+displs(rank)+nzSent(rank)), n, MPI_INTEGER8, rank, 123, MPI_COMM_MUMPS, status, mpierr)
+        call MPI_recv(xGath(1+displs(rank)+nzSent(rank)), n, MPI_INTEGER, rank, 123, MPI_COMM_MUMPS, status, mpierr)
         nzSent(rank) = nzSent(rank) + n
       end do
     end do
@@ -301,10 +338,12 @@ subroutine gatherINT8(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
     sendCount = (nz+sz-1)/sz
     do isend = 1,sendCount
       n = MIN(sz, nz-nzSent(rank))
-      call MPI_send(x(1+nzSent(rank)), n, MPI_INTEGER8, 0, 123, MPI_COMM_MUMPS, mpierr)
+      call MPI_send(x(1+nzSent(rank)), n, MPI_INTEGER, 0, 123, MPI_COMM_MUMPS, mpierr)
       nzSent(rank) = nzSent(rank) + n
     end do
   endif
+  deallocate(x)
+  if (mpirank == 0) x => xGath
   return
 end
 
@@ -318,16 +357,11 @@ subroutine gatherREAL(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
   integer:: mpirank, mpinodes, sz, n, sendCount, isend, mpierr, j, rank
   integer*8:: nzSum, nz
   integer*8, dimension(0:mpinodes-1):: nzGather,displs, nzSent
-  real(kind=db), dimension(nzSum):: xGath
-  real(kind=db), dimension(nz):: x
+  real(kind=db), dimension(:), pointer:: xGath,x
   integer status(MPI_STATUS_SIZE)
   
-  if ( mpinodes == 0 ) then
-    xGath = x
-    return
-  endif
-  
-  sz = 250000000 !max size for mpi send/recv
+  if (mpirank == 0) allocate(xGath(nzSum))
+  sz = 25000000 !max size for mpi send/recv
   nzSent(:) = 0
   
   displs(0)=0
@@ -339,12 +373,12 @@ subroutine gatherREAL(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
 ! MPI_GATHERV can't gather more than 2*10^9 elements, so we do it by parts
   
   if ( mpirank == 0 ) then
-    xGath(1:nz) = x
+    xGath(1:nz) = x(1:nz)
     do rank = 1,mpinodes-1
       sendCount = (nzGather(rank)+sz-1)/sz
       do isend = 1,sendCount
         n = MIN(sz, nzGather(rank)-nzSent(rank))
-        call MPI_recv(xGath(1+displs(rank)+nzSent(rank)), n, MPI_INTEGER8, rank, 123, MPI_COMM_MUMPS, status, mpierr)
+        call MPI_recv(xGath(1+displs(rank)+nzSent(rank)), n, MPI_DOUBLE_PRECISION, rank, 123, MPI_COMM_MUMPS, status, mpierr)
         nzSent(rank) = nzSent(rank) + n
       end do
     end do
@@ -353,10 +387,61 @@ subroutine gatherREAL(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
     sendCount = (nz+sz-1)/sz
     do isend = 1,sendCount
       n = MIN(sz, nz-nzSent(rank))
-      call MPI_send(x(1+nzSent(rank)), n, MPI_INTEGER8, 0, 123, MPI_COMM_MUMPS, mpierr)
+      call MPI_send(x(1+nzSent(rank)), n, MPI_DOUBLE_PRECISION, 0, 123, MPI_COMM_MUMPS, mpierr)
       nzSent(rank) = nzSent(rank) + n
     end do
   endif
+  deallocate(x)
+  if (mpirank == 0) x => xGath
+  return
+end
+
+!**************************************************************************************************************
+
+subroutine gatherCOMPLEX(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
+  use declarations
+  implicit none
+  include 'mpif.h'
+  
+  integer:: mpirank, mpinodes, sz, n, sendCount, isend, mpierr, j, rank
+  integer*8:: nzSum, nz
+  integer*8, dimension(0:mpinodes-1):: nzGather,displs, nzSent
+  complex(kind=db), dimension(:), pointer:: xGath,x
+  integer status(MPI_STATUS_SIZE)
+  
+  if (mpirank == 0) allocate(xGath(nzSum))
+  sz = 25000000 !max size for mpi send/recv
+  nzSent(:) = 0
+  
+  displs(0)=0
+  do j = 1,mpinodes-1
+    displs(j) = displs(j-1)+nzGather(j-1); 
+  end do
+  
+! gather array on root node of MUMPS group
+! MPI_GATHERV can't gather more than 2*10^9 elements, so we do it by parts
+  
+  if ( mpirank == 0 ) then
+    xGath(1:nz) = x(1:nz)
+    do rank = 1,mpinodes-1
+      sendCount = (nzGather(rank)+sz-1)/sz
+      do isend = 1,sendCount
+        n = MIN(sz, nzGather(rank)-nzSent(rank))
+        call MPI_recv(xGath(1+displs(rank)+nzSent(rank)), n, MPI_DOUBLE_COMPLEX, rank, 123, MPI_COMM_MUMPS, status, mpierr)
+        nzSent(rank) = nzSent(rank) + n
+      end do
+    end do
+  else
+    rank = mpirank
+    sendCount = (nz+sz-1)/sz
+    do isend = 1,sendCount
+      n = MIN(sz, nz-nzSent(rank))
+      call MPI_send(x(1+nzSent(rank)), n, MPI_DOUBLE_COMPLEX, 0, 123, MPI_COMM_MUMPS, mpierr)
+      nzSent(rank) = nzSent(rank) + n
+    end do
+  endif
+  deallocate(x)
+  if (mpirank == 0) x => xGath
   return
 end
 
@@ -395,8 +480,8 @@ end
 
 !**************************************************************************************************************
 
-subroutine mat_solver(A, A_im, rowIndexes, columnIndexes, b, b_im, nligne, nligne_i, nz, nz_i, nlmso, nlmso_i, Cal_comp, &
-                      mpirank0, icheck)
+subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_i, nz, nlmso, nlmso_i, Cal_comp, &
+                      mpirank0, mpirank_in_mumps_group, MPI_host_num_for_mumps, icheck)
  
   use declarations
   implicit none
@@ -404,19 +489,32 @@ subroutine mat_solver(A, A_im, rowIndexes, columnIndexes, b, b_im, nligne, nlign
   INCLUDE 'dmumps_struc.h'
   INCLUDE 'zmumps_struc.h'
   
-  integer:: nligne, nligne_i, nlmso, nlmso_i, MYID, mpirank0, i, j, icheck
-  integer*8:: nz, nz_i
-  integer*8, dimension(nz):: rowIndexes, columnIndexes
+  integer:: nligne, nligne_i, nlmso, nlmso_i, MYID, mpirank0, mpirank_in_mumps_group, i, j, icheck, par, &
+            MPI_host_num_for_mumps
+  integer*8:: nz
+  integer, dimension(:), pointer:: rowIndexes, columnIndexes
   
   logical:: Cal_comp
 
-  real(kind=db), dimension(nz):: A
-  real(kind=db), dimension(nz_i):: A_im
+  real(kind=db), dimension(:), pointer:: A
+  complex(kind=db), dimension(:), pointer:: AZ
   real(kind=db), dimension(nlmso,nligne):: b
   real(kind=db), dimension(nlmso_i,nligne_i):: b_im
   
   TYPE (DMUMPS_STRUC) dmumps_par
   TYPE (ZMUMPS_STRUC) zmumps_par
+  
+  character(len=255):: str
+  
+  par = 1
+! for many nodes release root node from calculation to save memory
+  if ( MPI_host_num_for_mumps > 4 ) par = mpirank_in_mumps_group
+  CALL getenv("MUMPS_CENTRAL_WORK", str)
+  if ( LEN_TRIM(str) > 0 ) then
+    read( str, '(i10)' ) i
+    if ( i == 0 ) par = mpirank_in_mumps_group
+  endif
+  
   
   if ( Cal_comp ) then
 ! Complex case ========================================================
@@ -426,11 +524,11 @@ subroutine mat_solver(A, A_im, rowIndexes, columnIndexes, b, b_im, nligne, nlign
 !  for L U factorization (sym = 0, with working host)
     zmumps_par%JOB = -1
     zmumps_par%SYM = 0
-    zmumps_par%PAR = 1
+    zmumps_par%PAR = par
     CALL ZMUMPS(zmumps_par)
     zmumps_par%ICNTL(2:3) = -1
     zmumps_par%ICNTL(4) = 2 !printLevel
-    zmumps_par%ICNTL(7) = 5 !sequential ordering (meaningles when ICNTL(28)=2)
+    zmumps_par%ICNTL(7) = 5 !ordering (meaningles when ICNTL(28)=2)
     zmumps_par%ICNTL(14) = 100 !memIncrease
     zmumps_par%ICNTL(28) = 1 ! 2 - use parallel ordering, 1 - sequential
     zmumps_par%ICNTL(29) = 2 ! parallel ordering 
@@ -441,23 +539,27 @@ subroutine mat_solver(A, A_im, rowIndexes, columnIndexes, b, b_im, nligne, nlign
       zmumps_par%LRHS = nligne
       zmumps_par%NRHS = nlmso
       zmumps_par%NZ = nz
-      ALLOCATE( zmumps_par%IRN ( nz ) )
-      zmumps_par%IRN = rowIndexes
-      ALLOCATE( zmumps_par%JCN ( nz ) )
-      zmumps_par%JCN = columnIndexes
-      ALLOCATE( zmumps_par%A( nz ) )
-      zmumps_par%A = CMPLX(A, A_im, db)
+      zmumps_par%IRN => rowIndexes
+      zmumps_par%JCN => columnIndexes
+      zmumps_par%A => AZ
+    endif
+!  Call package for solution
+    zmumps_par%JOB = 4
+    CALL ZMUMPS(zmumps_par)
+    if ( zmumps_par%INFOG(1) /= 0 ) stop
+    IF ( MYID == 0 ) THEN
+      DEALLOCATE( zmumps_par%IRN )
+      DEALLOCATE( zmumps_par%JCN )
+      DEALLOCATE( zmumps_par%A   )
       ALLOCATE( zmumps_par%RHS ( nligne*nlmso ) )
       do i = 1, nligne
         do j = 1, nlmso
           zmumps_par%RHS(i+nligne*(j-1)) = CMPLX( b(j,i), b_im(j,i), db )
         end do
       end do
+      zmumps_par%JOB = 3
+      CALL ZMUMPS(zmumps_par)
     endif
-!  Call package for solution
-    zmumps_par%JOB = 6
-    CALL ZMUMPS(zmumps_par)
-    if ( zmumps_par%INFOG(1) /= 0 ) stop
 !  Solution has been assembled on the host
     IF ( MYID == 0 ) THEN
       do j = 1, nlmso
@@ -465,9 +567,6 @@ subroutine mat_solver(A, A_im, rowIndexes, columnIndexes, b, b_im, nligne, nlign
         b_im(j,1:nligne) = aimag(zmumps_par%RHS(1+nligne*(j-1) : nligne*j))
       end do
 !  Deallocate user data
-      DEALLOCATE( zmumps_par%IRN )
-      DEALLOCATE( zmumps_par%JCN )
-      DEALLOCATE( zmumps_par%A   )
       DEALLOCATE( zmumps_par%RHS )
     END IF
 !  Destroy the instance (deallocate internal data structures)
@@ -481,11 +580,11 @@ subroutine mat_solver(A, A_im, rowIndexes, columnIndexes, b, b_im, nligne, nlign
 !  for L U factorization (sym = 0, with working host)
     dmumps_par%JOB = -1
     dmumps_par%SYM = 0
-    dmumps_par%PAR = 1
+    dmumps_par%PAR = par
     CALL DMUMPS(dmumps_par)
     dmumps_par%ICNTL(2:3) = -1
     dmumps_par%ICNTL(4) = 2 !printLevel
-    dmumps_par%ICNTL(7) = 5 !sequential ordering (meaningles when ICNTL(28)=2)
+    dmumps_par%ICNTL(7) = 5 !ordering (meaningles when ICNTL(28)=2)
     dmumps_par%ICNTL(14) = 100 !memIncrease
     dmumps_par%ICNTL(28) = 1 ! 2 - use parallel ordering, 1 - sequential
     dmumps_par%ICNTL(29) = 2 ! parallel ordering 
@@ -496,12 +595,18 @@ subroutine mat_solver(A, A_im, rowIndexes, columnIndexes, b, b_im, nligne, nlign
       dmumps_par%LRHS = nligne
       dmumps_par%NRHS = nlmso
       dmumps_par%NZ = nz
-      ALLOCATE( dmumps_par%IRN ( nz ) )
-      dmumps_par%IRN = rowIndexes
-      ALLOCATE( dmumps_par%JCN ( nz ) )
-      dmumps_par%JCN = columnIndexes
-      ALLOCATE( dmumps_par%A( nz ) )
-      dmumps_par%A = A
+      dmumps_par%IRN => rowIndexes
+      dmumps_par%JCN => columnIndexes
+      dmumps_par%A => A
+    endif
+!  Call package for solution
+    dmumps_par%JOB = 4
+    CALL DMUMPS(dmumps_par)
+    if ( dmumps_par%INFOG(1) /= 0 ) stop
+    if ( MYID == 0 ) then
+      DEALLOCATE( dmumps_par%IRN )
+      DEALLOCATE( dmumps_par%JCN )
+      DEALLOCATE( dmumps_par%A   )
       ALLOCATE( dmumps_par%RHS ( nligne*nlmso ) )
       do i = 1, nligne
         do j = 1, nlmso
@@ -509,19 +614,14 @@ subroutine mat_solver(A, A_im, rowIndexes, columnIndexes, b, b_im, nligne, nlign
         end do
       end do
     endif
-!  Call package for solution
-    dmumps_par%JOB = 6
+    dmumps_par%JOB = 3
     CALL DMUMPS(dmumps_par)
-    if ( dmumps_par%INFOG(1) /= 0 ) stop
 !  Solution has been assembled on the host
     IF ( MYID == 0 ) THEN
       do j = 1, nlmso
         b(j,1:nligne) = dmumps_par%RHS(1+nligne*(j-1) : nligne*j)
       end do
 !  Deallocate user data
-      DEALLOCATE( dmumps_par%IRN )
-      DEALLOCATE( dmumps_par%JCN )
-      DEALLOCATE( dmumps_par%A   )
       DEALLOCATE( dmumps_par%RHS )
     END IF
 !  Destroy the instance (deallocate internal data structures)
@@ -530,9 +630,9 @@ subroutine mat_solver(A, A_im, rowIndexes, columnIndexes, b, b_im, nligne, nlign
   endif
   return
 end
-    
-!**************************************************************************************        
-        
+
+!**************************************************************************************************************
+
 subroutine getSolverParams(MPI_host_num_for_mumps,mpinodes0,Solver)
 
   use declarations
