@@ -1854,7 +1854,6 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
                   else
                     ich = min(icheck(19), icheck(27))
                   endif
-
                   if( Green ) then
                     call msm(Axe_Atom_grn,Base_ortho,Cal_xanes,dcosxyz,Ecinetic,Eimag(ie),Full_atom,ia_eq,ia_rep,iaabsi,iaprotoi, &
                       iato,ich,igreq,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato,n_atom_0, &

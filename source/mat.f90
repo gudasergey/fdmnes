@@ -213,9 +213,10 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
 
 ! Inversion
     call invcomp(nlmso,norm,nlmso,nlmso,0,Stop_job)
+! for speedup access to norm
+    norm_t = TRANSPOSE(norm)
 
   endif
-  norm_t = TRANSPOSE(norm)
   
 ! Amplitude en sortie.
   do ia = 1,natome
@@ -747,7 +748,7 @@ end
 ! Calculate one row abvr, abvi and smr, smi
 
 subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clapl, E_comp, Eimag, &
-    Enervide, gradvr, ianew, iato, ibord, icheck, igrph, ii, isbord, iso, ispin, isrt, isvois, ivois, Kar, Kari, &
+    Enervide, gradvr, ianew, iato, ibord, icheck, igrph, ii, isbord, iso, ispin0, isrt, isvois, ivois, Kar, Kari, &
     lato, lb1i, lb1r, lb2i, lb2r, lmaxso, lso, mato, mletl, mso, natome, nbm, nbord, &
     nbordf, nbtm, Neuman, Neumanr, new, newinv, ngrph, nicm, nim, nligne, nligne_i, &
     nligneso, nlmagm, nlmmax, nlmomax, nlmsa, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, npsom, nsm, nso1, &
@@ -760,11 +761,11 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   
   integer, parameter:: nletm = 52
 
-  integer:: i, ia, ib, icheck, ii, ispin, igrph, indg, isol, isp, ispint, ispo, ispp, ispq, ispt, isym, iv, j, jj, &
-    jj1, jjj, k, l, lb1i, lb1r, lb2i, lb2r, ljj, lm, lm0, lmaxso, lmf, lmf0, lmp, lmp0, lms, lp, &
+  integer:: i, ii1, ii2, ia, ib, icheck, ii, ispin, ispin0, igrph, indg, isol, isp, ispint, ispo, ispp, ispq, ispt, isym, &
+    iv, j, jj, jj1, jjj, k, l, lb1i, lb1r, lb2i, lb2r, ljj, lm, lm0, lmaxso, lmf, lmf0, lmp, lmp0, lms, lp, &
     m, mf, mp, natome, nbm, nbtm, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmagm, nlmso, nlmso_i, & 
-    nphiato1, nphiato7, npoint, npsom, nsm, nsort, nsort_c, nsortf, nsort_r, nspino, nspinp, nstm, nso1, nlmsam, nspin, nspinr, &
-    nlmmax, nlmomax, nvois
+    nphiato1, nphiato7, npoint, npsom, nsm, nsort, nsort_c, nsortf, nsort_r, nspino, nspinp, nstm, nso1, nlmsam, nspin, &
+    nspinr, nlmmax, nlmomax, nvois
  
   integer, dimension(0:npoint):: new
   integer, dimension(natome):: ianew, nbord, nbordf, nlmsa
@@ -813,6 +814,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   data let/ ' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z', &
                 'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'/
 
+  ispin = ispin0
   if( icheck > 2 .and. ii == nligne ) then
     write(3,120)
     nlet = 0
@@ -825,11 +827,22 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 
 ! Remplissage de la ligne et des seconds membres.
   i = newinv(ii)
-
+  if ( i .le. 0 .and. Spinorbite ) then
+    do ii1 = 1,nligne
+      if ( newinv(ii1) /= 0 ) exit
+    end do
+    do ii2 = nligne,1,-1
+      if ( newinv(ii2) /= 0 ) exit
+    end do
+    if ( ii1 .le. nligne .and. ii<ii1 .and. MOD(ii1-ii2,2)==0 ) ispin = 3 - ispin0
+  endif
+  
 ! Points du reseau de base
   if( i > 0 ) then
 
-    if( Spinorbite ) ispin = 3 - ispin
+    if( Spinorbite ) then
+      if ( MOD(ii-ii2,2)==0 ) ispin = 3 - ispin0
+    endif
     ispp = min( ispin, nspin )
     indg = 3 - ispin
     ispq = min( indg, nspin )
@@ -1271,7 +1284,9 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       write(3,165) (mlet(k), vletr(k), vleti(k), k = 1,nlet)
     endif
   endif
-    
+  
+!  write(6,*) 'i=',i,'ii=',ii,'ispin=',ispin    
+  
   return
   120 format(/'  FDM Matrix :',/'  ii     i   lb1   lb2   / abr(i = lb1,lb2)')
   130 format(4i6)

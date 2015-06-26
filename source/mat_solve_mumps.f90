@@ -13,20 +13,20 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   include 'mpif.h'
   
   INTERFACE 
-    subroutine expandArrayINT(x, n)
-      integer(kind=8):: n
+    subroutine expandArrayINT(x, n, minsz)
+      integer(kind=8):: n, minsz
       integer, dimension(:), pointer:: x
     end subroutine
     
-    subroutine expandArrayREAL(x, n)
+    subroutine expandArrayREAL(x, n, minsz)
       use declarations
-      integer(kind=8):: n
+      integer(kind=8):: n,minsz
       real(kind=db), dimension(:), pointer:: x
     end subroutine
     
-    subroutine expandArrayCOMPLEX(x, n)
+    subroutine expandArrayCOMPLEX(x, n, minsz)
       use declarations
-      integer(kind=8):: n
+      integer(kind=8):: n,minsz
       complex(kind=db), dimension(:), pointer:: x
     end subroutine
     
@@ -119,8 +119,6 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
   mpirank_in_mumps_group = mod( mpirank0, MPI_host_num_for_mumps )
 
-!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr) !==========================================
-  
 !  Define problem in parallel by mumps group
   if( mpirank0 == 0 ) then
     call CPU_TIME(time)
@@ -171,16 +169,16 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
     numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, Spinorbite,  &
     smi, smr, Vr, Ylmato, Ylmso )
-
+    
 ! expand arrays            
     oldSize = size(rowIndexes)
     if ( oldSize < inz+lb2r-lb1r+1 ) then
-      call expandArrayINT(rowIndexes, oldSize)
-      call expandArrayINT(columnIndexes, oldSize)
+      call expandArrayINT(rowIndexes, oldSize, inz+lb2r-lb1r+1)
+      call expandArrayINT(columnIndexes, oldSize, inz+lb2r-lb1r+1)
       if( Cal_comp ) then
-        call expandArrayCOMPLEX(AZ, oldSize)
+        call expandArrayCOMPLEX(AZ, oldSize, inz+lb2r-lb1r+1)
       else
-        call expandArrayREAL(A, oldSize)
+        call expandArrayREAL(A, oldSize, inz+lb2r-lb1r+1)
       endif
     endif
     
@@ -201,9 +199,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
         A(inz) = abvr(j)
       endif
     end do
-
     deallocate( abvi, abvr )
-   
   end do      ! end of cycle by lines
   nz = inz
   
@@ -220,9 +216,8 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     call gather_sm(smr,smi,nlmso,nligne,nlmso_i,nligne_i,MPI_host_num_for_mumps,mpirank_in_mumps_group,Cal_comp)
     nz = nzSum
   endif
-  if ( mpirank_in_mumps_group == 0 ) then
+  if ( mpirank0 == 0 ) then
     if ( icheck > 0 ) write(3,100) nligne, nz
-    if ( icheck > 0 ) write(6,100) nligne, nz
     if ( icheck > 1 ) then
       nligne8 = nligne
       write(6,'(" Sizes of linear equation system:")')
@@ -242,14 +237,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 ! run solver
   call mat_solver(A, AZ, rowIndexes, columnIndexes, smr, smi, nligne, nligne_i, &
                 nz, nlmso, nlmso_i, Cal_comp, mpirank0, mpirank_in_mumps_group, MPI_host_num_for_mumps, icheck)
-  
-
-!  call MPI_BARRIER(MPI_COMM_MUMPS, mpierr) !==========================================
-  
-!  call CPU_TIME(time)
-!  tt5 = real(time,db)
-!  write(6,*) 'Solve time = ', tt5-tt4,' rank=',mpirank_in_mumps_group
-  
+ 
   if( mpirank0 == 0 ) then
     call CPU_TIME(time)
     tp3 = real(time,db)
@@ -263,12 +251,14 @@ end
 
 !**************************************************************************************************************
 
-subroutine expandArrayINT(x,n)
+subroutine expandArrayINT(x,n,minsz)
   use declarations
   implicit none
-  integer(kind=8):: n
+  integer(kind=8):: n,minsz,newsz
   integer, dimension(:), pointer:: x, x_new
-  allocate(x_new(n*2))
+  newsz = n*2
+  if (newsz < minsz) newsz=minsz
+  allocate(x_new(newsz))
   x_new(1:n) = x(1:n)
   deallocate(x)
   x => x_new
@@ -276,12 +266,14 @@ end
 
 !**************************************************************************************************************
 
-subroutine expandArrayREAL(x,n)
+subroutine expandArrayREAL(x,n,minsz)
   use declarations
   implicit none
-  integer(kind=8):: n
+  integer(kind=8):: n,minsz,newsz
   real(kind=db), dimension(:), pointer:: x, x_new
-  allocate(x_new(n*2))
+  newsz = n*2
+  if (newsz < minsz) newsz=minsz
+  allocate(x_new(newsz))
   x_new(1:n) = x(1:n)
   deallocate(x)
   x => x_new
@@ -289,12 +281,14 @@ end
 
 !**************************************************************************************************************
 
-subroutine expandArrayCOMPLEX(x,n)
+subroutine expandArrayCOMPLEX(x,n,minsz)
   use declarations
   implicit none
-  integer(kind=8):: n
+  integer(kind=8):: n,minsz,newsz
   complex(kind=db), dimension(:), pointer:: x, x_new
-  allocate(x_new(n*2))
+  newsz = n*2
+  if (newsz < minsz) newsz=minsz
+  allocate(x_new(newsz))
   x_new(1:n) = x(1:n)
   deallocate(x)
   x => x_new
@@ -526,7 +520,7 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
     zmumps_par%SYM = 0
     zmumps_par%PAR = par
     CALL ZMUMPS(zmumps_par)
-    zmumps_par%ICNTL(2:3) = -1
+!    zmumps_par%ICNTL(2:3) = -1
     zmumps_par%ICNTL(4) = 2 !printLevel
     zmumps_par%ICNTL(7) = 5 !ordering (meaningles when ICNTL(28)=2)
     zmumps_par%ICNTL(14) = 100 !memIncrease
@@ -557,9 +551,9 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
           zmumps_par%RHS(i+nligne*(j-1)) = CMPLX( b(j,i), b_im(j,i), db )
         end do
       end do
-      zmumps_par%JOB = 3
-      CALL ZMUMPS(zmumps_par)
     endif
+    zmumps_par%JOB = 3
+    CALL ZMUMPS(zmumps_par)
 !  Solution has been assembled on the host
     IF ( MYID == 0 ) THEN
       do j = 1, nlmso

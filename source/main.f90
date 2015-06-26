@@ -985,6 +985,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
     call MPI_Bcast(Gamma_tddft,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Fdmnes_cal,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ngamh,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(icheck,size(icheck),MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
 
     if( mpirank0 == 0 ) l = len_trim(xsect_file)
     call MPI_Bcast(l,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
