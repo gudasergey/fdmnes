@@ -1601,6 +1601,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
             Enervide = Energ(ie) - Workf
 
 ! Calcul du potentiel dans l'etat excite
+            if ( icheck(16) == 1 ) icheck(16) = 0 ! to make parallel and sequential outputs identical (for convenient comparison)
             call potex(Atom_nonsph,axyz,alfpot,Cal_xanes,dV0bdcF,Energ(ie),Enervide,Final_tddft,Full_atom, &
               iaabsi,iapot,iaprotoi,icheck(16),1,iprabs_nonexc,iprabs,itab,itypepr,Magnetic, &
               n_atom_0,n_atom_ind,n_atom_proto,n_vr_0,n_vr_ind,natome,nlm_pot,Nonexc_g,npoint,npoint_ns,npsom,nptmoy, &
@@ -1854,6 +1855,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
                   else
                     ich = min(icheck(19), icheck(27))
                   endif
+                  
                   if( Green ) then
                     call msm(Axe_Atom_grn,Base_ortho,Cal_xanes,dcosxyz,Ecinetic,Eimag(ie),Full_atom,ia_eq,ia_rep,iaabsi,iaprotoi, &
                       iato,ich,igreq,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato,n_atom_0, &
@@ -2980,7 +2982,7 @@ subroutine MPI_Bcast_tddft(imag_taull,je,mpinodes,mpirank,nbseuil,nenerg,nlmamax
 
     if( ie_computer == mpirank ) imag_taull_e(:,:,:,:) = imag_taull(ie,:,:,:,:)
 
-    call MPI_Bcast(imag_taull_e,ndim,MPI_REAL8,ie_computer,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(imag_taull_e,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
 
     call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
 
@@ -3000,8 +3002,8 @@ subroutine MPI_Bcast_tddft(imag_taull,je,mpinodes,mpirank,nbseuil,nenerg,nlmamax
       rof0_i(:,:,:,:) = aimag( rof0(ie,:,:,:,:) )
     endif
 
-    call MPI_Bcast(rof0_r,ndim,MPI_REAL8,ie_computer,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(rof0_i,ndim,MPI_REAL8,ie_computer,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(rof0_r,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
+    call MPI_Bcast(rof0_i,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
 
     call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
 
@@ -3038,8 +3040,8 @@ subroutine MPI_Bcast_Optic(Taull_opt,je,mpinodes,mpirank, nenerg,nlm_probe,nspin
       Taull_i(:,:,:,:) = aimag( Taull_opt(ie,:,:,:,:) )
     endif
 
-    call MPI_Bcast(Taull_r,ndim,MPI_REAL8,ie_computer,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Taull_i,ndim,MPI_REAL8,ie_computer,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Taull_r,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
+    call MPI_Bcast(Taull_i,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
 
     call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
 

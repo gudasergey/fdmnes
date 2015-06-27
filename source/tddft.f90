@@ -1240,8 +1240,8 @@ subroutine MPI_Bcast_Chi_0(Chi_0,jnitl,mpinodes,mpirank, nenerg,ninitlt,nlmamax_
         Chi_0_r(:,:,:,:) = real( Chi_0(ie,:,:,:,:,initl), db)
       endif
 
-      call MPI_Bcast(Chi_0_i,ndim,MPI_REAL8,ie_computer, MPI_COMM_WORLD,mpierr)
-      call MPI_Bcast(Chi_0_r,ndim,MPI_REAL8,ie_computer, MPI_COMM_WORLD,mpierr)
+      call MPI_Bcast(Chi_0_i,ndim,MPI_REAL8,ie_computer, MPI_COMM_GATHER,mpierr)
+      call MPI_Bcast(Chi_0_r,ndim,MPI_REAL8,ie_computer, MPI_COMM_GATHER,mpierr)
 
       call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
 
