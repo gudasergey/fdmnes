@@ -1438,7 +1438,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Dop
           if( nspinp == 1 ) then
             write(3,266) iapr, Z, ( m2, m2 = -l,l ) 
           else
-            write(3,267) iapr, Z, ( ( m2, isp2, m2 = -l,l ), isp2 = 1,nspin )
+            write(3,267) iapr, Z, ( ( m2, isp2, m2 = -l,l ), isp2 = 1,nspinp )
           endif
           do isp1 = 1,nspinp
             do m1 = -l,l

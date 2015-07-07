@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 27 April 2015, 7 Floreal, An 223.
+! FDMNES II program, Yves Joly, Oana Bunau, 3 July 2015, 14 Messidor, An 223.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 
 ! Program performing calculations of x-ray spectroscopies, XANES, RXD, dichroism.
@@ -42,7 +42,7 @@ module declarations
 
   character(len=50):: com_date, com_time
 
-  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 27 April 2015'
+  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 3 July 2015'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -225,7 +225,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 21
-  integer, parameter:: nkw_fdm = 170
+  integer, parameter:: nkw_fdm = 166
   integer, parameter:: nkw_conv = 30
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
@@ -271,7 +271,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   integer, dimension(:,:), allocatable:: indice_par
 
   logical:: bav_open, Bormann, Case_fdm, Check_file, Conv_done, &
-    Convolution_cal, Dafs_bio, E_Fermi_man, Fdmnes_cal, Fit_cal, Gamma_hole_imp, Gamma_tddft, Green_plus, Metric_cal, &
+    Convolution_cal, Dafs_bio, E_Fermi_man, Fdmnes_cal, Fit_cal, Gamma_hole_imp, Gamma_tddft, Metric_cal, &
     Minim_fdm_ok, minimok, Mult_cal, Scan_a, Selec_cal
 
   logical, dimension(:), allocatable:: block_sum
@@ -297,17 +297,17 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
   data kw_fdm1/  &
      'absorbeur','adimp    ','allsite  ','ata      ','atom     ','atom_conf','ang_spin ','atomic_sc','axe_spin ','base_comp', &
-     'base_reel','base_spin','bond     ','bse      ','bse_l    ','bse_nl   ','cartesian','center   ','center_ab','chlib    ', &
+     'base_reel','base_spin','bond     ','cartesian','center   ','center_ab','chlib    ', &
      'clementi ','core_reso','crystal  ','crystal_p','crystal_t','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_', &
      'delta_eps','density  ','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ','edge     ', &
      'e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot','etatlie  ', &
      'excited  ','extract  ','extractpo','extractsy','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ','flapw_s  ', &
      'flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','hubbard  ','iord     ', &
      'kern_fac ','lmax     ','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ','memory_sa','lquaimp  ', &
-     'm1m1     ','m1m2     ','m2m2     ','magnetism','molecule ','molecule_'/
+     'm1m1     ','m1m2     ','m2m2     ','magnetism','molecule ','molecule_','muffintin','multrmax ','n_self   '/
 
   data kw_fdm2/  &
-     'muffintin','multrmax ','n_self   ','nchemin  ','new_refer','no_core_r','no_e1e1  ','no_e1e2  ','no_e1e3  ', &
+     'nchemin  ','new_refer','no_core_r','no_e1e1  ','no_e1e2  ','no_e1e3  ', &
      'no_e2e2  ','no_e3e3  ','no_fermi ','no_res_ma','no_res_mo','no_solsin','normaltau','norman   ','noncentre', &
      'non_relat','nonexc   ','not_eneg ','nrato    ','octupole ','old_refer','one_run  ','optic    ','optic_dat','over_rad ', &
      'overlap  ','p_self   ','perdew   ','pointgrou','polarized', &
@@ -316,7 +316,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
      'screening','solsing  ','spgroup  ','sphere_al', &
      'spherical','spinorbit','state_all','step_azim','supermuf ', 'symmol   ', &
-     'symsite  ','tddft    ','tddft_dat','tddft_sca','temperatu', &
+     'symsite  ','tddft    ','tddft_dat','temperatu', &
      'test_dist','trace    ','vmax     ','v0imp    ','xalpha   ', &
      'xan_atom ','ylm_comp ','z_absorbe','z_nospino','zero_azim'/
 
@@ -356,7 +356,6 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   Gamma_hole_imp = .false.
   Gamma_max = 15._db / Rydb
   Gamma_tddft = .false.
-  Green_plus = .true.
   Length_line = 10 + 10001 * Length_word
   ngamh = 1
   nomfich = 'fdmnes_out'
@@ -967,7 +966,6 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
     call MPI_Bcast(nblock,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ngroup_par,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Length_line,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Green_plus,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(hkl_borm,3,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(e1,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(e2,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -985,7 +983,6 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
     call MPI_Bcast(Gamma_tddft,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Fdmnes_cal,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ngamh,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(icheck,size(icheck),MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
 
     if( mpirank0 == 0 ) l = len_trim(xsect_file)
     call MPI_Bcast(l,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -1330,7 +1327,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
     if( Fdmnes_cal .and. ifdm == 1 ) then
       if( ical > 1 ) Close(3)
       call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal, &
-        Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_plus,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
+        Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
         itape1,itape4,MPI_host_num_for_mumps,mpinodes0,mpirank,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
         nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file)
       if( sum(icheck(1:27)) > 0 ) then
@@ -1344,7 +1341,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
     if( Convolution_cal ) call convolution(bav_open,Bormann,Conv_done, &
         convolution_out,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max, &
-        Green_plus,ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,length_line, &
+        ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,length_line, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav, npar,nparm,param,Scan_a,typepar,ncal,xsect_file)
 
     if( Metric_cal ) then
@@ -1449,7 +1446,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
     if( Fdmnes_cal .and. Minim_fdm_ok .and. ncal /= ncal_nonfdm ) then
       Close(3)
       call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal, &
-        Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_plus,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
+        Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
         itape1,itape4,MPI_host_num_for_mumps,mpinodes0,mpirank,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
         nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file)
 
@@ -1463,7 +1460,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
     if( mpirank0 == 0 ) then
       if( Convolution_cal ) call convolution(bav_open,Bormann, .false., &
         convolution_out,Delta_edge,E_cut_imp,E_Fermi_man,Ecent, Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max, &
-        Green_plus,ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,length_line, &
+        ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,length_line, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,ncal,xsect_file)
 
       call metric(comt,convolution_out,Dafs_bio,Dist_min, Dist_min_g,fdmfit_out,Fit_cal,Gen_Shift_min,ical, &

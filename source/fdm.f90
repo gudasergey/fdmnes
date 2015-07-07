@@ -2,7 +2,7 @@
 ! Contain the main of the FDM-MST part of the calculation
 
 subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal, &
-        Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_plus,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
+        Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
         itape1,itape4,MPI_host_num_for_mumps,mpinodes0,mpirank,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
         nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file)
 
@@ -12,25 +12,25 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
   integer, parameter:: nslapw_max = 48  ! Max number of symmetry matrix for the FLAPW data
 
-  integer:: extract_nenerg, i, i_range, i_self, ia, iaabs, iaabsfirst, iabsfirst, iaabsi, iabsorbeur, iapr, iaprabs, ich, &
-    ie, ie_computer, igr, igr_dop, igrph, igrpt_nomag, igrpt0, imparite, index_e, initl, iord, ip_max, ip0, ip00, ipr, ipr1, &
+  integer:: extract_nenerg, i, i_self, ia, iaabs, iaabsfirst, iabsfirst, iaabsi, iabsorbeur, iapr, iaprabs, ich, &
+    ie, ie_computer, igr, igr_dop, igrph, igrpt_nomag, igrpt0, index_e, initl, iord, ip_max, ip0, ip00, ipr, ipr1, &
     ipr_dop, iprabs, iprabs_nonexc, ir, is, iscratch, iso1, iso2, isp1, isp2, ispin, iss1, iss2, istat, &
-    it, itab, itabs, itabs_nonexc, itape1, itape4, itph, itpm, itps, itype_dop, j, je, jseuil, l, l_hubbard, l_selec_max, l1, &
-    l2, lamstdens, lecrantage, lh, lin_gam, lla_state, lla2_state, lm1, lm1g, lm2, lm2g, &
-    lmax, lmax_pot, lmax_t, lmaxabs, lmaxabs_t, lmaxabsa, lmaxat0, lmaxg, lmaxmax, lmaxso, lmaxso_max, lmax_probe, lmaxso0, &
-    lmv1, lmv2, lseuil, m, m_hubb, m_hubb_e, m1, m2, MPI_host_num_for_mumps, mpierr, mpinodee, mpinodes, mpinodes0, mpirank, &
-    mpirank0, mpirank_in_mumps_group, multi_imp, multi_run, multrmax, n, n_oo, n_atom_0, n_atom_0_t, n_atom_0_self, &
-    n_atom_ind, n_atom_ind_t, n_atom_ind_self, n_atom_proto, n_atom_proto_p, n_devide, n_energy_range, &
+    it, itab, itabs, itabs_nonexc, itape1, itape4, itph, itpm, itps, itype_dop, j, je, jseuil, ke, l, l_hubbard, l_selec_max, &
+    lamstdens, lecrantage, lh, lin_gam, lla_state, lla2_state, lm1, lm2, lmax, lmax_pot, &
+    lmaxabs, lmaxabs_t, lmax_tddft, lmaxabsa, lmaxat0, lmaxg, lmaxmax, lmaxso, lmaxso_max, lmax_probe, lmaxso0, &
+    lms1, lms2, lseuil, m, m_hubb, m_hubb_e, m2, MPI_host_num_for_mumps, mpierr, mpinodee, mpinodes, mpinodes0, mpirank, &
+    mpirank0, mpirank_in_mumps_group, multi_imp, multi_run, multrmax, n, n_oo, n_atom_0, n_atom_0_self, &
+    n_atom_ind, n_atom_ind_self, n_atom_proto, n_atom_proto_p, n_devide, &
     n_file_dafs_exp, n_multi_run, n_multi_run_e, n_orbexc, n_vr_0, n_vr_ind, n_tens_dd, n_tens_dq, n_tens_qq, &
     n_tens_t, n_tens_max, n1, natome, natome_cal, natome_self, natomeq, natomeq_coh, natomeq_s, natomeq_self, natomp, &
-    natomsym, natomsym_max, nb_atom_conf_m, nb_rep, nb_sym_op, nbbseuil, nbm, nbseuil, nbtm, nbtm_fdm, nchemin, ncolm, ncolr, &
-    ncolt, ndim1, ndim2, necrantage, neimagent, nenerg, nenerg_coh, nenerg_s, nenerg_tddft, neqm, ngamh, ngamme, nge, &
-    ngrm, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_neq, &
-    ngroup_nonsph, ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, ngrph, nhybm, nicm, nim, ninit1, ninitl, ninitlr, &
-    ninitlt, ninitlv, nklapw, nlatm, nlm_pot, nlm_probe, nlma, nlma2, nlmagm, nlmamax, nlmam_u, nlmamax_u, &
-    nlmlapwm, nlmmax, nlmomax, nlmsam, nlmsamax, nlmso, nmatsym, nnlm, nnotskip, nnotskipm, norbdil, normrmt, &
+    natomsym, natomsym_max, n_Ec, n_V, nb_atom_conf_m, nb_rep, nb_sym_op, nbbseuil, nbm, nbseuil, nbtm, nbtm_fdm, nchemin, &
+    ncolm, ncolr, ncolt, ndim2, necrantage, neimagent, nenerg, nenerg_coh, nenerg_s, nenerg_tddft, neqm, ngamh, ngamme, nge, &
+    ngrm, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_neq, ngroup_nonsph, ngroup_par, ngroup_pdb, &
+    ngroup_taux, ngroup_temp, ngrph, nhybm, nicm, nim, ninit1, ninitl, ninitl_out, ninitlr, &
+    ninitlv, nklapw, nlatm, nlm_pot, nlm_probe, nlm_p_fp, nlmagm, nlmamax, &
+    nlmlapwm, nlmmax, nlmomax, nlms_pr, nlmsam, nlmsamax, nlmso, nmatsym, nnlm, nnotskip, nnotskipm, norbdil, normrmt, &
     nparm, nphiato1, nphiato7, nphim, npldafs, nple, nplr, nplrm, npoint, npoint_ns, npr, &
-    npso, npsom, nptmoy, nptmoy_out, nr, nrato_dirac, nrm, nrm_self, nself, nseuil, nslapwm, &
+    npso, npsom, nptmoy, nptmoy_out, nr, nrato_dirac, nrm, nrm_self, ns_dipmag, nself, nseuil, nslapwm, &
     nso1, nsort, nsortf, nsm, nspin, nspino, nspinp, nspinorb, nstm, ntype, ntype_conf, numat_abs, nvois, nx, &
     nxanout, Trace_k, Wien_save, Z, Z_nospinorbite
 
@@ -41,7 +41,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
     nomfich_s, nomfich_optic_data, nomfich_tddft_data, Space_file, xsect_file
 
   character(len=9), dimension(ngroup_par,nparm):: typepar
-  character(len=6), dimension(10):: nomspr
+  character(len=6), dimension(21):: Name_rout
   character(len=132), dimension(9):: Wien_file
 
   character(len=13), dimension(:), allocatable:: ltypcal
@@ -53,7 +53,8 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   complex(kind=db), dimension(:,:), allocatable:: karact, phdafs, phdf0t, phdt, pol, poldafsem, poldafssm
   complex(kind=db), dimension(:,:,:), allocatable:: hybrid, poldafse, poldafss
   complex(kind=db), dimension(:,:,:,:), allocatable:: secdd, secdd_m, secmd, secmd_m, secmm, secmm_m, V_hubb_abs, V_hubb_t
-  complex(kind=db), dimension(:,:,:,:,:), allocatable::  rof0, secdq, secdq_m, Tau_ato, Taull, Taull_opt, V_hubb, V_hubb_s
+  complex(kind=db), dimension(:,:,:,:,:), allocatable::  rof0, secdq, secdq_m, Tau_ato, Taull, Taull_tdd, V_hubb, &
+                                                         V_hubb_s
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: secdo, secdo_m, secoo, secoo_m, secqq, secqq_m, taull_stk
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Taull_abs
 
@@ -83,12 +84,12 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   integer, dimension(:,:,:,:), allocatable:: msymoo, msymooi
 
   logical:: Absauto, Absorbeur, Allsite, ATA, Atom_nonsph, Atom_nonsph_loc, Atom_occ_hubb, Atomic_scr, Axe_loc, Basereel, &
-     Base_hexa, Base_ortho, Base_spin, Bormann, BSE, Clementi, Cal_xanes, Cartesian_tensor, Charge_free, Convergence, &
+     Base_hexa, Base_ortho, Base_spin, Bormann, Clementi, Cal_xanes, Cartesian_tensor, Charge_free, Convergence, &
      Core_resolved, Convolution_cal, Coupelapw, Dafs, Dafs_bio, Density, Density_comp, Devide_Ei, Dipmag, &
      Doping, Dyn_eg, Dyn_g, E_comp, E1E2e, E_Fermi_man, Eneg, Eneg_i, Eneg_n_i, Energphot, Extract, &
      Extract_Green, Fermi, Fermi_first, Final_optic, Final_tddft, Fit_cal, Flapw, Flapw_new, Force_ecr, &
      Full_atom, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green, Green_i, Green_int, &
-     Green_plus, Green_s, Green_self, Hubb_a, Hubb_d, Hubbard, key_calc, korigimp, &
+     Green_s, Green_self, Hubb_a, Hubb_d, Hubbard, key_calc, korigimp, &
      Level_val_abs, Level_val_exc, lmaxfree, lmoins1, lplus1, Magnetic, Matper, Memory_save, Moy_cluster, &
      Moy_loc, Moyenne, Muffintin, No_solsing, Noncentre, Nonexc_g, Nonexc, Normaltau, Octupole, Old_reference, One_run, &
      Optic, Optic_xanes, Overad, Pdb, PointGroup_Auto, Polarise, Proto_all, Quadmag, &
@@ -97,7 +98,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
      SCF_mag_free, Second_run, Self_abs, Self_cons, Self_nonexc, &
      Solsing, Solsing_s, Solsing_o, Solsing_only, Spherical_signal, Spherical_tensor, Spino, Spinorbite, State_all, &
      State_all_out, Supermuf, Sym_4, Sym_cubic, Symauto, Symmol, Tau_nondiag, Taux, Tddft, &
-     Tddft_so, Tddft_xanes, Temperature, Trace_format_wien, Xan_atom, Ylm_comp, Ylm_comp_inp
+     Tddft_xanes, TdOpt_Xanes, Temperature, Trace_format_wien, Xan_atom, Ylm_comp, Ylm_comp_inp
 
   logical, dimension(4):: SCF_log
   logical, dimension(10):: Multipole
@@ -105,41 +106,41 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   logical, dimension(:), allocatable:: Atom_axe, Atom_with_axe, Atom_nsph_e, Hubb, Hubb_diag, Repres_comp, &
      Run_done, Skip_run
 
-  real(kind=db):: adimp, alfpot, Ang_borm, Cal_Volume_maille, chargm, d_ecrant, D_max_pot, Delta_E_conv, Delta_edge, &
+  real(kind=db):: adimp, alfpot, Ang_borm, Cal_Volume_maille, chargm, d_ecrant, D_max_pot, de, Delta_E_conv, Delta_edge, &
      Delta_En_conv, Delta_energ, Delta_energ_s, Delta_energ_t, Delta_Epsii, Delta_Eseuil, Densite_atom, E_cut, &
-     E_cut_imp, E_Fermi, E_Open_val, E_Open_val_exc, E_start, Ecent, Ecineticmax, Ecineticmax_out, &
-     Eclie, Ecmax, Ecmax_out, Ei0, Eii, Elarg, Em, En_cluster, En_cluster_s, En_cluster_t, &
+     E_cut_imp, E_Fermi, E_Open_val, E_Open_val_exc, E_start, Ec, Ecent, Ecineticmax, Ecineticmax_out, &
+     Eclie, Eclie_out, Ecmax, Ecmax_out, Ei0, Eii, Elarg, Em, En_cluster, En_cluster_s, En_cluster_t, &
      Energ_max, Enervide, Enragr, Epsii_moy, Estart, Extract_E_cut, Extract_V0bdcF, &
      Gamma_max, Kern_fac, overlap, p_self, p_self_s, p_self_t, p_self0, Pas_SCF, R_rydb, R_self, Rmax, &
      Rmtsd_abs, Roverad, Rpotmax, rsbdc, rsbdc_out, Rsort, Rsorte, Rsorte_s, Rtph, &
-     Temp, Test_dist_min, tp_init, tp_SCF_1, tp_SCF_2, tp1, tp2, tpt_tot, tpt1, tpt2, tptt, V_intmax, V0muf, &
+     Temp, Test_dist_min, Time_fill, Time_tria, Time_init, Time_tot, tp_SCF_1, tp_SCF_2, V_intmax, V0muf, &
      Vhbdc, Vhbdc_out, Volume_maille, Vsphere, Workf
 
   real(kind=db), dimension(2):: chg_open_val, f_no_res, pop_open_val
   real(kind=db), dimension(3):: Ang_rotsup, angxyz, axyz, dcosxyz, deccent, dpos, Vec_orig
   real(kind=db), dimension(6):: Trace_p
-  real(kind=db), dimension(7):: tp
-  real(kind=db), dimension(10) :: Gamma_hole
-  real(kind=db), dimension(12) :: tpt
+  real(kind=db), dimension(7):: Time_loc
+  real(kind=db), dimension(10):: Gamma_hole
+  real(kind=db), dimension(21):: Time_rout
   real(kind=db), dimension(3,3):: Cubmat, Orthmat, Mat_or, Orthmati, Rot_atom_abs, Rot_int
   real(kind=db), dimension(ngroup_par,nparm):: param
 
   real(kind=db), dimension(:), allocatable:: Angle_or, cdil, ch_coeur, chargat, chg_cluster, cgrad, clapl, dista, distai, &
-     dV0bdcF, dvc_ex_nex, dv_ex_nex, E_starta, Ecinetic, Ecinetic_out, Ecrantage, Eeient, Energ, Egamme, Eimag, &
-     Eimag_coh, Eimag_s, Eimagent, Energ_coh, Energ_s, Energ_self, Energ_self_s, En_coeur, En_coeur_s, Epsii, Eseuil, &
+     dV0bdcF, dvc_ex_nex, dv_ex_nex, E_starta, Ecinetic, Ecinetic_out, Ecrantage, Eeient, Egamme, Eimag, Eimag_coh, Eimag_s, &
+     Eimagent, En_coeur, En_coeur_s, Energ, Energ_coh, Energ_s, Energ_self, Energ_self_s, Enervide_t, Epsii, Eseuil, &
      poidso, poidsov, poidsov_out,  popatc, r0_lapw, r, rchimp, &
-     rhons, rlapw, rmt, rmtimp, rmtg, rmtg0, rmtsd, rs, rsato_abs, rvol, sec_atom, Taux_eq, Taux_ipr, Taux_oc, Temp_coef, &
-     V_hubbard, Vh, Vhns, V0bdc, V0bdcF, V0bdc_out, V0bdcFimp, VxcbdcF, VxcbdcF_out
+     rhons, rlapw, rmt, rmtimp, rmtg, rmtg0, rmtsd, rs, rsato_t, rvol, sec_atom, Taux_eq, Taux_ipr, Taux_oc, &
+     Temp_coef, V_hubbard, Vh, Vhns, V0bdc, V0bdcF, V0bdc_out, V0bdcFimp, VxcbdcF, VxcbdcF_out
   real(kind=db), dimension(:,:), allocatable :: coef_g, angpoldafs, Axe_atom_clu, Axe_atom_gr, Axe_atom_grn, &
      chargat_init, chargat_self, chargat_self_s, drho_ex_nex, Excato, Int_tens, pdp, pdpolar, poidsa, &
      polar, pop_nonsph, pop_orb_val, popatv, popexc, pos, poseq, posi, posi_self, posn, psi_open_val, psii, &
-     rato, rho, rhoa, rho_coeur, rhoato_abs, rhoit, rsato, rsato_t, V_abs_i, Vcato_init, vecdafsem, &
+     rato, rho, rho_coeur, rhoato_abs, rhoit, rsato, V_abs_i, Vcato_init, Vcato_t, vecdafsem, &
      vecdafssm, veconde, Vr, Vxc, vec, Wien_taulap, xyz, Ylmso
   real(kind=db), dimension(:,:,:), allocatable:: gradvr, Int_statedens, popatm, &
      popats, popval, posq, psi_coeur, psival, rho_chg, rho_self_t, rhoato_init, rot_atom, rot_atom_gr, &
-     rotloc_lapw, Vcato, Vcato_t, vecdafse, vecdafss, Vra, Vrato_e, Ylmato
-  real(kind=db), dimension(:,:,:,:), allocatable:: occ_hubb_e, rho_self, rho_self_s, Vrato, Vxcato, Vxcato_t
-  real(kind=db), dimension(:,:,:,:,:), allocatable:: drho_self, imag_taull, occ_hubb,  occ_hubb_i
+     rotloc_lapw, Vcato, vecdafse, vecdafss, Vra, Vrato_e, Vxcato_t, Ylmato
+  real(kind=db), dimension(:,:,:,:), allocatable:: occ_hubb_e, rho_self, rho_self_s, Vrato, Vxcato
+  real(kind=db), dimension(:,:,:,:,:), allocatable:: drho_self, occ_hubb,  occ_hubb_i
   real(kind=db), dimension(:,:,:,:,:,:), allocatable:: phiato, Statedens, Statedens_i
 
   real(kind=sg) time
@@ -147,14 +148,15 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   parameter( n_tens_dd=9, n_tens_dq=15, n_tens_qq=25, n_tens_t = n_tens_dd + n_tens_dq + n_tens_qq, &
            n_tens_max = 8 + 2 * n_tens_t + 2 * n_tens_dq )
 
-  data nomspr/'Lectur','Reseau','Potent','Ylm   ','Potex ', 'Sphere','Mat   ','Tensor','Densit','Coabs '/
+  data Name_Rout/'Lectur','Reseau','Potent','Ylm   ','Potex ','Sphere','Mat   ','Fillin','Triang','Densit','Tensor','Coabs ',&
+                 'Radial','Chi_0 ','Kern  ','Chi   ','SCF   ','Xanes ','Optic ','Tddft ','Total '/
 
   mpirank_in_mumps_group = mod( mpirank0, MPI_host_num_for_mumps )
   mpinodes = mpinodes0 / MPI_host_num_for_mumps
 
   if( mpirank0 == 0 ) then
     call CPU_TIME(time)
-    tp1 = real(time,db)
+    Time_loc(1) = real(time,db)
   endif
 
   E_Fermi = -5._db / Rydb
@@ -164,6 +166,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   Moy_cluster = .true.
   iaabsfirst = 0
   ipr_dop = 0
+  lmax_tddft = 3
 
   call lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extract,Flapw,Full_self_abs,Hubbard,itape4, &
     Magnetic,Memory_save,mpinodes0,mpirank0,n_file_dafs_exp,n_multi_run_e,nb_atom_conf_m,ncolm,neimagent, &
@@ -278,9 +281,9 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   if( mpinodes0 > 1 ) call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
 
   call lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,ATA,Atom_occ_hubb,Atom_nonsph, &
-    Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,Base_spin,Basereel,Bormann,BSE,Cartesian_tensor,Charge_free,Clementi, &
+    Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,Base_spin,Basereel,Bormann,Cartesian_tensor,Charge_free,Clementi, &
     com,comt,Core_resolved,Coupelapw,Cubmat,D_max_pot,Dafs,Dafs_bio,Delta_En_conv, &
-    Delta_Epsii,Density,Density_comp,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,Eclie,Ecrantage,Eeient,Egamme,Eimagent, &
+    Delta_Epsii,Density,Density_comp,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent, &
     Eneg_i,Eneg_n_i,Energphot,Extract,f_no_res,Fit_cal,Flapw,Flapw_new, &
     Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s, &
     Green_self,hkl_borm,hkl_dafs,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,iscratch, &
@@ -301,7 +304,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
     r0_lapw,rchimp,Readfast,Recup_optic,Recup_tddft_data,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,Rydberg,rsorte_s,Save_optic,Save_tddft_data,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Solver,Space_file,Spherical_signal,Spherical_tensor, &
-    Spinorbite,State_all,State_all_out,Struct,Supermuf,Symauto,Symmol,Taux,Taux_oc,Tddft,Tddft_so, &
+    Spinorbite,State_all,State_all_out,Struct,Supermuf,Symauto,Symmol,Taux,Taux_oc,Tddft, &
     Temp,Temp_coef,Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,V_hubbard,V_intmax,Vec_orig, &
     Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Ylm_comp_inp,Z_nospinorbite)
 
@@ -530,14 +533,45 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
     Green_s = Extract_Green(nom_fich_extract)
   else
     if( Recup_tddft_data ) call Recup_nenerg(Energ_max,mpirank0,nenerg_s,nomfich_tddft_data)
-    if( Recup_optic ) call Recup_optic_dim(E_cut,Full_atom,iaabsi,iprabs,mpirank0,natome,nenerg_s,nlm_pot,nlm_probe, &
-                                           nomfich_optic_data)
+    if( Recup_optic ) call Recup_optic_dim(E_cut,mpirank0,nenerg_s,nlm_pot,nlm_probe,nlmamax,nomfich_optic_data)
     allocate( Energ_s(nenerg_s) )
     allocate( Eimag_s(nenerg_s) )
     if( Recup_tddft_data .or. Recup_optic ) then
       if( Recup_tddft_data ) Energ_s(nenerg_s) = Energ_max
     else
-      call grille_xanes(eeient,eimag_s,eimagent,egamme,Energ_s,icheck(4),lin_gam,ngamme,neimagent,nenerg_s)
+      call grille_xanes(eeient,Eimag_s,eimagent,egamme,Energ_s,icheck(4),lin_gam,ngamme,neimagent,nenerg_s)
+      if( Optic ) then
+        do ie = 1,nenerg_s
+          if( Energ_s(ie) > eps10 ) exit
+        end do
+        if( ie > nenerg_s ) stop
+        if( ie + 1 <= nenerg_s ) then
+          de = ( Energ_s(ie+1) - Energ_s(ie) ) / 2
+        elseif( ie - 1 > 0 ) then
+          de = ( Energ_s(ie) - Energ_s(ie-1) ) / 2
+        else
+          de = Energ_s(ie) / 2
+        endif
+        nenerg = 2 * ( nenerg_s - ie + 1 )
+
+        allocate( Energ(nenerg ) )
+        ke = nenerg / 2 + 1
+        ie = ie - 1
+        do je = nenerg / 2 + 1, nenerg
+          ie = ie + 1
+          ke = ke - 1
+          Energ(je) = Energ_s(ie) - de
+          Energ(ke) = - Energ(je)
+        end do
+        Ec = Eimag_s(1)
+        deallocate(Eimag_s,  Energ_s )
+        nenerg_s = nenerg
+        allocate( Energ_s(nenerg_s) )
+        allocate( Eimag_s(nenerg_s) )
+        Energ_s(:) = Energ(:)
+        Eimag_s(:) = Ec
+        deallocate( Energ )
+      endif
     endif
   endif
 
@@ -552,8 +586,8 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
   if( mpirank0 == 0 ) then
     call CPU_TIME(time)
-    tp2 = real(time,db)
-    tpt(1) = tp2 - tp1
+    Time_loc(2) = real(time,db)
+    Time_rout(1) = Time_loc(2) - Time_loc(1)
   endif
 
   allocate( nomfich_cal_conv(n_multi_run) )
@@ -565,12 +599,10 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   boucle_multi: do multi_run = 1,n_multi_run
 
     if( mpirank0 == 0 ) then
-      tpt(2:12) = 0._db
-      tpt1 = 0._db
-      tpt2 = 0._db
+      Time_rout(2:21) = 0._db
       call CPU_TIME(time)
-      tp(1) = real(time,db)
-      tp_init = tp(1)
+      Time_loc(1) = real(time,db)
+      Time_init = Time_loc(1)
     endif
 
     Second_run = multi_run > 1 .and. One_run
@@ -730,1032 +762,999 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
       allocate( VxcbdcF_out(nspin) )
     end if
 
-    if( Optic .and. .not. Extract ) then
-! En optique, on traite differemment les états non excites sous Fermi
-      n_energy_range = 1
+! Preambule coherence:
+    if( Self_cons .and. .not. Second_run .and. .not. Recup_optic ) then
+      Convergence = .false.
     else
-      n_energy_range = 1
+      Convergence = .true.
+    end if
+    if( Self_cons .and. .not. Second_run .and. (Optic .or. tddft) ) then
+      Fermi_first = .true.
+      Devide_Ei = .true.
+    else
+      Fermi_first = .false.
+      Devide_Ei = .false.
     endif
 
-! Boucle etats occupes - etats inoccupes
-    boucle_energy_range: do i_range = 1,n_energy_range
-
-      if( n_energy_range == 2 ) then
-        do ipr = 3,6,3
-          if( icheck(1) == 0 .and. ipr == 3 ) cycle
-          if( i_range == 1 ) then
-            write(ipr,'(/a21)') '  Occupied state part'
-          else
-            write(ipr,'(/a20)') '  Excited state part'
-          endif
-        end do
-      endif
-
-! Preambule coherence:
-      if( Self_cons .and. .not. Second_run .and. .not. Recup_optic ) then
-        Convergence = .false.
-      else
-        Convergence = .true.
-      end if
-      if( Self_cons .and. .not. Second_run .and. (Optic .or. tddft) ) then
-        Fermi_first = .true.
-        Devide_Ei = .true.
-      else
-        Fermi_first = .false.
-        Devide_Ei = .false.
-      endif
-
 ! Boucle coherence
-      boucle_coh: do i_self = 1,nself+1
+    boucle_coh: do i_self = 1,nself+1
 
-        if( Convergence .and. i_self < nself + 1 ) cycle
+      if( Convergence .and. i_self < nself + 1 ) cycle
 
-        if( i_self == nself + 1 ) then
-          Cal_xanes = .true.
+      if( i_self == nself + 1 ) then
+        Cal_xanes = .true.
+      else
+        Cal_xanes = Convergence
+        Fermi = .false.
+        E_Fermi = -5._db / Rydb
+        E_cut = -5._db / Rydb
+      end if
+
+      if( i_self == 1 ) then
+        call CPU_TIME(time)
+        tp_SCF_1 = real(time,db)
+      endif
+      if( Cal_xanes ) then
+        tp_SCF_2 = real(time,db)
+        if( Recup_optic ) then
+          Time_rout(17) = 0._db ! SCF
         else
-          Cal_xanes = Convergence
-          Fermi = .false.
-          E_Fermi = -5._db / Rydb
-          E_cut = -5._db / Rydb
-        end if
-
-        if( i_self == 1 ) then
           call CPU_TIME(time)
-          tp_SCF_1 = real(time,db)
+          Time_rout(17) = tp_SCF_2 - tp_SCF_1
         endif
-        if( Cal_xanes ) then
-          if( Recup_optic ) then
-            tpt(11) = 0._db
-          else
-            call CPU_TIME(time)
-            tp_SCF_2 = real(time,db)
-            tpt(11) = tp_SCF_2 - tp_SCF_1
-          endif
-        endif
+      endif
 
-        Level_val_abs = .false.
-        Level_val_exc = .false.
+      Level_val_abs = .false.
+      Level_val_exc = .false.
 
 ! Par defaut, le calcul auto-coherent se fait en diffusion multiple
 ! Un calcul non auto-coherent est mene en mode donne en entree
+      if( Cal_xanes ) then
+        natomeq = natomeq_s
+        Green = Green_s
+        rsorte = rsorte_s
+       else
+        natomeq = natomeq_coh
+        Green = Green_self
+        rsorte = r_self
+      endif
+      if( Cal_xanes .and. ( Tddft .or. Optic ) ) then
+        Eneg = .false.
+      elseif( Green ) then
+        Eneg = .not. Eneg_n_i
+      else
+        Eneg = Eneg_i
+      endif
+
+      if( icheck(4) > 0 ) then
         if( Cal_xanes ) then
-          natomeq = natomeq_s
-          Green = Green_s
-          rsorte = rsorte_s
-         else
-          natomeq = natomeq_coh
-          Green = Green_self
-          rsorte = r_self
-        endif
-        if( Cal_xanes .and. ( Tddft .or. Optic ) ) then
-          Eneg = .false.
-        elseif( Green ) then
-          Eneg = .not. Eneg_n_i
+          write(3,140)
         else
-          Eneg = Eneg_i
+          write(3,150) i_self
         endif
+      endif
 
-        if( icheck(4) > 0 ) then
-          if( Cal_xanes ) then
-            write(3,140)
-          else
-            write(3,150) i_self
-          endif
-        endif
+      if( Cal_xanes .and. icheck(27) > 0 ) write(3,160) E_cut * Rydb
 
-        if( Cal_xanes .and. icheck(27) > 0 ) write(3,160) E_cut * Rydb
-
-        if( i_self > 1 .and. Cal_xanes .and. .not. ( Second_run .or. Recup_optic ) ) deallocate( karact )
-        if( i_self == 1 .or. Cal_xanes ) then
-          allocate( karact(nopsm,nrepm) )
-          if( Cal_xanes ) then
-            Nonexc_g = Nonexc
-          else
-            Nonexc_g = Self_nonexc
-          endif
-          if( Nonexc_g ) then
-            ipr1 = 1
-            itab = itabs_nonexc
-          else
-            ipr1 = 0
-            itab = itabs
-          endif
-          if( Cal_xanes .and. i_range == 1 ) then
-            ich = icheck(5)
-          elseif( icheck(27) > 1 ) then
-            ich = max( icheck(5), icheck(27) )
-          else
-            ich = 0
-          endif
-
-          call agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn,axyz,Base_hexa,Base_ortho, &
-            chargat,chargm,Cubmat,dcosxyz,deccent,dista,Doping,dpos,Flapw,iaabs,iaabsfirst,iabsorbeur,iaproto,iapot, &
-            ich,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,iopsymc,iopsymr,itab,itype,itypep,karact,Kgroup,Magnetic,Matper, &
-            mpirank0,multi_run,n_atom_proto,natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat, &
-            nlatm,Noncentre,Nonexc_g,nspin,ntype,numat,One_run,Orthmat,Orthmati,PointGroup,PointGroup_Auto, &
-            popats,pos,posn,rmax,Rot_int,Self_nonexc,Spinorbite,Rot_Atom_gr,Sym_4,Struct,Sym_cubic,Symmol,Taux,Taux_oc,Vsphere)
-
-          if( .not. One_run .or. ( One_run .and. multi_run == 1 ) ) iaabsfirst = iaabs
-
-        endif
-
+      if( i_self > 1 .and. Cal_xanes .and. .not. ( Second_run .or. Recup_optic ) ) deallocate( karact )
+      if( i_self == 1 .or. Cal_xanes ) then
+        allocate( karact(nopsm,nrepm) )
         if( Cal_xanes ) then
+          Nonexc_g = Nonexc
+        else
+          Nonexc_g = Self_nonexc
+        endif
+        if( Nonexc_g ) then
+          ipr1 = 1
+          itab = itabs_nonexc
+        else
+          ipr1 = 0
+          itab = itabs
+        endif
+        if( Cal_xanes ) then
+          ich = icheck(5)
+        elseif( icheck(27) > 1 ) then
+          ich = max( icheck(5), icheck(27) )
+        else
+          ich = 0
+        endif
+
+        call agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn,axyz,Base_hexa,Base_ortho, &
+          chargat,chargm,Cubmat,dcosxyz,deccent,dista,Doping,dpos,Flapw,iaabs,iaabsfirst,iabsorbeur,iaproto,iapot, &
+          ich,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,iopsymc,iopsymr,itab,itype,itypep,karact,Kgroup,Magnetic,Matper, &
+          mpirank0,multi_run,n_atom_proto,natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat, &
+          nlatm,Noncentre,Nonexc_g,nspin,ntype,numat,One_run,Orthmat,Orthmati,PointGroup,PointGroup_Auto, &
+          popats,pos,posn,rmax,Rot_int,Self_nonexc,Spinorbite,Rot_Atom_gr,Sym_4,Struct,Sym_cubic,Symmol,Taux,Taux_oc,Vsphere)
+
+        if( .not. One_run .or. ( One_run .and. multi_run == 1 ) ) iaabsfirst = iaabs
+
+      endif
+
+      if( Cal_xanes ) then
 
 ! Evaluation de la forme des tenseurs cartesiens
-          call Tensor_shape(Atom_with_axe,Atom_nonsph,Axe_atom_clu,Base_ortho,dcosxyz,Dipmag, &
-               E1E2e,Green,iaabs,icheck(6),igroup,igrpt0,iopsymc,iopsymr,itype,itypep,ldip,loct,lqua,lseuil,Magnetic, &
-               msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_oo,natomp,ngroup, &
-               ngroup_m,nlat,nlatm,nspin,ntype,numat,Octupole,popats,pos,Quadrupole,rot_atom_abs,Rot_int, &
-               Spinorbite,State_all,Symmol,Tensor_imp)
+        call Tensor_shape(Atom_with_axe,Atom_nonsph,Axe_atom_clu,Base_ortho,dcosxyz,Dipmag, &
+             E1E2e,Green,iaabs,icheck(6),igroup,igrpt0,iopsymc,iopsymr,itype,itypep,ldip,loct,lqua,lseuil,Magnetic, &
+             msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_oo,natomp,ngroup, &
+             ngroup_m,nlat,nlatm,nspin,ntype,numat,Octupole,popats,pos,Quadrupole,rot_atom_abs,Rot_int, &
+             Spinorbite,State_all,Symmol,Tensor_imp)
 
-          allocate( poldafse(3,npldafs,nphim) )
-          allocate( poldafss(3,npldafs,nphim) )
-          allocate( phdafs(natomsym,npldafs) )
-          allocate( phdf0t(npldafs,nphim) )
-          allocate( phdt(npldafs,nphim) )
-          allocate( vecdafse(3,npldafs,nphim) )
-          allocate( vecdafss(3,npldafs,nphim) )
+        allocate( poldafse(3,npldafs,nphim) )
+        allocate( poldafss(3,npldafs,nphim) )
+        allocate( phdafs(natomsym,npldafs) )
+        allocate( phdf0t(npldafs,nphim) )
+        allocate( phdt(npldafs,nphim) )
+        allocate( vecdafse(3,npldafs,nphim) )
+        allocate( vecdafss(3,npldafs,nphim) )
 
-          ngrm = 0
-          do ipr = 1,n_atom_proto
-            ngrm = max( ngrm, ngreq(ipr) )
-          end do
+        ngrm = 0
+        do ipr = 1,n_atom_proto
+          ngrm = max( ngrm, ngreq(ipr) )
+        end do
 
-          allocate( ltypcal(nplrm) )
-          allocate( nomabs(ncolm) )
-          allocate( pol(3,nplrm) )
-          allocate( vec(3,nplrm) )
-          allocate( pdp(nplrm,2) )
+        allocate( ltypcal(nplrm) )
+        allocate( nomabs(ncolm) )
+        allocate( pol(3,nplrm) )
+        allocate( vec(3,nplrm) )
+        allocate( pdp(nplrm,2) )
 
 ! Evaluation des polarisations et vecteurs d'onde.
-          call polond(Base_spin,Dipmag,Green_plus,icheck(6),ltypcal,Moyenne,mpirank0,msymdd, &
-            msymqq,ncolm,ncolr,nomabs,nple,nplr,nplrm,nxanout,Octupole,Orthmat,Orthmati,pdp, &
-            pdpolar,pol,polar,Polarise,Quadrupole,Rot_int,veconde,vec,Xan_atom)
+        call polond(Base_spin,Dipmag,icheck(6),ltypcal,Moyenne,mpirank0,msymdd, &
+          msymqq,ncolm,ncolr,nomabs,nple,nplr,nplrm,nxanout,Octupole,Orthmat,Orthmati,pdp, &
+          pdpolar,pol,polar,Polarise,Quadrupole,Rot_int,veconde,vec,Xan_atom)
 
-          ncolt = ncolr
+        ncolt = ncolr
 
-          allocate( Taux_ipr(n_atom_proto) )
-          do ipr = 1,n_atom_proto
-            if( Taux ) then
-              Taux_ipr(ipr) = sum( Taux_oc(abs( igreq(ipr,1:ngreq(ipr)) )) ) / ngreq(ipr)
-            else
-              Taux_ipr(ipr) = 1._db
-            endif
-          end do
-          f_avantseuil = f_cal(Doping,Eseuil,Full_self_abs,icheck(6),itypepr,n_atom_proto,nbseuil,ngreq,ntype,numat,numat_abs, &
-             Self_abs,Taux_ipr,volume_maille,xsect_file)
-          deallocate( Taux_ipr )
-
-          if( Dafs ) then
-            call prepdafs(Angle_or,angpoldafs,angxyz,Axe_atom_gr,axyz,Base_spin,Bormann,Dafs_bio,Eseuil,f_no_res,hkl_dafs, &
-              icheck(6),igreq,iprabs_nonexc,isigpi,itabs,itypepr,lvval,Magnetic,Mat_or,mpirank0,n_atom_proto,natomsym,nbseuil, &
-              neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs,nphim,npldafs, &
-              nrato,nrm,nspin,ntype,numat,Orthmat,Orthmati,phdafs,phdf0t,phdt,poldafse,poldafsem,poldafss,poldafssm, &
-              popatm,posn,psival,rato,Rot_int,Taux,Taux_oc,temp,Temp_coef,Temperature,Vec_orig,vecdafse,vecdafsem, &
-              vecdafss,vecdafssm,xsect_file)
-
-            call col_dafs_name(angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpirank0,ncolm,ncolr,ncolt, &
-                               nomabs,npldafs,Self_abs)
-          endif
-
-          if( mpirank0 == 0 ) allocate(Int_tens(n_tens_max*ninitlr,0:natomsym))
-
-          if( Recup_optic ) exit boucle_coh
-
-        endif
-
-        if( Extract ) then
-
-          deallocate( karact )
-
-          if( Tddft ) then
-            Final_tddft = .true.
-            deallocate( Epsii )
-            ninitlr = 1
-            allocate( Epsii(ninitlr) )
-            Epsii(1) = Epsii_moy
-          elseif( Core_resolved ) then
-            if( Optic ) then
-           ! En optique il y a une sortie par "l" plus le total
-              if( numat_abs <= 4 ) then
-                ninitlr = 1
-              elseif( numat_abs > 4 .and. numat_abs <= 20 ) then
-                ninitlr = 2
-              elseif( numat_abs > 21 .and. numat_abs <= 56 ) then
-                ninitlr = 3
-              else
-                ninitlr = 4
-              endif
-              ninitlr = ninitlr + 1
-            else
-               ninitlr = ninitl
-            endif
+        allocate( Taux_ipr(n_atom_proto) )
+        do ipr = 1,n_atom_proto
+          if( Taux ) then
+            Taux_ipr(ipr) = sum( Taux_oc(abs( igreq(ipr,1:ngreq(ipr)) )) ) / ngreq(ipr)
           else
-            ninitlr = nbseuil
+            Taux_ipr(ipr) = 1._db
           endif
+        end do
+        f_avantseuil = f_cal(Doping,Eseuil,Full_self_abs,icheck(6),itypepr,n_atom_proto,nbseuil,ngreq,ntype,numat,numat_abs, &
+           Self_abs,Taux_ipr,volume_maille,xsect_file)
+        deallocate( Taux_ipr )
 
-          call extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
-            Densite_atom,E_cut,Energ_s,Energphot,Epsii,Eseuil,Final_tddft, &
-            f_avantseuil,Full_self_abs,Green_i,Green_plus,hkl_dafs,iabsorig(multi_run),icheck(21),Int_tens,isigpi,isymeq, &
-            nsymextract(multi_run),jseuil,ltypcal,Moyenne,mpinodee,multi_imp,Multipole,n_multi_run,n_oo,n_tens_max, &
-            natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv(multi_run), &
-            nomfich_cal_convt,nom_fich_extract,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp, &
-            phdafs,phdf0t,phdt,pol,Polarise,poldafse,poldafss,Rot_int,Self_abs,Spherical_signal,Spherical_tensor,Spinorbite, &
-            Taux_eq,Tddft,V0muf,vecdafse,vecdafss,Vec,Volume_maille,Xan_atom)
+        if( Dafs ) then
+          call prepdafs(Angle_or,angpoldafs,angxyz,Axe_atom_gr,axyz,Base_spin,Bormann,Dafs_bio,Eseuil,f_no_res,hkl_dafs, &
+            icheck(6),igreq,iprabs_nonexc,isigpi,itabs,itypepr,lvval,Magnetic,Mat_or,mpirank0,n_atom_proto,natomsym,nbseuil, &
+            neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs,nphim,npldafs, &
+            nrato,nrm,nspin,ntype,numat,Orthmat,Orthmati,phdafs,phdf0t,phdt,poldafse,poldafsem,poldafss,poldafssm, &
+            popatm,posn,psival,rato,Rot_int,Taux,Taux_oc,temp,Temp_coef,Temperature,Vec_orig,vecdafse,vecdafsem, &
+            vecdafss,vecdafssm,xsect_file)
 
-          deallocate( Energ_s, Eimag_s )
-          deallocate( Axe_atom_clu, dista, iapot, iaproto )
-          deallocate( igroup, isymeq, itypep, itypepr, pos, poseq )
-          deallocate( Taux_eq, Int_tens, poldafse, poldafss )
-          deallocate( phdafs, phdf0t, phdt, vecdafse, vecdafss )
-          deallocate( ltypcal, nomabs, pdp, pol, vec )
-
-          cycle boucle_multi
-
+          call col_dafs_name(angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpirank0,ncolm,ncolr,ncolt, &
+                             nomabs,npldafs,Self_abs)
         endif
+
+        if( mpirank0 == 0 ) allocate(Int_tens(n_tens_max*ninitlr,0:natomsym))
+
+        if( Recup_optic ) exit boucle_coh
+
+      endif
+
+      if( Extract ) then
+
+        deallocate( karact )
+
+        if( Tddft ) then
+          Final_tddft = .true.
+          deallocate( Epsii )
+          ninitlr = 1
+          allocate( Epsii(ninitlr) )
+          Epsii(1) = Epsii_moy
+        elseif( Core_resolved ) then
+          if( Optic ) then
+         ! En optique il y a une sortie par "l" plus le total
+            if( numat_abs <= 4 ) then
+              ninitlr = 1
+            elseif( numat_abs > 4 .and. numat_abs <= 20 ) then
+              ninitlr = 2
+            elseif( numat_abs > 21 .and. numat_abs <= 56 ) then
+              ninitlr = 3
+            else
+              ninitlr = 4
+            endif
+            ninitlr = ninitlr + 1
+          else
+             ninitlr = ninitl
+          endif
+        else
+          ninitlr = nbseuil
+        endif
+
+        call extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+          Densite_atom,E_cut,Energ_s,Energphot,Epsii,Eseuil,Final_tddft, &
+          f_avantseuil,Full_self_abs,hkl_dafs,iabsorig(multi_run),icheck(21),Int_tens,isigpi,isymeq, &
+          nsymextract(multi_run),jseuil,ltypcal,Moyenne,mpinodee,multi_imp,Multipole,n_multi_run,n_oo,n_tens_max, &
+          natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv(multi_run), &
+          nomfich_cal_convt,nom_fich_extract,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp, &
+          phdafs,phdf0t,phdt,pol,Polarise,poldafse,poldafss,Rot_int,Self_abs,Spherical_signal,Spherical_tensor,Spinorbite, &
+          Taux_eq,Tddft,V0muf,vecdafse,vecdafss,Vec,Volume_maille,Xan_atom)
+
+        deallocate( Energ_s, Eimag_s )
+        deallocate( Axe_atom_clu, dista, iapot, iaproto )
+        deallocate( igroup, isymeq, itypep, itypepr, pos, poseq )
+        deallocate( Taux_eq, Int_tens, poldafse, poldafss )
+        deallocate( phdafs, phdf0t, phdt, vecdafse, vecdafss )
+        deallocate( ltypcal, nomabs, pdp, pol, vec )
+
+        cycle boucle_multi
+
+      endif
 
 ! Calcul du nombre d'atomes du petit agregat symmetrise
-        natome = natome_cal(igrpt_nomag,iopsymr,mpirank0,natomeq,natomp,pos)
+      natome = natome_cal(igrpt_nomag,iopsymr,mpirank0,natomeq,natomp,pos)
 
 ! Le nombre d'atomes decrivant le potentiel est defini soit par les  atomes prototypiques,
 ! soit par les atomes a l'interieur du petit agregat
-        if( i_self == 1 .or. Second_run ) Full_atom = ( Full_atom_e &
-         .or. ( Self_cons .and. .not. (Self_nonexc .and. Proto_all) ) .or. ( natome <= n_atom_proto + 1 ) .or. Full_potential &
-         .or. Hubbard ) .and. .not. Flapw
+      if( i_self == 1 .or. Second_run ) Full_atom = ( Full_atom_e &
+       .or. ( Self_cons .and. .not. (Self_nonexc .and. Proto_all) ) .or. ( natome <= n_atom_proto + 1 ) .or. Full_potential &
+       .or. Hubbard ) .and. .not. Flapw
 
-        if( Full_atom ) then
+      if( Full_atom ) then
+        n_atom_0 = 1
+        n_atom_ind = natome
+      else
+        if( Nonexc ) then
           n_atom_0 = 1
-          n_atom_ind = natome
         else
-          if( Nonexc ) then
-            n_atom_0 = 1
-          else
-            n_atom_0 = 0
-          endif
-          n_atom_ind = n_atom_proto
+          n_atom_0 = 0
         endif
+        n_atom_ind = n_atom_proto
+      endif
 
-        if( mpirank0 == 0 ) then
-          allocate( Int_statedens(lla2_state,nspinp,n_atom_0:n_atom_ind) )
-          Int_statedens(:,:,:) = 0._db
-        endif
+      if( mpirank0 == 0 ) then
+        allocate( Int_statedens(lla2_state,nspinp,n_atom_0:n_atom_ind) )
+        Int_statedens(:,:,:) = 0._db
+      endif
 
-        if( Self_cons .and. .not. Second_run ) then
-          nrm_self = nrm
+      if( Self_cons .and. .not. Second_run ) then
+        nrm_self = nrm
+      else
+        nrm_self = 0
+      endif
+
+      if( i_self == 1 .or. Second_run ) then
+        if( Self_nonexc .or. Full_atom ) then
+          n_atom_0_self = 1
         else
-          nrm_self = 0
+          n_atom_0_self = 0
         endif
+        n_atom_ind_self = n_atom_ind
+        natome_self = natome
+        natomeq_self = natomeq
+        allocate( chargat_init(n_atom_0_self:n_atom_ind_self,nspin))
+        allocate( chargat_self(n_atom_0_self:n_atom_ind_self,nspin))
+        allocate( chargat_self_s(n_atom_0_self:n_atom_ind_self,nspin) )
+        allocate( drho_ex_nex(nrm,nspin) )
+        allocate( dvc_ex_nex(nrm) )
+        allocate( dv_ex_nex(nrm) )
+        allocate( Energ_self(n_atom_0_self:n_atom_ind_self) )
+        allocate( Energ_self_s(n_atom_0_self:n_atom_ind_self) )
+        allocate( En_coeur(n_atom_0_self:n_atom_ind_self) )
+        allocate( En_coeur_s(n_atom_0_self:n_atom_ind_self) )
+        allocate( pop_orb_val(n_atom_0_self:n_atom_ind_self,nspin) )
+        allocate( rho_chg(0:nrm_self,nspin,n_atom_0_self:n_atom_ind_self) )
+        allocate( rho_self(0:nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self) )
+        allocate( rho_self_t(0:nrm_self,nlm_pot,n_atom_0_self:n_atom_ind_self) )
+        allocate( rho_self_s(0:nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self) )
+        allocate( rhoato_init(0:nrm_self,nspin,n_atom_0_self:n_atom_ind_self) )
+        allocate( vcato_init(0:nrm_self,n_atom_0_self:n_atom_ind_self) )
 
-        if( i_self == 1 .or. Second_run ) then
-          if( Self_nonexc .or. Full_atom ) then
-            n_atom_0_self = 1
-          else
-            n_atom_0_self = 0
-          endif
-          n_atom_ind_self = n_atom_ind
-          natome_self = natome
-          natomeq_self = natomeq
-          allocate( chargat_init(n_atom_0_self:n_atom_ind_self,nspin))
-          allocate( chargat_self(n_atom_0_self:n_atom_ind_self,nspin))
-          allocate( chargat_self_s(n_atom_0_self:n_atom_ind_self,nspin) )
-          allocate( drho_ex_nex(nrm,nspin) )
-          allocate( dvc_ex_nex(nrm) )
-          allocate( dv_ex_nex(nrm) )
-          allocate( Energ_self(n_atom_0_self:n_atom_ind_self) )
-          allocate( Energ_self_s(n_atom_0_self:n_atom_ind_self) )
-          allocate( En_coeur(n_atom_0_self:n_atom_ind_self) )
-          allocate( En_coeur_s(n_atom_0_self:n_atom_ind_self) )
-          allocate( pop_orb_val(n_atom_0_self:n_atom_ind_self,nspin) )
-          allocate( rho_chg(0:nrm_self,nspin,n_atom_0_self:n_atom_ind_self) )
-          allocate( rho_self(0:nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self) )
-          allocate( rho_self_t(0:nrm_self,nlm_pot,n_atom_0_self:n_atom_ind_self) )
-          allocate( rho_self_s(0:nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self) )
-          allocate( rhoato_init(0:nrm_self,nspin,n_atom_0_self:n_atom_ind_self) )
-          allocate( vcato_init(0:nrm_self,n_atom_0_self:n_atom_ind_self) )
-
-          allocate( occ_hubb(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self) )
-          allocate( occ_hubb_i(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self) )
-          allocate( V_hubb(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self) )
-          allocate( V_hubb_s(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self) )
-          allocate( Hubb_diag(n_atom_0_self:n_atom_ind_self) )
-          if( Hubbard .and. .not. Cal_xanes ) then
-            V_hubb(:,:,:,:,:) = (0._db, 0._db)
-            V_hubb_s(:,:,:,:,:) = (0._db, 0._db)
-          endif
-          Hubb_diag(:) = .true.
-
+        allocate( occ_hubb(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self) )
+        allocate( occ_hubb_i(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self) )
+        allocate( V_hubb(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self) )
+        allocate( V_hubb_s(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self) )
+        chargat_self(:,:) = 0._db
+        allocate( Hubb_diag(n_atom_0_self:n_atom_ind_self) )
+        if( Hubbard .and. .not. Cal_xanes ) then
+          V_hubb(:,:,:,:,:) = (0._db, 0._db)
+          V_hubb_s(:,:,:,:,:) = (0._db, 0._db)
         endif
+        Hubb_diag(:) = .true.
 
-        allocate( dV0bdcF(nspin) )
+      endif
 
-        if( i_self > 1 .and. Cal_xanes .and. .not. Second_run ) then
-          deallocate( Atom_axe )
-          deallocate( distai )
-          deallocate( ia_eq, ia_eq_inv, ia_rep, iaprotoi, igroupi, iopsym_atom, is_eq, itypei )
-          deallocate( nb_eq, nb_rpr, nb_rep_t )
-          posi_self(:,:) = posi(:,:)
-          deallocate( posi )
-          deallocate( rot_atom )
-        endif
+      allocate( dV0bdcF(nspin) )
 
-        if( i_self == 1 .or. Second_run ) allocate( posi_self(3,natome) )
+      if( i_self > 1 .and. Cal_xanes .and. .not. Second_run ) then
+        deallocate( Atom_axe )
+        deallocate( distai )
+        deallocate( ia_eq, ia_eq_inv, ia_rep, iaprotoi, igroupi, iopsym_atom, is_eq, itypei )
+        deallocate( nb_eq, nb_rpr, nb_rep_t )
+        posi_self(:,:) = posi(:,:)
+        deallocate( posi )
+        deallocate( rot_atom )
+      endif
 
-        if( i_self == 1 .or. Cal_xanes ) then
+      if( i_self == 1 .or. Second_run ) allocate( posi_self(3,natome) )
+
+      if( i_self == 1 .or. Cal_xanes ) then
 
 ! L'indice 0, correspond a l'agregat en entier
-          allocate( Atom_axe(natome) )
-          allocate( distai(natome) )
-          allocate( ia_eq(nb_sym_op,natome) )
-          allocate( ia_eq_inv(natomeq) )
-          allocate( ia_rep(nb_sym_op,natome,natome) )
-          allocate( iaprotoi(natome) )
-          allocate( igroupi(natome) )
-          allocate( iopsym_atom(nopsm,natome) )
-          allocate( is_eq(nb_sym_op,natome) )
-          allocate( itypei(natome) )
-          allocate( nb_eq(natome) )
-          allocate( nb_rpr(natome,natome) )
-          allocate( nb_rep_t(nb_sym_op,natome,natome) )
-          allocate( posi(3,natome) )
-          allocate( rot_atom(3,3,natome) )
-          Energ_self_s(:) = 0._db
+        allocate( Atom_axe(natome) )
+        allocate( distai(natome) )
+        allocate( ia_eq(nb_sym_op,natome) )
+        allocate( ia_eq_inv(natomeq) )
+        allocate( ia_rep(nb_sym_op,natome,natome) )
+        allocate( iaprotoi(natome) )
+        allocate( igroupi(natome) )
+        allocate( iopsym_atom(nopsm,natome) )
+        allocate( is_eq(nb_sym_op,natome) )
+        allocate( itypei(natome) )
+        allocate( nb_eq(natome) )
+        allocate( nb_rpr(natome,natome) )
+        allocate( nb_rep_t(nb_sym_op,natome,natome) )
+        allocate( posi(3,natome) )
+        allocate( rot_atom(3,3,natome) )
+        Energ_self_s(:) = 0._db
 
-          if( Cal_xanes ) then
-            ich = icheck(7)
-          elseif( icheck(27) > 1 ) then
-            ich = max( icheck(7), icheck(27) )
-          else
-            ich = 0
-          endif
-
-          call Atom_selec(adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_hubb,Axe_atom_clu,Base_ortho,dcosxyz, &
-            dista,distai,Full_atom,Green,Hubbard,i_self,ia_eq,ia_eq_inv,ia_rep,iaabs,iaabsi,iaproto,iaprotoi,ich,igreq, &
-            igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,is_eq,itype,itypei,itypep,itypepr,Magnetic,m_hubb, &
-            m_hubb_e,mpirank0,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,nb_eq,nb_rpr, &
-            nb_rep_t,nb_sym_op,neqm,ngroup,ngroup_hubb,ngroup_m,nlat,nlatm,nspin,nspinp,ntype,numat,nx,occ_hubb_e,Overad,popats, &
-            pos,posi,rmt,rot_atom,roverad,rsort,rsorte,Spinorbite,Symmol,V_hubb,V_hubbard,Ylm_comp,Ylm_comp_inp)
-
-        end if
-
-        if( Cal_xanes .and. Hubb(itabs) ) then
-          if( Full_atom ) then
-            iapr = iaabsi
-          elseif( Self_nonexc ) then
-            iapr = iprabs_nonexc
-          else
-            iapr = iprabs
-          endif
-          V_hubb_abs(:,:,:,:) = V_hubb(:,:,:,:,iapr)
+        if( Cal_xanes ) then
+          ich = icheck(7)
+        elseif( icheck(27) > 1 ) then
+          ich = max( icheck(7), icheck(27) )
+        else
+          ich = 0
         endif
 
-        if( i_self == 1 .or. Second_run ) then
-          allocate( ia_eq_inv_self(natomeq_self) )
-          ia_eq_inv_self(:) = ia_eq_inv(:)
-        endif
+        call Atom_selec(adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_hubb,Axe_atom_clu,Base_ortho,dcosxyz, &
+          dista,distai,Full_atom,Green,Hubbard,i_self,ia_eq,ia_eq_inv,ia_rep,iaabs,iaabsi,iaproto,iaprotoi,ich,igreq, &
+          igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,is_eq,itype,itypei,itypep,itypepr,Magnetic,m_hubb, &
+          m_hubb_e,mpirank0,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,nb_eq,nb_rpr, &
+          nb_rep_t,nb_sym_op,neqm,ngroup,ngroup_hubb,ngroup_m,nlat,nlatm,nspin,nspinp,ntype,numat,nx,occ_hubb_e,Overad,popats, &
+          pos,posi,rmt,rot_atom,roverad,rsort,rsorte,Spinorbite,Symmol,V_hubb,V_hubbard,Ylm_comp,Ylm_comp_inp)
 
-        Tddft_xanes = Tddft .and. Cal_xanes
-        Optic_xanes = Optic .and. Cal_xanes
+      end if
+
+      if( Cal_xanes .and. Hubb(itabs) ) then
+        if( Full_atom ) then
+          iapr = iaabsi
+        elseif( Self_nonexc ) then
+          iapr = iprabs_nonexc
+        else
+          iapr = iprabs
+        endif
+        V_hubb_abs(:,:,:,:) = V_hubb(:,:,:,:,iapr)
+      endif
+
+      if( i_self == 1 .or. Second_run ) then
+        allocate( ia_eq_inv_self(natomeq_self) )
+        ia_eq_inv_self(:) = ia_eq_inv(:)
+      endif
+
+      Tddft_xanes = Tddft .and. Cal_xanes .and. .not. Optic
+      Optic_xanes = Optic .and. Cal_xanes
+      TdOpt_Xanes = ( Tddft .or. Optic ) .and. Cal_xanes
 
 ! Calcul des representations utiles
-        Recop = .false.
-        if( Cal_xanes .and. .not. Optic ) then
-          call etafin(Ylm_comp,icheck(8),iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,lplus1,lqua,lseuil, &
+      Recop = .false.
+      if( Cal_xanes .and. .not. Density .and. .not. Optic ) then
+        call etafin(Ylm_comp,icheck(8),iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,lplus1,lqua,lseuil, &
                 mpirank0,nb_rep,nbseuil,ngrph,nspino,Spinorbite,State_all,Sym_cubic)
-          if( ( Sym_cubic .or. Sym_4 ) .and. .not. State_all ) Recop = .true.
-        elseif( i_self == 1 ) then
+        if( ( Sym_cubic .or. Sym_4 ) .and. .not. State_all ) Recop = .true.
+      elseif( i_self == 1 ) then
 ! Pour le calcul auto-coherent, il faut calculer toutes les representations
-          if( icheck(27) > 1 ) then
-            ich = max( icheck(8), icheck(27) )
-          else
-            ich = 0
-          endif
-          call irep_util_all(ich,iopsymr,irep_util,karact,nb_rep,ngrph,nspino,Spinorbite)
+        if( icheck(27) > 1 ) then
+          ich = max( icheck(8), icheck(27) )
+        else
+          ich = 0
         endif
-        if( i_self > 1 .and. Cal_xanes .and. .not. Second_run ) deallocate( Repres_comp )
-        if( i_self == 1 .or. Cal_xanes ) then
-           allocate( Repres_comp(ngrph) )
-           call irep_comp(Ylm_comp,Green,iopsymr,irep_util,karact,ngrph,nspino,Repres_comp)
-        end if
+        call irep_util_all(ich,iopsymr,irep_util,karact,nb_rep,ngrph,nspino,Spinorbite)
+      endif
+      if( i_self > 1 .and. Cal_xanes .and. .not. Second_run ) deallocate( Repres_comp )
+      if( i_self == 1 .or. Cal_xanes ) then
+         allocate( Repres_comp(ngrph) )
+         call irep_comp(Ylm_comp,Green,iopsymr,irep_util,karact,ngrph,nspino,Repres_comp)
+      end if
 
-        Moy_loc = Green .and. .not. Moy_cluster
+      Moy_loc = Green .and. .not. Moy_cluster
 
-        if( ( i_self == 1 .or. Cal_xanes ) .and. .not. second_run ) then
+      if( ( i_self == 1 .or. Cal_xanes ) .and. .not. second_run ) then
 
-          nbm = 0;     nbtm = 0
-          npoint = 0;  npr = 0
-          nsort = 0
-          nsm = 0;     nstm = 0
+        nbm = 0;     nbtm = 0
+        npoint = 0;  npr = 0
+        nsort = 0
+        nsm = 0;     nstm = 0
 
 ! Calcul des dimensions de tableaux pour le maillage
 
-          call nbpoint(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabsfirst,igrpt_nomag,iopsymr,iord,Moy_loc, &
-                       mpirank0,natomp,npoint,npso,nvois,nx,pos,rsort)
+        call nbpoint(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabsfirst,igrpt_nomag,iopsymr,iord,Moy_loc, &
+                     mpirank0,natomp,npoint,npso,nvois,nx,pos,rsort)
 
-          if( Atom_nonsph ) then
-            npoint_ns = npoint
-          else
-            npoint_ns = 0
-          endif
-          nim = npoint
-          npsom = npso
-
-          if( Cal_xanes .and. i_self > 1 ) deallocate( clapl, cgrad, ivois, isvois, numia, rvol, xyz )
-
-          allocate( clapl(0:nvois) )
-          allocate( cgrad(nvois) )
-          allocate( ivois(npsom,nvois) )
-          allocate( isvois(npsom,nvois) )
-          allocate( numia(npsom) )
-          allocate( rvol(nim) )
-          allocate( xyz(4,npsom) )
-
-! Elaboration du maillage
-
-          allocate( indice(npsom,3) )
-          allocate( mpres(-nx:nx,-nx:nx,-nx:nx) )
-
-! Meme en Green, on definit des points afin de calculer le potentiel moyen
-          call reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabsfirst,icheck(9), &
-                 igrpt_nomag,indice,iopsymr,iord,itypei,Moy_loc,mpirank0,mpres,natome,natomp,nim, &
-                 npoint,npr,npso,npsom,ntype,numia,nx,pos,posi,rmt,rsort,rvol,xyz)
-
-          if( .not. Green ) then
-            call laplac(Adimp,Base_hexa,cgrad,clapl,icheck(9),igrpt_nomag,indice,iopsymr,iord,ivois,isvois, &
-                  mpirank0,mpres,npso,npsom,nvois,nx)
-            call bordure(Base_ortho,dcosxyz,Green,icheck(9),iopsymr,iord,iscratch,ivois,mpirank0,natome,nbm,nbtm,nim, &
-                  npoint,npso,npsom,nsm,nstm,numia,nvois,posi,rvol,xyz)
-          endif
-          deallocate( indice, mpres )
-
+        if( Atom_nonsph ) then
+          npoint_ns = npoint
+        else
+          npoint_ns = 0
         endif
+        nim = npoint
+        npsom = npso
+
+        if( Cal_xanes .and. i_self > 1 ) deallocate( clapl, cgrad, ivois, isvois, numia, rvol, xyz )
+
+        allocate( clapl(0:nvois) )
+        allocate( cgrad(nvois) )
+        allocate( ivois(npsom,nvois) )
+        allocate( isvois(npsom,nvois) )
+        allocate( numia(npsom) )
+        allocate( rvol(nim) )
+        allocate( xyz(4,npsom) )
+
+
+        allocate( indice(npsom,3) )
+        allocate( mpres(-nx:nx,-nx:nx,-nx:nx) )
+
+! Elaboration du maillage. Meme en Green, on definit des points afin de calculer le potentiel moyen
+        call reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabsfirst,icheck(9), &
+               igrpt_nomag,indice,iopsymr,iord,itypei,Moy_loc,mpirank0,mpres,natome,natomp,nim, &
+               npoint,npr,npso,npsom,ntype,numia,nx,pos,posi,rmt,rsort,rvol,xyz)
+
+        if( .not. Green ) then
+          call laplac(Adimp,Base_hexa,cgrad,clapl,icheck(9),igrpt_nomag,indice,iopsymr,iord,ivois,isvois, &
+                mpirank0,mpres,npso,npsom,nvois,nx)
+          call bordure(Base_ortho,dcosxyz,Green,icheck(9),iopsymr,iord,iscratch,ivois,mpirank0,natome,nbm,nbtm,nim, &
+                npoint,npso,npsom,nsm,nstm,numia,nvois,posi,rvol,xyz)
+        endif
+        deallocate( indice, mpres )
+
+      endif
 
 ! On calcule les rayons seulement aux premiere et derniere iterations
 
-        if( i_self == 1 .or. Second_run ) then
-          allocate( V_abs_i(nrm,nspin) )
-          allocate( rhoato_abs(nrm,nspin) )
+      if( i_self == 1 .or. Second_run ) then
+        allocate( V_abs_i(nrm,nspin) )
+        allocate( rhoato_abs(nrato(itabs),nspin) )
+      endif
+
+      if( .not. Second_run ) then
+        if( i_self == 1 ) then
+          allocate( lmaxat(0:n_atom_proto) )
+          allocate( rmtg(0:n_atom_proto) )
+          allocate( rmtg0(0:n_atom_proto) )
+          allocate( rmtsd(0:n_atom_proto) )
+        end if
+        allocate( rs(npoint) )
+        allocate( rsato(0:nrm,n_atom_0:n_atom_ind) )
+        allocate( Vcato(0:nrm,nlm_pot,n_atom_0:n_atom_ind) )
+        allocate( Vh(npoint) )
+        allocate( Vhns(npoint_ns) )
+        allocate( Vxc(npoint,nspin) )
+        allocate( Vxcato(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind) )
+        rsato(:,:) = 0._db
+        Vcato(:,:,:) = 0._db
+        Vxcato(:,:,:,:) = 0._db
+      endif
+
+      allocate( Excato(nrm,n_atom_0:n_atom_ind) )
+      allocate( ibord(nbtm,natome) )
+      allocate( isbord(nbtm,natome) )
+      allocate( imoy(npoint) );  allocate( imoy_out(npoint) )
+      allocate( isrt(nstm) )
+      allocate( nbord(natome) )
+      allocate( nbordf(natome) )
+      allocate( poidsa(nbm,natome) )
+      allocate( poidso(nsm) )
+      allocate( poidsov(npoint) ); allocate( poidsov_out(npoint) )
+      allocate( rho(npoint,nspin) )
+      allocate( rhons(npoint_ns) )
+      allocate( Vr(npoint,nspin) )
+      allocate( Vrato(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind) )
+
+      if( .not. Green ) call recup_bordure(ibord,isbord,iscratch,isrt,mpinodes0,mpirank0,natome,nbord,nbordf,nbm,nbtm,nsm, &
+          nsort,nsortf,nstm,poidsa,poidso)
+
+      if( mpirank0 == 0 ) then
+        call CPU_TIME(time)
+        Time_loc(2) = real(time,db)
+      endif
+
+      if( .not. Second_run ) then
+
+        if( i_self == 1 ) then
+          allocate( chg_cluster(nspin) )
+          allocate( E_starta(n_atom_0_self:n_atom_ind_self) )
+          allocate( ispin_maj(n_atom_0_self:n_atom_ind_self) )
         endif
-
-        if( .not. Second_run ) then
-          if( i_self == 1 ) then
-            allocate( lmaxat(0:n_atom_proto) )
-            allocate( rmtg(0:n_atom_proto) )
-            allocate( rmtg0(0:n_atom_proto) )
-            allocate( rmtsd(0:n_atom_proto) )
-          end if
-          allocate( rs(npoint) )
-          allocate( rsato(0:nrm,n_atom_0:n_atom_ind) )
-          allocate( Vcato(0:nrm,nlm_pot,n_atom_0:n_atom_ind) )
-          allocate( Vh(npoint) )
-          allocate( Vhns(npoint_ns) )
-          allocate( Vxc(npoint,nspin) )
-          allocate( Vxcato(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind) )
-          rsato(:,:) = 0._db
-          Vcato(:,:,:) = 0._db
-          Vxcato(:,:,:,:) = 0._db
-        endif
-
-        allocate( Excato(nrm,n_atom_0:n_atom_ind) )
-        allocate( ibord(nbtm,natome) )
-        allocate( isbord(nbtm,natome) )
-        allocate( imoy(npoint) );  allocate( imoy_out(npoint) )
-        allocate( isrt(nstm) )
-        allocate( nbord(natome) )
-        allocate( nbordf(natome) )
-        allocate( poidsa(nbm,natome) )
-        allocate( poidso(nsm) )
-        allocate( poidsov(npoint) ); allocate( poidsov_out(npoint) )
-        allocate( rho(npoint,nspin) )
-        allocate( rhons(npoint_ns) )
-        allocate( Vr(npoint,nspin) )
-        allocate( Vrato(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind) )
-
-        if( .not. Green ) call recup_bordure(ibord,isbord,iscratch,isrt,mpinodes0,mpirank0,natome,nbord,nbordf,nbm,nbtm,nsm, &
-            nsort,nsortf,nstm,poidsa,poidso)
-
-        if( mpirank0 == 0 ) then
-          call CPU_TIME(time)
-          tp(2) = real(time,db)
-        endif
-
-        if( .not. Second_run ) then
-
-            if( i_self == 1 ) then
-              allocate( chg_cluster(nspin) )
-              allocate( E_starta(n_atom_0_self:n_atom_ind_self) )
-              allocate( ispin_maj(n_atom_0_self:n_atom_ind_self) )
-            endif
 
 ! Calcul du potentiel
-          if( Flapw ) then
+        if( Flapw ) then
 
-            call potlapw(axyz,Base_ortho,chargat,Coupelapw,dcosxyz,deccent,Flapw_new,Full_atom,iapot, &
-              iaproto,iaprotoi,icheck(13),igroup,iprabs_nonexc,ipr1,itabs,its_lapw,itypei,itypep,itypepr,Magnetic,mpinodes0, &
-              mpirank0,n_atom_0,n_atom_ind,n_atom_proto,natome,natomeq,natomp,ngreq,ngroup,ngroup_lapw,nklapw,nlm_pot, &
-              nlmlapwm,nmatsym,normrmt,npoint,npsom,nrato,nrato_lapw,nrm,nslapwm,nspin,ntype, &
-              numat,Orthmat,overlap,pos,rato,rchimp,rho,rlapw,rmtg,rmtg0,rmtimp,rmtsd,Rot_int,rotloc_lapw,rs,rsato,rsort, &
-              Trace_format_wien,Trace_k,Trace_p,V_abs_i,V_intmax,V0bdcFimp(1),Vcato,Vh,Vxc,Vxcato,Wien_file,Wien_matsym, &
-              Wien_save,Wien_taulap,xyz)
+          call potlapw(axyz,Base_ortho,chargat,Coupelapw,dcosxyz,deccent,Flapw_new,Full_atom,iapot, &
+            iaproto,iaprotoi,icheck(13),igroup,iprabs_nonexc,ipr1,itabs,its_lapw,itypei,itypep,itypepr,Magnetic,mpinodes0, &
+            mpirank0,n_atom_0,n_atom_ind,n_atom_proto,natome,natomeq,natomp,ngreq,ngroup,ngroup_lapw,nklapw,nlm_pot, &
+            nlmlapwm,nmatsym,normrmt,npoint,npsom,nrato,nrato_lapw,nrm,nslapwm,nspin,ntype, &
+            numat,Orthmat,overlap,pos,rato,rchimp,rho,rlapw,rmtg,rmtg0,rmtimp,rmtsd,Rot_int,rotloc_lapw,rs,rsato,rsort, &
+            Trace_format_wien,Trace_k,Trace_p,V_abs_i,V_intmax,V0bdcFimp(1),Vcato,Vh,Vxc,Vxcato,Wien_file,Wien_matsym, &
+            Wien_save,Wien_taulap,xyz)
 
-          else
+        else
 
-            call potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,chargat,chargat_init, &
-              chargat_self,dcosxyz,drho_ex_nex,dv_ex_nex,dvc_ex_nex,Excato,Full_atom, hybrid,i_self, &
-              ia_eq_inv,ia_eq_inv_self,iaabs,iaproto,iaprotoi,iapot,icheck,igreq,igroup,iprabs_nonexc,iprabs,ipr1,itab,itdil, &
-              itypei,itypep,itypepr,ldil,lmax_pot,lvval,Magnetic,mpirank0,n_atom_0,n_atom_0_self,n_atom_ind, &
-              n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,neqm,ngreq,ngroup_m,ngroup_nonsph, &
-              nhybm,nlat,nlatm,nlm_pot,Nonexc,norbdil,norbv,normrmt,npoint,npoint_ns,npsom,nrato,nrm,nrm_self,nspin,ntype, &
-              numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self,psival,r_self,rato,rchimp,rho,rho_chg, &
-              rho_self,rhoato_abs,rhoato_init,rhoit,rhons,Rmtg,Rmtimp,Rmtg0,Rmtsd,Rot_Atom_gr,Rot_int,rs, &
-              rsato,rsort,Self_nonexc,Tddft_xanes,V_abs_i,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp(1),xyz)
+          nr = nrato(itabs)
+          call potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,chargat,chargat_init, &
+            chargat_self,dcosxyz,drho_ex_nex,dv_ex_nex,dvc_ex_nex,Excato,Full_atom, hybrid,i_self, &
+            ia_eq_inv,ia_eq_inv_self,iaabs,iaproto,iaprotoi,iapot,icheck,igreq,igroup,iprabs_nonexc,iprabs,ipr1,itab,itdil, &
+            itypei,itypep,itypepr,ldil,lmax_pot,lvval,Magnetic,mpirank0,n_atom_0,n_atom_0_self,n_atom_ind, &
+            n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,neqm,ngreq,ngroup_m,ngroup_nonsph, &
+            nhybm,nlat,nlatm,nlm_pot,Nonexc,norbdil,norbv,normrmt,npoint,npoint_ns,npsom,nr,nrato,nrm,nrm_self,nspin,ntype, &
+            numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self,psival,r_self,rato,rchimp,rho,rho_chg, &
+            rho_self,rhoato_abs,rhoato_init,rhoit,rhons,Rmtg,Rmtimp,Rmtg0,Rmtsd,Rot_Atom_gr,Rot_int,rs, &
+            rsato,rsort,Self_nonexc,TdOpt_xanes,V_abs_i,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp(1),xyz)
 
 ! Initialisation de rho_self, une fois avoir calcule le nouveau potentiel en potsup.
 ! Au dela du rayon rmtsd on initialise a zero.
-            if( .not. Cal_xanes ) then
+          if( .not. Cal_xanes ) then
 
-              if( i_self == 1 ) then
-                allocate( ch_coeur(n_atom_0_self:n_atom_ind_self) )
+            if( i_self == 1 ) then
+              allocate( ch_coeur(n_atom_0_self:n_atom_ind_self) )
 
-                rho_self_s(:,1,:,:) = rhoato_init(:,:,:)
+              rho_self_s(:,1,:,:) = rhoato_init(:,:,:)
 
 ! Calcul de l'energie de depart du comptage d'electrons; on la calcule  une seule fois,
 ! bien que les Vcato et Vxcato changent a chaque iteration
-                call En_dep(E_start,E_starta,Full_atom,iaprotoi,icheck(27),itypepr,lcoeur,n_atom_0,n_atom_0_self, &
-                   n_atom_ind,n_atom_ind_self,n_atom_proto,natome,ncoeur,nenerg_coh,nlm_pot,nrato,nrm,numat,nspin, &
-                   ntype,Pas_SCF,psi_coeur,Relativiste,rato,Rmtg,Rmtsd,V_intmax,Vcato,Vxcato,workf)
+              call En_dep(E_start,E_starta,Full_atom,iaprotoi,icheck(27),itypepr,lcoeur,n_atom_0,n_atom_0_self, &
+                 n_atom_ind,n_atom_ind_self,n_atom_proto,natome,ncoeur,nenerg_coh,nlm_pot,nrato,nrm,numat,nspin, &
+                 ntype,Pas_SCF,psi_coeur,Relativiste,rato,Rmtg,Rmtsd,V_intmax,Vcato,Vxcato,workf)
 
 ! Calcul de la charge de reference en cas de calcul auto_coherent
-                call chg_agr(chargat,chargat_init,ch_coeur,chg_cluster,chg_open_val,Doping,Full_atom,iaprotoi,ipr_dop, &
-                   iprabs_nonexc,ispin_maj,itabs,icheck(27),itypepr,mpirank0,natome,n_atom_0_self,n_atom_ind_self, &
-                   n_atom_proto,nb_eq,ngreq,nrato,nrm,nrm_self,nspin,ntype,numat,pop_open_val, &
-                   psi_open_val,rato,rho_chg,rho_coeur,rhoato_init,rmtsd,SCF_mag_fix,SCF_mag_free)
+              call chg_agr(chargat,chargat_init,ch_coeur,chg_cluster,chg_open_val,Doping,Full_atom,iaprotoi,ipr_dop, &
+                 iprabs_nonexc,ispin_maj,itabs,icheck(27),itypepr,mpirank0,natome,n_atom_0_self,n_atom_ind_self, &
+                 n_atom_proto,nb_eq,ngreq,nrato,nrm,nrm_self,nspin,ntype,numat,pop_open_val, &
+                 psi_open_val,rato,rho_chg,rho_coeur,rhoato_init,rmtsd,SCF_mag_fix,SCF_mag_free)
 
-                chargat_self_s(:,:) = chargat_init(:,:)
+              chargat_self_s(:,:) = chargat_init(:,:)
 ! Mise en place de la grille en energie pour l'autocoherence
-                allocate( Energ_coh(nenerg_coh) )
-                allocate( Eimag_coh(nenerg_coh) )
-                call grille_coh(Eimag_coh,Energ_coh,E_start,Green,icheck(27),nenerg_coh,Pas_SCF)
-
-              endif
-
-              do iapr = n_atom_0_self,n_atom_ind_self
-                if( Full_atom ) then
-                  ipr = iaprotoi(iapr)
-                else
-                  ipr = iapr
-                endif
-                it = itypepr(ipr)
-                nr = nrato(it)
-                do n = 1,nr
-                  if( rato(n,it) > Rmtsd(ipr) ) exit
-                end do
-                do ispin = 1,nspin
-                  do ir = 0,n
-                    rho_self(ir,1,ispin,iapr) = rho_chg(ir,ispin,iapr) + ( rho_coeur(ir,it) / nspin )
-                  end do
-                  rho_self(n+1:nr,1,:,iapr) = rhoato_init(n+1:nr,:,iapr)
-                end do
-              end do
+              allocate( Energ_coh(nenerg_coh) )
+              allocate( Eimag_coh(nenerg_coh) )
+              call grille_coh(Eimag_coh,Energ_coh,E_start,Green,icheck(27),nenerg_coh,Pas_SCF)
 
             endif
 
-          endif
-        endif
-
-        if( Full_atom ) then
-          iaprabs = iaabsi
-        else
-          iaprabs = iprabs_nonexc
-        endif
-! On stocke le potentiel non excite de l'absorbeur (sert au calcul de l'energie du niveau initial )
-        if( Second_run ) then
-          do ispin = 1,nspin
-            V_abs_i(1:nrm,ispin) = Vcato(1:nrm,1,iaprabs) + Vxcato(1:nrm,1,ispin,iaprabs)
-          end do
-        endif
-
-        if( ipr1 == 1 ) rmtg(0) = rmtg(iprabs_nonexc)
-
-        if( Cal_xanes ) then
-          nenerg = nenerg_s
-          allocate( Energ(nenerg) )
-          allocate( Eimag(nenerg) )
-          Energ(:) = Energ_s(:)
-          if( Optic ) then
-            if( E_Fermi_man ) then
-              Energ(:) = Energ(:) + E_cut_imp
-            else
-              Energ(:) = Energ(:) + E_cut
-            endif
-          endif
-          Eimag(:) = eimag_s(:)
-        else
-          if( Fermi_first .or. .not. Devide_Ei ) then
-            nenerg = nenerg_coh
-            allocate( Energ(nenerg) )
-            allocate( Eimag(nenerg) )
-            Energ(:) = Energ_coh(:)
-            Eimag(:) = Eimag_coh(:)
-          else
-            nenerg = n_devide * nenerg_coh
-            allocate( Energ(nenerg) )
-            allocate( Eimag(nenerg) )
-            Energ(1) = energ_coh(1)
-            do ie = 2,nenerg
-              Energ(ie) = Energ(ie-1) + Pas_SCF / n_devide
-            end do
-            Eimag(:) = Eimag_coh(1) / n_devide
-          endif
-        end if
-
-        allocate( V0bdcF(nspin) )
-! Operations complementaires sur le potentiel
-        call potential_comp(Base_ortho,Cal_xanes,dcosxyz,distai(natome),dV0bdcF,ecineticmax,ecineticmax_out, &
-            Eclie,Eneg,Energ(nenerg),Green,iaabs,iaproto,icheck(13),imoy,imoy_out,iopsymr,isrt,korigimp,Magnetic, &
-            Moy_loc,mpirank0,n_atom_proto,natomp,nim,npoint,npsom,nptmoy,nptmoy_out,nsortf,nspin,nstm,poidsov,poidsov_out,pos, &
-            rmtg0,rs,rsbdc,rsbdc_out,rsort,rvol,V0bdcF,V0bdcFimp,V0muf,Vh,Vhbdc,Vhbdc_out,Vr,Vxc,VxcbdcF,VxcbdcF_out,xyz,Workf)
-
-! Calcul de l'energie du niveau de coeur initial.
-        if( Cal_xanes ) then
-          if( Optic ) then
-            Epsii(:) = 0._db; Epsii_moy = 0._db
-          else
-            call Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,Eseuil,icheck(14),is_g, &
-              itabs_nonexc,lseuil,m_g,mpirank0,nbseuil,ninit1,ninitl,ninitlr,nrato(itabs_nonexc),nrm,nseuil,nspin,ntype, &
-              numat_abs,psii,rato,Rmtg(iprabs_nonexc),Rmtsd(iprabs_nonexc),V_abs_i,V_intmax,V0bdcf)
-          endif
-        endif
-
-        deallocate( V0bdcF )
-
-! Determination du lmax
-        if( .not. Green ) then
-          call clmax(Ecineticmax_out,rsort,lmaxso0,lmaxso_max,2,.true.)
-        else
-          lmaxso_max = 0
-        endif
-        lmaxmax = 0
-        if( Optic ) then
-          if( numat_abs < 21 ) then
-            lmax_probe = 2
-          else
-            lmax_probe = 3
-          endif
-          if( lmaxat0 > - 1 ) lmax_probe = min( lmax_probe, lmaxat0 )
-        else
-          if( Octupole ) then
-            lmax_probe = lseuil + 3
-          elseif( Quadrupole ) then
-            lmax_probe = lseuil + 2
-          else
-            lmax_probe = lseuil + 1
-          endif
-        endif
-        nlm_probe = (lmax_probe + 1)**2
-
-        lmaxabs = 0
-        do ipr = 0,n_atom_proto
-          Z = numat( itypepr(ipr) )
-          call clmax(Ecineticmax,rmtg(ipr),lmaxat0,lmaxat(ipr),Z,lmaxfree)
-          if( Z == numat_abs ) then
-            if( Cal_xanes ) lmaxat(ipr) = max( lmax_probe, lmaxat(ipr) )
-            lmaxabs = max( lmaxat(ipr), lmaxabs )
-          endif
-          lmaxmax = max(lmaxmax,lmaxat(ipr))
-        end do
-        do ipr = 0,n_atom_proto
-          Z = numat( itypepr(ipr) )
-          if( Z == numat_abs ) lmaxat(ipr) = lmaxabs
-        end do
-
-        nlmmax = (lmaxmax + 1 )**2
-        nlmamax = (lmaxabs + 1 )**2
-        if( Tddft ) then
-! nlmamax ne sert que pour la Tddft, on la limite pour espace memoire:
-          lmaxabs_t = min( lmaxabs, 4)
-          nlmamax = (lmaxabs_t + 1 )**2
-          if( iopsymc(25) == 0 .or. Quadrupole .or. Dipmag ) then
-            imparite = 2
-          elseif( mod(lseuil,2) == 0 ) then
-            imparite = 1
-          else
-            imparite = 0
-          endif
-          nlmamax_u = 0
-          do l = 0,lmaxabs_t
-            if( (imparite /= mod(l,2)) .and. (imparite /= 2) ) cycle
-            nlmamax_u = nlmamax_u + 2 * l + 1
-          end do
-        else
-          lmaxabs_t = 0
-          nlmamax = 0
-          nlmamax_u = 0
-          imparite = 2
-        endif
-
-        nlmsam = nspinp * nlmmax
-        nlmomax = ( lmaxso_max + 1 )**2
-        nso1 = nspino * nlmomax
-
-        if( mpirank0 == 0 ) then
-          call CPU_TIME(time)
-          tp(3) = real(time,db)
-        endif
-
-        allocate( iato(nlmsam,natome,ngrph) )
-        allocate( lato(nlmsam,natome,ngrph) )
-        allocate( iso(nso1,ngrph) )
-        allocate( lso(nso1,ngrph) )
-        allocate( mato(nlmsam,natome,ngrph) )
-        allocate( mso(nso1,ngrph) )
-        allocate( nlmso0(ngrph) )
-        allocate( nlmsa0(natome,ngrph) )
-
-! Determination des (l,m) de chaque representation
-        call lmrep(Green,iaprotoi,iato,icheck(15),iopsym_atom,iopsymr,irep_util,iso,itypei,karact,lato, &
-               lmaxat,lmaxso_max,lso,mato,mpirank0,mso,n_atom_proto,natome,nbordf,ngrph,nlmsa0,nlmsam,nlmso0, &
-               nso1,nsortf,nspino,ntype,numat,Orthmati,posi,rot_atom)
-
-! Calcul des Ylm sur les points du maillage
-        if( Green ) then
-          nbtm_fdm = 0
-        else
-          nbtm_fdm = nbtm
-        endif
-        allocate( Ylmato(nbtm_fdm,nlmmax,natome) )
-        if( .not. Green )  then
-          allocate( Ylmso(nsort,nlmomax) )
-          call ylmpt(Base_ortho,dcosxyz,iaprotoi,ibord,icheck(15),iopsymr,isrt,lmaxat,lmaxso_max,n_atom_proto,natome, &
-               nbord,nbtm,nlmmax,nlmomax,nsort,nstm,npsom,posi,rot_atom,rot_atom_abs,xyz,Ylmato,Ylmso)
-        endif
-
-        if( nspin == 1 .or. Spinorbite ) then
-          nspinorb = 1
-        else
-          nspinorb = 2
-        endif
-
-        allocate( Ecinetic_out(nspin) )
-        allocate( lmaxa(natome) )
-        allocate( nlmsa(natome) )
-        allocate( V0bdc_out(nspin) )
-        if( .not. Green ) then
-          if( Spinorbite .or. Relativiste ) then
-            nicm = nim
-          else
-            nicm = 1
-          endif
-          allocate( gradvr(nicm,3,nspin))
-        endif
-        allocate( drho_self(nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self,0:mpinodes-1) )
-        allocate( Statedens(lla2_state,nspinp,lla2_state,nspinp,n_atom_0:n_atom_ind,0:mpinodes-1) )
-        allocate( Statedens_i(lla2_state,nspinp,lla2_state,nspinp,n_atom_0:n_atom_ind,0:mpinodes-1) )
-        allocate( sec_atom(ninitlr) )
-
-! Initialisation de l'energie de l'agregat
-        Enragr = 0._db
-        Energ_self(:) = 0._db
-
-        if( Cal_xanes ) then
-          if( Tddft_xanes ) then
-            nenerg_tddft = nenerg
-          else
-            nenerg_tddft = 0
-          endif
-          allocate( rof0(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil) )
-        endif
-        if( Tddft_xanes ) then
-          rof0(:,:,:,:,:) = (0._db,0._db)
-          allocate( imag_taull(nenerg,nlmamax_u,nspinp,nlmamax_u,nspinp) )
-          imag_taull(:,:,:,:,:) = 0._db
-        end if
-        if( Optic_xanes ) then
-          allocate( Taull_opt(nenerg,nlm_probe,nlm_probe,nspinp,nspinp) )
-          Taull_opt(:,:,:,:,:) = (0._db,0._db)
-        end if
-
-        nbbseuil = nbseuil
-        ninitlv = nbseuil
-        n_vr_0 = n_atom_0
-        n_vr_ind = n_atom_ind
-
-        allocate( secdd(3,3,ninitlr,0:mpinodes-1) )
-        allocate( secmd(3,3,ninitlr,0:mpinodes-1) )
-        allocate( secmm(3,3,ninitlr,0:mpinodes-1) )
-        allocate( secdq(3,3,3,ninitlr,0:mpinodes-1) )
-        allocate( secdo(3,3,3,3,ninitlr,0:mpinodes-1) )
-        allocate( secoo(3,n_oo,3,n_oo,ninitlr,0:mpinodes-1) )
-        allocate( secqq(3,3,3,3,ninitlr,0:mpinodes-1) )
-        allocate( secdd_m(3,3,ninitlr,0:mpinodes-1) )
-        allocate( secmd_m(3,3,ninitlr,0:mpinodes-1) )
-        allocate( secmm_m(3,3,ninitlr,0:mpinodes-1) )
-        allocate( secdq_m(3,3,3,ninitlr,0:mpinodes-1) )
-        allocate( secdo_m(3,3,3,3,ninitlr,0:mpinodes-1) )
-        allocate( secoo_m(3,n_oo,3,n_oo,ninitlr,0:mpinodes-1) )
-        allocate( secqq_m(3,3,3,3,ninitlr,0:mpinodes-1) )
-        allocate( Ecinetic(nspin) )
-        allocate( V0bdc(nspin) )
-
-        Green_i = Green_int
-
-! Boucle sur l'energie
-        nge = ( nenerg - 1 ) / mpinodes + 1
-
-        if( One_run .and. mpinodes0 > 1 .and. multi_run == 1 .and. Cal_xanes ) &
-          allocate( taull_stk(nlm_probe,nspinp,nlm_probe,nspinp,2:n_multi_run,nge) )
-        index_e = 0
-
-        Tau_nondiag = .false.
-        if( Spinorbite .or. Full_potential ) then
-          Tau_nondiag = .true.
-        elseif( Hubbard ) then
-          do iapr = n_atom_0_self,n_atom_ind_self
-            if( Hubb_diag(iapr) ) cycle
-            Tau_nondiag = .true.
-            exit
-          end do
-        endif
-
-        if( mpirank0 == 0 ) then
-          call CPU_TIME(time)
-          tp(4) = real(time,db)
-          do i = 2,4
-            tpt(i) = tp(i) - tp(i-1)
-          end do
-        endif
-
-        boucle_energ: do je = 1,nge
-
-          if( Recup_tddft_data .and. Cal_xanes ) exit
-
-          ie = ( je - 1 ) * mpinodes + mpirank + 1
-
-          if( ie <= nenerg ) then
-
-            if( mpirank0 == 0 ) then
-              call CPU_TIME(time)
-              tp(1) = real(time,db)
-            endif
-
-            index_e = index_e + 1
-            Enervide = Energ(ie) - Workf
-
-! Calcul du potentiel dans l'etat excite
-            if ( icheck(16) == 1 ) icheck(16) = 0 ! to make parallel and sequential outputs identical (for convenient comparison)
-            call potex(Atom_nonsph,axyz,alfpot,Cal_xanes,dV0bdcF,Energ(ie),Enervide,Final_tddft,Full_atom, &
-              iaabsi,iapot,iaprotoi,icheck(16),1,iprabs_nonexc,iprabs,itab,itypepr,Magnetic, &
-              n_atom_0,n_atom_ind,n_atom_proto,n_vr_0,n_vr_ind,natome,nlm_pot,Nonexc_g,npoint,npoint_ns,npsom,nptmoy, &
-              nptmoy_out,nrato,nrm,nspin,ntype,rato,rho,rhons,rmtg,rs,rsato,rsbdc,rsbdc_out,Trace_k,Trace_p, &
-              V_intmax,Vcato,Vh,Vhbdc,Vhbdc_out,Vhns,Vr,Vxc,VxcbdcF,VxcbdcF_out,Vrato,Vxcato,V0bdc,V0bdc_out,xyz)
-
-            do ispin = 1,nspin
-
-              V0bdc_out(ispin) = V0bdc(ispin)
-
-              if( Muffintin ) call mdfmuf(Atom_nonsph,Axe_Atom_gr,axyz,Base_ortho, &
-                dcosxyz,Full_atom,iaabs,iaproto,iaprotoi,icheck(16),igreq,igroup,ispin,itypep,n_atom_0,n_atom_ind, &
-                n_atom_proto,natome,natomp,neqm,ngroup_m,nlm_pot,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,pos,rato,rho,rhons, &
-                Rmtg,Trace_k,Trace_p,Vhns,V0bdc(ispin),Vr,Vrato,xyz)
-
-              if( Supermuf ) call modmuf(Full_atom,iaprotoi,itypepr,icheck(16), &
-                ispin,n_atom_0,n_atom_ind,n_atom_proto,natome,nlm_pot,nrato,nrm,nspin,ntype,rato,rmtg,V0bdc(ispin),Vrato)
-
-              if( .not. ( Green .or. Second_run ) .and. ( Spinorbite .or. Relativiste ) ) &
-                call gradpot(Base_hexa,cgrad,gradvr,icheck(16),iord,ispin,ivois,nicm,npoint,npsom,nspin,nvois,Vr)
-
-              Ecinetic_out(ispin) = Enervide - V0bdc_out(ispin)
-              Ecinetic(ispin) = Enervide - V0bdc(ispin)
-
-              if( Eneg ) then
-! Problemes numeriques autour de 0
-                em = 0.01_db / rydb
-                ei0 = 0.01_db / rydb
-                if( Ecinetic_out(ispin) < 0._db ) then
-                  Eimag(ie) = max( Eimag(ie), ei0 )
-                elseif( ecinetic_out(ispin) < em ) then
-                  eii = ei0 * ( 1 - ecinetic_out(ispin) / em )
-                  Eimag(ie) = max( Eimag(ie), eii )
-                endif
-              else
-                Ecinetic_out(ispin) = max( Ecinetic_out(ispin), Eclie)
-                Ecinetic(ispin) = max( Ecinetic(ispin), Eclie )
-              endif
-
-              if( ( Ecinetic(ispin) < eps10 .or. Ecinetic_out(ispin) < eps10 ) .and. .not. Eneg ) then
-                if( mpirank0 == 0 ) then
-                  call write_error
-                  do ipr = 6,9,3
-                    write(ipr,170) Ecinetic(ispin) * rydb
-                    if( nptmoy_out > 0 ) write(ipr,180) Ecinetic_out(ispin) * rydb
-                  end do
-                endif
-                stop
-              endif
-
-            end do  ! fin boucle sur spin
-
-            if( mpirank0 == 0 ) then
-              call CPU_TIME(time)
-              tp(2) = real(time,db)
-              tpt(5) = tpt(5) + tp(2) - tp(1)
-            endif
-
-            if( abs( Eimag(ie) ) > eps10 .or. Ecinetic_out(1) < eps10 .or. Ecinetic_out(nspin) < eps10 ) then
-              E_comp = .true.
-            else
-              E_comp = .false.
-            endif
-
-            if( No_solsing ) then
-              Solsing = .false.
-            elseif( E_comp ) then
-              Solsing = .true.
-            else
-              Solsing = Solsing_s
-            endif
-
-            Ecmax = 0._db
-            Ecmax_out = 0._db
-            do ispin = 1,nspin
-              Ecmax_out = max( Ecmax_out, Ecinetic_out(ispin) )
-              Ecmax = max( Ecmax, Ecinetic(ispin) )
-            end do
-
-            lmaxg = 0
-            lmaxabsa = 0
-            do ipr = 0,n_atom_proto
-              Z = numat( itypepr(ipr) )
-              call clmax(Ecmax,Rmtg(ipr),lmaxat0,lmaxat(ipr),Z,lmaxfree)
-              lmaxat(ipr) = min(lmaxat(ipr), lmaxmax)
-              if( Z == numat_abs ) then
-                 if( Cal_xanes ) lmaxat(ipr) = max( lmax_probe, lmaxat(ipr) )
-                 lmaxabsa = max( lmaxabsa, lmaxat(ipr) )
-              end if
-              lmaxg = max( lmaxat(ipr), lmaxg)
-            end do
-            do ipr = 0,n_atom_proto
-              Z = numat( itypepr(ipr) )
-              if( Z == numat_abs ) lmaxat(ipr) = lmaxabsa
-            end do
-            nlmagm = ( lmaxg + 1 )**2
-            if( Tddft ) then
-              nlmam_u = 0
-              lmax_t = min(lmaxabsa,lmaxabs_t)
-              do l = 0,lmax_t
-                if( (imparite /= mod(l,2)) .and. (imparite/=2) ) cycle
-                nlmam_u = nlmam_u + 2 * l + 1
-              end do
-            endif
-
-            allocate( Tau_ato(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind) )
-            if( Green ) then
-              nphiato1 = 0; nphiato7 = 0
-            else
-              nphiato1 = nbtm
-              nphiato7 = 1
-              if( abs(Eimag(ie)) > eps10 .or. Spinorbite .or. Ylm_comp ) then
-                nphiato7 = 2
-              else
-                do igrph = 1,ngrph
-                  if( .not. Repres_comp(igrph) ) cycle
-                  nphiato7 = 2
-                  exit
-                end do
-              endif
-            endif
-            allocate( phiato(nphiato1,nlmagm,nspinp,nspino,natome,nphiato7) )
-            allocate( Taull(nlmagm,nspinp,nlmagm,nspinp,natome) )
-            phiato(:,:,:,:,:,:) = 0._db
-            Tau_ato(:,:,:,:,:) = (0._db,0._db)
-            Taull(:,:,:,:,:) = (0._db,0._db)
-
-            if( .not. Green ) then
-              Z = 2
-              call clmax(Ecmax_out,rsort,lmaxso0,lmaxso,Z,.true.)
-              if( Cal_xanes .and. icheck(18) > 0 ) write(3,'(/a9,i4)') ' lmaxso =', lmaxso
-              lmaxso = min( lmaxso, lmaxso_max )
-            endif
-
-            if( Cal_xanes ) then
-              ich = icheck(18)
-            else
-              ich = min(icheck(18), icheck(27))
-            endif
-            if( ich > 1 ) write(3,190)
-
-! Boucle sur les atomes nonequivalents dans la maille
-            if( Cal_xanes ) then
-              n1 = n_atom_0
-            else
-              n1 = n_atom_0_self
-            endif
-
-            do iapr = n1,n_atom_ind
-
+            do iapr = n_atom_0_self,n_atom_ind_self
               if( Full_atom ) then
-                ipr = iaprotoi( iapr )
+                ipr = iaprotoi(iapr)
               else
                 ipr = iapr
+              endif
+              it = itypepr(ipr)
+              nr = nrato(it)
+              do n = 1,nr
+                if( rato(n,it) > Rmtsd(ipr) ) exit
+              end do
+              do ispin = 1,nspin
+                do ir = 0,n
+                  rho_self(ir,1,ispin,iapr) = rho_chg(ir,ispin,iapr) + ( rho_coeur(ir,it) / nspin )
+                end do
+                rho_self(n+1:nr,1,:,iapr) = rhoato_init(n+1:nr,:,iapr)
+              end do
+            end do
+
+          endif
+
+        endif
+      endif
+
+      if( Full_atom ) then
+        iaprabs = iaabsi
+      else
+        iaprabs = iprabs_nonexc
+      endif
+! On stocke le potentiel non excite de l'absorbeur (sert au calcul de l'energie du niveau initial )
+      if( Second_run ) then
+        do ispin = 1,nspin
+          V_abs_i(1:nrm,ispin) = Vcato(1:nrm,1,iaprabs) + Vxcato(1:nrm,1,ispin,iaprabs)
+        end do
+      endif
+
+      if( ipr1 == 1 ) rmtg(0) = rmtg(iprabs_nonexc)
+
+      if( Cal_xanes ) then
+        nenerg = nenerg_s
+        allocate( Energ(nenerg) )
+        allocate( Eimag(nenerg) )
+        if( Optic ) then
+          if( E_Fermi_man ) then
+            Energ(:) = Energ_s(:) + E_cut_imp
+          else
+            Energ(:) = Energ_s(:) + E_cut
+          endif
+        else
+          Energ(:) = Energ_s(:)
+        endif
+        Eimag(:) = Eimag_s(:)
+      else
+        if( Fermi_first .or. .not. Devide_Ei ) then
+          nenerg = nenerg_coh
+          allocate( Energ(nenerg) )
+          allocate( Eimag(nenerg) )
+          Energ(:) = Energ_coh(:)
+          Eimag(:) = Eimag_coh(:)
+        else
+          nenerg = n_devide * nenerg_coh
+          allocate( Energ(nenerg) )
+          allocate( Eimag(nenerg) )
+          Energ(1) = energ_coh(1)
+          do ie = 2,nenerg
+            Energ(ie) = Energ(ie-1) + Pas_SCF / n_devide
+          end do
+          Eimag(:) = Eimag_coh(1) / n_devide
+        endif
+      end if
+
+      allocate( V0bdcF(nspin) )
+
+! Operations complementaires sur le potentiel
+      call potential_comp(Base_ortho,Cal_xanes,dcosxyz,distai(natome),dV0bdcF,ecineticmax,ecineticmax_out, &
+          Eclie,Eclie_out,Eneg,Energ(nenerg),Green,iaabs,iaproto,icheck(13),imoy,imoy_out,iopsymr,isrt,korigimp,Magnetic, &
+          Moy_loc,mpirank0,n_atom_proto,natomp,nim,npoint,npsom,nptmoy,nptmoy_out,nsortf,nspin,nstm,poidsov,poidsov_out,pos, &
+          rmtg0,rs,rsbdc,rsbdc_out,rsort,rvol,V0bdcF,V0bdcFimp,V0muf,Vh,Vhbdc,Vhbdc_out,Vr,Vxc,VxcbdcF,VxcbdcF_out,xyz,Workf)
+
+! Calcul de l'energie du niveau de coeur initial.
+      if( Cal_xanes ) then
+        if( Optic ) then
+          Epsii(:) = 0._db; Epsii_moy = 0._db
+        else
+          call Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,Eseuil,icheck(14),is_g, &
+            itabs_nonexc,lseuil,m_g,mpirank0,nbseuil,ninit1,ninitl,ninitlr,nrato(itabs_nonexc),nrm,nseuil,nspin,ntype, &
+            numat_abs,psii,rato,Rmtg(iprabs_nonexc),Rmtsd(iprabs_nonexc),V_abs_i,V_intmax,V0bdcf)
+        endif
+      endif
+
+      deallocate( V0bdcF )
+
+! Determination du lmax
+      if( .not. Green ) then
+        call clmax(Ecineticmax_out,rsort,lmaxso0,lmaxso_max,2,.true.)
+      else
+        lmaxso_max = 0
+      endif
+      lmaxmax = 0
+      if( Optic ) then
+        if( numat_abs < 21 ) then
+          lmax_probe = 2
+        else
+          lmax_probe = 3
+        endif
+        if( lmaxat0 > - 1 ) lmax_probe = min( lmax_probe, lmaxat0 )
+      else
+        if( Octupole ) then
+          lmax_probe = lseuil + 3
+        elseif( Quadrupole ) then
+          lmax_probe = lseuil + 2
+        else
+          lmax_probe = lseuil + 1
+        endif
+      endif
+      nlm_probe = (lmax_probe + 1)**2
+      if( Full_atom ) then
+        iaprabs = iaabsi
+      else
+        iaprabs = iprabs_nonexc
+      endif
+      if( Full_Potential .or. ( Hubb(itabs) .and. .not. Hubb_diag(iaprabs) ) ) then
+        nlm_p_fp = nlm_probe
+      else
+        nlm_p_fp = 1
+      endif
+      nlms_pr = nlm_probe * nspino
+      lmax_tddft = max( lmax_tddft, lmax_probe )
+
+      lmaxabs = 0
+      do ipr = 0,n_atom_proto
+        Z = numat( itypepr(ipr) )
+        call clmax(Ecineticmax,rmtg(ipr),lmaxat0,lmaxat(ipr),Z,lmaxfree)
+        if( Z == numat_abs ) then
+          if( Cal_xanes ) lmaxat(ipr) = max( lmax_probe, lmaxat(ipr) )
+          lmaxabs = max( lmaxat(ipr), lmaxabs )
+        endif
+        lmaxmax = max(lmaxmax,lmaxat(ipr))
+      end do
+      do ipr = 0,n_atom_proto
+        Z = numat( itypepr(ipr) )
+        if( Z == numat_abs ) lmaxat(ipr) = lmaxabs
+      end do
+
+      nlmmax = (lmaxmax + 1 )**2
+      if( Tddft .or. Optic ) then
+! nlmamax ne sert que pour la Tddft, on la limite pour espace memoire:
+        lmaxabs_t = min( lmaxabs, lmax_tddft)
+        nlmamax = (lmaxabs_t + 1 )**2
+      else
+        lmaxabs_t = 0
+        nlmamax = 0
+      endif
+
+      nlmsam = nspinp * nlmmax
+      nlmomax = ( lmaxso_max + 1 )**2
+      nso1 = nspino * nlmomax
+
+      if( mpirank0 == 0 ) then
+        call CPU_TIME(time)
+        Time_loc(3) = real(time,db)
+      endif
+
+      allocate( iato(nlmsam,natome,ngrph) )
+      allocate( lato(nlmsam,natome,ngrph) )
+      allocate( iso(nso1,ngrph) )
+      allocate( lso(nso1,ngrph) )
+      allocate( mato(nlmsam,natome,ngrph) )
+      allocate( mso(nso1,ngrph) )
+      allocate( nlmso0(ngrph) )
+      allocate( nlmsa0(natome,ngrph) )
+
+! Determination des (l,m) de chaque representation
+      call lmrep(Green,iaprotoi,iato,icheck(15),iopsym_atom,iopsymr,irep_util,iso,itypei,karact,lato, &
+             lmaxat,lmaxso_max,lso,mato,mpirank0,mso,n_atom_proto,natome,nbordf,ngrph,nlmsa0,nlmsam,nlmso0, &
+             nso1,nsortf,nspino,ntype,numat,Orthmati,posi,rot_atom)
+
+! Calcul des Ylm sur les points du maillage
+      if( Green ) then
+        nbtm_fdm = 0
+      else
+        nbtm_fdm = nbtm
+      endif
+      allocate( Ylmato(nbtm_fdm,nlmmax,natome) )
+      if( .not. Green )  then
+        allocate( Ylmso(nsort,nlmomax) )
+        call ylmpt(Base_ortho,dcosxyz,iaprotoi,ibord,icheck(15),iopsymr,isrt,lmaxat,lmaxso_max,n_atom_proto,natome, &
+             nbord,nbtm,nlmmax,nlmomax,nsort,nstm,npsom,posi,rot_atom,rot_atom_abs,xyz,Ylmato,Ylmso)
+      endif
+
+      if( nspin == 1 .or. Spinorbite ) then
+        nspinorb = 1
+      else
+        nspinorb = 2
+      endif
+
+      allocate( Ecinetic_out(nspin) )
+      allocate( lmaxa(natome) )
+      allocate( nlmsa(natome) )
+      allocate( V0bdc_out(nspin) )
+      if( .not. Green ) then
+        if( Spinorbite .or. Relativiste ) then
+          nicm = nim
+        else
+          nicm = 1
+        endif
+        allocate( gradvr(nicm,3,nspin))
+      endif
+      allocate( drho_self(nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self,0:mpinodes-1) )
+      allocate( Statedens(lla2_state,nspinp,lla2_state,nspinp,n_atom_0:n_atom_ind,0:mpinodes-1) )
+      allocate( Statedens_i(lla2_state,nspinp,lla2_state,nspinp,n_atom_0:n_atom_ind,0:mpinodes-1) )
+      allocate( sec_atom(ninitlr) )
+
+! Initialisation de l'energie de l'agregat
+      Enragr = 0._db
+      Energ_self(:) = 0._db
+
+      if( Cal_xanes ) then
+        if( Tddft_xanes ) then
+          nenerg_tddft = nenerg
+        else
+          nenerg_tddft = 0
+        endif
+        allocate( rof0(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil) )
+      endif
+      if( Tddft_xanes .or. Optic_xanes ) then
+        rof0(:,:,:,:,:) = (0._db,0._db)
+        allocate( Taull_tdd(nenerg,nlmamax,nspinp,nlmamax,nspinp) )
+        Taull_tdd(:,:,:,:,:) = (0._db, 0._db)
+      end if
+
+      nbbseuil = nbseuil
+      ninitlv = nbseuil
+      n_vr_0 = n_atom_0
+      n_vr_ind = n_atom_ind
+
+      allocate( secdd(3,3,ninitlr,0:mpinodes-1) )
+      allocate( secmd(3,3,ninitlr,0:mpinodes-1) )
+      allocate( secmm(3,3,ninitlr,0:mpinodes-1) )
+      allocate( secdq(3,3,3,ninitlr,0:mpinodes-1) )
+      allocate( secdo(3,3,3,3,ninitlr,0:mpinodes-1) )
+      allocate( secoo(3,n_oo,3,n_oo,ninitlr,0:mpinodes-1) )
+      allocate( secqq(3,3,3,3,ninitlr,0:mpinodes-1) )
+      allocate( secdd_m(3,3,ninitlr,0:mpinodes-1) )
+      allocate( secmd_m(3,3,ninitlr,0:mpinodes-1) )
+      allocate( secmm_m(3,3,ninitlr,0:mpinodes-1) )
+      allocate( secdq_m(3,3,3,ninitlr,0:mpinodes-1) )
+      allocate( secdo_m(3,3,3,3,ninitlr,0:mpinodes-1) )
+      allocate( secoo_m(3,n_oo,3,n_oo,ninitlr,0:mpinodes-1) )
+      allocate( secqq_m(3,3,3,3,ninitlr,0:mpinodes-1) )
+      allocate( Ecinetic(nspin) )
+      allocate( V0bdc(nspin) )
+
+      Green_i = Green_int
+
+! Boucle sur l'energie
+      nge = ( nenerg - 1 ) / mpinodes + 1
+
+      if( One_run .and. mpinodes0 > 1 .and. multi_run == 1 .and. Cal_xanes ) &
+        allocate( taull_stk(nlm_probe,nspinp,nlm_probe,nspinp,2:n_multi_run,nge) )
+      index_e = 0
+
+      Tau_nondiag = .false.
+      if( Spinorbite .or. Full_potential ) then
+        Tau_nondiag = .true.
+      elseif( Hubbard ) then
+        do iapr = n_atom_0_self,n_atom_ind_self
+          if( Hubb_diag(iapr) ) cycle
+          Tau_nondiag = .true.
+          exit
+        end do
+      endif
+
+      if( mpirank0 == 0 ) then
+        call CPU_TIME(time)
+        Time_loc(4) = real(time,db)
+        do i = 2,4
+          Time_rout(i) = Time_loc(i) - Time_loc(i-1)
+        end do
+      endif
+
+      boucle_energ: do je = 1,nge
+
+        if( Recup_tddft_data .and. Cal_xanes ) exit
+
+        ie = ( je - 1 ) * mpinodes + mpirank + 1
+
+        if( ie <= nenerg ) then
+
+          if( mpirank0 == 0 ) then
+            call CPU_TIME(time)
+            Time_loc(1) = real(time,db)
+          endif
+
+          index_e = index_e + 1
+          Enervide = Energ(ie) - Workf
+
+! Calcul du potentiel dans l'etat excite
+          call potex(Atom_nonsph,axyz,alfpot,Cal_xanes,dV0bdcF,Energ(ie),Enervide,Full_atom, &
+            iaabsi,iapot,iaprotoi,icheck(16),iprabs_nonexc,iprabs,itab,itypepr,Magnetic, &
+            n_atom_0,n_atom_ind,n_atom_proto,n_vr_0,n_vr_ind,natome,nlm_pot,Nonexc_g,npoint,npoint_ns,npsom,nptmoy, &
+            nptmoy_out,nrato,nrm,nspin,ntype,Optic,rato,rho,rhons,rmtg,rs,rsato,rsbdc,rsbdc_out,Trace_k,Trace_p, &
+            V_intmax,Vcato,Vh,Vhbdc,Vhbdc_out,Vhns,Vr,Vxc,VxcbdcF,VxcbdcF_out,Vrato,Vxcato,V0bdc,V0bdc_out,xyz)
+
+          do ispin = 1,nspin
+
+            V0bdc_out(ispin) = V0bdc(ispin)
+
+            if( Muffintin ) call mdfmuf(Atom_nonsph,Axe_Atom_gr,axyz,Base_ortho, &
+              dcosxyz,Full_atom,iaabs,iaproto,iaprotoi,icheck(16),igreq,igroup,ispin,itypep,n_atom_0,n_atom_ind, &
+              n_atom_proto,natome,natomp,neqm,ngroup_m,nlm_pot,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,pos,rato,rho,rhons, &
+              Rmtg,Trace_k,Trace_p,Vhns,V0bdc(ispin),Vr,Vrato,xyz)
+
+            if( Supermuf ) call modmuf(Full_atom,iaprotoi,itypepr,icheck(16), &
+              ispin,n_atom_0,n_atom_ind,n_atom_proto,natome,nlm_pot,nrato,nrm,nspin,ntype,rato,rmtg,V0bdc(ispin),Vrato)
+
+            if( .not. ( Green .or. Second_run ) .and. ( Spinorbite .or. Relativiste ) ) &
+              call gradpot(Base_hexa,cgrad,gradvr,icheck(16),iord,ispin,ivois,nicm,npoint,npsom,nspin,nvois,Vr)
+
+            Ecinetic_out(ispin) = Enervide - V0bdc_out(ispin)
+            Ecinetic(ispin) = Enervide - V0bdc(ispin)
+
+            if( Eneg ) then
+! Problemes numeriques autour de 0
+              em = 0.01_db / rydb
+              ei0 = 0.01_db / rydb
+              if( Ecinetic_out(ispin) < 0._db ) then
+                Eimag(ie) = max( Eimag(ie), ei0 )
+              elseif( ecinetic_out(ispin) < em ) then
+                eii = ei0 * ( 1 - ecinetic_out(ispin) / em )
+                Eimag(ie) = max( Eimag(ie), eii )
+              endif
+            else
+              Ecinetic_out(ispin) = max( Ecinetic_out(ispin), Eclie_out)
+              Ecinetic(ispin) = max( Ecinetic(ispin), Eclie )
+            endif
+
+            if( ( Ecinetic(ispin) < eps10 .or. Ecinetic_out(ispin) < eps10 ) .and. .not. Eneg ) then
+              if( mpirank0 == 0 ) then
+                call write_error
+                do ipr = 6,9,3
+                  write(ipr,170) Ecinetic(ispin) * rydb
+                  if( nptmoy_out > 0 ) write(ipr,180) Ecinetic_out(ispin) * rydb
+                end do
+              endif
+              stop
+            endif
+
+          end do  ! fin boucle sur spin
+
+          if( mpirank0 == 0 ) then
+            call CPU_TIME(time)
+            Time_loc(2) = real(time,db)
+            Time_rout(5) = Time_rout(5) + Time_loc(2) - Time_loc(1)
+          endif
+
+          if( abs( Eimag(ie) ) > eps10 .or. Ecinetic_out(1) < eps10 .or. Ecinetic_out(nspin) < eps10 ) then
+            E_comp = .true.
+          else
+            E_comp = .false.
+          endif
+
+          if( No_solsing ) then
+            Solsing = .false.
+          elseif( E_comp ) then
+            Solsing = .true.
+          else
+            Solsing = Solsing_s
+          endif
+
+          Ecmax = 0._db
+          Ecmax_out = 0._db
+          do ispin = 1,nspin
+            Ecmax_out = max( Ecmax_out, Ecinetic_out(ispin) )
+            Ecmax = max( Ecmax, Ecinetic(ispin) )
+          end do
+
+          lmaxg = 0
+          lmaxabsa = 0
+          do ipr = 0,n_atom_proto
+            Z = numat( itypepr(ipr) )
+            call clmax(Ecmax,Rmtg(ipr),lmaxat0,lmaxat(ipr),Z,lmaxfree)
+            lmaxat(ipr) = min(lmaxat(ipr), lmaxmax)
+            if( Z == numat_abs ) then
+               if( Cal_xanes ) lmaxat(ipr) = max( lmax_probe, lmaxat(ipr) )
+               lmaxabsa = max( lmaxabsa, lmaxat(ipr) )
+            end if
+            lmaxg = max( lmaxat(ipr), lmaxg)
+          end do
+          do ipr = 0,n_atom_proto
+            Z = numat( itypepr(ipr) )
+            if( Z == numat_abs ) lmaxat(ipr) = lmaxabsa
+          end do
+          nlmagm = ( lmaxg + 1 )**2
+
+          allocate( Tau_ato(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind) )
+          if( Green ) then
+            nphiato1 = 0; nphiato7 = 0
+          else
+            nphiato1 = nbtm
+            nphiato7 = 1
+            if( abs(Eimag(ie)) > eps10 .or. Spinorbite .or. Ylm_comp ) then
+              nphiato7 = 2
+            else
+              do igrph = 1,ngrph
+                if( .not. Repres_comp(igrph) ) cycle
+                nphiato7 = 2
+                exit
+              end do
+            endif
+          endif
+          allocate( phiato(nphiato1,nlmagm,nspinp,nspino,natome,nphiato7) )
+          allocate( Taull(nlmagm,nspinp,nlmagm,nspinp,natome) )
+          phiato(:,:,:,:,:,:) = 0._db
+          Tau_ato(:,:,:,:,:) = (0._db,0._db)
+          Taull(:,:,:,:,:) = (0._db,0._db)
+
+          if( .not. Green ) then
+            Z = 2
+            call clmax(Ecmax_out,rsort,lmaxso0,lmaxso,Z,.true.)
+            if( Cal_xanes .and. icheck(18) > 0 ) write(3,'(/a9,i4)') ' lmaxso =', lmaxso
+            lmaxso = min( lmaxso, lmaxso_max )
+          endif
+
+          if( Cal_xanes ) then
+            ich = icheck(18)
+          else
+            ich = min(icheck(18), icheck(27))
+          endif
+          if( ich > 1 ) write(3,190)
+
+! Boucle sur les atomes nonequivalents dans la maille
+          if( Cal_xanes ) then
+            n1 = n_atom_0
+          else
+            n1 = n_atom_0_self
+          endif
+
+          do iapr = n1,n_atom_ind
+
+            if( Full_atom ) then
+              ipr = iaprotoi( iapr )
+            else
+              ipr = iapr
 ! pour sauter l'absorbeur non excite et les atomes non calcule par SCF
 ! Commente car bug dans compilateur linux !
 !              if( Cal_xanes ) then
@@ -1764,60 +1763,60 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 !                end do
 !                if( ia == natome+1 ) cycle
 !              endif
-              endif
-              Z = numat( itypepr(ipr) )
-              if( Z == 0 .and. .not. Green ) cycle
-              if( Z == Z_nospinorbite ) then
-                Spino = .false.
-              else
-                Spino = Spinorbite
-              endif
-              it = itypepr(ipr)
-              if( Full_atom ) then
-                Absorbeur = iapr == iaabsi .and. Cal_xanes
-              else
-                Absorbeur = iapr == iprabs .and. Cal_xanes
-              endif
-
-              allocate( V_hubb_t(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp))
-              if( Hubb(it) .and. iapr <= n_atom_ind_self ) then
-                Hubb_a = .true.
-                if( Absorbeur ) then
-                  V_Hubb_t(:,:,:,:) = V_Hubb_abs(:,:,:,:)
-                else
-                  V_Hubb_t(:,:,:,:) = V_Hubb(:,:,:,:,iapr)
-                endif
-                Hubb_d = Hubb_diag(iapr)
-              else
-                Hubb_a = .false.
-                Hubb_d = .true.
-              end if
-
-              nr = nrato(it)
-              allocate( r(nr) )
-              allocate( Vrato_e(nr,nlm_pot,nspin) )
-              r(1:nr) = rato(1:nr,it)
-
-              lmax = lmaxat(ipr)
-
-              Vrato_e(1:nr,:,:) = Vrato(1:nr,:,:,iapr)
-
-              call Sphere(Axe_atom_grn,Base_ortho,dcosxyz,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
-              Full_potential,Green,Hubb_a,Hubb_d,iaabsi,iapr,iaprotoi,ibord,ich,igreq,igroupi,iopsymr,lmax,lmax_pot,m_hubb, &
-              n_atom_0,n_atom_ind,n_atom_proto,natome,nbord,nbtm,nbtm_fdm,neqm,ngroup_m, &
-              nlm_pot,nlmagm,nlmmax,nphiato1,nphiato7,npsom,nr,nspin,nspino,nspinp,Z,phiato,posi,r,Relativiste,Rmtg(ipr), &
-              Rmtsd(ipr),Spino,Tau_ato,V_hubb_t,V_intmax,V0bdc,Vrato_e,xyz,Ylm_comp,Ylmato)
-
-              deallocate( r )
-              deallocate( Vrato_e, V_hubb_t )
-
-            end do
-
-            if( mpirank0 == 0 ) then
-              call CPU_TIME(time)
-              tp(3) = real(time,db)
-              tpt(6) = tpt(6) + tp(3) - tp(2)
             endif
+            Z = numat( itypepr(ipr) )
+            if( Z == 0 .and. .not. Green ) cycle
+            if( Z == Z_nospinorbite ) then
+              Spino = .false.
+            else
+              Spino = Spinorbite
+            endif
+            it = itypepr(ipr)
+            if( Full_atom ) then
+              Absorbeur = iapr == iaabsi .and. Cal_xanes
+            else
+              Absorbeur = iapr == iprabs .and. Cal_xanes
+            endif
+
+            allocate( V_hubb_t(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp))
+            if( Hubb(it) .and. iapr <= n_atom_ind_self ) then
+              Hubb_a = .true.
+              if( Absorbeur ) then
+                V_Hubb_t(:,:,:,:) = V_Hubb_abs(:,:,:,:)
+              else
+                V_Hubb_t(:,:,:,:) = V_Hubb(:,:,:,:,iapr)
+              endif
+              Hubb_d = Hubb_diag(iapr)
+            else
+              Hubb_a = .false.
+              Hubb_d = .true.
+            end if
+
+            nr = nrato(it)
+            allocate( r(nr) )
+            allocate( Vrato_e(nr,nlm_pot,nspin) )
+            r(1:nr) = rato(1:nr,it)
+
+            lmax = lmaxat(ipr)
+
+            Vrato_e(1:nr,:,:) = Vrato(1:nr,:,:,iapr)
+
+            call Sphere(Axe_atom_grn,Base_ortho,dcosxyz,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
+            Full_potential,Green,Hubb_a,Hubb_d,iaabsi,iapr,iaprotoi,ibord,ich,igreq,igroupi,iopsymr,lmax,lmax_pot,m_hubb, &
+            n_atom_0,n_atom_ind,n_atom_proto,natome,nbord,nbtm,nbtm_fdm,neqm,ngroup_m, &
+            nlm_pot,nlmagm,nlmmax,nphiato1,nphiato7,npsom,nr,nspin,nspino,nspinp,Z,phiato,posi,r,Relativiste,Rmtg(ipr), &
+            Rmtsd(ipr),Spino,Tau_ato,V_hubb_t,V_intmax,V0bdc,Vrato_e,xyz,Ylm_comp,Ylmato)
+
+            deallocate( r )
+            deallocate( Vrato_e, V_hubb_t )
+
+          end do
+
+          if( mpirank0 == 0 ) then
+            call CPU_TIME(time)
+            Time_loc(3) = real(time,db)
+            Time_rout(6) = Time_rout(6) + Time_loc(3) - Time_loc(2)
+          endif
 
 ! nspinorb = 2 si magnetique sans Spinorbite
 ! nspinorb = 1 si nonmagnetique ou Spinorbite
@@ -1825,366 +1824,351 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
 ! igrph: boucle sur les representations
 
-            lmaxg = 0
-            do ia = 1,natome
-              lmaxa(ia) = lmaxat( iaprotoi(ia) )
-              lmaxg = max(lmaxg,lmaxa(ia))
-            end do
+          lmaxg = 0
+          do ia = 1,natome
+            lmaxa(ia) = lmaxat( iaprotoi(ia) )
+            lmaxg = max(lmaxg,lmaxa(ia))
+          end do
 
-            if( multi_run == 1 .or. .not. One_run ) then
+          if( multi_run == 1 .or. .not. One_run ) then
 
-              do ispin = 1,nspinorb
-                do igrph = 1,ngrph
+            do ispin = 1,nspinorb
+              do igrph = 1,ngrph
 
-                  nlmsamax = 0
-                  nlmsa(:) = 0
-                  do ia = 1,natome
-                    Z = numat(itypei(ia))
-                    if( .not. Green .and. Z == 0 ) cycle
-                    lmaxa(ia) = lmaxat( iaprotoi(ia) )
-                    n = nlmsa0(ia,igrph)
-                    allocate( lval(n) )
-                    lval(1:n) = lato(1:n,ia,igrph)
-                    call cnlmmax(lmaxa(ia),lval,n,nlmsa(ia))
-                    nlmsamax = max(nlmsamax,nlmsa(ia))
-                    deallocate( lval )
-                  end do
-                  if( nlmsamax == 0 .and. igrph /= ngrph ) cycle
-                  if( Cal_xanes ) then
-                    ich = icheck(19)
-                  else
-                    ich = min(icheck(19), icheck(27))
-                  endif
-                  
-                  if( Green ) then
-                    call msm(Axe_Atom_grn,Base_ortho,Cal_xanes,dcosxyz,Ecinetic,Eimag(ie),Full_atom,ia_eq,ia_rep,iaabsi,iaprotoi, &
-                      iato,ich,igreq,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato,n_atom_0, &
-                      n_atom_ind,n_atom_proto,natome,natomp,nb_eq,nb_rpr,nb_rep_t,nb_sym_op,nchemin,neqm,ngroup, &
-                      ngrph,nlmagm,nlmsa,nlmsam,nlmsamax,Normaltau,nspin,nspino,nspinp,pos,posi,Recop,Repres_comp(igrph), &
-                      rot_atom,Solsing,Spinorbite,State_all,Sym_cubic,Tau_ato,Tau_nondiag,Taull,tpt1,tpt2,Ylm_comp)
-                  else
-                    n = nlmso0(igrph)
-                    allocate( lval(n) )
-                    lval(1:n) = lso(1:n,igrph)
-                    call cnlmmax(lmaxso,lval,n,nlmso)
-                    deallocate( lval )
-                    if( Cal_xanes .and. ie > 1 ) ich = ich - 1
-                    call mat(Adimp,Atom_axe,Axe_Atom_grn,Base_hexa,Base_ortho,Basereel,Cal_xanes,cgrad, &
-                    clapl,dcosxyz,distai,E_comp,Ecinetic_out,Eclie,Eimag(ie),Eneg,Enervide,Full_atom, &
-                    gradvr,iaabsi,iaprotoi,iato,ibord,ich,igreq,igroupi,igrph,irep_util,isbord,iso,ispin,isrt,ivois,isvois, &
-                    karact,lato,lmaxa,lmaxso,lso,mato,MPI_host_num_for_mumps,mpirank0,mso, &
-                    natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup,ngrph,nim,nicm, &
-                    nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
-                    nsort,nsortf,nso1,nspin,nspino,nspinp,nstm,numia,nvois,phiato,poidsa,poidso,R_rydb,Recop,Relativiste, &
-                    Repres_comp(igrph),Rsort,rvol,Rydberg,Solsing,Spinorbite,State_all,Sym_cubic,Tau_ato,Taull, &
-                    tpt1,tpt2,V0bdc_out,Vr,xyz,Ylm_comp,Ylmato,Ylmso)
-                  endif
+                nlmsamax = 0
+                nlmsa(:) = 0
+                do ia = 1,natome
+                  Z = numat(itypei(ia))
+                  if( .not. Green .and. Z == 0 ) cycle
+                  lmaxa(ia) = lmaxat( iaprotoi(ia) )
+                  n = nlmsa0(ia,igrph)
+                  allocate( lval(n) )
+                  lval(1:n) = lato(1:n,ia,igrph)
+                  call cnlmmax(lmaxa(ia),lval,n,nlmsa(ia))
+                  nlmsamax = max(nlmsamax,nlmsa(ia))
+                  deallocate( lval )
+                end do
+                if( nlmsamax == 0 .and. igrph /= ngrph ) cycle
+                if( Cal_xanes ) then
+                  ich = icheck(19)
+                else
+                  ich = min(icheck(19), icheck(27))
+                endif
 
-                end do  ! fin de la boucle sur les representations
-              end do  ! fin de la boucle sur le spin
+                if( Green ) then
+                  call msm(Axe_Atom_grn,Base_ortho,Cal_xanes,dcosxyz,Ecinetic,Eimag(ie),Full_atom,ia_eq,ia_rep, &
+                    iaabsi,iaprotoi,iato,ich,igreq,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato, &
+                    n_atom_0,n_atom_ind,n_atom_proto,natome,natomp,nb_eq,nb_rpr,nb_rep_t,nb_sym_op,nchemin,neqm,ngroup, &
+                    ngrph,nlmagm,nlmsa,nlmsam,nlmsamax,Normaltau,nspin,nspino,nspinp,pos,posi,Recop,Repres_comp(igrph), &
+                    rot_atom,Solsing,Spinorbite,State_all,Sym_cubic,Tau_ato,Tau_nondiag,Taull,Time_fill,Time_tria,Ylm_comp)
+                else
+                  n = nlmso0(igrph)
+                  allocate( lval(n) )
+                  lval(1:n) = lso(1:n,igrph)
+                  call cnlmmax(lmaxso,lval,n,nlmso)
+                  deallocate( lval )
+                  if( Cal_xanes .and. ie > 1 ) ich = ich - 1
+                  call mat(Adimp,Atom_axe,Axe_Atom_grn,Base_hexa,Base_ortho,Basereel,Cal_xanes,cgrad, &
+                  clapl,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,Full_atom, &
+                  gradvr,iaabsi,iaprotoi,iato,ibord,ich,igreq,igroupi,igrph,irep_util,isbord,iso,ispin,isrt,ivois,isvois, &
+                  karact,lato,lmaxa,lmaxso,lso,mato,MPI_host_num_for_mumps,mpirank0,mso, &
+                  natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup,ngrph,nim,nicm, &
+                  nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
+                  nsort,nsortf,nso1,nspin,nspino,nspinp,nstm,numia,nvois,phiato,poidsa,poidso,R_rydb,Recop,Relativiste, &
+                  Repres_comp(igrph),Rsort,rvol,Rydberg,Solsing,Spinorbite,State_all,Sym_cubic,Tau_ato,Taull, &
+                  Time_fill,Time_tria,V0bdc_out,Vr,xyz,Ylm_comp,Ylmato,Ylmso)
+                endif
 
-            endif
+              end do  ! fin de la boucle sur les representations
+            end do  ! fin de la boucle sur le spin
+
+          endif
 
 ! C'est bien mpinodes et non mpinodes0 car correspond a la boucle sur l'energie.
-            if( One_run .and. Cal_xanes ) call Data_one_run(iabsm,iaprotoi,icheck(19), &
-                igreq,index_e,igroupi,lmax_probe,lmaxa,mpinodes0,multi_run,n_atom_proto,n_multi_run,natome, &
-                neqm,nge,ngreq,nlm_probe,nlmagm,nspin,Rot_atom,Rot_int,Spinorbite,taull,taull_stk,Ylm_comp)
+          if( One_run .and. Cal_xanes ) call Data_one_run(iabsm,iaprotoi,icheck(19), &
+              igreq,index_e,igroupi,lmax_probe,lmaxa,mpinodes0,multi_run,n_atom_proto,n_multi_run,natome, &
+              neqm,nge,ngreq,nlm_probe,nlmagm,nspin,Rot_atom,Rot_int,Spinorbite,taull,taull_stk,Ylm_comp)
 
-            if( Tddft_xanes ) then
-              lm1 = 0
-              do l1 = 0,lmax_t
-                if( mod(l1,2) /= imparite .and. imparite /= 2 ) cycle
-                do m1 = -l1,l1
-                  lm1 = lm1 + 1
-                  lmv1 = l1**2 + l1 + 1 + m1
-                  lm2 = 0
-                  do l2 = 0,lmax_t
-                    if( mod(l2,2)/= imparite .and. imparite /= 2 ) cycle
-                    do m2 = -l2,l2
-                      lm2 = lm2 + 1
-                      lmv2 = l2**2 + l2 + 1 + m2
-                      imag_taull(ie,lm1,1:nspin,lm2,1:nspin) = - aimag( taull(lmv1,1:nspin,lmv2,1:nspin,iaabsi) )
-                    end do
+          if( Optic_xanes .or. Tddft_xanes ) then
+  ! Peut etre fait comme ca, car Eimag = 0 en tddft et optic
+            do lm1 = 1,min(nlmamax,nlmagm)
+              do lm2 = 1,min(nlmamax,nlmagm)
+                do isp1 = 1,nspinp
+                  do isp2 = 1,nspinp
+                    Taull_tdd(ie,lm1,isp1,lm2,isp2) = 0.5_db * ( Taull(lm1,isp1,lm2,isp2,iaabsi) &
+                                                        - conjg( Taull(lm2,isp2,lm1,isp1,iaabsi) ) )
                   end do
                 end do
               end do
-            endif
-            if( Optic_xanes ) then
-              do lm1 = 1,nlm_probe
-                do lm2 = 1,nlm_probe
-                  do isp1 = 1,nspinp
-                    Taull_opt(ie,lm1,lm2,isp1,:) = Taull(lm1,isp1,lm2,:,iaabsi)
-                  end do
-                end do
-              end do
+            end do
+            if( Optic_Xanes ) then
               do ipr = 3,6,3
                 if( icheck(19) == 0 .and. ipr == 3 ) cycle
                 if( ie == 1 .or. ipr == 3 ) write(ipr,'(/A)') '   Energy   -Tau_i(l,m=0,l,m=0) l = 0,lmax_probe'
-                write(ipr,'(f10.3,1p,6e13.5)') Energ(ie)*rydb, ( - aimag( Taull_opt(ie,l**2+l+1,l**2+l+1,1,1) ), &
-                     l = 0,lmax_probe )
+                write(ipr,'(f10.3,1p,6e13.5)') Energ(ie)*rydb, ( - aimag( Taull_tdd(ie,l**2+l+1,1,l**2+l+1,1) ), &
+                   l = 0,lmax_probe )
 
               end do
             endif
+          endif
 
-            if( mpirank0 == 0 ) then
-              call CPU_TIME(time)
-              tp(4) = real(time,db)
-              tpt(7) = tpt(7) + tp(4) - tp(3)
-            endif
+          if( mpirank0 == 0 ) then
+            call CPU_TIME(time)
+            Time_loc(4) = real(time,db)
+            Time_rout(7) = Time_rout(7) + Time_loc(4) - Time_loc(3)
+            Time_rout(8) = Time_rout(8) + Time_fill ! Filling
+            Time_rout(9) = Time_rout(9) + Time_tria ! Triang
+          endif
 
 ! Calcul des tenseurs cartesiens
-            if( Cal_xanes .and. .not. Optic ) then
+          if( Cal_xanes .and. .not. Optic ) then
 
-              nlma = nlm_probe
-              ndim1 = 1
-              ndim2 = 1
-              allocate( taull_abs(nlma*nspino,nlma*nspino,2,2,ndim1,ndim2,ndim2) )
+            ns_dipmag = 1
+            ndim2 = 1
+            allocate( taull_abs(nlms_pr,nlms_pr,ndim2,ndim2,2,2,ns_dipmag) )
 
-              do i = 1,2
+            do i = 1,2
 
-                if( i == 1 .and. .not. Xan_atom ) cycle
+              if( i == 1 .and. .not. Xan_atom ) cycle
 
-                taull_abs(:,:,:,:,:,:,:) = (0._db,0._db)
-                if( i == 1 ) then
-                  if( Full_atom ) then
-                    iapr = iaabsi
-                  elseif( Nonexc ) then
-                    iapr = iprabs_nonexc
-                  else
-                    iapr = 0
-                  endif
+              taull_abs(:,:,:,:,:,:,:) = (0._db,0._db)
+              if( i == 1 ) then
+                if( Full_atom ) then
+                  iapr = iaabsi
+                elseif( Nonexc ) then
+                  iapr = iprabs_nonexc
+                else
+                  iapr = 0
                 endif
+              endif
 
-                do lm1 = 1,nlma
+              lms1 = 0
+              do lm1 = 1,nlm_probe
 ! Pour la partie atomique, tous le signal est dans la solution singuliere
-                  if( i == 1 .and. Solsing ) exit
-                  do iso1 = 1,nspino
-                    lm1g = nlma*(iso1-1) + lm1
-                    do lm2 = 1,nlma
-                      do iso2 = 1,nspino
-                        lm2g = nlma*(iso2-1) + lm2
-                        do isp1 = 1,2
-                          do isp2 = 1,2
-                            if( Spinorbite ) then
-                              iss1 = iso1; iss2 = iso2
-                            else
-                              if( isp1 /= isp2 ) cycle
-                              iss1 = min(isp1,nspin)
-                              iss2 = min(isp2,nspin)
-                            endif
+                if( i == 1 .and. Solsing ) exit
+                do iso1 = 1,nspino
+                  lms1 = lms1 + 1
+                  lms2 = 0
+                  do lm2 = 1,nlm_probe
+                    do iso2 = 1,nspino
+                      lms2 = lms2 + 1
+                      do isp1 = 1,2
+                        do isp2 = 1,2
+                          if( Spinorbite ) then
+                            iss1 = iso1; iss2 = iso2
+                          else
+                            if( isp1 /= isp2 ) cycle
+                            iss1 = min(isp1,nspin)
+                            iss2 = min(isp2,nspin)
+                          endif
 
-                            if( i == 1 ) then
-                              taull_abs(lm1g,lm2g,isp1,isp2,1,1,1) = Tau_ato(lm1,iss1,lm2,iss2,iapr)
-                            else
-                              taull_abs(lm1g,lm2g,isp1,isp2,1,1,1) = taull(lm1,iss1,lm2,iss2,iaabsi)
-                            endif
-                          end do
+                          if( i == 1 ) then
+                            taull_abs(lms1,lms2,1,1,isp1,isp2,1) = Tau_ato(lm1,iss1,lm2,iss2,iapr)
+                          else
+                            taull_abs(lms1,lms2,1,1,isp1,isp2,1) = taull(lm1,iss1,lm2,iss2,iaabsi)
+                          endif
                         end do
                       end do
                     end do
                   end do
                 end do
-
-                Hubb_a = Hubb(itabs)
-                Hubb_d = Hubb_diag(iaprabs)
-                nr = nrato(itabs)
-                allocate( Vra(nr,nlm_pot,nspin) )
-                allocate( r(nr) )
-                if( Full_atom ) then
-                  Vra(1:nr,:,:) = Vrato(1:nr,:,:,iaabsi)
-                else
-                  Vra(1:nr,:,:) = Vrato(1:nr,:,:,iprabs)
-                endif
-                r(1:nr) = rato(1:nr,itabs)
-                if( Tddft ) then
-                  ip00 = 0
-                else
-                  ip00 = ip0
-                endif
-                ninitlt = 1
-                if(Full_Potential.or.(Hubb_a .and. .not. Hubb_d)) then
-                  nlma2 = nlma
-                else
-                  nlma2 = 1
-                endif
-                if( mpirank_in_mumps_group == 0 ) then
-                  call tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
-                  Eimag(ie),Energ(ie),Enervide,Eseuil,Final_optic,Final_tddft,Full_potential,Green_i,Green_plus,Hubb_a,Hubb_d, &
-                  icheck(20),ie,ip_max,ip00,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
-                  mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
-                  n_oo,nbseuil,ndim1,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlt,ninitlv,nlm_pot,nlma,nlma2,nlmamax, &
-                  nr,nrm,nspin,nspino,nspinp,numat(itabs),psii,r,Relativiste,Rmtg(iprabs),Rmtsd(iprabs),rof0,rot_atom_abs, &
-                  Rot_int,secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m, &
-                  secqq,secqq_m,Solsing,Solsing_only,Spinorbite,Taull_abs,Tddft,V_hubb_abs,V_intmax,V0bdc,Vra,Ylm_comp)
-                endif
-                deallocate( r, Vra )
-
-                if( i == 1 ) then
-
-                  sec_atom(:) = 0._db
-                  do initl = 1,ninitlr
-                    do j = 1,3
-                      sec_atom(initl) = sec_atom(initl) + Real(secdd(j,j,initl,mpirank), db)
-                    end do
-                  end do
-                  sec_atom(:) = sec_atom(:) / 3
-
-                endif
-
               end do
 
-              deallocate( taull_abs )
+              Hubb_a = Hubb(itabs)
+              Hubb_d = Hubb_diag(iaprabs)
+              nr = nrato(itabs)
+              allocate( Vra(nr,nlm_pot,nspin) )
+              allocate( r(nr) )
+              if( Full_atom ) then
+                Vra(1:nr,:,:) = Vrato(1:nr,:,:,iaabsi)
+              else
+                Vra(1:nr,:,:) = Vrato(1:nr,:,:,iprabs)
+              endif
+              r(1:nr) = rato(1:nr,itabs)
+              if( Tddft ) then
+                ip00 = 0
+              else
+                ip00 = ip0
+              endif
+              n_V = 1
+              n_Ec = 1
+              allocate( Enervide_t(n_Ec) )
+              Enervide_t(1) = Enervide
+              if( mpirank_in_mumps_group == 0 ) then
+                call tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
+                Eimag(ie),Energ(ie),Enervide_t,Eseuil,Final_optic,Final_tddft,Full_potential,Green_i,Hubb_a,Hubb_d, &
+                icheck(20),ie,ip_max,ip00,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
+                mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
+                n_Ec,n_oo,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe,nlm_p_fp, &
+                nlmamax,nr,nrm,nspin,nspino,nspinp,numat(itabs),psii,r,Relativiste,Rmtg(iprabs),Rmtsd(iprabs),rof0,rot_atom_abs, &
+                Rot_int,secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m, &
+                secqq,secqq_m,Solsing,Solsing_only,Spinorbite,Taull_abs,Tddft,V_hubb_abs,V_intmax,V0bdc,Vra,Ylm_comp)
+              endif
+              deallocate( Enervide_t, r, Vra )
 
-            endif
+              if( i == 1 ) then
 
-            deallocate( Tau_ato )
-            deallocate( phiato )
+                sec_atom(:) = 0._db
+                do initl = 1,ninitlr
+                  do j = 1,3
+                    sec_atom(initl) = sec_atom(initl) + Real(secdd(j,j,initl,mpirank), db)
+                  end do
+                end do
+                sec_atom(:) = sec_atom(:) / 3
 
-            if( .not. Convergence ) then
-              ich = icheck(27)
-            else
-              ich = icheck(28)
-            endif
-            if( Cal_xanes ) then
-              Solsing_o = Solsing_only
-            else
-              Solsing_o = .false.
-            endif
+              endif
 
-            if( mpirank0 == 0 ) then
-              call CPU_TIME(time)
-              tp(5) = real(time,db)
-              tpt(8) = tpt(8) + tp(5) - tp(4)
-            endif
+            end do
 
-            if( Density .or. .not. Cal_xanes ) &
-              call cal_dens(Cal_xanes,Density_comp,drho_self,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom,Full_potential, &
-              Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,ich,itypei,itypepr,lla2_state,lmax_pot,lmaxat,m_hubb, &
-              mpinodes,mpirank,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nlmagm,nlm_pot, &
-              nrato,nrm,nrm_self,nspin,nspino,nspinp,ntype,numat,rato,Relativiste,Rmtg,Rmtsd,Solsing,Solsing_o,Spinorbite, &
-              State_all_out,Statedens,Statedens_i,Taull,V_hubb,V_hubb_abs,V_intmax,V0bdc,Vrato,Ylm_comp)
-
-            deallocate( taull )
-
-            if( mpirank0 == 0 ) then
-              call CPU_TIME(time)
-              tp(6) = real(time,db)
-              tpt(9) = tpt(9) + tp(6) - tp(5)
-            endif
-
-          endif ! fin de la condition sur ie <= nenerg
-
-          if( mpinodes > 1 ) then
-
-            if( Cal_xanes .and. .not. Optic ) call MPI_RECV_all(MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo, &
-                                                              ninitlr,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
-            if( Cal_xanes .and. Green_i ) call MPI_RECV_all(MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo, &
-                                                          ninitlr,secdd_m,secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
-
-            if( .not. Cal_xanes .or. Density ) then
-              call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
-              call MPI_RECV_statedens(MPI_host_num_for_mumps,lla2_state,lmaxat,mpinodes,mpirank,mpirank0,n_atom_0, &
-                                      n_atom_ind,n_atom_proto,nspin,Statedens,Statedens_i)
-            endif
-
-            if( .not. Cal_xanes ) then
-              call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
-              call MPI_RECV_self(drho_self,MPI_host_num_for_mumps,nlm_pot,mpinodes,mpirank,mpirank0,n_atom_0_self, &
-                                 n_atom_ind_self,nrm_self,nspin)
-            endif
-
-            if( Tddft_xanes ) then
-              call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
-              call MPI_Bcast_tddft(imag_taull,je,mpinodes,mpirank,nbseuil,nenerg,nlmamax,nlmamax_u,nspinp,nspino,rof0)
-            endif
-            if( Optic_xanes ) then
-              call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
-              call MPI_Bcast_Optic(Taull_opt,je,mpinodes,mpirank,nenerg,nlm_probe,nspinp)
-            endif
+            deallocate( taull_abs )
 
           endif
 
-          do ie_computer = 0,mpinodes-1
+          deallocate( Tau_ato )
+          deallocate( phiato )
 
-            ie = ( je - 1 ) * mpinodes + ie_computer + 1
+          if( .not. Cal_xanes ) then
+            ich = icheck(27)
+          else
+            ich = icheck(28)
+          endif
+          if( Cal_xanes ) then
+            Solsing_o = Solsing_only
+          else
+            Solsing_o = .false.
+          endif
 
-            if( ie > nenerg ) exit
+          if( mpirank0 == 0 ) then
+            call CPU_TIME(time)
+            Time_loc(5) = real(time,db)
+            Time_rout(9) = Time_rout(9) + Time_loc(5) - Time_loc(4)
+          endif
 
-            if( mpirank0 == 0 ) then
+          if( Density .or. .not. Cal_xanes ) &
+            call cal_dens(Cal_xanes,Density_comp,drho_self,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom,Full_potential, &
+            Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,ich,itypei,itypepr,lla2_state,lmax_pot,lmaxat,m_hubb, &
+            mpinodes,mpirank,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nlmagm,nlm_pot, &
+            nrato,nrm,nrm_self,nspin,nspino,nspinp,ntype,numat,rato,Relativiste,Rmtg,Rmtsd,Solsing,Solsing_o,Spinorbite, &
+            State_all_out,Statedens,Statedens_i,Taull,V_hubb,V_hubb_abs,V_intmax,V0bdc,Vrato,Ylm_comp)
 
-              call CPU_TIME(time)
-              tp(4) = real(time,db)
+          deallocate( taull )
 
-              if( Cal_xanes .and. .not. Optic ) then
+          if( mpirank0 == 0 ) then
+            call CPU_TIME(time)
+            Time_loc(6) = real(time,db)
+            Time_rout(8) = Time_rout(8) + Time_loc(6) - Time_loc(5)
+          endif
 
-                call write_coabs(Allsite,angxyz,axyz,Base_spin, Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
-                  Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
-                  f_avantseuil, Full_self_abs,Green_i,Green_plus,hkl_dafs,iabsorig(multi_run),icheck(21),ie,ie_computer, &
-                  Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,natomsym,nbseuil, &
-                  ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
-                  nphim,nplr,nplrm,nseuil,nspinp,numat_abs,nxanout,pdp,phdafs,phdf0t, &
-                  phdt,pol,Polarise,poldafse,poldafss,Rot_int,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
-                  secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
-                  Spherical_tensor,Spinorbite,Taux_eq,v0muf,vecdafse,vecdafss,vec,Volume_maille,Xan_atom)
+        endif ! fin de la condition sur ie <= nenerg
 
-                if( ie == 1 ) nomfich_cal_conv(multi_run) = nomfich_cal_convt
+        if( mpinodes > 1 ) then
+
+          if( Cal_xanes .and. .not. Optic ) call MPI_RECV_all(MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo, &
+                                                            ninitlr,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
+          if( Cal_xanes .and. Green_i ) call MPI_RECV_all(MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo, &
+                                                        ninitlr,secdd_m,secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
+
+          if( .not. Cal_xanes .or. Density ) then
+            call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+            call MPI_RECV_statedens(MPI_host_num_for_mumps,lla2_state,lmaxat,mpinodes,mpirank,mpirank0,n_atom_0, &
+                                    n_atom_ind,n_atom_proto,nspin,Statedens,Statedens_i)
+          endif
+
+          if( .not. Cal_xanes ) then
+            call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+            call MPI_RECV_self(drho_self,MPI_host_num_for_mumps,nlm_pot,mpinodes,mpirank,mpirank0,n_atom_0_self, &
+                               n_atom_ind_self,nrm_self,nspin)
+          endif
+
+          if( Tddft_xanes .or. Optic_xanes ) then
+            call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+            call MPI_Bcast_tddft(je,mpinodes,mpirank,nbseuil,nenerg,nenerg_tddft,nlmamax,nspinp,nspino,rof0,Taull_tdd)
+          endif
+
+        endif
+
+        do ie_computer = 0,mpinodes-1
+
+          ie = ( je - 1 ) * mpinodes + ie_computer + 1
+
+          if( ie > nenerg ) exit
+
+          if( mpirank0 == 0 ) then
+
+            call CPU_TIME(time)
+            Time_loc(4) = real(time,db)
+
+            if( Cal_xanes .and. .not. Optic ) then
+
+              call write_coabs(Allsite,angxyz,axyz,Base_spin, Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+                Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
+                f_avantseuil, Full_self_abs,Green_i,hkl_dafs,iabsorig(multi_run),icheck(21),ie,ie_computer, &
+                Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,natomsym,nbseuil, &
+                ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
+                nphim,nplr,nplrm,nseuil,nspinp,numat_abs,nxanout,pdp,phdafs,phdf0t, &
+                phdt,pol,Polarise,poldafse,poldafss,Rot_int,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
+                secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
+                Spherical_tensor,Spinorbite,Taux_eq,v0muf,vecdafse,vecdafss,vec,Volume_maille,Xan_atom)
+
+              if( ie == 1 ) nomfich_cal_conv(multi_run) = nomfich_cal_convt
+            endif
+
+            call CPU_TIME(time)
+            Time_loc(5) = real(time,db)
+            Time_rout(10) = Time_rout(10) + Time_loc(5) - Time_loc(4)
+
+            if( ( Density .and. Cal_xanes  ) .or. .not. Convergence ) then
+
+              if( .not. Convergence ) then
+                ich = icheck(27)
+              else
+                ich = icheck(28)
               endif
 
-              call CPU_TIME(time)
-              tp(5) = real(time,db)
-              tpt(10) = tpt(10) + tp(5) - tp(4)
-
-              if( ( Density .and. Cal_xanes  ) .or. .not. Convergence ) then
-
-                if( .not. Convergence ) then
-                  ich = icheck(27)
-                else
-                  ich = icheck(28)
-                endif
-
-                call Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Doping,drho_self,E_cut,E_Open_val, &
-                E_Open_val_exc,E_starta,Energ,E_Fermi,Enragr,Energ_self,Fermi,Full_atom,Hubb,Hubb_diag,iaabsi,iaprotoi, &
-                i_self,ich,ie,ie_computer,Int_statedens,ipr_dop,ispin_maj,itypei,itypepr,lamstdens, &
-                Level_val_abs,Level_val_exc,lla_state,lla2_state,lmaxat,m_hubb,mpinodes,n_atom_0,n_atom_0_self, &
-                n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nb_eq,nenerg,ngreq,nlm_pot,nomfich_s,Nonexc_g,nrato, &
-                nrm,nrm_self,nspin,nspinp,ntype,numat,occ_hubb,occ_hubb_i,pop_orb_val,rato,rho_self,rho_self_t,Rmtsd,SCF_elecabs, &
-                SCF_mag_fix,Self_nonexc,State_all_out,Statedens,Statedens_i,V_hubb,V_hubbard)
-
-              endif
-
-              call CPU_TIME(time)
-              tp(6) = real(time,db)
-              tpt(9) = tpt(9) + tp(6) - tp(5)
+              call Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Doping,drho_self,E_cut,E_Open_val, &
+              E_Open_val_exc,E_starta,Energ,E_Fermi,Enragr,Energ_self,Fermi,Full_atom,Hubb,Hubb_diag,iaabsi,iaprotoi, &
+              i_self,ich,ie,ie_computer,Int_statedens,ipr_dop,ispin_maj,itypei,itypepr,lamstdens, &
+              Level_val_abs,Level_val_exc,lla_state,lla2_state,lmaxat,m_hubb,mpinodes,n_atom_0,n_atom_0_self, &
+              n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nb_eq,nenerg,ngreq,nlm_pot,nomfich_s,Nonexc_g,nrato, &
+              nrm,nrm_self,nspin,nspinp,ntype,numat,occ_hubb,occ_hubb_i,pop_orb_val,rato,rho_self,rho_self_t,Rmtsd,SCF_elecabs, &
+              SCF_mag_fix,Self_nonexc,State_all_out,Statedens,Statedens_i,V_hubb,V_hubbard)
 
             endif
 
-            if( .not. Cal_xanes ) then
+            call CPU_TIME(time)
+            Time_loc(6) = real(time,db)
+            Time_rout(8) = Time_rout(8) + Time_loc(6) - Time_loc(5)
 
-              call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+          endif
+
+          if( .not. Cal_xanes ) then
+
+            call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
               call MPI_Bcast(Fermi,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
               call MPI_Bcast(E_cut,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
 ! Si on a atteint le niveau de Fermi on sort de la boucle
-              if( Fermi )  exit boucle_energ
+            if( Fermi ) exit boucle_energ
 
-            endif
+          endif
 
-          end do
+        end do
 
-        end do boucle_energ   ! Fin de la boucle sur l'energie.
+      end do boucle_energ   ! Fin de la boucle sur l'energie.
 
-        if( Cal_xanes .and. .not. TDDFT_xanes ) deallocate( rof0 )
+      if( Cal_xanes ) then
 
-        if( One_run .and. mpinodes > 1 .and. multi_run == n_multi_run .and. Cal_xanes ) deallocate( taull_stk )
+        if( .not. TDDFT ) deallocate( rof0 )
+        if( One_run .and. mpinodes > 1 .and. multi_run == n_multi_run ) deallocate( taull_stk )
+        if( Save_tddft_data .and. mpirank0 == 0 ) call Write_tddft_data(E_cut,Energ_s,multi_run,n_multi_run, &
+                                                nbseuil,nenerg,nlmamax,nomfich,nspinp,nspino,rof0,Taull_tdd)
+      else
 
-        if( Save_tddft_data .and. mpirank0 == 0 .and. Cal_xanes ) call Write_tddft_data(E_cut,imag_taull,Energ_s,multi_run, &
-                    n_multi_run,nbseuil,nenerg,nlmamax,nlmamax_u,nomfich,nspin,nspino,rof0)
-
-        if( .not. Cal_xanes .and. Hubbard .and. mpinodes0 > 1 ) call MPI_Bcast_Hubb(Hubb_diag,m_hubb,mpirank0, &
-                   n_atom_0_self,n_atom_ind_self,nspinp,V_hubb)
+        if( Hubbard .and. mpinodes0 > 1 ) call MPI_Bcast_Hubb(Hubb_diag,m_hubb,mpirank0, &
+                                                              n_atom_0_self,n_atom_ind_self,nspinp,V_hubb)
 
 ! Calcul de l'energie de l agregat
 
-        if( .not. Cal_xanes .and. mpirank0 == 0 ) then
+        if( mpirank0 == 0 ) then
 
           call eps_coeur(ch_coeur,En_coeur,Full_atom,iaprotoi,icheck(27),itypepr,lcoeur,n_atom_0,n_atom_0_self, &
               n_atom_ind,n_atom_ind_self,n_atom_proto,natome,ncoeur,nlm_pot,nrato,nrm,nspin,ntype,numat,psi_coeur, &
@@ -2210,71 +2194,71 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
         end if
 
 ! Echange des grandeurs liees a l'auto-coherence
-        if( .not. Cal_xanes .and. mpinodes0 > 1 ) then
+        if( mpinodes0 > 1 ) then
           m = n_atom_ind_self - n_atom_0_self + 1
           m2 = nspin * m
           n = ( 1 + nrm_self ) * nspin * m * nlm_pot
           call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
-          call MPI_Bcast(rho_self,n,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-          call MPI_Bcast(chargat_self,m2,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
-          call MPI_Bcast(Energ_self,m,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
-          call MPI_Bcast(En_cluster,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
+            call MPI_Bcast(rho_self,n,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+            call MPI_Bcast(chargat_self,m2,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
+            call MPI_Bcast(Energ_self,m,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
+            call MPI_Bcast(En_cluster,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
         endif
 
 ! Preparation de l'iteration suivante pour la self-consistence
-        if( .not. Cal_xanes ) then
-          if( Fermi_first .and. (TDDFT .or. Optic) ) then
-            Delta_E_conv = 2 * Delta_En_conv
-          else
-            Delta_E_conv = Delta_En_conv
-          endif
-          call prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_E_conv,Delta_energ,Delta_energ_s, &
-               Delta_energ_t,Doping,En_cluster,En_cluster_s,En_cluster_t,Energ_self,Energ_self_s,Fermi,Fermi_first,Full_atom, &
-               Hubbard,i_self,icheck(27),ipr_dop,m_hubb,mpirank0,n_atom_0_self, &
-               n_atom_ind_self,n_atom_proto,n_devide,natome,natomeq,nb_eq,ngreq,nlm_pot,nrm_self,nself,nspin,nspinp, &
-               p_self,p_self_s,p_self_t,p_self0,rho_self,rho_self_s,V_hubb,V_hubb_s)
+        if( Fermi_first .and. (TDDFT .or. Optic) ) then
+          Delta_E_conv = 2 * Delta_En_conv
+        else
+          Delta_E_conv = Delta_En_conv
         endif
+        call prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_E_conv,Delta_energ,Delta_energ_s, &
+             Delta_energ_t,Doping,En_cluster,En_cluster_s,En_cluster_t,Energ_self,Energ_self_s,Fermi,Fermi_first,Full_atom, &
+             Hubbard,i_self,icheck(27),ipr_dop,m_hubb,mpirank0,n_atom_0_self, &
+             n_atom_ind_self,n_atom_proto,n_devide,natome,natomeq,nb_eq,ngreq,nlm_pot,nrm_self,nself,nspin,nspinp, &
+             p_self,p_self_s,p_self_t,p_self0,rho_self,rho_self_s,V_hubb,V_hubb_s)
 
-        deallocate( drho_self, Statedens, Statedens_i )
-        deallocate( secdd, secmd, secmm, secdq, secdo, secoo, secqq )
-        deallocate( secdd_m, secmd_m, secmm_m, secdq_m, secdo_m, secoo_m, secqq_m )
-        deallocate( sec_atom )
-        deallocate( Energ, Eimag, Ecinetic, Ecinetic_out, Excato )
-        deallocate( ibord, isbord, isrt, iato, lato )
-        deallocate( lmaxa )
-        deallocate( iso, lso, mato, mso )
-        deallocate( nbord, nbordf )
-        deallocate( nlmsa, nlmsa0, nlmso0 )
-        deallocate( poidsa, poidso )
-        deallocate( rho, rhons )
-        deallocate( V0bdc, V0bdc_out, Vr, Vrato )
-        deallocate( imoy, imoy_out, poidsov, poidsov_out )
+      endif
 
-        if( .not. ( Cal_xanes .and. ( Tddft .or. Optic ) ) ) deallocate( dV0bdcF )
+      deallocate( drho_self, Statedens, Statedens_i )
+      deallocate( secdd, secmd, secmm, secdq, secdo, secoo, secqq )
+      deallocate( secdd_m, secmd_m, secmm_m, secdq_m, secdo_m, secoo_m, secqq_m )
+      deallocate( sec_atom )
+      deallocate( Energ, Eimag, Ecinetic, Ecinetic_out, Excato )
+      deallocate( ibord, isbord, isrt, iato, lato )
+      deallocate( lmaxa )
+      deallocate( iso, lso, mato, mso )
+      deallocate( nbord, nbordf )
+      deallocate( nlmsa, nlmsa0, nlmso0 )
+      deallocate( poidsa, poidso )
+      deallocate( rho, rhons )
+      deallocate( V0bdc, V0bdc_out, Vr, Vrato )
+      deallocate( imoy, imoy_out, poidsov, poidsov_out )
 
-        if( .not. ( ( One_run .and. Cal_xanes .and. multi_run /= n_multi_run ) .or. ( Cal_xanes .and. ( Tddft .or. Optic ) ) ) ) &
-               deallocate( rsato, Vcato, Vxcato  )
+      if( .not. ( Cal_xanes .and. ( Tddft .or. Optic ) ) ) deallocate( dV0bdcF )
 
-        if( .not. ( ( One_run .and. Cal_xanes .and. multi_run /= n_multi_run )  ) ) &
-               deallocate( rs, Vh, Vhns, Vxc)
+      if( .not. ( ( One_run .and. Cal_xanes .and. multi_run /= n_multi_run ) .or. ( Cal_xanes .and. ( Tddft .or. Optic ) ) ) ) &
+             deallocate( rsato, Vcato, Vxcato  )
 
-        if( .not. Green ) then
-          deallocate( gradvr )
-          deallocate( Ylmso )
-        endif
-        deallocate( Ylmato )
+      if( .not. ( ( One_run .and. Cal_xanes .and. multi_run /= n_multi_run )  ) ) &
+             deallocate( rs, Vh, Vhns, Vxc)
 
-        if( mpirank0 == 0 ) deallocate( Int_statedens )
+      if( .not. Green ) then
+        deallocate( gradvr )
+        deallocate( Ylmso )
+      endif
+      deallocate( Ylmato )
 
-      end do boucle_coh  ! fin de la boucle coherente
+      if( mpirank0 == 0 ) deallocate( Int_statedens )
 
-    end do boucle_energy_range  ! fin de la boucle gamme d energie pour l'optic
+    end do boucle_coh  ! fin de la boucle coherente
 
     if( .not. Recup_optic ) deallocate( Repres_comp )
 
     if( mpirank0 == 0 ) then
       call CPU_TIME(time)
-      tp1 = real(time,db)
+      Time_loc(1) = real(time,db)
+      Time_loc(2) = Time_loc(1)
+      Time_rout(18) = Time_loc(1) - tp_SCF_2 ! XANES
     endif
 
     if( Tddft .or. Optic ) then
@@ -2286,25 +2270,21 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
       endif
 
       nr = nrato(itabs)
-      if( Full_atom ) then
-        iapr = iaabsi
-      else
-        iapr = iprabs
-      end if
       allocate( r(nr) )
-      allocate( rsato_abs(nr) )
       r(1:nr) = rato(1:nr,itabs)
 
-      n_atom_0_t = iapr
-      n_atom_ind_t = iapr
-      allocate( rsato_t(0:nrm,n_atom_0_t:n_atom_ind_t) )
-      allocate( Vcato_t(0:nrm,nlm_pot,n_atom_0_t:n_atom_ind_t) )
-      allocate( Vxcato_t(0:nrm,nlm_pot,nspin,n_atom_0_t:n_atom_ind_t) )
+      allocate( rsato_t(nr) )
+      allocate( Vcato_t(nr,nlm_pot) )
+      allocate( Vxcato_t(nr,nlm_pot,nspin) )
       if( .not. Recup_optic ) then
-        rsato_abs(1:nr) = rsato(1:nr,iapr)
-        rsato_t(0:nrm,n_atom_0_t:n_atom_ind_t) = rsato(0:nrm,n_atom_0_t:n_atom_ind_t)
-        Vcato_t(0:nrm,nlm_pot,n_atom_0_t:n_atom_ind_t) = Vcato(0:nrm,nlm_pot,n_atom_0_t:n_atom_ind_t)
-        Vxcato_t(0:nrm,nlm_pot,nspin,n_atom_0_t:n_atom_ind_t) = Vxcato(0:nrm,nlm_pot,nspin,n_atom_0_t:n_atom_ind_t)
+        if( Full_atom ) then
+          iapr = iaabsi
+        else
+          iapr = iprabs
+        end if
+        rsato_t(1:nr) = rsato(1:nr,iapr)
+        Vcato_t(1:nr,:) = Vcato(1:nr,:,iapr)
+        Vxcato_t(1:nr,:,:) = Vxcato(1:nr,:,:,iapr)
         deallocate( rsato )
         deallocate( Vcato )
         deallocate( Vxcato )
@@ -2312,46 +2292,16 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
       Atom_nonsph_loc = .false.
 
-      if( Tddft ) then
-
-        allocate( rhoa(nr,nspin) )
-        rhoa(1:nr,:) = rhoato_abs(1:nr,:)
-
-        call main_tddft(alfpot,angxyz,Allsite,Atom_nonsph_loc,Atomic_scr,axyz,Base_spin,BSE,coef_g, &
-        Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Delta_edge,Delta_Eseuil,Densite_atom,Dipmag, &
-        dv_ex_nex,dV0bdcF,Dyn_eg,Dyn_g,E_cut,E_cut_imp,E_Fermi_man,Ecent,Elarg, &
-        Energ_s,Energphot,Epsii,Extract,Epsii_moy,Eseuil,Estart,f_avantseuil,Full_atom,Full_potential,Full_self_abs, &
-        Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_plus,hkl_dafs,Hubb_a,Hubb_d,icheck,iaabsi, &
-        iabsorig(multi_run),iapot,iaprotoi,imag_taull,imparite,iprabs,iprabs_nonexc,is_g,isigpi,isymeq, &
-        itabs,itypepr,jseuil,Kern_fac,ldip,lmax_pot,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1, &
-        lqua,lseuil,ltypcal,m_g,m_hubb,Magnetic,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
-        msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_run,Multipole,n_atom_0_t, &
-        n_atom_ind_t,n_atom_proto,n_multi_run,n_oo,n_tens_max,natome, &
-        natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ngamh,ninit1,ninitl,ninitlr,nlm_pot,nlmamax,nlmamax_u, &
-        nomabs,nomfich,nomfich_cal_tddft_conv(multi_run),nomfich_s,nomfich_tddft_data,Nonexc_g, &
-        nphi_dafs,nphim,npldafs,nplr,nplrm,npsom,nptmoy,nptmoy_out,nr,nrato,nrm,nseuil,nspin,nspino,nspinp, &
-        ntype,numat_abs,nxanout,Octupole,pdp,phdafs,phdf0t,phdt,pol,Polarise,poldafse,poldafss, &
-        psii,Quadrupole,r,rato,Recup_tddft_data,Relativiste,rhoa,Rmtg,Rmtsd_abs, &
-        rof0,rot_atom_abs,Rot_int,RPALF,rsato_t,rsato_abs,rsbdc,rsbdc_out,Self_abs,Solsing_only, &
-        Spherical_signal,Spherical_tensor,Spinorbite,Taux_eq,Tddft_so,tpt,V_intmax,V_hubb_abs,V0muf, &
-        Vcato_t,Vec,vecdafse,vecdafss,Vhbdc,Vhbdc_out,Volume_maille,VxcbdcF,VxcbdcF_out, &
-        Vxcato_t,Workf,xsect_file,xyz,Ylm_comp)
-
-        deallocate( imag_taull, rhoa, rof0 )
-
-      else
+      if( Optic ) then
 
         if( Recup_optic ) then
           allocate( dv0bdcF(nspin) )
           allocate( Rmtg(0:n_atom_proto) )
-          allocate( Taull_opt(nenerg_s,nlm_probe,nlm_probe,nspinp,nspinp) )
-          allocate( iaprotoi(natome) )
-          npsom = 0
-          allocate( xyz(4,npsom) )
-          call Read_optic_data(dv0bdcF, Energ_s, Hubb_a, Hubb_d, iaprotoi, lmax_probe, lmaxabs_t, m_hubb, mpinodes, mpirank0, &
-               multi_run, n_atom_0_t, n_atom_ind_t, n_atom_proto, n_multi_run, natome, nenerg_s, nlm_pot, nlm_probe, &
-               nomfich_optic_data, nptmoy, nptmoy_out, nrm, nspin, nspinp, Rmtg, Rmtsd_abs, rsato_t, rsbdc, rsbdc_out, Taull_opt, &
-               V_hubb_abs, V0muf, Vcato_t, Vhbdc, Vhbdc_out, Vxcato_t, VxcbdcF, VxcbdcF_out)
+          allocate( Taull_tdd(nenerg_s,nlmamax,nspinp,nlmamax,nspinp) )
+          allocate( rhoato_abs(nr,nspin) )
+          call Read_optic_data(dv0bdcF, Energ_s, Hubb_a, Hubb_d, lmax_probe, lmaxabs_t, m_hubb, mpinodes, mpirank0, &
+               multi_run, n_multi_run, nenerg_s, nlm_pot, nlmamax, nomfich_optic_data, nr, nspin, nspinp, rhoato_abs, &
+               Rmtg(iprabs), Rmtsd_abs, rsato_t, rsbdc, Taull_tdd, V_hubb_abs, V0muf, Vcato_t, Vhbdc, Vxcato_t, VxcbdcF)
 ! Energ_s lu au dessus est la vraie energie (ce qui n'est pas le cas sans recup_optic).
 ! On enleve E_cut en dessous qui est remis en entree de main optic.
 ! On conserve ainsi le E_cut_imp seulement pour le point de coupure et pour aucun décalage.
@@ -2362,40 +2312,96 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
           endif
 
         elseif( Save_optic .and. mpirank0 == 0 ) then
-          call Write_optic_data(dv0bdcF, E_cut, Energ_s, Full_atom, Hubb_a, Hubb_d, iaabsi, iaprotoi, iprabs, lmax_probe, &
-               lmaxabs_t, m_hubb, multi_run, n_atom_0_t, n_atom_ind_t, n_atom_proto, n_multi_run, natome, nenerg_s, nlm_pot, &
-               nlm_probe, nomfich, nptmoy, nptmoy_out, nrm, nspin, nspinp, Rmtg, Rmtsd_abs, rsato_t, rsbdc, rsbdc_out, Taull_opt, &
-               V_hubb_abs, V0muf, Vcato_t, Vhbdc, Vhbdc_out, Vxcato_t, VxcbdcF, VxcbdcF_out)
+          call Write_optic_data(dV0bdcF, E_cut, Energ_s, Hubb_a, Hubb_d, lmax_probe, lmaxabs_t, m_hubb, &
+               multi_run, n_multi_run, nenerg_s, nlm_pot, nlm_probe, nlmamax, nomfich, nr, nspin, nspinp, rhoato_abs, &
+               Rmtg(iprabs), Rmtsd_abs, rsato_t, rsbdc, Taull_tdd, V_hubb_abs, V0muf, Vcato_t, Vhbdc, Vxcato_t, VxcbdcF)
         endif
 
-        call main_optic(alfpot,angxyz,Allsite,Atom_nonsph_loc,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+        call main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
           Densite_atom,dV0bdcF,E_cut,E_cut_imp,E_Fermi_man,Eclie,Eneg,Energ_s, &
-          Extract,Eseuil,Full_atom,Full_potential,Full_self_abs,Green_int,Green_plus,hkl_dafs,Hubb_a,Hubb_d,icheck,iaabsi, &
-          iabsorig(multi_run),iapot,iaprotoi,ip_max,ip0,iprabs,iprabs_nonexc,isigpi,isymeq, &
-          itabs,itypepr,jseuil,ldip,lmax_pot,lmax_probe,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua, &
-          lseuil,ltypcal,m_hubb,Magnetic,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
-          msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_atom_0_t,n_atom_ind_t,n_atom_proto,n_multi_run, &
-          n_oo,n_tens_max,natome,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitl,ninitlr,nlm_pot, &
-          nlm_probe,nomabs,nomfich,nomfich_s,Nonexc_g,nphi_dafs,nphim,npldafs,nplr,nplrm, &
-          npsom,nptmoy,nptmoy_out,nr,nrato,nrm,nseuil,nspin,nspino,nspinp,ntype, &
+          Extract,Eseuil,Full_potential,Full_self_abs,hkl_dafs,Hubb_a,Hubb_d,icheck, &
+          iabsorig(multi_run),ip_max,ip0,isigpi,isymeq, &
+          jseuil,ldip,lmax_pot,lmax_probe,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua, &
+          lseuil,ltypcal,m_hubb,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
+          msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_multi_run, &
+          n_oo,n_tens_max,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitl,ninitlr,nlm_pot, &
+          nlm_probe,nlmamax,nomabs,nomfich,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm, &
+          nr,nrm,nseuil,nspin,nspino,nspinp, &
           numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,Polarise,poldafse,poldafss,psii, &
-          r,rato,Relativiste,Rmtg,Rmtsd_abs,rot_atom_abs,Rot_int,rsato_t,rsbdc,rsbdc_out,Self_abs,Solsing_only, &
-          Spherical_signal,Spherical_tensor,Spinorbite,Taull_opt,Taux_eq,tpt,V_intmax,V_hubb_abs,V0muf, &
-          Vcato_t,vec,vecdafse,vecdafss,Vhbdc,Vhbdc_out,Volume_maille,VxcbdcF,VxcbdcF_out,Vxcato_t,Workf,xyz,Ylm_comp)
+          r,Relativiste,Rmtg(iprabs),Rmtsd_abs,rot_atom_abs,Rot_int,Self_abs,Solsing_only, &
+          Spherical_signal,Spherical_tensor,Spinorbite,Taull_tdd,Taux_eq,Tddft,Time_rout,V_intmax,V_hubb_abs,V0muf, &
+          Vcato_t,vec,vecdafse,vecdafss,Vhbdc,Volume_maille,VxcbdcF,Vxcato_t,Workf,Ylm_comp)
 
-        deallocate( Taull_opt )
+        if( mpirank0 == 0 ) then
+          call CPU_TIME(time)
+          Time_loc(2) = real(time,db)
+        endif
+
+        if( Core_resolved ) then
+          ninitl_out = ninitlr
+        else
+          ninitl_out = 1
+        endif
+
+        if( Tddft ) call main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef_g, &
+          Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Densite_atom,Dipmag, &
+          dV0bdcF,E_cut,E_cut_imp,E_Fermi_man,Eclie,Eneg, &
+          Energ_s,Energphot,Extract,Eseuil,f_avantseuil,Full_potential,Full_self_abs, &
+          Gamma_tddft,hkl_dafs,Hubb_a,Hubb_d,icheck,iabsorig(multi_run),iopsymc(25),is_g,isigpi,isymeq, &
+          jseuil,Kern_fac,ldip,lmax_pot,lmaxabs_t,lmoins1,loct,lplus1, &
+          lqua,lseuil,ltypcal,m_g,m_hubb,Magnetic,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi, &
+          msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_run,Multipole, &
+          n_multi_run,n_oo,n_tens_max, &
+          natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ninit1,ninitl,ninitl_out,ninitlr,nlm_pot,nlmamax, &
+          nomabs,nomfich,nomfich_cal_tddft_conv(multi_run),nomfich_s,nomfich_tddft_data, &
+          nphi_dafs,nphim,npldafs,nplr,nplrm,nr,nrm,nseuil,nspin,nspino,nspinp, &
+          numat_abs,nxanout,Octupole,pdp,phdafs,phdf0t,phdt,pol,Polarise,poldafse,poldafss, &
+          psii,Quadrupole,r,Recup_tddft_data,Relativiste,rhoato_abs,Rmtg(iprabs),Rmtsd_abs, &
+          rof0,rot_atom_abs,Rot_int,RPALF,rsato_t,Self_abs,Solsing_only, &
+          Spherical_signal,Spherical_tensor,Spinorbite,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb_abs,V0muf, &
+          Vcato_t,Vec,vecdafse,vecdafss,Vhbdc,Volume_maille,VxcbdcF, &
+          Vxcato_t,Workf,Ylm_comp)
+
+      elseif( Tddft ) then
+
+        ninitl_out = 1
+
+        call main_tddft(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef_g, &
+          Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Delta_edge,Delta_Eseuil,Densite_atom,Dipmag, &
+          dV0bdcF,Dyn_eg,Dyn_g,E_cut,E_cut_imp,E_Fermi_man,Ecent,Eclie,Elarg,Eneg, &
+          Energ_s,Energphot,Epsii,Extract,Epsii_moy,Eseuil,Estart,f_avantseuil,Full_potential,Full_self_abs, &
+          Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_dafs,Hubb_a,Hubb_d,icheck, &
+          iabsorig(multi_run),iopsymc(25),is_g,isigpi,isymeq, &
+          jseuil,Kern_fac,ldip,lmax_pot,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1, &
+          lqua,lseuil,ltypcal,m_g,m_hubb,Magnetic,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi, &
+          msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_run,Multipole, &
+          n_multi_run,n_oo,n_tens_max, &
+          natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ngamh,ninit1,ninitl,ninitl_out,ninitlr,nlm_pot,nlmamax, &
+          nomabs,nomfich,nomfich_cal_tddft_conv(multi_run),nomfich_s,nomfich_tddft_data, &
+          nphi_dafs,nphim,npldafs,nplr,nplrm,nr,nrm,nseuil,nspin,nspino,nspinp, &
+          numat_abs,nxanout,Octupole,pdp,phdafs,phdf0t,phdt,pol,Polarise,poldafse,poldafss, &
+          psii,Quadrupole,r,Recup_tddft_data,Relativiste,rhoato_abs,Rmtg(iprabs),Rmtsd_abs, &
+          rof0,rot_atom_abs,Rot_int,RPALF,rsato_t,rsbdc,Self_abs,Solsing_only, &
+          Spherical_signal,Spherical_tensor,Spinorbite,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb_abs,V0muf, &
+          Vcato_t,Vec,vecdafse,vecdafss,Vhbdc,Volume_maille,VxcbdcF, &
+          Vxcato_t,Workf,xsect_file,Ylm_comp)
+
+        deallocate( rof0 )
+
       endif
 
-      deallocate( r, rsato_abs )
+      deallocate( r )
       deallocate( dV0bdcF )
       deallocate( rsato_t, Vcato_t, Vxcato_t );
+      deallocate( Taull_tdd )
 
     endif
 
     if( mpirank0 == 0 ) then
       call CPU_TIME(time)
-      tp2 = real(time,db)
-      tpt(12) = tp2 - tp1
+      Time_loc(3) = real(time,db)
+      Time_rout(19) = Time_loc(2) - Time_loc(1)
+      Time_rout(20) = Time_loc(3) - Time_loc(2)
     endif
 
     if( .not. ( Second_run .or. Recup_optic ) ) deallocate( Chg_cluster, E_starta, ispin_maj )
@@ -2418,15 +2424,15 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
       deallocate( rho_chg, rho_self, rho_self_s, rho_self_t )
       deallocate( rhoato_init, rot_atom, V_abs_i, Vcato_init )
       deallocate( Hubb_diag, occ_hubb, occ_hubb_i, V_hubb, V_hubb_s )
+      deallocate( iaprotoi )
     endif
 
-    deallocate( iaprotoi )
-    deallocate( V_hubb_abs, VxcbdcF, VxcbdcF_out )
     deallocate( rhoato_abs )
+    deallocate( V_hubb_abs, VxcbdcF, VxcbdcF_out )
 
     if( .not. One_run .or. multi_run == n_multi_run ) then
-      deallocate( xyz )
       if( .not. Recup_optic ) then
+        deallocate( xyz )
         deallocate( cgrad, clapl, ivois, isvois )
         deallocate( lmaxat, numia, rmtg, rmtg0, rmtsd, rvol )
       endif
@@ -2442,30 +2448,34 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
     if( icheck(1) > 0 .and. mpirank0 == 0 ) then
       call CPU_TIME(time)
-      tp1 = real(time,db)
-      tpt_tot = tp1 - tp_init + tpt(1)
-      tptt = sum( tpt(1:10) )
+      Time_loc(1) = real(time,db)
+      Time_rout(21) = Time_loc(1) - Time_init + Time_rout(1)
+      Time_tot = sum( Time_rout(1:7) ) + sum( Time_rout(10:16) )
       do i = 1,10000
-        if( tpt_tot >= tptt - 0.1_db ) exit
-        tpt_tot = tpt_tot + 86400.
+        if( Time_rout(21) >= Time_tot - 0.1_db ) exit
+        Time_rout(21) = Time_rout(21) + 86400._db
       end do
-      itph = int( tpt_tot / 3600 )
-      rtph = tpt_tot - itph * 3600
+      itph = int( Time_rout(21) / 3600 )
+      rtph = Time_rout(21) - itph * 3600
       itpm = int( rtph / 60 )
       itps = nint( rtph - itpm * 60 )
       write(3,210) multi_run
-      write(3,220) (nomspr(i), tpt(i), i = 1,10)
-      if( Optic ) then
-        write(3,220) 'Rempli', tpt1, 'Triang', tpt2, 'SCF   ', tpt(11), 'Optic', tpt(12)
-      elseif( TDDFT ) then
-        write(3,220) 'Rempli', tpt1, 'Triang', tpt2, 'SCF   ', tpt(11), 'Tddft', tpt(12)
+      if( Tddft) then
+        write(3,220) (Name_rout(i), Time_rout(i), i = 1,16)
       else
-        write(3,220) 'Rempli', tpt1, 'Triang', tpt2, 'SCF   ', tpt(11)
+        write(3,220) (Name_rout(i), Time_rout(i), i = 1,12)
+      endif
+      if( Optic .and. Tddft ) then
+        write(3,220) Name_rout(17),  Time_rout(17), 'Taull ', Time_rout(18), ( Name_rout(i),  Time_rout(i), i = 19,20 )
+      elseif( Tddft ) then
+        write(3,220) ( Name_rout(i),  Time_rout(i), i = 17,18 ), Name_rout(20),  Time_rout(20)
+      else
+        write(3,220) ( Name_rout(i),  Time_rout(i), i = 17,18 )
       endif
       if( itph > 0 .or. itpm > 0 ) then
-        write(3,240) 'Total ', tpt_tot, itph, itpm, itps
+        write(3,240) Name_rout(21), Time_rout(21), itph, itpm, itps
       else
-        write(3,220) 'Total ', tpt_tot
+        write(3,220) Name_rout(21), Time_rout(21)
       endif
     endif
 
@@ -2574,7 +2584,7 @@ end
 
 subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
          Densite_atom,E_cut,Energ_s,Energphot,Epsii,Eseuil,Final_tddft, &
-         f_avantseuil,Full_self_abs,Green_int,Green_plus,hkl_dafs,iabsorig,icheck,Int_tens,isigpi,isymeq, &
+         f_avantseuil,Full_self_abs,hkl_dafs,iabsorig,icheck,Int_tens,isigpi,isymeq, &
          isymext,jseuil,ltypcal,Moyenne,mpinodee,multi_run,Multipole,n_multi_run,n_oo,n_tens_max, &
          natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv, &
          nomfich_cal_convt,nom_fich_extract,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp, &
@@ -2607,7 +2617,7 @@ subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Cartesia
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:0):: secoo, secoo_m
 
   logical:: Allsite, Base_spin, Cartesian_tensor, Core_resolved, Dafs, Dafs_bio, &
-     Energphot, Final_tddft, Full_self_abs, Green_int, Green_plus, Moyenne, Polarise, Self_abs, Spherical_signal, &
+     Energphot, Final_tddft, Full_self_abs, Green_int, Moyenne, Polarise, Self_abs, Spherical_signal, &
      Spherical_tensor, Spinorbite, Tddft, Tensor_rot, Xan_atom
 
   logical, dimension(10):: Multipole
@@ -2634,7 +2644,7 @@ subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Cartesia
             secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Tensor_rot,Tddft)
     call write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             Densite_atom,E_cut,Energ_s, &
-            Energphot,.true.,Epsii,Eseuil,Final_tddft,f_avantseuil,Full_self_abs,Green_int,Green_plus,hkl_dafs, &
+            Energphot,.true.,Epsii,Eseuil,Final_tddft,f_avantseuil,Full_self_abs,Green_int,hkl_dafs, &
             iabsorig,icheck,ie,ie_computer,Int_tens,isigpi,isymeq,jseuil,ltypcal, &
             Moyenne,mpinodee,Multipole,n_multi_run,n_oo,natomsym,nbseuil, ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitlr,nomabs, &
             nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, nphim,nplr, &
@@ -2959,38 +2969,21 @@ end
 
 !***********************************************************************
 
-subroutine MPI_Bcast_tddft(imag_taull,je,mpinodes,mpirank,nbseuil,nenerg,nlmamax,nlmamax_u,nspin,nspino,rof0)
+subroutine MPI_Bcast_tddft(je,mpinodes,mpirank,nbseuil,nenerg,nenerg_tddft,nlmamax,nspinp,nspino,rof0,Taull_tdd)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
   include 'mpif.h'
 
-  integer:: ie, ie_computer, je, mpinodes, mpirank, ndim, nbseuil, nenerg, nlmamax, nlmamax_u, nspin, nspino
+  integer:: ie, ie_computer, je, mpinodes, mpirank, ndim, nbseuil, nenerg, nenerg_tddft, nlmamax, nspinp, nspino
 
-  complex(kind=db), dimension(nenerg,nlmamax,nspin,nspino,nbseuil):: rof0
+  complex(kind=db), dimension(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil):: rof0
+  complex(kind=db), dimension(nenerg,nlmamax,nspinp,nlmamax,nspinp):: Taull_tdd
 
-  real(kind=db), dimension(nenerg,nlmamax_u,nspin,nlmamax_u,nspin):: imag_taull
-  real(kind=db), dimension(nlmamax_u,nspin,nlmamax_u,nspin):: imag_taull_e
-  real(kind=db), dimension(nlmamax,nspin,nspino,nbseuil):: rof0_i, rof0_r
+  real(kind=db), dimension(nlmamax,nspinp,nlmamax,nspinp):: Taull_tdd_i, Taull_tdd_r
+  real(kind=db), dimension(nlmamax,nspinp,nspino,nbseuil):: rof0_i, rof0_r
 
-  ndim = ( nlmamax_u * nspin )**2
-
-  do ie_computer = 0,mpinodes-1
-
-    ie = ( je - 1 ) * mpinodes + ie_computer + 1
-    if( ie > nenerg ) exit
-
-    if( ie_computer == mpirank ) imag_taull_e(:,:,:,:) = imag_taull(ie,:,:,:,:)
-
-    call MPI_Bcast(imag_taull_e,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
-
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
-
-    if( ie_computer /= mpirank ) imag_taull(ie,:,:,:,:) = imag_taull_e(:,:,:,:)
-
-  end do
-
-  ndim = nlmamax * nspin * nspino * nbseuil
+  ndim = ( nlmamax * nspinp )**2
 
   do ie_computer = 0,mpinodes-1
 
@@ -2998,64 +2991,51 @@ subroutine MPI_Bcast_tddft(imag_taull,je,mpinodes,mpirank,nbseuil,nenerg,nlmamax
     if( ie > nenerg ) exit
 
     if( ie_computer == mpirank ) then
-      rof0_r(:,:,:,:) = real( rof0(ie,:,:,:,:),db )
-      rof0_i(:,:,:,:) = aimag( rof0(ie,:,:,:,:) )
+      Taull_tdd_r(:,:,:,:) = real( Taull_tdd(ie,:,:,:,:), db )
+      Taull_tdd_i(:,:,:,:) = aimag( Taull_tdd(ie,:,:,:,:) )
     endif
 
-    call MPI_Bcast(rof0_r,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
-    call MPI_Bcast(rof0_i,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
+    call MPI_Bcast(Taull_tdd_r,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
+    call MPI_Bcast(Taull_tdd_i,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
 
     call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
 
-    if( ie_computer /= mpirank ) rof0(ie,:,:,:,:) = cmplx( rof0_r(:,:,:,:), rof0_i(:,:,:,:),db )
+    if( ie_computer /= mpirank ) Taull_tdd(ie,:,:,:,:) = cmplx( Taull_tdd_r(:,:,:,:), Taull_tdd_i(:,:,:,:), db )
 
   end do
+
+  ndim = nlmamax * nspinp * nspino * nbseuil
+
+  if( nenerg_tddft > 0 ) then
+
+    do ie_computer = 0,mpinodes-1
+
+      ie = ( je - 1 ) * mpinodes + ie_computer + 1
+      if( ie > nenerg ) exit
+
+      if( ie_computer == mpirank ) then
+        rof0_r(:,:,:,:) = real( rof0(ie,:,:,:,:),db )
+        rof0_i(:,:,:,:) = aimag( rof0(ie,:,:,:,:) )
+      endif
+
+      call MPI_Bcast(rof0_r,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
+      call MPI_Bcast(rof0_i,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
+
+      call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
+      if( ie_computer /= mpirank ) rof0(ie,:,:,:,:) = cmplx( rof0_r(:,:,:,:), rof0_i(:,:,:,:), db )
+
+    end do
+
+  endif
 
   return
 end
 
 !***********************************************************************
 
-subroutine MPI_Bcast_Optic(Taull_opt,je,mpinodes,mpirank, nenerg,nlm_probe,nspin)
-
-  use declarations
-  implicit real(kind=db) (a-h,o-z)
-  include 'mpif.h'
-
-  integer:: ie, ie_computer, je, mpinodes, mpirank, ndim, nlm_probe, nenerg, nspin
-
-  complex(kind=db), dimension(nenerg,nlm_probe,nlm_probe,nspin, nspin):: Taull_opt
-
-  real(kind=db), dimension(nlm_probe,nlm_probe,nspin,nspin):: Taull_i, Taull_r
-
-  ndim = ( nlm_probe * nspin )**2
-
-  do ie_computer = 0,mpinodes-1
-
-    ie = ( je - 1 ) * mpinodes + ie_computer + 1
-    if( ie > nenerg ) exit
-
-    if( ie_computer == mpirank ) then
-      Taull_r(:,:,:,:) = real( Taull_opt(ie,:,:,:,:),db )
-      Taull_i(:,:,:,:) = aimag( Taull_opt(ie,:,:,:,:) )
-    endif
-
-    call MPI_Bcast(Taull_r,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
-    call MPI_Bcast(Taull_i,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
-
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
-
-    if( ie_computer /= mpirank ) Taull_opt(ie,:,:,:,:) = cmplx( Taull_r(:,:,:,:), Taull_i(:,:,:,:),db )
-
-  end do
-
-  return
-end
-
-!***********************************************************************
-
-subroutine Write_tddft_data(E_cut,imag_taull,Energ,multi_run,n_multi_run,nbseuil,nenerg,nlmamax, &
-                    nlmamax_u,nomfich,nspin,nspino,rof0)
+subroutine Write_tddft_data(E_cut,Energ,multi_run,n_multi_run, &
+                            nbseuil,nenerg,nlmamax,nomfich,nspinp,nspino,rof0,Taull_tdd)
 
   use declarations
   implicit none
@@ -3063,13 +3043,13 @@ subroutine Write_tddft_data(E_cut,imag_taull,Energ,multi_run,n_multi_run,nbseuil
 
   character(len=132):: nomfich, nomfich_tddft_data
 
-  integer:: ie, long, nbseuil,multi_run, n_multi_run, nenerg, nlmamax, nlmamax_u, nspin, nspino
+  integer:: ie, long, nbseuil,multi_run, n_multi_run, nenerg, nlmamax, nspinp, nspino
 
-  complex(kind=db), dimension(nenerg,nlmamax,nspin,nspino, nbseuil):: rof0
+  complex(kind=db), dimension(nenerg,nlmamax,nspinp,nspino,nbseuil):: rof0
+  complex(kind=db), dimension(nenerg,nlmamax,nspinp,nlmamax,nspinp):: Taull_tdd
 
   real(kind=db):: E_cut
   real(kind=db), dimension(nenerg):: Energ
-  real(kind=db), dimension(nenerg,nlmamax_u,nspin,nlmamax_u,nspin):: imag_taull
 
   nomfich_tddft_data = nomfich
 
@@ -3082,7 +3062,7 @@ subroutine Write_tddft_data(E_cut,imag_taull,Energ,multi_run,n_multi_run,nbseuil
 
   do ie = 1,nenerg
     write(20,*) Energ(ie)*Rydb
-    write(20,*) imag_taull(ie,:,:,:,:)
+    write(20,*) Taull_tdd(ie,:,:,:,:)
   end do
   do ie = 1,nenerg
     write(20,*) Energ(ie)*Rydb
@@ -3096,10 +3076,9 @@ end
 
 !***********************************************************************
 
-subroutine Write_optic_data( dv0bdcF, E_cut, Energ_s, Full_atom, Hubb_a, Hubb_d, iaabsi, iaprotoi, iprabs, lmax_probe, &
-               lmaxabs_t, m_hubb, multi_run, n_atom_0, n_atom_ind, n_atom_proto, n_multi_run, natome, nenerg_s, nlm_pot, &
-               nlm_probe, nomfich, nptmoy, nptmoy_out, nrm, nspin, nspinp, Rmtg, Rmtsd, rsato, rsbdc, rsbdc_out, Taull_opt, &
-               V_hubb, V0muf, Vcato, Vhbdc, Vhbdc_out, Vxcato, VxcbdcF, VxcbdcF_out)
+subroutine Write_optic_data( dv0bdcF, E_cut, Energ_s, Hubb_a, Hubb_d, lmax_probe, lmaxabs_t, m_hubb, &
+               multi_run, n_multi_run, nenerg_s, nlm_pot, nlm_probe, nlmamax, nomfich, nr, nspin, nspinp, rhoato_abs, &
+               Rmtg, Rmtsd, rsato, rsbdc, Taull_tdd, V_hubb, V0muf, Vcato, Vhbdc, Vxcato, VxcbdcF)
 
   use declarations
   implicit none
@@ -3107,23 +3086,21 @@ subroutine Write_optic_data( dv0bdcF, E_cut, Energ_s, Full_atom, Hubb_a, Hubb_d,
 
   character(len=132):: nomfich, nomfich_optic_data
 
-  integer:: iaabsi, ie, iprabs, lmax_probe, lmaxabs_t, long, m_hubb, multi_run, n_atom_0, n_atom_ind, n_atom_proto, n_multi_run, &
-            natome, nenerg_s, nlm_pot, nlm_probe, nptmoy, nptmoy_out, nrm, nspin, nspinp
+  integer:: ie, lmax_probe, lmaxabs_t, long, m_hubb, multi_run, n_multi_run, nenerg_s, nlm_pot, nlm_probe, nlmamax, nr, nspin, &
+            nspinp
 
-  integer, dimension(natome):: iaprotoi
-
-  complex(kind=db), dimension(nenerg_s,nlm_probe,nlm_probe,nspinp,nspinp):: Taull_opt
+  complex(kind=db), dimension(nenerg_s,nlmamax,nspinp,nlmamax,nspinp):: Taull_tdd
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
 
-  logical:: Full_atom, Hubb_a, Hubb_d
+  logical:: Hubb_a, Hubb_d
 
-  real(kind=db):: E_cut, Rmtsd, rsbdc, rsbdc_out, Vhbdc, Vhbdc_out, V0muf
+  real(kind=db):: E_cut, Rmtg, Rmtsd, rsbdc, Vhbdc, V0muf
   real(kind=db), dimension(nenerg_s):: Energ_s
-  real(kind=db), dimension(0:n_atom_proto):: Rmtg
-  real(kind=db), dimension(nspin):: dv0bdcF, VxcbdcF, VxcbdcF_out
-  real(kind=db), dimension(0:nrm,nlm_pot,n_atom_0:n_atom_ind):: Vcato
-  real(kind=db), dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind) :: Vxcato
-  real(kind=db), dimension(0:nrm,n_atom_0:n_atom_ind):: rsato
+  real(kind=db), dimension(nspin):: dv0bdcF, VxcbdcF
+  real(kind=db), dimension(nr,nlm_pot):: Vcato
+  real(kind=db), dimension(nr,nspin):: rhoato_abs
+  real(kind=db), dimension(nr,nlm_pot,nspin):: Vxcato
+  real(kind=db), dimension(nr):: rsato
 
   nomfich_optic_data = nomfich
 
@@ -3132,23 +3109,22 @@ subroutine Write_optic_data( dv0bdcF, E_cut, Energ_s, Full_atom, Hubb_a, Hubb_d,
 
   if( multi_run == 1 ) open(20, file = nomfich_optic_data )
 
-  write(20,*) E_cut, Full_atom
-  write(20,*) iaabsi, iprabs, natome, nenerg_s, nlm_pot, nlm_probe
-
-  write(20,*) lmax_probe, lmaxabs_t, nptmoy, nptmoy_out
-  write(20,'(10i5)') iaprotoi(:)
+  write(20,*) E_cut
+  write(20,*) nenerg_s, nlm_pot, nlmamax, nlm_probe
+  write(20,*) lmax_probe, lmaxabs_t
 
   do ie = 1,nenerg_s
     write(20,*) ( Energ_s(ie) + E_cut )*Rydb
-    write(20,*) Taull_opt(ie,:,:,:,:)
+    write(20,*) Taull_tdd(ie,:,:,:,:)
   end do
 
   write(20,*) Hubb_a, Hubb_d
-  write(20,*) Rmtg(:), Rmtsd
-  write(20,*) dv0bdcF(:), rsbdc, rsbdc_out, Vhbdc, Vhbdc_out, VxcbdcF(:), VxcbdcF_out(:), V0muf
-  write(20,*) rsato(0:nrm,:)
-  write(20,*) Vcato(0:nrm,:,:)
-  write(20,*) Vxcato(0:nrm,:,:,:)
+  write(20,*) Rmtg, Rmtsd
+  write(20,*) dv0bdcF(:), rsbdc, Vhbdc, VxcbdcF(:), V0muf
+  write(20,*) rsato(:)
+  write(20,*) Vcato(:,:)
+  write(20,*) Vxcato(:,:,:)
+  write(20,*) rhoato_abs(:,:)
   if( Hubb_a ) write(20,*) V_hubb(:,:,:,:)
 
   if( multi_run == n_multi_run ) close(20)
@@ -3158,10 +3134,9 @@ end
 
 !***********************************************************************
 
-subroutine Read_optic_data(dv0bdcF, Energ_s, Hubb_a, Hubb_d, iaprotoi, lmax_probe, lmaxabs_t,  m_hubb, mpinodes, mpirank0, &
-               multi_run, n_atom_0, n_atom_ind, n_atom_proto, n_multi_run, natome, nenerg_s, nlm_pot, nlm_probe, &
-               nomfich_optic_data, nptmoy, nptmoy_out, nrm, nspin, nspinp, Rmtg, Rmtsd, rsato, rsbdc, rsbdc_out, Taull_opt, &
-               V_hubb, V0muf, Vcato, Vhbdc, Vhbdc_out, Vxcato, VxcbdcF, VxcbdcF_out)
+subroutine Read_optic_data(dv0bdcF, Energ_s, Hubb_a, Hubb_d, lmax_probe, lmaxabs_t, m_hubb, mpinodes, mpirank0, &
+               multi_run, n_multi_run, nenerg_s, nlm_pot, nlmamax, nomfich_optic_data, nr, nspin, nspinp, rhoato_abs, &
+               Rmtg, Rmtsd, rsato, rsbdc, Taull_tdd, V_hubb, V0muf, Vcato, Vhbdc, Vxcato, VxcbdcF)
 
   use declarations
   implicit none
@@ -3169,25 +3144,23 @@ subroutine Read_optic_data(dv0bdcF, Energ_s, Hubb_a, Hubb_d, iaprotoi, lmax_prob
 
   character(len=132):: nomfich_optic_data
 
-  integer:: ie, lmax_probe, lmaxabs_t,  m_hubb, mpierr, mpinodes, mpirank0, multi_run, n_atom_0, n_atom_ind, n_atom_proto, &
-            n_multi_run, natome, ndim, nenerg_s, nlm_pot, nlm_probe, nptmoy, nptmoy_out, nrm, nspin, nspinp
+  integer:: ie, lmax_probe, lmaxabs_t, m_hubb, mpierr, mpinodes, mpirank0, multi_run, &
+            n_multi_run, ndim, nenerg_s, nlm_pot, nlmamax, nr, nspin, nspinp
 
-  integer, dimension(natome):: iaprotoi
-
-  complex(kind=db), dimension(nenerg_s,nlm_probe,nlm_probe,nspinp,nspinp):: Taull_opt
+  complex(kind=db), dimension(nenerg_s,nlmamax,nspinp,nlmamax,nspinp):: Taull_tdd
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
 
   logical:: Hubb_a, Hubb_d
 
-  real(kind=db):: Rmtsd, rsbdc, rsbdc_out, V0muf, Vhbdc, Vhbdc_out
+  real(kind=db):: Rmtg, Rmtsd, rsbdc, V0muf, Vhbdc
   real(kind=db), dimension(nenerg_s):: Energ_s
-  real(kind=db), dimension(0:n_atom_proto):: Rmtg
-  real(kind=db), dimension(nspin):: dv0bdcF, VxcbdcF, VxcbdcF_out
-  real(kind=db), dimension(0:nrm,nlm_pot,n_atom_0:n_atom_ind):: Vcato
-  real(kind=db), dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind):: Vxcato
-  real(kind=db), dimension(0:nrm,n_atom_0:n_atom_ind):: rsato
+  real(kind=db), dimension(nspin):: dv0bdcF, VxcbdcF
+  real(kind=db), dimension(nr,nlm_pot):: Vcato
+  real(kind=db), dimension(nr,nspin):: rhoato_abs
+  real(kind=db), dimension(nr,nlm_pot,nspin):: Vxcato
+  real(kind=db), dimension(nr):: rsato
   real(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb_i, V_hubb_r
-  real(kind=db), dimension(nlm_probe,nlm_probe,nspinp,nspinp):: Taull_opt_i, Taull_opt_r
+  real(kind=db), dimension(nlmamax,nspinp,nlmamax,nspinp):: Taull_tdd_i, Taull_tdd_r
 
   if( multi_run == 1 ) open(20, file = nomfich_optic_data )
 
@@ -3195,21 +3168,21 @@ subroutine Read_optic_data(dv0bdcF, Energ_s, Hubb_a, Hubb_d, iaprotoi, lmax_prob
 
     read(20,*)
     read(20,*)
-    read(20,*) lmax_probe, lmaxabs_t, nptmoy, nptmoy_out
-    read(20,'(10i5)') iaprotoi(:)
+    read(20,*) lmax_probe, lmaxabs_t
 
     do ie = 1,nenerg_s
       read(20,*) Energ_s(ie)
-      read(20,*) Taull_opt(ie,:,:,:,:)
+      read(20,*) Taull_tdd(ie,:,:,:,:)
     end do
     Energ_s(:) =  Energ_s(:) / Rydb
 
     read(20,*) Hubb_a, Hubb_d
-    read(20,*) Rmtg(:), Rmtsd
-    read(20,*) dv0bdcF(:), rsbdc, rsbdc_out, Vhbdc, Vhbdc_out, VxcbdcF(:), VxcbdcF_out(:), V0muf
-    read(20,*) rsato(0:nrm,:)
-    read(20,*) Vcato(0:nrm,:,:)
-    read(20,*) Vxcato(0:nrm,:,:,:)
+    read(20,*) Rmtg, Rmtsd
+    read(20,*) dv0bdcF(:), rsbdc, Vhbdc, VxcbdcF(:), V0muf
+    read(20,*) rsato(:)
+    read(20,*) Vcato(:,:)
+    read(20,*) Vxcato(:,:,:)
+    read(20,*) rhoato_abs(:,:)
     if( Hubb_a ) read(20,*) V_hubb(:,:,:,:)
 
     if( multi_run == n_multi_run ) close(20)
@@ -3218,50 +3191,44 @@ subroutine Read_optic_data(dv0bdcF, Energ_s, Hubb_a, Hubb_d, iaprotoi, lmax_prob
 
   if( mpinodes == 1 ) return
 
-  ndim = ( nlm_probe * nspinp )**2
+  ndim = ( nlmamax * nspinp )**2
 
   do ie = 1,nenerg_s
 
     if( mpirank0 == 0 ) then
-      Taull_opt_r(:,:,:,:) = real( Taull_opt(ie,:,:,:,:), db )
-      Taull_opt_i(:,:,:,:) = aimag( Taull_opt(ie,:,:,:,:) )
+      Taull_tdd_r(:,:,:,:) = real( Taull_tdd(ie,:,:,:,:), db )
+      Taull_tdd_i(:,:,:,:) = aimag( Taull_tdd(ie,:,:,:,:) )
     endif
 
-    call MPI_Bcast(Taull_opt_r,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Taull_opt_i,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Taull_tdd_r,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Taull_tdd_i,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
 
     call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
 
-    if( mpirank0 /= 0) Taull_opt(ie,:,:,:,:) = cmplx( Taull_opt_r(:,:,:,:), Taull_opt_i(:,:,:,:), db )
+    if( mpirank0 /= 0) Taull_tdd(ie,:,:,:,:) = cmplx( Taull_tdd_r(:,:,:,:), Taull_tdd_i(:,:,:,:), db )
 
   end do
 
-    call MPI_Bcast(nptmoy,1,MPI_INTEGER,0,MPI_COMM_WORLD, mpierr)
-    call MPI_Bcast(nptmoy_out,1,MPI_INTEGER,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(lmax_probe,1,MPI_INTEGER,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(lmaxabs_t,1,MPI_INTEGER,0,MPI_COMM_WORLD, mpierr)
-    call MPI_Bcast(iaprotoi,natome,MPI_INTEGER,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Hubb_a,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Hubb_d,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Energ_s,nenerg_s,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
-  ndim = n_atom_proto + 1
-    call MPI_Bcast(Rmtg,ndim,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
+    call MPI_Bcast(Rmtg,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Rmtsd,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(dv0bdcF,nspin,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(rsbdc,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
-    call MPI_Bcast(rsbdc_out,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(V0muf,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Vhbdc,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
-    call MPI_Bcast(Vhbdc_out,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(VxcbdcF,nspin,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
-    call MPI_Bcast(VxcbdcF_out,nspin,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
 
-  ndim = ( nrm + 1 ) * ( n_atom_ind - n_atom_ind + 1 )
-    call MPI_Bcast(rsato,ndim,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
-  ndim = ( nrm + 1 ) * nlm_pot * ( n_atom_ind - n_atom_ind + 1 )
+    call MPI_Bcast(rsato,nr,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
+  ndim = nr * nlm_pot
     call MPI_Bcast(Vcato,ndim,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
-  ndim = ( nrm + 1 ) * nlm_pot * nspin * ( n_atom_ind - n_atom_ind + 1 )
+  ndim = nr * nlm_pot * nspin
     call MPI_Bcast(Vxcato,ndim,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
+  ndim = nr * nspin
+    call MPI_Bcast(rhoato_abs,ndim,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
 
   ndim = ( (2 * m_hubb + 1) * nspinp )**2
   if( mpirank0 == 0 ) then
@@ -3313,7 +3280,7 @@ end
 
 !***********************************************************************
 
-subroutine Recup_optic_dim(E_cut,Full_atom,iaabsi,iprabs,mpirank0,natome,nenerg_s,nlm_pot,nlm_probe,nomfich_optic_data)
+subroutine Recup_optic_dim(E_cut,mpirank0,nenerg_s,nlm_pot,nlm_probe,nlmamax,nomfich_optic_data)
 
   use declarations
   implicit none
@@ -3321,9 +3288,7 @@ subroutine Recup_optic_dim(E_cut,Full_atom,iaabsi,iprabs,mpirank0,natome,nenerg_
 
   character(len=132):: nomfich_optic_data
 
-  integer:: iaabsi, iprabs, istat, mpierr, mpirank0, natome, nenerg_s, nlm_pot, nlm_probe
-
-  logical:: Full_atom
+  integer:: istat, mpierr, mpirank0, nenerg_s, nlm_pot, nlm_probe, nlmamax
 
   real(kind=db):: E_cut
 
@@ -3332,21 +3297,17 @@ subroutine Recup_optic_dim(E_cut,Full_atom,iaabsi,iprabs,mpirank0,natome,nenerg_
     open(20, file = nomfich_optic_data, status='old', iostat=istat)
     if( istat /= 0 ) call write_open_error(nomfich_optic_data,istat,1)
 
-    read(20,*) E_cut, Full_atom
-    read(20,*) iaabsi, iprabs, natome, nenerg_s, nlm_pot, nlm_probe
+    read(20,*) E_cut
+    read(20,*) nenerg_s, nlm_pot, nlmamax, nlm_probe
 
     Close(20)
 
   endif
 
   call MPI_Bcast(E_cut,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-  call MPI_Bcast(Full_atom,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
-  call MPI_Bcast(iaabsi,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-  call MPI_Bcast(iprabs,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-  call MPI_Bcast(natome,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
   call MPI_Bcast(nenerg_s,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
   call MPI_Bcast(nlm_pot,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-  call MPI_Bcast(nlm_probe,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+  call MPI_Bcast(nlmamax,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
 
   call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
 
@@ -3355,8 +3316,8 @@ end
 
 !***********************************************************************
 
-subroutine Read_tddft_data(E_cut,Energ,imag_taull,mpirank,multi_run,n_multi_run,nbseuil,nenerg,nlmamax, &
-                   nlmamax_u,nomfich_tddft_data,nspin,nspino,rof0)
+subroutine Read_tddft_data(E_cut,Energ,mpirank,multi_run,n_multi_run,nbseuil,nenerg,nlmamax, &
+                   nomfich_tddft_data,nspinp,nspino,rof0,Taull_tdd)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -3364,15 +3325,15 @@ subroutine Read_tddft_data(E_cut,Energ,imag_taull,mpirank,multi_run,n_multi_run,
 
   character(len=132):: nomfich_tddft_data
 
-  integer:: ie, istat, mpirank, multi_run, n_multi_run, nbseuil, ndim, nenerg, nlmamax, nlmamax_u, nspin, nspino
+  integer:: ie, istat, mpirank, multi_run, n_multi_run, nbseuil, ndim, nenerg, nlmamax, nspinp, nspino
 
-  complex(kind=db), dimension(nenerg,nlmamax,nspin,nspino,nbseuil):: rof0
+  complex(kind=db), dimension(nenerg,nlmamax,nspinp,nspino,nbseuil):: rof0
+  complex(kind=db), dimension(nenerg,nlmamax,nspinp,nlmamax,nspinp):: Taull_tdd
 
   real(kind=db):: E_cut
   real(kind=db), dimension(nenerg):: Energ
-  real(kind=db), dimension(nlmamax,nspin,nspino,nbseuil):: rof0_i, rof0_r
-  real(kind=db), dimension(nenerg,nlmamax_u,nspin,nlmamax_u,nspin):: imag_taull
-  real(kind=db), dimension(nlmamax_u,nspin,nlmamax_u,nspin):: imag_taull_e
+  real(kind=db), dimension(nlmamax,nspinp,nspino,nbseuil):: rof0_i, rof0_r
+  real(kind=db), dimension(nlmamax,nspinp,nlmamax,nspinp):: Taull_tdd_i, Taull_tdd_r
 
   if( mpirank == 0 ) then
 
@@ -3385,7 +3346,7 @@ subroutine Read_tddft_data(E_cut,Energ,imag_taull,mpirank,multi_run,n_multi_run,
 
     do ie = 1,nenerg
       read(20,*) Energ(ie)
-      read(20,*) imag_taull(ie,:,:,:,:)
+      read(20,*) Taull_tdd(ie,:,:,:,:)
     end do
 
     do ie = 1,nenerg
@@ -3408,21 +3369,25 @@ subroutine Read_tddft_data(E_cut,Energ,imag_taull,mpirank,multi_run,n_multi_run,
 
   call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
 
-  ndim = ( nlmamax_u * nspin )**2
+  ndim = ( nlmamax * nspinp )**2
 
   do ie = 1,nenerg
 
-    if( mpirank == 0 ) imag_taull_e(:,:,:,:)= imag_taull(ie,:,:,:,:)
+    if( mpirank == 0 ) then
+      Taull_tdd_r(:,:,:,:) = real( Taull_tdd(ie,:,:,:,:), db )
+      Taull_tdd_i(:,:,:,:) = aimag( Taull_tdd(ie,:,:,:,:) )
+    endif
 
-    call MPI_Bcast(imag_taull_e,ndim,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
+    call MPI_Bcast(Taull_tdd_r,ndim,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
+    call MPI_Bcast(Taull_tdd_i,ndim,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
 
     call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
 
-    if( mpirank /= 0) imag_taull(ie,:,:,:,:) = imag_taull_e(:,:,:,:)
+    if( mpirank /= 0) Taull_tdd(ie,:,:,:,:) = cmplx( Taull_tdd_r(:,:,:,:), Taull_tdd_i(:,:,:,:), db )
 
   end do
 
-  ndim = nlmamax * nspin * nspino * nbseuil
+  ndim = nlmamax * nspinp * nspino * nbseuil
 
   do ie = 1,nenerg
 

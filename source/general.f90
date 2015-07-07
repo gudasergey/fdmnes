@@ -4353,6 +4353,9 @@ subroutine Tensor_shape(Atom_with_axe,Atom_nonsph, Axe_atom_clu,Base_ortho,dcosx
   E1E1 = Multipole(1); E1E3 = Multipole(3);
   E2E2 = Multipole(6); E3E3 = Multipole(7);
 
+  msymdd(:,:) = 0
+  msymddi(:,:) = 0
+
   ldipimp(1:3) = Tensor_imp(1:3)
   k = 3
   do i = 1,3
@@ -4413,7 +4416,7 @@ subroutine Tensor_shape(Atom_with_axe,Atom_nonsph, Axe_atom_clu,Base_ortho,dcosx
     endif
 
 ! Calcul des tenseurs
-    if( E1E1 .or. dipmag ) call tensdd(irotiops,magnet,msymdd, msymddi)
+    if( E1E1 .or. dipmag ) call tensdd(irotiops,magnet,msymdd,msymddi)
     if( E1E2e ) call tensdq(irotiops,magnet,msymdq,msymdqi)
     if( E2E2 ) call tensqq(irotiops,magnet,msymqq,msymqqi)
     if( E1E3 ) call tensdo(irotiops,magnet,msymdo,msymdoi)
@@ -4536,17 +4539,19 @@ subroutine Tensor_shape(Atom_with_axe,Atom_nonsph, Axe_atom_clu,Base_ortho,dcosx
   lqua = 0
   loct = 0
 
-  n = maxval( abs(msymdd) )
-  n = max( n, maxval( abs(msymddi) ) )
-  do i = 1,n
-    boucle_dip: do ke = 3,1,-1
-      do ks = 3,1,-1
-        if( abs(msymdd(ke,ks)) == i .or. abs(msymddi(ke,ks)) == i ) exit boucle_dip
-      end do
-    end do boucle_dip
-    ldip(ke) = 1
-    ldip(ks) = 1
-  end do
+  if( E1E1 .or. Dipmag ) then
+    n = maxval( abs(msymdd) )
+    n = max( n, maxval( abs(msymddi) ) )
+    do i = 1,n
+      boucle_dip: do ke = 3,1,-1
+        do ks = 3,1,-1
+          if( abs(msymdd(ke,ks)) == i .or. abs(msymddi(ke,ks)) == i ) exit boucle_dip
+        end do
+      end do boucle_dip
+      ldip(ke) = 1
+      ldip(ks) = 1
+    end do
+  endif
 
   if( E2E2 ) then
     n = maxval(abs(msymqq))
@@ -4635,15 +4640,6 @@ subroutine Tensor_shape(Atom_with_axe,Atom_nonsph, Axe_atom_clu,Base_ortho,dcosx
           end do
         end do
       end do boucle_oo
-!          kk = min(ke,ks)
-!          jj1 = max(je,js)
-!          jj2 = max(he,hs)
-!          loct(kk,jj1,jj2) = 1
-!          loct(ke,je,he) = 1
-!          loct(ks,js,hs) = 1
-
-!           loct(ke,je,he) = 1
-!           loct(ks,js,hs) = 1
 
    end do
      loct(:,:,:) = 1
@@ -4651,12 +4647,12 @@ subroutine Tensor_shape(Atom_with_axe,Atom_nonsph, Axe_atom_clu,Base_ortho,dcosx
 
   if( icheck > 0 ) write(3,210) ldip(1:3)
 
-  if( ldipimp(1) /= -1 .and. .not. green ) then
+  if( ( E1E1 .or. Dipmag ) .and. ldipimp(1) /= -1 .and. .not. green ) then
     ldip(:) = ldipimp(:)
     if( icheck > 0 ) write(3,215) ldip(1:3)
   endif
 
-  if( Quadrupole .or. Octupole) then
+  if( Quadrupole .or. Octupole ) then
     if( icheck > 0 ) write(3,220) (lqua(i,1:3), i = 1,3)
 
     if( lquaimp(1,1) /= -1  .and. .not. green ) then
@@ -7329,7 +7325,7 @@ end
 
 ! Sousprogramme calculant les valeurs des vecteurs polarisation et onde
 
-subroutine polond(Base_spin,Dipmag,Green_plus,icheck,ltypcal,moyenne,mpirank,msymdd, &
+subroutine polond(Base_spin,Dipmag,icheck,ltypcal,moyenne,mpirank,msymdd, &
         msymqq,ncolm,ncolr,nomabs,nple,nplr,nplrm,nxanout,Octupole,Orthmat,Orthmati,pdp, &
         pdpolar,pol,polar,Polarise,Quadrupole,Rot_int,Veconde,Vec,Xan_atom)
 
@@ -7348,7 +7344,7 @@ subroutine polond(Base_spin,Dipmag,Green_plus,icheck,ltypcal,moyenne,mpirank,msy
   integer, dimension(3,3):: msymdd
   integer, dimension(3,3,3,3):: msymqq
 
-  logical:: Base_spin, Dipmag, Green_plus, Moyenne, Octupole, Polarise, Quadrupole, Xan_atom
+  logical:: Base_spin, Dipmag, Moyenne, Octupole, Polarise, Quadrupole, Xan_atom
 
   real(kind=db):: pdt, plmin, pp, pp1, pp2, pv, r, rac_2, vomin, vv
   real(kind=db), dimension(3):: p, pl, v, v1, v2, vo, w
@@ -7631,8 +7627,6 @@ subroutine polond(Base_spin,Dipmag,Green_plus,icheck,ltypcal,moyenne,mpirank,msy
 
 ! ncolr correspond au nombre de colonnes ecrites pour le xanes
   ncolr = jpl
-
-  if( .not. green_plus ) pol(:,:) = conjg( pol(:,:) )
 
 ! On passe en base R1
   pp  = abs( rot_int(1,1) - 1._db ) + abs( rot_int(2,2) - 1._db ) + abs( rot_int(3,3) - 1._db )
@@ -9850,9 +9844,11 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,Ese
       m = m_g(initl,1)
       nsol = 2
       if( is_g(initl) == 1 ) then
-        isol = 2
-      else
         isol = 1
+!        isol = 2
+      else
+        isol = 2
+!        isol = 1
       endif
     endif
 
@@ -11141,7 +11137,7 @@ end
 
 !***********************************************************************
 
-! Calcul de l'integrale de 0 a Radius de f. f(0) = 0.
+! Calcul de l'integrale de 0 a Radius de f.
 ! L'integrale est calculee avec un polynome d'interpolation d'ordre 3
 ! r: contient les valeurs des rayons pour les points qu'on integre
 ! On considere que seule les valeurs jusqu'à l'indice n tel que
@@ -11150,20 +11146,42 @@ end
   real(kind=db) function f_integr3(r,fct,ir0,nrm,Radius)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
-  logical This_is_the_end
+  integer:: i, ir0, nrm
 
+  logical:: This_is_the_end
+
+  real(kind=db):: a, b, c, d, d0m, dp0, dpm, f0, f1, f2, f3, f4, fac1, fac2, fm, fp, r0, Radius, r1, r2, r3, r4, rap14, rap24, &
+                  rap34, rm, rp, Tiers
   real(kind=db), dimension(ir0:nrm):: fct, r
 
-  tiers = 1._db / 3
+  Tiers = 1._db / 3
   This_is_the_end = .false.
   f_integr3 = 0._db
 
   do i = 1,nrm-1
     if( i == 1 ) then
+      if( ir0 == 1 ) then
+ ! Construction de l'ordonnée par extrapolation du second degre
+        rm = r(1)
+        r0 = r(2)
+        rp = r(3)
+        fm = fct(1)
+        f0 = fct(2)
+        fp = fct(3)
+        if( abs(fp) < 1e-20_db .and. abs(f0) < 1e-20_db .and. abs(fm) < 1e-20_db ) cycle
+        dp0 = rp - r0
+        dpm = rp - rm
+        d0m = r0 - rm
+        a = ( fm * dp0 - f0 * dpm + fp * d0m ) / ( d0m * dp0 * dpm )
+        b = ( f0 - fm ) / d0m - a * ( r0 + rm )
+        c = f0 - a * r0**2 - b * r0
+        f1 = c
+      else
+        f1 = fct(i-1)
+      endif
       r1 = 0._db
-      f1 = 0._db
       r2 = r(i)
       f2 = fct(i)
       r3 = r(i+1)

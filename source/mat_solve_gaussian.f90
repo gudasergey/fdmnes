@@ -6,7 +6,8 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
         lb1, lb2, lmaxso, lso, mato, MPI_host_num_for_mumps, mpirank0, mso, natome, nbm, nbord, nbordf, nbtm, Neuman, Neumanr, &
         new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmomax, nlmsa, nlmso, nlmso_i, &
         nphiato1, nphiato7, npoint, npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
-        numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, smi, smr, Spinorbite, tpt1, tpt2, Vr, Ylmato, Ylmso)
+        numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, smi, smr, Spinorbite, Time_fill, Time_tria, Vr, &
+        Ylmato, Ylmso)
 
   use declarations
   implicit none
@@ -41,8 +42,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
   real(kind=sg):: time
 
-  real(kind=db):: den, Enervide, Eimag, fac, faci, facr, fi, fr, tp1, tp2, tp3, &
-                  tpt1, tpt2, vnormali, vnormalr
+  real(kind=db):: den, Enervide, Eimag, fac, faci, facr, fi, fr, tp1, tp2, tp3, Time_fill, Time_tria, vnormali, vnormalr
   
   real(kind=db), dimension(nopsm,nspino):: Kar, Kari
   real(kind=db), dimension(nvois):: cgrad
@@ -216,7 +216,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     call CPU_TIME(time)
     tp2 = real(time,db)
 
-    tpt1 = tpt1 + tp2 - tp1
+    Time_fill = tp2 - tp1
 
 ! Triangularisation :
 
@@ -298,7 +298,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     call CPU_TIME(time)
     tp3 = real(time,db)
 
-    tpt2 = tpt2 + tp3 - tp2
+    Time_tria = tp3 - tp2
 
   end do boucle_ii      ! fin de la boucle sur les lignes
 

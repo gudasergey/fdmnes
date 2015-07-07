@@ -7,7 +7,7 @@
 !    Integration over energy for Dafs.
 
 subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart, &
-        Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max,Green_plus,ical, &
+        Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max,ical, &
         icheck,indice_par,iscratchconv,itape1,kw_conv,length_line, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,ncal,xsect_file)
 
@@ -52,7 +52,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   logical:: Another_one, Arc, bav_open, Bormann, Dafs, Dafs_bio, Check_conv, chem, Circular, Conv_done, Cor_abs, decferm, &
     Deuxieme, Double_cor, E_Fermi_man, Energphot, Epsii_ref_man, Extrap, Fermip, Fit_cal, Forbidden, fprim, fprime_atom, &
-    Full_self_abs, Gamma, Gamma_hole_imp, Gamma_var, Gaussian_default, Green_int, Green_plus, Magn, new_format, no_extrap, &
+    Full_self_abs, Gamma, Gamma_hole_imp, Gamma_var, Gaussian_default, Green_int, Magn, new_format, no_extrap, &
     nxan_lib, Photo_emission, Scan_a, scan_true, Seah, Self_abs, &
     Shift_auto, Signal_Sph, Stokes, Sup_sufix, Tenseur, Tenseur_car, Thomson, vnew_format
   logical, dimension(:), allocatable:: fichdone, run_done, Skip_run
@@ -806,7 +806,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       else
         nxan = nt - 2 * npldafs
       endif
-      if( nomab(1:8) == 'Sum_dd_r' ) Signal_Sph = .true.
+      if( nomab(1:8) == 'Sum_dd_r' .or. nomab(1:8) == 'Sum_tot_' ) Signal_Sph = .true.
     elseif( fprim .and. nomab(1:1) == 'D' ) then
       Tenseur = .true.
       nxan = 0
@@ -1704,8 +1704,6 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
             write(98,*) Xanes(ie,ipl)
           end do
 
-          if( .not. Green_plus ) lori(ie1:nen2) = - lori(ie1:nen2)
-
           if( .not. Green_int ) then
 
             do ipl = 1,npldafs
@@ -1800,7 +1798,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
 ! On passe en convention cristallo avec f" positif
 ! (equivaut a Green_moins)
-      if( Dafs .and. Green_plus ) then
+      if( Dafs ) then
         Adafs(:,:,:) = conjg( Adafs(:,:,:) )
         if( Cor_abs ) mu(:,:,:,:) = Conjg( mu(:,:,:,:) )
       endif
@@ -1836,11 +1834,8 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         end do
       endif
 
-! On passe en convention cristallo avec f" positif
-! (equivaut a Green_moins)
-      if( Green_plus .and. Bormann ) then
-        Adafs(:,:,:) = conjg( Adafs(:,:,:) )
-      endif
+! On passe en convention cristallo avec f" positif (equivaut a Green_moins)
+      if( Bormann ) Adafs(:,:,:) = conjg( Adafs(:,:,:) )
 
       if( Cor_abs ) then
         Volume_maille = Cal_Volume_maille(axyz,angxyz)
@@ -1910,13 +1905,13 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     do ipl = 1,npldafs
       do ip = 1,nphi(ipl)
         if( nphi(ipl) == 1 ) then
-          if( Green_plus .and. Bormann ) then
+          if( Bormann ) then
             As(:,ip,ipl) = S0_2 * As(:,ip,ipl) + conjg( f0(ipl) )
           else
             As(:,ip,ipl) = S0_2 * As(:,ip,ipl) + f0(ipl)
           endif
         else
-          if( Green_plus .and. Bormann ) then
+          if( Bormann ) then
             As(:,ip,ipl) = S0_2 * As(:,ip,ipl) + conjg( f0scan(ip,ipl) )
           else
             As(:,ip,ipl) = S0_2 * As(:,ip,ipl) + f0scan(ip,ipl)
@@ -2061,7 +2056,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Sup_sufix = ninitl(1) > 1
    
   call col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin(1),fprim,Full_self_abs,hkl_dafs, &
-      Length_line,n_col,n_stokes,nom_col,npldafs,npldafs_b,nxan,Self_abs,Stokes,Stokes_name, &
+      Length_line,n_col,n_stokes,nom_col,npldafs,npldafs_b,nxan,Self_abs,Signal_sph,Stokes,Stokes_name, &
       Stokes_param,Sup_sufix,Tenseur)
 
   deallocate( Stokes_name, Stokes_param )
@@ -2338,8 +2333,8 @@ end
 
 !***********************************************************************
 
-subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor, fichin,fprim,Full_self_abs,hkl_dafs, &
-      Length_line,n_col,n_stokes,nom_col,npldafs,npldafs_b,nxan,Self_abs,Stokes,Stokes_name, &
+subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_abs,hkl_dafs, &
+      Length_line,n_col,n_stokes,nom_col,npldafs,npldafs_b,nxan,Self_abs,Signal_sph,Stokes,Stokes_name, &
       Stokes_param,Sup_sufix,Tenseur)
 
   use declarations
@@ -2357,7 +2352,7 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor, fichin,fprim,Full_self_
 
   integer, dimension(3,npldafs_b):: hkl_dafs
 
-  logical:: Bormann, Cor_abs, Dafs_bio, Double_cor, fprim, Full_self_abs, Self_abs, Stokes, Sup_sufix, Tenseur
+  logical:: Bormann, Cor_abs, Dafs_bio, Double_cor, fprim, Full_self_abs, Self_abs, Signal_sph, Stokes, Sup_sufix, Tenseur
 
   real(kind=db), dimension(5,n_stokes):: Stokes_param
 
@@ -2402,6 +2397,9 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor, fichin,fprim,Full_self_
       if( nomab(l-2:l-1) == '_M' ) nomab(l-2:l) = '   '
       if( nomab(l-2:l-1) == '_N' ) nomab(l-2:l) = '   '
       if( nomab(l-2:l-1) == '_O' ) nomab(l-2:l) = '   '
+      if( l > 4 ) then
+        if( nomab(l-3:l-2) == '_r' .or. nomab(l-3:l-2) == '_i' ) nomab(l-3:l-2) = '  '
+      endif
       if( nxan == 0 ) then
          nom_col_in(j) = nomab
       else
@@ -2487,6 +2485,10 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor, fichin,fprim,Full_self_
       i = i + 1
       j = j + 2
       nomab = nom_col_in(j)
+      if( Signal_sph ) then
+        l = len_trim( nomab )
+        nomab(2:l+1) = nomab(1:l)
+      endif
       nomab(1:1) = 'I'
       nom_col(i) = nomab
 

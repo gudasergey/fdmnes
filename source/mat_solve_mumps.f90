@@ -1,3 +1,4 @@
+
 ! Routine solving the system of linear equations using sparse matrix technique and MUMPS
 ! From Alexander Guda et al, Rostov, Russia. 
 
@@ -6,7 +7,8 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
         lb1, lb2, lmaxso, lso, mato, MPI_host_num_for_mumps, mpirank0, mso, natome, nbm, nbord, nbordf, nbtm, Neuman, Neumanr, &
         new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmomax, nlmsa, nlmso, nlmso_i, &
         nphiato1, nphiato7, npoint, npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
-        numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, smi, smr, Spinorbite, tpt1, tpt2, Vr, Ylmato, Ylmso)
+        numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, smi, smr, Spinorbite, Time_fill, Time_tria, &
+        Vr, Ylmato, Ylmso)
 
   use declarations
   implicit none
@@ -96,7 +98,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
   real(kind=sg):: time
 
-  real(kind=db):: Enervide, Eimag, p2, tp1, tp2, tp3, tpt1, tpt2, tt1,tt2,tt3,tt4,tt5,tt6
+  real(kind=db):: Enervide, Eimag, p2, tp1, tp2, tp3, Time_fill, Time_tria
   
   real(kind=db), dimension(nopsm,nspino):: Kar, Kari
   real(kind=db), dimension(nvois):: cgrad
@@ -124,9 +126,6 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     call CPU_TIME(time)
     tp1 = real(time,db)
   endif
-  
-  call CPU_TIME(time)
-  tt1 = real(time,db)
   
   if( Spinorbite ) then
     ispin = 1
@@ -231,7 +230,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   if( mpirank0 == 0 ) then
     call CPU_TIME(time)
     tp2 = real(time,db)
-    tpt1 = tpt1 + tp2 - tp1
+    Time_fill = tp2 - tp1
   endif
       
 ! run solver
@@ -241,12 +240,12 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   if( mpirank0 == 0 ) then
     call CPU_TIME(time)
     tp3 = real(time,db)
-    tpt2 = tpt2 + tp3 - tp2
+    Time_tria = tp3 - tp2
   endif
   
   return
   100 format(/' FDM matrix: number of line =',i7, / &
-              '             number of non-zero terms =',i8)
+              '             number of not zero terms =',i8)
 end
 
 !**************************************************************************************************************
@@ -479,9 +478,11 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
  
   use declarations
   implicit none
- 
+  
+  !DEC$ OPTIONS /NOWARN
   INCLUDE 'dmumps_struc.h'
   INCLUDE 'zmumps_struc.h'
+  !DEC$ END OPTIONS
   
   integer:: nligne, nligne_i, nlmso, nlmso_i, MYID, mpirank0, mpirank_in_mumps_group, i, j, icheck, par, &
             MPI_host_num_for_mumps
@@ -520,7 +521,7 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
     zmumps_par%SYM = 0
     zmumps_par%PAR = par
     CALL ZMUMPS(zmumps_par)
-!    zmumps_par%ICNTL(2:3) = -1
+    zmumps_par%ICNTL(2:3) = -1
     zmumps_par%ICNTL(4) = 2 !printLevel
     zmumps_par%ICNTL(7) = 5 !ordering (meaningles when ICNTL(28)=2)
     zmumps_par%ICNTL(14) = 100 !memIncrease
@@ -540,7 +541,7 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
 !  Call package for solution
     zmumps_par%JOB = 4
     CALL ZMUMPS(zmumps_par)
-    if ( zmumps_par%INFOG(1) /= 0 ) stop
+    if ( zmumps_par%INFOG(1) /= 0 ) stop 1
     IF ( MYID == 0 ) THEN
       DEALLOCATE( zmumps_par%IRN )
       DEALLOCATE( zmumps_par%JCN )
@@ -596,7 +597,7 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
 !  Call package for solution
     dmumps_par%JOB = 4
     CALL DMUMPS(dmumps_par)
-    if ( dmumps_par%INFOG(1) /= 0 ) stop
+    if ( dmumps_par%INFOG(1) /= 0 ) stop 1
     if ( MYID == 0 ) then
       DEALLOCATE( dmumps_par%IRN )
       DEALLOCATE( dmumps_par%JCN )
@@ -624,9 +625,9 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
   endif
   return
 end
-
-!**************************************************************************************************************
-
+    
+!**************************************************************************************        
+        
 subroutine getSolverParams(MPI_host_num_for_mumps,mpinodes0,Solver)
 
   use declarations
@@ -652,10 +653,12 @@ subroutine getSolverParams(MPI_host_num_for_mumps,mpinodes0,Solver)
     do ipr = 3,6,3
       write(6,100) mpinodes0, MPI_host_num_for_mumps
     end do
-    stop
+    stop 1
   endif
 
   return
   100 format(//' The total number of nodes =',i3,' must be a multiple of the number of nodes for MUMPS =',i3, &
                ' It is not the case !'//) 
 end
+
+

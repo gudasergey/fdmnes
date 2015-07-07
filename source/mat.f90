@@ -3,14 +3,14 @@
 ! Remplissage de la matrice FDM et resolution du systeme d'equations lineaires.
 
 subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xanes,cgrad, &
-                    clapl,dcosxyz,distai,E_comp,Ecinetic_out,Eclie,Eimag,Eneg,Enervide,Full_atom, &
+                    clapl,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide,Full_atom, &
                     gradvr,iaabsi,iaprotoi,iato,ibord,icheck,igreq,igroupi,igrph,irep_util,isbord,iso,ispinin,isrt,ivois, &
                     isvois,karact,lato,lmaxa,lmaxso,lso,mato,MPI_host_num_for_mumps,mpirank0,mso, &
                     natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup_m,ngrph,nim,nicm, &
                     nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
                     nsort,nsortf,nso1,nspin,nspino,nspinp,nstm,numia,nvois,phiato,poidsa,poidso,R_rydb,Recop,Relativiste, &
                     Repres_comp,Rsort,rvol,Rydberg,Solsing,Spinorbite,State_all_r,Sym_cubic,Tau_ato,Taull, &
-                    tpt1,tpt2,V0bd_out,Vr,xyz,Ylm_comp,Ylmato,Ylmso)
+                    Time_fill,Time_tria,V0bd_out,Vr,xyz,Ylm_comp,Ylmato,Ylmso)
 
   use declarations
   implicit none
@@ -48,8 +48,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
     Relativiste, Repres_comp, Rydberg, Spinorbite, Solsing, State_all_r, Stop_job, Sym_cubic, Ylm_comp
   logical, dimension(natome):: Atom_axe
 
-  real(kind=db):: adimp, Eclie, Eimag, Enervide, R_rydb, Rsort, tpt1, tpt2
-  real(kind=sg):: time
+  real(kind=db):: adimp, Eclie_out, Eimag, Enervide, R_rydb, Rsort, Time_fill, Time_tria 
 
   real(kind=db), dimension(3):: dcosxyz
   real(kind=db), dimension(nspin):: Ecinetic_out, V0bd_out
@@ -121,7 +120,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   do isp = 1,nspin
     if( .not. Spinorbite .and. isp /= ispinin ) cycle
     jsp = jsp + 1
-    call phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic_out(isp),Eclie,Eimag, &
+    call phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic_out(isp),Eclie_out,Eimag, &
        Eneg,Enervide,icheck,jsp,isrt,lmaxso,mpirank0,Neuman,Neumanr,npsom,nsort,nsort_c,nsort_r,nspinr,nstm, &
        R_Rydb,Rsort,Rydberg,V0bd_out(isp),xyz)
   end do
@@ -155,8 +154,9 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
         lb1, lb2, lmaxso, lso, mato, MPI_host_num_for_mumps, mpirank0, mso, natome, nbm, nbord, nbordf, nbtm, Neuman, Neumanr, &
         new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmomax, nlmsa, nlmso, nlmso_i, &
         nphiato1, nphiato7, npoint, npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
-        numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, smi, smr, Spinorbite, tpt1, tpt2, Vr, Ylmato, Ylmso)
-        
+        numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, smi, smr, Spinorbite, Time_fill, Time_tria, Vr, &
+        Ylmato, Ylmso)
+
   deallocate( Bessel, Besselr, Neuman, Neumanr )
 
   if( icheck > 2 ) then
@@ -217,7 +217,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
     norm_t = TRANSPOSE(norm)
 
   endif
-  
+
 ! Amplitude en sortie.
   do ia = 1,natome
 
@@ -279,7 +279,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
     end do
 
   end do
-  
+
 ! Representation conjugue
   if( Repres_comp .and. .not. Spinorbite ) then
     do ia = 1,natome
@@ -319,7 +319,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
     end do
     deallocate( taull_tem )
   endif
-  
+
   if( icheck > 1 ) then
 
     if( Spinorbite ) then
@@ -436,7 +436,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
       end do
     end do
   endif
-  
+
   return
   110 format(/' ---- Mat ---------',100('-'))
   120 format(/'   ii   Solution(i,lmf = 1,nlmso)')
@@ -460,7 +460,7 @@ end
 
 ! Calcul des fonctions d'onde emergeantes en sortie.
 
-subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic,Eclie,Eimag, &
+subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic_out,Eclie_out,Eimag, &
        Eneg,Enervide,icheck,isp,isrt,lmaxso,mpirank0,Neuman,Neumanr,npsom,nsort,nsort_c,nsort_r,nspinr,nstm, &
        R_Rydb,Rsort,Rydberg,V0bd_out,xyz)
 
@@ -480,7 +480,7 @@ subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic,Eclie,E
 
   logical:: Base_ortho, E_comp, Eneg, Rydberg
 
-  real(kind=db):: Adimp, cal_norm, clapl, clapl0, deltar, dr, Ecinetic, Ec, Eclie, ee, Eimag, Enervide, fnorm, konder, &
+  real(kind=db):: Adimp, cal_norm, clapl, clapl0, deltar, dr, Ecinetic_out, Ec, Eclie_out, ee, Eimag, Enervide, fnorm, konder, &
                   p1, p2, pp, R_rydb, Rmax, rr, Rsort, V0bd_out, vnorme, zr
 
   real(kind=db), dimension(3):: dcosxyz, p
@@ -490,16 +490,16 @@ subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic,Eclie,E
   real(kind=db), dimension(:), allocatable:: f1, f2, f12r, r, v
   real(kind=db), dimension(:,:), allocatable:: rbsr, rnmr, ur
 
-  if( icheck > 1 ) write(3,110) Ecinetic * rydb, lmaxso
+  if( icheck > 1 ) write(3,110) Ecinetic_out * rydb, lmaxso
 
   if( E_comp ) then
-    konde = sqrt( cmplx( Ecinetic, Eimag, db ) )
+    konde = sqrt( cmplx( Ecinetic_out, Eimag, db ) )
     if( abs( konde ) < eps10 ) konde = cmplx( eps10, 0._db, db )
     konder = real( konde, db )
-    fnorm = cal_norm(ecinetic,eimag)
+    fnorm = cal_norm(Ecinetic_out,eimag)
     fnormc = cmplx( fnorm, 0._db, db)
   else
-    konder = sqrt( ecinetic )
+    konder = sqrt( Ecinetic_out )
     konde = cmplx( konder, 0._db, db )
     if( konder < eps10 .and. mpirank0 == 0 ) then
       call write_error
@@ -567,7 +567,7 @@ subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic,Eclie,E
     endif
 
     Ec = Enervide - v(0)
-    if( .not. Eneg ) Ec = max( Ec, Eclie )
+    if( .not. Eneg ) Ec = max( Ec, Eclie_out )
     if( E_comp ) then
       konde = sqrt( cmplx( Ec, eimag, db ) )
       konder = real( konde, db )
@@ -583,7 +583,7 @@ subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic,Eclie,E
       stop
     endif
     if( E_comp ) then
-      fnorm = cal_norm(ecinetic,eimag)
+      fnorm = cal_norm(Ecinetic_out,eimag)
       fnormc = cmplx( fnorm, 0._db, db)
     else
       fnorm = sqrt( konder / pi )
@@ -734,7 +734,7 @@ subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic,Eclie,E
   endif
 
   return
-  110 format(/' ---- Phiso --------',100('-')//, 20x,' Ecinetic =',f10.5,' eV,  lmaxso =',i3)
+  110 format(/' ---- Phiso --------',100('-')//, 20x,' Ecinetic_out =',f10.5,' eV,  lmaxso =',i3)
   120 format(//' The wave vector is zero, what is forbidden !'/)
   126 format(/'    radius      v            bess-coul             neuman-coul     l =',i3)
   127 format(2f10.3,1p,4e12.4)
@@ -764,8 +764,8 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   integer:: i, ii1, ii2, ia, ib, icheck, ii, ispin, ispin0, igrph, indg, isol, isp, ispint, ispo, ispp, ispq, ispt, isym, &
     iv, j, jj, jj1, jjj, k, l, lb1i, lb1r, lb2i, lb2r, ljj, lm, lm0, lmaxso, lmf, lmf0, lmp, lmp0, lms, lp, &
     m, mf, mp, natome, nbm, nbtm, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmagm, nlmso, nlmso_i, & 
-    nphiato1, nphiato7, npoint, npsom, nsm, nsort, nsort_c, nsortf, nsort_r, nspino, nspinp, nstm, nso1, nlmsam, nspin, &
-    nspinr, nlmmax, nlmomax, nvois
+    nphiato1, nphiato7, npoint, npsom, nsm, nsort, nsort_c, nsortf, nsort_r, nspino, nspinp, nstm, nso1, nlmsam, nspin, nspinr, &
+    nlmmax, nlmomax, nvois
  
   integer, dimension(0:npoint):: new
   integer, dimension(natome):: ianew, nbord, nbordf, nlmsa
@@ -827,12 +827,14 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 
 ! Remplissage de la ligne et des seconds membres.
   i = newinv(ii)
+  if ( Spinorbite ) then
+    do ii2 = nligne,1,-1
+      if ( newinv(ii2) /= 0 ) exit
+    end do
+  endif
   if ( i .le. 0 .and. Spinorbite ) then
     do ii1 = 1,nligne
       if ( newinv(ii1) /= 0 ) exit
-    end do
-    do ii2 = nligne,1,-1
-      if ( newinv(ii2) /= 0 ) exit
     end do
     if ( ii1 .le. nligne .and. ii<ii1 .and. MOD(ii1-ii2,2)==0 ) ispin = 3 - ispin0
   endif
@@ -1284,9 +1286,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       write(3,165) (mlet(k), vletr(k), vleti(k), k = 1,nlet)
     endif
   endif
-  
-!  write(6,*) 'i=',i,'ii=',ii,'ispin=',ispin    
-  
+    
   return
   120 format(/'  FDM Matrix :',/'  ii     i   lb1   lb2   / abr(i = lb1,lb2)')
   130 format(4i6)
@@ -1716,7 +1716,7 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
                     iato,icheck,igreq,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato,n_atom_0, &
                     n_atom_ind,n_atom_proto,natome,natomp,nb_eq,nb_rpr,nb_rep_t,nb_sym_op,nchemin,neqm,ngroup_m, &
                     ngrph,nlmagm,nlmsa,nlmsam,nlmsamax,Normaltau,nspin,nspino,nspinp,pos,posi,recop,Repres_comp, &
-                    rot_atom,Solsing,Spinorbite,State_all_r,Sym_cubic,Tau_ato,Tau_nondiag,Taull,tpt1,tpt2,Ylm_comp)
+                    rot_atom,Solsing,Spinorbite,State_all_r,Sym_cubic,Tau_ato,Tau_nondiag,Taull,Time_fill,Time_tria,Ylm_comp)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -1747,10 +1747,10 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
   integer, dimension(0:n_atom_proto,neqm):: igreq
   integer, dimension(nlmsam,natome,ngrph):: lato, mato, iato
 
-  logical Base_ortho, Brouder, Cal_xanes, Ereel, Full_atom, Normaltau, Solsing, &
+  logical:: Base_ortho, Brouder, Cal_xanes, Ereel, Full_atom, Normaltau, Solsing, &
     Recop, Repres_comp, Spinorbite, State_all_r, Stop_job, Sym_cubic, Tau_nondiag, Ylm_comp
 
-  real(kind=db):: tp1, tp2, tp3, tpt1, tpt2
+  real(kind=db):: tp1, tp2, tp3, Time_fill, Time_tria
 
   real(kind=db), dimension(nspin):: ecinetic
   real(kind=db), dimension(nspin):: konder
@@ -1769,7 +1769,7 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
    'D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'/
 
   Stop_job = .true.
-  
+
 ! Pour l'instant toutes les representations sont de dimension 1.
   I_rep_dim = 1
 
@@ -2182,7 +2182,7 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
   call CPU_TIME(time)
   tp2 = real(time,db)
 
-  tpt1 = tpt1 + tp2 - tp1
+  Time_fill = tp2 - tp1
 
   if( natome == 1 ) then
 
@@ -2362,19 +2362,12 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
           else
             is2 = ispin
           endif
-!              taull(lm01,is1,lm02,is2,ia) =
-!     &           taull(lm01,is1,lm02,is2,ia) + taullp(lm1,lm2)
-! Je prend le transpose pour que ca marche en harmonique complexe,
-! je ne sais pas pourquoi
-          taull(lm02,is2,lm01,is1,ia) = taull(lm02,is2,lm01,is1,ia) + taullp(lm1,lm2)
+          taull(lm01,is1,lm02,is2,ia) = taull(lm01,is1,lm02,is2,ia) + taullp(lm1,lm2)
           if( .not. Spinorbite .and. Repres_comp ) then
             lm01c = lm01 - 2 * m1
             lm02c = lm02 - 2 * m2
             isg = (-1)**(m1+m2)
-!                taull(lm02c,is2,lm01c,is1,ia)
-!     &                = taull(lm02c,is2,lm01c,is1,ia)
-            taull(lm01c,is1,lm02c,is2,ia) = taull(lm01c,is1,lm02c,is2,ia) + isg * taullp(lm1,lm2)
-
+            taull(lm02c,is2,lm01c,is1,ia) = taull(lm02c,is2,lm01c,is1,ia) + isg * taullp(lm1,lm2)
           endif
         end do
       end do
@@ -2535,7 +2528,7 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
   call CPU_TIME(time)
   tp3 = real(time,db)
 
-  tpt2 = tpt2 + tp3 - tp2
+  Time_tria = tp3 - tp2
 
   return
   110 format(/' ---- MSM ---------',100('-'),// ' igrph =',i2,', Matrix dimension =',i7)

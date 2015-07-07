@@ -4,7 +4,7 @@
 
 subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
-            f_avantseuil,Full_self_abs,Green_int,Green_plus,hkl_dafs, &
+            f_avantseuil,Full_self_abs,Green_int,hkl_dafs, &
             iabsorig,icheck,ie,ie_computer,Int_tens,isigpi,isymeq,jseuil,ltypcal, &
             Moyenne,mpinodee,Multipole,n_multi_run,n_oo,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs, &
             nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs,nphim,nplr, &
@@ -66,7 +66,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   integer, dimension(npldafs,2):: isigpi
 
   logical Allsite, Base_spin, Cartesian_tensor, Cor_abs, Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, E_vec, Dafs, &
-    Dafs_bio, Final_tddft, Energphot, Extract, Full_self_abs, Green_int, Green_int_mag, Green_plus, idafs, M1M1, magn_sens, &
+    Dafs_bio, Final_tddft, Energphot, Extract, Full_self_abs, Green_int, Green_int_mag, idafs, M1M1, magn_sens, &
     Moyenne, mu_cal, Polarise, Self_abs, Spherical_signal, Spherical_tensor, Spinorbite_p, Tens_comp, Tensor_eval, Xan_atom
 
   logical, dimension(10):: Multipole
@@ -147,20 +147,6 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
       if( E1M1 ) allocate( mumd(npldafs,nphim,2,ninitlr,0:natomsym) )
     endif
 
-  endif
-
-! Correction du terme magnetique en cas de green_moins.
-  if( .not. Green_plus .and. .not. Green_int ) then
-    if( E1E1 ) secdd_a(:,:,:,ie_computer) = conjg( secdd_a(:,:,:,ie_computer) )
-! Comme dans convolution, on prend le complexe conjugue, le cas
-! Green_plus est a prendre avant le img facteur du vecteur d'onde dans
-! l'operateur quadrupolaire.
-    if( E1E2 ) secdq_a(:,:,:,:,ie_computer) = conjg( secdq_a(:,:,:,:,ie_computer) )
-    if( E2E2 ) secqq_a(:,:,:,:,:,ie_computer) = conjg( secqq_a(:,:,:,:,:,ie_computer) )
-    if( E1E3 ) secdo_a(:,:,:,:,:,ie_computer) = conjg( secdo_a(:,:,:,:,:,ie_computer) )
-    if( E3E3 ) secoo_a(:,:,:,:,:,ie_computer) = conjg( secoo_a(:,:,:,:,:,ie_computer) )
-    if( E1M1 ) secmd_a(:,:,:,ie_computer) = conjg( secmd_a(:,:,:,ie_computer) )
-    if( M1M1 ) secmm_a(:,:,:,ie_computer) = conjg( secmm_a(:,:,:,ie_computer) )
   endif
 
   do initlr = 1,ninitlr       ! ----------> Boucle sur les seuils ou les etats initiaux
@@ -437,12 +423,8 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
         do ia = 1,natomsym
 
           if( idafs ) then
-            if( Green_plus ) then
 ! Le exp(iQr) est converti. On recupere le complexe conjugue dans convolution.
-              ph = conjg( phdafs(ia,ipldafs) )
-            else
-              ph = phdafs(ia,ipldafs)
-            endif
+            ph = conjg( phdafs(ia,ipldafs) )
           else
             ph = (1._db, 0._db) * Taux_eq(ia)
           endif
@@ -470,7 +452,6 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
               secmdia(:,:,:,0) = secmdia(:,:,:,0) + ph * secmdia(:,:,:,ia)
             else
               secmdia(:,:,:,0) = secmdia(:,:,:,0) + ph * real( secmdia(:,:,:,ia), db )
-
               if( magn_sens ) secmdia_m(:,:,:,0) = secmdia_m(:,:,:,0) + ph_m * aimag( secmdia(:,:,:,ia) )
             endif
           endif
@@ -480,10 +461,9 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
           if( Green_int_mag ) then
             if( E1E1 ) secddia_m(:,:,:,0) = secddia_m(:,:,:,0) + ph * secddia_m(:,:,:,ia)
             if( E1E2 ) secdqia_m(:,:,:,:,0) = secdqia_m(:,:,:,:,0) + ph * secdqia_m(:,:,:,:,ia)
-            if( E2E2 ) secqqia_m(:,:,:,:,:,0)=secqqia_m(:,:,:,:,:,0) + ph * secqqia_m(:,:,:,:,:,ia)
-
-            if( E1E3 ) secdoia_m(:,:,:,:,:,0)=secdoia_m(:,:,:,:,:,0) + ph * secdoia_m(:,:,:,:,:,ia)
-            if( E3E3 ) secooia_m(:,:,:,:,:,0)=secooia_m(:,:,:,:,:,0) + ph * secooia_m(:,:,:,:,:,ia)
+            if( E2E2 ) secqqia_m(:,:,:,:,:,0) = secqqia_m(:,:,:,:,:,0) + ph * secqqia_m(:,:,:,:,:,ia)
+            if( E1E3 ) secdoia_m(:,:,:,:,:,0) = secdoia_m(:,:,:,:,:,0) + ph * secdoia_m(:,:,:,:,:,ia)
+            if( E3E3 ) secooia_m(:,:,:,:,:,0 ) = secooia_m(:,:,:,:,:,0) + ph * secooia_m(:,:,:,:,:,ia)
             if( E1M1 ) secmdia_m(:,:,:,0) = secmdia_m(:,:,:,0) + ph * secmdia_m(:,:,:,ia)
             if( M1M1 ) secmmia_m(:,:,:,0) = secmmia_m(:,:,:,0) + ph * secmmia_m(:,:,:,ia)
           endif
@@ -951,9 +931,8 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
 
         endif
 
-        if( Green_plus .and. ( idafs .or. mu_cal ) ) then
-! Dans convolution on reprend le complexe conjugue de l'ensemble
-! polarisation x diffusion
+        if( idafs .or. mu_cal ) then
+! Dans convolution on reprend le complexe conjugue de l'ensemble polarisation x diffusion
           plae(:) = conjg( plae(:) )
           plas(:) = conjg( plas(:) )
         endif
@@ -984,7 +963,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
 ! du tenseur dans la routine Tens_ab.
               if( idafs ) then
                 if( Green_int ) sec = pi * img * conjg( sec )
-                ampldafsdd(ipldafs,ip,initlr,ia)=sec
+                ampldafsdd(ipldafs,ip,initlr,ia) = sec
               elseif( mu_cal ) then
                 mudd(ipldafs,ip,ind_mu,initlr,ia) = sec
               else
@@ -996,30 +975,23 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
               sec = (0._db,0._db)
               do ke = 1,3
                 do ks = 1,3
-                  if( ia == 0 ) then
-                    sec = sec + conjg( plas(ks) ) * plae(ke) * sum( voae(:) * secdqia(ks,ke,:,initlr,ia) &
-                           - voas(:) * secdqia(ke,ks,:,initlr,ia) )
-                    if( magn_sens ) sec = sec + conjg( plas(ks) ) * plae(ke) * sum( voae(:)*secdqia_m(ks,ke,:,initlr,ia) &
-                          + voas(:)*secdqia_m(ke,ks,:,initlr,ia) )
-                  else
-                    sec = sec + conjg( plas(ks) ) * plae(ke) * sum( voae(:) * secdqia(ks,ke,:,initlr,ia) &
-                        - voas(:)*conjg(secdqia(ke,ks,:,initlr,ia)))
-                  endif
+                  sec = sec + conjg( plas(ks) ) * plae(ke) &
+                            * sum( voae(:) * secdqia(ks,ke,:,initlr,ia) - voas(:) * secdqia(ke,ks,:,initlr,ia) )
+                  if( magn_sens ) sec = sec + conjg( plas(ks) ) * plae(ke) &
+                            * sum( voae(:) * secdqia_m(ks,ke,:,initlr,ia) + voas(:) * secdqia_m(ke,ks,:,initlr,ia) )
                 end do
               end do
 
-              if( Green_plus .and. idafs ) then
-                sec = - img * sec
-              else
-                sec = img * sec      ! C'est ici qu'on recupere le img
-              endif
+              sec = img * sec      ! C'est ici qu'on recupere le img
+              if( idafs ) sec = - sec
+
               if( idafs ) then
                 if( Green_int ) sec = pi * img * conjg( sec )
                 ampldafsdq(ipldafs,ip,initlr,ia) = sec
               elseif( mu_cal ) then
                 mudq(ipldafs,ip,ind_mu,initlr,ia) = sec
               else
-                secabsdq(jpl,initlr,ia) = real( sec,db )
+                secabsdq(jpl,initlr,ia) = real( sec, db )
               endif
             endif
 
@@ -1028,9 +1000,9 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
               do ke = 1,3
                 do je = 1,3
                   do ks = 1,3
-                    sec = sec + conjg( plas(ks) ) * plae(ke) * voae(je) * sum(voas(:)*secqqia(ks,:,ke,je,initlr,ia))
+                    sec = sec + conjg( plas(ks) ) * plae(ke) * voae(je) * sum( voas(:) * secqqia(ks,:,ke,je,initlr,ia) )
                     if( .not. Green_int_mag ) cycle
-                    sec = sec + conjg( plas(ks) ) * plae(ke) * voae(je) * sum(voas(:)*secqqia_m(ks,:,ke,je,initlr,ia))
+                    sec = sec + conjg( plas(ks) ) * plae(ke) * voae(je) * sum( voas(:) * secqqia_m(ks,:,ke,je,initlr,ia) )
                   end do
                 end do
               end do
@@ -1121,24 +1093,16 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
             if( E1M1 ) then
               sec = (0._db,0._db)
               do ke = 1,3
-                if( ia == 0 ) then
-                  sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia(:,ke,initlr,ia) ) + uae(ke) &
-                      * sum( conjg(plas(:))*secmdia(:,ke,initlr,ia))
-                  if( magn_sens ) sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia_m(:,ke,initlr,ia) ) &
-                      - uae(ke) * sum( conjg( plas(:) ) * secmdia_m(:,ke,initlr,ia) )
-                else
-                  sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia(:,ke,initlr,ia) ) + uae(ke) &
-                      * conjg( sum(plas(:)*secmdia(:,ke,initlr,ia)))
-                  if( .not. Green_int_mag ) cycle
-                  sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia_m(:,ke,initlr,ia) ) + uae(ke) &
-                    * conjg( sum(plas(:)*secmdia_m(:,ke,initlr,ia)))
-                endif
+                sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia(:,ke,initlr,ia) ) &
+                          + uae(ke) * sum( conjg(plas(:)) * secmdia(:,ke,initlr,ia) )
+                if( magn_sens ) sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia_m(:,ke,initlr,ia) ) &
+                                          - uae(ke) * sum( conjg( plas(:) ) * secmdia_m(:,ke,initlr,ia) )
               end do
-! Il manque un facteur pi qui a deja ete pris en compte dans le calcul
-! du tenseur dans la routine Tens_ab.
+
+! Il manque un facteur pi qui a deja ete pris en compte dans le calcul du tenseur dans la routine Tens_ab.
               if( idafs ) then
                 if( Green_int ) sec = pi * img * conjg( sec )
-                ampldafsmd(ipldafs,ip,initlr,ia)=sec
+                ampldafsmd(ipldafs,ip,initlr,ia) = sec
               elseif( mu_cal ) then
                 mumd(ipldafs,ip,ind_mu,initlr,ia) = sec
               else
@@ -1461,12 +1425,8 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
         if( ia == 0 ) then
           cf = ampldafs(ipldafs,1,initlr,ia)
         else
-          if( Green_plus ) then
 ! Le exp(iQr) est converti. On recupere le complexe conjugue dans convolution.
-            cf = conjg( phdafs(ia,ipldafs) ) * ampldafs(ipldafs,1,initlr,ia)
-          else
-            cf = phdafs(ia,ipldafs) * ampldafs(ipldafs,1,initlr,ia)
-          endif
+          cf = conjg( phdafs(ia,ipldafs) ) * ampldafs(ipldafs,1,initlr,ia)
         endif
         ipl = ipl + 1
         Tens(ipl) = real( cf,db )
@@ -1574,8 +1534,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
           if( ia == 0 ) then
             cf = (1._db,0._db)
           else
-            cf = phdafs(ia,ipl)
-            if( Green_plus ) cf = conjg( cf )
+            cf = conjg( phdafs(ia,ipl) )
           endif
           nw = 0
           do initlr = 1,ninitlr
@@ -3199,7 +3158,7 @@ subroutine write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,E
   implicit real(kind=db) (a-h,o-z)
 
   character(len=Length_word):: mot
-  character(len=132):: nomfich_s, nomfich1, nomficht
+  character(len=132):: nomfich_s, nomficht
   character(len=8), dimension(49):: nomtens
   character(len=Length_word), dimension(n_tens_max*ninitlr):: nomten
 
@@ -3389,7 +3348,7 @@ subroutine write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,E
 
     Int_tenst(1:n_tens) = Int_tens(1:n_tens,ia)
     call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
-            jseuil,n_tens_max,n_tens,0,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
+            jseuil,n_tens_max*ninitlr,n_tens,0,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
             cdum,Int_tenst,v0muf,.false.,0)
 
   endif
@@ -3405,16 +3364,16 @@ subroutine write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,E
   else
     j0 = 1
   endif
-  jdd = 0; jdq = 0; jqq = 0
-  if( E1E1 ) jdd = min(j0,2)
+  jdd0 = 0; jdq0 = 0; jqq0 = 0
+  if( E1E1 ) jdd0 = min(j0,2)
   if( E1E2 ) then
     if( E2E2 ) then
-      jdq = j0 - 1
+      jdq0 = j0 - 1
     else
-      jdq = j0
+      jdq0 = j0
     endif
   endif
-  if( E2E2 ) jqq = j0
+  if( E2E2 ) jqq0 = j0
 
   if( polarise ) then
     iplf = ipl2
@@ -3426,15 +3385,24 @@ subroutine write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,E
 
     Resul(:) = (0._db,0._db)
 
-    j = j0
-    if( ipldafs > 0 ) then
-      jj = 2 * j
-    else
-      jj = j
-    endif
+    jj = 0
 
     do initlr = 1,ninitlr
-
+      
+      if( ipldafs > 0 ) then
+        j = jj/2 + j0
+        jdd = jdd0 + jj/2
+        jdq = jdq0 + jj/2
+        jqq = jqq0 + jj/2
+        jj = jj + 2*j0
+      else
+        j = jj + j0
+        jdd = jdd0 + jj
+        jdq = jdq0 + jj
+        jqq = jqq0 + jj
+        jj = jj + j0
+      endif
+      
       Sph_tensor_dd(:) = Sph_tensor_dd_ni(:,initlr) 
       Sph_tensor_dq(:) = Sph_tensor_dq_ni(:,initlr) 
       Sph_tensor_dq_m(:) = Sph_tensor_dq_m_ni(:,initlr) 
@@ -3513,6 +3481,7 @@ subroutine write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,E
 
         endif
 
+        mot = ' '
         mot = nomtens(itens)
         l = len_trim( mot )
         jj = jj + 1
@@ -3570,10 +3539,13 @@ subroutine write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,E
 
       end do
 
-      if( j0 > 1 ) then
-        i0 = (initlr - 1) * jj / initlr
-        Resul(i0+1) = sum( Resul(i0+2:i0+j0) )
+      i0 = (initlr - 1) * jj / initlr
+      if( ipldafs == 0 ) then
+        j_0 = i0
+      else
+        j_0 = i0 / 2
       endif
+      if( j0 > 1 ) Resul(j_0+1) = sum( Resul(j_0+2:j_0+j0) )
 
 ! On donne le Xanes en Megabarns
       if( ipldafs == 0 ) then
@@ -3582,47 +3554,52 @@ subroutine write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,E
          end do
       endif
       
+      i = i0
+      if( ipldafs == 0 ) then
+        j = i0
+      else
+        j = (initlr - 1) * jj / (2*initlr)
+      endif
+
+      do it = 1,j0
+
+        i = i + 1
+        if( it == jdd0 ) then
+          nomten(i) = 'Sum_dd'
+        elseif( it == jdq0 ) then
+          nomten(i) = 'Sum_dq'
+        elseif( it == jqq0 ) then
+          nomten(i) = 'Sum_qq'
+        else
+          nomten(i) = 'Sum_tot'
+        endif
+
+        j = j + 1
+        Tens(i) = real( Resul(j),db )
+        if( ipldafs > 0 ) then
+          mot = ' '
+          mot = nomten(i)
+          l = len_trim( mot )
+          mot(l+1:l+2) = '_r'
+          if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
+          nomten(i) = mot
+          i = i + 1
+          mot(l+1:l+2) = '_i'
+          nomten(i) = mot
+          Tens(i) = aimag( Resul(j) )
+        else
+          if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,nomten(i),nseuil)
+        endif
+
+      end do
+
     end do
     
     n_tens = jj
 
-    i = 0
-    j = 0
-
-    do it = 1,j0
-
-      i = i + 1
-      if( it == jdd ) then
-        nomten(i) = 'Sum_dd'
-      elseif( it == jdq ) then
-        nomten(i) = 'Sum_dq'
-      elseif( it == jqq ) then
-        nomten(i) = 'Sum_qq'
-      else
-        nomten(i) = 'Sum_tot'
-      endif
-      if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,nomten(i),nseuil)
-
-      j = j + 1
-      Tens(i) = real( Resul(j),db )
-      if( ipldafs > 0 ) then
-        mot = nomten(i)
-        l = len_trim( mot )
-        mot(l+1:l+2) = '_r'
-        if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
-        nomten(i) = mot
-        i = i + 1
-        mot(l+1:l+2) = '_i'
-        if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
-        nomten(i) = mot
-        Tens(i) = aimag( Resul(j) )
-      endif
-
-    end do
-
 ! Ecriture des tenseurs appliques aux reflexions RXS et au xanes
 
-    nomficht = nomfich1
+    nomficht = nomfich_s
 
     long = len_trim(nomficht)
     nomficht(long+1:long+11) = '_sph_signal'
@@ -3653,13 +3630,13 @@ subroutine write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,E
       endif
       phtem(:) = cf
       ph0(:) = cg
-      n_tens2 = n_tens / 2
+      n_tens2 = n_tens / 4
       call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
-            jseuil,n_tens_max,n_tens,0,ninitlr,nomficht,nomten,n_tens_max,n_tens2,0,0,nseuil,numat_abs,phtem, &
+            jseuil,n_tens_max*ninitlr,n_tens,0,ninitlr,nomficht,nomten,n_tens_max,n_tens2,0,0,nseuil,numat_abs,phtem, &
             ph0,Tens,v0muf,.false.,0)
     else
       call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
-             jseuil,n_tens_max,n_tens,0,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum,cdum,Tens,v0muf,.false.,0)
+             jseuil,n_tens_max*ninitlr,n_tens,0,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum,cdum,Tens,v0muf,.false.,0)
     endif
 
   end do

@@ -4,24 +4,32 @@
 ! Par rapport a coabs, les indices "e" et "s" sont inverses
 ! C'est l'indicage de coabs qui est logique
 
+! n_Ec = ninitl si TDDFT et XANES et Core_resolved
+!      = nbseuil si TDDFT et XANES sans core_recolved
+!      = 1 en DFT XANES
+!      = 2 en Optic
+! n_V = ninitl si TDDFT et Core_resolved mais pas Optic
+!     = nbseuil si TDDFT sans core_recolved mais pas Optic
+!     = 1 en DFT ou optic
+
 subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
-                Eimag,Energ,Enervide,Eseuil,Final_optic,Final_tddft,Full_potential,Green_int,Green_plus,Hubb_a,Hubb_d, &
+                Eimag,Energ,Enervide,Eseuil,Final_optic,Final_tddft,Full_potential,Green_int,Hubb_a,Hubb_d, &
                 icheck,ie,ip_max,ip0,is_g,lmax,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
-                n_oo,nbseuil,ndim1,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlt,ninitlv,nlm_pot,nlma,nlma2,nlmamax, &
-                nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Rmtg,Rmtsd,rof0,rot_atom_abs,Rot_int, &
+                n_Ec,n_oo,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe,nlm_p_fp, &
+                nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Rmtg,Rmtsd,rof0,rot_atom_abs,Rot_int, &
                 secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m, &
                 secqq,secqq_m,Solsing,Solsing_only,Spinorbite,Taull,Tddft,V_hubb,V_intmax,V0bd,Vrato,Ylm_comp)
 
   use declarations
   implicit none
 
-  integer:: he, hhe, hhs, hs, i, icheck, ie, initlr, initlt, ip_max, ip0, ipr, irang, irang1, is, isi, isol, &
+  integer:: he, hhe, hhs, hs, i, icheck, ie, ief, initlr, initlt, ip_max, ip0, ipr, irang, irang1, is, isi, isol, &
     isp, j, je, jhe, jhs, jje, jjhe, jjhs, jjs, jrang, js, k, ke, kke, kks, ks, le, lm, lmax, lmax_pot, lme, &
     lmomax, lms, lomax, ls, lseuil, m_hubb, me, mpinodes, mpirank, mpirank0, &
-    ms, n_oo, nbseuil, ndim1, ndim2, ne, nenerg_tddft, ninit1, ninitl, &
-    ninitlr, ninitlt, ninitlv, nhe, nje, nhs, njs, nlm_pot, nlm1g, &
-    nlm2g, nlma, nlma2, nlmamax, nr, nrang, nrm, nspin, nspino, nspinp, numat
+    ms, n_Ec, n_oo ,n_V, nbseuil, ndim2, nenerg_tddft, ninit1, ninitl, &
+    ninitlr, ninitlv, nhe, nje, nhs, njs, nlm_pot, nlm_probe, nlm1g, &
+    nlm2g, nlm_p_fp, nlmamax, nr, nr_zet, nrang, nrm, ns_dipmag, nspin, nspino, nspinp, numat
 
   parameter( lomax = 3, lmomax = ( lomax + 1 )**2 )
 
@@ -35,11 +43,11 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:mpinodes-1):: secdo, secdo_m, secqq, secqq_m
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:mpinodes-1):: secoo, secoo_m
   complex(kind=db), dimension(lmomax,lmomax,ninitlr):: Tens_lm, Tens_lm_m
-  complex(kind=db), dimension(nlma*nspino,nlma*nspino,2,2,ndim1,ndim2,ndim2):: Taull
-  complex(kind=db), dimension(nlma,nspinp,ip0:ip_max,ip0:ip_max,ninitlv):: Singul
-  complex(kind=db), dimension(nlma,nlma2,nspinp,nspino,ip0:ip_max, ninitlv):: rof
+  complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
   complex(kind=db), dimension(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil):: rof0
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
+  complex(kind=db), dimension(:,:,:,:,:), allocatable:: Singul
+  complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: rof
 
   integer, dimension(ninitl,2):: m_g
   integer, dimension(ninitl):: is_g
@@ -49,26 +57,29 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
   integer, dimension(3,3,3,3):: msymdo, msymdoi, msymqq, msymqqi
   integer, dimension(3,n_oo,3,n_oo):: msymoo, msymooi
 
-  logical Base_spin, Core_resolved, E1E1, E1E2, E1E3, E1M1, &
-    E2E2, E3E3, Final_optic, Final_tddft, Full_potential, Green_int, &
-    Green_plus, Hubb_a, Hubb_d, lmoins1, lplus1, M_depend, M1M1, &
-    No_diag, Relativiste, Solsing, Solsing_only, Spinorbite, Tddft, Ylm_comp
+  logical Base_spin, Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Final_optic, Final_tddft, Full_potential, Green_int, &
+    Hubb_a, Hubb_d, lmoins1, lplus1, M_depend, M1M1, No_diag, Relativiste, Solsing, Solsing_only, Spinorbite, &
+    Tddft, Ylm_comp
 
   logical, dimension(10):: Multipole
 
-  real(kind=db):: c, c0, c1, c12, c120, c3, c5, c8, clme, clms, Eimag, Energ, Enervide, Rmtg, Rmtsd, V_intmax
+  real(kind=db):: c, c0, c1, c12, c120, c3, c5, c8, clme, clms, Eimag, Energ, Enervide_t, Rmtg, Rmtsd, V_intmax
+  real(kind=db), dimension(1):: Energ_t
   real(kind=db), dimension(nspin):: Ecinetic_e, V0bd_e
   real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(ninitlr):: Tensi, Tensr
   real(kind=db), dimension(0:lomax,3,3,3,lmomax):: clm
   real(kind=db), dimension(3,3):: rot_atom_abs, Rot_int, rot_tem
   real(kind=db), dimension(ninitl,2):: coef_g
-  real(kind=db), dimension(nspin,ninitlt):: Ecinetic, V0bd
+  real(kind=db), dimension(nspin,n_Ec):: Ecinetic
+  real(kind=db), dimension(n_Ec):: Eimag_t, Enervide
+  real(kind=db), dimension(nspin,n_V):: V0bd
   real(kind=db), dimension(nr):: r
   real(kind=db), dimension(nr,nlm_pot,nspin):: Vrato_e
   real(kind=db), dimension(nrm,nbseuil):: psii
-  real(kind=db), dimension(nr,nlm_pot,nspin,ninitlt):: Vrato
-  real(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: roff_ii, roff_ir, roff_ri, roff_rr
+  real(kind=db), dimension(nr,nlm_pot,nspin,n_V):: Vrato
+  real(kind=db), dimension(:,:,:,:,:,:), allocatable:: zet
+  real(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: roff_rr, roff0
 
   if( icheck > 1 ) write(3,100)
 
@@ -76,16 +87,11 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
   E1M1 = Multipole(4); E2E2 = Multipole(6);
   E3E3 = Multipole(7); M1M1 = Multipole(8)
 
-! ninitlt = ninitl si TDDFT et Core_resolved_t = nbseuil sinon
-!         = 1 en DFT
-
 ! Calcul des integrales radiales et de la solution singuliere
   if( Final_optic ) then
 
     No_diag = Full_potential .or. ( Hubb_a .and. .not. Hubb_d )
     M_depend = Spinorbite .or. Hubb_a .or. No_diag
-
-    ne = ninitlt
 
     if( No_diag ) then
       nlm1g = ( lmax + 1 )**2
@@ -97,28 +103,35 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
       nlm1g = lmax + 1
       nlm2g = 1
     endif
-    allocate( roff_ii(nlm1g,nlm1g,nlm2g,nlm2g,nspinp**2,nspino**2, ip0:ip_max) )
-    allocate( roff_ir(nlm1g,nlm1g,nlm2g,nlm2g,nspinp**2,nspino**2, ip0:ip_max) )
-    allocate( roff_ri(nlm1g,nlm1g,nlm2g,nlm2g,nspinp**2,nspino**2, ip0:ip_max) )
-    allocate( roff_rr(nlm1g,nlm1g,nlm2g,nlm2g,nspinp**2,nspino**2, ip0:ip_max) )
+    allocate( roff_rr(nlm1g,nlm1g,nlm2g,nlm2g,nspinp**2,nspino**2,ip0:ip_max) )
+    nr_zet = 0
+    allocate( zet(nr_zet,nlm1g,nlm2g,nspinp,nspino,n_Ec) )
+    ief = 2
+    allocate( roff0(ief-1,ief:n_Ec,nlm1g,nlm1g,nspinp,nspinp,nspino**2) )
+    Eimag_t(:) = Eimag
+    Energ_t(1) = Energ
 
-    call radial_optic(Ecinetic,Eimag,Energ, Full_potential,Green_plus,Hubb_a,Hubb_d,icheck,ip_max,ip0, &
-         lmax,lmax_pot,m_depend,m_hubb,ne,nlm_pot,nlm1g,nlm2g,No_diag,nr,nspin,nspino,nspinp,numat,r,Relativiste,Rmtg,Rmtsd, &
-         roff_ii,roff_ir,roff_ri,roff_rr,Solsing,Spinorbite,V_hubb,V_intmax,V0bd,Vrato,Ylm_comp)
+    call radial_optic(Ecinetic,Eimag_t,Energ_t,Enervide,Full_potential,Hubb_a,Hubb_d,icheck,ief,ip_max,ip0, &
+         lmax,lmax_pot,m_depend,m_hubb,1,n_Ec,n_V,nlm_pot,nlm1g,nlm2g,No_diag,nr,nr_zet,nspin,nspino,nspinp,numat,r,Relativiste, &
+         Rmtg,Rmtsd,roff_rr,roff0,Solsing,Spinorbite,V_hubb,V_intmax,V0bd,Vrato,Ylm_comp,zet)
+    
+    deallocate( roff0, zet )
 
   else
+
+    allocate( Singul(nlm_probe,nspinp,ip0:ip_max,ip0:ip_max,ninitlv) )
+    allocate( rof(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,ninitlv) )
 
     rof(:,:,:,:,:,:) = (0._db, 0._db)
     Singul(:,:,:,:,:) = (0._db, 0._db)
 
-    do initlt = 1,ninitlt
+    do initlt = 1,n_Ec
       if( Final_tddft ) then
         do isp = 1,nspin
           Ecinetic_e(isp) = Ecinetic(isp,initlt)
           V0bd_e(isp) = V0bd(isp,initlt)
           Vrato_e(1:nr,:,isp) = Vrato(1:nr,:,isp,initlt)
         end do
-        Enervide = Ecinetic(1,initlt) + V0bd(1,initlt)
       else
         do isp = 1,nspin
           Ecinetic_e(isp) = Ecinetic(isp,1)
@@ -126,33 +139,34 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
           Vrato_e(1:nr,:,isp) = Vrato(1:nr,:,isp,1)
         end do
       endif
+      Enervide_t = Enervide(initlt)
 
-      call radial(Ecinetic_e,Eimag,Energ,Enervide,Eseuil,Final_tddft,Full_potential,Green_plus,Hubb_a,Hubb_d,icheck, &
-         initlt,ip_max,ip0,lmax,lmax_pot,m_hubb,nbseuil,ninit1,ninitlv,nlm_pot,nlma,nlma2,nr,nrm,nspin,nspino,nspinp,numat,psii, &
-         r,Relativiste,Rmtg,Rmtsd,rof,Singul,Solsing,Spinorbite,V_hubb,V_intmax,V0bd_e,Vrato_e,Ylm_comp)
+      call radial(Ecinetic_e,Eimag,Energ,Enervide_t,Eseuil,Final_tddft,Full_potential,Hubb_a,Hubb_d,icheck, &
+         initlt,ip_max,ip0,lmax,lmax_pot,m_hubb,nbseuil,ninit1,ninitlv,nlm_pot,nlm_probe,nlm_p_fp,nr,nrm,nspin,nspino,nspinp, &
+         numat,psii,r,Relativiste,Rmtg,Rmtsd,rof,Singul,Solsing,Spinorbite,V_hubb,V_intmax,V0bd_e,Vrato_e,Ylm_comp)
 
     end do
+
+    if( Tddft .and. .not. Final_tddft ) then
+      do isol = 1,nspino
+        do isp = 1,nspinp
+          do lm = 1,nlm_probe
+            do i = 1,nbseuil
+              if( nlm_p_fp == 1 ) then
+                rof0(ie,lm,isp,isol,i) = rof(lm,1,isp,isol,0,i)
+              else
+! ce qui sert de base en tddft, ce sont les (ls,ms,s) et pas les (l,m) vrais.
+                rof0(ie,lm,isp,isol,:) = sum( rof(1:nlm_probe,lm,isp,isol,0,i) )
+              endif
+            end do
+          end do
+        end do
+      end do
+    endif
 
   endif
 
   if( icheck > 1 ) write(3,110)
-
-  if( Tddft .and. .not. Final_tddft ) then
-    do isol = 1,nspino
-      do isp = 1,nspinp
-        do lm = 1,nlma
-          do i = 1,nbseuil
-            if( nlma2 == 1 ) then
-              rof0(ie,lm,isp,isol,:) = rof(lm,1,isp,isol,0,i)
-            else
-! ce qui sert de base en tddft, ce sont les (ls,ms,s) et pas les (l,m) vrais.
-              rof0(ie,lm,isp,isol,:) = sum( rof(1:nlma,lm,isp,isol,0,i) )
-            endif
-          end do
-        end do
-      end do
-    end do
-  endif
 
   if( E1E3 .or. E3E3 ) then
     nrang = 3
@@ -403,13 +417,13 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
                             if( icheck > 1 ) write(3,150) le, me, ls, ms, clme, clms
 
                             if( Final_optic ) then
-                              call tens_op(Core_resolved,icheck,ip_max,ip0,irang,jrang,le,me,ls,ms,lmax,lmoins1,lplus1,M_depend, &
-                                ndim1,ndim2,ninitlr,nlm1g,nlm2g,nlma,nlma2,nspinp,nspino,roff_ii,roff_ir,roff_ri,roff_rr, &
+                              call tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me,ls,ms,lmax,lmoins1, &
+                                lplus1,M_depend,ns_dipmag,ndim2,ninitlr,nlm1g,nlm2g,nlm_probe,nlm_p_fp,nspinp,nspino,roff_rr, &
                                 Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
                             else
                               call tens_ab(coef_g,Core_resolved,Final_tddft,Green_int,icheck,ip_max,ip0,irang,is_g,jrang, &
-                                le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ndim1,ndim2,ninit1, &
-                                ninitl,ninitlv,ninitlr,nlma,nlma2,nspinp,nspino,rof,Singul,Solsing, &
+                                le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2,ninit1, &
+                                ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,nspinp,nspino,rof,Singul,Solsing, &
                                 Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
                             endif
 
@@ -836,6 +850,12 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
 
   endif
 
+  if( Final_optic ) then
+    deallocate( roff_rr )
+  else
+    deallocate( rof, Singul )
+  endif
+  
   return
   100 format(/' ---- Radial ---------',100('-'))
   110 format(/' ---- Tens_ab --------',100('-'))
@@ -851,34 +871,34 @@ end
 
 !***********************************************************************
 
-subroutine tens_ab(coef_g,Core_resolved, Final_tddft,Green_int,icheck,ip_max,ip0,irang,is_g,jrang, &
-                              le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ndim1,ndim2,ninit1, &
-                              ninitl,ninitlv,ninitlr,nlma,nlma2,nspinp,nspino,rof,Singul,Solsing, &
+subroutine tens_ab(coef_g,Core_resolved,Final_tddft,Green_int,icheck,ip_max,ip0,irang,is_g,jrang, &
+                              le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2,ninit1, &
+                              ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,nspinp,nspino,rof,Singul,Solsing, &
                               Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
 
   use declarations
   implicit none
 
-  integer, intent(in):: icheck, ip_max, ip0, irang, jrang, le, me, ls, ms, lseuil, ndim1, ndim2, ninit1, &
-      ninitl, ninitlv, ninitlr, nlma, nlma2, nspinp, nspino
+  integer, intent(in):: icheck, ip_max, ip0, irang, jrang, le, me, ls, ms, lseuil, ndim2, ninit1, &
+      ninitl, ninitlv, ninitlr, nlm_probe, nlm_p_fp, ns_dipmag, nspinp, nspino
   integer, dimension(ninitl,2), intent(in):: m_g
   integer, dimension(ninitl), intent(in):: is_g
 
-  integer:: i_g_1, i_g_2, initl1, initl2, initlr, is_r1, is_r2, iseuil1, iseuil2, iso1, iso2, ispf1, ispf2, ispg12, ispg21, &
-    ispinf1, ispinf2, isping1, isping2, ispp1, ispp2, l1, l2, li, lm01, lm02, lm1, lm2, lmax, lmp01, lmp02, lmp1, lmp2, &
-    lms1, lms2, lp1, lp2, m1, m2, mi1, mi2, mp1, mp2, mv1, mv2
+  integer:: i_g_1, i_g_2, initl1, initl2, initlr, is_dipmag, is_r1, is_r2, iseuil1, iseuil2, iso1, iso2, ispf1, ispf2, &
+    ispinf1, ispinf2, isping1, isping2, ispp_f1, ispp_f2, l1, l2, li, lm01, lm02, lm_f1, lm_f2, lmax, lmp01, lmp02, lmp_f1, &
+    lmp_f2, lms_f1, lms_f2, lp_f1, lp_f2, m1, m2, mi1, mi2, mp_f1, mp_f2, mv1, mv2
 
   complex(kind=db) :: cfe, cfs, Cg, dfe, dfs, Tau_rad, Tau_rad_i
 
   complex(kind=db):: Gaunte, Gauntm, Gauntmag, Gaunts
   complex(kind=db), dimension(ninitlr):: Ten, Ten_m
-  complex(kind=db), dimension(nlma,nlma2,nspinp,nspino,ip0:ip_max,ninitlv):: rof
-  complex(kind=db), dimension(nlma*nspino,nlma*nspino,2,2,ndim1,ndim2,ndim2):: Taull
-  complex(kind=db), dimension(nlma,nspinp,ip0:ip_max,ip0:ip_max,ninitlv):: Singul
+  complex(kind=db), dimension(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,ninitlv):: rof
+  complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
+  complex(kind=db), dimension(nlm_probe,nspinp,ip0:ip_max,ip0:ip_max,ninitlv):: Singul
 
   logical:: Core_resolved, Final_tddft, Green_int, lmoins1, lplus1, Solsing, Solsing_only, Spinorbite, Titre, Ylm_comp
 
-  real(kind=db):: cfi, cfr, Ci_1, Ci_2, Ci2, J_initl1, J_initl2, Jz1, Jz2
+  real(kind=db):: Ci_1, Ci_2, Ci2, J_initl1, J_initl2, Jz1, Jz2
   real(kind=db), dimension(ninitl,2):: coef_g
 
   li = lseuil
@@ -901,9 +921,6 @@ subroutine tens_ab(coef_g,Core_resolved, Final_tddft,Green_int,icheck,ip_max,ip0
     else
       Jz1 = - J_initl1 + i_g_1 - ninit1 - 1
     endif
-!        if(Final_tddft ) then
-!          write(6,*) J_initl1, li, i_g_1, is_g(i_g_1)
-!        endif
 
     if( i_g_1 <= ninit1 ) then
       iseuil1 = 1
@@ -963,16 +980,11 @@ subroutine tens_ab(coef_g,Core_resolved, Final_tddft,Green_int,icheck,ip_max,ip0
         endif
 
         do isping2 = 1,2  ! Spin de l'etat initial
-!        if( isping1 /= isping2 ) cycle
+
+          if( .not. Final_tddft .and. isping1 /= isping2 ) cycle
+          
           mi2 = m_g(i_g_2,isping2)
           Ci_2 = Coef_g(i_g_2,isping2)
-          if( ndim1 > 1 ) then
-            ispg12 = isping2 + 2 * ( isping1 - 1 )
-            ispg21 = isping1 + 2 * ( isping2 - 1 )
-          else
-            ispg12 = 1
-            ispg21 = 1
-          endif
 
           if( abs( Ci_2 ) < eps6 ) cycle
 
@@ -987,8 +999,8 @@ subroutine tens_ab(coef_g,Core_resolved, Final_tddft,Green_int,icheck,ip_max,ip0
 
             lm01 = l1**2 + l1 + 1
             do m1 = -l1,l1
-              lm1 = lm01 + m1
-              if( lm1 > nlma ) cycle
+              lm_f1 = lm01 + m1
+              if( lm_f1 > nlm_probe ) cycle
 
               do ispinf1 = 1,2  ! spin de l'etat final en entree
                 ispf1 = min( ispinf1, nspinp )
@@ -1011,16 +1023,24 @@ subroutine tens_ab(coef_g,Core_resolved, Final_tddft,Green_int,icheck,ip_max,ip0
 
                   lm02 = l2**2 + l2 + 1
                   do m2 = -l2,l2
-                    lm2 = lm02 + m2
-                    if( lm2 > nlma ) cycle
+                    lm_f2 = lm02 + m2
+                    if( lm_f2 > nlm_probe ) cycle
 
                     do ispinf2 = 1,2  ! spin etat final en sortie
                       ispf2 = min( ispinf2, nspinp )
 
                       if( ispinf2 /= isping2 .and. jrang /= 0 ) cycle
-!                          if( .not. Spinorbite .and. ispinf2 /= ispinf1 ) cycle
 
-                      if( (.not. Final_tddft) .and. ispinf2 /= ispinf1 ) cycle
+! Meme en TDDFT avec dipole magnetique, il n'y a pas la situation ci-dessous
+                      if( ( ispinf1 == ispinf2 .and. isping1 /= isping2 ) .or. ( ispinf1 /= ispinf2 .and. isping1 == isping2 ) ) &
+                                                                                                              cycle
+                      if( ( .not. Final_tddft ) .and. ispinf2 /= ispinf1 ) cycle
+
+                      if( Final_tddft .and. ispinf1 /= isping1 ) then
+                        is_dipmag = 2
+                      else
+                        is_dipmag = 1
+                      endif
 
                       if( jrang == 0 ) then
                         Gaunts = Gauntmag(isping2,ispinf2,ms,l2,m2,li,mi2,Ylm_comp,.true.)
@@ -1029,7 +1049,7 @@ subroutine tens_ab(coef_g,Core_resolved, Final_tddft,Green_int,icheck,ip_max,ip0
                       endif
                       if( abs(Gaunts) < eps10 ) cycle
 
-                      Cg = - Ci2 * conjg( Gaunte ) * Gaunts
+                      Cg = Ci2 * conjg( Gaunte ) * Gaunts
 
                       cfe = (0._db, 0._db)
                       cfs = (0._db, 0._db)
@@ -1038,97 +1058,91 @@ subroutine tens_ab(coef_g,Core_resolved, Final_tddft,Green_int,icheck,ip_max,ip0
         if( .not. Solsing_only ) then
 
 ! Boucle sur les harmoniques de l'etat final en entree potentiel non spherique
-          lmp1 = 0
-          do lp1 = 0,lmax
-            if( nlma2 == 1 .and. lp1 /= l1 ) cycle
-            lmp01 = lp1**2 + lp1 + 1
+          lmp_f1 = 0
+          do lp_f1 = 0,lmax
+            if( nlm_p_fp == 1 .and. lp_f1 /= l1 ) cycle
+            lmp01 = nspino * (lp_f1**2 + lp_f1 + 1)
 
-            do mp1 = -lp1,lp1
-              if( nlma2 == 1 .and. mp1 /= m1 ) cycle
-              lmp1 = lmp1 + 1
+            do mp_f1 = -lp_f1,lp_f1
+              if( nlm_p_fp == 1 .and. mp_f1 /= m1 ) cycle
+              lmp_f1 = lmp_f1 + 1
 
 ! Boucle sur les solutions en entree
-              do ispp1 = 1,nspinp
-                if( .not. Spinorbite .and. ispp1 /= ispf1 ) cycle
-                iso1 = min( ispp1, nspino )
+              do ispp_f1 = 1,nspinp
+                if( .not. Spinorbite .and. ispp_f1 /= ispf1 ) cycle
+                iso1 = min( ispp_f1, nspino )
 
-                if( Spinorbite .and. nlma2 == 1 ) then
-                  mv1 = mp1 - ispinf1 + iso1
-                  if( mv1 > lp1 .or. mv1 < -lp1 ) cycle
+                if( Spinorbite ) then
+                  mv1 = mp_f1 - ispinf1 + iso1
+                  if( mv1 > lp_f1 .or. mv1 < -lp_f1 ) cycle
                 else
-                  mv1 = mp1
+                  mv1 = mp_f1
                 endif
-                lms1 = nlma * ( iso1 - 1 ) + lmp01 + mv1
+                lms_f1 = lmp01 + (mv1 - 1) * nspino + iso1
 
 ! Boucle sur les harmoniques de l'etat final en entree potentiel non spherique
-                lmp2 = 0
-                do lp2 = 0,lmax
-                  if( nlma2 == 1 .and. lp2 /= l2 ) cycle
-                  lmp02 = lp2**2 + lp2 + 1
+                lmp_f2 = 0
+                do lp_f2 = 0,lmax
+                  if( nlm_p_fp == 1 .and. lp_f2 /= l2 ) cycle
+                  lmp02 = nspino * (lp_f2**2 + lp_f2 + 1)
 
-                  do mp2 = -lp2,lp2
-                    if( nlma2 == 1 .and. mp2 /= m2 ) cycle
-                    lmp2 = lmp2 + 1
+                  do mp_f2 = -lp_f2,lp_f2
+                    if( nlm_p_fp == 1 .and. mp_f2 /= m2 ) cycle
+                    lmp_f2 = lmp_f2 + 1
 
-                    if( nlma2 == 1 ) then
-                      lmp2 = 1
-                    else
-                      lmp2 = lmp02 + mp2
-                    endif
+                    do ispp_f2 = 1,nspinp
+                      if( .not. Spinorbite .and. ispp_f2 /= ispf2 ) cycle
+                      iso2 = min( ispp_f2, nspino )
 
-                    do ispp2 = 1,nspinp
-                      if( .not. Spinorbite .and. ispp2 /= ispf2 ) cycle
-                      iso2 = min( ispp2, nspino )
-
-                      if( Spinorbite .and. nlma2 == 1 ) then
-                        mv2 = mp2 - ispinf2 + iso2
-                        if( mv2 > lp2 .or. mv2 < -lp2 ) cycle
+                      if( Spinorbite ) then
+                        mv2 = mp_f2 - ispinf2 + iso2
+                        if( mv2 > lp_f2 .or. mv2 < -lp_f2 ) cycle
                       else
-                        mv2 = mp2
+                        mv2 = mp_f2
                       endif
-                      lms2 = nlma * (iso2 - 1) + lmp02 + mv2
+                      lms_f2 = lmp02 + (mv2 - 1) * nspino + iso2
 
-                      dfe = rof(lm1,lmp1,ispf1,iso1,irang,is_r1) * rof(lm2,lmp2,ispf2,iso2,jrang,is_r2) &
-                          * Taull(lms2,lms1,ispinf2,ispinf1,ispg12,initl2,initl1)
-                      dfs = rof(lm2,lmp2,ispf2,iso2,jrang,is_r2) * rof(lm1,lmp1,ispf1,iso1,irang,is_r1) &
-                          * Taull(lms1,lms2,ispinf1,ispinf2,ispg21,initl1,initl2)
+                      dfe = rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) * rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) &
+                          * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
+                      dfs = rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) * rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) &
+                          * Taull(lms_f2,lms_f1,initl2,initl1,ispinf2,ispinf1,is_dipmag)
 
                       cfe = cfe + dfe
                       cfs = cfs + dfs
 
-                      if( icheck > 2 .and. ( abs( dfe ) > eps15 .or. abs( dfs ) > eps15) ) then
+                      if( icheck > 2 .and. abs( dfe ) > eps15 ) then
                         if( Titre ) then
                           Titre = .false.
                           write(3,120)
                           write(3,130) i_g_1, isping1, Jz1, mi1, Ci_1, i_g_2, isping2, Jz2, mi2, Ci_2, l1, &
                           m1, ispinf1, l2, m2, ispinf2
-                          write(3,132)
+                          if( nlm_p_fp == 1 ) then
+                            write(3,131)
+                          else
+                            write(3,132)
+                          endif
                         endif
-                        cfr = 0.5_db * real( dfe - dfs, db )
-                        cfi = 0.5_db * aimag( dfe + dfs )
-                        write(3,135) lp1, mp1, iso1, lp2, mp2, iso2, cfr, cfi, Gaunts, Gaunte, &
-                          rof(lm1,lmp1,ispf1,iso1,irang,is_r1), rof(lm2,lmp2,ispf2,iso2,jrang,is_r2), &
-                          Taull(lms2,lms1,ispinf2,ispinf1,ispg12,initl2,initl1), Taull(lms1,lms2,ispinf1,ispinf2, &
-                                    ispg21,initl1,initl2)
+                        write(3,135) lp_f1, mp_f1, iso1, lp_f2, mp_f2, iso2, dfe, Gaunts, Gaunte, &
+                          rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1), rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2), &
+                          Taull(lms_f2,lms_f1,initl2,initl1,ispinf2,ispinf1,is_dipmag),  &
+                          Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
                       endif
 
                     end do ! fin boucle sur les solutions en sortie
-                  end do ! fin boucle mp2 sortie pot non spherique
-                end do ! fin boucle lp2 sortie pot non spherique
+                  end do ! fin boucle mp_f2 sortie pot non spherique
+                end do ! fin boucle lp_f2 sortie pot non spherique
 
               end do ! fin boucle isol1 solutions entree
-            end do ! fin boucle mp1 entree pot non spherique
-          end do ! fin boucle lp1 entree pot non spherique
+            end do ! fin boucle mp_f1 entree pot non spherique
+          end do ! fin boucle lp_f1 entree pot non spherique
 
         endif
 
-! Comme on ne divise pas par pi, le resultat apparait comme multiplie
-! par pi, si on calcule ensuite le facteur de structure. La
-! normalisation par pi n'est donc pas a faire dans coabs sur l'amplitude
-! dafs.
-                      if( Solsing .and. i_g_1 == i_g_2 .and. lm1 == lm2 .and. ispinf1 == ispinf2 ) then
-                        cfe = cfe + Singul(lm1,ispf1,irang,jrang,is_r1)
-                        cfs = cfs + Singul(lm1,ispf1,irang,jrang,is_r1)
+! Comme on ne divise pas par pi, le resultat apparait comme multiplie par pi, si on calcule ensuite le facteur de structure.
+! La normalisation par pi n'est donc pas a faire dans coabs sur l'amplitude dafs.
+                      if( Solsing .and. i_g_1 == i_g_2 .and. lm_f1 == lm_f2 .and. ispinf1 == ispinf2 ) then
+                        cfe = cfe + Singul(lm_f1,ispf1,irang,jrang,is_r1)
+                        cfs = cfs + Singul(lm_f1,ispf1,irang,jrang,is_r1)
                       endif
 
                       if( Green_int ) then
@@ -1137,14 +1151,14 @@ subroutine tens_ab(coef_g,Core_resolved, Final_tddft,Green_int,icheck,ip_max,ip0
                         Ten(initlr) = Ten(initlr) + Real(Cg,db) * tau_rad + img * aimag(Cg)* tau_rad_i
                         Ten_m(initlr) = Ten_m(initlr) + Real(Cg,db) * tau_rad_i + img * aimag(Cg) * tau_rad
                       else
-                        cfr = real( cfe - cfs, db )
-                        cfi = aimag( cfe + cfs )
-                        Tau_rad = 0.5_db * cmplx(cfr, cfi,db)
+      !                  cfr = real( cfe - cfs, db )
+      !                  cfi = aimag( cfe + cfs )
+                        Tau_rad = 0.5_db * ( cfe - conjg( cfs ) )
                         Ten(initlr) = Ten(initlr) + Cg * Tau_rad
                       endif
 
                       if( icheck > 2 .and.  abs( Tau_rad ) > eps15 ) write(3,140) Ten(initlr), Tau_rad, Cg, &
-                                 Singul(lm1,ispf1,irang,jrang,is_r1)
+                                 Singul(lm_f1,ispf1,irang,jrang,is_r1)
 
                     end do ! fin boucle ispinf2, spin etat final sortie
                   end do ! fin boucle m2 etat final sortie
@@ -1159,349 +1173,306 @@ subroutine tens_ab(coef_g,Core_resolved, Final_tddft,Green_int,icheck,ip_max,ip0
     end do    ! fin boucle sur le spin d'etat initial entree
   end do   ! fin boucle sur les etats initiaux entree
 
-! On multiplie par -i pour que ce soit la partie reelle du tenseur qui soit l'absorption.
-  Ten(:) = - img * Ten(:)
-  Ten_m(:) = - img * Ten_m(:)
+! On multiplie par "i" pour que ce soit la partie reelle du tenseur qui soit l'absorption.
+  Ten(:) = img * Ten(:)
+  Ten_m(:) = img * Ten_m(:)
 
   return
   120 format(/' ini1 isg1 Jz1 mi1  Ci1  ini2 isg2 Jz2 mi2  Ci2   l1  m1 isf1  l2  m2 isf2')
   130 format(2(2i4,f6.1,i3,f7.3),2(3i4,2x))
-  132 format(7x,'lp1 mp1 is1 lp2 mp2 is2',12x,'Tau_rad',24x, 'Gaunts',25x,'Gaunte',26x,'rofe',26x,'rofs',27x,'Taue',27x,'Taus')
-  135 format(5x,6i4,1p,2e15.7,2(1x,2e15.7),1x,4e15.7,8(1x,2e15.7))
+  131 format(6x,'l1   m1 iso_1   l2   m2 iso_2',11x,'Tau_rad',24x,'Gaunts',25x,'Gaunte',26x,'rofe',26x,'rofs',27x,'Taue',27x, &
+             'Taus')
+  132 format(4x,'lp_1 mp_1 iso_1 lp_2 mp_2 iso_2',11x,'Tau_rad',24x,'Gaunts',25x,'Gaunte',26x,'rofe',26x,'rofs',27x,'Taue',27x, &
+             'Taus')
+  135 format(3x,6i5,1p,2e15.7,2(1x,2e15.7),1x,4e15.7,8(1x,2e15.7))
   140 format(17x,'Ten',26x,'Tau_rad',26x,'Cg',27x,'Singul'/,1p,1x,4(1x,2e15.7))
 end
 
 !***********************************************************************
 
-subroutine tens_op(Core_resolved,icheck,ip_max,ip0,irang,jrang,le,me,ls,ms,lmax,lmoins1,lplus1,M_depend, &
-                                ndim1,ndim2,ninitlr,nlm1g,nlm2g,nlma,nlma2,nspinp,nspino,roff_ii,roff_ir,roff_ri,roff_rr, &
+subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me,ls,ms,lmax,lmoins1, &
+                                lplus1,M_depend,ns_dipmag,ndim2,ninitlr,nlm1g,nlm2g,nlm_probe,nlm_p_fp,nspinp,nspino,roff_rr, &
                                 Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
 
   use declarations
   implicit none
 
   integer, intent(in):: icheck, ip_max, ip0, irang, jrang, le, me, &
-    ls, ms, ndim1, ndim2, nlm1g, nlm2g, nlma, nlma2, nspinp, nspino
+    ls, ms, ndim2, nlm1g, nlm2g, nlm_probe, nlm_p_fp, ns_dipmag, nspinp, nspino
 
-  integer:: i, io1, io2, is1, is2, iso1, iso2, isoi1, isoi2, isp1, &
-    isp2, ispi1, ispi2, ispin1, ispin2, ispini1, ispini2, ispip1, &
-    ispip2, ispp1, ispp2, l1, l2, li1, li2, lip1, lip2, lm1, lm2, lmax, lmi1, lmi2, lmip1, lmip2, lmis1, lmis2, lmp1, lmp2, &
-    lms1, lms2, lp1, lp2, m1, m2, mi1, mi2, mip1, mip2, miv1, miv2, mp1, mp2, mv1, mv2, ninitlr
+  integer:: i, io1, io2, is_dipmag, is1, is2, iso, iso_f1, iso_f2, iso_g1, iso_g2, isp, ispm, ispm_f1, ispm_f2, ispm_g1, &
+    ispm_g2, isp_f1, isp_f2, isp_g1, isp_g2, l, l_f1, l_f2, l_g1, l_g2, lm, lm_f1, lm_f2, lm_g1, lm_g2, &
+    lmax, lmp_f1, lmp_f2, lmp_g1, lmp_g2, lms, lms_f1, lms_f2, lms_g1, lmp, lmp0, lms_g2, lmss, lmss_f1, lmss_f2, lmss_g1, &
+    lmss_g2, lp, m, m_f1, m_f2, m_g1, m_g2, mp, mv, ninitlr, nlmss
 
-  complex(kind=db):: cf, Gaunte, Gaunt_crc, Gauntmag, Gaunts, Sum_ff, Sum_ii, Tau_Tau_rad
+  integer, dimension(:), allocatable:: iso_val, isp_val, ispm_val, l_val, lm_val, lmp_val, lms_val, m_val
+ 
+  complex(kind=db):: cf, Gaunte, Gaunt_crc, Gauntmag, Gaunts, Tau_rad
   complex(kind=db), dimension(ninitlr):: Ten, Ten_m
-  complex(kind=db), dimension(nlma*nspino,nlma*nspino,2,2,ndim1,ndim2,ndim2):: Taull
+  complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
 
-  logical:: Core_resolved, lmoins1, lplus1, M_depend, Spinorbite, Titre, Ylm_comp
+  logical:: Core_resolved, Final_tddft, lmoins1, lplus1, M_depend, Spinorbite, Titre, Ylm_comp
 
-  real(kind=db):: cfi, cfr, Ro
-  real(kind=db), dimension(nlm1g,nlm1g,nlm2g,nlm2g,nspinp**2,nspino**2,ip0:ip_max):: roff_ii, roff_ir, roff_ri, roff_rr
+  real(kind=db):: Ro
+  real(kind=db), dimension(nlm1g,nlm1g,nlm2g,nlm2g,nspinp**2,nspino**2,ip0:ip_max):: roff_rr
 
   Titre = .true.
 
   Ten(:) = (0._db,0._db)
   Ten_m(:) = (0._db,0._db)
 
+  nlmss = 0
+  do isp = 1,2
+    do l = 0,lmax
+      do m = -l,l
+! Boucle harmoniques pot non spherique
+        do lp = 0,lmax
+          if( nlm_p_fp == 1 .and. lp /= l ) cycle
+          do mp = -lp,lp
+            if( nlm_p_fp == 1 .and. mp /= m ) cycle
+! Boucle solutions etat initial
+            do iso = 1,nspino
+              if( Spinorbite ) then
+                mv = mp - isp + iso
+                if( mv > lp .or. mv < -lp ) cycle
+              endif
+              nlmss = nlmss + 1
+            end do
+          end do
+        end do
+      end do
+    end do
+  end do
+
+  allocate( iso_val(nlmss) )
+  allocate( isp_val(nlmss) )
+  allocate( ispm_val(nlmss) )
+  allocate( l_val(nlmss) )
+  allocate( lm_val(nlmss) )
+  allocate( lmp_val(nlmss) )
+  allocate( lms_val(nlmss) )
+  allocate( m_val(nlmss) )
+
+  lmss = 0
+  do isp = 1,2
+    ispm = min( isp, nspinp )
+
 ! Boucle harmoniques etat initiaux en entree
-  do li1 = 0,lmax
+    do l = 0,lmax
 
-    do mi1 = -li1,li1
-      if( M_depend ) then
-        lmi1 = li1**2 + li1 + 1 + mi1
-      else
-        lmi1 = li1 + 1
-      endif
-
-! Boucle spin etat initial, en entree
-      do ispini1 = 1,2
-        ispi1 = min( ispini1, nspinp )
-
-! Boucle harmoniques etat initial, en sortie
-        do li2 = 0,lmax
-
-          do mi2 = -li2,li2
-            if( M_depend ) then
-              lmi2 = li2**2 + li2 + 1 + mi2
-            else
-              lmi2 = li2 + 1
-            endif
-
-! Boucle spin etat initial, en sortie
-            do ispini2 = 1,2
-              ispi2 = min( ispini2, nspinp )
-
-              if( ispini2 /= ispini1 ) cycle
-
-! Boucle harmoniques etat final en entree
-              do l1 = 0,lmax
-
-                if( lplus1 .and. l1 < li1 + 1 ) cycle
-                if( lmoins1 .and. l1 > li1 ) cycle
-                if( l1 > li1 + irang .or. l1 < li1 - irang .or. mod(l1,2) /= mod(li1+irang,2) ) cycle
-
-                do m1 = -l1,l1
-                  if( M_depend ) then
-                    lm1 = l1**2 + l1 + 1 + m1
-                  else
-                    lm1 = l1 + 1
-                  endif
-
-! Boucle spin etat final, en entree
-                  do ispin1 = 1,2
-
-! Il n'y a que pour le dipole magnetique qu'on peut avoir du spin-flip
-                    if( ispin1 /= ispini1 .and. irang /= 0 ) cycle
-
-                    isp1 = min( ispin1, nspinp )
-
-                    if( irang == 0 ) then
-                      Gaunte = Gauntmag(ispin1,ispini1,me,li1,mi1,l1,m1,Ylm_comp,Ylm_comp)
-                    else
-                      Gaunte = Gaunt_crc(li1,mi1,le,me,l1,m1,Ylm_comp)
-                    endif
-                    if( abs(Gaunte) < eps10 ) cycle
-
-! Boucle harmoniques etat final, en sortie
-                    do l2 = 0,lmax
-                      if( lplus1 .and. l2 < li2 + 1 ) cycle
-                      if( lmoins1 .and. l2 > li2 ) cycle
-                      if( l2 > li2 + jrang .or. l2 < li2 - jrang .or. mod(l2,2) /= mod(li2+jrang,2) ) cycle
-
-                      do m2 = -l2,l2
-                        if( M_depend ) then
-                          lm2 = l2**2 + l2 + 1 + m2
-                        else
-                          lm2 = l2 + 1
-                        endif
-
-                        do ispin2 = 1,2  ! spin etat final en sortie
-                          isp2 = min( ispin2, nspinp )
-
-                          if( ispin2 /= ispini2 .and. jrang /= 0 ) cycle
-!                          if( .not. Spinorbite .and. ispin2 /= ispin1 ) cycle
-
-                          if( ispin2 /= ispin1 ) cycle
-
-                          if( jrang == 0 ) then
-                            Gaunts = Gauntmag(ispini2,ispin2,ms,l2,m2,li2,mi2,Ylm_comp,Ylm_comp)
-                          else
-                            Gaunts = Gaunt_crc(l2,m2,ls,ms,li2,mi2,Ylm_comp)
-                          endif
-                          if( abs(Gaunts) < eps10 ) cycle
-
-                          Tau_Tau_rad = 0._db
-
-                          if( Spinorbite .or. nlma2 > 1 ) Titre = .true.
+      do m = -l,l
+        if( M_depend ) then
+          lm = l**2 + l + 1 + m
+        else
+          lm = l + 1
+        endif
 
 ! Boucle harmoniques pot non spherique, etat initial, en entree
-    do lip1 = 0,lmax
-      if( nlma2 == 1 .and. lip1 /= li1 ) cycle
+        lmp = 0
+        do lp = 0,lmax
+          if( nlm_p_fp == 1 .and. lp /= l ) cycle
+          lmp0 = nspino * (lp**2 + lp + 1)
 
-      do mip1 = -lip1,lip1
-        if( nlma2 == 1 .and. mip1 /= mi1 ) cycle
-        lmip1 = min( lip1**2 + lip1 + 1 + mip1, nlma2 )
+          do mp = -lp,lp
+            if( nlm_p_fp == 1 .and. mp /= m ) cycle
+            lmp = lmp + 1
 
 ! Boucle solutions etat initial en entree
-        do ispip1 = 1,nspinp
-          if( .not. Spinorbite .and. ispip1 /= ispi1 ) cycle
-          isoi1 = min( ispip1, nspino )
+            do iso = 1,nspino
 
-          if( Spinorbite .and. nlma2 == 1 ) then
-            miv1 = mip1 - ispini1 + isoi1
-            if( miv1 > lip1 .or. miv1 < -lip1 ) cycle
+              if( Spinorbite ) then
+                mv = mp - isp + iso
+                if( mv > lp .or. mv < -lp ) cycle
+              else
+                mv = mp
+              endif
+              lms = lmp0 + ( mv - 1 ) * nspino + iso
+
+              lmss = lmss + 1
+
+              iso_val(lmss) = iso
+              isp_val(lmss) = isp 
+              ispm_val(lmss) = ispm
+              l_val(lmss) = l
+              lm_val(lmss) = lm
+              lmp_val(lmss) = lmp 
+              lms_val(lmss) = lms 
+              m_val(lmss) = m
+              
+            end do
+          end do
+        end do
+      end do
+    end do
+  end do
+
+  if( icheck > 2 ) then
+    if( nlm_p_fp == 1 .and. Final_tddft ) then
+      write(3,110)
+    elseif( nlm_p_fp == 1 ) then
+      write(3,120)
+    elseif( Final_tddft ) then
+      write(3,130)
+    else
+      write(3,140) 
+    endif
+  endif
+
+! Boucle etat initial en entree
+  do lmss_g1 = 1,nlmss
+
+    iso_g1 = iso_val(lmss_g1) 
+    isp_g1 = isp_val(lmss_g1) 
+    ispm_g1 = ispm_val(lmss_g1)
+    l_g1 = l_val(lmss_g1)
+    lm_g1 = lm_val(lmss_g1)
+    lmp_g1 = lmp_val(lmss_g1) 
+    lms_g1 = lms_val(lmss_g1) 
+    m_g1 = m_val(lmss_g1) 
+  
+! Boucle etat initial en sortie
+    do lmss_g2 = 1,nlmss
+
+      iso_g2 = iso_val(lmss_g2) 
+      isp_g2 = isp_val(lmss_g2) 
+      ispm_g2 = ispm_val(lmss_g2)
+      l_g2 = l_val(lmss_g2)
+      lm_g2 = lm_val(lmss_g2)
+      lmp_g2 = lmp_val(lmss_g2) 
+      lms_g2 = lms_val(lmss_g2) 
+      m_g2 = m_val(lmss_g2) 
+
+      if( .not. Final_tddft .and. isp_g2 /= isp_g1 ) cycle
+  
+! Boucle etat final en entree
+      do lmss_f1 = 1,nlmss
+
+        iso_f1 = iso_val(lmss_f1) 
+        isp_f1 = isp_val(lmss_f1) 
+        ispm_f1 = ispm_val(lmss_f1)
+        l_f1 = l_val(lmss_f1)
+        lm_f1 = lm_val(lmss_f1)
+        lmp_f1 = lmp_val(lmss_f1) 
+        lms_f1 = lms_val(lmss_f1) 
+        m_f1 = m_val(lmss_f1) 
+
+! Il n'y a que pour le dipole magnetique qu'on peut avoir du spin-flip
+        if( isp_f1 /= isp_g1 .and. irang /= 0 ) cycle
+
+        if( ( lplus1 .and. l_f1 < l_g1 + 1 ) .or. ( lmoins1 .and. l_f1 > l_g1 )  ) cycle
+        if( l_f1 > l_g1 + irang .or. l_f1 < l_g1 - irang .or. mod(l_f1,2) /= mod(l_g1+irang,2) ) cycle
+
+        if( Final_tddft .and. isp_f1 /= isp_g1 ) then
+          is_dipmag = 2
+        else
+          is_dipmag = 1
+        endif
+
+        if( irang == 0 ) then
+          Gaunte = Gauntmag(isp_f1,isp_g1,me,l_g1,m_g1,l_f1,m_f1,Ylm_comp,Ylm_comp)
+        else
+          Gaunte = Gaunt_crc(l_g1,m_g1,le,me,l_f1,m_f1,Ylm_comp)
+        endif
+        if( abs(Gaunte) < eps10 ) cycle
+  
+! Boucle etat final en sortie
+        do lmss_f2 = 1,nlmss
+
+          iso_f2 = iso_val(lmss_f2) 
+          isp_f2 = isp_val(lmss_f2) 
+          ispm_f2 = ispm_val(lmss_f2)
+          l_f2 = l_val(lmss_f2)
+          lm_f2 = lm_val(lmss_f2)
+          lmp_f2 = lmp_val(lmss_f2) 
+          lms_f2 = lms_val(lmss_f2) 
+          m_f2 = m_val(lmss_f2) 
+  
+          if( isp_f2 /= isp_g2 .and. jrang /= 0 ) cycle
+
+          if( .not. Final_tddft .and. isp_f2 /= isp_f1 ) cycle
+
+          if( ( lplus1 .and. l_f2 < l_g2 + 1 ) .or. ( lmoins1 .and. l_f2 > l_g2 ) ) cycle
+          if( l_f2 > l_g2 + jrang .or. l_f2 < l_g2 - jrang .or. mod(l_f2,2) /= mod(l_g2+jrang,2) ) cycle
+
+! < g1 me f1 >< f2 ms g2 >
+          if( jrang == 0 ) then
+            Gaunts = Gauntmag(isp_g2,isp_f2,ms,l_f2,m_f2,l_g2,m_g2,Ylm_comp,Ylm_comp)
           else
-            miv1 = mip1
+            Gaunts = Gaunt_crc(l_f2,m_f2,ls,ms,l_g2,m_g2,Ylm_comp)
           endif
-          lmis1 = nlma * ( isoi1 - 1 ) + lip1**2 + lip1 + 1 + miv1
+          if( abs(Gaunts) < eps10 ) cycle
 
-! Boucle harmoniques pot non spherique, etat initial, en sortie
-          do lip2 = 0,lmax
-            if( nlma2 == 1 .and. lip2 /= li2 ) cycle
+          is1 = ispm_f1 + (ispm_g1 - 1) * nspinp
+          is2 = ispm_f2 + (ispm_g2 - 1) * nspinp
+          io1 = iso_f1 + (iso_g1 - 1) * nspino
+          io2 = iso_f2 + (iso_g2 - 1) * nspino
 
-            do mip2 = -lip2,lip2
-              if( nlma2 == 1 .and. mip2 /= mi2 ) cycle
-              lmip2 = min( lip2**2 + lip2 + 1 + mip2, nlma2 )
+          Ro = roff_rr(lm_g1,lm_f1,lmp_g1,lmp_f1,is1,io1,irang) * roff_rr(lm_g2,lm_f2,lmp_g2,lmp_f2,is2,io2,jrang)
 
-! Boucle solutions, etat initial, en sortie
-              do ispip2 = 1,nspinp
-                if( .not. Spinorbite .and. ispip2 /= ispi2 ) cycle
-                isoi2 = min( ispip2, nspino )
-
-                if( Spinorbite .and. nlma2 == 1 ) then
-                  miv2 = mip2 - ispini2 + isoi2
-                  if( miv2 > lip2 .or. miv2 < -lip2 ) cycle
-                else
-                  miv2 = mip2
-                endif
-                lmis2 = nlma * (isoi2 - 1) + lip2**2 + lip2 + 1+miv2
-
-! Boucle harmoniques pot non spherique, etat final, en entree
-                do lp1 = 0,lmax
-                  if( nlma2 == 1 .and. lp1 /= l1 ) cycle
-
-                  do mp1 = -lp1,lp1
-                    if( nlma2 == 1 .and. mp1 /= m1 ) cycle
-
-                    lmp1 = min( lp1**2 + lp1 + 1 + mp1, nlma2 )
-
-! Boucle solutions, etat final, en entree
-                    do ispp1 = 1,nspinp
-                      if( .not. Spinorbite.and. ispp1 /= isp1) cycle
-                      iso1 = min( ispp1, nspino )
-
-                      if( Spinorbite .and. nlma2 == 1 ) then
-                        mv1 = mp1 - ispin1 + iso1
-                        if( mv1 > lp1 .or. mv1 < -lp1 ) cycle
-                      else
-                        mv1 = mp1
-                      endif
-                      lms1 = nlma * (iso1-1) + lp1**2 + lp1 + 1 +mv1
-
-! Boucle harmoniques pot non spherique, etat final, en sortie
-                      do lp2 = 0,lmax
-                        if( nlma2 == 1 .and. lp2 /= l2 ) cycle
-
-                        do mp2 = -lp2,lp2
-                          if(nlma2 == 1 .and. mp2 /= m2 ) cycle
-
-                          lmp2 = min( lp2**2 + lp2 + 1 + mp2, nlma2)
-
-! Boucle solutions, etat final, en sortie
-                          do ispp2 = 1,nspinp
-                            if( .not. Spinorbite .and. ispp2 /= isp2 ) cycle
-                            iso2 = min( ispp2, nspino )
-
-                            if( Spinorbite .and. nlma2 == 1 ) then
-                              mv2 = mp2 - ispin2 + iso2
-                              if( mv2 > lp2 .or. mv2 < -lp2 ) cycle
-                            else
-                              mv2 = mp2
-                            endif
-                            lms2 = nlma * (iso2 - 1) + lp2**2 + lp2 + 1 + mv2
-
-                            is1 = isp1 + (ispi1 - 1) * nspinp
-                            is2 = isp2 + (ispi2 - 1) * nspinp
-                            io1 = iso1 + (isoi1 - 1) * nspino
-                            io2 = iso2 + (isoi2 - 1) * nspino
-
-                            Ro = roff_rr(lmi1,lm1,lmip1,lmp1,is1,io1,irang) * roff_rr(lmi2,lm2,lmip2,lmp2,is2,io2,jrang)
-                            
-                            cfr = real( Taull(lms1,lms2,ispin1,ispin2,2,1,1) - Taull(lms2,lms1,ispin2,ispin1,2,1,1), db )  
-                            cfi = aimag( Taull(lms1,lms2,ispin1,ispin2,2,1,1) + Taull(lms2,lms1,ispin2,ispin1,2,1,1) )
-                            Sum_ff = 0.5_db * cmplx( cfr, cfi, db ) 
-
-                            cfr = real( Taull(lmis2,lmis1,ispini2,ispini1,1,1,1) - Taull(lmis1,lmis2,ispini1,ispini2,1,1,1), db )  
-                            cfi = aimag( Taull(lmis2,lmis1,ispini2,ispini1,1,1,1) + Taull(lmis1,lmis2,ispini1,ispini2,1,1,1) )
-                            Sum_ii = 0.5_db * cmplx( cfr, cfi, db ) 
-                            Tau_Tau_rad = Tau_Tau_rad - Ro * Sum_ff * Sum_ii
-
-                    !        cfr = real( Taull(lms1,lms2,ispin1,ispin2,2,1,1) * Taull(lmis2,lmis1,ispini2,ispini1,1,1,1) &
-                    !               + conjg( Taull(lms2,lms1,ispin2,ispin1,2,1,1) * Taull(lmis1,lmis2,ispini1,ispini2,1,1,1) ), db )  
-
-                    !        cfi = aimag( Taull(lms1,lms2,ispin1,ispin2,2,1,1) * Taull(lmis2,lmis1,ispini2,ispini1,1,1,1) &
-                    !                   - conjg( Taull(lms2,lms1,ispin2,ispin1,2,1,1) * Taull(lmis1,lmis2,ispini1,ispini2,1,1,1) ) )  
-
-                    !        Tau_Tau_rad = Tau_Tau_rad - Ro * 0.5_db * cmplx( cfr, cfi, db )
-                             
-                            if( icheck < 2 .or. ( .not. Spinorbite .and. nlma2 == 1 ) .or. &
-                                                abs(Ro * Sum_ff * Sum_ii) < 1.e-15_db ) cycle
-
-                            if( nlma2 == 1 ) then
-                              if( Titre ) then
-                                Titre = .false.
-                                write(3,110)
-                                write(3,120) li1, mi1, ispini1, l1, m1, ispin1, l2, m2, ispin2, li2, mi2, &
-                                ispini2, isoi1, iso1, iso2, isoi2, roff_rr(lmi1,lm1,lmip1,lmp1,is1,io1,irang), &
-                                roff_rr(lmi2,lm2,lmip2,lmp2,is2,io2,jrang), Taull(lmis2,lmis1,ispini2,ispini1,1,1,1), &
-                                Taull(lms1,lms2,ispin1,ispin2,2,1,1), Tau_Tau_rad
-                              else
-                                write(3,130) isoi1, iso1, iso2, isoi2, roff_rr(lmi1,lm1,lmip1,lmp1,is1,io1,irang), &
-                                roff_rr(lmi2,lm2,lmip2,lmp2,is2,io2,jrang), Taull(lmis2,lmis1,ispini2,ispini1,1,1,1), &
-                                Taull(lms1,lms2,ispin1,ispin2,2,1,1), Tau_Tau_rad
-                              endif
-                            else
-                              if( Titre ) then
-                                Titre = .false.
-                                write(3,140)
-                                write(3,150) li1, mi1, ispini1, l1, m1, ispin1, l2, m2, ispin2, li2, mi2, ispini2
-                                write(3,160)
-                              endif
-                              write(3,170) lip1, mip1, isoi1, lp1, mp1, iso1, lp2, mp2, iso2,  lip2, mip2, isoi2, &
-                                roff_rr(lmi1,lm1,lmip1,lmp1,is1,io1,irang), roff_rr(lmi2,lm2,lmip2,lmp2,is2,io2,jrang), &
-                                Taull(lmis2,lmis1,ispini2,ispini1,1,1,1), Taull(lms1,lms2,ispin1,ispin2,2,1,1), Tau_Tau_rad
-                            endif
-
-                          end do ! fin boucle sur les solutions en sortie
-                        end do ! fin boucle mp2 sortie pot non spherique
-                      end do ! fin boucle lp2 sortie pot non spherique
-
-                    end do ! fin boucle isol1 solutions entree
-                  end do ! fin boucle mp1 entree pot non spherique
-                end do ! fin boucle lp1 entree pot non spherique
-
-              end do ! fin boucle sur les solutions etat initial, en sortie
-            end do ! fin boucle mip2 sortie pot non spherique etat initial,
-          end do ! fin boucle lip2 sortie pot non spherique etat initial
-
-        end do ! fin boucle isoli1 solutions etat initial, entree
-      end do ! fin boucle mip1 entree pot non spherique etat initial,
-    end do ! fin boucle lip1 entree pot non spherique etat initial
+          if( Final_tddft ) then
+            Tau_rad = - Ro * Taull(lms_f1,lms_f2,lms_g1,lms_g2,isp_f1,isp_f2,is_dipmag)
+          else                       
+            Tau_rad = - Ro * Taull(lms_f1,lms_f2,1,1,isp_f1,isp_f2,2) * Taull(lms_g2,lms_g1,1,1,isp_g2,isp_g1,1)
+          endif
 
 ! Bien que Tau apparaisse 2 fois, on divise une seule fois par pi.
 ! La normalisation par pi n'est donc pas a faire dans coabs sur l'amplitude dafs.
+          cf = Tau_rad * Gaunte * Gaunts / pi
 
-                          cf = Tau_Tau_rad * Gaunte * Gaunts / pi
+          Ten(1) = Ten(1) + cf
+          if( Core_resolved ) then
+            do i = 2,ninitlr
+              if( l_g1 == i-2 .and. l_g2 == i-2 ) Ten(i) = Ten(i) + cf
+            end do
+          endif
 
-                          Ten(1) = Ten(1) + cf
-                          if( Core_resolved ) then
-                            do i = 2,ninitlr
-                              if( li1 == i-2 .and. li2 == i-2 ) Ten(i) = Ten(i) + cf
-                            end do
-                          endif
+          if( icheck < 3  .or. abs( cf ) < 1.e-15_db ) cycle
+          if( nlm_p_fp == 1 .and. Final_tddft ) then
+            write(3,150) isp_g1, l_g1, m_g1, iso_g1, isp_g2, l_g2, m_g2, iso_g2, &
+                isp_f1, l_f1, m_f1, iso_f1, isp_f2, l_f2, m_f2, iso_f2, &
+                Ten(1), cf, Taull(lms_f2,lms_f1,lms_g2,lms_g1,isp_f1,isp_f2,is_dipmag), Gaunte, Gaunts, & 
+                roff_rr(lm_g1,lm_f1,lmp_g1,lmp_f1,is1,io1,irang), &
+                roff_rr(lm_g2,lm_f2,lmp_g2,lmp_f2,is2,io2,jrang)
+          elseif( nlm_p_fp == 1 ) then
+            write(3,150) isp_g1, l_g1, m_g1, iso_g1, isp_g2, l_g2, m_g2, iso_g2, &
+                isp_f1, l_f1, m_f1, iso_f1, isp_f2, l_f2, m_f2, iso_f2, &
+                Ten(1), cf, Taull(lms_g2,lms_g1,1,1,isp_g2,isp_g1,1), &
+                Taull(lms_f1,lms_f2,1,1,isp_f1,isp_f2,2), Gaunte, Gaunts, & 
+                roff_rr(lm_g1,lm_f1,lmp_g1,lmp_f1,is1,io1,irang), &
+                roff_rr(lm_g2,lm_f2,lmp_g2,lmp_f2,is2,io2,jrang)
+          elseif( Final_tddft ) then
+            write(3,160) isp_g1, l_g1, m_g1, iso_g1, lmp_g1, isp_g2, l_g2, m_g2, iso_g2, lmp_g2, &
+                isp_f1, l_f1, m_f1, iso_f1, lmp_f1, isp_f2, l_f2, m_f2, iso_f2, lmp_f2, &
+                Ten(1), cf, Taull(lms_f1,lms_f2,lms_g2,lms_g1,isp_f1,isp_f2,is_dipmag), Gaunte, Gaunts, & 
+                roff_rr(lm_g1,lm_f1,lmp_g1,lmp_f1,is1,io1,irang), &
+                roff_rr(lm_g2,lm_f2,lmp_g2,lmp_f2,is2,io2,jrang)
+          else
+            write(3,160) isp_g1, l_g1, m_g1, iso_g1, lmp_g1, isp_g2, l_g2, m_g2, iso_g2, lmp_g2, &
+                isp_f1, l_f1, m_f1, iso_f1, lmp_f1, isp_f2, l_f2, m_f2, iso_f2, lmp_f2, &
+                Ten(1), cf, Taull(lms_g2,lms_g1,1,1,isp_g2,isp_g1,1), &
+                Taull(lms_f1,lms_f2,1,1,isp_f1,isp_f2,2), Gaunte, Gaunts, & 
+                roff_rr(lm_g1,lm_f1,lmp_g1,lmp_f1,is1,io1,irang), &
+                roff_rr(lm_g2,lm_f2,lmp_g2,lmp_f2,is2,io2,jrang)
+          endif
 
-                          if( icheck < 2 ) cycle
-                          if( Spinorbite .or. nlma2 > 1 ) then
-                            if( Titre ) cycle
-                            write(3,180) Ten(1), cf, Gaunte, Gaunts
-                          elseif( abs(cf) > 1.e-15_db ) then
-                            if( Titre ) write(3,190)
-                            Titre = .false.
-                            write(3,200) li1, mi1, ispini1, l1, m1, ispin1, l2, m2, ispin2, li2, mi2, &
-                              ispini2, Ten(1), cf, Gaunte, Gaunts, &
-                              roff_rr(lmi1,lm1,lmip1,lmp1,is1,io1,irang), roff_rr(lmi2,lm2,lmip2,lmp2,is2,io2,jrang), &
-                              Taull(lmis1,lmis2,ispini1,ispini2,1,1,1), Taull(lms2,lms1,ispin2,ispin1,2,1,1)
-                          endif
+        end do    ! fin boucle etat final, sortie
+      end do    ! fin boucle etat final, entree
+    end do    ! fin boucle etat initial, sortie
+  end do   ! fin boucle etat initial, entree
 
-                        end do ! fin boucle ispin2, spin etat final sortie
-                      end do ! fin boucle m2 etat final sortie
-                    end do ! fin boucle l2 etat final sortie
-
-                  end do  ! fin boucle sur spin d'etat final en entree
-                end do  ! fin boucle m1 etat final entree
-              end do ! fin boucle l1 etat final entree
-
-            end do    ! fin boucle spin etat initial, sortie
-          end do    ! fin boucle mi2, etat initial, sortie
-        end do    ! fin boucle li2, etat initial, sortie
-
-      end do    ! fin boucle spin, etat initial, entree
-    end do    ! fin boucle mi1, etat initial, entree
-  end do   ! fin boucle li1, etat initial, entree
+  deallocate( iso_val, isp_val, ispm_val, l_val, lm_val, lmp_val, lms_val, m_val )
 
   return
-  110 format(/'  li1 mi1 si1  l1  m1 sp1  l2  m2 sp2 li2 mi2 si2 soi1 so1 so2 soi2    roff1',8x,'roff2',14x,'Tau_1',21x,'Tau_2', &
-              18x,'Tau_Tau_rad')
-  120 format(12i4,1x,4i4,1x,1p,28e13.5)
-  130 format(49x,4i4,1x,1p,28e13.5)
-  140 format(/'  li1 mi1 si1  l1  m1 sp1  l2  m2 sp2 li2 mi2 si2')
-  150 format(12i4)
-  160 format(3x,'lip1 mip1 isoi1 lp1 mp1 iso1  lp2  mp2 iso2 lip2 mip2 isoi2   roff1',8x,'roff2',14x,'Tau_1',21x,'Tau_2',18x, &
-                'Tau_Tau_rad')
-  170 format(12i5,1p,28e13.5)
-  180 format(5x,'Ten =',1p,2e13.5,', dTen =',2e13.5,', Gaunte =',2e13.5,', Gaunts =',2e13.5)
-  190 format(/'  li1 mi1 si1  l1  m1 sp1  l2  m2 sp2 li2 mi2 si2',11x,'Ten',22x,'dTen',21x,'Gaunte',20x,'Gaunts',14x, &
-              'roff1',8x,'roff2',15x,'Tau_1',21x,'Tau_2')
-  200 format(12i4,1p,28e13.5)
+  110 format(/' sg1 lg1 mg1 og1 sg2 lg2 mg2 og2 sf1 lf1 mf1 of1 sf2 lf2 mf2 of2',11x,'Tens',21x,'d_Tens', &
+              17x,'Tau_f1f2g1g2',14x,'Gaunte_g1f1',15x,'Gaunts_g2f2',10x,'rof_f1g1',5x,'rof_f2g2')
+  120 format(/' sg1 lg1 mg1 og1 sg2 lg2 mg2 og2 sf1 lf1 mf1 of1 sf2 lf2 mf2 of2',11x,'Tens',21x,'d_Tens', &
+              19x,'Tau_g1g2',18x,'Tau_f1f2',16x,'Gaunte_g1f1',15x,'Gaunts_g2f2',10x,'rof_f1g1',5x,'rof_f2g2')
+  130 format(/' sg1 lg1 mg1 og1 pg1 sg2 lg2 mg2 og2 pg2 sf1 lf1 mf1 of1 pf1 sf2 lf2 mf2 of2 pf2',11x,'Tens',21x,'d_Tens', &
+              17x,'Tau_f1f2g1g2',14x,'Gaunte_g1f1',15x,'Gaunts_g2f2',10x,'rof_f1g1',3x,'rof_f2g2')
+  140 format(/' sg1 lg1 mg1 og1 pg1 sg2 lg2 mg2 og2 pg2 sf1 lf1 mf1 of1 pf1 sf2 lf2 mf2 of2 pf2',11x,'Tens',21x,'d_Tens', &
+              19x,'Tau_g1g2',18x,'Tau_f1f2',16x,'Gaunte_g1f1',15x,'Gaunts_g2f2',10x,'rof_f1g1',5x,'rof_f2g2')
+  150 format(i3,15i4,1p,14e13.5)
+  160 format(i3,19i4,1p,14e13.5)
 end
 
 !***********************************************************************
@@ -1727,15 +1698,20 @@ end
 
 ! Calcule le coefficient de Gaunt avec Y(l,m) complexe ou reel, Y(lo,mo) reel et Y(li,mi) complexe. 
 
-function Gauntm(l,m,lo,mo,li,mi,Ylmcomp)
+function Gauntm(l,m,lo,mo,li,mi,Ylm_comp)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
-  complex(kind=db) Gauntm
+  implicit none
+  
+  integer:: l, li, lo, m, mi, mo
+  
+  complex(kind=db):: Gauntm
 
-  logical Ylmcomp
+  logical:: Ylm_comp
 
-  if( Ylmcomp ) then
+  real(kind=db):: Gauntc, Gauntcp, gi, gr
+  
+  if( Ylm_comp ) then
 
     if( mo == 0 ) then
       gr = gauntcp(l,m,lo,mo,li,mi)
@@ -1799,7 +1775,7 @@ function Gaunt_crc(l1,m1,l2,m2,l3,m3,Ylm_comp)
 
   else
 
-    Gaunt_crc = cmplx( Gauntc(L1,m1,l2,m2,l3,m3), 0._db, db )
+    Gaunt_crc = cmplx( Gauntc(l1,m1,l2,m2,l3,m3), 0._db, db )
 
   endif
 
@@ -2330,14 +2306,14 @@ end
 
 !***********************************************************************
 
-subroutine extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1, E2E2,E3E3,Green_int,isymext,M1M1,n_oo,ninit1,ninitlr,secdd, &
-      secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm, secmm_m,secoo,secoo_m,secqq,secqq_m)
+subroutine extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,Green_int,isymext,M1M1,n_oo,ninit1,ninitlr,secdd, &
+      secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m)
 
   use declarations
   implicit none
 
   integer:: he, hs, i_g, ipr, istat, isym, isymext, j_g, j1, je, &
-    jhe, jhs, js, k, ke, ks, l, Multipole, n, n_g, n_oo, ninit1, ninitlr, nnombre
+    jhe, jhs, js, k, ke, ks, Multipole, n, n_g, n_oo, ninit1, ninitlr, nnombre
   character(len=132) mot
 
   logical comp, Core_resolved_e, Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Green_int, M1M1
@@ -2368,6 +2344,8 @@ subroutine extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1, E2E2,E3E3,Green_
   if( E3E3 ) secoo_m(:,:,:,:,:) = (0._db,0._db)
   if( E1M1 ) secmd_m(:,:,:) = (0._db,0._db)
   if( M1M1 ) secmm_m(:,:,:) = (0._db,0._db)
+
+  Green_int = .false.
 
   do
     read(1,'(A)') mot

@@ -980,9 +980,9 @@ end
 ! Elles sont converties, pour tout le programme, en unites atomiques et Rydberg dans ce sous-programme.
 
 subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,ATA,Atom_occ_hubb,Atom_nonsph, &
-    Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,Base_spin,basereel,Bormann,BSE,Cartesian_tensor,Charge_free,Clementi, &
+    Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,Base_spin,basereel,Bormann,Cartesian_tensor,Charge_free,Clementi, &
     com,comt,Core_resolved,Coupelapw,Cubmat,D_max_pot,Dafs,Dafs_bio,Delta_En_conv, &
-    Delta_Epsii,Density,Density_comp,Dipmag,Doping,dpos,dyn_eg,dyn_g,Eclie,Ecrantage,Eeient,Egamme,Eimagent, &
+    Delta_Epsii,Density,Density_comp,Dipmag,Doping,dpos,dyn_eg,dyn_g,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent, &
     Eneg_i,Eneg_n_i,Energphot,Extract,f_no_res,Fit_cal,Flapw,Flapw_new, &
     Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s, &
     Green_self,hkl_borm,hkl_dafs,Hubb,Hubbard,Hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,iscratch, &
@@ -1003,7 +1003,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
     r0_lapw,rchimp,Readfast,Recup_optic,Recup_tddft_data,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,rydberg,rsorte_s,Save_optic,Save_tddft_data,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Solver,Space_file,Spherical_signal,Spherical_tensor, &
-    Spinorbite,state_all,state_all_out,Struct,Supermuf,Symauto,Symmol,Taux,Taux_oc,Tddft,Tddft_so, &
+    Spinorbite,state_all,state_all_out,Struct,Supermuf,Symauto,Symmol,Taux,Taux_oc,Tddft, &
     Temp,Temp_coef,Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,V_hubbard,V_intmax,Vec_orig, &
     Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Ylm_comp_inp,Z_nospinorbite)
 
@@ -1066,7 +1066,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph):: Hybrid
 
   logical Absauto, Allsite, ATA, Atom, Atom_conf, Atom_nonsph, Atom_occ_hubb, Atomic_scr, Axe_loc, Base_spin, Basereel, &
-    Bormann, BSE, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Clementi, Core_resolved, &
+    Bormann, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Clementi, Core_resolved, &
     Core_resolved_e, Coupelapw, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Dipmag, Doping, dyn_eg, dyn_g, &
     E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, &
     exc_imp, Extract, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, &
@@ -1076,7 +1076,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
     PointGroup_Auto, Polarise, quadmag, Quadrupole, r_self_imp, Readfast, Recup_optic, Recup_tddft_data, Relativiste, &
     rydberg, Save_optic, Save_tddft_data, scf_elecabs, SCF_mag_free, Self_abs, self_cons, self_exc_imp, self_nonexc, &
     self_nonexc_imp, solsing_only, solsing_s, spherical_signal, spherical_tensor, spherique, &
-    Spinorbite, State_all, State_all_out, Supermuf, Symauto, Symmol, Taux, Tddft, Tddft_so, Temperature, &
+    Spinorbite, State_all, State_all_out, Supermuf, Symauto, Symmol, Taux, Tddft, Temperature, &
     Trace_format_wien, rpalf, Ylm_comp_inp
 
   logical, dimension(4):: SCF_log
@@ -1084,7 +1084,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   logical, dimension(ngroup):: Atom_nsph_e
   logical, dimension(0:ntype):: Hubb
 
-  real(kind=db):: Adimp, Alfpot, Ang_borm, D_max_pot, Delta_En_conv, Delta_Epsii, Eclie, g1, g2, Gamma_max, &
+  real(kind=db):: Adimp, Alfpot, Ang_borm, D_max_pot, Delta_En_conv, Delta_Epsii, Eclie, Eclie_out, g1, g2, Gamma_max, &
     Overlap, p_self0, Pas_SCF, phi, pop_nsph, pp, q, r, R_rydb, rad, Rmtt, rn, Roverad, Rpotmax, &
     rsorte_s, Step_azim, t, tc, Temp, Test_dist_min, Theta, V_intmax, vv
 
@@ -1139,7 +1139,6 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   Axe_spin(1) = 0._db; Axe_spin(2) = 0._db; Axe_spin(3) = 1._db
   Base_spin = .false.
   Basereel = .true.
-  BSE = .false.
   cdil(:) = 0._db
   Cartesian_tensor = .false.
   Centre(:) = 0._db
@@ -1171,7 +1170,8 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   dyn_g = .false.
   dpos(:) = 0._db
   Ecrantage(:) = 1._db / nspin
-  Eclie = 1._db
+  Eclie = 0.2_db
+  Eclie_out = 1._db
   Delta_En_conv = 1._db
   Delta_Epsii = 1000000._db * Rydb
   Density = .false.
@@ -1180,7 +1180,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   Eneg_n_i = .false.
   Energphot = .false.
   Exc_imp = .false.
-  f_no_res(1) = 1._db      ! mag
+  f_no_res(1) = 1._db     ! mag
   f_no_res(2) = -100._db  ! mom
   Fermi_auto = .true.
   Flapw_new = .false.
@@ -1300,7 +1300,6 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   if( Taux ) Taux_oc(:) = 1._db
   if( Temperature ) Temp_coef(:) = 0._db
   Tddft = .false.
-  Tddft_so = .true.
   Temp = 0._db
   Test_dist_min = 0.7_db * bohr ! distance minimum entre 2 atomes
   trace_format_wien = .false.
@@ -1434,12 +1433,18 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
 
         case('etatlie')
           n = nnombre(itape4,132)
-          read(itape4,*,iostat=ier) eclie
+          if( n == 1 ) then
+            read(itape4,*,iostat=ier) Eclie_out
+            Eclie = Eclie_out
+          else
+            read(itape4,*,iostat=ier) Eclie, Eclie_out
+          endif
           if( ier > 0 ) call write_err_form(itape4,grdat)
 
         case('eneg')
           Eneg_i = .true.
           Eclie = 0._db
+          Eclie_out = 0._db
 
         case('not_eneg')
           Eneg_n_i = .true.
@@ -1594,10 +1599,6 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
           tddft = .true.
           dyn_g = .true.
 
-        case('bse')
-          BSE = .true.
-          tddft = .true.
-
         case('kern_fac')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) Kern_fac
@@ -1621,10 +1622,6 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
 
         case('save_opti')
           Save_optic = .true.
-
-        case('tddft_sca')
-          tddft = .true.
-          tddft_so = .false.
 
         case('atomic_sc')
           Atomic_scr = .true.
@@ -3274,11 +3271,8 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
       end do
     endif
 
-    if( Tddft ) eimagent(:) = 0._db
-    if( Spinorbite ) then
-      tddft_so = .false.
-      Ylm_comp_inp = .true.
-    endif
+    if( Tddft .or. Optic ) Eimagent(:) = 0._db
+    if( Spinorbite ) Ylm_comp_inp = .true.
 
     if( lin_gam == - 1 ) then
       lin_gam = 1
@@ -3410,7 +3404,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
           if( rydberg ) write(3,460) R_rydb
           if( noncentre ) write(3,'(A)') '    Non centered absorbing atom'
           if( sum( abs(Centre(:)) ) > epspos ) write(3,470) Centre(:)
-          if( .not. Eneg_i ) write(3,480) Eclie
+          if( .not. Eneg_i ) write(3,480) Eclie, Eclie_out
           if( v_intmax < 100000._db ) write(3,490) V_intmax
         endif
       endif
@@ -3680,7 +3674,6 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
     call MPI_Bcast(axyz,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Basereel,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Base_spin,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(BSE,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(cartesian_tensor,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
     if( norbdil > 0 ) call MPI_Bcast(cdil,norbdil,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Centre,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -3710,6 +3703,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
     call MPI_Bcast(E2E2,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(E3E3,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Eclie,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Eclie_out,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Ecrantage,nspin,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
     if( neimagent > 0 ) call MPI_Bcast(Eeient,neimagent,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Egamme,ngamme,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -3856,7 +3850,6 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
     call MPI_Bcast(Symmol,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Tddft,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Atomic_scr,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Tddft_so,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Test_dist_min,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Rpalf,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Temp,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -3945,7 +3938,8 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   Delta_En_conv = Delta_En_conv / Rydb
   Delta_Epsii = Delta_Epsii / Rydb
   dpos(:) = dpos(:) / bohr
-  eclie = eclie / Rydb
+  Eclie = Eclie / Rydb
+  Eclie_out = Eclie_out / Rydb
   eeient(:) = eeient(:) / Rydb
   egamme(:) = egamme(:) / Rydb
   eimagent(:) = eimagent(:) / Rydb
@@ -4174,7 +4168,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   450 format('    lmaxso0 =',i3)
   460 format('    R_rydb =',f7.3,' A')
   470 format('      Center =',3f7.3)
-  480 format('    Eclie =',f7.3,' eV')
+  480 format('    Eclie, Eclie_out =',2f7.3,' eV')
   490 format('    V_intmax =',f7.3,' eV')
   500 format(/' Temperature =',f6.1,' K')
   510 format(6x,3f7.3,3x,3f7.3,3x,f7.3,4x,f7.3)
