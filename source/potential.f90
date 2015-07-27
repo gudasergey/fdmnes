@@ -10,17 +10,17 @@ subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,charg
             nhybm,nlat,nlatm,nlm_pot,Nonexc,norbdil,norbv,normrmt,npoint,npoint_ns,npsom,nr_abs,nrato,nrm,nrm_self,nspin,ntype, &
             numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self, psival,r_self,rato,rchimp,rho,rho_chg, &
             rho_self,rhoato_abs,rhoato_init,rhoit,rhons,rmtg,rmtimp,rmtg0,rmtsd,Rot_Atom_gr,Rot_int,rs, &
-            rsato,rsort,self_nonexc,TdOpt_xanes,V_abs_i,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp,xyz)
+            rsato,rsort,self_nonexc,TdOpt_xanes,V_abs_i,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp,xyz, &
+            i_range)
+
 
   use declarations
   implicit none
 
-  integer:: i_self, ia, iaabs, iapr, iapr0, iaprabs, iprabs, iaprex, &
-    ipr, ipr1, iprabs_reel, ir, ispin, it, itab, japr, lmax_pot, &
-    mpirank, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, &
-    n_atom_proto, n_iapr, natome,natome_self, natomeq, natomeq_self, &
-    natomp, neqm, ngroup_m, ngroup_nonsph, nhybm, nlatm, nlm_pot, norbdil, normrmt, npoint, npoint_ns, npsom, nr, nr_abs, nrm, &
-    nrm_self, nspin, ntype
+  integer:: i_range, i_self, ia, iaabs, iapr, iapr0, iaprabs, iprabs, iaprex, ipr, ipr1, iprabs_reel, ir, ispin, it, itab, &
+    japr, lmax_pot, mpirank, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, n_atom_proto, n_iapr, natome,natome_self, &
+    natomeq, natomeq_self, natomp, neqm, ngroup_m, ngroup_nonsph, nhybm, nlatm, nlm_pot, norbdil, normrmt, npoint, npoint_ns, &
+    npsom, nr, nr_abs, nrm, nrm_self, nspin, ntype
 
   integer, dimension(30):: icheck
   integer, dimension(natomp):: iaproto, igroup, itypep
@@ -236,7 +236,7 @@ subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,charg
   call raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,iaproto,iaprotoi,icheck(13),iprabs, &
         ipr1,itab,itypei,itypep,itypepr,mpirank,n_atom_0,n_atom_ind,n_atom_proto,natome,natomeq,natomp,ngreq,nlm_pot, &
         normrmt,nrato,nrm,nspin,ntype,numat, overlap,pos,rato,rchimp,rhoato,rhomft,rmtg,rmtg0,rmtimp, &
-        rmtsd,rsort,V_intmax,v0bdcFimp,Vcato,vcmft,Vxcato, vxcmft)
+        rmtsd,rsort,V_intmax,v0bdcFimp,Vcato,vcmft,Vxcato,Vxcmft,i_range)
 
 ! Calcul du potentiel interstitiel
   call pot0(alfpot,Atom_nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoato,dvcato,Full_atom,i_self, &
@@ -741,13 +741,13 @@ end
 subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,iaproto,iaprotoi,icheck,iprabs, &
         ipr1,itab,itypei,itypep,itypepr,mpirank,n_atom_0,n_atom_ind,n_atom_proto,natome,natomeq,natomp,ngreq,nlm_pot, &
         normrmt,nrato,nrm,nspin,ntype,numat,Overlap,pos,rato,rchimp,rhoato,rhomft,rmtg,rmtg0,rmtimp, &
-        rmtsd,rsort,V_intmax,V0bdcFimp,Vcato,Vcmft,Vxcato, vxcmft)
+        rmtsd,rsort,V_intmax,V0bdcFimp,Vcato,Vcmft,Vxcato,Vxcmft,i_range)
 
   use declarations
   implicit none
 
-  integer:: i_self, ia, iapr, iaprb, ib, icheck, ipr, ipr1, ipra, iprabs, iprb, ir, ira, irb, it, ita, itab, itb, jpr, mpirank, &
-            n_atom_0, n_atom_ind, n_atom_proto, natome, natomeq, natomp, nlm_pot, normrmt, nr, nra, nrb, nrm, nspin, ntype, Z
+  integer:: i_range, i_self, ia, iapr, iaprb, ib, icheck, ipr, ipr1, ipra, iprabs, iprb, ir, ira, irb, it, ita, itab, itb, jpr, &
+    mpirank, n_atom_0, n_atom_ind, n_atom_proto, natome, natomeq, natomp, nlm_pot, normrmt, nr, nra, nrb, nrm, nspin, ntype, Z
 
   integer, dimension(natomp):: iaproto, itypep
   integer, dimension(natome):: iaprotoi, itypei
@@ -1137,7 +1137,7 @@ subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,ia
 
   call potrmt(cal_xanes,Full_atom,iapot,icheck,ipr1,iaprotoi,itypepr,mpirank,n_atom_0,n_atom_ind, &
         n_atom_proto,natome,ngreq,nlm_pot,nrato,nrm,nrmtg,nrmtg0,nspin,ntype,numat,rato,rchimp,rchrg,rhoato, &
-        rhomft,rmtg,rmtg0,V_intmax,Vcato,vcmft,Vxcato,vxcmft)
+        rhomft,rmtg,rmtg0,V_intmax,Vcato,vcmft,Vxcato,Vxcmft,i_range)
 
   return
   110 format(/' ---- Raymuf -------',100('-'))
@@ -2450,12 +2450,12 @@ end
 ! Routine d'interpolation des potentiels venant de FLAPW.
 
 subroutine potlapw(axyz,Base_ortho,chargat,Coupelapw,dcosxyz,deccent,Flapw_new,Full_atom,iapot, &
-            iaproto,iaprotoi,icheck,igroup,iprabs,ipr1,itabs,its_lapw,itypei,itypep,itypepr,Magnetic,mpinodes, &
+            iaproto,iaprotoi,icheck,igroup,iprabs,ipr1,itabs,its_lapw,itypei,itypep,itypepr,Magnetic,mpinodes0, &
             mpirank,n_atom_0,n_atom_ind,n_atom_proto,natome,natomeq,natomp,ngreq,ngroup,ngroup_lapw,nklapw,nlm_pot, &
             nlmlapwm,nmatsym,normrmt,npoint,npsom,nrato,nrato_lapw,nrm,nslapwm,nspin,ntype, &
             numat,Orthmat,overlap,pos,rato,rchimp,rho,rlapw,rmtg,rmtg0,rmtimp,rmtsd,Rot_int,rotloc_lapw,rs,rsato,Rsort, &
             Trace_format_wien,Trace_k,Trace_p,V_abs_i,V_intmax,V0bdcFimp,Vcato,Vh,Vxc,Vxcato,Wien_file,Wien_matsym, &
-            Wien_save,Wien_taulap,xyz)
+            Wien_save,Wien_taulap,xyz,i_range)
 
   use declarations
   implicit none
@@ -2463,8 +2463,8 @@ subroutine potlapw(axyz,Base_ortho,chargat,Coupelapw,dcosxyz,deccent,Flapw_new,F
 
   integer, parameter:: ndir = 98
 
-  integer:: i, ia, iap, icheck, idir, igr, ij1, ij2, ik, iprabs, ipr1, ir, is, isp, ispin, istat, it, itabs, j, j1, j2, &
-    mpierr, mpinodes, mpirank, n, n_atom_0, n_atom_ind, n_atom_proto, natome, natomeq, natomp, n1, n2, ndim, ngroup, &
+  integer:: i, i_range, ia, iap, icheck, idir, igr, ij1, ij2, ik, iprabs, ipr1, ir, is, isp, ispin, istat, it, itabs, j, j1, &
+    j2, mpierr, mpinodes0, mpirank, n, n_atom_0, n_atom_ind, n_atom_proto, natome, natomeq, natomp, n1, n2, ndim, ngroup, &
     ngroup_lapw, nklapw, nlm_pot, nlmlapwm, nmatsym, normrmt, np, npoint, npsom, nr, nrm, ns, nslapwm, nspin, ntype, &
     Trace_k, Wien_save
 
@@ -2674,7 +2674,7 @@ subroutine potlapw(axyz,Base_ortho,chargat,Coupelapw,dcosxyz,deccent,Flapw_new,F
 
   endif
 
-  if( mpinodes > 1 ) then
+  if( mpinodes0 > 1 ) then
     ndim = ( nrm + 1 ) * ( n_atom_ind - n_atom_0 + 1 )
     call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(rsato,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -2690,7 +2690,7 @@ subroutine potlapw(axyz,Base_ortho,chargat,Coupelapw,dcosxyz,deccent,Flapw_new,F
   call raymuf(Base_ortho,.true.,chargat,dcosxyz,Full_atom,1,iapot,iaproto,iaprotoi,icheck,iprabs, &
         ipr1,itabs,itypei,itypep,itypepr,mpirank,n_atom_0,n_atom_ind,n_atom_proto,natome,natomeq,natomp,ngreq,nlm_pot, &
         normrmt,nrato,nrm,nspin,ntype,numat,Overlap,pos,rato,rchimp,rhoato,rhomft,rmtg,rmtg0,rmtimp, &
-        rmtsd,rsort,V_intmax,V0bdcFimp,Vcato,Vcmft,Vxcato,Vxcmft)
+        rmtsd,rsort,V_intmax,V0bdcFimp,Vcato,Vcmft,Vxcato,Vxcmft,i_range)
 
   do ispin = 1,nspin
     V_abs_i(1:nrm,ispin) = Vcato(1:nrm,1,iprabs) + Vxcato(1:nrm,1,ispin,iprabs)
@@ -2839,7 +2839,7 @@ subroutine potlapw(axyz,Base_ortho,chargat,Coupelapw,dcosxyz,deccent,Flapw_new,F
 
   endif   ! arrivee Wien_save == - 1 .or. mpirank /= 0
 
-  if( mpinodes > 1 ) then
+  if( mpinodes0 > 1 ) then
     call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(vh,npoint,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(rs,npoint,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -3781,13 +3781,13 @@ end
 
 subroutine potrmt(Cal_xanes,Full_atom,iapot,icheck,ipr1,iaprotoi,itypepr,mpirank,n_atom_0,n_atom_ind, &
         n_atom_proto,natome,ngreq,nlm_pot,nrato,nrm,nrmtg,nrmtg0,nspin,ntype,numat,rato,rchimp,rchrg,rhoato, &
-        rhomft,rmtg,rmtg0,V_intmax,Vcato,Vcmft,Vxcato,Vxcmft)
+        rhomft,rmtg,rmtg0,V_intmax,Vcato,Vcmft,Vxcato,Vxcmft,i_range)
 
   use declarations
   implicit none
 
-  integer:: iapr, icheck, ipr, ipr1, iprb, iprt, ispin, it, iz, mpirank, n, n_atom_0, n_atom_ind, n_atom_proto, n_elec_tot, &
-            natome, nlm_pot, nr, nrm, nspin, ntype
+  integer:: i_range, iapr, icheck, ipr, ipr1, iprb, iprt, ispin, it, iz, mpirank, n, n_atom_0, n_atom_ind, n_atom_proto, &
+            n_elec_tot, natome, nlm_pot, nr, nrm, nspin, ntype
 
   integer, dimension(natome):: iaprotoi
   integer, dimension(0:ntype):: nrato, numat
@@ -3959,6 +3959,7 @@ subroutine potrmt(Cal_xanes,Full_atom,iapot,icheck,ipr1,iaprotoi,itypepr,mpirank
 
   if( mpirank == 0 ) then
     do iprt = 3,6,3
+      if( iprt == 6 .and. i_range /= 1 ) cycle
       if( icheck == 0 .and. iprt == 3 ) cycle
       if( .not. Cal_xanes .and. iprt == 6 ) cycle
       if( nspin == 1 ) then
@@ -4005,12 +4006,14 @@ end
 subroutine potential_comp(Base_ortho,Cal_xanes,dcosxyz,distai,dV0bdcF,Ecineticmax,Ecineticmax_out, &
             Eclie,Eclie_out,Eneg,Energ_max,Green,iaabs,iaproto,icheck,imoy,imoy_out,iopsymr,isrt,korigimp,magnetic, &
             Moy_loc,mpirank,n_atom_proto,natomp,nim,npoint,npsom,nptmoy,nptmoy_out,nsortf,nspin,nstm,poidsov,poidsov_out,pos, &
-            rmtg0,rs,rsbdc,rsbdc_out,rsort,rvol,V0bdcF,V0bdcFimp,V0muf,Vh,Vhbdc,Vhbdc_out,Vr,Vxc,VxcbdcF,VxcbdcF_out,xyz,Workf)
+            rmtg0,rs,rsbdc,rsbdc_out,rsort,rvol,V0bdcF,V0bdcFimp,V0muf,Vh,Vhbdc,Vhbdc_out,Vr,Vxc,VxcbdcF,VxcbdcF_out,xyz,Workf, &
+            i_range)
 
   use declarations
   implicit none
 
-  integer:: iaabs, icheck, ipr, ispin, mpirank, n_atom_proto, natomp, nim, npoint, npsom, nptmoy, nptmoy_out, nsortf, nspin, nstm
+  integer:: i_range, iaabs, icheck, ipr, ispin, mpirank, n_atom_proto, natomp, nim, npoint, npsom, nptmoy, nptmoy_out, nsortf, &
+            nspin, nstm
 
   integer, dimension(natomp):: iaproto
   integer, dimension(npoint):: imoy, imoy_out
@@ -4042,7 +4045,8 @@ subroutine potential_comp(Base_ortho,Cal_xanes,dcosxyz,distai,dV0bdcF,Ecineticma
   endif
 
   call Cal_Vmoy(cal_xanes,icheck,imoy,imoy_out,korigimp,Magnetic,mpirank,npoint,nptmoy,nptmoy_out,nspin,poidsov, &
-             poidsov_out,rs,rsbdc,rsbdc_out,V0bdcFimp,Vh,Vhbdc,Vhbdc_out,VmoyF,VmoyF_out,Vr,VxcbdcF,VxcbdcF_out)
+             poidsov_out,rs,rsbdc,rsbdc_out,V0bdcFimp,Vh,Vhbdc,Vhbdc_out,VmoyF,VmoyF_out,Vr,VxcbdcF,VxcbdcF_out, &
+             i_range)
 
   if( korigimp ) then
     V0bdcF(1:nspin) = V0bdcFimp(1:nspin)
@@ -4091,12 +4095,13 @@ end
 ! Calcul du potentiel moyen dans la zone interstitielle.
 
 subroutine Cal_Vmoy(Cal_xanes,icheck,imoy,imoy_out,korigimp,Magnetic,mpirank,npoint,nptmoy,nptmoy_out,nspin,poidsov, &
-            poidsov_out,rs,rsbdc,rsbdc_out,V0bdcFimp,Vh,Vhbdc,Vhbdc_out,VmoyF,VmoyF_out,Vr,VxcbdcF,VxcbdcF_out)
+            poidsov_out,rs,rsbdc,rsbdc_out,V0bdcFimp,Vh,Vhbdc,Vhbdc_out,VmoyF,VmoyF_out,Vr,VxcbdcF,VxcbdcF_out, &
+            i_range)
 
   use declarations
   implicit none
 
-  integer:: icheck, ipr, mpirank, npoint, nptmoy, nptmoy_out, ispin, nspin
+  integer:: icheck, ipr, mpirank, npoint, nptmoy, nptmoy_out, ispin, nspin, i_range
 
   integer, dimension(npoint):: imoy, imoy_out
 
@@ -4131,6 +4136,7 @@ subroutine Cal_Vmoy(Cal_xanes,icheck,imoy,imoy_out,korigimp,Magnetic,mpirank,npo
 
     if( mpirank == 0 ) then
       do ipr = 3,6,3
+        if( ipr == 6 .and. i_range /= 1 ) cycle
         if( icheck == 0 .and. ipr == 3 ) cycle
         if( .not. cal_xanes .and. ipr == 6 ) cycle
         if( korigimp ) then
@@ -4163,6 +4169,7 @@ subroutine Cal_Vmoy(Cal_xanes,icheck,imoy,imoy_out,korigimp,Magnetic,mpirank,npo
 
     if( mpirank == 0 ) then
       do ipr = 3,6,3
+        if( ipr == 6 .and. i_range /= 1 ) cycle
         if( icheck == 0 .and. ipr == 3 ) cycle
         if( .not. Cal_xanes .and. ipr == 6 ) cycle
         write(ipr,150) VmoyF_out(1) * rydb,  Vhbdc_out * rydb, rsbdc_out

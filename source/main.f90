@@ -1,5 +1,7 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 3 July 2015, 14 Messidor, An 223.
+! FDMNES II program, Yves Joly, Oana Bunau, 26 July 2015, 7 Thermidor, An 223.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
+! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
+! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
 
 ! Program performing calculations of x-ray spectroscopies, XANES, RXD, dichroism.
 ! Work using the finite difference method or the multiple scattering theory.
@@ -42,7 +44,7 @@ module declarations
 
   character(len=50):: com_date, com_time
 
-  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 3 July 2015'
+  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 26 July 2015'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -224,8 +226,8 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   implicit none
   include 'mpif.h'
 
-  integer, parameter:: nkw_all = 21
-  integer, parameter:: nkw_fdm = 166
+  integer, parameter:: nkw_all = 36
+  integer, parameter:: nkw_fdm = 169
   integer, parameter:: nkw_conv = 30
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
@@ -241,14 +243,14 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
     inotskip, ip, ipar, ipbl, ipr, istat, istop, itape, itape_minim, itape1, itape2, itape3, itape4, itape5, itph, itpm, itps, &
     itape6, iscratch, iscratchconv, j, jgr, jpar, k, l, Length_line, &
     ligne, ligne2, m, MPI_host_num_for_mumps, mpierr, mpirank, mpirank0, mpinodes0, n, &
-    n_atom_proto_p, n_shift, n1, n2, nb_datafile, nblock, ncal, &
-    ncal_nonfdm, ndem, ndm, ng, ngamh, ngroup_par, ngroup_par_conv, nmetric, nn, nnombre, nnotskip, nnotskipm, nparm, npm
+    n_atom_proto_p, n_shift, n1, n2, nb_datafile, nblock, ncal, ncal_nonfdm, ndem, ndm, ng, ngamh, ngroup_par, ngroup_par_conv, &
+    nmetric, nn, nnombre, nnotskip, nnotskipm, nparm, npm, mermrank
 
   character(len=5):: Solver
   character(len=9):: grdat, mot9, traduction
   character(len=13):: mot13
   character(len=132):: comt, convolution_out, fdmfit_out, fdmnes_inp, Fichier, Folder_dat, identmot, mot, nomfich, &
-    nomfichbav, Space_file, xsect_file
+    nomfichbav, Space_file, xsect_file, imfp_infile, elf_infile
   character(len=1320):: mot1320
   character(len=2), dimension(nmetricm):: Nom_Met
   character(len=9), dimension(nkw_all):: kw_all
@@ -272,12 +274,15 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
   logical:: bav_open, Bormann, Case_fdm, Check_file, Conv_done, &
     Convolution_cal, Dafs_bio, E_Fermi_man, Fdmnes_cal, Fit_cal, Gamma_hole_imp, Gamma_tddft, Metric_cal, &
-    Minim_fdm_ok, minimok, Mult_cal, Scan_a, Selec_cal
+    Minim_fdm_ok, minimok, Mult_cal, Scan_a, Selec_cal, &
+    Use_FDMX, FDMX_only, cm2g, nobg, nohole, nodw, noimfp, imfp_inp, elf_inp, dwfactor_inp, tdebye_inp, tmeas_inp, & !*** JDB
+    Energphot, expntl, victoreen !*** JDB
 
   logical, dimension(:), allocatable:: block_sum
 
   real(kind=db):: Ang_borm, Delta_edge, E_cut_imp, e1, e2, Ecent, &
-    Elarg, Estart, Gamma_max, fac, Gmin, param_dep, prop, rtph, tp_deb, tp_fin, tpt, x
+    Elarg, Estart, Gamma_max, fac, Gmin, param_dep, prop, rtph, tp_deb, tp_fin, tpt, x, &
+    dwfactor, tdebye, tmeas, expntlA, expntlB, victA, victB!*** JDB
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(nmetricm):: Dist_Min, Gen_Shift_min
   real(kind=db), dimension(:), allocatable:: par_op, parsum, RapIntegrT_min_g
@@ -288,7 +293,9 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   data kw_all /  'bormann  ','check    ','check_all','check_coa', &
      'check_con','check_pot','check_mat','check_sph','comment  ', &
      'delta_edg','ecent    ','efermi   ','elarg    ','estart   ', &
-     'filout   ','folder_da','fprime_at','gamma_hol','gamma_max', 'length_li','no_check '/
+     'filout   ','folder_da','fprime_at','gamma_hol','gamma_max','length_li','no_check ', &
+     'imfpin   ','elfin    ','dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
+     'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/   !*** JDB
 
   data kw_conv / 'cal_tddft','calculati','circular ', 'conv_out ','convoluti','dead_laye','dec      ','directory', &
      'double_co','eintmax  ','epsii    ','forbidden','fprime   ', &
@@ -296,21 +303,21 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'scan_conv','scan_file','seah     ','stokes   ','stokes_na', 'surface  ','table    ','thomson  '/
 
   data kw_fdm1/  &
-     'absorbeur','adimp    ','allsite  ','ata      ','atom     ','atom_conf','ang_spin ','atomic_sc','axe_spin ','base_comp', &
-     'base_reel','base_spin','bond     ','cartesian','center   ','center_ab','chlib    ', &
+     'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_conf','ang_spin ','atomic_sc','axe_spin ', &
+     'base_comp','base_reel','base_spin','bond     ','cartesian','center   ','center_ab','chlib    ', &
      'clementi ','core_reso','crystal  ','crystal_p','crystal_t','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_', &
      'delta_eps','density  ','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ','edge     ', &
      'e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot','etatlie  ', &
      'excited  ','extract  ','extractpo','extractsy','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ','flapw_s  ', &
      'flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','hubbard  ','iord     ', &
-     'kern_fac ','lmax     ','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ','memory_sa','lquaimp  ', &
-     'm1m1     ','m1m2     ','m2m2     ','magnetism','molecule ','molecule_','muffintin','multrmax ','n_self   '/
+     'kern_fac ','lmax     ','lmax_nrix','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ','memory_sa', &
+     'lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','molecule ','molecule_','muffintin'/
 
   data kw_fdm2/  &
-     'nchemin  ','new_refer','no_core_r','no_e1e1  ','no_e1e2  ','no_e1e3  ', &
+     'multrmax ','n_self   ','nchemin  ','new_refer','no_core_r','no_e1e1  ','no_e1e2  ','no_e1e3  ', &
      'no_e2e2  ','no_e3e3  ','no_fermi ','no_res_ma','no_res_mo','no_solsin','normaltau','norman   ','noncentre', &
-     'non_relat','nonexc   ','not_eneg ','nrato    ','octupole ','old_refer','one_run  ','optic    ','optic_dat','over_rad ', &
-     'overlap  ','p_self   ','perdew   ','pointgrou','polarized', &
+     'non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','octupole ','old_refer','one_run  ','optic    ','optic_dat', &
+     'over_rad ','overlap  ','p_self   ','perdew   ','pointgrou','polarized', &
      'quadmag  ','quadrupol','radius   ','range    ','rangel   ','raydem   ','rchimp   ','readfast ','relativis', &
      'rmt      ','rmtg     ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ','save_opti','save_tddf', &
      'self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
@@ -357,11 +364,30 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   Gamma_max = 15._db / Rydb
   Gamma_tddft = .false.
   Length_line = 10 + 10001 * Length_word
+  Minim_fdm_ok = .false.
+  Minimok = .false.
   ngamh = 1
   nomfich = 'fdmnes_out'
   Scan_a = .false.
   Space_file = 'spacegroup.txt'
   xsect_file = 'xsect.dat'
+!*** JDB
+  imfp_inp = .false.
+  elf_inp = .false.
+  dwfactor_inp = .false.
+  tdebye_inp = .false.
+  tmeas_inp = .false.
+  expntl = .false.
+  victoreen = .false.
+  mermrank = 0
+  Use_FDMX = .false.
+  FDMX_only = .false.
+  cm2g = .false.
+  nobg = .false.
+  nohole = .false.
+  nodw = .false.
+  noimfp = .false.
+!*** JDB
 
   do i = 1,86
     kw_fdm(i) = kw_fdm1(i)
@@ -659,6 +685,54 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
           xsect_file = Folder_dat
           xsect_file(l+1:l+m) = mot(1:m)
 
+!*** JDB
+        case('imfpin')
+          imfp_inp = .true.
+          read(1,'(A)') imfp_infile
+
+        case('elfin')
+          elf_inp = .true.
+          read(1,'(A)') elf_infile
+
+        case('dwfactor')
+          dwfactor_inp = .true.
+          read(1,*) dwfactor
+
+        case('tdebye')
+          tdebye_inp = .true.
+          read(1,*) tdebye
+
+        case('tmeas')
+          tmeas_inp = .true.
+          read(1,*) tmeas
+
+        case('expntl')
+          expntl = .true.
+          read(1,*) expntlA, expntlB
+
+        case('victoreen')
+          victoreen = .true.
+          read(1,*) victA, victB
+
+        case('mermin')
+          read(1,*) mermrank
+
+        case('fdmx')
+          Use_FDMX = .true.
+        case('fdmx_proc')
+          FDMX_only = .true.
+        case('cm2g')
+          cm2g = .true.
+        case('nobg')
+          nobg = .true.
+        case('nohole')
+          nohole = .true.
+        case('nodw')
+          nodw = .true.
+        case('noimfp')
+          noimfp = .true.
+
+!*** JDB
 
       end select
       cycle
@@ -1326,10 +1400,12 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
     if( Fdmnes_cal .and. ifdm == 1 ) then
       if( ical > 1 ) Close(3)
+
       call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal, &
-        Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
-        itape1,itape4,MPI_host_num_for_mumps,mpinodes0,mpirank,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-        nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file)
+          Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
+          itape1,itape4,MPI_host_num_for_mumps,mpinodes0,mpirank,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
+          nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file,Energphot)
+
       if( sum(icheck(1:27)) > 0 ) then
         bav_open = .true.
       else
@@ -1343,6 +1419,15 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
         convolution_out,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max, &
         ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,length_line, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav, npar,nparm,param,Scan_a,typepar,ncal,xsect_file)
+
+!*** JDB
+!    if( Use_FDMX .OR. FDMX_only ) then
+!      write(*,*) 'CALLING FDMX'
+!      call fdmx(fdmnes_inp,nomfich,cm2g,nobg,nohole,nodw,noimfp,Gamma_hole,Gamma_hole_imp,E_cut_imp*rydb,E_Fermi_man, &
+!        imfp_inp, imfp_infile, elf_inp, elf_infile, dwfactor_inp, dwfactor, tdebye_inp, tdebye, tmeas_inp, tmeas, Energphot, &
+!        expntl, expntlA, expntlB, victoreen, victA, victB, mermrank)
+!    end if
+!*** JDB
 
     if( Metric_cal ) then
 
@@ -1396,7 +1481,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
   endif
 
-  if( mpinodes0 > 1 ) then
+  if( Fit_cal .and. mpinodes0 > 1 ) then
     call MPI_Bcast(Minim_fdm_ok,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(minimok,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
@@ -1448,7 +1533,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
       call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
         itape1,itape4,MPI_host_num_for_mumps,mpinodes0,mpirank,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-        nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file)
+        nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file,Energphot)
 
       if( sum(icheck(1:27)) > 0 ) then
         bav_open = .true.
@@ -1799,7 +1884,7 @@ function traduction(grdat)
       traduction = 'tddft_dat'
     case('nrato_dir','nratodira','nr_ato')
       traduction = 'nrato'
-    case('not_core_','not_corer','notcorere','notcorer_', 'no_core_r','no_corere','nocoreres','nocore_re')
+    case('not_core_','not_corer','notcorere','notcorer_','no_core_r','no_corere','nocoreres','nocore_re')
       traduction = 'no_core_r'
     case('testdistm','dist_min','distmin','distamin')
       traduction = 'test_dist'
@@ -1807,6 +1892,12 @@ function traduction(grdat)
       traduction = 'z_absorbe'
     case('step_scf','pas_scf')
       traduction = 'scf_step'
+    case('nixs','xraman','xramman')
+      traduction = 'nrixs'
+    case('allnrixs','allnrix','allxraman','all_xrama')
+      traduction = 'all_nrixs'
+    case('lmaxnrixs','lmax_xram','lmaxxrama')
+      traduction = 'lmax_nrix'
 
 ! Convolution
     case('arc')
@@ -1835,6 +1926,8 @@ function traduction(grdat)
       traduction = 'stokes   '
     case('stokesnam','stokename','stoke_nam')
       traduction = 'stokes_na'
+    case('circulair')
+      traduction = 'circular'
 
 ! Fit
     case('pop_orb')
@@ -1848,10 +1941,6 @@ function traduction(grdat)
       traduction = 'selec_inp'
     case('select_ou','selecout','selec_ou')
       traduction = 'selec_out'
-
-! Convolution
-    case('circulair')
-      traduction = 'circular'
 
 ! General
     case('e_cut','ecut','e_cut_imp','ecut_imp','ecutimp','e_cutimp', 'e_fermi')

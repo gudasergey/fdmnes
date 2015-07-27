@@ -604,7 +604,17 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         endif
       endif
     else
-      mot = nomfich
+      mot = fichin(1)
+      l = len_trim(mot)
+      if( l > 9 ) then
+        if( mot(l-9:l-4) == '_nrixs' ) then
+          mot(l-3:l) = '    '
+        else
+          mot = nomfich
+        endif
+      else
+        mot = nomfich
+      endif       
       l = len_trim(mot) + 1
     endif
     if( Deuxieme ) then
@@ -2912,7 +2922,7 @@ subroutine cflor(bb,betalor,Efermi,Eph,Elor,Energ,ie1,ie2,nef, nelor,nenerg,nene
   end do
 
 ! Les etats en dessous de Fermi sont occupes
-  do ie = 1,nenerge
+  do ie = 1,nenerg - 1
     if( Eph(ie) > Efermi - 1.e-10_db ) exit
   end do
   nef = ie

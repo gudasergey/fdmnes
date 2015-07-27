@@ -2110,16 +2110,18 @@ end
 ! Evaluation de la dimension des tableaux qu'on va utiliser dans le sousprogramme agregat
 
 subroutine natomp_cal(angxyz,ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccent,Doping,dpos,Flapw,iabsorbeur,iabsfirst, &
-      icheck,igr_dop,igreq,itabs,itype,Kgroup,Matper,mpirank,multrmax,n_atom_proto,natomeq_s,natomeq_coh, &
+      icheck,igr_dop,igreq,itabs,itype,Kgroup,Matper,mpirank,multrmax,n_atom_proto,n_radius,natomeq_s,natomeq_coh, &
       natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux,noncentre,posn,Proto_all,r_self,rsorte_s,rmax,rpotmax, &
       self_cons,Taux,Taux_oc,Test_dist_min)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
 
-  integer:: iabsfirst, igr_dop, itabs, n_atom_proto, mpirank, multrmax, natomeq_coh, natomeq_s, natomp, ngroup, ngroup_taux
+  integer:: i_radius, iabsfirst, igr_dop, itabs, n_atom_proto, mpirank, multrmax, n_radius, natomeq_coh, natomp, ngroup, &
+    ngroup_taux
 
   integer, dimension(ngroup):: itype
+  integer, dimension(n_radius):: natomeq_s
   integer, dimension(ngroup_pdb):: Kgroup
   integer, dimension(0:n_atom_proto):: ngreq
   integer, dimension(0:n_atom_proto,neqm):: igreq
@@ -2127,7 +2129,8 @@ subroutine natomp_cal(angxyz,ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccen
   logical:: ATA, Base_ortho, Doping, flapw, matper, noncentre, Proto_all, self_cons, Taux
   logical, dimension(n_atom_proto):: ipr_ok
 
-  real(kind=db):: r_self, rsorte_s, rmax, rpotmax
+  real(kind=db):: r_self, rmax, rpotmax
+  real(kind=db), dimension(n_radius):: rsorte_s
   real(kind=db), dimension(3):: angxyz, axyz, dcosxyz, deccent, dpos, ps, v
   real(kind=db), dimension(ngroup_taux):: Taux_oc
   real(kind=db), dimension(3,ngroup):: posg, posn
@@ -2156,7 +2159,7 @@ subroutine natomp_cal(angxyz,ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccen
   if( rpotmax > eps4 ) then
     rmax = rpotmax
   else
-    rmax = max(rsorte_s,r_self) + multrmax * 2.5 / bohr
+    rmax = max(rsorte_s(1),r_self) + multrmax * 2.5 / bohr
   endif
 
   if( matper ) then
@@ -2169,7 +2172,7 @@ subroutine natomp_cal(angxyz,ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccen
     nzmaille = 0
   endif
 
-  natomeq_s = 0
+  natomeq_s(:) = 0
   natomeq_coh = 0
   natomp = 0
   ipr_ok(:) = .false.
@@ -2205,7 +2208,9 @@ subroutine natomp_cal(angxyz,ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccen
               end do
             end do boucle_ipr
           endif
-          if( dist <= rsorte_s + eps10 ) natomeq_s = natomeq_s + 1
+          do i_radius = 1,n_radius
+            if( dist <= rsorte_s(i_radius) + eps10 ) natomeq_s(i_radius) = natomeq_s(i_radius) + 1
+          end do
           if( dist <= rmax + eps10 ) natomp = natomp + 1
         end do boucle_igr
       end do
@@ -2220,7 +2225,7 @@ subroutine natomp_cal(angxyz,ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccen
   end do
 
   if( .not. flapw .and. matper ) then
-    rsortm = max( r_self, rsorte_s )
+    rsortm = max( r_self, rsorte_s(1) )
     call reduc_natomp(ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccent,Doping,dpos,iabsorbeur,icheck,igr_dop,igreq,itabs, &
             itype,Kgroup,matper,mpirank,n_atom_proto,natomp,natomr,ngreq,ngroup,ngroup_pdb,ngroup_taux,noncentre,posn,rmax, &
             rsortm,Taux_oc)
@@ -2262,10 +2267,16 @@ subroutine natomp_cal(angxyz,ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccen
 
     do ipr = 3,6,3
       if( icheck == 0 .and. ipr == 3 ) cycle
-      if( .not. self_cons .or. abs(rsorte_s - r_self) < eps10 ) then
-        write(ipr,150) rsorte_s*bohr, natomeq_s
+      if( .not. self_cons .or. abs(rsorte_s(1) - r_self) < eps10 ) then
+        write(ipr,150) ( rsorte_s(i_radius)*bohr, natomeq_s(i_radius), i_radius = 1,n_radius )
       else
-        write(ipr,160) rsorte_s*bohr, natomeq_s
+        do i_radius = 1,n_radius
+          if( i_radius == 1 ) then
+            write(ipr,160) rsorte_s(i_radius)*bohr, natomeq_s(i_radius)
+          else
+            write(ipr,165) rsorte_s(i_radius)*bohr, natomeq_s(i_radius)
+          endif
+        end do
         if( self_cons ) write(ipr,170) r_self*bohr, natomeq_coh
       endif
       if( ipr == 3 ) write(ipr,180) rmax*bohr, natomp
@@ -2287,6 +2298,7 @@ subroutine natomp_cal(angxyz,ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccen
               '    for example 0.3333333333 and not 0.3333 !'//)
   150 format(' Cluster radius =',f5.2,' A, nb. of atom =',i4)
   160 format(' Absorption calculation   : cluster radius =',f5.2,' A, nb. of atom =',i4)
+  165 format('                            cluster radius =',f5.2,' A, nb. of atom =',i4)
   170 format(' Fermi energy calculation : cluster radius =',f5.2,' A, nb. of atom =',i4)
   180 format(' Potential sup calculation: cluster radius =',f5.2,' A, nb. of atom =',i4)
    end
@@ -9007,7 +9019,7 @@ subroutine nbpoint(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,igrp
           do ia = 1,natomp
             w(:) = pos(:,ia) / adimp - v(:)
             dista = vnorme(Base_ortho,dcosxyz,w)
-            if( dista < D_max_Pot ) exit
+            if( dista < D_max_Pot / adimp ) exit
           end do
           if( ia > natomp ) cycle
         endif
@@ -9098,7 +9110,7 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
           do ia = 1,natomp
             w(:) = pos(:,ia) / adimp - v(:)
             dista = vnorme(Base_ortho,dcosxyz,w)
-            if( dista < D_max_Pot ) exit
+            if( dista < D_max_Pot / adimp ) exit
           end do
           if( ia > natomp ) cycle
         endif
@@ -9200,7 +9212,7 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
           do ia = 1,natomp
             w1(:) = pos(:,ia) / adimp - w(:)
             dista = vnorme(Base_ortho,dcosxyz,w1)
-            if( dista < D_max_Pot ) exit
+            if( dista < D_max_Pot /adimp ) exit
           end do
           if( ia > natomp ) cycle
         endif
@@ -11019,6 +11031,38 @@ subroutine cbessneur(fnorm,z,lmax,lmaxm,bessel,neuman)
     l1 = 2*l - 1
     neuman(l) = l1 * neuman(l-1) / z - neuman(l-2)
     bessel(l) = l1 * bessel(l-1) / z - bessel(l-2)
+  end do
+
+  return
+end
+
+!***********************************************************************
+
+! Calcul de la fonction de Bessel
+
+subroutine cbessel(bess,ip0,lmax,nr,q,r)
+
+  use declarations
+  implicit none
+
+  integer:: ip0, l, l1, lmax, nr
+
+  real(kind=db):: q
+  real(kind=db), dimension(nr):: r, z
+  real(kind=db), dimension(nr,0:lmax):: bessel
+  real(kind=db), dimension(nr,ip0:lmax):: bess
+
+  z(:) = q * r(:)
+  bessel(:,0) = sin( z(:) ) / z(:)
+  if( lmax > 0 ) bessel(:,1) = ( bessel(:,0) - cos( z(:) ) ) / z(:)
+
+  do l = 2,lmax
+    l1 = 2*l - 1
+    bessel(:,l) = l1 * bessel(:,l-1) / z(:) - bessel(:,l-2)
+  end do
+
+  do l = ip0,lmax
+     bess(:,l) = bessel(:,l)
   end do
 
   return

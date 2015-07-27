@@ -642,7 +642,7 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
                Delta_energ_t,Doping,En_cluster,En_cluster_s,En_cluster_t,Energ_self,Energ_self_s,Fermi,Fermi_first,Full_atom, &
                Hubbard,i_self,icheck,ipr_dop,m_hubb,mpirank,n_atom_0_self,n_atom_ind_self,n_atom_proto,n_devide,natome,natomeq, &
                nb_eq,ngreq,nlm_pot,nrm_self,nself,nspin,nspinp,p_self,p_self_s,p_self_t,p_self0,rho_self,rho_self_s, &
-               V_Hubb,V_Hubb_s)
+               V_Hubb,V_Hubb_s) 
 
   use declarations
   implicit none
@@ -662,7 +662,6 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: Energ_self, Energ_self_s
   real(kind=db), dimension(0:nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self):: rho_self, rho_self_s
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_self, chargat_self_s
-
 
   if( .not. Fermi .and. mpirank == 0 ) then
     call write_error

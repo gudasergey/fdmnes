@@ -19,21 +19,21 @@
 !       = ninitlv en TDDFT
 !       = 2 en TDDFT + Optic
 
-subroutine main_tddft(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef_g, &
+subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef_g, &
         Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Delta_edge,Delta_Eseuil,Densite_atom,Dipmag, &
         dv0bdcF,Dyn_eg,Dyn_g,E_cut,E_cut_imp,E_Fermi_man,Ecent,Eclie,Elarg,Eneg, &
         Energ_t,Energphot,Epsii_a,Extract,Epsii_moy,Eseuil,Estart,f_avantseuil,Full_potential,Full_self_abs, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_dafs,Hubb_a,Hubb_d,icheck, &
         iabsorig,iopsymc_25,is_g,isigpi,isymeq, &
-        jseuil,Kern_fac,ldip,lmax_pot,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1, &
+        jseuil,Kern_fac,l0_nrixs,ldip,lmax_pot,lmax_nrixs,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1, &
         lqua,lseuil,ltypcal,m_g,m_hubb,Magnetic,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
         msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_run,Multipole, &
         n_multi_run,n_oo,n_tens_max, &
         natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ngamh,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlmamax, &
         nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nomfich_tddft_data, &
-        nphi_dafs,nphim,npldafs,nplr,nplrm,nr,nrm,nseuil,nspin,nspino,nspinp, &
+        nphi_dafs,nphim,npldafs,nplr,nplrm,nq_nrixs,nr,NRIXS,nrm,nseuil,nspin,nspino,nspinp, &
         numat,nxanout,Octupole,pdp,phdafs,phdf0t,phdt,pol,Polarise,poldafse,poldafss, &
-        psii,Quadrupole,r,Recup_tddft_data,Relativiste,rhoato_abs,Rmtg,Rmtsd, &
+        psii,q_nrixs,Quadrupole,r,Recup_tddft_data,Relativiste,rhoato_abs,Rmtg,Rmtsd, &
         rof0,rot_atom_abs,Rot_int,RPALF,rsato,rsbdc,Self_abs,Solsing_only, &
         Spherical_signal,Spherical_tensor,Spinorbite,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb,V0muf, &
         Vcato,vec,vecdafse,vecdafss,Vhbdc,Volume_maille,VxcbdcF, &
@@ -44,12 +44,12 @@ subroutine main_tddft(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef_g, &
   include 'mpif.h'
 
   integer:: cal_nenerge, iabsorig, icheck_s, ie, ie_computer, ie_e, initl, iopsymc_25, ip_max, ip0, &
-    ir, isp, je, jseuil, l, lmax, lmax_pot, &
-    lmax_probe, lmaxabs_t,  lmaxat0, lseuil,m_hubb, MPI_host_num_for_mumps, mpinodes, mpirank, mpirank0, multi_run, &
+    ir, isp, je, jseuil, l, l0_nrixs, lmax, lmax_pot, lmax_probe, lmax_nrixs, lmaxabs_t, &
+    lmaxat0, lseuil,m_hubb, MPI_host_num_for_mumps, mpinodes, mpirank, mpirank0, multi_run, &
     n_Ec, n_multi_run, n_oo, n_tens_max, n_V, natomsym, nbseuil, &
     ncolm, ncolr, ncolt, nd3, nenerg, nenerg_s, nenerg_tddft, nenerge, ngamh, nge, ninit1, ninitl, ninitl_out, &
     ninitlv, nlm, nlm_fp, nlm_pot, nlm_probe, nlm_p_fp, nlmamax, nlms_f, nlms_g, nlmsm_f, &
-    nphim, npldafs, nplr, nplrm, nr, nrm, ns_dipmag, &
+    nphim, npldafs, nplr, nplrm, nq_nrixs, nr, nrm, ns_dipmag, &
     nseuil, nspin, nspino, nspinp, numat, nxanout
 
   integer, dimension(30):: icheck
@@ -88,11 +88,11 @@ subroutine main_tddft(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef_g, &
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: Chi_0
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Chi
 
-  logical:: Allsite, Atomic_scr, Base_spin, Cartesian_tensor, Core_resolved, Dafs, Dafs_bio, Dipmag, &
+  logical:: All_nrixs, Allsite, Atomic_scr, Base_spin, Cartesian_tensor, Core_resolved, Dafs, Dafs_bio, Dipmag, &
     Dyn_eg, Dyn_g, E_Fermi_man, Eneg, Energphot, Extract, Final_optic, Final_tddft, &
     Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green_int, &
     Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, Magnetic, &
-    Moyenne, Octupole, Optic, Polarise, Quadrupole, Radial_comp, &
+    Moyenne, NRIXS, Octupole, Optic, Polarise, Quadrupole, Radial_comp, &
     Recup_tddft_data, Relativiste, RPALF, Self_abs, Solsing, Solsing_only, Spherical_signal, &
     Spherical_tensor, Spinorbite, Xan_atom, Ylm_comp, Ylm_comp_e
 
@@ -126,6 +126,9 @@ subroutine main_tddft(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef_g, &
   real(kind=db), dimension(nr,2,2):: fxc
   real(kind=db), dimension(3,npldafs,nphim):: Vecdafse, Vecdafss
   real(kind=db), dimension(nr,nlm_pot,nspin) :: Vxcato
+  real(kind=db), dimension(nq_nrixs):: q_nrixs
+  real(kind=db), dimension(nq_nrixs,ninitl_out,0:mpinodes-1):: S_nrixs, S_nrixs_m
+  real(kind=db), dimension(nq_nrixs,l0_nrixs:lmax_nrixs,ninitl_out,0:mpinodes-1):: S_nrixs_l, S_nrixs_l_m
 
   real(kind=db), dimension(:), allocatable:: Decal_initl, Ecinetic_e, Eimag, Energ, Enervide, rst, Vct, Vrt, Vxct
   real(kind=db), dimension(:,:), allocatable:: Ecinetic, V0bdc
@@ -429,7 +432,7 @@ subroutine main_tddft(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef_g, &
 
       call Cal_Chi(Chi, Chi_0, coef_g, Energ(ie), icheck(25), ie, iopsymc_25, Kern, lmax_probe, lmax, &
               lseuil, nd3, ninitl, nlm_probe, nlm_fp, nlms_f, nlms_g, &
-              nomfich, ns_dipmag, nspino, Optic, Quadrupole, Spinorbite)
+              nomfich, NRIXS, ns_dipmag, nspino, Optic, Quadrupole, Spinorbite)
 
       deallocate( Chi_0, Kern )
 
@@ -445,6 +448,15 @@ subroutine main_tddft(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef_g, &
       allocate( rof0_e(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil) )
 
       icheck_s = max( icheck(22), icheck(20) )
+
+      if( NRIXS ) call S_nrixs_cal(coef_g,Core_resolved,Ecinetic, &
+                      Eimag(ie),Energ(ie),Enervide,Eseuil,Final_tddft,Full_potential,Green_int,Hubb_a,Hubb_d, &
+                      icheck_s,l0_nrixs,lmax_nrixs,is_g,lmax_probe,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
+                      mpinodes,mpirank, &
+                      n_Ec,n_V,nbseuil,ns_dipmag,nd3,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlm_probe, &
+                      nlm_p_fp,nq_nrixs,nr,nrm,nspin,nspino,nspinp,numat,psii,q_nrixs,r,Relativiste,Rmtg, &
+                      Rmtsd,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Chi, &
+                      V_hubb_t,V_intmax,V0bdc,Vrato,Ylm_comp)
 
       call tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
                 Eimag(ie),Energ(ie),Enervide,Eseuil,Final_optic,Final_tddft,Full_potential,Green_int,Hubb_a,Hubb_d, &
@@ -466,10 +478,10 @@ subroutine main_tddft(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef_g, &
 
     if( mpinodes > 1 ) then
 
-      call MPI_RECV_all(MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo,ninitl_out,secdd,secdo, &
-                        secdq,secmd,secmm,secoo,secqq)
-      if( Green_int ) call MPI_RECV_all(MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo,ninitl_out,secdd_m, &
-                                      secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
+      call MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo,ninitl_out,nq_nrixs, &
+                        S_nrixs,S_nrixs_l,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
+      if( Green_int ) call MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo, &
+                        ninitl_out,nq_nrixs,S_nrixs_m,S_nrixs_l_m,secdd_m,secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
 
     endif
 
@@ -490,6 +502,12 @@ subroutine main_tddft(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef_g, &
             phdt,pol,Polarise,poldafse,poldafss,Rot_int,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
             secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
             Spherical_tensor,Spinorbite,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)
+
+      if( NRIXS ) call write_nrixs(All_nrixs,Allsite,Core_resolved, &
+                  Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
+                  f_avantseuil,Green_int,iabsorig,icheck(21),ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
+                  jseuil,mpinodes,n_multi_run,natomsym,nbseuil,nenerg,ninit1,ninitl_out,nomfich,nomfich_cal_convt, &
+                  nq_nrixs,nseuil,nspinp,numat,q_nrixs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Spinorbite,Taux_eq,V0muf)
 
       if( ie == 1 ) nomfich_cal_tddft_conv = nomfich_cal_convt
 
@@ -602,7 +620,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
     E_Fermi_man, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Eneg, Energphot, Extract, Final_optic, Final_tddft, &
     Full_potential, Full_self_abs, Gamma_tddft, Green_int, &
     Hubb_a, Hubb_d, lmoins1, lplus1, M_depend, M1M1, Magnetic, &
-    Moyenne, No_diag, Octupole, Optic, Polarise, Quadrupole, Radial_comp, &
+    Moyenne, No_diag, NRIXS, Octupole, Optic, Polarise, Quadrupole, Radial_comp, &
     Recup_tddft_data, Relativiste, RPALF, Self_abs, Solsing, Solsing_only, Spherical_signal, &
     Spherical_tensor, Spinorbite, Xan_atom, Ylm_comp, Ylm_comp_e
 
@@ -649,6 +667,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
 
   Xan_atom = .false.
   Optic = .true.
+  NRIXS = .false.
   Final_optic = Optic
   Final_tddft = .true.
   Epsii(:) = 0._db
@@ -963,7 +982,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
 
         call Cal_Chi(Chi, Chi_0, coef_g, Energ(ie), icheck(25), ie, iopsymc_25, Kern, lmax_probe, lmax, &
               lseuil, nd3, ninitl, nlm_probe, nlm_fp, nlms_f, nlms_g, &
-              nomfich, ns_dipmag, nspino, Optic, Quadrupole, Spinorbite)
+              nomfich, NRIXS, ns_dipmag, nspino, Optic, Quadrupole, Spinorbite)
 
         Chi(:,:,:,:,:,:,:) = - img * Chi(:,:,:,:,:,:,:)
 
@@ -2967,7 +2986,7 @@ end
 
 subroutine Cal_Chi(Chi, Chi_0, coef_g, Energ, icheck, ie, iopsymc_25, Kern, lmax_probe, lmax, &
               lseuil, nd3, ninitl, nlm_probe, nlm_fp, nlms_f, nlms_g, &
-              nomfich, ns_dipmag, nspino, Optic, Quadrupole, Spinorbite)
+              nomfich, NRIXS, ns_dipmag, nspino, Optic, Quadrupole, Spinorbite)
 
   use declarations
   implicit none
@@ -2986,7 +3005,7 @@ subroutine Cal_Chi(Chi, Chi_0, coef_g, Energ, icheck, ie, iopsymc_25, Kern, lmax
 
   integer, dimension(nlms_f,2):: i_val, l_val, m_val
 
-  logical:: Optic, Quadrupole, Spinorbite, Stop_job
+  logical:: NRIXS, Optic, Quadrupole, Spinorbite, Stop_job
 
   real(kind=db), intent(in):: Energ
   real(kind=db), dimension(ninitl,2),intent(in):: coef_g
@@ -2999,7 +3018,7 @@ subroutine Cal_Chi(Chi, Chi_0, coef_g, Energ, icheck, ie, iopsymc_25, Kern, lmax
   Chi(:,:,:,:,:,:,:) = ( 0._db, 0._db )
   Stop_job = .false.
 
-  if( iopsymc_25 == 0 .or. Quadrupole .or. ns_dipmag == 2 .or. Optic ) then
+  if( iopsymc_25 == 0 .or. Quadrupole .or. ns_dipmag == 2 .or. Optic .or. NRIXS ) then
     imparite = 2
   elseif( mod(lseuil,2) == 0 ) then
     imparite = 1

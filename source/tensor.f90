@@ -24,7 +24,7 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
   use declarations
   implicit none
 
-  integer:: he, hhe, hhs, hs, i, icheck, ie, ief, initlr, initlt, ip_max, ip0, ipr, irang, irang1, is, isi, isol, &
+  integer:: he, hhe, hhs, hs, i, icheck, ie, ief, initlr, initlt, ip, ip_max, ip0, ipr, irang, irang1, is, isi, isol, &
     isp, j, je, jhe, jhs, jje, jjhe, jjhs, jjs, jrang, js, k, ke, kke, kks, ks, le, lm, lmax, lmax_pot, lme, &
     lmomax, lms, lomax, ls, lseuil, m_hubb, me, mpinodes, mpirank, mpirank0, &
     ms, n_Ec, n_oo ,n_V, nbseuil, ndim2, nenerg_tddft, ninit1, ninitl, &
@@ -58,7 +58,7 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
   integer, dimension(3,n_oo,3,n_oo):: msymoo, msymooi
 
   logical Base_spin, Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Final_optic, Final_tddft, Full_potential, Green_int, &
-    Hubb_a, Hubb_d, lmoins1, lplus1, M_depend, M1M1, No_diag, Relativiste, Solsing, Solsing_only, Spinorbite, &
+    Hubb_a, Hubb_d, lmoins1, lplus1, M_depend, M1M1, No_diag, NRIXS, Relativiste, Solsing, Solsing_only, Spinorbite, &
     Tddft, Ylm_comp
 
   logical, dimension(10):: Multipole
@@ -78,6 +78,7 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
   real(kind=db), dimension(nr,nlm_pot,nspin):: Vrato_e
   real(kind=db), dimension(nrm,nbseuil):: psii
   real(kind=db), dimension(nr,nlm_pot,nspin,n_V):: Vrato
+  real(kind=db), dimension(nr,ip0:ip_max):: r_or_bess
   real(kind=db), dimension(:,:,:,:,:,:), allocatable:: zet
   real(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: roff_rr, roff0
 
@@ -87,6 +88,7 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
   E1M1 = Multipole(4); E2E2 = Multipole(6);
   E3E3 = Multipole(7); M1M1 = Multipole(8)
 
+  NRIXS = .false.
 ! Calcul des integrales radiales et de la solution singuliere
   if( Final_optic ) then
 
@@ -124,7 +126,18 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
 
     rof(:,:,:,:,:,:) = (0._db, 0._db)
     Singul(:,:,:,:,:) = (0._db, 0._db)
-
+  
+    do ip = ip0,ip_max
+      select case(ip)
+        case(0)
+          r_or_bess(1:nr,ip) = 1._db
+        case(1)
+          r_or_bess(1:nr,ip) = r(1:nr)
+        case default
+          r_or_bess(1:nr,ip) = r(1:nr)**ip
+      end select
+    end do
+    
     do initlt = 1,n_Ec
       if( Final_tddft ) then
         do isp = 1,nspin
@@ -142,8 +155,9 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
       Enervide_t = Enervide(initlt)
 
       call radial(Ecinetic_e,Eimag,Energ,Enervide_t,Eseuil,Final_tddft,Full_potential,Hubb_a,Hubb_d,icheck, &
-         initlt,ip_max,ip0,lmax,lmax_pot,m_hubb,nbseuil,ninit1,ninitlv,nlm_pot,nlm_probe,nlm_p_fp,nr,nrm,nspin,nspino,nspinp, &
-         numat,psii,r,Relativiste,Rmtg,Rmtsd,rof,Singul,Solsing,Spinorbite,V_hubb,V_intmax,V0bd_e,Vrato_e,Ylm_comp)
+         initlt,ip_max,ip0,lmax,lmax_pot,m_hubb,nbseuil,ninit1,ninitlv,nlm_pot,nlm_probe,nlm_p_fp,nr,NRIXS,nrm,nspin,nspino, &
+         nspinp,numat,psii,r,r_or_bess,Relativiste,Rmtg,Rmtsd,rof,Singul,Solsing,Spinorbite,V_hubb,V_intmax,V0bd_e,Vrato_e, &
+         Ylm_comp)
 
     end do
 
@@ -423,7 +437,7 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
                             else
                               call tens_ab(coef_g,Core_resolved,Final_tddft,Green_int,icheck,ip_max,ip0,irang,is_g,jrang, &
                                 le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2,ninit1, &
-                                ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,nspinp,nspino,rof,Singul,Solsing, &
+                                ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
                                 Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
                             endif
 
@@ -873,7 +887,7 @@ end
 
 subroutine tens_ab(coef_g,Core_resolved,Final_tddft,Green_int,icheck,ip_max,ip0,irang,is_g,jrang, &
                               le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2,ninit1, &
-                              ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,nspinp,nspino,rof,Singul,Solsing, &
+                              ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
                               Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
 
   use declarations
@@ -890,13 +904,13 @@ subroutine tens_ab(coef_g,Core_resolved,Final_tddft,Green_int,icheck,ip_max,ip0,
 
   complex(kind=db) :: cfe, cfs, Cg, dfe, dfs, Tau_rad, Tau_rad_i
 
-  complex(kind=db):: Gaunte, Gauntm, Gauntmag, Gaunts
+  complex(kind=db):: Gaunt_nrixs, Gaunte, Gauntm, Gauntmag, Gaunts
   complex(kind=db), dimension(ninitlr):: Ten, Ten_m
   complex(kind=db), dimension(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,ninitlv):: rof
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
   complex(kind=db), dimension(nlm_probe,nspinp,ip0:ip_max,ip0:ip_max,ninitlv):: Singul
 
-  logical:: Core_resolved, Final_tddft, Green_int, lmoins1, lplus1, Solsing, Solsing_only, Spinorbite, Titre, Ylm_comp
+  logical:: Core_resolved, Final_tddft, Green_int, lmoins1, lplus1, NRIXS, Solsing, Solsing_only, Spinorbite, Titre, Ylm_comp
 
   real(kind=db):: Ci_1, Ci_2, Ci2, J_initl1, J_initl2, Jz1, Jz2
   real(kind=db), dimension(ninitl,2):: coef_g
@@ -1005,7 +1019,9 @@ subroutine tens_ab(coef_g,Core_resolved,Final_tddft,Green_int,icheck,ip_max,ip0,
               do ispinf1 = 1,2  ! spin de l'etat final en entree
                 ispf1 = min( ispinf1, nspinp )
 
-                if( irang == 0 ) then
+                if( NRIXS ) then
+                  Gaunte = Gaunt_nrixs(l1,m1,le,me,li,mi1,Ylm_comp)
+                elseif( irang == 0 ) then
                   Gaunte = Gauntmag(isping1,ispinf1,me,l1,m1,li,mi1,Ylm_comp,.true.)
                 else
                   Gaunte = Gauntm(l1,m1,le,me,li,mi1,Ylm_comp)
@@ -1013,7 +1029,7 @@ subroutine tens_ab(coef_g,Core_resolved,Final_tddft,Green_int,icheck,ip_max,ip0,
                 if( abs(Gaunte) < eps10 ) cycle
 
 ! Il n'y a que pour le dipole magnetique qu'on peut avoir du spin-flip
-                if( ispinf1 /= isping1 .and. irang /= 0 ) cycle
+                if( ispinf1 /= isping1 .and. ( NRIXS .or. irang /= 0 ) ) cycle 
 
 ! Boucle sur les harmoniques de l'etat final en sortie
                 do l2 = 0,lmax
@@ -1042,7 +1058,9 @@ subroutine tens_ab(coef_g,Core_resolved,Final_tddft,Green_int,icheck,ip_max,ip0,
                         is_dipmag = 1
                       endif
 
-                      if( jrang == 0 ) then
+                      if( NRIXS ) then
+                        Gaunts = Gaunt_nrixs(l2,m2,ls,ms,li,mi2,Ylm_comp)
+                      elseif( jrang == 0 ) then
                         Gaunts = Gauntmag(isping2,ispinf2,ms,l2,m2,li,mi2,Ylm_comp,.true.)
                       else
                         Gaunts = Gauntm(l2,m2,ls,ms,li,mi2,Ylm_comp)
@@ -1777,6 +1795,38 @@ function Gaunt_crc(l1,m1,l2,m2,l3,m3,Ylm_comp)
 
     Gaunt_crc = cmplx( Gauntc(l1,m1,l2,m2,l3,m3), 0._db, db )
 
+  endif
+
+  return
+end
+
+!***********************************************************************
+
+! Calcule le coefficient de Gaunt modifie: Int ( Y_L1* Y_L2* Y_L3 dOmega )
+! avec Y(l1,m1) complexe ou reel, Y(l2,m2) et Y(l3,m3) complexe
+! Pour Y(l2,m2), on prend Y(l2,m2)* = (-1)^m Y(l2,-m2)  
+
+function Gaunt_nrixs(l1,m1,l2,m2,l3,m3,Ylm_comp)
+
+  use declarations
+  implicit none
+  
+  integer:: l1, l2, l3, m1, m2, m3
+  
+  complex(kind=db):: Gaunt_nrixs
+
+  logical Ylm_comp
+
+  real(kind=db):: Gauntcp, Gtot
+
+  if( Ylm_comp .or. m1 == 0 ) then
+    Gaunt_nrixs = (-1)**m2 * cmplx( gauntcp(l1,m1,l2,-m2,l3,m3), 0._db, db )
+  elseif( m1 > 0 ) then
+    Gtot = (-1)**m2 * ( Gauntcp(l1,m1,l2,-m2,l3,m3) + (-1)**m1 * Gauntcp(l1,-m1,l2,-m2,l3,m3) ) / sqrt( 2._db ) 
+    Gaunt_nrixs = cmplx( Gtot, 0._db, db )
+  else
+    Gtot = (-1)**m2 * ( (-1)**m1 * Gauntcp(l1,m1,l2,-m2,l3,m3) - Gauntcp(l1,-m1,l2,-m2,l3,m3) ) / sqrt( 2._db )
+    Gaunt_nrixs = cmplx( 0._db, Gtot, db )
   endif
 
   return
@@ -2726,3 +2776,151 @@ subroutine extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,Green_i
   return
   110 format(//A,' not found in the extract file !'//)
 end
+
+!*********************************************************************************************
+
+! Calculation of S = Sum_if | <f| exp( iq.r ) |i> |^2
+! exp(iqr) = 4 * pi * Sum_L ( i^l * j_l(qr) * Y_L^*(Omega_r) * Y_L^*(Omega_q) )
+
+subroutine S_nrixs_cal(coef_g,Core_resolved,Ecinetic, &
+                Eimag,Energ,Enervide,Eseuil,Final_tddft,Full_potential,Green_int,Hubb_a,Hubb_d, &
+                icheck,l0_nrixs,lmax_nrixs,is_g,lmax,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
+                mpinodes,mpirank, &
+                n_Ec,n_V,nbseuil,ns_dipmag,ndim2,ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe, &
+                nlm_p_fp,nq_nrixs,nr,nrm,nspin,nspino,nspinp,numat,psii,q_nrixs,r,Relativiste,Rmtg, &
+                Rmtsd,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Taull, &
+                V_hubb,V_intmax,V0bd,Vrato,Ylm_comp)
+
+  use declarations
+  implicit none
+
+  integer:: icheck, initlt, iq, isp, l, l0_nrixs, le, lmax, lmax_nrixs, lmax_pot, lme, lms, &
+    ls, lseuil, m_hubb, me, mpinodes, mpirank, &
+    ms, n_Ec ,n_V, nbseuil, ndim2, ninit1, ninitl, ninitlr, ninitlv, nlm_pot, nlm_probe, &
+    nlm_p_fp, nq_nrixs, nr, nrm, ns_dipmag, nspin, nspino, nspinp, numat
+
+  complex(kind=db):: cfac  
+  complex(kind=db), dimension(ninitlr):: Ten, Ten_m
+  complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
+  complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
+  complex(kind=db), dimension(:,:,:,:,:), allocatable:: Singul
+  complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: rof
+
+  integer, dimension(ninitl,2):: m_g
+  integer, dimension(ninitl):: is_g
+
+  logical:: Core_resolved, Final_tddft, Full_potential, Green_int, &
+    Hubb_a, Hubb_d, lmoins1, lplus1, NRIXS, Relativiste, Solsing, Solsing_only, Spinorbite, &
+    Ylm_comp
+
+  real(kind=db):: Eimag, Energ, Enervide_t, Rmtg, Rmtsd, V_intmax
+  real(kind=db), dimension(nspin):: Ecinetic_e, V0bd_e
+  real(kind=db), dimension(nbseuil):: Eseuil
+  real(kind=db), dimension(ninitl,2):: coef_g
+  real(kind=db), dimension(nspin,n_Ec):: Ecinetic
+  real(kind=db), dimension(n_Ec):: Enervide
+  real(kind=db), dimension(nspin,n_V):: V0bd
+  real(kind=db), dimension(nr):: r
+  real(kind=db), dimension(nr,nlm_pot,nspin):: Vrato_e
+  real(kind=db), dimension(nrm,nbseuil):: psii
+  real(kind=db), dimension(nr,nlm_pot,nspin,n_V):: Vrato
+  real(kind=db), dimension(nr,l0_nrixs:lmax_nrixs):: bessel
+  real(kind=db), dimension(nq_nrixs):: q_nrixs
+  real(kind=db), dimension(nq_nrixs,ninitlr,0:mpinodes-1):: S_nrixs, S_nrixs_m
+  real(kind=db), dimension(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:mpinodes-1):: S_nrixs_l, S_nrixs_l_m
+
+  if( icheck > 1 ) write(3,100)
+  
+  NRIXS = .true.
+
+  allocate( Singul(nlm_probe,nspinp,l0_nrixs:lmax_nrixs,l0_nrixs:lmax_nrixs,ninitlv) )
+  allocate( rof(nlm_probe,nlm_p_fp,nspinp,nspino,l0_nrixs:lmax_nrixs,ninitlv) )
+  S_nrixs(:,:,mpirank) = 0._db
+  S_nrixs_m(:,:,mpirank) = 0._db
+  S_nrixs_l(:,:,:,mpirank) = 0._db
+  S_nrixs_l_m(:,:,:,mpirank) = 0._db
+
+  do iq = 1,nq_nrixs
+  
+    rof(:,:,:,:,:,:) = (0._db, 0._db)
+    Singul(:,:,:,:,:) = (0._db, 0._db)
+
+    call cbessel(bessel,l0_nrixs,lmax_nrixs,nr,q_nrixs(iq),r)
+  
+    do initlt = 1,n_Ec
+      if( Final_tddft ) then
+        do isp = 1,nspin
+          Ecinetic_e(isp) = Ecinetic(isp,initlt)
+          V0bd_e(isp) = V0bd(isp,initlt)
+          Vrato_e(1:nr,:,isp) = Vrato(1:nr,:,isp,initlt)
+        end do
+      else
+        do isp = 1,nspin
+          Ecinetic_e(isp) = Ecinetic(isp,1)
+          V0bd_e(isp) = V0bd(isp,1)
+          Vrato_e(1:nr,:,isp) = Vrato(1:nr,:,isp,1)
+        end do
+      endif
+      Enervide_t = Enervide(initlt)
+
+      call radial(Ecinetic_e,Eimag,Energ,Enervide_t,Eseuil,Final_tddft,Full_potential,Hubb_a,Hubb_d,icheck,initlt, &
+        lmax_nrixs,l0_nrixs,lmax,lmax_pot,m_hubb,nbseuil,ninit1,ninitlv,nlm_pot,nlm_probe,nlm_p_fp,nr,NRIXS,nrm,nspin,nspino, &
+        nspinp,numat,psii,r,bessel,Relativiste,Rmtg,Rmtsd,rof,Singul,Solsing,Spinorbite,V_hubb,V_intmax,V0bd_e, &
+        Vrato_e,Ylm_comp)
+
+    end do
+
+    lme = 0
+    do le = l0_nrixs,lmax_nrixs
+      do me = -le,le
+        lme = lme + 1
+
+        lms = 0
+        do ls = l0_nrixs,lmax_nrixs
+
+          l = mod(le + ls,4)
+          select case(l)
+            case(0)
+              cfac = ( 1._db, 0._db )
+            case(1)
+              cfac = ( 0._db, 1._db )
+            case(2)
+              cfac = ( -1._db, 0._db )
+            case(3)
+              cfac = ( 0._db, -1._db )
+          end select
+          if( mod(le,2) == 1 ) cfac = - cfac 
+          cfac = cfac * quatre_pi**2
+
+          do ms = -ls,ls
+            lms = lms + 1
+    
+            if( icheck > 1 ) write(3,110) le, me, ls, ms
+
+            call tens_ab(coef_g,Core_resolved,Final_tddft,Green_int,icheck,lmax_nrixs,l0_nrixs,le,is_g,ls, &
+                                le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2,ninit1, &
+                                ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
+                                Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
+
+            if( le == ls ) then
+              S_nrixs_l(iq,le,:,mpirank) = S_nrixs_l(iq,le,:,mpirank) + real( cfac * Ten(:), db )
+              if( Green_int ) S_nrixs_l_m(iq,le,:,mpirank) = S_nrixs_l_m(iq,le,:,mpirank) + real( cfac * Ten_m(:) )
+            endif
+            S_nrixs(iq,:,mpirank) = S_nrixs(iq,:,mpirank) + real( cfac * Ten(:) )
+            if( Green_int ) S_nrixs_m(iq,:,mpirank) = S_nrixs_m(iq,:,mpirank) + real( cfac * Ten_m(:) )
+            
+          end do
+        end do
+      end do
+    end do ! fin boucle le
+
+  end do
+
+  deallocate( rof, Singul )
+  
+  return
+  100 format(/' ---- S_nrixs_cal ---------',100('-'))
+  110 format(/' le, me =',2i3,',  ls, ms =',2i3)
+
+end
+

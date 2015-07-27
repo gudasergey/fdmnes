@@ -44,7 +44,6 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secddia, secddia_m, secmdia, secmdia_m, secmmia, secmmia_m
   complex(kind=db), dimension(3,3,3,ninitlr,0:natomsym):: secdqia, secdqia_m
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:natomsym):: secdoia, secdoia_m, secqqia, secqqia_m
-  complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:natomsym):: secooia, secooia_m
   complex(kind=db), dimension(3,3,ninitlr,0:mpinodee-1):: secdd_a, secdd_m_a, secmd_a, secmd_m_a, secmm_a, secmm_m_a
   complex(kind=db), dimension(3,3,3,ninitlr,0:mpinodee-1):: secdq_a, secdq_m_a
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:mpinodee-1):: secdo_a, secdo_m_a, secqq_a, secqq_m_a
@@ -58,6 +57,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   complex(kind=db), dimension(:,:,:,:), allocatable :: ampldafs, ampldafsdd, ampldafsdo, ampldafsdq, ampldafsmd, &
     ampldafsmm, ampldafsoo, ampldafsqq
   complex(kind=db), dimension(:,:,:,:,:), allocatable :: mu, mudd, mudo, mudq, mumd, mumm, muoo, muqq
+  complex(kind=db), dimension(:,:,:,:,:,:), allocatable :: secooia, secooia_m
 
   integer, dimension(0):: idum
   integer, dimension(natomsym):: isymeq
@@ -95,6 +95,11 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   E1E1 = Multipole(1); E1E2 = Multipole(2); E1E3 = Multipole(3);
   E1M1 = Multipole(4); E2E2 = Multipole(6);
   E3E3 = Multipole(7); M1M1 = Multipole(8)
+
+  if( E3E3 ) then
+    allocate( secooia(3,n_oo,3,n_oo,ninitlr,0:natomsym) )
+    allocate( secooia_m(3,n_oo,3,n_oo,ninitlr,0:natomsym) )
+  endif
 
   if( E1E1 ) secabsdd(:,:,:) = ( 0._db, 0._db )
   if( E2E2 ) secabsqq(:,:,:) = ( 0._db, 0._db )
@@ -408,7 +413,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
         secdqia_m(:,:,:,:,0) = (0._db,0._db)
         secqqia(:,:,:,:,:,0) = (0._db,0._db)
         secdoia(:,:,:,:,:,0) = (0._db,0._db)
-        secooia(:,:,:,:,:,0) = (0._db,0._db)
+        if( E3E3 ) secooia(:,:,:,:,:,0) = (0._db,0._db)
         secmdia(:,:,:,0) = (0._db,0._db)
         secmdia_m(:,:,:,0) = (0._db,0._db)
         secmmia(:,:,:,0) = (0._db,0._db)
@@ -416,7 +421,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
           secddia_m(:,:,:,0) = (0._db,0._db)
           secqqia_m(:,:,:,:,:,0) = (0._db,0._db)
           secdoia_m(:,:,:,:,:,0) = (0._db,0._db)
-          secooia_m(:,:,:,:,:,0) = (0._db,0._db)
+          if( E3E3 ) secooia_m(:,:,:,:,:,0) = (0._db,0._db)
           secmmia_m(:,:,:,0) = (0._db,0._db)
         endif
 
@@ -1384,7 +1389,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
     l = len_trim(nomfichdafst)
     nomfichdafst(l+1:l+4) = '.txt'
 
-    if( ie == 1 ) nomfich_cal_convt = nomficht
+    if( ie == 1 .and. ia == 0 ) nomfich_cal_convt = nomficht
 
     n_tens = 0
 
@@ -1526,8 +1531,8 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
           write(7,407) hkl_dafs(:,ipl)
         else
           write(7,410) hkl_dafs(:,ipl), isigpi(ipl,:)
-          dang = 360._db / nphi_dafs(ipl)
         endif
+        dang = 360._db / nphi_dafs(ipl)
 
         do ip = 1,nphi_dafs(ipl)
           ang = ( ip - 1 ) * dang
@@ -1565,6 +1570,8 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
     endif
 
   end do  ! fin boucle sur atomes
+
+  if( E3E3 ) deallocate( secooia, secooia_m ) 
 
   if( dafs ) then
     deallocate( ampldafs )
@@ -1633,7 +1640,6 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   187 format(/' Atom ',i3,' Tensor_do(',i1,',',i1,',j1,j2), Green integral, Non magnetic part',80x,'Magnetic part')
   188 format(/' Atom ',i3,' Tensor_do(',i1,',',i1,',j1,j2), Green integral')
   189 format(/' Atom ',i3,' Tensor_do(',i1,',',i1,',j1,j2)')
-
   190 format(/' Tensor_md(ke,ks), Prototypical atom,     Green integral, Non magnetic part',82x,'Magnetic part')
   191 format(/' Tensor_md(ke,ks), Prototypical atom,     Green integral')
   192 format(/' Tensor_md(ke,ks), Prototypical atom')
@@ -1688,6 +1694,213 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   410 format(' (h,k,l) = ',3i3,', sigpi =',2i3)
   420 format(7x,1p,320e13.5)
   430 format(f7.1,1p,320e13.5)
+end
+
+!***********************************************************************
+
+subroutine write_nrixs(All_nrixs,Allsite,Core_resolved, &
+                  Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
+                  f_avantseuil,Green_int,iabsorig,icheck,ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
+                  jseuil,mpinodee,n_multi_run,natomsym,nbseuil,nenerg,ninit1,ninitlr,nomfich,nomfich_cal_convt, &
+                  nq_nrixs,nseuil,nspinp,numat_abs,q_nrixs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Spinorbite,Taux_eq,v0muf)
+                  
+  use declarations
+  implicit none
+
+  integer:: i, ia, iabsorig, icheck, ie, ie_computer, initlr, iq, l0_nrixs, lmax_nrixs, jseuil, l, long, &
+    mpinodee, n, n_dim, n_multi_run, n_tens, natomsym, nbseuil, nenerg, ninit1, ninitlr, npldafs, nq_nrixs, &
+    nseuil, nspinp, numat_abs
+
+  character(len=length_word):: nomab
+  character(len=132) nomfich, nomfich_cal_convt, nomficht
+  character(len=length_word), dimension(:), allocatable:: title
+
+  complex(kind=db):: f_avantseuil
+  complex(kind=db), dimension(0):: cdum
+
+  integer, dimension(0):: idum
+  integer, dimension(natomsym):: isymeq
+
+  logical:: All_nrixs, Allsite, Core_resolved, Final_tddft, Energphot, Extract, Green_int, Green_int_mag, Magn_sens, Spinorbite
+
+  real(kind=db):: Densite_atom, E_cut, Ephoton, Ephseuil, q, V0muf
+
+  real(kind=db), dimension(0):: rdum
+  real(kind=db), dimension(ninitlr) :: Epsii
+  real(kind=db), dimension(nbseuil):: Eseuil
+  real(kind=db), dimension(nenerg):: Energ
+  real(kind=db), dimension(natomsym):: Taux_eq
+  real(kind=db), dimension(nq_nrixs,ninitlr,0:mpinodee-1):: S_nrixs, S_nrixs_m
+  real(kind=db), dimension(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:mpinodee-1):: S_nrixs_l, S_nrixs_l_m
+  real(kind=db), dimension(nq_nrixs,ninitlr,0:natomsym):: S_nrixs_T
+  real(kind=db), dimension(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:natomsym):: S_nrixs_T_l
+  real(kind=db), dimension(nq_nrixs):: q_nrixs
+  real(kind=db), dimension(:), allocatable:: Tens
+
+  if( icheck > 0 ) write(3,110)
+  
+  npldafs = 0
+
+  Ephseuil = Energ(ie)
+  Ephoton = Ephseuil + Eseuil(nbseuil)
+! Pour les seuils de tres basse Energie:
+  Ephoton = max(0.001_db/Rydb, Ephoton)
+  if( Energphot ) Ephseuil = Ephoton
+
+  if( ( jseuil > 1 .and. nspinp == 2 ) .or. Spinorbite ) then
+    Magn_sens = .true.
+  else
+    Magn_sens = .false.
+  endif
+
+  if( Green_int .and. Magn_sens ) then
+    Green_int_mag = .true.
+  else
+    Green_int_mag = .false.
+  endif
+
+  S_nrixs_T(:,:,:) = 0._db
+  S_nrixs_T_l(:,:,:,:) = 0._db
+
+  do initlr = 1,ninitlr
+
+    do ia = 1,natomsym
+      S_nrixs_T(:,initlr,ia) = Taux_eq(ia) * S_nrixs(:,initlr,ie_computer)
+      S_nrixs_T_l(:,:,initlr,ia) = Taux_eq(ia) * S_nrixs_l(:,:,initlr,ie_computer)
+      
+      if( Green_int_mag ) then
+        if( isymeq(ia) < 0 ) then
+          S_nrixs_T(:,initlr,ia) = S_nrixs_T(:,initlr,ia) - Taux_eq(ia) * S_nrixs_m(:,initlr,ie_computer)
+          S_nrixs_T_l(:,:,initlr,ia) = S_nrixs_T_l(:,:,initlr,ia) - Taux_eq(ia) * S_nrixs_l_m(:,:,initlr,ie_computer)
+        else
+          S_nrixs_T(:,initlr,ia) = S_nrixs_T(:,initlr,ia) + Taux_eq(ia) * S_nrixs_m(:,initlr,ie_computer)
+          S_nrixs_T_l(:,:,initlr,ia) = S_nrixs_T_l(:,:,initlr,ia) + Taux_eq(ia) * S_nrixs_l_m(:,:,initlr,ie_computer)
+        endif
+      endif
+      
+      S_nrixs_T(:,initlr,0) =  S_nrixs_T(:,initlr,0) + S_nrixs_T(:,initlr,ia)
+      S_nrixs_T_l(:,:,initlr,0) =  S_nrixs_T_l(:,:,initlr,0) + S_nrixs_T_l(:,:,initlr,ia)
+    end do
+
+  end do
+
+  nomficht = nomfich
+  long = len_trim(nomficht)
+  nomficht(long+1:long+6) = '_nrixs'
+
+  if( All_nrixs ) then
+    n_dim = nq_nrixs * ninitlr * ( lmax_nrixs - l0_nrixs + 2 )
+  else
+    n_dim = nq_nrixs * ninitlr
+  endif
+  n_tens = n_dim
+  allocate( Title( n_dim ) )
+  allocate( Tens( n_dim ) )
+    
+  do ia = 0,natomsym
+    if( .not. Allsite .and. ia == 1 ) exit
+
+    nomficht = nomfich
+    long = len_trim(nomficht)
+    nomficht(long+1:long+6) = '_nrixs'
+
+    if( ia > 0 ) then
+      long = len_trim(nomficht)
+      nomficht(long+1:long+5) = '_atom'
+      call ad_number(ia,nomficht,132)
+    endif
+    long = len_trim(nomficht)
+
+    if( Final_tddft .and. .not. Extract ) nomficht(long+1:long+6) = '_tddft'
+
+    if( n_multi_run > 1 ) then
+      long = len_trim(nomficht)
+      nomficht(long+1:long+1) = '_'
+      call ad_number(iabsorig,nomficht,132)
+    endif
+
+    long = len_trim(nomficht)
+    nomficht(long+1:long+4) = '.txt'
+
+    if( ie == 1 .and. ia == 0 ) nomfich_cal_convt = nomficht
+
+    i = 0
+    do initlr = 1,ninitlr
+
+      do l = l0_nrixs - 1, lmax_nrixs
+
+        if( ( .not. All_nrixs ) .and. l > l0_nrixs - 1 ) exit 
+
+        do iq = 1, nq_nrixs 
+          i = i + 1
+          nomab = 'q='
+          q = q_nrixs(iq) / bohr + eps10
+          n = int( q )   
+          call ad_number(n,nomab,length_word)
+          long = len_trim( nomab )
+          long = long + 1
+          nomab(long:long) = '.'
+          if( n < 10 ) then
+            n = int( 1000 * ( q - n ) )
+          elseif( n < 100 ) then
+            n = int( 100 * ( q - n ) )
+          elseif( n < 1000 ) then
+            n = int( 10 * ( q - n ) )
+          endif 
+          call ad_number(n,nomab,length_word)
+          if( l > l0_nrixs - 1 ) then
+            long = len_trim( nomab )
+            long = long + 1
+            nomab(long:long+1) = '_l'
+            call ad_number(l,nomab,length_word)
+          endif
+          if( ninitlr > 1 .and. .not. (initlr == 1 .and. nseuil == 0 ) ) then
+            long = len_trim( nomab )
+            if( long > length_word - 3 ) cycle
+            long = long + 1
+            nomab(long:long) = '_'
+            if( .not. Core_resolved ) then
+              long = long + 1
+              nomab(long:long) = achar(nseuil+74)
+              long = long + 1
+              nomab(long:long) = achar(jseuil+initlr+47)
+            else
+              if( nseuil == 0 ) then
+                call ad_number(initlr-2,nomab,length_word)
+              else
+                call ad_number(initlr,nomab,length_word)
+              endif
+            endif
+          endif
+          call center_word(nomab,Length_word)
+          title(i) = nomab
+
+          if( l == l0_nrixs - 1 ) then
+            Tens(i) = S_nrixs_T(iq,initlr,ia)
+          else
+            Tens(i) = S_nrixs_T_l(iq,l,initlr,ia)
+          endif
+
+        end do
+      end do
+    end do
+
+! Ecriture dans le fichier
+    call write_out(rdum,rdum,Densite_atom,f_avantseuil,E_cut,Ephseuil, &
+            Epsii,Eseuil(nbseuil),Green_int,idum,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title, &
+            npldafs,npldafs,0,0,nseuil,numat_abs,cdum,cdum,Tens,V0muf,Core_resolved,natomsym)
+
+! Ecriture a l'ecran
+    if( ia == 0 ) call write_out(rdum,rdum,Densite_atom,f_avantseuil,E_cut,Ephseuil, &
+            Epsii,Eseuil(nbseuil),Green_int,idum,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title, &
+            npldafs,npldafs,0,0,nseuil,-1,cdum,cdum,Tens,V0muf,Core_resolved,natomsym)
+
+  end do
+  
+  deallocate( Tens, Title )
+   
+  return
+  110 format(/' ---- Write_nrixs --------',100('-'))
 end
 
 !***********************************************************************
@@ -1899,7 +2112,7 @@ subroutine write_cartesian_tensor(Densite_atom,E_cut,E1E2,E2E2,Ephseuil, Epsii,E
 
   call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,nomtens,1,0,0,0,nseuil,numat_abs,cdum, &
-           cdum,tens,v0muf,Core_resolved,0)
+           cdum,tens,v0muf,Core_resolved,0) 
 
   return
 end
@@ -1917,7 +2130,9 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
 
   integer, dimension(3,npps):: hkl_dafs
 
-  character(len=132) nomficht
+  character(len=132):: nomficht
+  character(len=95):: mot1
+  character(len=27):: mot2
   character(len=Length_word):: mot
   character(len=Length_word), dimension(n_dim):: title
   character(len=10+(n_tens-2*npp)*Length_word):: dummy
@@ -1925,7 +2140,7 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
   complex(kind=db):: f_avantseuil
   complex(kind=db), dimension(np):: ph1, ph2
 
-  logical Core_resolved, Green_int
+  logical:: Core_resolved, Gnuplot, Green_int
 
   real(kind=db):: f0_forward, fpp_avantseuil
   real(kind=db), dimension(nppa):: angxyz, axyz
@@ -1972,95 +2187,129 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
         icor = 1
       endif
       if( Green_int ) icor = - icor
+      
+      mot1 = ' = E_edge, Z, n_edge, j_edge, Abs_before_edge, VO_interstitial, E_Fermi, ninitl, ninit1, Epsii'
+      mot2 = ', Atom_density, f0_forward'
 
-      if( nseuil == 0 ) then
-        write(ipr,110) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, 1, icor, Epsii(1)*rydb, Densite_atom, f0_forward
-      elseif( ninitlr == 1 ) then
-        write(ipr,110) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward
-      elseif( ninitlr == 2 ) then
-        write(ipr,111) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward
-      elseif( ninitlr == 4 ) then
-        write(ipr,112) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward
-      elseif( ninitlr == 6 ) then
-        write(ipr,113) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward
-      elseif( ninitlr == 8 ) then
-        write(ipr,114) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward
-      elseif( ninitlr == 10 ) then
-        write(ipr,115) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward
-      else     ! 14
-        write(ipr,116) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward
+      Gnuplot = .false.
+
+      if( Gnuplot ) then
+        if( nseuil == 0 ) then
+          write(ipr,110) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, 1, icor, Epsii(1)*rydb, Densite_atom, f0_forward, mot1, mot2
+        elseif( ninitlr == 1 ) then
+          write(ipr,110) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, mot2
+        elseif( ninitlr == 2 ) then
+          write(ipr,111) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+        elseif( ninitlr == 4 ) then
+          write(ipr,112) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+        elseif( ninitlr == 6 ) then
+          write(ipr,113) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+        elseif( ninitlr == 8 ) then
+          write(ipr,114) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+        elseif( ninitlr == 10 ) then
+          write(ipr,115) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+        else     ! 14
+          write(ipr,116) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+        endif
+      else
+        if( nseuil == 0 ) then
+          write(ipr,120) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, 1, icor, Epsii(1)*rydb, Densite_atom, f0_forward, mot1, mot2
+        elseif( ninitlr == 1 ) then
+          write(ipr,120) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, mot2
+        elseif( ninitlr == 2 ) then
+          write(ipr,121) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+        elseif( ninitlr == 4 ) then
+          write(ipr,122) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+        elseif( ninitlr == 6 ) then
+          write(ipr,123) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+        elseif( ninitlr == 8 ) then
+          write(ipr,124) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+        elseif( ninitlr == 10 ) then
+          write(ipr,125) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+        else     ! 14
+          write(ipr,126) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+        endif
       endif
+
     endif
 
     if( npp > 0 .and. numat >= 0 ) then
       select case(Length_word)
         case(11)
-          write(ipr,121) dummy, ph2(1:npp)
-          write(ipr,121) dummy, ph1(1:npp)
+          write(ipr,141) dummy, ph2(1:npp)
+          write(ipr,141) dummy, ph1(1:npp)
         case(12)
-          write(ipr,122) dummy, ph2(1:npp)
-          write(ipr,122) dummy, ph1(1:npp)
+          write(ipr,142) dummy, ph2(1:npp)
+          write(ipr,142) dummy, ph1(1:npp)
         case(13)
-          write(ipr,123) dummy, ph2(1:npp)
-          write(ipr,123) dummy, ph1(1:npp)
+          write(ipr,143) dummy, ph2(1:npp)
+          write(ipr,143) dummy, ph1(1:npp)
         case(14)
-          write(ipr,124) dummy, ph2(1:npp)
-          write(ipr,124) dummy, ph1(1:npp)
+          write(ipr,144) dummy, ph2(1:npp)
+          write(ipr,144) dummy, ph1(1:npp)
         case(15)
-          write(ipr,125) dummy, ph2(1:npp)
-          write(ipr,125) dummy, ph1(1:npp)
+          write(ipr,145) dummy, ph2(1:npp)
+          write(ipr,145) dummy, ph1(1:npp)
         case(16)
-          write(ipr,126) dummy, ph2(1:npp)
-          write(ipr,126) dummy, ph1(1:npp)
+          write(ipr,146) dummy, ph2(1:npp)
+          write(ipr,146) dummy, ph1(1:npp)
         case(17)
-          write(ipr,127) dummy, ph2(1:npp)
-          write(ipr,127) dummy, ph1(1:npp)
+          write(ipr,147) dummy, ph2(1:npp)
+          write(ipr,147) dummy, ph1(1:npp)
         case default
           call write_error
           do ipr = 6,9,3
-            write(ipr,130) Length_word
+            write(ipr,150) Length_word
           end do
           stop
       end select
-      if( nppa > 0 ) write(ipr,135) natomsym, axyz(:)*bohr, angxyz(:), ( hkl_dafs(:,i), i = 1,npp )
+      if( nppa > 0 ) write(ipr,155) natomsym, axyz(:)*bohr, angxyz(:), ( hkl_dafs(:,i), i = 1,npp )
     endif
     do i = 1,n
       mot = title(i)
       call center_word( mot, Length_word )
       title(i) = mot
     end do
-    write(ipr,140) title(1:n)
+    write(ipr,160) title(1:n)
   elseif( numat >= 0 ) then
     open(ipr, file = nomficht, position='append')
   endif
 
   select case(Length_word)
     case(11)
-      write(ipr,151) Ephseuil*rydb, Tens(1:n)
+      write(ipr,161) Ephseuil*rydb, Tens(1:n)
     case(12)
-      write(ipr,152) Ephseuil*rydb, Tens(1:n)
+      write(ipr,162) Ephseuil*rydb, Tens(1:n)
     case(13)
-      write(ipr,153) Ephseuil*rydb, Tens(1:n)
+      write(ipr,163) Ephseuil*rydb, Tens(1:n)
     case(14)
-      write(ipr,154) Ephseuil*rydb, Tens(1:n)
+      write(ipr,164) Ephseuil*rydb, Tens(1:n)
     case(15)
-      write(ipr,155) Ephseuil*rydb, Tens(1:n)
+      write(ipr,165) Ephseuil*rydb, Tens(1:n)
     case(16)
-      write(ipr,156) Ephseuil*rydb, Tens(1:n)
+      write(ipr,166) Ephseuil*rydb, Tens(1:n)
     case(17)
-      write(ipr,157) Ephseuil*rydb, Tens(1:n)
+      write(ipr,167) Ephseuil*rydb, Tens(1:n)
     case default
       call write_error
       do ipr = 6,9,3
-        write(ipr,130) Length_word
+        write(ipr,150) Length_word
       end do
       stop
   end select
@@ -2073,37 +2322,39 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
                ' To change that you must modify the formats 121 up to 157 in this routine,', / &
                ' and increase to the same value the parameter n_tens_max.', / &
                ' Then you compile again.' //)
-  110 format(f10.3,i5,2i3,3f12.5,2i3,f13.3,f13.9,f12.5, ' = E_edge, Z, n_edge, j_edge,', &
-  ' Abs_before_edge, VO_interstitial, E_Fermi, ninitl, ninit1, Epsii, Atom_density, f0_forward')
-  111 format(f10.3,i5,2i3,3f12.5,2i3,2f13.3,f13.9,f12.5, ' = E_edge, Z, n_edge, j_edge,', &
-  ' Abs_before_edge, VO_interstitial, E_Fermi, ninitl, ninit1, Epsii(1), Epsii(2), Atom_density, f0_forward')
-  112 format(f10.3,i5,2i3,3f12.5,2i3,4f13.3,f13.9,f12.5, ' = E_edge, Z, n_edge, j_edge,', &
-  ' Abs_before_edge, VO_interstitial, E_Fermi, ninitl, ninit1, Epsii(1...4), Atom_density, f0_forward')
-  113 format(f10.3,i5,2i3,3f12.5,2i3,6f13.3,f13.9,f12.5, ' = E_edge, Z, n_edge, j_edge,', &
-  ' Abs_before_edge, VO_interstitial, E_Fermi, ninitl, ninit1, Epsii(1...6), Atom_density, f0_forward')
-  114 format(f10.3,i5,2i3,3f12.5,2i3,8f13.3,f13.9,f12.5, ' = E_edge, Z, n_edge, j_edge,', &
-  ' Abs_before_edge, VO_interstitial, E_Fermi, ninitl, ninit1, Epsii(1...8), Atom_density, f0_forward')
-  115 format(f10.3,i5,2i3,3f12.5,2i3,10f13.3,f13.9,f12.5, ' = E_edge, Z, n_edge, j_edge,', &
-  ' Abs_before_edge, VO_interstitial, E_Fermi, ninitl, ninit1, Epsii(1...10), Atom_density, f0_forward')
-  116 format(f10.3,i5,2i3,3f12.5,2i3,14f13.3,f13.9,f12.5, ' = E_edge, Z, n_edge, j_edge,', &
-  ' Abs_before_edge, VO_interstitial, E_Fermi, ninitl, ninit1, Epsii(1...14), Atom_density, f0_forward')
-  121 format(A,1p,10000e11.3)
-  122 format(A,1p,10000e12.4)
-  123 format(A,1p,10000e13.5)
-  124 format(A,1p,10000e14.6)
-  125 format(A,1p,10000e15.7)
-  126 format(A,1p,10000e16.8)
-  127 format(A,1p,10000e17.9)
-  130 format(//' Length_word =',i3, ' This parameter must be set between 11 and 17 !'//)
-  135 format(i4,3f10.5,3x,3f10.5,10000(14x,3i4))
-  140 format('    Energy',10000A)
-  151 format(f10.3,1p,10000e11.3)
-  152 format(f10.3,1p,10000e12.4)
-  153 format(f10.3,1p,10000e13.5)
-  154 format(f10.3,1p,10000e14.6)
-  155 format(f10.3,1p,10000e15.7)
-  156 format(f10.3,1p,10000e16.8)
-  157 format(f10.3,1p,10000e17.9)
+  110 format('# ',f10.3,i5,2i3,3f12.5,2i3,2f13.3,f13.9,f12.5,a95,a27)
+  111 format('# ',f10.3,i5,2i3,3f12.5,2i3,2f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
+  112 format('# ',f10.3,i5,2i3,3f12.5,2i3,4f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
+  113 format('# ',f10.3,i5,2i3,3f12.5,2i3,6f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
+  114 format('# ',f10.3,i5,2i3,3f12.5,2i3,8f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
+  115 format('# ',f10.3,i5,2i3,3f12.5,2i3,10f13.3,f13.9,f12.5,a95,'(1..',i2,')',a27)
+  116 format('# ',f10.3,i5,2i3,3f12.5,2i3,14f13.3,f13.9,f12.5,a95,'(1..',i2,')',a27)
+
+  120 format(f10.3,i5,2i3,3f12.5,2i3,f13.3,f13.9,f12.5,a95,a27)
+  121 format(f10.3,i5,2i3,3f12.5,2i3,2f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
+  122 format(f10.3,i5,2i3,3f12.5,2i3,4f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
+  123 format(f10.3,i5,2i3,3f12.5,2i3,6f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
+  124 format(f10.3,i5,2i3,3f12.5,2i3,8f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
+  125 format(f10.3,i5,2i3,3f12.5,2i3,10f13.3,f13.9,f12.5,a95,'(1..',i2,')',a27)
+  126 format(f10.3,i5,2i3,3f12.5,2i3,14f13.3,f13.9,f12.5,a95,'(1..',i2,')',a27)
+
+  141 format(A,1p,10000e11.3)
+  142 format(A,1p,10000e12.4)
+  143 format(A,1p,10000e13.5)
+  144 format(A,1p,10000e14.6)
+  145 format(A,1p,10000e15.7)
+  146 format(A,1p,10000e16.8)
+  147 format(A,1p,10000e17.9)
+  150 format(//' Length_word =',i3, ' This parameter must be set between 11 and 17 !'//)
+  155 format(i4,3f10.5,3x,3f10.5,10000(14x,3i4))
+  160 format('    Energy',10000A)
+  161 format(f10.3,1p,10000e11.3)
+  162 format(f10.3,1p,10000e12.4)
+  163 format(f10.3,1p,10000e13.5)
+  164 format(f10.3,1p,10000e14.6)
+  165 format(f10.3,1p,10000e15.7)
+  166 format(f10.3,1p,10000e16.8)
+  167 format(f10.3,1p,10000e17.9)
 end
 
 !***********************************************************************
@@ -3630,13 +3881,14 @@ subroutine write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,E
       endif
       phtem(:) = cf
       ph0(:) = cg
-      n_tens2 = n_tens / 4
+      n_tens2 = n_tens / ( 2 * ninitlr )
       call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
             jseuil,n_tens_max*ninitlr,n_tens,0,ninitlr,nomficht,nomten,n_tens_max,n_tens2,0,0,nseuil,numat_abs,phtem, &
             ph0,Tens,v0muf,.false.,0)
     else
       call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
-             jseuil,n_tens_max*ninitlr,n_tens,0,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum,cdum,Tens,v0muf,.false.,0)
+             jseuil,n_tens_max*ninitlr,n_tens,0,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum,cdum,Tens,v0muf, &
+            .false.,0)
     endif
 
   end do

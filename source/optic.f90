@@ -23,13 +23,14 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
   implicit none
 
   integer:: iabsorig, icheck_s, ie, ie_computer, ie_q, ie_s, ie_t, ip_max, ip0, &
-    iso1, iso2, isp, isp1, isp2, iss1, iss2, je, jseuil, lm1, lm2, lmax, lmax_pot, &
+    iso1, iso2, isp, isp1, isp2, iss1, iss2, je, jseuil, l0_nrixs, lm1, lm2, lmax, lmax_pot, &
     lmax_probe, lmaxabs_t, lms1, lms2, lseuil, m_hubb, MPI_host_num_for_mumps, mpinodes, mpirank, mpirank0, &
-    lmaxat0, n_Ec, n_multi_run, n_oo, &
+    lmax_nrixs, lmaxat0, n_Ec, n_multi_run, n_oo, &
     n_tens_max, n_V, natomsym, nbseuil, ncolm, ncolr, ncolt, &
     ndim2, nenerg, nenerg_s, nenerg_tddft, nge, ninit1, ninitl, ninitlr, nlm_pot, nlm_probe, nlm_p_fp, &
-    nlmamax, nphim, npldafs, nplr, nplrm, nr, nrm, ns_dipmag, nseuil, nspin, &
+    nlmamax, nphim, npldafs, nplr, nplrm, nq_nrixs, nr, nrm, ns_dipmag, nseuil, nspin, &
     nspino, nspinp, numat, nxanout
+
   integer, dimension(30):: icheck
   integer, dimension(natomsym):: isymeq
   integer, dimension(ninitl):: is_g
@@ -97,7 +98,8 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
 
   real(kind=db), dimension(:), allocatable:: Eimag, En, Energ, Enervide
   real(kind=db), dimension(:,:), allocatable:: Ecinetic, V0bdc
-  real(kind=db), dimension(:,:,:,:), allocatable:: Vrato
+  real(kind=db), dimension(:,:,:), allocatable:: S_nrixs
+  real(kind=db), dimension(:,:,:,:), allocatable:: Vrato, S_nrixs_l
 
   if( icheck(1) > 0 ) write(3,100)
 
@@ -295,8 +297,12 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
     endif  ! arrive ie > nenerg
 
     if( mpinodes > 1 ) then
-      call MPI_RECV_all(MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo,ninitlr,secdd,secdo, &
-                       secdq,secmd,secmm,secoo,secqq)
+      l0_nrixs = 0; lmax_nrixs = 0; nq_nrixs = 0
+      allocate( S_nrixs(nq_nrixs,ninitlr,0:mpinodes-1) )
+      allocate( S_nrixs_l(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:mpinodes-1) )
+      call MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo,ninitlr,nq_nrixs, &
+                       S_nrixs,S_nrixs_l,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
+      deallocate( S_nrixs, S_nrixs_l )
     endif
 
     if( mpirank0 /= 0 ) cycle
@@ -317,7 +323,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
             nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
             phdt,pol,Polarise,poldafse,poldafss,Rot_int,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
             secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
-            Spherical_tensor,Spinorbite,Taux_eq,V0muf,vecdafse,vecdafss,vec,Volume_maille,Xan_atom)
+            Spherical_tensor,Spinorbite,Taux_eq,V0muf,vecdafse,vecdafss,vec,Volume_maille,Xan_atom) 
 
     end do
 

@@ -5,7 +5,7 @@
 
 ! Selection de l'energie de seuil et du travail de sortie de l'element
 
-subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat, Old_reference,Workf,mpirank)
+subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat, Old_reference,Workf,mpirank) 
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -359,9 +359,9 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat, Old_reference,Workf
     do ipr = 3,6,3
       if( ipr == 3 .and. icheck == 0 ) cycle
       if( nbseuil == 1 ) then
-        write(ipr,150) Eseuil(1), workf
+        write(ipr,150) Eseuil(1), Workf
       else
-        write(ipr,160) Eseuil(1:nbseuil), workf
+        write(ipr,160) Eseuil(1:nbseuil), Workf
       endif
     end do
   endif

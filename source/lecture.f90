@@ -4,20 +4,20 @@
 ! les dimensions des differents tableaux
 
 subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extract,Flapw,Full_self_abs,Hubbard,itape4, &
-    Magnetic,Memory_save,mpinodes0,mpirank0,n_file_dafs_exp,n_multi_run_e,nb_atom_conf_m,ncolm,neimagent, &
-    nenerg,ngamme,ngroup,ngroup_neq,nhybm,nklapw,nlatm,nlmlapwm,nmatsym,norbdil,npldafs,nple,nplrm,nspin,nspino,nspinp,ntype, &
-    ntype_conf,Pdb,Readfast,Self_abs,Space_file,Taux,Temperature,Xan_atom)
+    Magnetic,Memory_save,mpinodes0,mpirank0,n_file_dafs_exp,n_multi_run_e,nb_atom_conf_m,ncolm,neimagent,nenerg,ngamme,ngroup, &
+    ngroup_neq,nhybm,nklapw,nlatm,nlmlapwm,nmatsym,norbdil,npldafs,nple,nplrm,n_adimp,n_radius,n_range,nq_nrixs,NRIXS,nspin, &
+    nspino,nspinp,ntype,ntype_conf,Pdb,Readfast,Self_abs,Space_file,Taux,Temperature,Xan_atom)
 
   use declarations
   implicit none
   include 'mpif.h'
 
-  integer:: eof, eoff, i, ie, ier, igamme, igr, igrdat, io, ipr, ipl, &
-    istat, it, itape4, itype_dop, j, jgr, jpl, kgr, l, ligne, lin_gam, &
-    mpinodes0, mpirank0, n, n_dic, n_file_dafs_exp, n_multi_run_e, na, nb, nb_atom_conf_m, ncolm, neimagent, &
+  integer:: eof, eoff, i, ie, ier, igamme, igr, igrdat, io, ipr, ipl, istat, it, itape4, itype_dop, j,&
+    jgr, jpl, kgr, l, ligne, lin_gam, mpinodes0, mpirank0, n, n_adimp, n_radius, n_range,n_dic, n_file_dafs_exp, &
+    n_multi_run_e, na, nb, nb_atom_conf_m, ncolm, neimagent, &
     nenerg, ngamme, ngc, ngroup, ngroup_neq, nhybm, nklapw, nl, &
     nlatm, nlmlapwm, nmatsym, nn, nnombre, norbdil, norbv, mpierr, &
-    npldafs, nple, nplm, nplrm, nspin, nspino, nspinp, ntype, ntype_conf, Wien_save, Z
+    npldafs, nple, nplm, nplrm, nq_nrixs, nspin, nspino, nspinp, ntype, ntype_conf, Wien_save, Z
 
   character(len=2):: Chemical_Symbol, Chemical_Symbol_c, Symbol
   character(len=3):: mot3
@@ -30,13 +30,13 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
   integer, dimension(:), allocatable :: igra, neq, numat
 
   logical:: Absauto, Atom_conf, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Cylindre, Doping, &
-     Extract, Flapw, Full_self_abs, Hubbard, Magnetic, Matper, Memory_save, Pdb, Quadrupole, Readfast, &
+     Extract, Flapw, Full_self_abs, Hubbard, Magnetic, Matper, Memory_save, NRIXS, Pdb, Quadrupole, Readfast, &
      Self_abs, Spherique, Taux, Temperature, Xan_atom
 
-  real(kind=db):: de, def, E, phi, popatc, r, Theta
+  real(kind=db):: Adimp, de, def, E, phi, popatc, q_nrixs_first, q_nrixs, q_nrixs_step, q_nrixs_last, r, Rsorte_s, Theta
   real(kind=db), dimension(3):: p
   real(kind=db), dimension(3,3):: Mat
-  real(kind=db), dimension(:), allocatable:: Egamme
+  real(kind=db), dimension(:), allocatable:: E_adimp, E_radius, Egamme
   real(kind=db), dimension(:,:), allocatable:: pop, posn, posout
 
   Absauto = .true.
@@ -52,9 +52,12 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
   Hubbard = .false.
   Matper = .false.
   Memory_save = .false.
+  n_adimp = 1
   n_dic = 0
   n_file_dafs_exp = 0
   n_multi_run_e = 1
+  n_range = 1
+  n_radius = 1
   nb_atom_conf_m = 0
   neimagent = 0
   nenerg = 131
@@ -66,6 +69,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
   nmatsym = 1
   norbdil = 0
   nple = 0
+  nq_nrixs = 0
+  NRIXS = .false.
   nspin = 1
   nspino = 1
   nspinp = 1 ! pour la diffusion ( = 2 si spinorbite meme potentiel non magnetique )
@@ -129,6 +134,33 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
         case('hubbard')
           Hubbard = .true.
 
+        case('nrixs')
+          NRIXS = .true.
+          n = nnombre(itape4,132)
+          if( n /= 1 .and. n /= 3 ) then
+            call write_error
+            do ipr = 6,9,3
+              write(ipr,110)
+              write(ipr,'(/A/)') ' After keyword "NRIXS" one must have 1 or 3 numbers : q_first, q_step, q_last !'
+            end do
+            stop
+          endif
+          if( n == 1 ) then
+            read(itape4,*,iostat=ier) q_nrixs_first
+            nq_nrixs = 1
+          else
+            read(itape4,*,iostat=ier) q_nrixs_first, q_nrixs_step, q_nrixs_last
+          endif
+          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( n == 3 ) then
+            q_nrixs = q_nrixs_first
+            do nq_nrixs = 2,100000
+              q_nrixs = q_nrixs + q_nrixs_step
+              if( q_nrixs > q_nrixs_last + eps10 ) exit
+            end do
+            nq_nrixs = nq_nrixs - 1
+          endif
+
         case('spgroup')
           n = nnombre(itape4,132)
           read(itape4,'(A)') mots
@@ -140,6 +172,38 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
 
         case('xan_atom')
           Xan_atom = .true.
+
+        case('radius')
+          n = nnombre(itape4,132)
+          if( mod(n,2) == 0 ) then
+            call write_error
+            do ipr = 6,9,3
+              write(ipr,110)
+              write(ipr,115) n
+            end do
+            stop
+          endif
+          if( n > 1 ) then
+            n_radius = ( n + 1 ) / 2
+            allocate( E_radius( n_radius - 1  ) )
+            read(itape4,*,iostat=ier) ( rsorte_s, E_radius(i), i = 1,n_radius-1 )
+          endif
+
+        case('adimp')
+          n = nnombre(itape4,132)
+          if( mod(n,2) == 0 ) then
+            call write_error
+            do ipr = 6,9,3
+              write(ipr,110)
+              write(ipr,115) n
+            end do
+            stop
+          endif
+          if( n > 1 ) then
+            n_adimp = ( n + 1 ) / 2
+            allocate( E_adimp( n_adimp - 1 ) )
+            read(itape4,*,iostat=ier) ( adimp, E_adimp(i), i = 1,n_adimp-1 )
+          endif
 
         case('range','rangel')
           ngamme = nnombre(itape4,132)
@@ -572,6 +636,36 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
 
     ngroup_neq = ngroup
 
+    if( n_adimp > 1 .and. n_radius > 1 .and. .not. Extract ) then
+
+      n_range = n_adimp + n_radius - 1
+
+      do i = 1,n_adimp - 1
+        do j = 1,n_radius - 1
+          if( abs( E_adimp(i) - E_radius(j) ) < 0.00001 ) then
+            n_range = n_range - 1
+            exit
+          endif
+        end do
+      end do
+      deallocate( E_adimp, E_radius )
+
+    elseif( n_adimp > 1 .and. .not. Extract ) then
+
+      n_range = n_adimp
+      deallocate( E_adimp )
+
+    elseif( n_radius > 1 .and. .not. Extract ) then
+
+      n_range = n_radius
+      deallocate( E_radius )
+
+    else
+
+      n_range = 1
+
+    endif
+
     if( Space_Group /= ' ' .or. ntype == 0 .or. Atom_conf ) then
 
       allocate( neq(ngroup_neq) )
@@ -778,8 +872,11 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
     call MPI_Bcast(Full_self_abs,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Hubbard,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Magnetic,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(n_adimp,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_dic,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_multi_run_e,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(n_radius,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(n_range,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nb_atom_conf_m,1,MPI_INTEGER,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(neimagent,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nenerg,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -794,6 +891,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
     call MPI_Bcast(norbdil,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(npldafs,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nple,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(nq_nrixs,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(nrixs,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nspin,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nspino,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nspinp,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -830,11 +929,19 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
 
   return
   110 format(//'  Error in the indata file :')
+  115 format(//' After keyword "Radius", the number of value given for the radius and energies',/ &
+               ' is even (',i2,'), it must be odd !',/ &
+               ' If it is not the case, check the presence of extra characters or tabulations.',/ &
+               ' They are forbidden !'//)
+  117 format(//' After keyword "Adimp", the number of value given for interpoint distances and energies',/ &
+               ' is even (',i2,'), it must be odd !',/ &
+               ' If it is not the case, check the presence of extra characters or tabulations.',/ &
+               ' They are forbidden !'//)
   120 format(//' After keyword "Range", the number of value given for the energies and steps',/ &
                ' is even (',i2,'), it must be odd !',/ &
                ' If it is not the case, check the presence of extra characters or tabulations.',/ &
                ' They are forbidden !'//)
-  130 format(//' Energy step is zero or negatif after keyword "Range", forbidden !'//)
+  130 format(//' Energy step is zero or negative after keyword "Range", forbidden !'//)
   140 format(//' After the keyword "Dafs", for the reflection number', i3,',',/ &
                ' the polarization or the indexes are not well set.',/ &
                ' Check the format !'//)
@@ -979,27 +1086,27 @@ end
 ! Toutes les entrees sauf les densites electroniques et les fonctions d'onde sont en Angstroem et en eV.
 ! Elles sont converties, pour tout le programme, en unites atomiques et Rydberg dans ce sous-programme.
 
-subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,ATA,Atom_occ_hubb,Atom_nonsph, &
-    Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,Base_spin,basereel,Bormann,Cartesian_tensor,Charge_free,Clementi, &
-    com,comt,Core_resolved,Coupelapw,Cubmat,D_max_pot,Dafs,Dafs_bio,Delta_En_conv, &
-    Delta_Epsii,Density,Density_comp,Dipmag,Doping,dpos,dyn_eg,dyn_g,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent, &
+subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,ATA,Atom_occ_hubb, &
+    Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,Base_spin,basereel,Bormann,Cartesian_tensor,Charge_free, &
+    Clementi,com,comt,Core_resolved,Coupelapw,Cubmat,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density,Density_comp, &
+    Dipmag,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent, &
     Eneg_i,Eneg_n_i,Energphot,Extract,f_no_res,Fit_cal,Flapw,Flapw_new, &
     Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s, &
     Green_self,hkl_borm,hkl_dafs,Hubb,Hubbard,Hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,iscratch, &
-    isigpi,itdil,its_lapw,iord,itape4,itype,itype_dop,jseuil,Kern_fac,Kgroup,korigimp,l_selec_max, &
+    isigpi,itdil,its_lapw,iord,itape4,itype,itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,l_selec_max, &
     lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e, &
     Magnetic,Mat_or,Matper,MPI_host_num_for_mumps,mpinodes,mpinodes0,mpirank0,Muffintin, &
-    Multipole,multrmax,n_atom_proto,n_devide,n_file_dafs_exp,n_multi_run_e, &
+    Multipole,multrmax,n_adimp,n_atom_proto,n_devide,n_file_dafs_exp,n_multi_run_e,n_radius,n_range, &
     nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg,ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw,ngroup_m, &
     ngroup_neq,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
     ngroup_temp,nhybm,nlat,nlatm,nnlm,No_solsing,nom_fich_Extract, &
     nomfich,nomfich_optic_data,nomfich_tddft_data,nomfichbav,nomfile_atom,Noncentre, &
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
-    nphim,npldafs,nple,nposextract,nrato,nrato_dirac,nrato_lapw,nrm, &
+    nphim,npldafs,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
     nself,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_conf,numat,numat_abs, &
     nvval,occ_hubb_e,Octupole,Old_reference,One_run,Optic,Overad,Overlap,p_self0, &
     param,Pas_SCF,pdpolar,PointGroup,PointGroup_Auto,polar,Polarise,poldafsem,poldafssm, &
-    pop_nonsph,popatc,popats,popatv,popval,posn,Quadmag,Quadrupole,R_rydb, &
+    pop_nonsph,popatc,popats,popatv,popval,posn,q_nrixs,Quadmag,Quadrupole,R_rydb, &
     r0_lapw,rchimp,Readfast,Recup_optic,Recup_tddft_data,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,rydberg,rsorte_s,Save_optic,Save_tddft_data,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Solver,Space_file,Spherical_signal,Spherical_tensor, &
@@ -1011,14 +1118,15 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   implicit none
   include 'mpif.h'
 
-  integer:: eof, eoff, i, ier, ia, ie, igr, igr_dop, igrdat, io, iord, ip, ipar, ipl, ipl0, ipr, ipr0, iscratch, isp, ispin, &
-    istat, istop, isymeq, it, itape4, itype_dop, j, jgr, jpl, jseuil, jt, k, kgr, l, l_hubbard, l_level_val, l_selec_max, l1, &
-    l2, lamstdens, lecrantage, lin_gam, lmax_pot, lmax_pot_default, lmaxat0, lmaxso0, long, lseuil, m, m_hubb_e, &
-    MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank0, multi_run, multrmax, n, n_atom_proto, n_devide, &
-    n_file_dafs_exp, n_multi_run_e, n_orb_rel, n1, n2, natomsym, nb_atom_conf_m, nbseuil, nchemin, necrantage, neimagent, &
-    nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_neq, ngroup_nonsph, &
+  integer:: eof, eoff, i, i_range, ier, ia, ie, igr, igr_dop, igrdat, io, iord, ip, ipar, ipl, ipl0, ipr, ipr0, iscratch, isp, &
+    ispin, istat, istop, isymeq, it, itape4, itype_dop, j, jgr, jpl, jseuil, jt, k, kgr, l, l_hubbard, l_level_val, &
+    l_selec_max, l1, l2, lamstdens, lecrantage, lin_gam, lmax_nrixs, lmax_pot, lmax_pot_default, lmaxat0, lmaxso0, long, &
+    lseuil, m, &
+    m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank0, multi_run, multrmax, n, n_adimp, n_atom_proto, &
+    n_devide, n_file_dafs_exp, n_multi_run_e, n_orb_rel, n_radius, n_range, n1, n2, natomsym, nb_atom_conf_m, nbseuil, nchemin, &
+    necrantage, neimagent, nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_neq, ngroup_nonsph, &
     ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, nhybm, nlatm, nn, nnlm, nnombre, non_relat, norb, norbdil, normrmt, &
-    nparm, nphim, nphimt, npldafs, nple, nrato_dirac, nrm, nscan, nself, nseuil, nslapwm, nspin, ntype, ntype_conf, &
+    nparm, nphim, nphimt, npldafs, nple, nq_nrixs, nrato_dirac, nrm, nscan, nself, nseuil, nslapwm, nspin, ntype, ntype_conf, &
     numat_abs, Trace_k, Wien_save, Z_nospinorbite, Z
 
   character(len=1):: Let
@@ -1065,8 +1173,8 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   complex(kind=db), dimension(3,npldafs):: poldafsem, poldafssm
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph):: Hybrid
 
-  logical Absauto, Allsite, ATA, Atom, Atom_conf, Atom_nonsph, Atom_occ_hubb, Atomic_scr, Axe_loc, Base_spin, Basereel, &
-    Bormann, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Clementi, Core_resolved, &
+  logical:: Absauto, All_nrixs, Allsite, ATA, Atom, Atom_conf, Atom_nonsph, Atom_occ_hubb, Atomic_scr, Axe_loc, Base_spin, &
+    Basereel, Bormann, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Clementi, Core_resolved, &
     Core_resolved_e, Coupelapw, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Dipmag, Doping, dyn_eg, dyn_g, &
     E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, &
     exc_imp, Extract, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, &
@@ -1084,11 +1192,12 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   logical, dimension(ngroup):: Atom_nsph_e
   logical, dimension(0:ntype):: Hubb
 
-  real(kind=db):: Adimp, Alfpot, Ang_borm, D_max_pot, Delta_En_conv, Delta_Epsii, Eclie, Eclie_out, g1, g2, Gamma_max, &
+  real(kind=db):: Alfpot, Ang_borm, D_max_pot, Delta_En_conv, Delta_Epsii, Eclie, Eclie_out, g1, g2, Gamma_max, &
     Overlap, p_self0, Pas_SCF, phi, pop_nsph, pp, q, r, R_rydb, rad, Rmtt, rn, Roverad, Rpotmax, &
-    rsorte_s, Step_azim, t, tc, Temp, Test_dist_min, Theta, V_intmax, vv
+    Step_azim, t, tc, Temp, Test_dist_min, Theta, V_intmax, vv
 
-  real(kind=db):: Kern_fac, r_self
+  real(kind=db):: Kern_fac, q_nrixs_first, q_nrixs_step, q_nrixs_last, r_self
+  real(kind=db), dimension(nq_nrixs):: q_nrixs
   real(kind=db), dimension(2):: f_no_res
   real(kind=db), dimension(3):: Ang, Ang_rotsup, Ang_spin, angxyz, Axe, Axe_spin, axyz, Centre, dpos, p, Vec_orig
   real(kind=db), dimension(6):: Trace_p
@@ -1099,6 +1208,11 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   real(kind=db), dimension(neimagent):: eeient, eimagent
   real(kind=db), dimension(ngamme):: egamme
   real(kind=db), dimension(nspin):: ecrantage, V0bdcFimp
+  real(kind=db), dimension(n_adimp):: Adimp
+  real(kind=db), dimension(n_radius):: Rsorte_s
+  real(kind=db), dimension(n_adimp):: E_adimp
+  real(kind=db), dimension(n_radius):: E_radius
+  real(kind=db), dimension(n_range):: E_max_range
   real(kind=db), dimension(3,nple):: polar, veconde
   real(kind=db), dimension(nple,2):: pdpolar
   real(kind=db), dimension(3,0:ntype) :: Ang_base_loc
@@ -1124,8 +1238,9 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   real(kind=db), dimension(:,:,:), allocatable:: Hybrid_i, Hybrid_r
 
 ! Parametres par defaut
-  adimp = 0.25_db
+  adimp(:) = 0.25_db
   alfpot = 0._db
+  All_nrixs = .false.
   Allsite = .false.
   Ang_base_loc(1,:) = -10000._db; Ang_base_loc(2:3,:) = 0._db
   Ang_base_loc_gr(1,:) = -10000._db; Ang_base_loc_gr(2:3,:) = 0._db
@@ -1169,6 +1284,9 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   dyn_eg = .false.
   dyn_g = .false.
   dpos(:) = 0._db
+  E_adimp(:) = 100000000._db
+  E_max_range(:) = 100000000._db
+  E_radius(:) = 100000000._db
   Ecrantage(:) = 1._db / nspin
   Eclie = 0.2_db
   Eclie_out = 1._db
@@ -1207,6 +1325,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   ldipimp(:) = -1
   lquaimp(:,:) = -1
   lin_gam = -1
+  lmax_nrixs = 3
   lmaxso0 = -5
   lmaxat0 = -1
   lmaxfree = .false.
@@ -1268,7 +1387,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   rmtimp(:) = 0._db
   roverad = 0._db
   rpotmax = 0._db
-  rsorte_s = 3._db / bohr
+  rsorte_s(:) = 3._db
   Rydberg = .false.
   R_rydb = 1._db
   Save_optic = .false.
@@ -1312,6 +1431,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   Vec_orig(1:2) = 0._db; Vec_orig(3) = 1._db
   Ylm_comp_inp = .false.
   Z_nospinorbite = 0
+
 !Wien_file(1): struct, (2): vcoul, (3): r2v, (4): r2vdn, (5,6,7): clm(isp), (8) psii, (9) Save_potlapw
   Wien_file(:) = ' '
   Wien_file(8) = 'dirac'
@@ -1404,8 +1524,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
           else
             lin_gam = 0
           endif
-          read(itape4,*,iostat=ier) egamme(1:ngamme)
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          read(itape4,*,iostat=ier) egamme(1:n)
 
         case('energphot')
           energphot = .true.
@@ -1541,7 +1660,11 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
 
         case('radius')
           n = nnombre(itape4,132)
-          read(itape4,*,iostat=ier) rsorte_s
+          if( n == 1 ) then
+            read(itape4,*,iostat=ier) rsorte_s(1)
+          else
+            read(itape4,*,iostat=ier) rsorte_s(1), ( E_radius(i-1), rsorte_s(i), i = 2,n_radius )
+          endif
           if( ier > 0 ) call write_err_form(itape4,grdat)
 
         case('nrato')
@@ -1784,6 +1907,27 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
         case('allsite')
           allsite = .true.
 
+        case('all_nrixs')
+          All_nrixs = .true.
+
+        case('lmax_nrix')
+          read(itape4,*,iostat=ier) lmax_nrixs
+
+        case('nrixs')
+          n = nnombre(itape4,132)
+          if( n == 1 ) then
+            read(itape4,*,iostat=ier) q_nrixs_first
+            q_nrixs_step = 1._db
+            q_nrixs_last = q_nrixs_first
+          else
+            read(itape4,*,iostat=ier) q_nrixs_first, q_nrixs_step, q_nrixs_last
+          endif
+          if( ier > 0 ) call write_err_form(itape4,grdat)
+          q_nrixs(1) = q_nrixs_first
+          do i = 2,nq_nrixs
+            q_nrixs(i) = q_nrixs(i-1) + q_nrixs_step
+          end do
+
         case('step_azim')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) Step_azim
@@ -2011,9 +2155,13 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
           read(itape4,*,iostat=ier) iord
           if( ier > 0 ) call write_err_form(itape4,grdat)
 
-        case('adimp','interpoin','inter_poi')
+        case('adimp')
           n = nnombre(itape4,132)
-          read(itape4,*,iostat=ier) adimp
+          if( n == 1 ) then
+            read(itape4,*,iostat=ier) adimp(1)
+          else
+            read(itape4,*,iostat=ier) adimp(1), ( E_adimp(i-1), adimp(i), i = 2,n_adimp )
+          endif
           if( ier > 0 ) call write_err_form(itape4,grdat)
 
         case('rmt')
@@ -2618,6 +2766,45 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
 
 ! Fin de la lecture.
 
+    if( .not. Extract ) then
+
+      if( n_range > 1 ) then
+        i = 1
+        j = 1
+        do i_range = 1,n_range-1
+          if( i < n_adimp .and. j < n_radius ) then
+            E_max_range(i_range) = min( E_adimp(i), E_radius(j) )
+            if( abs( E_adimp(i) - E_radius(j) ) < eps10 ) then
+              i = i + 1
+              j = j + 1
+            elseif( E_adimp(i) < E_radius(j) ) then
+              i = i + 1
+            else
+              j = j + 1
+            endif
+          elseif( i < n_adimp ) then
+            E_max_range(i_range) = E_adimp(i)
+            i = i + 1
+          elseif( j < n_radius ) then
+            E_max_range(i_range) = E_radius(j)
+            j = j + 1
+          endif
+        end do
+      endif
+    endif
+
+! xRadius and xadimp default parameters
+!      if( .NOT. xadimp_kw .AND. .NOT. const_adimp ) then
+!        nxadimp = 10
+!        allocate( xadimp(nxadimp) )
+!        xadimp(1:10) = (/ -1000.0, 0.24, 100.0, 0.20, 250.0, 0.16, 400.0, 0.12, 500.0, 0.08 /)
+!      end if
+!      if (.NOT. xradius_kw .AND. .NOT. const_radius) then
+!        nxradius = 8
+!        allocate( xradius(nxradius) )
+!        xradius(1:8) = (/ -1000.0, 8.3, 100.0, 7.0, 250.0, 5.0, 400.0, 4.0 /)
+!      end if
+
     l = len_trim(nomfich)
     write(6,'(/a9,A)') ' Filout: ',nomfich(1:l)
     if( l > 4 ) then
@@ -2939,14 +3126,14 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
       Fermi_auto = .false.
       nself = 0
     end if
-    if( .not. r_self_imp ) r_self = rsorte_s
+    if( .not. r_self_imp ) r_self = rsorte_s(1)
     if( Self_cons ) then
       if( nself == 0 ) nself = 30
     elseif( ( Fermi_auto .or. ( Hubbard .and. .not. Atom_occ_hubb) ) .and. nself == 0 ) then
       Self_cons = .true.
       p_self0 = 0._db
       nself = 1
-      if( .not. ( r_self_imp .or. One_run ) ) r_self = min( rsorte_s, 3.5_db )
+      if( .not. ( r_self_imp .or. One_run ) ) r_self = min( rsorte_s(1), 3.5_db )
     endif
 
     if( Quadrupole ) then
@@ -3258,6 +3445,48 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
       end do
     endif
 
+    if( n_radius > 1 ) then
+      do i = 2,n_radius
+        if( Rsorte_s(i-1) > Rsorte_s(i) - 0.0001_db ) cycle
+        if( istop == 0 ) call write_error
+        do ipr = ipr0,9,3
+          write(ipr,100)
+          write(ipr,'(/A/)') ' Under keyword "Radius", the radius values must be decreasing !'
+        end do
+        istop = 1
+      end do
+      do i = 2,n_radius
+        if( E_radius(i-1) < E_radius(i) - 0.0001_db ) cycle
+        if( istop == 0 ) call write_error
+        do ipr = ipr0,9,3
+          write(ipr,100)
+          write(ipr,'(/A/)') ' Under keyword "Radius", the energy values must be increasing !'
+        end do
+        istop = 1
+      end do
+    endif
+
+    if( n_adimp > 1 ) then
+      do i = 2,n_adimp
+        if( E_adimp(i-1) < E_adimp(i) - 0.0001_db ) cycle
+        if( istop == 0 ) call write_error
+        do ipr = ipr0,9,3
+          write(ipr,100)
+          write(ipr,'(/A/)') ' Under keyword "Adimp", the energy values must be increasing !'
+        end do
+        istop = 1
+      end do
+    endif
+
+    if( One_run .and. n_range > 1 ) then
+      if( istop == 0 ) call write_error
+      do ipr = ipr0,9,3
+        write(ipr,100)
+        write(ipr,'(/A/)') ' It is not possible to have "One_run" keyword and several values of adimp or radius !'
+      end do
+      istop = 1
+    endif
+
     if( istop == 1 ) stop
 
 ! Normalisation des vecteurs hybridations :
@@ -3305,7 +3534,11 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
         mots(15+l1+l2:18+l1+l2) = 'edge'
         write(3,'(/A)') mots
         write(6,'(A)') mots(12:18+l1+l2)
-        write(3,310) Rsorte_s
+        if( n_radius == 1 ) then
+          write(3,310) Rsorte_s(1)
+        else
+          write(3,315) Rsorte_s(1), ( E_radius(i-1), Rsorte_s(i), i = 2,n_radius )
+        endif
         if( .not. green_s .and. overad ) write(3,320) roverad
         write(3,330) icheck(:)
         if( lin_gam == 1 ) write(3,340)
@@ -3398,7 +3631,11 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
           endif
         else
           write(3,'(A)') ' Finite difference method calculation'
-          write(3,440) iord, adimp
+          if( n_adimp == 1 ) then
+            write(3,440) iord, adimp(1)
+          else
+            write(3,445) iord, adimp(1), ( E_adimp(i-1), adimp(i), i = 2,n_adimp )
+          endif
           write(3,450) lmaxso0
           if( muffintin ) write(3,'(A)') '    Muffin-tin potential'
           if( rydberg ) write(3,460) R_rydb
@@ -3424,6 +3661,11 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
             write(3,510) polar(1:3,ipl), veconde(1:3,ipl)
           end do
         endif
+      endif
+      if( nq_nrixs >= 1 ) then
+        write(3,'(/A)') ' NRIXS (X-ray Raman) calculation'
+        write(3,'(a15,i2)') '   lmax_nrixs =' ,lmax_nrixs
+        write(3,'(a28,3f8.5,a6,i4)') '   q_first, q_step, q_last =' ,q_nrixs_first, q_nrixs_step, q_nrixs_last, ', nq =',nq_nrixs
       endif
 
       if( Dafs_bio ) then
@@ -3661,7 +3903,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   endif  ! Point d'arrivee mpirank0 /= 0
 
   if( mpinodes0 > 1 ) then
-    call MPI_Bcast(adimp,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(adimp,n_adimp,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(alfpot,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(allsite,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     if( npldafs > 0 ) call MPI_Bcast(angpoldafs,3*npldafs, MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -3695,6 +3937,9 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
     call MPI_Bcast(Dipmag,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Doping,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(dpos,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(E_adimp,n_adimp,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(E_max_range,n_range,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(E_radius,n_radius,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(E1E1,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(E1E2e,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(E1E3,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
@@ -3749,6 +3994,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
     call MPI_Bcast(ldipimp,3,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(lecrantage,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(lin_gam,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(lmax_nrixs,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(lmax_pot,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(lmaxat0,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(lmaxfree,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
@@ -3818,7 +4064,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
     call MPI_Bcast(roverad,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(rpotmax,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(R_rydb,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Rsorte_s,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Rsorte_s,n_radius,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Rydberg,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Save_optic,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Save_tddft_data,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
@@ -3851,6 +4097,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
     call MPI_Bcast(Tddft,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Atomic_scr,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Test_dist_min,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
+    call MPI_Bcast(q_nrixs,nq_nrixs,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Rpalf,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Temp,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Taux_oc,ngroup_taux,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
@@ -3929,7 +4176,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
 ! Conversion en unites atomiques.
   rad = pi / 180
 
-  adimp = adimp / bohr
+  adimp(:) = adimp(:) / bohr
 
   where( abs(angpoldafs) < 9999._db ) angpoldafs = angpoldafs * rad
   axyz(1:3) = axyz(1:3) / bohr
@@ -3938,6 +4185,9 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   Delta_En_conv = Delta_En_conv / Rydb
   Delta_Epsii = Delta_Epsii / Rydb
   dpos(:) = dpos(:) / bohr
+  E_adimp(:) = E_adimp(:) / Rydb
+  E_max_range(:) = E_max_range(:) / Rydb
+  E_radius(:) = E_radius(:) / Rydb
   Eclie = Eclie / Rydb
   Eclie_out = Eclie_out / Rydb
   eeient(:) = eeient(:) / Rydb
@@ -3945,13 +4195,14 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   eimagent(:) = eimagent(:) / Rydb
   if( Hubbard ) V_hubbard(:) = V_hubbard(:) / Rydb
   Pas_SCF = Pas_SCF / rydb
+  q_nrixs(:) = q_nrixs(:) * bohr  ! q_nrxis en A^-1 en entree
   r_self = r_self / bohr
   rchimp(:) = rchimp(:) / bohr
   rmtimp(:) = rmtimp(:) / bohr
   roverad = roverad / bohr
   rpotmax = rpotmax / bohr
   R_rydb = R_rydb / bohr
-  rsorte_s = rsorte_s / bohr
+  rsorte_s(:) = rsorte_s(:) / bohr
   Test_dist_min = Test_dist_min / bohr
   v_intmax = v_intmax / Rydb
   v0bdcFimp(:) = v0bdcFimp(:) / Rydb
@@ -4080,8 +4331,6 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
     posn(:,igr) = posn(:,igr) - Centre(:)
   end do
 
-  D_max_pot = D_max_pot / adimp
-
   Multipole(1) = E1E1; Multipole(2) = E1E2e; Multipole(3) = E1E3;
   Multipole(4) = E1M1; Multipole(5) = E1M2; Multipole(6) = E2E2;
   Multipole(7) = E3E3; Multipole(8) = M1M1; Multipole(9) = M1M2;
@@ -4156,6 +4405,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
               2x,' that is respectively indexes 1 1, 1 2, 2 1 and 2 2',/)
   300 format(/' Tensors Extracted from the file :'/,A,/)
   310 format(' Radius =',f6.2)
+  315 format(' Radius, E_radius =',100(f6.2,f6.1))
   320 format('    Roverad =',f6.2)
   330 format(' icheck =',30i2)
   340 format(' Linear range :')
@@ -4165,6 +4415,7 @@ subroutine lecture(Absauto,adimp,alfpot,Allsite,Ang_borm,Ang_rotsup,Angle_or,Ang
   420 format('    Imposed type muffin-tin radius, Rmtimp =',10f6.3,/9x,10f6.3)
   430 format('    Overlap of the muffin-tin radius  =',f6.2)
   440 format('    iord =',i2,', adimp =',f6.2)
+  445 format('    iord =',i2,', adimp, E_adimp =',100( f6.2, f6.1) )
   450 format('    lmaxso0 =',i3)
   460 format('    R_rydb =',f7.3,' A')
   470 format('      Center =',3f7.3)
