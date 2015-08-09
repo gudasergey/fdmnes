@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 26 July 2015, 7 Thermidor, An 223.
+! FDMNES II program, Yves Joly, Oana Bunau, 28 July 2015, 9 Thermidor, An 223.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
 
   character(len=50):: com_date, com_time
 
-  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 26 July 2015'
+  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 28 July 2015'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )

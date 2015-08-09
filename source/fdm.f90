@@ -1114,7 +1114,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
           deallocate( distai )
           deallocate( ia_eq, ia_eq_inv, ia_rep, iaprotoi, igroupi, iopsym_atom, is_eq, itypei )
           deallocate( nb_eq, nb_rpr, nb_rep_t )
-          posi_self(:,:) = posi(:,:)
+          if( i_range == 1 ) posi_self(:,:) = posi(:,:)
           deallocate( posi )
           deallocate( rot_atom )
         endif
@@ -1142,7 +1142,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
           Energ_self_s(:) = 0._db
 
           if( Cal_xanes ) then
-            Rsorte = Rsorte_s(1)
+            Rsorte = Rsorte_s(i_range)
            else
             Rsorte = r_self
            endif
@@ -1155,7 +1155,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
             ich = 0
           endif
 
-          call Atom_selec(adimp_e(1),Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_hubb,Axe_atom_clu,Base_ortho,dcosxyz, &
+          call Atom_selec(adimp_e(i_range),Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_hubb,Axe_atom_clu,Base_ortho,dcosxyz, &
             dista,distai,Full_atom,Green,Hubbard,i_self,ia_eq,ia_eq_inv,ia_rep,iaabs,iaabsi,iaproto,iaprotoi,ich,igreq, &
             igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,is_eq,itype,itypei,itypep,itypepr,Magnetic,m_hubb, &
             m_hubb_e,mpirank0,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,nb_eq,nb_rpr, &
@@ -2163,7 +2163,8 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
           do ie_computer = 0,mpinodes-1
 
-            ie = ( je - 1 ) * mpinodes + ie_computer + 1
+            ie = ( je - 1 ) * mpinodes + ie_computer + ie0
+!            ie = ( je - 1 ) * mpinodes + ie_computer + 1
 
             if( ie > nenerg0 ) exit
 
