@@ -161,7 +161,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     lbz(ii) = lbz(ii-1) + nb_not_zero(ii-1)
   end do 
       
-  if( icheck > 1 ) then
+  if( icheck > 2 ) then
     write(3,110) nb_not_zero_tot
     do ii = 1,nligne
       write(3,120) ii, nb_not_zero(ii), lbz(ii)
@@ -258,7 +258,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
       if( den < 1.e-20_db .and. mpirank0 == 0 ) then
         call write_error
         do ipr = 3,9,3
-          write(ipr,110) ii, i, ispin, ia, lm
+          write(ipr,140) ii, i, ispin, ia, lm
         end do
         stop
       endif
@@ -341,8 +341,8 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   110 format(/' nb_not_zero_tot =',i9)
   120 format(/' Line =',i7,', nb_not_zero =',i6,', lbz =',i9,' / IndColNotZero')
   130 format(20i6)
-  140 format(/' Division par zero dans mat',// &
-               '  ii =',i6)
+  140  format(/' Division par zero dans mat',// &
+               '  ii =',i6,', i =',i6,', ispin =',i3,', ia =',i3,', lm =',i3)
   150 format(i6,1p,250(1x,2e11.3))
   160 format(i6,1p,500e11.3)
 end

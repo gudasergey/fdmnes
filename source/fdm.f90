@@ -4,7 +4,7 @@
 subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
         itape1,itape4,MPI_host_num_for_mumps,mpinodes0,mpirank,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-        nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file,Energphot)
+        nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file,Energphot,Use_FDMX)
 
   use declarations
   implicit none
@@ -47,12 +47,13 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   character(len=13), dimension(:), allocatable:: ltypcal
   character(len=35), dimension(:), allocatable:: com
   character(len=Length_word), dimension(:), allocatable:: nomabs
-  character(len=132), dimension(:), allocatable:: nomfile_atom, nomfich_cal_conv, nomfich_cal_tddft_conv
+  character(len=132), dimension(:), allocatable:: nomfich_cal_conv, nomfich_cal_tddft_conv
 
   complex(kind=db):: f_avantseuil, f_cal
   complex(kind=db), dimension(:,:), allocatable:: karact, phdafs, phdf0t, phdt, pol, poldafsem, poldafssm
   complex(kind=db), dimension(:,:,:), allocatable:: hybrid, poldafse, poldafss
-  complex(kind=db), dimension(:,:,:,:), allocatable:: secdd, secdd_m, secmd, secmd_m, secmm, secmm_m, V_hubb_abs, V_hubb_t
+  complex(kind=db), dimension(:,:,:,:), allocatable:: secdd, secdd_m, secmd, secmd_m, secmm, secmm_m, V_hubb_abs, &
+                                                      V_hubb_t
   complex(kind=db), dimension(:,:,:,:,:), allocatable::  rof0, secdq, secdq_m, Tau_ato, Taull, Taull_tdd, V_hubb, &
                                                          V_hubb_s
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: secdo, secdo_m, secoo, secoo_m, secqq, secqq_m, taull_stk
@@ -72,8 +73,8 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
   integer, dimension(:), allocatable:: ia_eq_inv, ia_eq_inv_self, iabsm,  iabsorig, iapot, iaproto, iaprotoi, icom, igr_i, &
      igr_is, igr_proto, igroup, igroupi, imoy, imoy_out, is_g, ispin_maj, isrt, isymeq, itdil, &
-     its_lapw, itype, itypei, itypep, itypepr, Kgroup, ldil, lmaxa, lmaxat, lqnexc, lval, natomeq_s, &
-     nb_eq, nbord, nbordf, ngreq, ngreqm, nlat, nlmsa, nlmso0, norbv, nqnexc, nphi_dafs, nposextract, nrato, &
+     its_lapw, itype, itypei, itypep, itypepr, Kgroup, ldil, lmaxa, lmaxat, lval, natomeq_s, &
+     nb_eq, nbord, nbordf, ngreq, ngreqm, nlat, nlmsa, nlmso0, norbv, nphi_dafs, nposextract, nrato, &
      nrato_lapw, nsymextract, numat, numia
 
   integer, dimension(:,:), allocatable:: hkl_dafs, ia_eq, ibord, igreq, indice, iopsym_atom, is_eq, isbord, &
@@ -98,7 +99,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
      SCF_mag_free, Second_run, Self_abs, Self_cons, Self_nonexc, &
      Solsing, Solsing_s, Solsing_o, Solsing_only, Spherical_signal, Spherical_tensor, Spino, Spinorbite, State_all, &
      State_all_out, Supermuf, Sym_4, Sym_cubic, Symauto, Symmol, Tau_nondiag, Taux, Tddft, &
-     Tddft_xanes, TdOpt_Xanes, Temperature, Trace_format_wien, Xan_atom, Ylm_comp, Ylm_comp_inp
+     Tddft_xanes, TdOpt_Xanes, Temperature, Trace_format_wien, Use_FDMX, Xan_atom, Ylm_comp, Ylm_comp_inp
 
   logical, dimension(4):: SCF_log
   logical, dimension(10):: Multipole
@@ -128,12 +129,12 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   real(kind=db), dimension(:), allocatable:: Adimp_e, Angle_or, cdil, ch_coeur, chargat, chg_cluster, cgrad, clapl, dista, &
      distai, dV0bdcF, dvc_ex_nex, dv_ex_nex, E_adimp, E_max_range, E_radius, E_starta, Ecinetic, Ecinetic_out, Ecrantage, &
      Eeient, Egamme, Eimag, Eimag_coh, Eimag_s, Eimagent, En_coeur, En_coeur_s, Energ, Energ_coh, Energ_s, Energ_self, &
-     Energ_self_s, Enervide_t, Epsii, Eseuil, poidso, poidsov, poidsov_out,  popatc, q_nrixs, r0_lapw, r, rchimp, &
+     Energ_self_s, Enervide_t, Epsii, Eseuil, poidso, poidsov, poidsov_out,  q_nrixs, r0_lapw, r, rchimp, &
      rhons, rlapw, rmt, rmtimp, rmtg, rmtg0, rmtsd, rs, rsato_t, Rsorte_s, rvol, sec_atom, Taux_eq, Taux_ipr, Taux_oc, &
      Temp_coef, V_hubbard, Vh, Vhns, V0bdc, V0bdcF, V0bdc_out, V0bdcFimp, VxcbdcF, VxcbdcF_out
   real(kind=db), dimension(:,:), allocatable :: coef_g, angpoldafs, Axe_atom_clu, Axe_atom_gr, Axe_atom_grn, &
      chargat_init, chargat_self, chargat_self_s, drho_ex_nex, Excato, Int_tens, pdp, pdpolar, poidsa, &
-     polar, pop_nonsph, pop_orb_val, popatv, popexc, pos, poseq, posi, posi_self, posn, psi_open_val, psii, &
+     polar, pop_nonsph, pop_orb_val, popatv, pos, poseq, posi, posi_self, posn, psi_open_val, psii, &
      rato, rho, rho_coeur, rhoato_abs, rhoit, rsato, V_abs_i, Vcato_init, Vcato_t, vecdafsem, &
      vecdafssm, veconde, Vr, Vxc, vec, Wien_taulap, xyz, Ylmso
   real(kind=db), dimension(:,:,:), allocatable:: gradvr, Int_statedens, popatm, &
@@ -171,7 +172,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   call lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extract,Flapw,Full_self_abs,Hubbard,itape4, &
     Magnetic,Memory_save,mpinodes0,mpirank0,n_file_dafs_exp,n_multi_run_e,nb_atom_conf_m,ncolm,neimagent,nenerg_s,ngamme,ngroup, &
     ngroup_neq,nhybm,nklapw,nlatm,nlmlapwm,nmatsym,norbdil,npldafs,nple,nplrm,n_adimp,n_radius,n_range,nq_nrixs,NRIXS,nspin, &
-    nspino,nspinp,ntype,ntype_conf,Pdb,Readfast,Self_abs,Space_file,Taux,Temperature,Xan_atom)
+    nspino,nspinp,ntype,ntype_conf,Pdb,Readfast,Self_abs,Space_file,Taux,Temperature,Use_FDMX,Xan_atom)
 
   if( Atom_nonsph ) then
     ngroup_nonsph = ngroup
@@ -246,7 +247,6 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   allocate( lvval(0:ntype,nlatm) )
   allocate( natomeq_s(n_radius) )
   allocate( nlat(0:ntype) )
-  allocate( nomfile_atom(0:ntype) )
   allocate( norbv(0:ngroup_nonsph) )
   allocate( nphi_dafs(npldafs) )
   allocate( nrato(0:ntype) )
@@ -261,9 +261,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   allocate( poldafsem(3,npldafs) )
   allocate( poldafssm(3,npldafs) )
   allocate( pop_nonsph(nhybm,ngroup_nonsph) )
-  allocate( popatc(0:ntype) )
   allocate( popats(ngroup,nlatm,nspin) )
-  allocate( popatv(0:ntype,nlatm) )
   allocate( popval(0:ntype,nlatm,nspin) )
   allocate( posn(3,ngroup) )
   allocate( q_nrixs(nq_nrixs) )
@@ -303,18 +301,18 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
     nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg_s,ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw,ngroup_m, &
     ngroup_neq,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
     ngroup_temp,nhybm,nlat,nlatm,nnlm,No_solsing,nom_fich_extract, &
-    nomfich,nomfich_optic_data,nomfich_tddft_data,nomfichbav,nomfile_atom,Noncentre, &
+    nomfich,nomfich_optic_data,nomfich_tddft_data,nomfichbav,Noncentre, &
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
     nphim,npldafs,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
     nself,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_conf,numat,numat_abs, &
     nvval,occ_hubb_e,Octupole,Old_reference,One_run,Optic,Overad,Overlap,p_self0, &
     param,Pas_SCF,pdpolar,PointGroup,PointGroup_Auto,Polar,Polarise,poldafsem,poldafssm, &
-    pop_nonsph,popatc,popats,popatv,popval,posn,q_nrixs,Quadmag,Quadrupole,R_rydb, &
+    pop_nonsph,popats,popval,posn,q_nrixs,Quadmag,Quadrupole,R_rydb, &
     r0_lapw,rchimp,Readfast,Recup_optic,Recup_tddft_data,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,Rydberg,Rsorte_s,Save_optic,Save_tddft_data,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Solver,Space_file,Spherical_signal,Spherical_tensor, &
-    Spinorbite,State_all,State_all_out,Struct,Supermuf,Symauto,Symmol,Taux,Taux_oc,Tddft, &
-    Temp,Temp_coef,Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,V_hubbard,V_intmax,Vec_orig, &
+    Spinorbite,State_all,State_all_out,Struct,Supermuf,Symauto,Symmol,Taux,Taux_oc,Tddft,Temp,Temp_coef, &
+    Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_hubbard,V_intmax,Vec_orig, &
     Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Ylm_comp_inp,Z_nospinorbite)
 
   E1E2e = Multipole(2)
@@ -344,11 +342,11 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
     deallocate( com, cdil, Ecrantage, hkl_dafs, hybrid, iabsm )
     deallocate( egamme,  eeient, eimagent )
     deallocate( iabsorig, icom, isigpi, itdil, itype, its_lapw )
-    deallocate( Kgroup, ldil, lvval, nlat, nomfile_atom )
+    deallocate( Kgroup, ldil, lvval, nlat )
     deallocate( norbv, nphi_dafs, nposextract, nrato, nrato_lapw )
     deallocate( nsymextract, numat, nvval, occ_hubb_e, pdpolar )
     deallocate( polar, poldafsem, poldafssm, pop_nonsph )
-    deallocate( popatc, popats, popatv, popval, posn, r0_lapw )
+    deallocate( popats, popval, posn, r0_lapw )
     deallocate( rchimp, rlapw, rmt, rmtimp, Rot_Atom_gr )
     deallocate( rotloc_lapw, Taux_oc, Temp_coef, Hubb, V_hubbard )
     deallocate( V0bdcFimp, vecdafsem, vecdafssm, veconde )
@@ -374,7 +372,6 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   allocate( Eseuil(nbseuil) )
   allocate( lcoeur(2,0:ntype) )
   allocate( ncoeur(2,0:ntype) )
-  allocate( popexc(nnlm,nspin) )
   allocate( psi_coeur(0:nrm,2,0:ntype) )
   allocate( psii(nrm,nbseuil) )
   allocate( psival(0:nrm,nlatm,0:ntype) )
@@ -382,10 +379,6 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   allocate( rato(0:nrm,0:ntype) )
   allocate( rhoit(0:nrm,0:ntype) )
   allocate( rho_coeur(0:nrm,0:ntype) )
-
-  call atom(Clementi,com,icheck(2),icom,itype,jseuil,lcoeur,lseuil,lvval,mpinodee,mpirank0,nbseuil,ncoeur,ngroup,nlat, &
-        nlatm,nnlm,nomfile_atom,Nonexc,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,nvval,popatc,popats, &
-        popatv,popexc,popval,psi_coeur,psii,psival,r0_lapw,rato,Relativiste,rho_coeur,rhoit,rlapw,rmt)
 
   allocate( Atom_with_axe(0:ngroup_m) )
   allocate( igr_i(ngroup) )
@@ -501,7 +494,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   deallocate( igr_i, igr_is, igr_proto )
 
   Volume_maille = Cal_Volume_maille(axyz,angxyz)
-  Densite_atom = ngroup / Volume_maille
+  Densite_atom = 1 / Volume_maille
 
   call esdata(Eseuil,icheck(4),jseuil,nbseuil,nseuil,numat_abs,Old_reference,Workf,mpirank0)
 
@@ -525,8 +518,25 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   allocate( Skip_run(n_multi_run) )
   Skip_run(:) = .false.
 
-  call pop_proto(chargat,Charge_free,chargm,Flapw,iabsm,icheck(4),igreq,itype,mpirank0,n_atom_proto,n_multi_run,neqm, &
-        ngreq,ngreqm,ngroup,nlat,nlatm,nspin,ntype,numat,popatc,popatm,popats,Run_done)
+  boucle_m: do multi_run = 1,n_multi_run
+
+    boucle_ipr: do ipr = 1,n_atom_proto
+      do i = 1,ngreq(ipr)
+        if( igreq(ipr,i) == iabsm(multi_run) ) exit boucle_ipr
+      end do
+    end do boucle_ipr
+
+    ngreqm(multi_run) = ngreq(ipr)
+
+    do j = 1,multi_run - 1
+      do i = 1,ngreq(ipr)
+        if( iabsm(j) /= igreq(ipr,i) ) cycle
+        run_done(multi_run) = .true.
+        cycle boucle_m
+      end do
+    end do
+
+  end do boucle_m
 
   if( nnotskip > 0 .and. Extract .and. n_atom_proto_p == n_atom_proto ) then
     do multi_run = 1,n_multi_run
@@ -669,27 +679,17 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
     nomfich_s = nomfich
     Final_tddft = .false.
     Final_optic = .false.
-    m = min( multi_run, n_multi_run_e )
 
-    allocate( lqnexc(nnlm) ); allocate( nqnexc(nnlm) )
+    allocate( iapot(0:n_atom_proto) )
+    allocate( itypepr(0:n_atom_proto) )
+    allocate( popatv(0:ntype,nlatm) )
 
-    call init_run(com,Doping,Ecrantage,Force_ecr,Hubb,iabsm(multi_run),iabsorig(multi_run),icheck(4),icom, &
-      itabs,itype,itype_dop,jseuil,lcoeur,lecrantage,lqnexc,lseuil,lvval,mpinodee,mpirank0,n_multi_run,n_orbexc,nbseuil,ncoeur, &
-      necrantage,ngroup,nlat,nlatm,nnlm, nomfich_s,Nonexc,nqnexc, &
-      nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popatc,popats,popatv,popexc,popval, &
-      psi_coeur,psii,psi_open_val,psival,rato,rchimp,Relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard,Wien_file(8))
-
-    boucle_1: do iprabs_nonexc = 1,n_atom_proto
-      do i = 1,ngreq(iprabs_nonexc)
-        if( abs(igreq(iprabs_nonexc,i)) == iabsorbeur) exit boucle_1
-      end do
-    end do boucle_1
-
-    if( Nonexc ) then
-      iprabs = iprabs_nonexc
-    else
-      iprabs = 0
-    endif
+    call init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Flapw,Force_ecr,Hubb,iabsm(multi_run), &
+      iabsorig(multi_run),icheck(4),icom,igreq,iprabs,iprabs_nonexc,itabs,itype,itype_dop,itypepr,jseuil,lcoeur,lecrantage, &
+      lseuil,lvval,mpinodee,mpirank0,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage,neqm,ngreq,ngroup,nlat,nlatm, &
+      nnlm,nomfich_s,Nonexc,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,numat_abs,nvval,pop_open_val, &
+      popatm,popats,popatv,popval,psi_coeur,psii,psi_open_val,psival,r0_lapw,rato,rchimp,Relativiste,rho_coeur, &
+      rhoit,rlapw,Rmt,Rmtimp,V_hubbard,Wien_file(8))
 
     if( Doping ) then
       natomsym = ngreq(ipr_dop)
@@ -699,7 +699,6 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
     allocate( poseq(3,natomsym) )
     allocate( isymeq(natomsym) )
     allocate( Taux_eq(natomsym) )
-
     poseq(:,1:natomsym) = posq(:,iprabs_nonexc,1:natomsym)
     isymeq(1:natomsym) = isymqa(iprabs_nonexc,1:natomsym)
     if( Taux ) then
@@ -729,15 +728,6 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
       call extract_energ(Energ_s,Eseuil,multi_imp,nbbseuil,nbseuil,nenerg_s,nom_fich_extract,Tddft)
     endif
 
-    allocate( iapot( 0:n_atom_proto ) )
-    allocate( itypepr( 0:n_atom_proto ) )
-
-    call Pop_mod(chargat,chargm,Doping,Flapw,iabsorbeur,icheck(4),igreq,itabs,iprabs_nonexc,itype,itype_dop,itypepr,lqnexc,lvval, &
-        n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc)
-
-    deallocate( lqnexc, nqnexc )
-
-    d_ecrant = 1 - sum( ecrantage(:) )
     if( One_run ) then
       iabsfirst = iabsm(1)
     else
@@ -759,11 +749,13 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
       allocate( VxcbdcF_out(nspin) )
     end if
 
-    if( ( .not. One_run ) .or. multi_run == 1 ) &
+    if( ( .not. One_run ) .or. multi_run == 1 ) then
+      d_ecrant = 1 - sum( ecrantage(:) )
       call natomp_cal(angxyz,ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccent,Doping,dpos,Flapw,iabsorbeur,iabsfirst, &
         icheck(5),igr_dop,igreq,itabs,itype,Kgroup,Matper,mpirank0,multrmax,n_atom_proto,n_radius,natomeq_s,natomeq_coh, &
         natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux,Noncentre,posn,Proto_all,r_self,Rsorte_s,rmax,rpotmax, &
         Self_cons,Taux,Taux_oc,Test_dist_min)
+    endif
 
     allocate( Axe_atom_clu(3,natomp) )
     allocate( iaproto(natomp) )
@@ -982,7 +974,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
         deallocate( Energ_s, Eimag_s )
         deallocate( Axe_atom_clu, dista, iapot, iaproto )
-        deallocate( igroup, isymeq, itypep, itypepr, pos, poseq )
+        deallocate( igroup, isymeq, itypep, itypepr, popatv, pos, poseq )
         deallocate( Taux_eq, Int_tens, poldafse, poldafss )
         deallocate( phdafs, phdf0t, phdt, vecdafse, vecdafss )
         deallocate( ltypcal, nomabs, pdp, pol, vec )
@@ -1142,7 +1134,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
           Energ_self_s(:) = 0._db
 
           if( Cal_xanes ) then
-            Rsorte = Rsorte_s(i_range)
+            Rsorte = Rsorte_s(i_radius)
            else
             Rsorte = r_self
            endif
@@ -1155,7 +1147,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
             ich = 0
           endif
 
-          call Atom_selec(adimp_e(i_range),Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_hubb,Axe_atom_clu,Base_ortho,dcosxyz, &
+          call Atom_selec(adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_hubb,Axe_atom_clu,Base_ortho,dcosxyz, &
             dista,distai,Full_atom,Green,Hubbard,i_self,ia_eq,ia_eq_inv,ia_rep,iaabs,iaabsi,iaproto,iaprotoi,ich,igreq, &
             igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,is_eq,itype,itypei,itypep,itypepr,Magnetic,m_hubb, &
             m_hubb_e,mpirank0,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,nb_eq,nb_rpr, &
@@ -1420,7 +1412,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
           Eclie,Eclie_out,Eneg,Energ(nenerg),Green,iaabs,iaproto,icheck(13),imoy,imoy_out,iopsymr,isrt,korigimp,Magnetic, &
           Moy_loc,mpirank0,n_atom_proto,natomp,nim,npoint,npsom,nptmoy,nptmoy_out,nsortf,nspin,nstm,poidsov,poidsov_out,pos, &
           rmtg0,rs,rsbdc,rsbdc_out,rsort,rvol,V0bdcF,V0bdcFimp,V0muf,Vh,Vhbdc,Vhbdc_out,Vr,Vxc,VxcbdcF,VxcbdcF_out,xyz,Workf, &
-          i_range) !*** JDB
+          i_range)
 
 ! Calcul de l'energie du niveau de coeur initial.
         if( Cal_xanes .and. i_range == 1 ) then
@@ -1793,7 +1785,6 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
               Z = 2
               call clmax(Ecmax_out,rsort,lmaxso0,lmaxso,Z,.true.)
               if( Cal_xanes .and. icheck(18) > 0 ) write(3,'(/a9,i4)') ' lmaxso =', lmaxso
-              lmaxso = min( lmaxso, lmaxso_max )
             endif
 
             if( Cal_xanes ) then
@@ -2524,7 +2515,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
     deallocate( karact, Axe_atom_clu, dista, iapot )
     deallocate( iaproto, igroup, isymeq, itypep, itypepr )
-    deallocate( pos, poseq, Taux_eq )
+    deallocate( popatv, pos, poseq, Taux_eq )
     deallocate( poldafse, poldafss, phdafs, phdf0t, phdt )
     deallocate( vecdafse, vecdafss, ltypcal, nomabs, pdp, pol, vec )
 
@@ -2625,7 +2616,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   deallocate( lcoeur )
   deallocate( msymoo, msymooi )
   deallocate( ncoeur, ngreq, ngreqm, nomfich_cal_conv )
-  deallocate( popatm, popexc, posq, psi_coeur, psii, psival, psi_open_val )
+  deallocate( popatm, posq, psi_coeur, psii, psival, psi_open_val )
   deallocate( rato, rhoit, rho_coeur )
   deallocate( Run_done, Skip_run )
   if( .not. Extract ) deallocate( Energ_s, Eimag_s )
@@ -2642,9 +2633,9 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   deallocate( iabsm, iabsorig, icom, isigpi, itdil, itype, its_lapw )
   deallocate( Kgroup )
   deallocate( ldil, lvval )
-  deallocate( nlat, nomfile_atom, norbv, nphi_dafs, nposextract, nrato, nrato_lapw, nsymextract, numat, nvval )
+  deallocate( nlat, norbv, nphi_dafs, nposextract, nrato, nrato_lapw, nsymextract, numat, nvval )
   deallocate( occ_hubb_e )
-  deallocate( pdpolar, polar, poldafsem, poldafssm, pop_nonsph, popatc, popats, popatv, popval, posn, q_nrixs )
+  deallocate( pdpolar, polar, poldafsem, poldafssm, pop_nonsph, popats, popval, posn, q_nrixs )
   deallocate( r0_lapw, rchimp, rlapw, rmt, rmtimp, Rot_Atom_gr, rotloc_lapw )
   deallocate( Taux_oc, Temp_coef )
   deallocate( V_hubbard, V0bdcFimp, Vecdafsem, Vecdafssm, Veconde )

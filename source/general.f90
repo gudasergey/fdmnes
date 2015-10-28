@@ -132,424 +132,6 @@ subroutine coef_init(coef_g,is_g,ninitl,jseuil,lseuil,m_g,nbseuil)
   return
 end
 
-!***********************************************************************
-
-subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpinodes,mpirank,nbseuil,ncoeur,ngroup,nlat, &
-        nlatm,nnlm,nomfile_atom,Nonexc,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,nvval,popatc,popats, &
-        popatv,popexc,popval,psi_coeur,psii,psival,r0_lapw,rato,Relativiste,rho_coeur,rhoit,rlapw,rmt)
-
-  use declarations
-  implicit none
-  include 'mpif.h'
-
-  integer:: i, icheck, igr, io, ipr, ir, ispin, istat, it, j, jseuil, k, l, lseuil, mpierr, mpinodes, mpirank, n, n_orbexc, &
-    nbseuil, ngroup, nlatm, nnlm, nr, nrato_dirac, nrm, nseuil, nspin, ntype
-
-  real(kind=db):: dr, drmax, dx, p1, rmax, rmt_H, rmt_Ti
-
-  character(len=3) :: mot3
-  character(len=35), dimension(0:ntype) :: com
-  character(len=132), dimension(0:ntype) :: nomfile_atom
-
-  integer, dimension(nnlm):: lqnexc, nqnexc
-  integer, dimension(ngroup):: itype
-  integer, dimension(0:ntype):: icom, nlat, nrato, nrato_lapw, numat
-  integer, dimension(2,0:ntype):: lcoeur, ncoeur
-  integer, dimension(0:ntype,nlatm):: lvval, nvval
-
-  logical:: Clementi, Nonexc, Relativiste
-
-  real(kind=db), dimension(0:ntype):: popatc, r0_lapw, rlapw, rmt
-  real(kind=db), dimension(nrm):: ra
-  real(kind=db), dimension(nrm,nbseuil):: psii
-  real(kind=db), dimension(ngroup,nlatm,nspin):: popats
-  real(kind=db), dimension(nnlm,nspin):: popexc
-  real(kind=db), dimension(0:ntype,nlatm) :: popatv
-  real(kind=db), dimension(0:ntype,nlatm,nspin):: popval
-  real(kind=db), dimension(0:nrm,0:ntype):: rato, rhoit, rho_coeur
-  real(kind=db), dimension(0:nrm,nlatm,0:ntype):: psival
-  real(kind=db), dimension(nrm,2):: psi_open_val
-  real(kind=db), dimension(2):: pop_open_val
-  real(kind=db), dimension(0:nrm,2,0:ntype):: psi_coeur
-
-  if( clementi ) then
-    do it = 1,ntype
-      if( icom(it) == 1 .and. numat(it) < 55 ) then
-        com(it) = ' Clementi and Roetti'
-        icom(it) = 2
-      endif
-    end do
-  endif
-
-  do it = 1,ntype
-    if( numat(it) == 0 ) cycle
-    select case( icom(it) )
-
-      case(1)
-
-! Valeurs pour l'atome excite non encore utilises
-        lqnexc(:) = 0
-        nqnexc(:) = 0
-
-        call dirgen(icheck,it,0,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
-          nnlm,nonexc,nqnexc,nr,nrato_dirac,nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
-          popexc,popval,psi_coeur,psii,psi_open_val,psival,ra,rho_coeur,rhoit,numat(it),Relativiste)
-
-        nrato(it) = nr
-        rato(1:nr,it) = ra(1:nr)
-        rato(0,it) = 0._db
-
-        do igr = 1,ngroup
-          if( abs( itype(igr) ) /= it ) cycle
-          do l = 1,nlat(it)
-            do ispin = 1,nspin
- !             if( itype(igr) > 0 .or. nspin == 1 ) then
-                popats(igr,l,ispin) = popval(it,l,ispin)
- !             else
- !               popats(igr,l,3-ispin) = popval(it,l,ispin)
- !             endif
-            end do
-          end do
-        end do
-
-      case(2)
-
-        call clem(icheck,it,0,lseuil,lvval,mpirank,nbseuil,nlat,nlatm,nonexc,nr,nrm,nseuil,ntype,nvval,popatc, &
-               popatv,psii,psival,ra,rhoit,numat(it))
-        nrato(it) = nr
-        rato(1:nr,it) = ra(1:nr)
-        rato(0,it) = 0._db
-
-      case(3)
-
-        nrato(it) = nrato_lapw(it)
-        if( nrato(it) > nrm .and. mpirank == 0 ) then
-          call write_error
-          do ipr = 3,9,3
-            write(ipr,110) nrato(it), nrm
-          end do
-          stop
-        endif
-        dx = log( rlapw(it) / r0_lapw(it) ) / ( nrato_lapw(it) - 1 )
-        do j = 1,nrato_lapw(it)
-          rato(j,it) = r0_lapw(it) * exp( ( j - 1 ) * dx )
-        enddo
-        rato(0,it) = 0._db
-! on prolonge
-        rmax = 2.5_db / bohr
-        drmax = 0.1_db / bohr
-
-        boucle_r: do j = nrato_lapw(it)+1,nrm
-          rato(j,it) = r0_lapw(it) * exp( ( j - 1 ) * dx )
-          if( rato(j,it) > rmax ) then
-            nrato(it) = j
-            exit boucle_r
-          endif
-          dr = rato(j,it) - rato(j-1,it)
-          if( dr > drmax ) then
-            do k = j,nrm
-              rato(k,it) = rato(k-1,it) + drmax
-              if( rato(k,it) > rmax ) then
-                nrato(it) = k
-                exit boucle_r
-              endif
-            end do
-          endif
-        end do boucle_r
-
-        if( rato(nrato(it),it) < 2.5_db/bohr ) then
-          n = 1 + Int( ( rmax - rato(nrato(it),it) ) / drmax )
-          call write_error
-          do ipr = 3,9,3
-            write(ipr,120) nrm + n, nrm
-          end do
-          stop
-        endif
-
-      case(4)
-
-        if( mpirank == 0 ) then
-          open(8, file=nomfile_atom(it), status='old',iostat=istat)
-          do i = 1,100000
-            read(8,'(A)') mot3
-            if(mot3 == '---') exit
-          end do
-          read(8,*)
-          read(8,*) nrato(it)
-          read(8,*)
-          rato(0,it) = 0._db
-          do ir = 1,nrato(it)
-            if( it == 0 ) then
-              read(8,*) rato(ir,it), rhoit(ir,it), (psival(ir,l,it),l = 1,nlat(it)), psii(ir,:)
-            else
-              read(8,*) rato(ir,it), rhoit(ir,it), (psival(ir,l,it), l = 1,nlat(it))
-            endif
-          end do
-          rato(1:nrato(it),it) = rato(1:nrato(it),it) / bohr
-          Close(8)
-        endif
-
-        if( mpinodes > 1 ) then
-          call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
-          do io = 1,nlat(it)
-            call MPI_Bcast(popatv(it,io),1,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
-          end do
-          do io = 1,nlat(it)
-            do ir = 0,nrato(it)
-              call MPI_Bcast(psival(ir,io,it),1,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
-            end do
-          end do
-          do ir = 0,nrato(it)
-            call MPI_Bcast(rato(ir,it),1,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
-            call MPI_Bcast(rhoit(ir,it),1,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
-          end do
-          if( it == 0 ) call MPI_Bcast(psii,nbseuil*nrm,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
-        endif
-
-    end select
-
-  end do     ! fin de la boucle sur les especes chimiques
-
-  write(98,'(a15,i3)') ' atom, mpirank=',mpirank ! Erreur MPI
-  rmt_H = 0.3_db
-  rmt_Ti = 1.0_db
-  do it = 1,ntype
-    if( abs(rmt(it)) > eps10 ) cycle
-    if( numat(it) == 0 ) then
-      rmt(it) = 0._db
-    elseif( numat(it) == 1 ) then
-      rmt(it) = rmt_H
-    elseif( numat(it) > 21 ) then
-      rmt(it) = rmt_Ti
-    else
-      p1 = ( numat(it) - 1._db ) / 21._db
-      rmt(it) = p1 * rmt_Ti + (1 - p1) * rmt_H
-    endif
-  end do
-
-  if( icheck > 0 ) write(3,140) rmt(1:ntype)
-  rmt(:) = rmt(:) / bohr
-
-  return
-  110 format(/' nrato =',i6,' > nrm =',i6,' !', /' Increase the value of nrm using keyword nrato')
-  120 format(/' The number of radius needs to be increased',/ ' nrato =',i6,' > nrm =',i6,' after extrapolation !', &
-         /' Increase the value of nrm using keyword nrato')
-  140 format(/' FDM atom radius =',10f6.3)
-end
-
-!***********************************************************************
-
-! Calcul des atomes selon Clementi et Roetti
-
-!  References :
-!   HS  F. Herman and S. Skillman "Atomic Structure Calculations"
-!       Prentice Hall 1963
-!   CR  E. Clementi and C. Roetti "Atomic Data and Nuclear Data Tables"
-!       Vol.14,(3-4) [1974] p.177-478
-
-!   NPRIN Principal quantum number
-!   NAZIM Azimuthal quantum number
-!   NCONF Number of electrons occupying this orbital
-!   NTERM Number of radial basis functions
-!   NEXP  Ni for the basis functions (See Clementi Roetti book)
-!   ESP   Exponential constant for the basis function
-!   CON   Coefficient which multiplies the basis function
-!
-subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank,nbseuil,nlat,nlatm,Nonexc,nrato,nrm,nseuil,ntype,nvval,popatc, &
-              popatv,psii,psival,rato,rhoit,Z)
-
-  use declarations
-  implicit none
-
-  integer, parameter:: norbm = 11
-  integer, parameter:: ntrm = 11
-
-  integer:: i, icalc, icheck, io, io0, ipr, ir, it, itabs, iv, j, lseuil, mpirank, nbseuil, ncalc, nlatm, norb, norb0, nr, &
-    nrato, nrm, nseuil, ntype, Z, Zp
-
-  integer, dimension(norbm):: nazim, nazim0, nconf, nconf0, nprin, nprin0, nterm, nterm0
-  integer, dimension(norbm,ntrm) :: nexp, nexp0
-  integer, dimension(0:ntype):: nlat
-  integer, dimension(0:ntype,nlatm):: lvval, nvval
-
-  logical:: Nonexc
-
-  real(kind=db):: alfa, arg, ch, delta, f, phi, r0, rmax, ra
-
-  real(kind=db), dimension(6):: nfact
-  real(kind=db), dimension(nrm):: rato
-  real(kind=db), dimension(nrm,nbseuil):: psii
-  real(kind=db), dimension(norbm,ntrm):: esp, esp0, con, con0, onor
-  real(kind=db), dimension(0:ntype):: popatc
-  real(kind=db), dimension(0:ntype,nlatm):: popatv
-  real(kind=db), dimension(0:nrm,0:ntype):: rhoit
-  real(kind=db), dimension(0:nrm,nlatm,0:ntype):: psival
-
-  if( icheck > 1 ) write(3,100) it, Z
-
-! Rayons
-  r0 = 0.00005_db / bohr
-  rmax = 10._db / bohr
-  delta = 1.02_db
-  rato(1) = r0
-  ra = r0
-  f = log( delta )
-  do ir = 2,1000000
-   ra = ra + r0 * exp( ( ir - 1) * f )
-   if( ir > nrm ) cycle
-   rato(ir) = ra
-   if( rato(ir) > rmax ) exit
-  end do
-  nrato = ir
-  nr = nrato
-  if( nr > nrm .and. mpirank == 0 ) then
-    call write_error
-    do ipr = 3,9,3
-      write(ipr,105) nr, nrm
-    end do
-    stop
-  endif
-
-! Factoriels
-  Nfact(1) = sqrt( 2._db )
-  do i = 2,6
-    Nfact(i) = Nfact(i-1) * sqrt( 2._db * i * ( 2 * i - 1 ) )
-  end do
-
-! Pour l'absorbeur, on calcule l'atome excite (Z+1) et l'atome non
-! excite
-  if( it == itabs .and. .not. nonexc ) then
-    ncalc = 2
-  else
-    ncalc = 1
-  endif
-
-  do icalc = 1,ncalc
-
-    Zp = Z + icalc - 1 ! Approximation Z + 1
-
-    if( Zp < 30 ) then
-      call clempar1(Zp,norb,nprin,nazim,nconf,nterm,nexp,esp,con)
-    elseif( Z < 50 ) then
-      call clempar2(Zp,norb,nprin,nazim,nconf,nterm,nexp,esp,con)
-    else
-      call clempar3(Zp,norb,nprin,nazim,nconf,nterm,nexp,esp,con)
-    endif
-
-    if( it == itabs .and. icalc == 1 ) then
-      if( nseuil == 0 ) then
-        psii(:,:) = 0._db
-      else
-        ch = 0._db
-        do io = 1,norb
-          if( nprin(io) == nseuil .and. nazim(io) == lseuil ) exit
-        end do
-        do i = 1,Nterm(io)
-          alfa =  ( 2 * esp(io,i) )**( nexp(io,i) + 0.5_db )
-          onor(io,i) =  alfa / Nfact(nexp(io,i))
-        end do
-        do ir = 1,nr
-          phi = 0._db
-          do j = 1,nterm(io)
-            arg = esp(io,j) * rato(ir)
-            if( arg > 100._db ) cycle
-            phi = phi + onor(io,j) * con(io,j) * rato(ir)**nexp(io,j) * exp( - arg )
-          end do
-          psii(ir,1) = phi
-          psii(ir,nbseuil) = phi
-          ch = ch + phi**2 * ( rato(ir+1) - rato(ir) )
-        end do
-        if( icheck > 1 ) write(3,120) io, nprin(io), nazim(io), nconf(io), ch
-      endif
-    endif
-
-    if( it == itabs .and. .not. nonexc ) then
-      if( icalc == 1 ) then
-        norb0 = norb
-        nprin0(1:norb) = nprin(1:norb)
-        nazim0(1:norb) = nazim(1:norb)
-        nconf0(1:norb) = nconf(1:norb)
-        nterm0(1:norb) = nterm(1:norb)
-        nexp0(1:norb,:) = nexp(1:norb,:)
-        esp0(1:norb,:) = esp(1:norb,:)
-        con0(1:norb,:) = con(1:norb,:)
-      else
-        do io = 1,norb
-          if( nprin(io) == nseuil .and. nazim(io) == lseuil ) nconf(io) = nconf(io) - 1
-          if( nprin(io) > nseuil .or. ( nprin(io) == nseuil .and. nazim(io) >= lseuil ) ) cycle
-          do io0 = 1,norb0
-            if( nprin0(io0) /= nprin(io) .or. nazim0(io0) /= nazim(io) ) cycle
-            nconf(io) = nconf0(io0)
-            nterm(io) = nterm0(io0)
-            nexp(io,:) = nexp0(io0,:)
-            esp(io,:) = esp0(io0,:)
-            con(io,:) = con0(io0,:)
-            exit
-          end do
-        end do
-      endif
-    endif
-
-  end do
-
-  do io = 1,nlat(it)
-    do i = 1,norb
-      if( nprin(i) == nvval(it,io) .and. nazim(i) == lvval(it,io)) exit
-    end do
-    if( i == norb+1 .and. mpirank == 0 ) then
-      call write_error
-      do ipr = 3,9,3
-        write(ipr,110) it, nvval(it,io), lvval(it,io)
-      end do
-      stop
-    endif
-    popatv(it,io) = 1._db * nconf(i)
-  end do
-
-  popatc(it) = 1._db * sum( nconf(1:norb) )
-  do io = 1,nlat(it)
-    popatc(it) = popatc(it) - popatv(it,io)
-  end do
-
-!  Calculate normalization coefficients
-!  (see CR p.180, equation (6))
-
-  do io = 1,norb
-    do i = 1,Nterm(io)
-      alfa =  ( 2 * esp(io,i) )**( nexp(io,i) + 0.5_db )
-      onor(io,i) =  alfa / Nfact(nexp(io,i))
-    end do
-  end do
-
-  rhoit(:,it) = 0._db
-  do io = 1,norb
-    do iv = 1,nlat(it)
-      if( nprin(io) == nvval(it,iv) .and. nazim(io) == lvval(it,iv) ) exit
-    end do
-    if( iv == nlat(it)+1 ) iv = 0
-    ch = 0._db
-    do ir = 1,nr
-      phi = 0._db
-      do j = 1,nterm(io)
-        arg = esp(io,j) * rato(ir)
-        if( arg > 100._db ) cycle
-        phi = phi + onor(io,j) * con(io,j) * rato(ir)**nexp(io,j) * exp( - arg )
-      end do
-      if( iv > 0 ) psival(ir,iv,it) = phi
-      rhoit(ir,it) = rhoit(ir,it) + nconf(io) * ( phi / rato(ir) )**2
-      ch = ch + phi**2 * ( rato(ir+1) - rato(ir) )
-    end do
-    if( icheck > 1 ) write(3,120) io, nprin(io), nazim(io), nconf(io), ch
-  end do
-  rhoit(1:nr,it) = rhoit(1:nr,it) / quatre_pi
-
-  return
-  100 format(/' it =',i2,'  Z =',i4)
-  105 format(/' Number of radius =',i6,' > nrm =',i6,// ' Increase nrm using keyword nrato !'/)
-  110 format(///' Orbital not found in the Clementi and Roetti bases :',/'   it =',i2,',  n =',i2,'  l =',i2)
-  120 format(' io, nprin, nazim, nconf =',4i3,' ch =',f10.7)
-end
-
 !*********************************************************************
 
 ! Recherche des atomes equivalents a l'absorbeur et calcul de leur symetrie relative.
@@ -1038,65 +620,6 @@ end
 
 !*********************************************************************
 
-subroutine pop_proto(chargat,Charge_free,chargm,Flapw,iabsm,icheck,igreq,itype,mpirank,n_atom_proto,n_multi_run,neqm, &
-        ngreq,ngreqm,ngroup,nlat,nlatm,nspin,ntype,numat,popatc,popatm,popats,run_done)
-
-  use declarations
-  implicit none
-
-  integer:: i, icheck, igr, im, ipr, l, mpirank, multi_run, n_atom_proto, n_multi_run, neqm, ngroup, nlatm, nspin, ntype
-
-  integer, dimension(0:ntype):: nlat, numat
-  integer, dimension(ngroup):: itype
-  integer, dimension(n_multi_run):: iabsm, ngreqm
-  integer, dimension(0:n_atom_proto):: ngreq
-  integer, dimension(0:n_atom_proto,neqm):: igreq
-
-  logical:: Charge_free, Flapw
-  logical, dimension(n_multi_run):: run_done
-
-  real(kind=db):: chargm
-  real(kind=db), dimension(ngroup):: chargatg
-  real(kind=db), dimension(0:ntype):: popatc
-  real(kind=db), dimension(0:n_atom_proto):: chargat
-  real(kind=db), dimension(0:n_atom_proto,nlatm,nspin):: popatm
-  real(kind=db), dimension(ngroup,nlatm,nspin):: popats
-
-  call pop_group(chargatg,Charge_free,chargm,Flapw,icheck,itype,mpirank,ngroup,nlat,nlatm,nspin,ntype,numat,popatc,popats)
-
-  do ipr = 1,n_atom_proto
-    igr = igreq(ipr,1)
-    chargat(ipr) = chargatg(igr)
-    do l = 1,nlat(abs(itype(igr)))
-      popatm(ipr,l,1:nspin) = popats(igr,l,1:nspin)
-    end do
-  end do
-
-  boucle_multi: do multi_run = 1,n_multi_run
-
-    boucle_ipr: do ipr = 1,n_atom_proto
-      do i = 1,ngreq(ipr)
-        if( igreq(ipr,i) == iabsm(multi_run) ) exit boucle_ipr
-      end do
-    end do boucle_ipr
-
-    ngreqm(multi_run) = ngreq(ipr)
-
-    do im = 1,multi_run - 1
-      do i = 1,ngreq(ipr)
-        if( iabsm(im) /= igreq(ipr,i) ) cycle
-        run_done(multi_run) = .true.
-        cycle boucle_multi
-      end do
-    end do
-
-  end do boucle_multi
-
-  return
-end
-
-!*********************************************************************
-
 ! Sousprogramme elaborant la grille en energie pour le calcul de XANES
 
 subroutine grille_xanes(eeient,eimag,eimagent,egamme,energ,icheck,lin_gam,ngamme,neimagent,nenerg)
@@ -1197,31 +720,42 @@ end
 
 !***********************************************************************
 
-subroutine init_run(com,Doping,Ecrantage,Force_ecr,Hubb,iabsorbeur,iabsorig,icheck,icom, &
-      itabs,itype,itype_dop,jseuil,lcoeur,lecrantage,lqnexc,lseuil,lvval,mpinodes,mpirank,n_multi_run,n_orbexc,nbseuil,ncoeur, &
-      necrantage,ngroup,nlat,nlatm,nnlm, nomfich_s,nonexc,nqnexc, &
-      nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popatc,popats,popatv,popexc,popval, &
-      psi_coeur,psii,psi_open_val,psival,rato,rchimp,relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard,nompsii)
+subroutine init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Flapw,Force_ecr,Hubb,iabsorbeur, &
+      iabsorig,icheck,icom,igreq,iprabs,iprabs_nonexc,itabs,itype,itype_dop,itypepr,jseuil,lcoeur,lecrantage, &
+      lseuil,lvval,mpinodes,mpirank,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage,neqm,ngreq,ngroup,nlat,nlatm, &
+      nnlm,nomfich_s,Nonexc,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,numat_abs,nvval,pop_open_val, &
+      popatm,popats,popatv,popval,psi_coeur,psii,psi_open_val,psival,r0_lapw,rato,rchimp,Relativiste,rho_coeur, &
+      rhoit,rlapw,Rmt,Rmtimp,V_hubbard,nompsii)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
   include 'mpif.h'
+
+  integer:: i, iabsorig, iabsorbeur, icheck, igr, ipr, iprabs, iprabs_nonexc, itabs, itype_dop, jseuil, l, lecrantage, lseuil, &
+      mpinodes, mpirank, n_atom_proto, n_multi_run, n_orbexc, nbseuil, necrantage, neqm, ngroup, nlatm, nnlm, nrato_dirac, nrm, &
+      nseuil, nspin, ntype, numat_abs
 
   character(len=132):: nomfich_s, nompsii
   character(len=35), dimension(0:ntype):: com
 
   integer, dimension(ngroup):: itype
   integer, dimension(nnlm):: lqnexc, nqnexc
-  integer, dimension(0:ntype):: icom, nlat, nrato, numat
+  integer, dimension(0:n_atom_proto):: itypepr, ngreq
+  integer, dimension(0:n_atom_proto,neqm):: igreq
+  integer, dimension(0:ntype):: icom, nlat, nrato, nrato_lapw, numat
   integer, dimension(2,0:ntype):: lcoeur, ncoeur
   integer, dimension(0:ntype,nlatm):: lvval, nvval
 
-  logical:: Doping, Force_ecr, nonexc, relativiste
+  logical:: Charge_free, Clementi, Doping, Flapw, Force_ecr, nonexc, relativiste
   logical, dimension(0:ntype):: hubb
 
-  real(kind=db), dimension(0:ntype):: popatc, rchimp, rmt, rmtimp, V_hubbard
+  real(kind=db):: Chargm
+  real(kind=db), dimension(0:n_atom_proto):: chargat
+  real(kind=db), dimension(ngroup):: chargatg
+  real(kind=db), dimension(0:ntype):: popatc, r0_lapw, rchimp, rlapw, rmt, rmtimp, V_hubbard
   real(kind=db), dimension(nspin):: ecrantage
   real(kind=db), dimension(nnlm,nspin):: popexc
+  real(kind=db), dimension(0:n_atom_proto,nlatm,nspin):: popatm
   real(kind=db), dimension(0:ntype,nlatm):: popatv
   real(kind=db), dimension(ngroup,nlatm,nspin):: popats
   real(kind=db), dimension(0:ntype,nlatm,nspin):: popval
@@ -1244,21 +778,468 @@ subroutine init_run(com,Doping,Ecrantage,Force_ecr,Hubb,iabsorbeur,iabsorig,iche
     write(3,110)
   endif
 
+  boucle_1: do iprabs_nonexc = 1,n_atom_proto
+    do i = 1,ngreq(iprabs_nonexc)
+      if( abs(igreq(iprabs_nonexc,i)) == iabsorbeur ) exit boucle_1
+    end do
+  end do boucle_1
+  if( Nonexc ) then
+    iprabs = iprabs_nonexc
+  else
+    iprabs = 0
+  endif
+
+! Atomic electron density
+  call atom(Clementi,com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpirank,nbseuil,ncoeur,ngroup,nlat, &
+        nlatm,nnlm,Nonexc,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,nvval,popatc,popats, &
+        popatv,popexc,popval,psi_coeur,psii,psival,r0_lapw,rato,Relativiste,rho_coeur,rhoit,rlapw)
+
+  call pop_group(Chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank,ngroup,nlat,nlatm,nspin,ntype,numat,popatc,popats)
+
+  do ipr = 1,n_atom_proto
+    igr = igreq(ipr,1)
+    Chargat(ipr) = Chargatg(igr)
+    do l = 1,nlat(abs(itype(igr)))
+      popatm(ipr,l,1:nspin) = popats(igr,l,1:nspin)
+    end do
+  end do
+
+! Absorbing atom electron density
   call type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,itabs,itype,itype_dop,jseuil,lcoeur,lecrantage, &
-        lqnexc,lseuil,lvval,mpinodes,mpirank,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,nonexc,nqnexc, &
-        nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popexc,popatc,popats,popatv,popval, &
-        psi_coeur,psii,psi_open_val,psival,rato,rchimp,relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
+        lqnexc,lseuil,lvval,mpinodes,mpirank,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,Nonexc,nqnexc, &
+        nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popatc,popats,popatv,popexc,popval, &
+        psi_coeur,psii,psi_open_val,psival,rato,rchimp,Relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
+
+  call Pop_mod(Chargat,Chargm,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,iprabs_nonexc,itype,itype_dop,itypepr,lqnexc,lvval, &
+        n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc)
 
   return
   100 format(/' ----------',110('-'),//' Absorbing atom',i4)
   110 format(/' ---- Init_run ------',100('-'))
 end
 
+!***********************************************************************
+
+subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpirank,nbseuil,ncoeur,ngroup,nlat, &
+        nlatm,nnlm,Nonexc,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,nvval,popatc,popats, &
+        popatv,popexc,popval,psi_coeur,psii,psival,r0_lapw,rato,Relativiste,rho_coeur,rhoit,rlapw)
+
+  use declarations
+  implicit none
+  include 'mpif.h'
+
+  integer:: icheck, igr, ipr, it, j, jseuil, k, l, lseuil, mpirank, n, n_orbexc, &
+    nbseuil, ngroup, nlatm, nnlm, nr, nrato_dirac, nrm, nseuil, nspin, ntype
+
+  real(kind=db):: dr, drmax, dx, rmax
+
+  character(len=35), dimension(0:ntype) :: com
+
+  integer, dimension(nnlm):: lqnexc, nqnexc
+  integer, dimension(ngroup):: itype
+  integer, dimension(0:ntype):: icom, nlat, nrato, nrato_lapw, numat
+  integer, dimension(2,0:ntype):: lcoeur, ncoeur
+  integer, dimension(0:ntype,nlatm):: lvval, nvval
+
+  logical:: Clementi, Nonexc, Relativiste
+
+  real(kind=db), dimension(0:ntype):: popatc, r0_lapw, rlapw
+  real(kind=db), dimension(nrm):: ra
+  real(kind=db), dimension(nrm,nbseuil):: psii
+  real(kind=db), dimension(ngroup,nlatm,nspin):: popats
+  real(kind=db), dimension(nnlm,nspin):: popexc
+  real(kind=db), dimension(0:ntype,nlatm) :: popatv
+  real(kind=db), dimension(0:ntype,nlatm,nspin):: popval
+  real(kind=db), dimension(0:nrm,0:ntype):: rato, rhoit, rho_coeur
+  real(kind=db), dimension(0:nrm,nlatm,0:ntype):: psival
+  real(kind=db), dimension(nrm,2):: psi_open_val
+  real(kind=db), dimension(2):: pop_open_val
+  real(kind=db), dimension(0:nrm,2,0:ntype):: psi_coeur
+
+  if( clementi ) then
+    do it = 1,ntype
+      if( icom(it) == 1 .and. numat(it) < 55 ) then
+        com(it) = ' Clementi and Roetti'
+        icom(it) = 2
+      endif
+    end do
+  endif
+
+  do it = 1,ntype
+    if( numat(it) == 0 ) cycle
+    select case( icom(it) )
+
+      case(1)
+
+! Valeurs pour l'atome excite non encore utilises
+        lqnexc(:) = 0
+        nqnexc(:) = 0
+
+        call dirgen(icheck,it,0,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
+          nnlm,nonexc,nqnexc,nr,nrato_dirac,nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
+          popexc,popval,psi_coeur,psii,psi_open_val,psival,ra,rho_coeur,rhoit,numat(it),Relativiste)
+
+        nrato(it) = nr
+        rato(1:nr,it) = ra(1:nr)
+        rato(0,it) = 0._db
+
+        do igr = 1,ngroup
+          if( abs( itype(igr) ) /= it ) cycle
+          do l = 1,nlat(it)
+            popats(igr,l,1:nspin) = popval(it,l,1:nspin)
+          end do
+        end do
+
+      case(2)
+
+        call clem(icheck,it,0,lseuil,lvval,mpirank,nbseuil,nlat,nlatm,nonexc,nr,nrm,nseuil,ntype,nvval,popatc, &
+               popatv,psii,psival,ra,rhoit,numat(it))
+        nrato(it) = nr
+        rato(1:nr,it) = ra(1:nr)
+        rato(0,it) = 0._db
+
+      case(3)
+
+        nrato(it) = nrato_lapw(it)
+        if( nrato(it) > nrm .and. mpirank == 0 ) then
+          call write_error
+          do ipr = 3,9,3
+            write(ipr,110) nrato(it), nrm
+          end do
+          stop
+        endif
+        dx = log( rlapw(it) / r0_lapw(it) ) / ( nrato_lapw(it) - 1 )
+        do j = 1,nrato_lapw(it)
+          rato(j,it) = r0_lapw(it) * exp( ( j - 1 ) * dx )
+        enddo
+        rato(0,it) = 0._db
+! on prolonge
+        rmax = 2.5_db / bohr
+        drmax = 0.1_db / bohr
+
+        boucle_r: do j = nrato_lapw(it)+1,nrm
+          rato(j,it) = r0_lapw(it) * exp( ( j - 1 ) * dx )
+          if( rato(j,it) > rmax ) then
+            nrato(it) = j
+            exit boucle_r
+          endif
+          dr = rato(j,it) - rato(j-1,it)
+          if( dr > drmax ) then
+            do k = j,nrm
+              rato(k,it) = rato(k-1,it) + drmax
+              if( rato(k,it) > rmax ) then
+                nrato(it) = k
+                exit boucle_r
+              endif
+            end do
+          endif
+        end do boucle_r
+
+        if( rato(nrato(it),it) < 2.5_db/bohr ) then
+          n = 1 + Int( ( rmax - rato(nrato(it),it) ) / drmax )
+          call write_error
+          do ipr = 3,9,3
+            write(ipr,120) nrm + n, nrm
+          end do
+          stop
+        endif
+
+    end select
+
+  end do     ! fin de la boucle sur les especes chimiques
+
+  return
+  110 format(/' nrato =',i6,' > nrm =',i6,' !', /' Increase the value of nrm using keyword nrato')
+  120 format(/' The number of radius needs to be increased',/ ' nrato =',i6,' > nrm =',i6,' after extrapolation !', &
+         /' Increase the value of nrm using keyword nrato')
+end
+
+!***********************************************************************
+
+! Calcul des atomes selon Clementi et Roetti
+
+!  References :
+!   HS  F. Herman and S. Skillman "Atomic Structure Calculations"
+!       Prentice Hall 1963
+!   CR  E. Clementi and C. Roetti "Atomic Data and Nuclear Data Tables"
+!       Vol.14,(3-4) [1974] p.177-478
+
+!   NPRIN Principal quantum number
+!   NAZIM Azimuthal quantum number
+!   NCONF Number of electrons occupying this orbital
+!   NTERM Number of radial basis functions
+!   NEXP  Ni for the basis functions (See Clementi Roetti book)
+!   ESP   Exponential constant for the basis function
+!   CON   Coefficient which multiplies the basis function
+!
+subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank,nbseuil,nlat,nlatm,Nonexc,nrato,nrm,nseuil,ntype,nvval,popatc, &
+              popatv,psii,psival,rato,rhoit,Z)
+
+  use declarations
+  implicit none
+
+  integer, parameter:: norbm = 11
+  integer, parameter:: ntrm = 11
+
+  integer:: i, icalc, icheck, io, io0, ipr, ir, it, itabs, iv, j, lseuil, mpirank, nbseuil, ncalc, nlatm, norb, norb0, nr, &
+    nrato, nrm, nseuil, ntype, Z, Zp
+
+  integer, dimension(norbm):: nazim, nazim0, nconf, nconf0, nprin, nprin0, nterm, nterm0
+  integer, dimension(norbm,ntrm) :: nexp, nexp0
+  integer, dimension(0:ntype):: nlat
+  integer, dimension(0:ntype,nlatm):: lvval, nvval
+
+  logical:: Nonexc
+
+  real(kind=db):: alfa, arg, ch, delta, f, phi, r0, rmax, ra
+
+  real(kind=db), dimension(6):: nfact
+  real(kind=db), dimension(nrm):: rato
+  real(kind=db), dimension(nrm,nbseuil):: psii
+  real(kind=db), dimension(norbm,ntrm):: esp, esp0, con, con0, onor
+  real(kind=db), dimension(0:ntype):: popatc
+  real(kind=db), dimension(0:ntype,nlatm):: popatv
+  real(kind=db), dimension(0:nrm,0:ntype):: rhoit
+  real(kind=db), dimension(0:nrm,nlatm,0:ntype):: psival
+
+  if( icheck > 1 ) write(3,100) it, Z
+
+! Rayons
+  r0 = 0.00005_db / bohr
+  rmax = 10._db / bohr
+  delta = 1.02_db
+  rato(1) = r0
+  ra = r0
+  f = log( delta )
+  do ir = 2,1000000
+   ra = ra + r0 * exp( ( ir - 1) * f )
+   if( ir > nrm ) cycle
+   rato(ir) = ra
+   if( rato(ir) > rmax ) exit
+  end do
+  nrato = ir
+  nr = nrato
+  if( nr > nrm .and. mpirank == 0 ) then
+    call write_error
+    do ipr = 3,9,3
+      write(ipr,105) nr, nrm
+    end do
+    stop
+  endif
+
+! Factoriels
+  Nfact(1) = sqrt( 2._db )
+  do i = 2,6
+    Nfact(i) = Nfact(i-1) * sqrt( 2._db * i * ( 2 * i - 1 ) )
+  end do
+
+! Pour l'absorbeur, on calcule l'atome excite (Z+1) et l'atome non
+! excite
+  if( it == itabs .and. .not. nonexc ) then
+    ncalc = 2
+  else
+    ncalc = 1
+  endif
+
+  do icalc = 1,ncalc
+
+    Zp = Z + icalc - 1 ! Approximation Z + 1
+
+    if( Zp < 30 ) then
+      call clempar1(Zp,norb,nprin,nazim,nconf,nterm,nexp,esp,con)
+    elseif( Z < 50 ) then
+      call clempar2(Zp,norb,nprin,nazim,nconf,nterm,nexp,esp,con)
+    else
+      call clempar3(Zp,norb,nprin,nazim,nconf,nterm,nexp,esp,con)
+    endif
+
+    if( it == itabs .and. icalc == 1 ) then
+      if( nseuil == 0 ) then
+        psii(:,:) = 0._db
+      else
+        ch = 0._db
+        do io = 1,norb
+          if( nprin(io) == nseuil .and. nazim(io) == lseuil ) exit
+        end do
+        do i = 1,Nterm(io)
+          alfa =  ( 2 * esp(io,i) )**( nexp(io,i) + 0.5_db )
+          onor(io,i) =  alfa / Nfact(nexp(io,i))
+        end do
+        do ir = 1,nr
+          phi = 0._db
+          do j = 1,nterm(io)
+            arg = esp(io,j) * rato(ir)
+            if( arg > 100._db ) cycle
+            phi = phi + onor(io,j) * con(io,j) * rato(ir)**nexp(io,j) * exp( - arg )
+          end do
+          psii(ir,1) = phi
+          psii(ir,nbseuil) = phi
+          ch = ch + phi**2 * ( rato(ir+1) - rato(ir) )
+        end do
+        if( icheck > 1 ) write(3,120) io, nprin(io), nazim(io), nconf(io), ch
+      endif
+    endif
+
+    if( it == itabs .and. .not. nonexc ) then
+      if( icalc == 1 ) then
+        norb0 = norb
+        nprin0(1:norb) = nprin(1:norb)
+        nazim0(1:norb) = nazim(1:norb)
+        nconf0(1:norb) = nconf(1:norb)
+        nterm0(1:norb) = nterm(1:norb)
+        nexp0(1:norb,:) = nexp(1:norb,:)
+        esp0(1:norb,:) = esp(1:norb,:)
+        con0(1:norb,:) = con(1:norb,:)
+      else
+        do io = 1,norb
+          if( nprin(io) == nseuil .and. nazim(io) == lseuil ) nconf(io) = nconf(io) - 1
+          if( nprin(io) > nseuil .or. ( nprin(io) == nseuil .and. nazim(io) >= lseuil ) ) cycle
+          do io0 = 1,norb0
+            if( nprin0(io0) /= nprin(io) .or. nazim0(io0) /= nazim(io) ) cycle
+            nconf(io) = nconf0(io0)
+            nterm(io) = nterm0(io0)
+            nexp(io,:) = nexp0(io0,:)
+            esp(io,:) = esp0(io0,:)
+            con(io,:) = con0(io0,:)
+            exit
+          end do
+        end do
+      endif
+    endif
+
+  end do
+
+  do io = 1,nlat(it)
+    do i = 1,norb
+      if( nprin(i) == nvval(it,io) .and. nazim(i) == lvval(it,io)) exit
+    end do
+    if( i == norb+1 .and. mpirank == 0 ) then
+      call write_error
+      do ipr = 3,9,3
+        write(ipr,110) it, nvval(it,io), lvval(it,io)
+      end do
+      stop
+    endif
+    popatv(it,io) = 1._db * nconf(i)
+  end do
+
+  popatc(it) = 1._db * sum( nconf(1:norb) )
+  do io = 1,nlat(it)
+    popatc(it) = popatc(it) - popatv(it,io)
+  end do
+
+!  Calculate normalization coefficients
+!  (see CR p.180, equation (6))
+
+  do io = 1,norb
+    do i = 1,Nterm(io)
+      alfa =  ( 2 * esp(io,i) )**( nexp(io,i) + 0.5_db )
+      onor(io,i) =  alfa / Nfact(nexp(io,i))
+    end do
+  end do
+
+  rhoit(:,it) = 0._db
+  do io = 1,norb
+    do iv = 1,nlat(it)
+      if( nprin(io) == nvval(it,iv) .and. nazim(io) == lvval(it,iv) ) exit
+    end do
+    if( iv == nlat(it)+1 ) iv = 0
+    ch = 0._db
+    do ir = 1,nr
+      phi = 0._db
+      do j = 1,nterm(io)
+        arg = esp(io,j) * rato(ir)
+        if( arg > 100._db ) cycle
+        phi = phi + onor(io,j) * con(io,j) * rato(ir)**nexp(io,j) * exp( - arg )
+      end do
+      if( iv > 0 ) psival(ir,iv,it) = phi
+      rhoit(ir,it) = rhoit(ir,it) + nconf(io) * ( phi / rato(ir) )**2
+      ch = ch + phi**2 * ( rato(ir+1) - rato(ir) )
+    end do
+    if( icheck > 1 ) write(3,120) io, nprin(io), nazim(io), nconf(io), ch
+  end do
+  rhoit(1:nr,it) = rhoit(1:nr,it) / quatre_pi
+
+  return
+  100 format(/' it =',i2,'  Z =',i4)
+  105 format(/' Number of radius =',i6,' > nrm =',i6,// ' Increase nrm using keyword nrato !'/)
+  110 format(///' Orbital not found in the Clementi and Roetti bases :',/'   it =',i2,',  n =',i2,'  l =',i2)
+  120 format(' io, nprin, nazim, nconf =',4i3,' ch =',f10.7)
+end
+
+!***********************************************************************
+
+! Charge et population de chaque atome de la maille
+
+subroutine pop_group(chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank,ngroup,nlat,nlatm,nspin,ntype,numat,popatc,popats)
+
+  use declarations
+  implicit none
+
+  integer:: icheck, igr, it, l, mpirank, ngroup, nlatm, nspin, ntype
+  integer, dimension(0:ntype) :: nlat, numat
+  integer, dimension(ngroup):: itype
+
+  logical:: Charge_free, Flapw
+
+  real(kind=db):: Chargm
+  real(kind=db), dimension(ngroup):: chargatg
+  real(kind=db), dimension(0:ntype):: popatc
+  real(kind=db), dimension(ngroup,nlatm,nspin):: popats
+
+  if( icheck > 1 ) write(3,110)
+
+  if( Flapw ) then
+    chargatg(:) = 0
+    return
+  endif
+
+  do igr = 1,ngroup
+    it = abs( itype(igr) )
+    if( nlat(it) > 0 ) then
+        chargatg(igr) = numat(it) - popatc(it) - sum( popats(igr,1:nlat(it),1:nspin) )
+    else
+      chargatg(igr) = numat(it) - popatc(it)
+    endif
+  end do
+
+  if( icheck > 1 ) then
+    if( nspin == 1 ) then
+      write(3,130)
+    else
+      write(3,140)
+    endif
+    do igr = 1,ngroup
+      it = abs( itype(igr) )
+      write(3,150) igr, chargatg(igr), ( popats(igr,l,1:nspin), l = 1,nlat(it) )
+    end do
+  endif
+
+! Test sur la neutralite de la maille ou de la molecule
+  Chargm = sum( chargatg( 1:ngroup ) )
+  if( abs(Chargm) > 0.0001 .and. mpirank == 0 ) then
+    write(3,120) Chargm
+    write(6,120) Chargm
+    if( .not. Charge_free ) then
+      call write_error
+      write(9,120) Chargm
+      stop
+    endif
+  endif
+
+  return
+  110 format(/' ---- Pop_group ----',100('-'))
+  120 format(/' Unit mesh or molecule charge =',f8.4)
+  130 format(/'  igr    charge   popats(1)  popats(2)')
+  140 format(/'  igr    charge   popats(1,up)  popats(1,dn) ...')
+  150 format(i4,11f11.5)
+end
+
 !*********************************************************************
 
 subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,itabs,itype,itype_dop,jseuil,lcoeur,lecrantage, &
         lqnexc,lseuil,lvval,mpinodes,mpirank,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,nonexc,nqnexc, &
-        nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popexc,popatc,popats,popatv,popval, &
+        nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popatc,popats,popatv,popexc,popval, &
         psi_coeur,psii,psi_open_val,psival,rato,rchimp,relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
 
   use declarations
@@ -1277,8 +1258,8 @@ subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
 
   logical:: Doping, Force_ecr, nonexc, relativiste
 
-  real(kind=db), dimension(0:ntype) :: popatc, rchimp, rmt, rmtimp, V_hubbard
-  real(kind=db), dimension(nspin) :: ecrantage
+  real(kind=db), dimension(0:ntype):: popatc, rchimp, rmt, rmtimp, V_hubbard
+  real(kind=db), dimension(nspin):: ecrantage
   real(kind=db), dimension(nrm):: rr
   real(kind=db), dimension(nrm,nbseuil):: psii, psiit
   real(kind=db), dimension(ngroup,nlatm,nspin):: popats
@@ -1322,11 +1303,10 @@ subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
   Hubb(0) = Hubb(itabs)
   V_hubbard(0) = V_hubbard(itabs)
 
-  call screendef(ecrantage,force_ecr,icheck,itype(iabsorbeur),lecrantage,lqnexc,lseuil,lvval,mpirank,n_orbexc,necrantage, &
-        nlat,nlatm,nnlm,nqnexc, nseuil,nspin,ntype,nvval,popexc,popval,numat(itabs))
+  call Screendef(ecrantage,force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,mpirank,n_orbexc,necrantage, &
+        nlat,nlatm,nnlm,nqnexc,nseuil,nspin,ntype,nvval,popexc,popval,numat(itabs))
 
-! itabs est remis a la valeur initiale a la fin de la routine si on est
-! en nonexc
+! itabs est remis a la valeur initiale a la fin de la routine si on est en nonexc
   itabs = 0
 
 ! Il faut recalculer cette partie meme en nonexc pour avoir psii.
@@ -1340,20 +1320,14 @@ subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
   elseif( icom(itabs) == 1 .or. nompsii == 'dirac' ) then
 
     call dirgen(icheck,itabs,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
-         nnlm,nonexc,nqnexc,nr,nrato_dirac, nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
+         nnlm,nonexc,nqnexc,nr,nrato_dirac,nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
          popexc,popval,psi_coeur,psii,psi_open_val,psival, rr,rho_coeur,rhoit,numat(itabs),relativiste)
 
 ! popats pour l'absorbeur
     do igr = 1,ngroup
       if( abs( itype(igr) ) /= itabs ) cycle
       do l = 1,nlat(itabs)
-        do ispin = 1,nspin
-!          if( itype(igr) > 0 .or. nspin == 1 ) then
-            popats(igr,l,ispin) = popval(itabs,l,ispin)
-!          else
-!            popats(igr,l,3-ispin) = popval(itabs,l,ispin)
-!          endif
-        end do
+        popats(igr,l,1:nspin) = popval(itabs,l,1:spin)
       end do
     end do
 
@@ -1386,8 +1360,7 @@ subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
 
   if( icom(itabs) == 3 .and. ( nompsii == 'clementi' .or. nompsii == 'dirac' ) ) then
     psiit(1:nr,:) = psii(1:nr,:)
-! Interpolation pour avoir la fct d'onde initiale de coeur dans les
-! rayons FLAPW
+! Interpolation pour avoir la fct d'onde initiale de coeur dans les rayons FLAPW
     psii(:,:) = 0._db
     do ir = 1,nrato(itabs_t)
       do irt = 2,nr
@@ -1418,12 +1391,15 @@ subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
   if( nonexc ) itabs = itabs_t
 
   return
-  110 format(//' The absorbing atom cannot be the number',i3, ' because it is a vaccum sphere !'//)
+  110 format(//' The absorbing atom cannot be the number',i3,' because it is an empty sphere !'//)
   120 format(/' Atom type',21x,'Z  n  l  popatv')
   130 format(i3,1x,a25,i3,8(2i3,f6.2))
-  140 format(/' Default or imposed orbital screening :',/ '      When default is used, if the screening orbital is full,',/ &
-  '      it is the next one which is filled',/ '   n_screening_orbital =',i2,/'   l_screening_orbital =', &
-         i2,/'   Screening =',2f6.3)
+  140 format(/' Default or imposed orbital screening :',/ &
+              '      When default is used, if the screening orbital is full,',/ &
+              '      it is the next one which is filled',/ &
+              '   n_screening_orbital =',i2,/ &
+              '   l_screening_orbital =',i2,/ &
+              '   Screening =',2f6.3)
   150 format(/' Core wave function after interpolation' )
   160 format(f12.8,2f11.7)
 end
@@ -1432,8 +1408,8 @@ end
 
 ! Calcul de la configuration electronique de l'atome excite
 
-subroutine screendef(ecrantage,force_ecr,icheck,itabs, lecrantage,lqnexc,lseuil,lvval,mpirank,n_orbexc,necrantage, &
-        nlat,nlatm,nnlm,nqnexc, nseuil,nspin,ntype,nvval,popexc,popval,Z)
+subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,mpirank,n_orbexc,necrantage, &
+        nlat,nlatm,nnlm,nqnexc,nseuil,nspin,ntype,nvval,popexc,popval,Z)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -1447,10 +1423,10 @@ subroutine screendef(ecrantage,force_ecr,icheck,itabs, lecrantage,lqnexc,lseuil,
 
   real(kind=db), dimension(nnlm):: nel, rqn
   real(kind=db), dimension(0:ntype,nlatm,nspin):: popval
-  real(kind=db), dimension(nspin) :: dp, dpp, ecrantage
+  real(kind=db), dimension(nspin) :: dp, dpp, Ecrantage
   real(kind=db), dimension(nnlm,nspin):: popexc
 
-  if( .not. force_ecr ) then
+  if( necrantage == 0 .or. .not. Force_ecr ) then
     select case( Z )
       case(1,2,3)
         necrantage = 2
@@ -1510,19 +1486,32 @@ subroutine screendef(ecrantage,force_ecr,icheck,itabs, lecrantage,lqnexc,lseuil,
     popexc(1:n_orbexc,ispin) = nel(1:n_orbexc) / nspin
   end do
 
-  it = abs( itabs )
+  if( Force_ecr ) then
+    do l = 1,nlat(0)
+      if( nvval(0,l) == necrantage .and. lvval(0,l) == lecrantage ) exit
+    end do
+    if( l > nlat(0) ) then
+      nlat(0) = l
+      nvval(0,l) = necrantage
+      lvval(0,l) = lecrantage
+
+      popval(0,l,1:nspin) = 0._db
+      do ip = 1,n_orbexc
+        if( nqnexc(ip) /= necrantage .or. lqnexc(ip) /= lecrantage ) cycle
+        popval(0,l,1:nspin) = popexc(ip,1:nspin)
+        exit
+      end do
+
+    endif
+  endif
+
+  it = 0
 
 ! On modifie la configuration electronique, compte tenu des entrees
   boucle_io: do io = 1,nlat(it)
     do ip = 1,n_orbexc
       if( nqnexc(ip) /= nvval(it,io) .or. lqnexc(ip) /= lvval(it,io)) cycle
-!      if( itabs < 0 ) then
-!        do ispin = 1,nspin
-!          popexc(ip,nspin-ispin+1) = popval(it,io,ispin)
-!        end do
-!      else
-        popexc(ip,1:nspin) = popval(it,io,1:nspin)
-!      endif
+      popexc(ip,1:nspin) = popval(it,io,1:nspin)
       cycle boucle_io
     end do
 ! On doit constuire une orbitale supplementaire
@@ -1551,7 +1540,7 @@ subroutine screendef(ecrantage,force_ecr,icheck,itabs, lecrantage,lqnexc,lseuil,
 
 ! On ajoute l'ecrantage
 
-  if( force_ecr ) then
+  if( Force_ecr ) then
 
     do io = 1,n_orbexc
       if( necrantage /= nqnexc(io) .or. lecrantage /= lqnexc(io) ) cycle
@@ -1644,6 +1633,91 @@ subroutine screendef(ecrantage,force_ecr,icheck,itabs, lecrantage,lqnexc,lseuil,
   103 format(///'   n_orb < nnlm ',// ' Increase nnlm in routine lecture.f !')
   120 format(/'  n  l popexc')
   130 format(2i3,2f7.3)
+end
+
+!***********************************************************************
+
+! Allocation des tableaux itypepr et popatm pour l'excite
+
+subroutine Pop_mod(chargat,chargm,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,iprabs,itype,itype_dop,itypepr,lqnexc,lvval, &
+        n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc)
+
+  use declarations
+  implicit real(kind=db) (a-h,o-z)
+
+  integer, dimension(nnlm):: lqnexc, nqnexc
+  integer, dimension(ngroup):: itype
+  integer, dimension(0:n_atom_proto):: itypepr, ngreq
+  integer, dimension(0:n_atom_proto,neqm):: igreq
+  integer, dimension(0:ntype):: nlat
+  integer, dimension(0:ntype,nlatm):: lvval, nvval
+
+  logical:: Doping, flapw
+
+  real(kind=db), dimension(0:n_atom_proto):: chargat
+  real(kind=db), dimension(0:n_atom_proto,nlatm,nspin):: popatm
+  real(kind=db), dimension(nnlm,nspin):: popexc
+
+  boucle_iprabs: do iprabs = 1,n_atom_proto
+    do igrabs = 1,ngreq(iprabs)
+      if( igreq(iprabs,igrabs) == iabsorbeur ) exit boucle_iprabs
+    end do
+  end do boucle_iprabs
+
+  itypepr(:) = 0
+
+  if( flapw ) then
+
+    do ipr = 1,n_atom_proto
+      itypepr(ipr) = abs( itype( igreq(ipr,1) ) )
+    end do
+
+  else
+
+    itypepr(0) = 0
+    do ipr = 1,n_atom_proto
+      if( Doping .and. ipr == n_atom_proto ) then
+        itypepr(ipr) = abs( itype_dop )
+      else
+        itypepr(ipr) = abs( itype( igreq(ipr,1) ) )
+      endif
+    end do
+
+    igreq(0,1) = igreq(iprabs,igrabs)
+    ngreq(0) = 1
+
+    chargat(0) = numat_abs - sum( popexc(1:n_orbexc,1:nspin) )
+
+    do io = 1,nlat(itabs)
+      do jo = 1,n_orbexc
+        if( nvval(itabs,io) /= nqnexc(jo) .or. lvval(itabs,io) /= lqnexc(jo) ) cycle
+        popatm(0,io,1:nspin) = popexc(jo,1:nspin)
+        exit
+      end do
+    end do
+
+    chargm = chargm + chargat(0) - chargat(iprabs)
+
+    if( icheck > 2 ) then
+      write(3,120) iprabs
+      if( nspin == 1 ) then
+        write(3,130)
+      else
+        write(3,140)
+      endif
+      do ipr = 0,n_atom_proto
+        nl = nlat( itypepr(ipr) )
+        write(3,150) ipr, itypepr(ipr), chargat(ipr), ( popatm(ipr,l,1:nspin), l = 1,nl )
+      end do
+    endif
+
+  endif
+
+  return
+  120 format(/' ---- Pop_mod ------',100('-')//,' iprabs =', i3)
+  130 format(/'  ipr  it    charge   popatm(1)  popatm(2)')
+  140 format(/'  ipr  it    charge   popatm(1,up)  popatm(1,dn) ...')
+  150 format(2i4,11f11.5)
 end
 
 !***********************************************************************
@@ -1950,160 +2024,6 @@ subroutine extract_energ(Energ_s,Eseuil,multi_run,nbbseuil,nbseuil,nenerg_s,nom_
   return
 end
 
-!***********************************************************************
-
-! Charge et population de chaque atome de la maille
-
-subroutine pop_group(chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank,ngroup,nlat,nlatm,nspin,ntype,numat,popatc, &
-        popats)
-
-  use declarations
-  implicit none
-
-  integer:: icheck, igr, it, l, mpirank, ngroup, nlatm, nspin, ntype
-  integer, dimension(0:ntype) :: nlat, numat
-  integer, dimension(ngroup):: itype
-
-  logical:: Charge_free, Flapw
-
-  real(kind=db):: Chargm
-  real(kind=db), dimension(ngroup):: chargatg
-  real(kind=db), dimension(0:ntype):: popatc
-  real(kind=db), dimension(ngroup,nlatm,nspin):: popats
-
-  if( icheck > 1 ) write(3,110)
-
-  if( Flapw ) then
-    chargatg(:) = 0
-    return
-  endif
-
-  do igr = 1,ngroup
-    it = abs( itype(igr) )
-    if( nlat(it) > 0 ) then
-        chargatg(igr) = numat(it) - popatc(it) - sum( popats(igr,1:nlat(it),1:nspin) )
-    else
-      chargatg(igr) = numat(it) - popatc(it)
-    endif
-  end do
-
-  if( icheck > 1 ) then
-    if( nspin == 1 ) then
-      write(3,130)
-    else
-      write(3,140)
-    endif
-    do igr = 1,ngroup
-      it = abs( itype(igr) )
-      write(3,150) igr, chargatg(igr), ( popats(igr,l,1:nspin), l = 1,nlat(it) )
-    end do
-  endif
-
-! Test sur la neutralite de la maille ou de la molecule
-  Chargm = sum( chargatg( 1:ngroup ) )
-  if( abs(Chargm) > 0.0001 .and. mpirank == 0 ) then
-    write(3,120) Chargm
-    write(6,120) Chargm
-    if( .not. Charge_free ) then
-      call write_error
-      write(9,120) Chargm
-      stop
-    endif
-  endif
-
-  return
-  110 format(/' ---- Pop_group ----',100('-'))
-  120 format(/' Unit mesh or molecule charge =',f8.4)
-  130 format(/'  igr    charge   popats(1)  popats(2)')
-  140 format(/'  igr    charge   popats(1,up)  popats(1,dn) ...')
-  150 format(i4,11f11.5)
-end
-
-!***********************************************************************
-
-! Allocation des tableaux itypepr et popatm pour l'excite
-
-subroutine Pop_mod(chargat,chargm,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,iprabs,itype,itype_dop,itypepr,lqnexc,lvval, &
-        n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc)
-
-  use declarations
-  implicit real(kind=db) (a-h,o-z)
-
-  integer, dimension(nnlm):: lqnexc, nqnexc
-  integer, dimension(ngroup):: itype
-  integer, dimension(0:n_atom_proto):: itypepr, ngreq
-  integer, dimension(0:n_atom_proto,neqm):: igreq
-  integer, dimension(0:ntype):: nlat
-  integer, dimension(0:ntype,nlatm):: lvval, nvval
-
-  logical:: Doping, flapw
-
-  real(kind=db), dimension(0:n_atom_proto):: chargat
-  real(kind=db), dimension(0:n_atom_proto,nlatm,nspin):: popatm
-  real(kind=db), dimension(nnlm,nspin):: popexc
-
-  boucle_iprabs: do iprabs = 1,n_atom_proto
-    do igrabs = 1,ngreq(iprabs)
-      if( igreq(iprabs,igrabs) == iabsorbeur ) exit boucle_iprabs
-    end do
-  end do boucle_iprabs
-
-  itypepr(:) = 0
-
-  if( flapw ) then
-
-    do ipr = 1,n_atom_proto
-      itypepr(ipr) = abs( itype( igreq(ipr,1) ) )
-    end do
-
-  else
-
-    itypepr(0) = 0
-    do ipr = 1,n_atom_proto
-      if( Doping .and. ipr == n_atom_proto ) then
-        itypepr(ipr) = abs( itype_dop )
-      else
-        itypepr(ipr) = abs( itype( igreq(ipr,1) ) )
-      endif
-    end do
-
-    igreq(0,1) = igreq(iprabs,igrabs)
-    ngreq(0) = 1
-
-    chargat(0) = numat_abs - sum( popexc(1:n_orbexc,1:nspin) )
-
-    do io = 1,nlat(itabs)
-      do jo = 1,n_orbexc
-        if( nvval(itabs,io) /= nqnexc(jo) .or. lvval(itabs,io) /= lqnexc(jo) ) cycle
-        popatm(0,io,1:nspin) = popexc(jo,1:nspin)
-        exit
-      end do
-    end do
-
-    chargm = chargm + chargat(0) - chargat(iprabs)
-
-    if( icheck > 2 ) then
-      write(3,120) iprabs
-      if( nspin == 1 ) then
-        write(3,130)
-      else
-        write(3,140)
-      endif
-      do ipr = 0,n_atom_proto
-        nl = nlat( itypepr(ipr) )
-        write(3,150) ipr, itypepr(ipr), chargat(ipr), ( popatm(ipr,l,1:nspin), l = 1,nl )
-      end do
-    endif
-
-  endif
-
-  return
-  120 format(/' ---- Pop_mod ------',100('-')//,' iprabs =', i3)
-  130 format(/'  ipr  it    charge   popatm(1)  popatm(2)')
-  140 format(/'  ipr  it    charge   popatm(1,up)  popatm(1,dn) ...')
-  150 format(2i4,11f11.5)
-end
-
 !*********************************************************************
 
 ! Elaboration de l'agregat (celui qui sert au calcul du potentiel)
@@ -2229,6 +2149,7 @@ subroutine natomp_cal(angxyz,ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccen
     call reduc_natomp(ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccent,Doping,dpos,iabsorbeur,icheck,igr_dop,igreq,itabs, &
             itype,Kgroup,matper,mpirank,n_atom_proto,natomp,natomr,ngreq,ngroup,ngroup_pdb,ngroup_taux,noncentre,posn,rmax, &
             rsortm,Taux_oc)
+    natomp = natomr
   endif
 
   if( mpirank == 0 ) then
@@ -10920,8 +10841,8 @@ function cal_norm(Energ,Eimag)
   real(kind=db):: k
 
   Eimag2 = Eimag**2
-  de_int = Eimag / 20
-  Delta_E = 500 * Eimag
+  de_int = abs( Eimag ) / 20
+  Delta_E = 500 * abs( Eimag )
   E1 = Energ - Delta_E
   E2 = Energ + Delta_E
   je1 = nint( E1 / de_int )
@@ -10930,6 +10851,7 @@ function cal_norm(Energ,Eimag)
   je2 = max( je2, 10 )
 
   rint = 0._db
+  rho = 0._db
 
   do je = je1,je2
     e = ( je - 0.5 ) * de_int
@@ -10938,9 +10860,9 @@ function cal_norm(Energ,Eimag)
     rho = rho + k * fac
     rint = rint + fac
   end do
-  rho = rho * Eimag / pi**2
+  rho = rho * abs(Eimag) / pi**2
 
-  rint = rint * Eimag / pi
+  rint = rint * abs(Eimag) / pi
 
   cal_norm = sqrt( rho )
 
@@ -10982,6 +10904,7 @@ subroutine cbess(fnorm,z,lmax,lmaxm,bessel)
 
   return
 end
+
 !***********************************************************************
 
 ! Calcul des fonctions de bessel et neuman.

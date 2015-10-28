@@ -18,8 +18,8 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   integer:: i, i1, i2, ia, iaabsi, icheck, idir1, idir2, idir3, igrph, ii, ipas, irep, is1, is2, isens, isg, isp, ispinin, &
     jj, jsp, l, l1, l2, lm, lm01, lm01c, lm02, lm02c, lm1, lm2, lmaxso, lmf, lms, lmw, m, m1, m2, &
     MPI_host_num_for_mumps, mpirank0, natome, n_atom_0, n_atom_ind, n_atom_proto, nbm, nbtm, neqm, ngroup_m, ngrph, nim, nicm,&
-    nligne, nligne_i, nligneso, nlmagm, nlmmax ,nlmomax, nlmsam, nlmso, nlmso_i, nlmw, nphiato1, nphiato7, npoint, npr, npsom, &
-    nsm, nsort, nsort_c, nsort_r, nsortf ,nso1, nspin, nspino, nspinp, nspinr, nstm, nvois
+    nligne, nligne_i, nligneso, nlmagm, nlmmax ,nlmomax, nlmsam, nlmso, nlmso_i, nlmw, nphiato1, nphiato7, npoint, npr, &
+    npsom, nsm, nsort, nsort_c, nsort_r, nsortf ,nso1, nspin, nspino, nspinp, nspinr, nstm, nvois
 
   integer, dimension(0:npoint):: new
   integer, dimension(natome):: ianew, iaprotoi, igroupi, lmaxa, nbord, nbordf, nlmsa
@@ -265,7 +265,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
           endif
 
           cfac = cfac + conjg( ampl1 ) * ampl2
-
+          
         end do
 
         if( Repres_comp .and. .not. Spinorbite .and. .not. Atom_axe(ia) ) cfac = cfac + Conjg(cfac)
@@ -302,6 +302,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
           is2 = ispinin
           isg = (-1)**(m1+m2)
           taull(lm02c,is1,lm01c,is2,ia) = taull(lm02c,is1,lm01c,is2,ia) + isg * taull(lm01,is1,lm02,is2,ia)
+          
         end do
       end do
     end do
@@ -412,8 +413,8 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
 
   if( icheck > 1 .and. igrph == ngrph .and. ( Spinorbite .or. ispinin == nspin ) ) then
     do ia = 1,natome
-      if(  ia /= iaabsi .and. .not. State_all_r .and. Cal_xanes ) cycle
-       if( ia == iaabsi ) then
+      if( ia /= iaabsi .and. .not. State_all_r .and. Cal_xanes ) cycle
+      if( ia == iaabsi ) then
         write(3,210)
       else
         write(3,220) ia
@@ -430,9 +431,24 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
         do l1 = 0,lmw
           do m1 = -l1,l1
             lm1 = lm1 + 1
-            write(3,250) l1, m1, is1, (( taull(lm1,is1,lm2,is2,ia), lm2 = 1,nlmw), is2 = 1,nspinp )
+            write(3,250) l1, m1, is1, (( Taull(lm1,is1,lm2,is2,ia), lm2 = 1,nlmw), is2 = 1,nspinp )
           end do
         end do
+      end do
+    end do
+  endif
+
+! Ecriture pour extract
+  if( icheck > 0 .and. igrph == ngrph .and. ( Spinorbite .or. ispinin == nspin ) .and. Cal_xanes ) then
+    if( icheck == 1 ) write(3,110)
+    ia = iaabsi
+    ! si lmaxa > 10 il faut changer le format d'ecriture
+    lmw = min( 10, lmaxa(ia) )
+    nlmw = min( nlmagm, (lmw+1)**2 )
+    write(3,300)
+    do is1 = 1,nspinp
+      do lm1 = 1,nlmw
+        write(3,310) ( ( Taull(lm1,is1,lm2,is2,ia), lm2 = 1,nlmw ), is2 = 1,nspinp )
       end do
     end do
   endif
@@ -453,6 +469,9 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   230 format('( l, m, s)',18(7x,3i3,6x))
   240 format('( l, m, s)',18(10x,2i3,7x))
   250 format(3i3,2x,1p,18(1x,2e11.3))
+  300 format(/' Taull, Multiple scattering amplitude')
+  310 format(1p,242(1x,2e15.7))
+  320 format(/' Taull_out, Multiple scattering amplitude')
 
 end
 
@@ -496,8 +515,10 @@ subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic_out,Ecl
     konde = sqrt( cmplx( Ecinetic_out, Eimag, db ) )
     if( abs( konde ) < eps10 ) konde = cmplx( eps10, 0._db, db )
     konder = real( konde, db )
-    fnorm = cal_norm(Ecinetic_out,eimag)
-    fnormc = cmplx( fnorm, 0._db, db)
+!    fnorm = cal_norm(Ecinetic_out,eimag)
+!    fnormc = cmplx( fnorm, 0._db, db)
+    fnormc = sqrt( konde / pi )
+    fnorm = real( fnormc, db )
   else
     konder = sqrt( Ecinetic_out )
     konde = cmplx( konder, 0._db, db )
@@ -967,7 +988,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
                             phiato(ib,lm0,ispo,isol,ia,2), db )
               abvr( jjj ) = abvr( jjj ) + Real( cfac, db )
               abvi( jjj ) = abvi( jjj ) + aimag( cfac )
-            elseif( Cal_comp ) then
+            elseif( nphiato7 == 2 ) then
               cfac = cmplx( cfvs_r(isp), cfvs_i(isp), db ) * cmplx( phiato(ib,lm0,ispp,isol,ia,1), &
                             phiato(ib,lm0,ispp,isol,ia,2), db )
               abvr( jjj ) = abvr( jjj ) + Real( cfac, db )
@@ -1208,7 +1229,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
         ispint = min( ispin, nspinp )
       endif
       do ib = 1,nbordf(ia)
-        if( Cal_comp ) then
+        if( nphiato7 == 2 ) then
           cfac = conjg( Yc(m,Ylmato(ib,lm0,ia),Ylmato(ib,lm0-2*m,ia)) ) * cmplx( phiato(ib,lmp0,ispint,isol,ia,1), &
                         phiato(ib,lmp0,ispint,isol,ia,2), db )
           charmi = charmi + poidsa(ib,ia) * aimag( cfac )
@@ -1790,7 +1811,10 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
 
   konde(:) = sqrt( cmplx(Ecinetic(:), Eimag, db) )
 
-  if( icheck > 1 ) write(3,110) igrph, ndim
+  if( icheck > 1 ) then
+    write(3,110)
+    write(3,115) igrph, ndim
+  endif
 
   if( ndim /= 0 ) then
 
@@ -2434,7 +2458,7 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
 
     do ia = 1,natome
       if(  ia /= iaabsi .and. .not. State_all_r .and. Cal_xanes ) cycle
-       if( ia == iaabsi ) then
+      if( ia == iaabsi ) then
         write(3,160)
       else
         write(3,162) ia
@@ -2525,13 +2549,29 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
     end do
   endif
 
+! Ecriture pour extract
+  if( icheck > 0 .and. igrph == ngrph .and. ( Spinorbite .or. ispin == nspin ) .and. Cal_xanes ) then
+    if( icheck == 1 ) write(3,110)
+    ia = iaabsi
+    ! si lmaxa > 10 il faut changer le format d'ecriture
+    lmw = min( 10, lmaxa(ia) )
+    nlmw = min( nlmagm, (lmw+1)**2 )
+    write(3,300)
+    do is1 = 1,nspinp
+      do lm1 = 1,nlmw
+        write(3,310) ( ( Taull(lm1,is1,lm2,is2,ia), lm2 = 1,nlmw ), is2 = 1,nspinp )
+      end do
+    end do
+  endif
+
   call CPU_TIME(time)
   tp3 = real(time,db)
 
   Time_tria = tp3 - tp2
 
   return
-  110 format(/' ---- MSM ---------',100('-'),// ' igrph =',i2,', Matrix dimension =',i7)
+  110 format(/' ---- MSM ---------',100('-'))
+  115 format(/ ' igrph =',i2,', Matrix dimension =',i7)
   120 format(/' Multiple scattering matrix'/)
   130 format(' iligne =',i3,', ia =',i2,', (l,m,isp) = (',3i2,')' )
   140 format(1p,12(1x,2e11.4))
@@ -2546,6 +2586,8 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
   230 format(3x,2i3,2x,102a3)
   240 format(3i3,2x,102a3)
   250 format(1p,5(1x,a3,' = ',2e15.7))    
+  300 format(/' Taull, Multiple scattering amplitude')
+  310 format(1p,242(1x,2e15.7))
 
 end
 
@@ -3337,7 +3379,7 @@ subroutine Data_one_run(iabsm,iaprotoi,icheck,igreq,index_e,igroupi,lmax_probe,l
   implicit none
   include 'mpif.h'
 
-  integer:: i, ia, icheck, igr, index_e, ipr, is1, is2, l, l1, l2, lm1, lm2, lmax_probe, lmx, m, m1, m2, mpinodes, mu, &
+  integer:: i, ia, icheck, igr, index_e, ipr, is1, is2, l, l1, l2, lm1, lm2, lmax_probe, lmw, lmx, m, m1, m2, mpinodes, mu, &
             multi_run, n_atom_proto, n_multi_run, natome, neqm, nge, nlm_probe, nlmagm, nlmw, nspinp
   integer, dimension(natome):: iaprotoi, igroupi, lmaxa
   integer, dimension(n_multi_run):: iabsm
@@ -3501,6 +3543,23 @@ subroutine Data_one_run(iabsm,iaprotoi,icheck,igreq,index_e,igroupi,lmax_probe,l
 
   endif
 
+! Ecriture pour extract
+  if( icheck > 0 .and. multi_run > 1 ) then
+    do ia = 1,natome
+      if( igroupi(ia) /= iabsm(multi_run) ) cycle
+    
+    ! si lmaxa > 10 il faut changer le format d'ecriture
+      lmw = min( 10, lmaxa(ia) )
+      nlmw = min( nlmagm, (lmw+1)**2 )
+      write(3,300)
+      do is1 = 1,nspinp
+        do lm1 = 1,nlmw
+          write(3,310) ( ( Taull(lm1,is1,lm2,is2,ia), lm2 = 1,nlmw ), is2 = 1,nspinp )
+        end do
+      end do
+    end do
+  endif
+
   return
   100 format(/' Prototypical atom number ',i3,' not in the sphere of calculation !'/)
   110 format(/' ---- Data_One_Run ',100('-'))
@@ -3508,5 +3567,6 @@ subroutine Data_one_run(iabsm,iaprotoi,icheck,igreq,index_e,igroupi,lmax_probe,l
   210 format('( l, m, s)',50(7x,3i3,6x))
   212 format('( l, m, s)',50(10x,2i3,7x))
   218 format(3i3,2x,1p,50(1x,2e11.3))
+  300 format(/' Taull, Multiple scattering amplitude')
+  310 format(1p,242(1x,2e15.7))
 end
-

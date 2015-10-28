@@ -6,7 +6,7 @@
 subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extract,Flapw,Full_self_abs,Hubbard,itape4, &
     Magnetic,Memory_save,mpinodes0,mpirank0,n_file_dafs_exp,n_multi_run_e,nb_atom_conf_m,ncolm,neimagent,nenerg,ngamme,ngroup, &
     ngroup_neq,nhybm,nklapw,nlatm,nlmlapwm,nmatsym,norbdil,npldafs,nple,nplrm,n_adimp,n_radius,n_range,nq_nrixs,NRIXS,nspin, &
-    nspino,nspinp,ntype,ntype_conf,Pdb,Readfast,Self_abs,Space_file,Taux,Temperature,Xan_atom)
+    nspino,nspinp,ntype,ntype_conf,Pdb,Readfast,Self_abs,Space_file,Taux,Temperature,Use_FDMX,Xan_atom)
 
   use declarations
   implicit none
@@ -20,7 +20,6 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
     npldafs, nple, nplm, nplrm, nq_nrixs, nspin, nspino, nspinp, ntype, ntype_conf, Wien_save, Z
 
   character(len=2):: Chemical_Symbol, Chemical_Symbol_c, Symbol
-  character(len=3):: mot3
   character(len=6):: mot6
   character(len=9):: grdat
   character(len=13):: Space_Group, Spgr
@@ -29,11 +28,11 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
 
   integer, dimension(:), allocatable :: igra, neq, numat
 
-  logical:: Absauto, Atom_conf, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Cylindre, Doping, &
+  logical:: Absauto, adimpin, Atom_conf, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Cylindre, Doping, &
      Extract, Flapw, Full_self_abs, Hubbard, Magnetic, Matper, Memory_save, NRIXS, Pdb, Quadrupole, Readfast, &
-     Self_abs, Spherique, Taux, Temperature, Xan_atom
+     Screening, Self_abs, Spherique, Taux, Temperature, Use_FDMX, Xan_atom
 
-  real(kind=db):: Adimp, de, def, E, phi, popatc, q_nrixs_first, q_nrixs, q_nrixs_step, q_nrixs_last, r, Rsorte_s, Theta
+  real(kind=db):: Adimp, de, def, E, phi, q_nrixs_first, q_nrixs, q_nrixs_step, q_nrixs_last, r, Rsorte_s, Theta
   real(kind=db), dimension(3):: p
   real(kind=db), dimension(3,3):: Mat
   real(kind=db), dimension(:), allocatable:: E_adimp, E_radius, Egamme
@@ -79,6 +78,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
   Pdb = .false.
   Quadrupole = .false.
   Readfast = .false.
+  Screening = .false.
   Self_abs = .false.
   Space_Group = ' '
   Spherique = .false.
@@ -86,6 +86,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
   Temperature = .false.
   Xan_atom = .false.
   Wien_save = 0
+
+  adimpin = .false.
+  if( Use_FDMX ) n_adimp = 5
 
   if( Bormann ) then
     npldafs = 36
@@ -191,11 +194,12 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
 
         case('adimp')
           n = nnombre(itape4,132)
+          adimpin = .true.
           if( mod(n,2) == 0 ) then
             call write_error
             do ipr = 6,9,3
               write(ipr,110)
-              write(ipr,115) n
+              write(ipr,117) n
             end do
             stop
           endif
@@ -243,7 +247,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
           elseif( lin_gam == 1 ) then
             def = 10 / rydb
             do ie = 2,10000000
-              r = 1 + e / def
+              r = 1 + ( E/rydb ) / def
               r = max( r, 0.25_db )
               de = sqrt( r ) * egamme(2)
               e = e + de
@@ -410,14 +414,16 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
 
           do it = 1,100000
             n = nnombre(itape4,132)
-            if( n == 3 ) cycle
-
-            if( n > 0 ) then
-
-              ntype = ntype + 1
-              if( n == 1 ) then
+            select case(n)
+              case(0)
+                exit
+              case(1)
+                ntype = ntype + 1
                 read(itape4,*)
-              else
+              case(3)
+                cycle
+              case default
+                ntype = ntype + 1
                 read(itape4,*) Z, nl
                 nlatm = max( nlatm, nl )
                 if( n == 2 + 4*nl .and. nl > 0 .and. nspin == 1 ) then
@@ -431,33 +437,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
                   end do
                   deallocate( pop )
                 endif
-              endif
-
-            else
-
-              read(itape4,'(A)',iostat=eof) motsb
-              if( eof /= 0 ) exit boucle_gen
-              open(8, file = motsb, status='old', iostat=istat)
-              if( istat /= 0 ) then
-                backspace(itape4)
-                exit
-              endif
-              if( it /= 1 ) ntype = ntype + 1
-              read(8,*)
-              do i = 1,100000
-                read(8,'(A)') mot3
-                if(mot3 == '---') exit
-              end do
-              read(8,*,iostat=ier) numat, popatc, nl
-              if( ier > 0 ) call write_err_form(itape4,grdat)
-              nlatm = max( nlatm, nl )
-              Close(8)
-              if( nl > 0 ) read(itape4,*)
-            endif
+            end select
           end do
-
-! Pour le cas des atomes charge ou il faut ajouter une orbitale:
-          nlatm = nlatm + 1
 
 ! Description de l'agregat :
         case('crystal','molecule','crystal_t','molecule_')
@@ -613,9 +594,19 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
         case('memory_sa')
           Memory_save = .true.
 
+        case('screening')
+          Screening = .true.
+
       end select
 
     end do boucle_gen
+
+!*** JDB
+    if( .NOT. adimpin .AND. Use_FDMX ) then
+      allocate( E_adimp(4) )
+      E_adimp(1:4) = (/ 100.0, 250.0, 400.0, 500.0 /)
+    endif
+!*** JDB
 
     nspin = min( nspin, nspinp )
 
@@ -857,6 +848,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
       deallocate( numat )
 
     endif
+
+! Pour le cas des atomes charges ou il faut ajouter une orbitale:
+    if( nlatm > 0 .or. Screening ) nlatm = nlatm + 1
 
   endif   ! arrive mpirank0 /= 0
 
@@ -1100,18 +1094,18 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg,ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw,ngroup_m, &
     ngroup_neq,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
     ngroup_temp,nhybm,nlat,nlatm,nnlm,No_solsing,nom_fich_Extract, &
-    nomfich,nomfich_optic_data,nomfich_tddft_data,nomfichbav,nomfile_atom,Noncentre, &
+    nomfich,nomfich_optic_data,nomfich_tddft_data,nomfichbav,Noncentre, &
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
     nphim,npldafs,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
     nself,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_conf,numat,numat_abs, &
     nvval,occ_hubb_e,Octupole,Old_reference,One_run,Optic,Overad,Overlap,p_self0, &
     param,Pas_SCF,pdpolar,PointGroup,PointGroup_Auto,polar,Polarise,poldafsem,poldafssm, &
-    pop_nonsph,popatc,popats,popatv,popval,posn,q_nrixs,Quadmag,Quadrupole,R_rydb, &
+    pop_nonsph,popats,popval,posn,q_nrixs,Quadmag,Quadrupole,R_rydb, &
     r0_lapw,rchimp,Readfast,Recup_optic,Recup_tddft_data,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,rydberg,rsorte_s,Save_optic,Save_tddft_data,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Solver,Space_file,Spherical_signal,Spherical_tensor, &
-    Spinorbite,state_all,state_all_out,Struct,Supermuf,Symauto,Symmol,Taux,Taux_oc,Tddft, &
-    Temp,Temp_coef,Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,V_hubbard,V_intmax,Vec_orig, &
+    Spinorbite,state_all,state_all_out,Struct,Supermuf,Symauto,Symmol,Taux,Taux_oc,Tddft,Temp,Temp_coef, &
+    Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_hubbard,V_intmax,Vec_orig, &
     Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Ylm_comp_inp,Z_nospinorbite)
 
   use declarations
@@ -1131,7 +1125,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
   character(len=1):: Let
   character(len=2):: Chemical_Symbol, Chemical_Symbol_c, Symbol
-  character(len=3):: mot3, seuil
+  character(len=3):: seuil
   character(len=5):: Solver, Struct
   character(len=6):: mot6
   character(len=8):: PointGroup
@@ -1142,7 +1136,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   character(len=132):: comt, Fichier, identmot, mots, motsb, nomfich, nomfich_optic_data, nomfich_tddft_data, &
     nom_fich_Extract, nomfichbav, Space_file
   character(len=132), dimension(9):: Wien_file
-  character(len=132), dimension(0:ntype):: nomfile_atom
   character(len=132), dimension(n_file_dafs_exp):: File_dafs_exp
   character(len=9), dimension(ngroup_par,nparm):: typepar
 
@@ -1173,8 +1166,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   complex(kind=db), dimension(3,npldafs):: poldafsem, poldafssm
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph):: Hybrid
 
-  logical:: Absauto, All_nrixs, Allsite, ATA, Atom, Atom_conf, Atom_nonsph, Atom_occ_hubb, Atomic_scr, Axe_loc, Base_spin, &
-    Basereel, Bormann, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Clementi, Core_resolved, &
+  logical:: Absauto, adimpin, All_nrixs, Allsite, ATA, Atom, Atom_conf, Atom_nonsph, Atom_occ_hubb, Atomic_scr, Axe_loc, &
+    Base_spin, Basereel, Bormann, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Clementi, Core_resolved, &
     Core_resolved_e, Coupelapw, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Dipmag, Doping, dyn_eg, dyn_g, &
     E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, &
     exc_imp, Extract, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, &
@@ -1182,10 +1175,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     M1M2, M2M2, Magnetic, matper, muffintin, noncentre, nonexc, normaltau, no_core_resolved, no_dipquad, no_e1e3, no_e2e2, &
     no_e3e3, No_solsing, Octupole, Old_reference, One_run, Optic, Overad, Pas_SCF_imp, Pdb, Perdew, &
     PointGroup_Auto, Polarise, quadmag, Quadrupole, r_self_imp, Readfast, Recup_optic, Recup_tddft_data, Relativiste, &
-    rydberg, Save_optic, Save_tddft_data, scf_elecabs, SCF_mag_free, Self_abs, self_cons, self_exc_imp, self_nonexc, &
+    rpalf, rydberg, Save_optic, Save_tddft_data, scf_elecabs, SCF_mag_free, Self_abs, self_cons, self_exc_imp, self_nonexc, &
     self_nonexc_imp, solsing_only, solsing_s, spherical_signal, spherical_tensor, spherique, &
     Spinorbite, State_all, State_all_out, Supermuf, Symauto, Symmol, Taux, Tddft, Temperature, &
-    Trace_format_wien, rpalf, Ylm_comp_inp
+    Trace_format_wien, Use_FDMX, Ylm_comp_inp
 
   logical, dimension(4):: SCF_log
   logical, dimension(10):: Multipole
@@ -1204,7 +1197,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(3,3):: Cubmat, Cubmati, Mat, Mat_or, Rot, Rot_gen
   real(kind=db), dimension(norbdil):: cdil
-  real(kind=db), dimension(0:ntype):: popatc, r0_lapw, rchimp, rlapw, rmt, rmtimp, V_hubbard
+  real(kind=db), dimension(0:ntype):: r0_lapw, rchimp, rlapw, rmt, rmtimp, V_hubbard
   real(kind=db), dimension(neimagent):: eeient, eimagent
   real(kind=db), dimension(ngamme):: egamme
   real(kind=db), dimension(nspin):: ecrantage, V0bdcFimp
@@ -1229,7 +1222,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   real(kind=db), dimension(ngroup_par,nparm):: param
   real(kind=db), dimension(nhybm,ngroup_nonsph):: pop_nonsph
   real(kind=db), dimension(ngroup,nlatm,nspin):: popats
-  real(kind=db), dimension(0:ntype,nlatm):: popatv
   real(kind=db), dimension(0:ntype,nlatm,nspin):: popval
   real(kind=db), dimension(3,nslapwm):: Wien_taulap
 
@@ -1239,6 +1231,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
 ! Parametres par defaut
   adimp(:) = 0.25_db
+  adimpin = .false. !*** JDB
   alfpot = 0._db
   All_nrixs = .false.
   Allsite = .false.
@@ -1323,6 +1316,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   korigimp = .false.
   lamstdens = -1
   ldipimp(:) = -1
+  lecrantage = 0
   lquaimp(:,:) = -1
   lin_gam = -1
   lmax_nrixs = 3
@@ -1338,6 +1332,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   multrmax = 1
   n_devide = 2
   nchemin = - 1
+  necrantage = 0
   nlat(:) = 0
   no_dipquad = .false.
   no_e1e3 = .false.
@@ -1374,7 +1369,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   perdew = .false.
   polar(:,:) = 0._db
   polarise = .false.
-  popatc(:) = 0._db
   popats(:,:,:) = 0._db
   quadmag = .false.
   Quadrupole = .false.
@@ -1690,16 +1684,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('screening')
           n = nnombre(itape4,132)
-          if( n < 3 ) then
-            call write_error
-            do ipr = 6,9,3
-              write(ipr,'(/A)') ' Wrong format under the keyword screening'
-            end do
-            stop
-          endif
-          n = n - 2
-          read(itape4,*,iostat=ier) necrantage, lecrantage, ecrantage(1:min(nspin,n))
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          Select case(n)
+            case(1,2)
+              read(itape4,*,iostat=ier) ecrantage(1:min(nspin,n))
+              necrantage = 0
+              lecrantage = 0
+            case(3,4)
+              n = n - 2
+              read(itape4,*,iostat=ier) necrantage, lecrantage, ecrantage(1:min(nspin,n))
+          end select
           if( n == 1 .and. Magnetic ) then
             ecrantage(nspin) = ecrantage(1) / nspin
             ecrantage(1) = ecrantage(nspin)
@@ -2157,6 +2150,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('adimp')
           n = nnombre(itape4,132)
+          adimpin = .true.
           if( n == 1 ) then
             read(itape4,*,iostat=ier) adimp(1)
           else
@@ -2362,97 +2356,59 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           do jt = 1,100000
             n = nnombre(itape4,132)
 
+            if( n == 0 ) exit
+
             if( n == 3 ) then
               read(itape4,*,iostat=ier) Ang_base_loc(:,it)
               if( ier > 0 ) call write_err_form(itape4,grdat)
               n = nnombre(itape4,132)
             endif
 
-            if( n > 0 ) then
-
-              nrm = max( nrm, nrato_dirac )
-              if( jt <= ntype ) it = it + 1
-              if( n == 1 ) then
-                read(itape4,*,iostat=ier) numat(it)
-                if( ier > 0 ) call write_err_form(itape4,grdat)
-                nlat(it) = 0
-              else
-                read(itape4,*,iostat=ier) numat(it), nlat(it)
-                if( ier > 0 ) call write_err_form(itape4,grdat)
-                if( nlat(it) > 0 ) then
-                  backspace(itape4)
-                  n = nnombre(itape4,132)
-                  if( n == 2 + 3*nlat(it) ) then
-                    read(itape4,*,iostat=ier) numat(it), nlat(it), ( nvval(it,l), lvval(it,l), &
-                                   popval(it,l,1), l = 1,nlat(it) )
-                    if( nspin == 2 ) then
-                      do l = 1,nlat(it)
-                        popval(it,l,1) = 0.5_db * popval(it,l,1)
-                        popval(it,l,2) = popval(it,l,1)
-                      end do
-                    endif
-                  elseif( n == 2 + 4*nlat(it) ) then
-                    if( nspin == 1 ) then
-                      allocate( x(nlat(it)) )
-                      read(itape4,*,iostat=ier) numat(it),nlat(it), ( nvval(it,l), lvval(it,l), popval(it,l,1), x(l), &
-                                l = 1,nlat(it) )
-                      do l = 1,nlat(it)
-                        popval(it,l,1) = popval(it,l,1) + x(l)
-                      end do
-                      deallocate( x )
-                    else
-                      read(itape4,*,iostat=ier) numat(it), nlat(it), ( nvval(it,l), &
-                         lvval(it,l), popval(it,l,:), l = 1,nlat(it) )
-                    endif
-                  else
-                    call write_error
-                    do ipr = 6,9,3
-                      write(ipr,100)
-                      write(ipr,130)  it
-                    end do
-                    stop
-                  endif
-                  if( ier > 0 ) call write_err_form(itape4,grdat)
-                endif
-              endif
-
+            nrm = max( nrm, nrato_dirac )
+            if( jt <= ntype ) it = it + 1
+            if( n == 1 ) then
+              read(itape4,*,iostat=ier) numat(it)
+              if( ier > 0 ) call write_err_form(itape4,grdat)
+              nlat(it) = 0
             else
-
-              read(itape4,'(A)',iostat=eof) mots
-              if( eof /= 0 ) exit boucle_lect
-
-              open(8, file = motsb, status='old', iostat=istat)
-              if( istat /= 0 ) then
-                backspace(itape4)
-                exit
-              endif
-              if( jt <= ntype .and. jt /= 1 ) it = it + 1
-              nomfile_atom(it) = motsb
-              read(8,'(A)') com(it)
-              icom(it) = 4
-              do i = 1,100000
-                read(8,'(A)') mot3
-                if(mot3 == '---') exit
-              end do
-              read(8,*,iostat=ier) numat(it), popatc(it), nlat(it)
+              read(itape4,*,iostat=ier) numat(it), nlat(it)
               if( ier > 0 ) call write_err_form(itape4,grdat)
-              backspace(8)
-              read(8,*,iostat=ier) numat(it), popatc(it), nlat(it), (nvval(it,l), lvval(it,l), popatv(it,l), l = 1,nlat(it))
-              if( ier > 0 ) call write_err_form(itape4,grdat)
-              read(8,*,iostat=ier) nrato(it)
-              if( ier > 0 ) call write_err_form(itape4,grdat)
-              nrm = max( nrm, nrato(it) )
-              Close(8)
               if( nlat(it) > 0 ) then
+                backspace(itape4)
                 n = nnombre(itape4,132)
-                if( n == nlat(it) ) then
-                  read(itape4,*,iostat=ier) popval(it,1:nlat(it),1)
+                if( n == 2 + 3*nlat(it) ) then
+                  read(itape4,*,iostat=ier) numat(it), nlat(it), ( nvval(it,l), lvval(it,l), &
+                                 popval(it,l,1), l = 1,nlat(it) )
+                  if( nspin == 2 ) then
+                    do l = 1,nlat(it)
+                      popval(it,l,1) = 0.5_db * popval(it,l,1)
+                      popval(it,l,2) = popval(it,l,1)
+                    end do
+                  endif
+                elseif( n == 2 + 4*nlat(it) ) then
+                  if( nspin == 1 ) then
+                    allocate( x(nlat(it)) )
+                    read(itape4,*,iostat=ier) numat(it),nlat(it), ( nvval(it,l), lvval(it,l), popval(it,l,1), x(l), l = 1,nlat(it) )
+                    do l = 1,nlat(it)
+                      popval(it,l,1) = popval(it,l,1) + x(l)
+                    end do
+                    deallocate( x )
+                  else
+                    read(itape4,*,iostat=ier) numat(it), nlat(it), ( nvval(it,l), &
+                       lvval(it,l), popval(it,l,:), l = 1,nlat(it) )
+                  endif
                 else
-                  read(itape4,*,iostat=ier) ( popval(it,l,:), l = 1,nlat(it) )
+                  call write_error
+                  do ipr = 6,9,3
+                    write(ipr,100)
+                    write(ipr,130)  it
+                  end do
+                  stop
                 endif
                 if( ier > 0 ) call write_err_form(itape4,grdat)
               endif
             endif
+
           end do
 
         case('dilatorb')
@@ -2765,6 +2721,13 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     end do boucle_lect
 
 ! Fin de la lecture.
+
+!*** JDB
+    if (.NOT. adimpin .AND. Use_FDMX) then
+      adimp(1:5) = (/ 0.24, 0.20, 0.16, 0.12, 0.08 /)
+      E_adimp(1:4) = (/ 100.0, 250.0, 400.0, 500.0 /)
+    endif
+!*** JDB
 
     if( .not. Extract ) then
 
@@ -4119,12 +4082,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(nrm,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(numat,n,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Pas_SCF,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(popatc,n,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(rchimp,n,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(rmt,n,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(rmtimp,n,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
-    if( nlatm > 0 ) call MPI_Bcast(popatv,n*nlatm,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
 
     if( flapw ) then
       call MPI_Bcast(its_lapw,ngroup_lapw,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
@@ -4331,11 +4292,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     posn(:,igr) = posn(:,igr) - Centre(:)
   end do
 
-  Multipole(1) = E1E1; Multipole(2) = E1E2e; Multipole(3) = E1E3;
-  Multipole(4) = E1M1; Multipole(5) = E1M2; Multipole(6) = E2E2;
-  Multipole(7) = E3E3; Multipole(8) = M1M1; Multipole(9) = M1M2;
-  Multipole(10) = M2M2
-
   Tensor_imp(1:3) = ldipimp(1:3)
   k = 3
   do i = 1,3
@@ -4344,6 +4300,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       Tensor_imp(k) = lquaimp(i,j)
     end do
   end do
+
+  call Rmt_fix(icheck(1),ntype,numat,Rmt)
+
+! Stockage pour transmission plus courte
+
+  Multipole(1) = E1E1; Multipole(2) = E1E2e; Multipole(3) = E1E3;
+  Multipole(4) = E1M1; Multipole(5) = E1M2; Multipole(6) = E2E2;
+  Multipole(7) = E3E3; Multipole(8) = M1M1; Multipole(9) = M1M2;
+  Multipole(10) = M2M2
 
   SCF_log(1) = SCF_elecabs
   SCF_log(2) = SCF_mag_free
@@ -4465,6 +4430,45 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   770 format(/6x,' local matrix rotation',7x,'local Z axis   Atom =',i3)
   780 format(3x,3f9.5,5x,f9.5)
 
+end
+
+!***********************************************************************
+
+! Muffin-tin radius fixation for FDM method
+
+subroutine Rmt_fix(icheck,ntype,numat,Rmt)
+
+  use declarations
+  implicit none
+
+  integer:: icheck, it, ntype
+  integer, dimension(0:ntype):: numat
+
+  real(kind=db):: p1, Rmt_H, Rmt_Ti
+  real(kind=db), dimension(0:ntype):: Rmt
+
+  Rmt_H = 0.3_db
+  Rmt_Ti = 1.0_db
+
+  do it = 1,ntype
+    if( abs(rmt(it)) > eps10 ) cycle
+    if( numat(it) == 0 ) then
+      Rmt(it) = 0._db
+    elseif( numat(it) == 1 ) then
+      Rmt(it) = rmt_H
+    elseif( numat(it) > 21 ) then
+      Rmt(it) = rmt_Ti
+    else
+      p1 = ( numat(it) - 1._db ) / 21._db
+      Rmt(it) = p1 * Rmt_Ti + (1 - p1) * Rmt_H
+    endif
+  end do
+
+  if( icheck > 0 ) write(3,110) Rmt(1:ntype)
+  Rmt(:) = Rmt(:) / bohr
+
+  return
+  110 format(/' FDM atom radius =',10f6.3)
 end
 
 !***********************************************************************

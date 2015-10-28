@@ -511,7 +511,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
             endif
             call spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2, &
               Energ,Ephseuil,Epsii,Eseuil(nbseuil),ia,icheck,ie,Int_tens, &
-              ipl,ipldafs,jseuil,magn_sens,moyenne,natomsym,ncolm,nenerg,ninitlr,nomfich_s,npldafs,nplr, &
+              ipl,ipldafs,jseuil,magn_sens,moyenne,natomsym,ncolm,nenerg,ninit1,ninitlr,nomfich_s,npldafs,nplr, &
               nplrm,nplt,nseuil,numat_abs,pdp,phdf0t1,phdt1,plae,pol,plas,Polarise,secddia,secdqia,secdqia_m,secqqia, &
               Spherical_signal,v0muf,voae,vec,voas)
           end do
@@ -2455,7 +2455,7 @@ end
 
 subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2, &
             Energ,Ephseuil,Epsii,Eseuil,ia,icheck,ie,Int_tens,kpl,ipldafs,jseuil,magn_sens,moyenne, &
-            natomsym,ncolm,nenerg,ninitlr,nomfich_s,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdf0t,phdt,plae,pol, &
+            natomsym,ncolm,nenerg,ninit1,ninitlr,nomfich_s,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdf0t,phdt,plae,pol, &
             plas,Polarise,secddia,secdqia,secdqia_m,secqqia,Spherical_signal,V0muf,voae,vec,voas)
 
   use declarations
@@ -2675,7 +2675,7 @@ subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E
 
   call write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,Energ,Ephseuil,Epsii, &
       Eseuil,ia,ie,Int_tens,ipl0,ipl2,ipldafs,jseuil,magn_sens,n_tens_dd,n_tens_dq,n_tens_max, &
-      n_tens_qq,n_tens_t,natomsym,nenerg,ninitlr,nomfich_s,npldafs,nplt,nseuil,numat_abs,phdf0t,phdt,Polarise, &
+      n_tens_qq,n_tens_t,natomsym,nenerg,ninit1,ninitlr,nomfich_s,npldafs,nplt,nseuil,numat_abs,phdf0t,phdt,Polarise, &
       Sph_tensor_dd_ni,Sph_tensor_dq_ni,Sph_tensor_dq_m_ni,Sph_tensor_qq_ni,Spherical_signal,Tensor_pol_dd,Tensor_pol_dq, &
       Tensor_pol_qq,V0muf,writout)
 
@@ -3401,7 +3401,7 @@ end
 
 subroutine write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,Energ,Ephseuil,Epsii, &
         Eseuil,ia,ie,Int_tens,ipl0,ipl2,ipldafs,jseuil,magn_sens,n_tens_dd,n_tens_dq,n_tens_max, &
-        n_tens_qq,n_tens_t,natomsym,nenerg,ninitlr,nomfich_s,npldafs,nplt,nseuil,numat_abs,phdf0t,phdt,Polarise, &
+        n_tens_qq,n_tens_t,natomsym,nenerg,ninit1,ninitlr,nomfich_s,npldafs,nplt,nseuil,numat_abs,phdf0t,phdt,Polarise, &
         Sph_tensor_dd_ni,Sph_tensor_dq_ni,Sph_tensor_dq_m_ni,Sph_tensor_qq_ni,Spherical_signal,Tensor_pol_dd,Tensor_pol_dq, &
         Tensor_pol_qq,V0muf,writout)
 
@@ -3554,8 +3554,8 @@ subroutine write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,E
     nomficht(long+1:long+4) = '.txt'
 
     call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
-            jseuil,n_tens_max*ninitlr,n_tens,0,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
-            cdum,Tens,v0muf,.false.,0)
+            jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
+            cdum,Tens,v0muf,Core_resolved,0)
 
   endif
 
@@ -3599,8 +3599,8 @@ subroutine write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,E
 
     Int_tenst(1:n_tens) = Int_tens(1:n_tens,ia)
     call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
-            jseuil,n_tens_max*ninitlr,n_tens,0,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
-            cdum,Int_tenst,v0muf,.false.,0)
+            jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
+            cdum,Int_tenst,v0muf,Core_resolved,0)
 
   endif
 
@@ -3883,12 +3883,12 @@ subroutine write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,E
       ph0(:) = cg
       n_tens2 = n_tens / ( 2 * ninitlr )
       call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
-            jseuil,n_tens_max*ninitlr,n_tens,0,ninitlr,nomficht,nomten,n_tens_max,n_tens2,0,0,nseuil,numat_abs,phtem, &
-            ph0,Tens,v0muf,.false.,0)
+            jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,n_tens_max,n_tens2,0,0,nseuil,numat_abs,phtem, &
+            ph0,Tens,v0muf,Core_resolved,0)
     else
       call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
-             jseuil,n_tens_max*ninitlr,n_tens,0,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum,cdum,Tens,v0muf, &
-            .false.,0)
+             jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum,cdum,Tens,v0muf, &
+            Core_resolved,0)
     endif
 
   end do
