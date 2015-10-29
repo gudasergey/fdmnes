@@ -84,9 +84,9 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
   integer, dimension(:,:,:,:), allocatable:: msymoo, msymooi
 
-  logical:: Absauto, Absorbeur, All_nrixs, Allsite, ATA, Atom_nonsph, Atom_nonsph_loc, Atom_occ_hubb, Atomic_scr, Axe_loc, &
-     Basereel, Base_hexa, Base_ortho, Base_spin, Bormann, Clementi, Cal_xanes, Cartesian_tensor, Charge_free, Convergence, &
-     Core_resolved, Convolution_cal, Coupelapw, Dafs, Dafs_bio, Density, Density_comp, Devide_Ei, Dipmag, &
+  logical:: Absauto, Absorbeur, All_nrixs, Allsite, ATA, Atom_comp_cal, Atom_nonsph, Atom_nonsph_loc, Atom_occ_hubb, Atomic_scr, &
+     Axe_loc, Basereel, Base_hexa, Base_ortho, Base_spin, Bormann, Clementi, Cal_xanes, Cartesian_tensor, Charge_free, &
+     Convergence, Core_resolved, Convolution_cal, Coupelapw, Dafs, Dafs_bio, Density, Density_comp, Devide_Ei, Dipmag, &
      Doping, Dyn_eg, Dyn_g, E_comp, E1E2e, E_Fermi_man, Eneg, Eneg_i, Eneg_n_i, Energphot, Extract, &
      Extract_Green, Fermi, Fermi_first, Final_optic, Final_tddft, Fit_cal, Flapw, Flapw_new, Force_ecr, &
      Full_atom, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green, Green_i, Green_int, &
@@ -864,6 +864,8 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
           nlatm,Noncentre,Nonexc_g,nspin,ntype,numat,One_run,Orthmat,Orthmati,PointGroup,PointGroup_Auto, &
           popats,pos,posn,rmax,Rot_int,Self_nonexc,Spinorbite,Rot_Atom_gr,Sym_4,Struct,Sym_cubic,Symmol,Taux,Taux_oc,Vsphere)
 
+        Ylm_comp = Ylm_comp_inp .or. Atom_comp_cal(igrpt0)
+
         if( .not. One_run .or. ( One_run .and. multi_run == 1 ) ) iaabsfirst = iaabs
 
       endif
@@ -1152,7 +1154,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
             igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,is_eq,itype,itypei,itypep,itypepr,Magnetic,m_hubb, &
             m_hubb_e,mpirank0,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,nb_eq,nb_rpr, &
             nb_rep_t,nb_sym_op,neqm,ngroup,ngroup_hubb,ngroup_m,nlat,nlatm,nspin,nspinp,ntype,numat,nx,occ_hubb_e,Overad,popats, &
-            pos,posi,rmt,rot_atom,roverad,rsort,rsorte,Spinorbite,Symmol,V_hubb,V_hubbard,Ylm_comp,Ylm_comp_inp)
+            pos,posi,rmt,rot_atom,roverad,rsort,rsorte,Spinorbite,Symmol,V_hubb,V_hubbard,Ylm_comp)
 
         end if
 
@@ -1882,6 +1884,18 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
               lmaxg = max(lmaxg,lmaxa(ia))
             end do
 
+            if( Cal_xanes .and. icheck(18) > 0 ) then
+              if( natome <= n_atom_proto ) then
+                write(3,'(/a10,100(i4,i2))') ' Z, lmax =', ( numat(itypei(ia)), lmaxat(iaprotoi(ia)), ia = 1,natome )
+              else
+                if( nonexc ) then
+                  write(3,'(/a10,100(i4,i2))') ' Z, lmax =', ( numat(itypepr(ipr)), lmaxat(ipr), ipr = 1,n_atom_proto )
+                else
+                  write(3,'(/a10,100(i4,i2))') ' Z, lmax =', ( numat(itypepr(ipr)), lmaxat(ipr), ipr = 0,n_atom_proto )
+                endif
+              endif
+            endif
+
             if( multi_run == 1 .or. .not. One_run ) then
 
               do ispin = 1,nspinorb
@@ -1919,10 +1933,9 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
                     lval(1:n) = lso(1:n,igrph)
                     call cnlmmax(lmaxso,lval,n,nlmso)
                     deallocate( lval )
-                    if( Cal_xanes .and. ie > 1 ) ich = ich - 1
                     call mat(Adimp,Atom_axe,Axe_Atom_grn,Base_hexa,Base_ortho,Basereel,Cal_xanes,cgrad, &
                     clapl,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,Full_atom, &
-                    gradvr,iaabsi,iaprotoi,iato,ibord,ich,igreq,igroupi,igrph,irep_util,isbord,iso,ispin,isrt,ivois,isvois, &
+                    gradvr,iaabsi,iaprotoi,iato,ibord,ich,ie,igreq,igroupi,igrph,irep_util,isbord,iso,ispin,isrt,ivois,isvois, &
                     karact,lato,lmaxa,lmaxso,lso,mato,MPI_host_num_for_mumps,mpirank0,mso, &
                     natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup,ngrph,nim,nicm, &
                     nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &

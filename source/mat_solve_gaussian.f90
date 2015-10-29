@@ -2,7 +2,7 @@
 ! Routine solving the system of linear equations by Gaussian elimination
 
 subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clapl, E_comp, Eimag, Enervide, gradvr, &
-        ianew, iato, ibord, icheck, igrph, ii, isbord, iso, ispinin, isrt, isvois, ivois, Kar, Kari, lato, &
+        ianew, iato, ibord, icheck, ie, igrph, ii, isbord, iso, ispinin, isrt, isvois, ivois, Kar, Kari, lato, &
         lb1, lb2, lmaxso, lso, mato, MPI_host_num_for_mumps, mpirank0, mso, natome, nbm, nbord, nbordf, nbtm, Neuman, Neumanr, &
         new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmomax, nlmsa, nlmso, nlmso_i, &
         nphiato1, nphiato7, npoint, npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
@@ -12,7 +12,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   use declarations
   implicit none
 
-  integer:: i, i_newind, ia, ib, icheck, igrph, ii, ipr, isp, ispin, ispinin, iv, j, jj, k, lb1i, lb1r, lb2i, lb2r, lm, lmaxso, &
+  integer:: i, i_newind, ia, ib, icheck, ie, igrph, ii, ipr, isp, ispin, ispinin, iv, j, jj, k, lb1i, lb1r, lb2i, lb2r, lm, lmaxso, &
     lms, MPI_host_num_for_mumps, mpirank0, natome, nbm, nbtm, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmagm, nlmmax, &
     nlmomax, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, & 
     npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, nvois
@@ -145,9 +145,6 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
   end do ! fin boucle i_newind
 
-!  if( igrph == 1 .and. icheck > 0 .and. mpirank0 == 0 ) &
-!    write(6,'(A,3i10)') ' nb_not_zero_tot, nligne, npoint =', nb_not_zero_tot, nligne, npoint
-  
   allocate( IndColNotZero(nb_not_zero_tot) ) 
   
   do lk = 1,nb_not_zero_tot

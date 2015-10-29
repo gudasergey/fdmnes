@@ -1172,8 +1172,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, &
     exc_imp, Extract, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, &
     Gamma_hole_imp, Gamma_tddft, Green_s, Green_self, Green_int, Hedin, Hubbard, korigimp, lmaxfree, lmoins1, lplus1, M1M1, &
-    M1M2, M2M2, Magnetic, matper, muffintin, noncentre, nonexc, normaltau, no_core_resolved, no_dipquad, no_e1e3, no_e2e2, &
-    no_e3e3, No_solsing, Octupole, Old_reference, One_run, Optic, Overad, Pas_SCF_imp, Pdb, Perdew, &
+    M1M2, M2M2, Magnetic, matper, muffintin, noncentre, nonexc, nonexc_imp, normaltau, no_core_resolved, no_dipquad, no_e1e3, &
+    no_e2e2, no_e3e3, No_solsing, Octupole, Old_reference, One_run, Optic, Overad, Pas_SCF_imp, Pdb, Perdew, &
     PointGroup_Auto, Polarise, quadmag, Quadrupole, r_self_imp, Readfast, Recup_optic, Recup_tddft_data, Relativiste, &
     rpalf, rydberg, Save_optic, Save_tddft_data, scf_elecabs, SCF_mag_free, Self_abs, self_cons, self_exc_imp, self_nonexc, &
     self_nonexc_imp, solsing_only, solsing_s, spherical_signal, spherical_tensor, spherique, &
@@ -1340,6 +1340,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   no_e2e2 = .false.
   No_solsing = .false.
   nonexc = .false.
+  nonexc_imp = .false.
   noncentre = .false.
   non_relat = 0
   norbv(:) = 0
@@ -2262,6 +2263,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('nonexc')
           nonexc = .true.
+          nonexc_imp = .true.
 
         case('excited')
           exc_imp = .true.
@@ -3242,6 +3244,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     if( nonexc ) Symmol = .true.
     if( self_nonexc_imp ) self_nonexc = .true.
     if( self_exc_imp .and. .not. Optic ) self_nonexc = .false.
+    if( self_exc_imp .and. .not. Optic .and. .not. nonexc_imp ) nonexc = .false.
     if( nonexc ) self_nonexc = .true.
     l = l_level_val(numat_abs)
     if( .not. ( nonexc .and. self_nonexc ) .and. ( l == 2 .or. l == 3 ) ) scf_elecabs = .true.

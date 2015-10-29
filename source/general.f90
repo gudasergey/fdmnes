@@ -8052,7 +8052,7 @@ subroutine Atom_selec(adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_mat,Axe_
            igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,is_eq,itype,itypei,itypep,itypepr,magnetic,m_hubb, &
            m_hubb_e,mpirank,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,nb_eq,nb_rpr, &
            nb_rep_t,nb_sym_op,neqm,ngroup,ngroup_hubb,ngroup_m,nlat,nlatm,nspin,nspinp,ntype,numat,nx,occ_hubb_e,overad,popats, &
-           pos,posi,rmt,rot_atom,roverad,rsort,rsorte,Spinorbite,Symmol,V_hubb,V_hubbard,Ylm_comp,Ylm_comp_inp)
+           pos,posi,rmt,rot_atom,roverad,rsort,rsorte,Spinorbite,Symmol,V_hubb,V_hubbard,Ylm_comp)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -8075,7 +8075,7 @@ subroutine Atom_selec(adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_mat,Axe_
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb
 
   logical:: Atom_comp_cal, Atom_mag_cal, Atom_nonsph, Atom_occ_mat, Base_ortho, Full_atom, Green, Hubbard, magnetic, overad, &
-          Spinorbite, Symmol, Ylm_comp, Ylm_comp_inp
+          Spinorbite, Symmol, Ylm_comp
   logical, dimension(nb_sym_op):: Fait
   logical, dimension(natome):: Atom_comp, Atom_axe
   logical, dimension(0:natome):: Atom_mag
@@ -8258,8 +8258,6 @@ subroutine Atom_selec(adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_mat,Axe_
   else
     Atom_mag(0) = .false.
   endif
-
-  Ylm_comp = Ylm_comp_inp .or. Atom_comp_cal(igrpt0)
 
 ! Evaluation de la symetrie locale
   do ia = 1,natome
@@ -10264,12 +10262,15 @@ subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,it
 
     do l = 0,lmax
       do m = -l,l
+
         do ispin = 1,nspino
 
           call symorb(l,m,kopsymo)
 
 ! Recherche de la representation a laquelle appartient l'orbitale
           boucle_irep: do igrph = 1,ngrph
+!!!!!!!!!!!!!!!!!!!!!!!!!!
+!      if( ia == 2 .and. (igrph == 3 .or. igrph == 5 ) .and. l == 4 .and. abs(m) == 4 ) cycle
             irep = abs( irep_util(igrph,ispin) )
             if( irep == 0 ) cycle
             do is = 1,nopsm

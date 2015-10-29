@@ -3,7 +3,7 @@
 ! From Alexander Guda et al, Rostov, Russia. 
 
 subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clapl, E_comp, Eimag, Enervide, gradvr, &
-        ianew, iato, ibord, icheck, igrph, ii, isbord, iso, ispinin, isrt, isvois, ivois, Kar, Kari, lato, &
+        ianew, iato, ibord, icheck, ie, igrph, ii, isbord, iso, ispinin, isrt, isvois, ivois, Kar, Kari, lato, &
         lb1, lb2, lmaxso, lso, mato, MPI_host_num_for_mumps, mpirank0, mso, natome, nbm, nbord, nbordf, nbtm, Neuman, Neumanr, &
         new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmomax, nlmsa, nlmso, nlmso_i, &
         nphiato1, nphiato7, npoint, npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
@@ -70,7 +70,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     end subroutine
   END INTERFACE
 
-  integer:: icheck, igrph, ii, isp, ispin, ispinin, i, j, lb1i, lb1r, lb2i, lb2r, &
+  integer:: icheck, ie, igrph, ii, isp, ispin, ispinin, i, j, lb1i, lb1r, lb2i, lb2r, &
     lmaxso, MPI_host_num_for_mumps, mpirank_in_mumps_group, mpirank0, natome, nbm, nbtm, ngrph, nicm, nim, nligne, &
     nligne_i, nligneso, nlmagm, nlmmax, nlmomax, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, & 
     npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, nvois, mpierr
@@ -216,7 +216,13 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     nz = nzSum
   endif
   if ( mpirank0 == 0 ) then
-    if ( icheck > 0 ) write(3,100) nligne, nz
+    if ( icheck > 1 .or. ( icheck == 1 .and. ie == 1 ) ) then
+      if( ngrph == 1 ) then
+        write(3,100) nligne, nz
+      else
+        write(3,110) igrph, nligne, nz
+      endif
+    endif
     if ( icheck > 1 ) then
       nligne8 = nligne
       write(6,'(" Sizes of linear equation system:")')
@@ -244,8 +250,8 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   endif
   
   return
-  100 format(/' FDM matrix: number of line =',i7, / &
-              '             number of not zero terms =',i8)
+  100 format(/' FDM matrix: number of line =',i7,',  number of not zero terms =',i8)
+  110 format(/' FDM matrix, igrph =',i2,' : number of line =',i7,',  number of not zero terms =',i8)
 end
 
 !**************************************************************************************************************

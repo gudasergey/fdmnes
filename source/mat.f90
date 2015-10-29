@@ -4,7 +4,7 @@
 
 subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xanes,cgrad, &
                     clapl,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide,Full_atom, &
-                    gradvr,iaabsi,iaprotoi,iato,ibord,icheck,igreq,igroupi,igrph,irep_util,isbord,iso,ispinin,isrt,ivois, &
+                    gradvr,iaabsi,iaprotoi,iato,ibord,icheck,ie,igreq,igroupi,igrph,irep_util,isbord,iso,ispinin,isrt,ivois, &
                     isvois,karact,lato,lmaxa,lmaxso,lso,mato,MPI_host_num_for_mumps,mpirank0,mso, &
                     natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup_m,ngrph,nim,nicm, &
                     nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
@@ -15,7 +15,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   use declarations
   implicit none
   
-  integer:: i, i1, i2, ia, iaabsi, icheck, idir1, idir2, idir3, igrph, ii, ipas, irep, is1, is2, isens, isg, isp, ispinin, &
+  integer:: i, i1, i2, ia, iaabsi, icheck, idir1, idir2, idir3, ie, igrph, ii, ipas, irep, is1, is2, isens, isg, isp, ispinin, &
     jj, jsp, l, l1, l2, lm, lm01, lm01c, lm02, lm02c, lm1, lm2, lmaxso, lmf, lms, lmw, m, m1, m2, &
     MPI_host_num_for_mumps, mpirank0, natome, n_atom_0, n_atom_ind, n_atom_proto, nbm, nbtm, neqm, ngroup_m, ngrph, nim, nicm,&
     nligne, nligne_i, nligneso, nlmagm, nlmmax ,nlmomax, nlmsam, nlmso, nlmso_i, nlmw, nphiato1, nphiato7, npoint, npr, &
@@ -150,7 +150,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   nligneso = nligne - nlmso
 
   call mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clapl, E_comp, Eimag, Enervide, gradvr, &
-        ianew, iato, ibord, icheck, igrph, ii, isbord, iso, ispinin, isrt, isvois, ivois, Kar, Kari, lato, &
+        ianew, iato, ibord, icheck, ie, igrph, ii, isbord, iso, ispinin, isrt, isvois, ivois, Kar, Kari, lato, &
         lb1, lb2, lmaxso, lso, mato, MPI_host_num_for_mumps, mpirank0, mso, natome, nbm, nbord, nbordf, nbtm, Neuman, Neumanr, &
         new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmomax, nlmsa, nlmso, nlmso_i, &
         nphiato1, nphiato7, npoint, npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
@@ -354,46 +354,53 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
       endif
     endif
     if( Basereel ) allocate( smc(nlmso) )
-    do isens = 1,2
-      if( isens == 1 ) then
-        i1 = nligne
-        i2 = 1
-        ipas = - 1
-      else
-        i1 = 1
-        i2 = nligne
-        ipas = 1
-      endif
-      do ii = i1,i2,ipas
-        i = newinv(ii)
-        if( i <= 0 ) cycle
-        if( Spinorbite ) then
-          isp = mod(ii+1,2) + 1
-          if( irep_util(igrph,isp) == 0 ) cycle
-        endif
-        if( abs(xyz(idir1,i)) > eps10 .or. abs(xyz(idir2,i)) > eps10 ) cycle
-        if( ( isens == 1 .and. xyz(idir3,i) > - eps10 ) .or. ( isens == 2 .and. xyz(idir3,i) < - eps10 ) ) cycle
-        if( Cal_comp ) then
-          if( Basereel ) then
-            do lmf = 1,nlmw
-              smc(lmf) = sum( norm(lmf,1:nlmso) * cmplx( smr(1:nlmso,ii), smi(1:nlmso,ii), db ))
-            end do
-            write(3,190) xyz(idir3,i)*bohr, smc(1:nlmw) / rvol(i)
-          else
-            write(3,200) xyz(idir3,i)*bohr, ( smr(lms,ii) / rvol(i), smi(lms,ii) / rvol(i), lms = 1,nlmw )
-          endif
+   
+    do jsp = 1,nspino
+      if( Spinorbite ) write(3,'(a6,i2)') ' isp =', jsp
+      do isens = 1,2
+        if( isens == 1 ) then
+          i1 = nligne  
+          i2 = 1
+          ipas = - 1
         else
-          if( Basereel ) then
-            do lmf = 1,nlmw
-              smc(lmf) = sum( norm(lmf,1:nlmso) * smr(1:nlmso,ii) )
-            end do
-            write(3,190) xyz(idir3,i)*bohr, smc(1:nlmw) / rvol(i)
-          else
-            write(3,200) xyz(idir3,i)*bohr, smr(1:nlmw,ii) / rvol(i)
-          endif
+          i1 = 1
+          i2 = nligne
+          ipas = 1
         endif
+        do ii = i1,i2,ipas
+          i = newinv(ii)
+          if( i <= 0 ) cycle
+          if( Spinorbite ) then
+            isp = mod(ii+1,2) + 1
+            if( isp /= jsp ) cycle
+            if( irep_util(igrph,isp) == 0 ) cycle
+          endif
+          if( abs(xyz(idir1,i)) > eps10 .or. abs(xyz(idir2,i)) > eps10 ) cycle
+          if( ( isens == 1 .and. xyz(idir3,i) > - eps10 ) .or. ( isens == 2 .and. xyz(idir3,i) < - eps10 ) ) cycle
+          if( Cal_comp ) then
+            if( Basereel ) then
+              do lmf = 1,nlmw
+                smc(lmf) = sum( norm(lmf,1:nlmso) * cmplx( smr(1:nlmso,ii), smi(1:nlmso,ii), db ))
+              end do
+              write(3,190) xyz(idir3,i)*bohr, smc(1:nlmw) / rvol(i)
+            else
+              write(3,200) xyz(idir3,i)*bohr, ( smr(lms,ii) / rvol(i), smi(lms,ii) / rvol(i), lms = 1,nlmw )
+            endif
+          else
+            if( Basereel ) then
+              do lmf = 1,nlmw
+                smc(lmf) = sum( norm(lmf,1:nlmso) * smr(1:nlmso,ii) )
+              end do
+              write(3,190) xyz(idir3,i)*bohr, smc(1:nlmw) / rvol(i)
+            else
+              write(3,200) xyz(idir3,i)*bohr, smr(1:nlmw,ii) / rvol(i)
+            endif
+          endif
+        end do
       end do
+      
     end do
+    
     if( Basereel ) deallocate(smc)
   endif
 
@@ -445,7 +452,14 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
     ! si lmaxa > 10 il faut changer le format d'ecriture
     lmw = min( 10, lmaxa(ia) )
     nlmw = min( nlmagm, (lmw+1)**2 )
-    write(3,300)
+    write(3,260)
+    if( nspinp == 1 ) then
+      write(3,270) lmw, nspinp
+      write(3,280) (( l, m, m = -l,l ), l = 0,lmw )
+    else
+      write(3,290) lmw, nspinp
+      write(3,300) ((( l, m, i, m = -l,l ), l = 0,lmw ), i = 1,2)
+    endif
     do is1 = 1,nspinp
       do lm1 = 1,nlmw
         write(3,310) ( ( Taull(lm1,is1,lm2,is2,ia), lm2 = 1,nlmw ), is2 = 1,nspinp )
@@ -469,9 +483,12 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   230 format('( l, m, s)',18(7x,3i3,6x))
   240 format('( l, m, s)',18(10x,2i3,7x))
   250 format(3i3,2x,1p,18(1x,2e11.3))
-  300 format(/' Taull, Multiple scattering amplitude')
+  260 format(/' Taull, Multiple scattering amplitude')
+  270 format(2i4,' = lmax, nspinp / ( l, m)')
+  280 format(242(14x,2i3,11x))
+  290 format(2i4,' = lmax, nspinp / ( l, m, s)')
+  300 format(242(12x,3i3,10x))
   310 format(1p,242(1x,2e15.7))
-  320 format(/' Taull_out, Multiple scattering amplitude')
 
 end
 
@@ -784,7 +801,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 
   integer:: i, ii1, ii2, ia, ib, icheck, ii, ispin, ispin0, igrph, indg, isol, isp, ispint, ispo, ispp, ispq, ispt, isym, &
     iv, j, jj, jj1, jjj, k, l, lb1i, lb1r, lb2i, lb2r, ljj, lm, lm0, lmaxso, lmf, lmf0, lmp, lmp0, lms, lp, &
-    m, mf, mp, natome, nbm, nbtm, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmagm, nlmso, nlmso_i, & 
+    m, mf, mp, n, natome, nbm, nbtm, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmagm, nlmso, nlmso_i, & 
     nphiato1, nphiato7, npoint, npsom, nsm, nsort, nsort_c, nsortf, nsort_r, nspino, nspinp, nstm, nso1, nlmsam, nspin, nspinr, &
     nlmmax, nlmomax, nvois
  
@@ -797,6 +814,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   integer, dimension(nbtm,natome):: ibord, isbord
   integer, dimension(npsom,nvois):: ivois, isvois
   integer, dimension(nligne):: newinv
+  integer, dimension(:), allocatable:: jnzero
 
   integer, save:: letd, letu, nlet
 
@@ -848,24 +866,33 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 
 ! Remplissage de la ligne et des seconds membres.
   i = newinv(ii)
-  if ( Spinorbite ) then
-    do ii2 = nligne,1,-1
-      if ( newinv(ii2) /= 0 ) exit
+
+!  if ( Spinorbite ) then
+!    do ii2 = nligne,1,-1
+!      if ( newinv(ii2) /= 0 ) exit
+!    end do
+!    if ( i <= 0 ) then
+!      do ii1 = 1,nligne
+!        if ( newinv(ii1) /= 0 ) exit
+!      end do
+!      if ( ii1 <= nligne .and. ii < ii1 .and. mod(ii1-ii2,2) == 0 ) ispin = 3 - ispin0
+!    endif
+!  endif
+
+  if( Spinorbite .and. i > 0 ) then
+    do ia = natome,1,-1
+      if( ii > ianew(ia) ) exit
     end do
-  endif
-  if ( i .le. 0 .and. Spinorbite ) then
-    do ii1 = 1,nligne
-      if ( newinv(ii1) /= 0 ) exit
-    end do
-    if ( ii1 .le. nligne .and. ii<ii1 .and. MOD(ii1-ii2,2)==0 ) ispin = 3 - ispin0
-  endif
+    ii1 = ii - ( ianew(ia) + nlmsa(ia) )
+    ispin = 2 - mod(ii1,2)
+  endif 
   
 ! Points du reseau de base
   if( i > 0 ) then
 
-    if( Spinorbite ) then
-      if ( MOD(ii-ii2,2)==0 ) ispin = 3 - ispin0
-    endif
+!    if( Spinorbite ) then
+!      if ( mod(ii-ii2,2) == 0 ) ispin = 3 - ispin0
+!    endif
     ispp = min( ispin, nspin )
     indg = 3 - ispin
     ispq = min( indg, nspin )
@@ -873,12 +900,12 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
     isp = min( ispin, nspino )
 
 ! Terme diagonal :
-    vme = Vr( i, ispp ) - Enervide
-    abvr(ii) = vme - clapl(0)
+    VmE = Vr( i, ispp ) - Enervide
+    abvr(ii) = VmE - clapl(0)
     if( E_comp ) abvi(ii) = - Eimag
 
-    if( Relativiste ) abvr(ii) = abvr(ii) - a2s4 * vme**2
-    if( Relativiste .or. Spinorbite ) bder = - a2s4 / ( 1 - a2s4 * vme )
+    if( Relativiste ) abvr(ii) = abvr(ii) - a2s4 * VmE**2
+    if( Relativiste .or. Spinorbite ) bder = - a2s4 / ( 1 - a2s4 * VmE )
 
     do iv = 1,nvois
 
@@ -979,7 +1006,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
           jjj = ianew(ia) + lm
           l = lato(lm,ia,igrph)
           isol = iato(lm,ia,igrph)
-          do ispo = 1,nspino
+          do ispo = 1,nspino       ! c'est en fait le spin
             m = mato(lm,ia,igrph) + ispo - isol  ! m reel
             if( m > l .or. m < -l ) cycle
             lm0 = l**2 + l + 1 + m
@@ -1189,7 +1216,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
     l = lato(lm,ia,igrph)
     ispt = iato(lm,ia,igrph)
     m = mato(lm,ia,igrph)       ! on developpe sur le spin = isol
-    lm0 = l**2 + l + 1 + m
+    lm0 = l**2 + l + 1 + m      ! c'est le m de l'harmonique
 
     do ib = 1,nbordf(ia)
       j = ibord(ib,ia)
@@ -1216,6 +1243,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 
     do lmp = 1,nlmsa(ia)
       lp = lato(lmp,ia,igrph)
+
       isol = iato(lmp,ia,igrph)
       mp = mato(lmp,ia,igrph) + ispt - isol
       if( mp > lp .or. mp < -lp ) cycle
@@ -1224,7 +1252,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       charmr = 0._db
       if( Cal_comp ) charmi = 0._db
       if( Spinorbite ) then
-        ispint = min( ispt, nspinp )
+        ispint = min( ispt, nspinp )  ! en fait nspinp = 2 dans ce cas
       else
         ispint = min( ispin, nspinp )
       endif
@@ -1291,11 +1319,32 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
     end do boucle_jj
     write(3,130) ii, i, lb1r, lb2r
     write(3,140) (mletl(j), j = 1,lb2r - lb1r + 1)
-    write(3,'(A)') ' sm ='
-    if( Cal_comp ) then
-      write(3,150) ( smr(lms,ii), smi(lms,ii), lms = 1,nlmso )
-    else
-      write(3,155) ( smr(lms,ii), lms = 1,nlmso )
+    if( icheck > 3 ) then
+      allocate( jnzero(lb2r - lb1r + 1) )
+      n = 0
+      do j = lb1r,lb2r
+        if( Cal_comp ) then
+          if( abs( abvr(j) ) +  abs( abvi(j) ) < eps10 ) cycle
+         else
+          if( abs( abvr(j) ) < eps10 ) cycle
+        endif
+         n = n + 1
+         jnzero(n) = j 
+      end do        
+      if( Cal_comp ) then
+        write(3,'(300(i5,i4,2e12.4))') ( jnzero(j), newinv(jnzero(j)), abvr(jnzero(j)), abvi(jnzero(j)), j = 1,n )
+      else
+        write(3,'(300(i5,i4,e12.4))'), ( jnzero(j), newinv(jnzero(j)), abvr(jnzero(j)), j = 1,n )
+      endif
+      deallocate( jnzero )
+    endif
+    if( sum( abs(smr(:,ii)) ) > eps10 ) then
+      write(3,'(A)') ' sm ='
+      if( Cal_comp ) then
+        write(3,150) ( smr(lms,ii), smi(lms,ii), lms = 1,nlmso )
+      else
+        write(3,155) ( smr(lms,ii), lms = 1,nlmso )
+      endif
     endif
   endif
 
@@ -2556,7 +2605,14 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
     ! si lmaxa > 10 il faut changer le format d'ecriture
     lmw = min( 10, lmaxa(ia) )
     nlmw = min( nlmagm, (lmw+1)**2 )
-    write(3,300)
+    write(3,260)
+    if( nspinp == 1 ) then
+      write(3,270) lmw, nspinp
+      write(3,280) (( l, m, m = -l,l ), l = 0,lmw )
+    else
+      write(3,290) lmw, nspinp
+      write(3,300) ((( l, m, i, m = -l,l ), l = 0,lmw ), i = 1,2)
+    endif
     do is1 = 1,nspinp
       do lm1 = 1,nlmw
         write(3,310) ( ( Taull(lm1,is1,lm2,is2,ia), lm2 = 1,nlmw ), is2 = 1,nspinp )
@@ -2586,7 +2642,11 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
   230 format(3x,2i3,2x,102a3)
   240 format(3i3,2x,102a3)
   250 format(1p,5(1x,a3,' = ',2e15.7))    
-  300 format(/' Taull, Multiple scattering amplitude')
+  260 format(/' Taull, Multiple scattering amplitude')
+  270 format(2i4,' = lmax, nspinp / ( l, m)')
+  280 format(242(13x,2i3,12x))
+  290 format(2i4,' = lmax, nspinp / ( l, m, s)')
+  300 format(242(12x,3i3,10x))
   310 format(1p,242(1x,2e15.7))
 
 end
