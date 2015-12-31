@@ -6,7 +6,7 @@
 
 subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
           Densite_atom,dv0bdcF,E_cut,E_cut_imp,E_Fermi_man,Eclie,Eneg,Energ_t, &
-          Extract,Eseuil,Full_potential,Full_self_abs,hkl_dafs,Hubb_a,Hubb_d,icheck, &
+          Extract,Eseuil,Full_potential,Full_self_abs,Green,hkl_dafs,Hubb_a,Hubb_d,icheck, &
           iabsorig,ip_max,ip0,isigpi,isymeq, &
           jseuil,ldip,lmax_pot,lmax_probe,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua, &
           lseuil,ltypcal,m_hubb,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
@@ -14,7 +14,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
           n_oo,n_tens_max,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitl,ninitlr,nlm_pot,nlm_probe, &
           nlmamax,nomabs,nomfich,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm, &
           nr,nrm,nseuil,nspin,nspino,nspinp, &
-          numat,nxanout,pdp,phdafs,phdf0t,phdt,pol,Polarise,poldafse,poldafss,psii, &
+          numat,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss,psii, &
           r,Relativiste,Rmtg,Rmtsd,rot_atom_abs,Rot_int,Self_abs,Solsing_only, &
           Spherical_signal,Spherical_tensor,Spinorbite,Taull_tdd,Taux_eq,Tddft,Time_rout,V_intmax,V_hubb,V0muf, &
           Vcato,vec,vecdafse,vecdafss,Vhbdc,Volume_maille,VxcbdcF,Vxcato,Workf,Ylm_comp)
@@ -66,8 +66,8 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
 
   logical:: Allsite, Base_spin, Cartesian_tensor, Core_resolved, Dafs, Dafs_bio, E_Fermi_man, &
     E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Eneg, Energphot, Extract, Final_optic, Final_tddft, Full_potential, &
-    Full_self_abs, Green_int, Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, M1M1, &
-    Moyenne, Polarise, Relativiste, Self_abs, Solsing, &
+    Full_self_abs, Green, Green_int, Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, M1M1, &
+    Moyenne, Relativiste, Self_abs, Solsing, &
     Solsing_only, Spherical_signal, Spherical_tensor, Spinorbite, Tddft, Xan_atom, Ylm_comp
 
   logical, dimension(10):: Multipole
@@ -91,7 +91,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
   real(kind=db), dimension(3,nplrm):: vec
   real(kind=db), dimension(ninitl,2):: coef_g
   real(kind=db), dimension(nrm,nbseuil):: psii
-  real(kind=db), dimension(n_tens_max,0:natomsym):: Int_tens
+  real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens
   real(kind=db), dimension(nr,nlm_pot):: Vcato
   real(kind=db), dimension(3,npldafs,nphim):: vecdafse, vecdafss
   real(kind=db), dimension(nr,nlm_pot,nspin) :: Vxcato
@@ -261,7 +261,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
       allocate( rof0(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil) )
 
       call tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
-                Eimag(ie),Energ(ie),Enervide,Eseuil,Final_optic,Final_tddft,Full_potential,Green_int,Hubb_a,Hubb_d, &
+                Eimag(ie),Energ(ie),Enervide,Eseuil,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a,Hubb_d, &
                 icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
                 n_Ec,n_oo,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlr,nlm_pot,nlm_probe,nlm_p_fp, &
@@ -318,10 +318,10 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
       call write_coabs(Allsite,angxyz,axyz,Base_spin, Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             Densite_atom,E_cut_optic,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck_s,ie,ie_computer, &
-            Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,natomsym,nbseuil, &
+            Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_tens_max,natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
             nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
-            phdt,pol,Polarise,poldafse,poldafss,Rot_int,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
+            phdt,pol,poldafse,poldafss,Rot_int,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
             secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
             Spherical_tensor,Spinorbite,Taux_eq,V0muf,vecdafse,vecdafss,vec,Volume_maille,Xan_atom) 
 

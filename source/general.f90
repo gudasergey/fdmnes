@@ -3865,7 +3865,7 @@ subroutine grp_opsym(igr_sg,igrpt,igrpt_nomag,iopsymc,nb_ord)
 
 ! Numero du sous-groupe non magnetique non multiplie par le renversement
 ! du temps pour les groupes magnetiques
-  data ngnmg/ 1, 1, 1, 2, 3, 4, 4, 4,34, 7, 6, 5,16,16,16,21,18,41, 4, 4, 9, 7, 9,10, 5, 9, 6,10, 7,42, &
+  data ngnmg/ 1, 1, 1, 4, 3, 2, 4, 4,34, 7, 6, 5,16,16,16,21,18,41, 4, 4, 9, 7, 9,10, 5, 9, 6,10, 7,42, &
              14,12, 8,13,11,16,16,19,18,17,22,19,22,17,21,22,18,24,20,23,26,25,28,28,28,31,30,29, &
              35,36,33,39,40,37,38,42,41,43/
 
@@ -7258,14 +7258,14 @@ end
 
 ! Sousprogramme calculant les valeurs des vecteurs polarisation et onde
 
-subroutine polond(Base_spin,Dipmag,icheck,ltypcal,moyenne,mpirank,msymdd, &
+subroutine polond(axyz,Base_spin,Dipmag,icheck,ltypcal,moyenne,mpirank,msymdd, &
         msymqq,ncolm,ncolr,nomabs,nple,nplr,nplrm,nxanout,Octupole,Orthmat,Orthmati,pdp, &
         pdpolar,pol,polar,Polarise,Quadrupole,Rot_int,Veconde,Vec,Xan_atom)
 
   use declarations
   implicit none
 
-  integer:: i, icheck, ii, ipl, ipr, j, jj, jpl, k, mpirank, ncolm, ncolr, nj, nple, nplr, nplrm, nxanout
+  integer:: i, icheck, ii, ipl, ipr, j, jj, jpl, k, kpl, mpirank, ncolm, ncolr, nj, nple, nplr, nplrm, nxanout
 
   character(len=Length_word):: nomab
   character(len=Length_word), dimension(ncolm):: nomabs
@@ -7280,7 +7280,7 @@ subroutine polond(Base_spin,Dipmag,icheck,ltypcal,moyenne,mpirank,msymdd, &
   logical:: Base_spin, Dipmag, Moyenne, Octupole, Polarise, Quadrupole, Xan_atom
 
   real(kind=db):: pdt, plmin, pp, pp1, pp2, pv, r, rac_2, vomin, vv
-  real(kind=db), dimension(3):: p, pl, v, v1, v2, vo, w
+  real(kind=db), dimension(3):: axyz, p, pl, v, v1, v2, vo, w
   real(kind=db), dimension(3,3):: Orthmat, Orthmati, Rot_int
   real(kind=db), dimension(3,nple):: polar, veconde
   real(kind=db), dimension(nple,2):: pdpolar
@@ -7296,8 +7296,7 @@ subroutine polond(Base_spin,Dipmag,icheck,ltypcal,moyenne,mpirank,msymdd, &
   rac_2 = sqrt( 2._db )
   jpl = 0
 
-! Si aucune polarisation n'est definie en entree, on en construit par
-! defaut
+! Si aucune polarisation n'est definie en entree, on en construit par defaut
 ! On les definit dans le repere orthonorme interne.
   if( nple == 0 ) then
 
@@ -7388,16 +7387,16 @@ subroutine polond(Base_spin,Dipmag,icheck,ltypcal,moyenne,mpirank,msymdd, &
       vo(:) = 0._db
 
 ! On passe en base interne (orthonormee)
-      p(:) = polar(:,ipl)
+      p(:) = polar(:,ipl) / axyz(:)
       pp = sum( p(:)**2 )
       if( abs(pp) > eps6 ) call trvec(mpirank,Orthmat,p,pl)
 
-      v(:) = veconde(:,ipl)
+      v(:) = veconde(:,ipl) / axyz(:)
       vv = sum( v(:)**2 )
       if( vv > eps6 ) call trvec(mpirank,Orthmat,v,vo)
 
 ! Test sur l'orthogonalite
-      if( Quadrupole .or. Octupole ) then
+      if( Quadrupole .or. Octupole .or. Dipmag ) then
         pv = abs( sum( vo(:) * pl(:) ) )
         if( pv > eps4 ) then
           if( mpirank == 0 ) then
@@ -7452,27 +7451,30 @@ subroutine polond(Base_spin,Dipmag,icheck,ltypcal,moyenne,mpirank,msymdd, &
 
   endif
 
-! Determination des noms des colonnes de resultats dans les fichiers de
-! sortie
+! Determination des noms des colonnes de resultats dans les fichiers de sortie
 
   jpl = 0   ! indice de colonne
+  ipl = 0
 
-  do ipl = 1,nplr
+  do kpl = 1,nplr
 
     jpl = jpl + 1
+    ipl = ipl + 1
 
-    if( ltypcal(ipl) == 'xanes circ g' ) then
+    if( ltypcal(kpl) == 'xanes circ g' ) then
 
       nomabs(jpl) = '   left_pol  '
+      ipl = ipl - 1
 
-    elseif( ltypcal(ipl) == 'xanes circ d' ) then
+    elseif( ltypcal(kpl) == 'xanes circ d' ) then
 
       nomabs(jpl) = '  right_pol  '
 
 ! On ajoute la colonne difference
       jpl = jpl + 1
-      vo(:) = vec(:,ipl)
-      vo = matmul( orthmati, vo)
+      !vo(:) = vec(:,ipl)
+      !vo = matmul( orthmati, vo)
+      vo(:) = veconde(:,ipl)
       vomin = 1._db
       do k = 1,3
         pp = abs( vo(k) )
@@ -7490,10 +7492,17 @@ subroutine polond(Base_spin,Dipmag,icheck,ltypcal,moyenne,mpirank,msymdd, &
     else
 
 ! On se place dans la base cristallographique
-      pl(:) = pol(:,ipl)
-      pl = matmul( orthmati, pl)
-      vo(:) = vec(:,ipl)
-      vo = matmul( orthmati, vo)
+      if( nple == 0 ) then
+        pl(:) = pol(:,kpl)
+        pl = matmul( orthmati, pl)
+        pl(:) = pl(:) * axyz(:)
+        vo(:) = vec(:,kpl)
+        vo = matmul( orthmati, vo)
+        vo(:) = vo(:) * axyz(:)
+      else
+        pl(:) = polar(:,ipl)
+        vo(:) = veconde(:,ipl)
+      endif
 
       plmin = 1._db
       do k = 1,3
@@ -8074,7 +8083,7 @@ subroutine Atom_selec(adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_mat,Axe_
 
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb
 
-  logical:: Atom_comp_cal, Atom_mag_cal, Atom_nonsph, Atom_occ_mat, Base_ortho, Full_atom, Green, Hubbard, magnetic, overad, &
+  logical:: Atom_mag_cal, Atom_nonsph, Atom_occ_mat, Base_ortho, Full_atom, Green, Hubbard, magnetic, overad, &
           Spinorbite, Symmol, Ylm_comp
   logical, dimension(nb_sym_op):: Fait
   logical, dimension(natome):: Atom_comp, Atom_axe
@@ -10908,7 +10917,7 @@ end
 
 !***********************************************************************
 
-! Calcul des fonctions de bessel et neuman.
+! Calcul des fonctions de bessel et neuman (en fait, divisees par z )
 
 subroutine cbessneu(fnorm,z,lmax,lmaxm,bessel,neuman)
 
@@ -10936,7 +10945,7 @@ end
 
 !***********************************************************************
 
-! Calcul des fonctions de bessel et neuman.
+! Calcul des fonctions de bessel et neuman ( disisees par z )
 
 subroutine cbessneur(fnorm,z,lmax,lmaxm,bessel,neuman)
 
@@ -10962,7 +10971,7 @@ end
 
 !***********************************************************************
 
-! Calcul de la fonction de Bessel
+! Calcul de la fonction de Bessel (divisee par z )
 
 subroutine cbessel(bess,ip0,lmax,nr,q,r)
 

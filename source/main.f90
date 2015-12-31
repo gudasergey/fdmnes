@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 28 October 2015, 6 Brumaire, An 224.
+! FDMNES II program, Yves Joly, Oana Bunau, 16 December 2015, 25 Frimaire, An 22.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
 
   character(len=50):: com_date, com_time
 
-  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 28 October 2015'
+  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 16 December 2015'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -227,7 +227,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 36
-  integer, parameter:: nkw_fdm = 169
+  integer, parameter:: nkw_fdm = 170
   integer, parameter:: nkw_conv = 30
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
@@ -254,8 +254,6 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   character(len=1320):: mot1320
   character(len=2), dimension(nmetricm):: Nom_Met
   character(len=9), dimension(nkw_all):: kw_all
-  character(len=9), dimension(86):: kw_fdm1
-  character(len=9), dimension(nkw_fdm-86):: kw_fdm2
   character(len=9), dimension(nkw_fdm):: kw_fdm
   character(len=9), dimension(nkw_conv):: kw_conv
   character(len=9), dimension(nkw_fit):: kw_fit
@@ -302,19 +300,17 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'gamma_fix','gamma_var','gaussian ','no_extrap','nxan_lib ', 'photo_emi','s0_2     ','selec_cor','scan     ', &
      'scan_conv','scan_file','seah     ','stokes   ','stokes_na', 'surface  ','table    ','thomson  '/
 
-  data kw_fdm1/  &
+  data kw_fdm/  &
      'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_conf','ang_spin ','atomic_sc','axe_spin ', &
      'base_comp','base_reel','base_spin','bond     ','cartesian','center   ','center_ab','chlib    ', &
      'clementi ','core_reso','crystal  ','crystal_p','crystal_t','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_', &
      'delta_eps','density  ','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ','edge     ', &
      'e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot','etatlie  ', &
-     'excited  ','extract  ','extractpo','extractsy','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ','flapw_s  ', &
-     'flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','hubbard  ','iord     ', &
-     'kern_fac ','lmax     ','lmax_nrix','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ','memory_sa', &
-     'lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','molecule ','molecule_','muffintin'/
-
-  data kw_fdm2/  &
-     'multrmax ','n_self   ','nchemin  ','new_refer','no_core_r','no_e1e1  ','no_e1e2  ','no_e1e3  ', &
+     'excited  ','extract  ','extractpo','extractsy','fdm_comp ','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ', &
+     'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','hubbard  ', &
+     'iord     ','kern_fac ','lmax     ','lmax_nrix','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ', &
+     'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','molecule ','molecule_', &
+     'muffintin','multrmax ','n_self   ','nchemin  ','new_refer','no_core_r','no_e1e1  ','no_e1e2  ','no_e1e3  ', &
      'no_e2e2  ','no_e3e3  ','no_fermi ','no_res_ma','no_res_mo','no_solsin','normaltau','norman   ','noncentre', &
      'non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','octupole ','old_refer','one_run  ','optic    ','optic_dat', &
      'over_rad ','overlap  ','p_self   ','perdew   ','pointgrou','polarized', &
@@ -388,13 +384,6 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   nodw = .false.
   noimfp = .false.
 !*** JDB
-
-  do i = 1,86
-    kw_fdm(i) = kw_fdm1(i)
-  end do
-  do i = 87,nkw_fdm
-    kw_fdm(i) = kw_fdm2(i-86)
-  end do
 
   itape = 6
   itape1 = 11
@@ -2213,7 +2202,7 @@ subroutine mult_cell(itape,nomfich)
   return
 
   110 format(//' number of type =',i5,' > ntypem =',i4,// ' Change the parameter ntypem in the code !'//)
-  120 format(/' Crystal',/5x,3f12.7,3f12.5)
+  120 format(/' Crystal',/5x,3f14.10,3f12.5)
   130 format(//' number of atoms =',i6,' > nam =',i6,// ' Change the parameter nam in the code !'//)
   140 format(//'  Error in the indata file :')
   150 format(//' The following line is not understood :',/A,// &
@@ -2222,6 +2211,6 @@ subroutine mult_cell(itape,nomfich)
           5x,' - How many numbers must be in the line ?'/, &
           5x,' - Are there spaces between the numbers ?'/, &
           5x,' - Tabulations are forbidden !'//)
-  160 format(i5,3f12.8,'  ! ',i5,3x,a2)
+  160 format(i5,3f14.10,'  ! ',i5,3x,a2)
 end
 

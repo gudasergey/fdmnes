@@ -4,14 +4,14 @@
 
 subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
-            f_avantseuil,Full_self_abs,Green_int,hkl_dafs, &
-            iabsorig,icheck,ie,ie_computer,Int_tens,isigpi,isymeq,jseuil,ltypcal, &
-            Moyenne,mpinodee,Multipole,n_multi_run,n_oo,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs, &
-            nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs,nphim,nplr, &
-            nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,Polarise,poldafse,poldafss,Rot_int,sec_atom, &
-            secdd_a,secdd_m_a,secdq_a,secdq_m_a,secdo_a,secdo_m_a,secmd_a,secmd_m_a,secmm_a,secmm_m_a,secoo_a,secoo_m_a, &
-            secqq_a,secqq_m_a,Self_abs,Spherical_signal,Spherical_tensor,Spinorbite_p,Taux_eq,V0muf, &
-            Vecdafse,Vecdafss,vec,Volume_maille,Xan_atom)
+            f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer, &
+            Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_tens_max,natomsym,nbseuil, &
+            ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
+            nphim,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss,Rot_int, &
+            sec_atom,secdd_a,secdd_m_a,secdq_a,secdq_m_a,secdo_a,secdo_m_a, &
+            secmd_a,secmd_m_a,secmm_a,secmm_m_a,secoo_a,secoo_m_a,secqq_a,secqq_m_a, &
+            Self_abs,Spherical_signal, &
+            Spherical_tensor,Spinorbite_p,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)
 
   use declarations
   implicit none
@@ -19,13 +19,9 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   integer:: he, hs, i, ia, iabsorig, ib, ic1, ic2, icheck, icn1, icn2, id, ie, &
     ie_computer, ig, ii, ind_mu, initlr, ip, ipl, ipldafs, iseuil, &
     isym, ixandafs, j, j1, je, jhe, jhs, jpl, js, jseuil, ke, ks, l, &
-    ll, long, mpinodee, n_dim, n_tens, n_tens_dd, &
-    n_tens_qq, n_tens_t, n_tens_max, n_multi_run, n_oo, n1, n2, na, &
-    natomsym, nb, nbseuil, nc, nccm, ncolm, n_tens_dq, ncolr, ncolt, nenerg, ninit1, ninitlr, nl, np, npldafs, &
+    ll, long, mpinodee, n_dim, n_tens_max, n_multi_run, n_oo, n_tens, n1, n2, na, &
+    natomsym, nb, nbseuil, nc, nccm, ncolm, ncolr, ncolt, nenerg, ninit1, ninitlr, nl, np, npldafs, &
     nphim, nplt, nplr, nplrm, nseuil, nspin, numat_abs, nxanout, nw
-
-  parameter( n_tens_dd=9, n_tens_dq=15, n_tens_qq=25, n_tens_t = n_tens_dd + n_tens_dq + n_tens_qq, &
-             n_tens_max = 8 + 2 * n_tens_t + 2 * n_tens_dq )
 
   character(len=length_word):: nomab
   character(len=length_word), dimension(ncolm):: nomabs
@@ -66,8 +62,8 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   integer, dimension(npldafs,2):: isigpi
 
   logical Allsite, Base_spin, Cartesian_tensor, Cor_abs, Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, E_vec, Dafs, &
-    Dafs_bio, Final_tddft, Energphot, Extract, Full_self_abs, Green_int, Green_int_mag, idafs, M1M1, magn_sens, &
-    Moyenne, mu_cal, Polarise, Self_abs, Spherical_signal, Spherical_tensor, Spinorbite_p, Tens_comp, Tensor_eval, Xan_atom
+    Dafs_bio, Final_tddft, Energphot, Extract, Full_self_abs, Green_int, Green_int_mag, idafs, M1M1, Magn_sens, &
+    Moyenne, mu_cal, Self_abs, Spherical_signal, Spherical_tensor, Spinorbite_p, Tens_comp, Tensor_eval, Xan_atom
 
   logical, dimension(10):: Multipole
 
@@ -109,10 +105,10 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   if( E1M1 ) secabsmd(:,:,:) = ( 0._db, 0._db )
   if( E1E2 ) secabsdq(:,:,:) = ( 0._db, 0._db )
 
-  if( ( jseuil > 1 .and. nspin == 2 ) .or. Spinorbite_p .or. M1M1 .or. E1M1 ) then
-    magn_sens = .true.
+  if( nspin == 2 .or. Spinorbite_p ) then
+    Magn_sens = .true.
   else
-    magn_sens = .false.
+    Magn_sens = .false.
   endif
 
   if( Green_int .and. Magn_sens ) then
@@ -246,7 +242,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
           if( isymeq(ia) < 0 ) secqq(:,:,:,:) = - secqq(:,:,:,:)
           secqqia_m(:,:,:,:,initlr,ia) = secqq(:,:,:,:)
         endif
-     endif
+      endif
 
       if( E1E3 ) then
         secdo(:,:,:,:) = secdo_a(:,:,:,:,initlr,ie_computer)
@@ -325,7 +321,8 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
       if( E1M1 ) then
         secmd(:,:) = secmd_a(:,:,initlr,ie_computer)
         if( isym /= 1 ) call rot_tensor_2( secmd, matopsym )
-        if( isymeq(ia) < 0 .and. .not. Green_int ) secmd(:,:) = conjg( secmd(:,:) )
+   ! C'est la partie reelle qui porte le magnetisme
+        if( isymeq(ia) < 0 .and. .not. Green_int ) secmd(:,:) = - conjg( secmd(:,:) )
         secmdia(:,:,initlr,ia) = secmd(:,:)
         if( Green_int_mag ) then
           secmd(:,:) = secmd_m_a(:,:,initlr,ie_computer)
@@ -348,16 +345,21 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
         endif
       endif
 
-    end do
+    end do ! fin boucle ia
 
-  end do
+  end do ! fin boucle initlr
 
-  E_vec = E1E2 .or. E2E2 .or. E1E3 .or. E3E3 .or. E1M1 .or. M1M1
-
-  if( dafs ) then
+  if( Dafs ) then
     phdt1(:) = phdt(:,1)
     phdf0t1(:) = phdf0t(:,1)
   endif
+
+  if( Spherical_tensor ) call Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2, &
+            Energ,Ephseuil,Epsii,Eseuil(nbseuil),icheck,ie,Int_tens,jseuil,Magn_sens,Moyenne,n_tens_max, &
+            natomsym,nenerg,ninit1,ninitlr,nomfich_s,nphim,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdafs,phdf0t1, &
+            phdt1,pol,Poldafse,Poldafss,secddia,secdqia,secmdia,secqqia,Spherical_signal,Taux_eq,V0muf,Vec,Vecdafse,Vecdafss)
+
+  E_vec = E1E2 .or. E2E2 .or. E1E3 .or. E3E3 .or. E1M1 .or. M1M1
 
   jpl = 0
 
@@ -397,7 +399,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
       if( idafs .and. ixandafs == 1 ) cycle
       if( .not. idafs .and. ixandafs == 2 ) cycle
 
-      tens_comp = magn_sens .or. Green_int .or. idafs
+      Tens_comp = Magn_sens .or. Green_int .or. idafs
 
       Tensor_eval = .true.
       if( idafs .and. ipldafs > 1 ) then
@@ -429,6 +431,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
 
           if( idafs ) then
 ! Le exp(iQr) est converti. On recupere le complexe conjugue dans convolution.
+! Phdafs contient deja Taux_eq.
             ph = conjg( phdafs(ia,ipldafs) )
           else
             ph = (1._db, 0._db) * Taux_eq(ia)
@@ -442,7 +445,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
               secdqia(:,:,:,:,0) = secdqia(:,:,:,:,0) + ph * secdqia(:,:,:,:,ia)
             else
               secdqia(:,:,:,:,0) = secdqia(:,:,:,:,0) + ph * real( secdqia(:,:,:,:,ia), db)
-              if( magn_sens ) secdqia_m(:,:,:,:,0) = secdqia_m(:,:,:,:,0) + ph_m * aimag( secdqia(:,:,:,:,ia) )
+              if( Magn_sens ) secdqia_m(:,:,:,:,0) = secdqia_m(:,:,:,:,0) + ph_m * aimag( secdqia(:,:,:,:,ia) )
             endif
           endif
 
@@ -453,11 +456,12 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
           if( E3E3 ) secooia(:,:,:,:,:,0) = secooia(:,:,:,:,:,0) + ph * secooia(:,:,:,:,:,ia)
 
           if( E1M1 ) then
+          ! la partie magnetique est sur la composante reelle
             if( Green_int ) then
               secmdia(:,:,:,0) = secmdia(:,:,:,0) + ph * secmdia(:,:,:,ia)
             else
-              secmdia(:,:,:,0) = secmdia(:,:,:,0) + ph * real( secmdia(:,:,:,ia), db )
-              if( magn_sens ) secmdia_m(:,:,:,0) = secmdia_m(:,:,:,0) + ph_m * aimag( secmdia(:,:,:,ia) )
+              secmdia(:,:,:,0) = secmdia(:,:,:,0) + ph_m * aimag( secmdia(:,:,:,ia) )
+              if( Magn_sens ) secmdia_m(:,:,:,0) = secmdia_m(:,:,:,0) + ph * real( secmdia(:,:,:,ia), db )
             endif
           endif
 
@@ -485,35 +489,10 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
             else
               ia = ib
             endif
-            if( ia /= 0 .and. ipl > 1 ) cycle
-            call write_cartesian_tensor(Densite_atom,E_cut,E1E2, E2E2,Ephseuil,Epsii,Eseuil(nbseuil),ia,ie,ipldafs,jseuil, &
-               M1M1,magn_sens,natomsym,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,secddia,secdqia, &
-               secdqia_m,secqqia,secmdia,tens_comp,V0muf,Core_resolved)
-          end do
-        endif
-
-        if( Spherical_tensor ) then
-          do ib = 0,nb
-            if( natomsym == 1 .and. ib > 0 ) cycle
-            if( ib == 0 ) then
-              ia = 1
-            elseif( ib == 1 ) then
-              ia = 0
-            else
-              ia = ib
-            endif
-            if( ia /= 0 .and. ipl > 1 ) cycle
-            if( idafs ) then
-              plae(:) = poldafse(:,ipldafs,1)
-              plas(:) = poldafss(:,ipldafs,1)
-              voae(:) = vecdafse(:,ipldafs,1)
-              voas(:) = vecdafss(:,ipldafs,1)
-            endif
-            call spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2, &
-              Energ,Ephseuil,Epsii,Eseuil(nbseuil),ia,icheck,ie,Int_tens, &
-              ipl,ipldafs,jseuil,magn_sens,moyenne,natomsym,ncolm,nenerg,ninit1,ninitlr,nomfich_s,npldafs,nplr, &
-              nplrm,nplt,nseuil,numat_abs,pdp,phdf0t1,phdt1,plae,pol,plas,Polarise,secddia,secdqia,secdqia_m,secqqia, &
-              Spherical_signal,v0muf,voae,vec,voas)
+            if( ia /= 0 .and. ( ipl > 1 .and. .not. idafs ) ) cycle
+            call write_cartesian_tensor(Densite_atom,E_cut,E1E2,E2E2,Ephseuil,Epsii,Eseuil(nbseuil),ia,ie,ipldafs,jseuil, &
+               M1M1,Magn_sens,natomsym,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,secddia,secdqia, &
+               secdqia_m,secqqia,secmdia,Tens_comp,V0muf,Core_resolved)
           end do
         endif
 
@@ -601,7 +580,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
               do ke = 1,3
                 if( Green_int_mag ) then
                   write(3,150) secddia(ke,:,initlr,ia), secddia_m(ke,:,initlr,ia)
-                elseif( tens_comp ) then
+                elseif( Tens_comp ) then
                   write(3,150) secddia(ke,:,initlr,ia)
                 else
                   write(3,150) real( secddia(ke,:,initlr,ia) )
@@ -623,7 +602,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
                     write(3,163) ke
                   elseif( Green_int ) then
                     write(3,164) ke
-                  elseif( magn_sens ) then
+                  elseif( Magn_sens ) then
                     write(3,165) ke
                   else
                     write(3,166) ke
@@ -638,9 +617,9 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
                   endif
                 endif
                 do ks = 1,3
-                  if( ( magn_sens .and. ia == 0 ) .or. Green_int_mag ) then
+                  if( ( Magn_sens .and. ia == 0 ) .or. Green_int_mag ) then
                     write(3,150) secdqia(ke,ks,:,initlr,ia), secdqia_m(ke,ks,:,initlr,ia)
-                  elseif( tens_comp ) then
+                  elseif( Tens_comp ) then
                     write(3,150) secdqia(ke,ks,:,initlr,ia)
                   else
                     write(3,150) real(secdqia(ke,ks,:,initlr,ia),db)
@@ -679,7 +658,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
                   do ke = 1,3
                     if( Green_int_mag ) then
                       write(3,150) secqqia(ke,1:3,ks,js,initlr,ia), secqqia_m(ke,1:3,ks,js,initlr,ia)
-                    elseif( tens_comp ) then
+                    elseif( Tens_comp ) then
                       write(3,150) secqqia(ke,1:3,ks,js,initlr,ia)
                     else
                       write(3,150) real( secqqia(ke,1:3,ks,js,initlr,ia) )
@@ -719,7 +698,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
                   do j1 = 1,3
                     if( Green_int_mag ) then
                       write(3,150) secdoia(ke,ks,j1,:,initlr,ia), secdoia_m(ke,ks,j1,:,initlr,ia)
-                    elseif( tens_comp ) then
+                    elseif( Tens_comp ) then
                       write(3,150) secdoia(ke,ks,j1,:,initlr,ia)
                     else
                       write(3,150) real( secdoia(ke,ks,j1,:,initlr,ia) )
@@ -742,7 +721,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
                   write(3,193)
                 elseif( Green_int ) then
                   write(3,194)
-                elseif( magn_sens ) then
+                elseif( Magn_sens ) then
                   write(3,195)
                 else
                   write(3,196)
@@ -757,12 +736,12 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
                 endif
               endif
               do ke = 1,3
-                if( ( magn_sens .and. ia == 0 ) .or. Green_int_mag ) then
+                if( ( Magn_sens .and. ia == 0 ) .or. Green_int_mag ) then
                   write(3,150) secmdia(ke,:,initlr,ia), secmdia_m(ke,:,initlr,ia)
-                elseif( tens_comp ) then
+                elseif( Tens_comp ) then
                   write(3,150) secmdia(ke,:,initlr,ia)
                 else
-                  write(3,150) real( secmdia(ke,:,initlr,ia) )
+                  write(3,150) aimag( secmdia(ke,:,initlr,ia) )
                 endif
               end do
             endif
@@ -982,7 +961,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
                 do ks = 1,3
                   sec = sec + conjg( plas(ks) ) * plae(ke) &
                             * sum( voae(:) * secdqia(ks,ke,:,initlr,ia) - voas(:) * secdqia(ke,ks,:,initlr,ia) )
-                  if( magn_sens ) sec = sec + conjg( plas(ks) ) * plae(ke) &
+                  if( Magn_sens ) sec = sec + conjg( plas(ks) ) * plae(ke) &
                             * sum( voae(:) * secdqia_m(ks,ke,:,initlr,ia) + voas(:) * secdqia_m(ke,ks,:,initlr,ia) )
                 end do
               end do
@@ -1098,10 +1077,18 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
             if( E1M1 ) then
               sec = (0._db,0._db)
               do ke = 1,3
-                sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia(:,ke,initlr,ia) ) &
-                          + uae(ke) * sum( conjg(plas(:)) * secmdia(:,ke,initlr,ia) )
-                if( magn_sens ) sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia_m(:,ke,initlr,ia) ) &
-                                          - uae(ke) * sum( conjg( plas(:) ) * secmdia_m(:,ke,initlr,ia) )
+                if( ia == 0 ) then
+  ! on met le signe moins devant uae car la partie imaginaire contient le terme non-magnetique, equivaut au complexe conjugue
+  ! sauf si secmdia est calcule pour une reflexion dafs ( la partie reelle est nulle sauf dafs )
+                  sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia(:,ke,initlr,ia) ) &
+                            - uae(ke) * sum( conjg(plas(:)) * secmdia(:,ke,initlr,ia) )  
+  ! on met le signe plus devant uae car la partie reelle contient le terme magnetique, (le complexe conjugue est donc inutile)
+                  if( Magn_sens ) sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia_m(:,ke,initlr,ia) ) &
+                                            + uae(ke) * sum( conjg( plas(:) ) * secmdia_m(:,ke,initlr,ia) )
+                else
+                  sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia(:,ke,initlr,ia) ) &
+                          + uae(ke) * sum( conjg(plas(:)) * conjg( secmdia(:,ke,initlr,ia) ) )  
+               endif 
               end do
 
 ! Il manque un facteur pi qui a deja ete pris en compte dans le calcul du tenseur dans la routine Tens_ab.
@@ -2453,342 +2440,530 @@ end
 
 !***********************************************************************
 
-subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2, &
-            Energ,Ephseuil,Epsii,Eseuil,ia,icheck,ie,Int_tens,kpl,ipldafs,jseuil,magn_sens,moyenne, &
-            natomsym,ncolm,nenerg,ninit1,ninitlr,nomfich_s,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdf0t,phdt,plae,pol, &
-            plas,Polarise,secddia,secdqia,secdqia_m,secqqia,Spherical_signal,V0muf,voae,vec,voas)
+subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2, &
+            Energ,Ephseuil,Epsii,Eseuil,icheck,ie,Int_tens,jseuil,Magn_sens,Moyenne,n_tens_max, &
+            natomsym,nenerg,ninit1,ninitlr,nomfich_s,nphim,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdafs,phdf0t, &
+            phdt,pol,Poldafse,Poldafss,secddia,secdqia,secmdia,secqqia,Spherical_signal,Taux_eq,V0muf,Vec,Vecdafse,Vecdafss)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
-  parameter( n_tens_dd=9, n_tens_dq=15, n_tens_qq=25, n_tens_t = n_tens_dd + n_tens_dq + n_tens_qq, &
-             n_tens_max = 8 + 2 * n_tens_t + 2 * n_tens_dq )
+  integer, parameter:: n_tens_dd = 9 
+  integer, parameter:: n_tens_dq = 15 
+  integer, parameter:: n_tens_qq = 25 
+  integer, parameter:: n_tens_dm = 9 
 
-  character(len=132) nomfich_s
+  integer:: i, ib, icheck, ie, initlr, ipl, ipldafs, jseuil, n_tens_max, natomsym, nenerg, &
+            ninit1, ninitlr, nphim, npldafs, nplr, nplrm, nplt, nseuil, numat_abs
+  
+  character(len=132):: nomfich_s
+  character(len=58), dimension(9):: Com_dd, com_dm, Com_dm_m
+  character(len=58), dimension(15):: Com_dq, Com_dq_m
+  character(len=58), dimension(25):: Com_qq
 
-  complex(kind=db), dimension(n_tens_dd):: Sph_tensor_dd
-  complex(kind=db), dimension(n_tens_dq):: Sph_tensor_dq, Sph_tensor_dq_m
-  complex(kind=db), dimension(n_tens_qq):: Sph_tensor_qq
-  complex(kind=db), dimension(n_tens_dd,ninitlr):: Sph_tensor_dd_ni
-  complex(kind=db), dimension(n_tens_dq,ninitlr):: Sph_tensor_dq_ni, Sph_tensor_dq_m_ni
-  complex(kind=db), dimension(n_tens_qq,ninitlr):: Sph_tensor_qq_ni
-  complex(kind=db), dimension(3,3):: secdd
-  complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secddia
-  complex(kind=db), dimension(3,3,3):: secdq
-  complex(kind=db), dimension(3,3,3,ninitlr,0:natomsym):: secdqia, secdqia_m
-  complex(kind=db), dimension(3):: plae, plas
-  complex(kind=db), dimension(3,3,3,3):: secqq
+  complex(kind=db):: ph
+  complex(kind=db), dimension(n_tens_dd,ninitlr):: Sph_tensor_dd
+  complex(kind=db), dimension(n_tens_dq,ninitlr):: Sph_tensor_dq, Sph_tensor_dq_m
+  complex(kind=db), dimension(n_tens_qq,ninitlr):: Sph_tensor_qq
+  complex(kind=db), dimension(n_tens_dm,ninitlr):: Sph_tensor_dm, Sph_tensor_dm_m
+  complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secddia, secmdia
+  complex(kind=db), dimension(3,3,3,ninitlr,0:natomsym):: secdqia
+  complex(kind=db), dimension(3):: Pl_i, Pl_s
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:natomsym):: secqqia
-  complex(kind=db), dimension(3,nplrm):: pol
-  complex(kind=db), dimension(0:nplt,n_tens_dd):: Tensor_pol_dd
-  complex(kind=db), dimension(0:nplt,2*n_tens_dq):: Tensor_pol_dq
-  complex(kind=db), dimension(0:nplt,n_tens_qq):: Tensor_pol_qq
+  complex(kind=db), dimension(3,npldafs,nphim):: Poldafse, Poldafss
+  complex(kind=db), dimension(3,nplrm):: Pol
   complex(kind=db), dimension(npldafs):: phdf0t, phdt
+  complex(kind=db), dimension(natomsym,npldafs):: phdafs
+  complex(kind=db), dimension(:,:), allocatable:: Tensor_pol_dd, Tensor_pol_dq, Tensor_pol_qq, Tensor_pol_dm
 
-  logical:: Core_resolved, E1E1, E1E2, E2E2, Magn_sens, Moyenne, Polarise, Spherical_signal, Writbav, Writout
+  logical:: Core_resolved, E1E1, E1E2, E1M1, E2E2, Magn_sens, Moyenne, Spherical_signal, Write_bav
 
-  real(kind=db), dimension(3):: voae, voas
-  real(kind=db), dimension(ninitlr) :: ct_nelec, Epsii
-  real(kind=db), dimension(nenerg) :: Energ
-  real(kind=db), dimension(3,nplrm):: vec
-  real(kind=db), dimension(ncolm,2) :: pdp
+  real(kind=db):: Densite_atom, dph, E_cut, Ephseuil, Eseuil, V0muf
+  real(kind=db), dimension(3):: Vo_i, Vo_s
+  real(kind=db), dimension(ninitlr):: ct_nelec, Epsii
+  real(kind=db), dimension(nenerg):: Energ
+  real(kind=db), dimension(natomsym) :: Taux_eq
+  real(kind=db), dimension(3,nplrm):: Vec
+  real(kind=db), dimension(nplrm,2) :: pdp
+  real(kind=db), dimension(3,npldafs,nphim):: Vecdafse, Vecdafss
   real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens
+  real(kind=db), dimension(n_tens_dd,0:natomsym,ninitlr):: Sph_tensor_ia_dd
+  real(kind=db), dimension(n_tens_dq,0:natomsym,ninitlr):: Sph_tensor_ia_dq, Sph_tensor_ia_dq_m 
+  real(kind=db), dimension(n_tens_qq,0:natomsym,ninitlr):: Sph_tensor_ia_qq
+  real(kind=db), dimension(n_tens_dm,0:natomsym,ninitlr):: Sph_tensor_ia_dm, Sph_tensor_ia_dm_m
 
-  if( kpl == 1 ) then
-    ipl1 = 1
-    ipl2 = nplr
-  else
-    ipl1 = ipldafs
-    ipl2 = ipldafs
-  endif
+  data Com_dd/  ' l = 0, non-magnetic monopole:  D(00) = (Dxx+Dyy+Dzz)/3 =', &
+                ' l = 1, magnetic dipole:          D(10)          = l_z  =', &
+                '                                  D(11)          = l_x  =', &
+                '                                 D(1-1)          = l_y  =', &
+                ' l = 2, non-magnetic quadrupole:  D(20)         = d_z2  =', &
+                '                                  D(21)         = d_xz  =', &
+                '                                 D(2-1)         = d_yz  =', &
+                '                                 D(2-2)         = d_xy  =', &
+                '                                  D(22)      = d_x2-y2  ='/
+  
+  data Com_dq/  ' l = 1, dipole:           I(10)                 = d_z   =', &
+                '                          I(11)                 = d_x   =', &
+                '                         I(1-1)                 = d_y   =', &
+                ' l = 2, quadrupole:       I(20)          = lz*Omega_z   =', &
+                '                          I(21)          = (l,Omega)2   =', &
+                '                         I(2-1)          = (l,Omega)2   =', &
+                '                         I(2-2)          = (l,Omega)2   =', &
+                '                          I(22)          = (l,Omega)2   =', &
+                ' l = 3, octupole:         I(30)       d_z*(3lz2 - l2)   =', &
+                '                          I(31)         = (n,(l,l)2)3   =', &
+                '                         I(3-1)         = (n,(l,l)2)3   =', &
+                '                         I(3-2)         = (n,(l,l)2)3   =', &
+                '                          I(32)         = (n,(l,l)2)3   =', &
+                '                         I(3-3)         = (n,(l,l)2)3   =', &
+                '                          I(33)         = (n,(l,l)2)3   ='/
+                                     
+  data Com_dq_m/' l = 1, dipole:           I(10)               Omega_z   =', &
+                '                          I(11)               Omega_x   =', &
+                '                         I(1-1)               Omega_y   =', &
+                ' l = 2, quadrupole:       I(20)               d_z*l_z   =', &
+                '                          I(21)                (n,l)2   =', &
+                '                         I(2-1)                (n,l)2   =', &
+                '                         I(2-2)                (n,l)2   =', &
+                '                          I(22)                (n,l)2   =', &
+                ' l = 3, octupole:         I(30)   Omega_z*(3lz2 - l2)   =', &
+                '                          I(31)       (Omega,(l,l)2)3   =', &
+                '                         I(3-1)       (Omega,(l,l)2)3   =', &
+                '                         I(3-2)       (Omega,(l,l)2)3   =', &
+                '                          I(32)       (Omega,(l,l)2)3   =', &
+                '                         I(3-3)       (Omega,(l,l)2)3   =', &
+                '                          I(33)       (Omega,(l,l)2)3   ='/
 
-  do ipl = ipl1,ipl2
+  data Com_qq/  ' l = 0, non magn monopole:    Q(00)                     =', &
+                ' l = 1, magnetic dipole:      Q(10)            l_qq_z   =', &
+                '                              Q(11)            l_qq_x   =', &
+                '                             Q(1-1)            l_qq_y   =', &
+                ' l = 2, non magn quadrupole:  Q(20)                     =', &
+                '                              Q(21)                     =', &
+                '                             Q(2-1)                     =', &
+                '                             Q(2-2)                     =', &
+                '                              Q(22)                     =', &
+                ' l = 3, magnetic octupole:    Q(30)                     =', &
+                '                              Q(31)                     =', &
+                '                             Q(3-1)                     =', &
+                '                             Q(3-2)                     =', &
+                '                              Q(32)                     =', &
+                '                             Q(3-3)                     =', &
+                '                              Q(33)                     =', &
+                ' l = 4, non magn octupole:    Q(40)                     =', &
+                '                              Q(41)                     =', &
+                '                             Q(4-1)                     =', &
+                '                             Q(4-2)                     =', &
+                '                              Q(42)                     =', &
+                '                             Q(4-3)                     =', &
+                '                              Q(43)                     =', &
+                '                             Q(4-4)                     =', &
+                '                              Q(44)                     ='/
 
-    if( kpl == 1 ) then
-      plae(:) = pol(:,ipl)
-      plas(:) = pol(:,ipl)
-      voae(:) = vec(:,ipl)
-      voas(:) = vec(:,ipl)
-    endif
+  data Com_dm/  ' l = 0, monopole:   T(00) = Im(Txx+Tyy+Tzz)/3           =', &
+                ' l = 1, dipole:     T(10) = Im(Txy-Tyx )/2        = d_z =', &
+                '                    T(11) = Im(Tyz-Tzy )/2        = d_x =', &
+                '                    T(1-1) = Im(Tzx-Txz)/2        = d_y =', &
+                ' l = 2, quadrupole: T(20) = Im(2Tzz-Txx-Tyy)/6    = dz2 =', &
+                '                    T(21) = Im( Tzx + Txz )/2    = d_xz =', &
+                '                    T(2-1) = Im( Tyz + Tzy )/2   = d_yz =', &
+                '                    T(2-2) = Im( Txy + Tyx )/2   = d_xy =', &
+                '                    T(22) = Im( Txx - Tyy )/2 = d_x2-y2 ='/
 
-    if( E1E1 ) call Tensor_pol_dd_cal(ipl,n_tens_dd,nplt,plae,plas,Tensor_pol_dd)
+  data Com_dm_m/' l = 0, monopole:   T(00) = Re(Txx+Tyy+Tzz)/3           =', &
+                ' l = 1, dipole:     T(10) = Re(Txy-Tyx )/2    = Omega_z =', &
+                '                    T(11) = Re(Tyz-Tzy )/2    = Omega_x =', &
+                '                    T(1-1) = Re(Tzx-Txz)/2    = Omega_y =', &
+                ' l = 2, quadrupole: T(20) = Re(2Tzz-Txx-Tyy)/6          =', &
+                '                    T(21) = Re( Tzx + Txz )/2           =', &
+                '                    T(2-1) = Re( Tyz + Tzy )/2          =', &
+                '                    T(2-2) = Re( Txy + Tyx )/2          =', &
+                '                    T(22) = Re( Txx - Tyy )/2           ='/
+  
+! Calcul des tenseurs de l'absorption
+  call Abs_Spherical_tensor(Com_dm,Com_dm_m,Com_dd,Com_dq,Com_dq_m,Com_qq,ct_nelec,E1E1,E1E2,E1M1,E2E2,icheck,ie, &
+       Magn_sens,natomsym,ninitlr,secddia,secdqia,secmdia,secqqia, &
+       Sph_tensor_ia_dd,Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_qq,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Taux_eq)
 
-    if( E1E2 ) call Tensor_pol_dq_cal(ipl,n_tens_dq,nplt,plae,plas,voae,voas,Tensor_pol_dq)
+  call Write_Spherical_tensor(Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2,Energ,Ephseuil,Epsii, &
+       Eseuil,icheck,ie,Int_tens,jseuil,Magn_sens,n_tens_dd,n_tens_dm,n_tens_dq,n_tens_max,n_tens_qq, &
+       natomsym,nenerg,ninit1,ninitlr,nomfich_s,nseuil,numat_abs, &
+       Sph_tensor_ia_dd,Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_qq,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,V0muf)
 
-    if( E2E2 ) call Tensor_pol_qq_cal(ipl,n_tens_qq,nplt,plae,plas,voae,voas,Tensor_pol_qq)
-  end do
+  if( .not. Spherical_signal ) return
+  
+ ! Calcul des tenseurs de la polarisation
+ 
+  nplt = nplr + npldafs
 
-  if( kpl == 1 .and. moyenne ) then
-    ipl0 = 0
-    if( E1E1 ) then
-      do i = 1,n_tens_dd
-        Tensor_pol_dd(0,i) = sum( pdp(ipl1:ipl2,1) * Tensor_pol_dd(ipl1:ipl2,i) )
-      end do
-    endif
-    if( E1E2 ) then
-      do i = 1,2*n_tens_dq
-        Tensor_pol_dq(0,i) = (0._db,0._db)
-      end do
-    endif
-    if( E2E2 ) then
-      do i = 1,n_tens_qq
-        Tensor_pol_qq(0,i) = sum( pdp(ipl1:ipl2,2) * Tensor_pol_qq(ipl1:ipl2,i) )
-      end do
-    endif
-  else
-    ipl0 = ipl1
-  endif
-
-  if( icheck > 1 .and. ie == 1 ) then
-    if( E1E1 ) then
-      if( ipldafs > 0 ) then
-        write(3,110) 'Dipole-dipole', ipldafs
-      else
-        if( ipl0 == 0 ) then
-          write(3,120) 'Dipole-dipole'
-        else
-          write(3,125) 'Dipole-dipole'
-        endif
-      endif
-      do i = 1,n_tens_dd
-        write(3,130) i, Tensor_pol_dd(ipl0:ipl2,i)
-      end do
-    endif
-
-    if( E1E2 ) then
-      if( ipldafs > 0 ) then
-        write(3,110) 'Dipole-quadrupole', ipldafs
-      else
-        if( ipl0 == 0 ) then
-          write(3,120) 'Dipole-quadrupole'
-        else
-          write(3,125) 'Dipole-quadrupole'
-        endif
-      endif
-      do i = 1,2*n_tens_dq
-        write(3,130) i, Tensor_pol_dq(ipl0:ipl2,i)
-      end do
-    endif
-
-    if( E2E2 ) then
-      if( ipldafs > 0 ) then
-        write(3,110) 'Quadrupole-quadrupole', ipldafs
-      else
-        if( ipl0 == 0 ) then
-          write(3,120) 'Quadrupole-quadrupole'
-        else
-          write(3,125) 'Quadrupole-quadrupole'
-        endif
-      endif
-      do i = 1,n_tens_qq
-        write(3,130) i, Tensor_pol_qq(ipl0:ipl2,i)
-      end do
-    endif
-  endif
-
-  writout = ia == 0 .or. kpl == 1
-  writbav = icheck > 1 .and. writout
-
-  if( writbav ) then
-    if( ia == 0 ) then
-      if( kpl == 1 ) then
-        write(3,142)
-      else
-        write(3,143) ipldafs
-      endif
+  allocate( Tensor_pol_dd(0:nplt,n_tens_dd) )
+  allocate( Tensor_pol_dq(0:nplt,2*n_tens_dq) ) 
+  allocate( Tensor_pol_qq(0:nplt,n_tens_qq) )
+  allocate( Tensor_pol_dm(0:nplt,2*n_tens_dm) ) 
+  
+  do ipl = 1,nplt
+      
+    if( ipl <= nplr ) then
+      Pl_i(:) = Pol(:,ipl)
+      Pl_s(:) = Pol(:,ipl)
+      Vo_i(:) = Vec(:,ipl)
+      Vo_s(:) = Vec(:,ipl)
     else
-      write(3,144) ia
-    endif
-  endif
-
-  do initlr = 1,ninitlr
-
-    if( writbav ) write(3,145) initlr
-
-    if( E1E1 ) then
-      secdd(:,:) = secddia(:,:,initlr,ia)
-      call Sph_tensor_dd_cal(n_tens_dd,secdd,Sph_tensor_dd)
-      Sph_tensor_dd(:) = ct_nelec(initlr) * Sph_Tensor_dd(:)
-      if( writbav ) then
-        write(3,148)
-        if( ipl0 <= 1 ) then
-          write(3,150) Real( Sph_tensor_dd(:) )
-        else
-          write(3,155) Sph_tensor_dd(:)
-        endif
-      endif
+! Dans convolution on reprend le complexe conjugue de l'ensemble polarisation x diffusion
+      Pl_i(:) = Conjg( Poldafse(:,ipl-nplr,1) )
+      Pl_s(:) = Conjg( Poldafss(:,ipl-nplr,1) )
+      Vo_i(:) = Vecdafse(:,ipl-nplr,1)
+      Vo_s(:) = Vecdafss(:,ipl-nplr,1)
     endif
 
-    if( E1E2 ) then
-      secdq(:,:,:) = secdqia(:,:,:,initlr,ia)
-      call Sph_tensor_dq_cal(n_tens_dq,secdq,Sph_tensor_dq)
-      Sph_tensor_dq(:) = ct_nelec(initlr) * Sph_Tensor_dq(:)
-      if( ia == 0 .and. magn_sens ) then
-        secdq(:,:,:) = secdqia_m(:,:,:,initlr,ia)
-        call Sph_tensor_dq_cal(n_tens_dq,secdq,Sph_tensor_dq_m)
-        Sph_tensor_dq_m(:) = ct_nelec(initlr) * Sph_Tensor_dq_m(:)
-      endif
-      if( writbav ) then
-        write(3,158)
-        if( ipl0 <= 1 .and. ia == 0 .and. magn_sens ) then
-          write(3,165) ( Real( Sph_tensor_dq(i) ), Real( Sph_tensor_dq_m(i) ), i = 1,3 )
-          write(3,175) ( Real( Sph_tensor_dq(i) ), Real( Sph_tensor_dq_m(i) ), i = 4,8 )
-          write(3,185) ( Real( Sph_tensor_dq(i) ), Real( Sph_tensor_dq_m(i) ), i = 9,15 )
-        elseif( ia == 0 .and. magn_sens ) then
-          write(3,166) ( Sph_tensor_dq(i), Sph_tensor_dq_m(i), i = 1,3 )
-          write(3,176) ( Sph_tensor_dq(i), Sph_tensor_dq_m(i), i = 4,8 )
-          write(3,186) ( Sph_tensor_dq(i), Sph_tensor_dq_m(i), i = 9,15 )
-        elseif( ipl0 <= 1 ) then
-          write(3,160) Real( Sph_tensor_dq(1:3) )
-          write(3,170) Real( Sph_tensor_dq(4:8) )
-          write(3,180) Real( Sph_tensor_dq(9:15) )
-        else
-          write(3,162) Sph_tensor_dq(1:3)
-          write(3,172) Sph_tensor_dq(4:8)
-          write(3,182) Sph_tensor_dq(9:15)
-        endif
-      endif
-    endif
+    if( E1E1 ) call Tensor_pol_dd_cal(ipl,n_tens_dd,nplt,Pl_i,Pl_s,Tensor_pol_dd)
 
-    if( E2E2 ) then
-      secqq(:,:,:,:) = secqqia(:,:,:,:,initlr,ia)
-      call Sph_tensor_qq_cal(n_tens_qq,secqq,Sph_tensor_qq)
-      Sph_tensor_qq(:) = ct_nelec(initlr) * Sph_Tensor_qq(:)
-      if( writbav ) then
-        write(3,188)
-        if( ipl0 <= 1 ) then
-          write(3,190) Real( Sph_tensor_qq(1:9) )
-          write(3,200) Real( Sph_tensor_qq(10:n_tens_qq) )
-        else
-          write(3,210) Sph_tensor_qq(1:9)
-          write(3,220) Sph_tensor_qq(10:n_tens_qq)
-        endif
-      endif
-    endif
+    if( E1E2 ) call Tensor_pol_dq_cal(ipl,n_tens_dq,nplt,Pl_i,Pl_s,Vo_i,Vo_s,Tensor_pol_dq)
 
-    Sph_tensor_dd_ni(:,initlr) = Sph_tensor_dd(:) 
-    Sph_tensor_dq_ni(:,initlr) = Sph_tensor_dq(:) 
-    Sph_tensor_dq_m_ni(:,initlr) = Sph_tensor_dq_m(:) 
-    Sph_tensor_qq_ni(:,initlr) = Sph_tensor_qq(:) 
-
+    if( E2E2 ) call Tensor_pol_qq_cal(ipl,n_tens_qq,nplt,Pl_i,Pl_s,Vo_i,Vo_s,Tensor_pol_qq)
+  
+    if( E1M1 ) call Tensor_pol_dm_cal(ipl,n_tens_dm,nplt,Pl_i,Pl_s,Vo_i,Vo_s,Tensor_pol_dm)
+    
   end do
 
-  call write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,Energ,Ephseuil,Epsii, &
-      Eseuil,ia,ie,Int_tens,ipl0,ipl2,ipldafs,jseuil,magn_sens,n_tens_dd,n_tens_dq,n_tens_max, &
-      n_tens_qq,n_tens_t,natomsym,nenerg,ninit1,ninitlr,nomfich_s,npldafs,nplt,nseuil,numat_abs,phdf0t,phdt,Polarise, &
-      Sph_tensor_dd_ni,Sph_tensor_dq_ni,Sph_tensor_dq_m_ni,Sph_tensor_qq_ni,Spherical_signal,Tensor_pol_dd,Tensor_pol_dq, &
-      Tensor_pol_qq,V0muf,writout)
+  if( Moyenne ) then
+   if( E1E1 ) then
+     do i = 1,n_tens_dd
+       Tensor_pol_dd(0,i) = sum( pdp(1:nplr,1) * Tensor_pol_dd(1:nplr,i) )
+     end do 
+   endif
+   if( E1E2 ) Tensor_pol_dq(0,:) = ( 0._db, 0._db )
+   if( E2E2 ) then 
+     do i = 1,n_tens_qq
+       Tensor_pol_qq(0,i) = sum( pdp(1:nplr,2) * Tensor_pol_qq(1:nplr,i) )
+     end do 
+   endif
+   if( E1M1 ) then
+     Tensor_pol_dm(0,:) = ( 0._db, 0._db ) 
+     Tensor_pol_dm(0,1) = ( 1._db, 0._db ) 
+     if( Magn_sens ) Tensor_pol_dm(0,n_tens_dm+1) = ( 1._db, 0._db ) 
+   endif
+  endif
+  
+  if( ie == 1 ) then
+    
+    if( E1E1 ) then
+      write(3,110) 'E1E1'
+      write(3,115) ( 'Abs', i, i = 1,nplr ), ( 'Rxs', i, i = 1,npldafs )
+      do i = 1,n_tens_dd
+        write(3,120) i, Tensor_pol_dd(1:nplt,i)
+      end do
+    endif
+    
+    if( E1E2 ) then
+      write(3,110) 'E1E2'
+      write(3,115) ( 'Abs', i, i = 1,nplr ), ( 'Rxs', i, i = 1,npldafs )
+      do i = 1,n_tens_dq
+        write(3,120) i, Tensor_pol_dq(1:nplt,i)
+      end do
+      if( Magn_sens ) then
+        do i = n_tens_dq+1,2*n_tens_dq
+          write(3,120) i, Tensor_pol_dq(1:nplt,i)
+        end do
+      endif
+    endif
+    
+    if( E2E2 ) then
+      write(3,110) 'E2E2'
+      write(3,115) ( 'Abs', i, i = 1,nplr ), ( 'Rxs', i, i = 1,npldafs )
+      do i = 1,n_tens_qq
+        write(3,120) i, Tensor_pol_qq(1:nplt,i)
+      end do
+    endif
+    
+    if( E1M1 ) then
+      write(3,110) 'E1M1'
+      write(3,115) ( 'Abs', i, i = 1,nplr ), ( 'Rxs', i, i = 1,npldafs )
+      do i = 1,n_tens_dm
+        write(3,120) i, Tensor_pol_dm(1:nplt,i)
+      end do
+      if( Magn_sens ) then
+        do i = n_tens_dm+1,2*n_tens_dm
+          write(3,120) i, Tensor_pol_dm(1:nplt,i)
+        end do
+      endif
+    endif
+
+  endif
+
+  do ipl = 0,nplt
+    if( .not. Moyenne .and. ipl == 0 ) cycle 
+    ipldafs = ipl - nplr
+      
+    if( ipl <= nplr ) then
+  
+      do initlr = 1,ninitlr
+        Sph_tensor_dd(:,initlr) = cmplx( Sph_tensor_ia_dd(:,0,initlr), 0._db ) 
+        Sph_tensor_dq(:,initlr) = cmplx( Sph_tensor_ia_dq(:,0,initlr), 0._db ) 
+        Sph_tensor_dq_m(:,initlr) = cmplx( 0._db, Sph_tensor_ia_dq_m(:,0,initlr) ) 
+        Sph_tensor_qq(:,initlr) = cmplx( Sph_tensor_ia_qq(:,0,initlr), 0._db ) 
+        Sph_tensor_dm(:,initlr) = cmplx( 0._db, Sph_tensor_ia_dm(:,0,initlr) ) 
+        Sph_tensor_dm_m(:,initlr) = cmplx( Sph_tensor_ia_dm_m(:,0,initlr), 0._db )
+      end do
+      
+    else
+    
+      Sph_tensor_dd(:,:) = cmplx( 0._db, 0._db ) 
+      Sph_tensor_dq(:,:) = cmplx( 0._db, 0._db ) 
+      Sph_tensor_dq_m(:,:) = cmplx( 0._db, 0._db ) 
+      Sph_tensor_qq(:,:) = cmplx( 0._db, 0._db ) 
+      Sph_tensor_dm(:,:) = cmplx( 0._db, 0._db ) 
+      Sph_tensor_dm_m(:,:) = cmplx( 0._db, 0._db )
+
+      do ib = 1,natomsym
+
+        ph = conjg( phdafs(ib,ipldafs) )
+
+        do initlr = 1,ninitlr
+          Sph_tensor_dd(:,initlr)   = Sph_tensor_dd(:,initlr)   + ph * Sph_tensor_ia_dd(:,ib,initlr) 
+          Sph_tensor_dq(:,initlr)   = Sph_tensor_dq(:,initlr)   + ph * Sph_tensor_ia_dq(:,ib,initlr) 
+          Sph_tensor_dq_m(:,initlr) = Sph_tensor_dq_m(:,initlr) + img * ph * Sph_tensor_ia_dq_m(:,ib,initlr) 
+          Sph_tensor_qq(:,initlr)   = Sph_tensor_qq(:,initlr)   + ph * Sph_tensor_ia_qq(:,ib,initlr) 
+          Sph_tensor_dm(:,initlr)   = Sph_tensor_dm(:,initlr)   + img * ph * Sph_tensor_ia_dm(:,ib,initlr) 
+          Sph_tensor_dm_m(:,initlr) = Sph_tensor_dm_m(:,initlr) + ph * Sph_tensor_ia_dm_m(:,ib,initlr)
+        end do
+      end do
+ 
+      if( natomsym > 1 .and. ie == 1 ) then
+        Write_bav = .true.
+        if( ipldafs > 1 ) then
+          dph = sum( abs( phdafs(:,ipldafs) - phdafs(:,ipldafs-1) ) )
+          if( dph < eps10 ) Write_bav = .false.
+        endif
+        if( Write_bav ) then
+          write(3,125) ipldafs
+          if( E1E1 ) then
+            write(3,128) ( initlr, initlr = 1,ninitlr )
+            do i = 1,n_tens_dd
+              if( i == 1 .or. i == 2 .or. i == 5 ) write(3,*)
+              write(3,130) Com_dd(i), Sph_tensor_dd(i,:)
+            end do
+          endif
+          if( E1E2 ) then
+            write(3,140) ( initlr, initlr = 1,ninitlr )
+            do i = 1,n_tens_dq
+              if( i == 1 .or. i == 4 .or. i == 9 ) write(3,*)
+              write(3,130) Com_dq(i), Sph_tensor_dq(i,:)
+            end do
+            if( Magn_sens ) then
+              write(3,150) ( initlr, initlr = 1,ninitlr )
+              do i = 1,n_tens_dq
+                if( i == 1 .or. i == 4 .or. i == 9 ) write(3,*)
+                write(3,130) Com_dq_m(i), Sph_tensor_dq_m(i,:)
+              end do
+            endif
+          endif
+          if( E2E2 ) then
+            write(3,160) ( initlr, initlr = 1,ninitlr )
+            do i = 1,n_tens_qq
+              if( i == 1 .or. i == 2 .or. i == 5  .or. i == 10 .or. i == 17 ) write(3,*)
+              write(3,130) Com_qq(i), Sph_tensor_qq(i,:)
+            end do
+          endif
+          if( E1M1 ) then
+            write(3,170) ( initlr, initlr = 1,ninitlr )
+            do i = 1,n_tens_dm
+              if( i == 1 .or. i == 2 .or. i == 5 ) write(3,*)
+              write(3,130) Com_dm(i), Sph_tensor_dm(i,:)
+            end do
+            if( Magn_sens ) then
+              write(3,180) ( initlr, initlr = 1,ninitlr )
+              do i = 1,n_tens_dm
+                if( i == 1 .or. i == 2 .or. i == 5 ) write(3,*)
+                write(3,130) Com_dm_m(i), Sph_tensor_dm_m(i,:)
+              end do
+            endif
+          endif
+        endif
+      endif 
+    endif 
+
+    call Write_Signal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2,Ephseuil,Epsii, &
+      Eseuil,0,ie,ipl,ipldafs,jseuil,Magn_sens,n_tens_dd,n_tens_dq,n_tens_dm, &
+      n_tens_qq,ninit1,ninitlr,nomfich_s,npldafs,nplt,nseuil,numat_abs,phdf0t,phdt, &
+      Sph_tensor_dd,Sph_tensor_dq,Sph_tensor_dq_m,Sph_tensor_dm,Sph_tensor_dm_m,Sph_tensor_qq, &
+      Tensor_pol_dd,Tensor_pol_dq,Tensor_pol_dm,Tensor_pol_qq,V0muf)
+
+  end do
+  
+  deallocate( Tensor_pol_dd,  Tensor_pol_dq,  Tensor_pol_qq, Tensor_pol_dm ) 
 
   return
-  110 format(/1x,A,' polarisation tensor for the RXS:', /'  i ',5x,' Reflection number',i3)
-  120 format(/1x,A,' polarisation tensor for the xanes:', /'  i        <xanes>           ipl = 0, 1, 2...')
-  125 format(/1x,A,' polarisation tensor for the xanes:', /'  i        ipl = 0, 1, 2...')
-  130 format(i3,25(1x,2f9.5))
-  142 format(/' Spherical tensors for the unit cell')
-  143 format(/' Spherical tensors for the unit cell for the RXS (num. of electron), reflection number',i3)
-  144 format(/' Spherical tensors (numb. of electron) for the atom number :',i3)
-  145 format(/'    initlr =',i3)
-  148 format(/' Dipole-dipole spherical tensor (numb. of electron):')
-  150 format(/1p,' rank 0, non-magnetic scalar :',/ &
-                 '    D(00)                      =',e13.5,// &
-                 ' rank 1, magnetic dipole :',/ &
-                 '    D(10)                 = lz =',e13.5,/ &
-                 '   (D(11)-D(1-1))/sqrt(2) =-lx =',e13.5,/ &
-                 ' -i(D(11)+D(1-1))/sqrt(2) = ly =',e13.5,// &
-                 ' rank 2, non-magnetic quadrupole :',/ &
-                 '    D(20)                      =',e13.5,/ &
-                 '   (D(21)-D(2-1))/sqrt(2)      =',e13.5,/ &
-                 ' -i(D(21)+D(2-1))/sqrt(2)      =',e13.5,/ &
-                 ' -i(D(22)-D(2-2))/sqrt(2)      =',e13.5,/ &
-                 '   (D(22)+D(2-2))/sqrt(2)      =',e13.5)
-  155 format(1p, ' rank 0, non-magnetic scalar :',/ '    D(00)                      =',2e13.5,// &
-   ' rank 1, magnetic dipole :',/ '    D(10)                 = lz =',2e13.5,/ '   (D(11)-D(1-1))/sqrt(2) =-lx =',2e13.5,/ &
-   ' -i(D(11)+D(1-1))/sqrt(2) = ly =',2e13.5,// ' rank 2, non-magnetic quadrupole :',/ &
-   '    D(20)                      =',2e13.5,/ '   (D(21)-D(2-1))/sqrt(2)      =',2e13.5,/ &
-   ' -i(D(21)+D(2-1))/sqrt(2)      =',2e13.5,/ ' -i(D(22)-D(2-2))/sqrt(2)      =',2e13.5,/ &
-   '   (D(22)+D(2-2))/sqrt(2)      =',2e13.5)
-  158 format(/' Dipole-quadrupole spherical tensor (numb. of', ' electron):')
-  160 format(/42x,'non-magnetic ',/ ' rank 1 :',1p,/ '    I(10)                          = nz =',e13.5,/ &
-   '   (I(11)-I(1-1))/sqrt(2)          = nx =',e13.5,/ ' -i(I(11)+I(1-1))/sqrt(2)          = ny =',e13.5)
-  162 format(/42x,'non-magnetic ',/ ' rank 1 :',1p,/ '    I(10)                          = nz =',2e13.5,/ &
-   '   (I(11)-I(1-1))/sqrt(2)          = nx =',2e13.5,/ ' -i(I(11)+I(1-1))/sqrt(2)          = ny =',2e13.5)
-  165 format(/37x,'non-magnetic ',25x,'magnetic',/' rank 1 :',1p,/ '    I(10)                          = nz =',e13.5, &
-                                '              Toroiz =',e13.5,/ '   (I(11)-I(1-1))/sqrt(2)          = nx =',e13.5, &
-                                '              Toroix =',e13.5,/ ' -i(I(11)+I(1-1))/sqrt(2)          = ny =',e13.5, &
-                                '              Toroiy =',e13.5)
-  166 format(/49x,'non-magnetic ',37x,'magnetic',/' rank 1 :',1p,/ '    I(10)                          = nz =',2e13.5, &
-                                '              Toroiz =',2e13.5,/ '   (I(11)-I(1-1))/sqrt(2)          = nx =',2e13.5, &
-                                '              Toroix =',2e13.5,/ ' -i(I(11)+I(1-1))/sqrt(2)          = ny =',2e13.5, &
-                                '              Toroiy =',2e13.5)
-  170 format(/' rank 2 :',1p,/ '  -iI(20)                  =  lz*Toroiz =',e13.5,/ &
-   ' -i(I(21)-I(2-1))/sqrt(2)  = (l,Toroi)2 =',e13.5,/ '   (I(21)+I(2-1))/sqrt(2)  = (l,Toroi)2 =',e13.5,/ &
-   '   (I(22)-I(2-2))/sqrt(2)  = (l,Toroi)2 =',e13.5,/ ' -i(I(22)+I(2-2))/sqrt(2)  = (l,Toroi)2 =',e13.5)
-  172 format(/' rank 2 :',1p,/ '  -iI(20)                  =  lz*Toroiz =',2e13.5,/ &
-   ' -i(I(21)-I(2-1))/sqrt(2)  = (l,Toroi)2 =',2e13.5,/ '   (I(21)+I(2-1))/sqrt(2)  = (l,Toroi)2 =',2e13.5,/ &
-   '   (I(22)-I(2-2))/sqrt(2)  = (l,Toroi)2 =',2e13.5,/ ' -i(I(22)+I(2-2))/sqrt(2)  = (l,Toroi)2 =',2e13.5)
-  175 format(/' rank 2 :',1p,/ '  -iI(20)                  =  lz*Toroiz =',e13.5, '               nz*lz =',e13.5,/ &
-   ' -i(I(21)-I(2-1))/sqrt(2)  = (l,Toroi)2 =',e13.5, '              (n,l)2 =',e13.5,/ &
-   '   (I(21)+I(2-1))/sqrt(2)  = (l,Toroi)2 =',e13.5, '              (n,l)2 =',e13.5,/ &
-   '   (I(22)-I(2-2))/sqrt(2)  = (l,Toroi)2 =',e13.5, '              (n,l)2 =',e13.5,/ &
-   ' -i(I(22)+I(2-2))/sqrt(2)  = (l,Toroi)2 =',e13.5, '              (n,l)2 =',e13.5)
-  176 format(/' rank 2 :',1p,/ '  -iI(20)                  =  lz*Toroiz =',2e13.5, '               nz*lz =',2e13.5,/ &
-   ' -i(I(21)-I(2-1))/sqrt(2)  = (l,Toroi)2 =',2e13.5, '              (n,l)2 =',2e13.5,/ &
-   '   (I(21)+I(2-1))/sqrt(2)  = (l,Toroi)2 =',2e13.5, '              (n,l)2 =',2e13.5,/ &
-   '   (I(22)-I(2-2))/sqrt(2)  = (l,Toroi)2 =',2e13.5, '              (n,l)2 =',2e13.5,/ &
-   ' -i(I(22)+I(2-2))/sqrt(2)  = (l,Toroi)2 =',2e13.5, '              (n,l)2 =',2e13.5)
-  180 format(/' rank 3 :',1p,/ '    I(30)              = nz*(3lz2 - l2) =',e13.5,/ &
-   '   (I(31)-I(3-1))/sqrt(2) = (n,(l,l)2)3 =',e13.5,/ ' -i(I(31)+I(3-1))/sqrt(2) = (n,(l,l)2)3 =',e13.5,/ &
-   ' -i(I(32)-I(3-2))/sqrt(2) = (n,(l,l)2)3 =',e13.5,/ '   (I(32)+I(3-2))/sqrt(2) = (n,(l,l)2)3 =',e13.5,/ &
-   '   (I(33)-I(3-3))/sqrt(2) = (n,(l,l)2)3 =',e13.5,/ ' -i(I(33)+I(3-3))/sqrt(2) = (n,(l,l)2)3 =',e13.5)
-  182 format(/' rank 3 :',1p,/ '    I(30)              = nz*(3lz2 - l2) =',2e13.5,/ &
-   '   (I(31)-I(3-1))/sqrt(2) = (n,(l,l)2)3 =',2e13.5,/ ' -i(I(31)+I(3-1))/sqrt(2) = (n,(l,l)2)3 =',2e13.5,/ &
-   ' -i(I(32)-I(3-2))/sqrt(2) = (n,(l,l)2)3 =',2e13.5,/ '   (I(32)+I(3-2))/sqrt(2) = (n,(l,l)2)3 =',2e13.5,/ &
-   '   (I(33)-I(3-3))/sqrt(2) = (n,(l,l)2)3 =',2e13.5,/ ' -i(I(33)+I(3-3))/sqrt(2) = (n,(l,l)2)3 =',2e13.5)
-  185 format(/' rank 3 :',1p,/ '    I(30)              = nz*(3lz2 - l2) =',e13.5, '  Toroiz*(3lz2 - l2) =',e13.5,/ &
-   '   (I(31)-I(3-1))/sqrt(2) = (n,(l,l)2)3 =',e13.5, '     (Toroi,(l,l)2)3 =',e13.5,/ &
-   ' -i(I(31)+I(3-1))/sqrt(2) = (n,(l,l)2)3 =',e13.5, '     (Toroi,(l,l)2)3 =',e13.5,/ &
-   ' -i(I(32)-I(3-2))/sqrt(2) = (n,(l,l)2)3 =',e13.5, '     (Toroi,(l,l)2)3 =',e13.5,/ &
-   '   (I(32)+I(3-2))/sqrt(2) = (n,(l,l)2)3 =',e13.5, '     (Toroi,(l,l)2)3 =',e13.5,/ &
-   '   (I(33)-I(3-3))/sqrt(2) = (n,(l,l)2)3 =',e13.5, '     (Toroi,(l,l)2)3 =',e13.5,/ &
-   ' -i(I(33)+I(3-3))/sqrt(2) = (n,(l,l)2)3 =',e13.5, '     (Toroi,(l,l)2)3 =',e13.5)
-  186 format(/' rank 3 :',1p,/ '    I(30)              = nz*(3lz2 - l2) =',2e13.5, '  Toroiz*(3lz2 - l2) =',2e13.5,/ &
-   '   (I(31)-I(3-1))/sqrt(2) = (n,(l,l)2)3 =',2e13.5, '     (Toroi,(l,l)2)3 =',2e13.5,/ &
-   ' -i(I(31)+I(3-1))/sqrt(2) = (n,(l,l)2)3 =',2e13.5, '     (Toroi,(l,l)2)3 =',2e13.5,/ &
-   ' -i(I(32)-I(3-2))/sqrt(2) = (n,(l,l)2)3 =',2e13.5, '     (Toroi,(l,l)2)3 =',2e13.5,/ &
-   '   (I(32)+I(3-2))/sqrt(2) = (n,(l,l)2)3 =',2e13.5, '     (Toroi,(l,l)2)3 =',2e13.5,/ &
-   '   (I(33)-I(3-3))/sqrt(2) = (n,(l,l)2)3 =',2e13.5, '     (Toroi,(l,l)2)3 =',2e13.5,/ &
-   ' -i(I(33)+I(3-3))/sqrt(2) = (n,(l,l)2)3 =',2e13.5, '     (Toroi,(l,l)2)3 =',2e13.5)
-  188 format(/' Quadrupole-quadrupole spherical tensor (numb. of', ' electron) :')
-  190 format(/' rank 0, scalar :',1p,/ '    Q(00)                      =',e13.5,// ' rank 1, magnetic dipole :',/ &
-   '    Q(10)                 = lz =',e13.5,/ '   (Q(11)-Q(1-1))/sqrt(2) =-lx =',e13.5,/ &
-   ' -i(Q(11)+Q(1-1))/sqrt(2) = ly =',e13.5,// ' Rank 2, non-magnetic quadrupole :',/ &
-   '    Q(20)                      =',e13.5,/ '   (Q(21)-Q(2-1))/sqrt(2)      =',e13.5,/ &
-   ' -i(Q(21)+Q(2-1))/sqrt(2)      =',e13.5,/ ' -i(Q(22)-Q(2-2))/sqrt(2)      =',e13.5,/ &
-   '   (Q(22)+Q(2-2))/sqrt(2)      =',e13.5,/)
-  200 format(' Rank 3, magnetic octupole :',/ '    Q(30)                      =',e13.5,/ &
-   '   (Q(31)-Q(3-1))/sqrt(2)      =',e13.5,/ ' -i(Q(31)+Q(3-1))/sqrt(2)      =',e13.5,/ &
-   ' -i(Q(32)-Q(3-2))/sqrt(2)      =',e13.5,/ '   (Q(32)+Q(3-2))/sqrt(2)      =',e13.5,/ &
-   ' -i(Q(33)-Q(3-3))/sqrt(2)      =',e13.5,/ ' -i(Q(33)+Q(3-3))/sqrt(2)      =',e13.5,// &
-   ' Rank 4, non-magnetic hexadecapole :',/ '    Q(40)                      =',e13.5,/ &
-   '   (Q(41)-Q(4-1))/sqrt(2)      =',e13.5,/ ' -i(Q(41)+Q(4-1))/sqrt(2)      =',e13.5,/ &
-   ' -i(Q(42)-Q(4-2))/sqrt(2)      =',e13.5,/ '   (Q(42)+Q(4-2))/sqrt(2)      =',e13.5,/ &
-   '   (Q(43)-Q(4-3))/sqrt(2)      =',e13.5,/ ' -i(Q(43)+Q(4-3))/sqrt(2)      =',e13.5,/ &
-   ' -i(Q(44)-Q(4-4))/sqrt(2)      =',e13.5,/ '   (Q(44)+Q(4-4))/sqrt(2)      =',e13.5)
-  210 format(/1p, ' rank 0, scalar :',/ '    Q(00)                      =',2e13.5,// ' rank 1, magnetic dipole :',/ &
-   '    Q(10)                 = lz =',2e13.5,/ '   (Q(11)-Q(1-1))/sqrt(2) =-lx =',2e13.5,/ &
-   ' -i(Q(11)+Q(1-1))/sqrt(2) = ly =',2e13.5,// ' Rank 2, non-magnetic quadrupole :',/ &
-   '    Q(20)                      =',2e13.5,/ '   (Q(21)-Q(2-1))/sqrt(2)      =',2e13.5,/ &
-   ' -i(Q(21)+Q(2-1))/sqrt(2)      =',2e13.5,/ ' -i(Q(22)-Q(2-2))/sqrt(2)      =',2e13.5,/ &
-   '   (Q(22)+Q(2-2))/sqrt(2)      =',2e13.5,/)
-  220 format( ' Rank 3, magnetic octupole :',/ '    Q(30)                      =',2e13.5,/ &
-   '   (Q(31)-Q(3-1))/sqrt(2)      =',2e13.5,/ ' -i(Q(31)+Q(3-1))/sqrt(2)      =',2e13.5,/ &
-   ' -i(Q(32)-Q(3-2))/sqrt(2)      =',2e13.5,/ '   (Q(32)+Q(3-2))/sqrt(2)      =',2e13.5,/ &
-   ' -i(Q(33)-Q(3-3))/sqrt(2)      =',2e13.5,/ ' -i(Q(33)+Q(3-3))/sqrt(2)      =',2e13.5,// &
-   ' Rank 4, non-magnetic hexadecapole :',/ '    Q(40)                      =',2e13.5,/ &
-   '   (Q(41)-Q(4-1))/sqrt(2)      =',2e13.5,/ ' -i(Q(41)+Q(4-1))/sqrt(2)      =',2e13.5,/ &
-   ' -i(Q(42)-Q(4-2))/sqrt(2)      =',2e13.5,/ '   (Q(42)+Q(4-2))/sqrt(2)      =',2e13.5,/ &
-   '   (Q(43)-Q(4-3))/sqrt(2)      =',2e13.5,/ ' -i(Q(43)+Q(4-3))/sqrt(2)      =',2e13.5,/ &
-   ' -i(Q(44)-Q(4-4))/sqrt(2)      =',2e13.5,/ '   (Q(44)+Q(4-4))/sqrt(2)      =',2e13.5)
+  110 format(/1x,A,' polarisation tensor')
+  115 format(3x,25(8x,a3,i3,5x))
+  120 format(i3,25(1x,2f9.5))
+  125 format(/' Crystal spherical tensor (numb. of electron), reflexion',i3)
+  128 format(/' E1E1 spherical tensor,                           initl =',10(14x,i2,11x))
+  130 format(1p,A,10(2e13.5,1x))
+  140 format(/' E1E2 spherical tensor, non-magnetic part,        initl =',10(14x,i2,11x))
+  150 format(/' E1E2 spherical tensor, magnetic part,            initl =',10(14x,i2,11x))
+  160 format(/' E2E2 spherical tensor,                           initl =',10(14x,i2,11x))
+  170 format(/' E1M1 spherical tensor, non-magnetic part,        initl =',10(14x,i2,11x))
+  180 format(/' E1M1 spherical tensor, magnetic part,            initl =',10(14x,i2,11x))
+end
+
+!***********************************************************************
+
+subroutine Abs_Spherical_tensor(Com_dm,Com_dm_m,Com_dd,Com_dq,Com_dq_m,Com_qq,ct_nelec,E1E1,E1E2,E1M1,E2E2,icheck,ie, &
+       Magn_sens,natomsym,ninitlr,secddia,secdqia,secmdia,secqqia, &
+       Sph_tensor_ia_dd,Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_qq,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Taux_eq)
+
+  use declarations
+  implicit none
+
+  integer, parameter:: n_tens_dd = 9 
+  integer, parameter:: n_tens_dq = 15 
+  integer, parameter:: n_tens_qq = 25 
+  integer, parameter:: n_tens_dm = 9 
+
+  integer:: i, ia, ib, icheck, ie, initlr, natomsym, ninitlr
+  
+  character(len=58), dimension(9):: Com_dd, com_dm, Com_dm_m
+  character(len=58), dimension(15):: Com_dq, Com_dq_m
+  character(len=58), dimension(25):: Com_qq
+
+  complex(kind=db), dimension(n_tens_dd):: Sph_tensor_dd
+  complex(kind=db), dimension(n_tens_dq):: Sph_tensor_dq
+  complex(kind=db), dimension(n_tens_qq):: Sph_tensor_qq
+  complex(kind=db), dimension(n_tens_dm):: Sph_tensor_dm
+  complex(kind=db), dimension(3,3):: secdd, secmd
+  complex(kind=db), dimension(3,3,3):: secdq
+  complex(kind=db), dimension(3,3,3,3):: secqq
+  complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secddia, secmdia
+  complex(kind=db), dimension(3,3,3,ninitlr,0:natomsym):: secdqia
+  complex(kind=db), dimension(3,3,3,3,ninitlr,0:natomsym):: secqqia
+
+  logical:: E1E1, E1E2, E1M1, E2E2, Magn_sens
+
+  real(kind=db), dimension(ninitlr):: ct_nelec
+  real(kind=db), dimension(natomsym) :: Taux_eq
+  real(kind=db), dimension(n_tens_dd,0:natomsym,ninitlr):: Sph_tensor_ia_dd
+  real(kind=db), dimension(n_tens_dq,0:natomsym,ninitlr):: Sph_tensor_ia_dq, Sph_tensor_ia_dq_m 
+  real(kind=db), dimension(n_tens_qq,0:natomsym,ninitlr):: Sph_tensor_ia_qq
+  real(kind=db), dimension(n_tens_dm,0:natomsym,ninitlr):: Sph_tensor_ia_dm, Sph_tensor_ia_dm_m
+  
+  Sph_tensor_ia_dd(:,:,:) = 0._db
+  Sph_tensor_ia_dq(:,:,:) = 0._db
+  Sph_tensor_ia_dq_m(:,:,:) = 0._db
+  Sph_tensor_ia_qq(:,:,:) = 0._db
+  Sph_tensor_ia_dm(:,:,:) = 0._db
+  Sph_tensor_ia_dm_m(:,:,:) = 0._db
+  
+  do initlr = 1,ninitlr
+
+    do ia = 1,natomsym
+
+      if( E1E1 ) then
+        secdd(:,:) = secddia(:,:,initlr,ia)
+        call Sph_tensor_dd_cal(n_tens_dd,secdd,Sph_tensor_dd)
+ ! conversion en nombre d'electrons
+        Sph_tensor_ia_dd(:,ia,initlr) = ct_nelec(initlr) * pi * real( Sph_Tensor_dd(:), db )
+        Sph_tensor_ia_dd(:,0,initlr) = Sph_tensor_ia_dd(:,0,initlr) + Taux_eq(ia) * Sph_tensor_ia_dd(:,ia,initlr) 
+      endif
+
+      if( E1E2 ) then
+        secdq(:,:,:) = secdqia(:,:,:,initlr,ia)
+        call Sph_tensor_dq_cal(n_tens_dq,secdq,Sph_tensor_dq)
+        Sph_tensor_ia_dq(:,ia,initlr) = ct_nelec(initlr) * pi * real( Sph_Tensor_dq(:), db )
+        if( Magn_sens ) Sph_tensor_ia_dq_m(:,ia,initlr) = ct_nelec(initlr) * pi * aimag( Sph_Tensor_dq(:) )
+        Sph_tensor_ia_dq(:,0,initlr) = Sph_tensor_ia_dq(:,0,initlr) + Taux_eq(ia) * Sph_tensor_ia_dq(:,ia,initlr)
+        if( Magn_sens ) Sph_tensor_ia_dq_m(:,0,initlr) = Sph_tensor_ia_dq_m(:,0,initlr) &
+                                                       + Taux_eq(ia) * Sph_tensor_ia_dq_m(:,ia,initlr) 
+      endif
+
+      if( E2E2 ) then
+        secqq(:,:,:,:) = secqqia(:,:,:,:,initlr,ia)
+        call Sph_tensor_qq_cal(n_tens_qq,secqq,Sph_tensor_qq)
+        Sph_tensor_ia_qq(:,ia,initlr) = ct_nelec(initlr) * pi * real( Sph_Tensor_qq(:), db )
+        Sph_tensor_ia_qq(:,0,initlr) = Sph_tensor_ia_qq(:,0,initlr) + Taux_eq(ia) * Sph_tensor_ia_qq(:,ia,initlr)
+      endif
+     
+      if( E1M1 ) then  ! pour E1M1, la partie magnetique est le terme reel
+        secmd(:,:) = secmdia(:,:,initlr,ia)
+        call Sph_tensor_dm_cal(n_tens_dm,secmd,Sph_tensor_dm)
+        Sph_tensor_ia_dm(:,ia,initlr) = ct_nelec(initlr) * pi * aimag( Sph_tensor_dm(:) )
+        if( Magn_sens ) Sph_tensor_ia_dm_m(:,ia,initlr) = ct_nelec(initlr) * pi * real( Sph_tensor_dm(:), db )
+        Sph_tensor_ia_dm(:,0,initlr) = Sph_tensor_ia_dm(:,0,initlr) + Taux_eq(ia) * Sph_tensor_ia_dm(:,ia,initlr)
+        if( Magn_sens ) Sph_tensor_ia_dm_m(:,0,initlr) = Sph_tensor_ia_dm_m(:,0,initlr) &
+                                                       + Taux_eq(ia) * Sph_tensor_ia_dm_m(:,ia,initlr) 
+      endif
+
+    end do  ! fin boucle ia
+
+  end do ! fin boucle initlr
+
+  do ib = 1,natomsym+1
+    if( icheck == 0 .or. ie > 1 ) exit
+    if( ib == natomsym+1 ) then
+      if( natomsym == 1 ) exit
+      ia = 0
+      write(3,110)
+    else
+      ia = ib
+      if( ia > 1 .and. icheck < 2 ) cycle
+      write(3,120) ia
+    endif
+
+    if( E1E1 ) then
+      write(3,128) ( initlr, initlr = 1,ninitlr )
+      do i = 1,n_tens_dd
+        if( i == 1 .or. i == 2 .or. i == 5 ) write(3,*)
+        write(3,130) Com_dd(i), Sph_tensor_ia_dd(i,ia,:)
+      end do
+    endif
+    if( E1E2 ) then
+      write(3,140) ( initlr, initlr = 1,ninitlr )
+      do i = 1,n_tens_dq
+        if( i == 1 .or. i == 4 .or. i == 9 ) write(3,*)
+        write(3,130) Com_dq(i), Sph_tensor_ia_dq(i,ia,:)
+      end do
+      if( Magn_sens ) then
+        write(3,150) ( initlr, initlr = 1,ninitlr )
+        do i = 1,n_tens_dq
+          if( i == 1 .or. i == 4 .or. i == 9 ) write(3,*)
+          write(3,130) Com_dq_m(i), Sph_tensor_ia_dq_m(i,ia,:)
+        end do
+      endif
+    endif
+    if( E2E2 ) then
+      write(3,160) ( initlr, initlr = 1,ninitlr )
+      do i = 1,n_tens_qq
+        if( i == 1 .or. i == 2 .or. i == 5  .or. i == 10 .or. i == 17 ) write(3,*)
+        write(3,130) Com_qq(i), Sph_tensor_ia_qq(i,ia,:)
+      end do
+    endif
+    if( E1M1 ) then
+      write(3,170) ( initlr, initlr = 1,ninitlr )
+      do i = 1,n_tens_dm
+        if( i == 1 .or. i == 2 .or. i == 5 ) write(3,*)
+        write(3,130) Com_dm(i), Sph_tensor_ia_dm(i,ia,:)
+      end do
+      if( Magn_sens ) then
+        write(3,180) ( initlr, initlr = 1,ninitlr )
+        do i = 1,n_tens_dm
+          if( i == 1 .or. i == 2 .or. i == 5 ) write(3,*)
+          write(3,130) Com_dm_m(i), Sph_tensor_ia_dm_m(i,ia,:)
+        end do
+      endif
+    endif
+
+  end do
+
+  return
+  110 format(/' Crystal spherical tensor (numb. of electron)')
+  120 format(/' Spherical tensor (numb. of electron), atome =',i3)
+  128 format(/' E1E1 spherical tensor,                           initl =',10(7x,i2,5x))
+  130 format(1p,A,10(e13.5,1x))
+  140 format(/' E1E2 spherical tensor, non-magnetic part,        initl =',10(7x,i2,5x))
+  150 format(/' E1E2 spherical tensor, magnetic part,            initl =',10(7x,i2,5x))
+  160 format(/' E2E2 spherical tensor,                           initl =',10(7x,i2,5x))
+  170 format(/' E1M1 spherical tensor, non-magnetic part,        initl =',10(7x,i2,5x))
+  180 format(/' E1M1 spherical tensor, magnetic part,            initl =',10(7x,i2,5x))
 end
 
 !***********************************************************************
@@ -2796,49 +2971,45 @@ end
 subroutine Sph_tensor_dd_cal(n_tens_dd,secdd,Sph_tensor_dd)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
+  
+  integer:: n_tens_dd
 
   complex(kind=db), dimension(n_tens_dd):: Sph_tensor_dd
   complex(kind=db), dimension(3,3):: secdd
 
-! Tenseur 0
+! l = 0
 
-  Sph_tensor_dd(1) = ( 1 / sqrt(3._db) ) * ( secdd(1,1) + secdd(2,2) + secdd(3,3) )
+  Sph_tensor_dd(1) = ( 1 / 3._db ) * ( secdd(1,1) + secdd(2,2) + secdd(3,3) )
 
-! Tenseur 1
-! Les composantes de ce tenseur sont en cas de seuil K : -lx, ly et lz.
-  fac = 1 / sqrt( 2._db )
+! l = 1
 
-! Multiplie par - img, equivalent a prendre la partie imaginaire quand
-! il n'y a pas de multiplication par le terme de Bragg.
-! lz = D(01)
-  Sph_tensor_dd(2) = - img * fac * ( secdd(1,2) - secdd(2,1) )
+! Multiplie par - img, equivalent a prendre la partie imaginaire 
+! lz = D(1,0)
+  Sph_tensor_dd(2) = - img * ( secdd(1,2) - secdd(2,1) ) / 2
 
-! -lx = (1/sqrt(2))*(D(11)-D(-11))
-  Sph_tensor_dd(3) = img * fac * ( secdd(2,3) - secdd(3,2) )
+! lx = D(1,1)
+  Sph_tensor_dd(3) = - img * ( secdd(2,3) - secdd(3,2) ) / 2
 
-! ly = (-i/sqrt(2))*(D(-11)+D(11))
-  Sph_tensor_dd(4) = - img * fac * ( secdd(1,3) - secdd(3,1) )
+! ly = D(1,-1)
+  Sph_tensor_dd(4) = - img * ( secdd(3,1) - secdd(1,3) ) / 2
 
-! Tenseur 2
+! l = 2
 
-! D02 = (1/sqrt(6))*(2*Dzz-Dxx-Dyy)
-  fac = 1 / sqrt( 6._db )
-  Sph_tensor_dd(5) = fac * ( 2*secdd(3,3) - secdd(1,1)  - secdd(2,2) )
+! D02 = ( 2*Dzz - Dxx - Dyy ) / 6
+  Sph_tensor_dd(5) =( 2*secdd(3,3) - secdd(1,1)  - secdd(2,2) ) / 6
 
-  fac = 1 / sqrt( 2._db )
+! D(2,1)
+  Sph_tensor_dd(6) = ( secdd(1,3) + secdd(3,1) ) / 2
 
-! (1/sqrt(2))*(D(12) - D(-12))
-  Sph_tensor_dd(6) = - fac * ( secdd(1,3) + secdd(3,1) )
+! D(2,-1)
+  Sph_tensor_dd(7) = ( secdd(2,3) + secdd(3,2) ) / 2
 
-! (-i/sqrt(2))*(D(12) + D(-12))
-  Sph_tensor_dd(7) = - fac * ( secdd(2,3) + secdd(3,2) )
+! D(2,-2)
+  Sph_tensor_dd(8) = ( secdd(1,2) + secdd(2,1) ) / 2
 
-! (-i/sqrt(2))*(D(22) - D(-22))
-  Sph_tensor_dd(8) = fac * ( secdd(1,2) + secdd(2,1) )
-
-! (1/sqrt(2))*(D(22) + D(-22))
-  Sph_tensor_dd(9) = fac * ( secdd(1,1) - secdd(2,2) )
+! D(2,2)
+  Sph_tensor_dd(9) = ( secdd(1,1) - secdd(2,2) ) / 2
 
   return
 end
@@ -2848,31 +3019,32 @@ end
 subroutine Sph_tensor_dq_cal(n_tens_dq,secdq,Sph_tensor_dq)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
+  
+  integer:: n_tens_dq
 
   complex(kind=db), dimension(3,3,3):: secdq
   complex(kind=db), dimension(n_tens_dq):: Sph_tensor_dq
 
+  real(kind=db):: fac
+  
 ! Tenseur 1
 
 ! I(10)
-  Sph_tensor_dq(1) = - ( 1 / sqrt(15._db) ) * ( 3 * secdq(1,1,3) + 3 * secdq(2,2,3) &
-       + 2 * secdq(3,3,3) - secdq(3,1,1) - secdq(3,2,2) )
+  Sph_tensor_dq(1) = ( 2 * secdq(3,3,3) - secdq(3,1,1) - secdq(3,2,2) + 3 * secdq(1,1,3) + 3 * secdq(2,2,3) ) / 15
 
-  fac = 2 / sqrt(60._db)
+! I(11)
+  Sph_tensor_dq(2) = ( 2 * secdq(1,1,1) - secdq(1,2,2) - secdq(1,3,3) + 3 * secdq(2,1,2) + 3 * secdq(3,1,3) ) / 15
 
-! (1/sqrt(2))*(I(11) - I(1-1))
-  Sph_tensor_dq(2) = fac * ( 2 * secdq(1,1,1) - secdq(1,2,2) - secdq(1,3,3) + 3 * ( secdq(2,1,2) + secdq(3,1,3) ) )
-
-! (-i/sqrt(2))*(I(11) + I(-1-1))
-  Sph_tensor_dq(3) = fac * ( 2 * secdq(2,2,2) - secdq(2,1,1) - secdq(2,3,3) + 3 * ( secdq(1,1,2) + secdq(3,2,3) ) )
+! I(1-1)
+  Sph_tensor_dq(3) = ( 2 * secdq(2,2,2) - secdq(2,1,1) - secdq(2,3,3) + 3 * secdq(1,1,2) + 3 * secdq(3,2,3) ) / 15
 
 ! Tenseur 2
 
 ! -i*I(20)
   Sph_tensor_dq(4) = secdq(1,2,3) - secdq(2,1,3)
 
-  fac = 1 / sqrt(3._db)
+  fac = 1 / 3._db
 
 ! (-i/sqrt(2))*(I(21) - I(2-1))
   Sph_tensor_dq(5) = fac * ( secdq(2,1,1) - secdq(2,3,3) - secdq(1,1,2) + secdq(3,2,3) )
@@ -2888,7 +3060,7 @@ subroutine Sph_tensor_dq_cal(n_tens_dq,secdq,Sph_tensor_dq)
 ! Tenseur 3
 
   Sph_tensor_dq(9) = 1 / sqrt(10._db) * ( 2 * secdq(3,3,3) - 2 * secdq(1,1,3) - secdq(3,1,1) &
-               - 2 * secdq(2,2,3) - secdq(3,2,2) )
+                   - 2 * secdq(2,2,3) - secdq(3,2,2) )
 
   fac = 1 / sqrt(60._db)
 
@@ -2919,37 +3091,41 @@ end
 subroutine Sph_tensor_qq_cal(n_tens_qq,secqq,Sph_tensor_qq)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
+  
+  integer:: n_tens_qq
 
   complex(kind=db), dimension(3,3,3,3):: secqq
   complex(kind=db), dimension(n_tens_qq):: Sph_tensor_qq
 
+  real(kind=db):: fac
+  
 ! La multiplication par - img correspond a la partie imaginaire quand le
 ! tenseur n'est pas multiplie par le terme de Bragg.
 
 ! Tenseur 0, scalaire, signal isotropique quadrupolaire
 
-  fac = 2 / sqrt(45._db)
+  fac = 1 / 45._db
 ! Q(00)
-  Sph_tensor_qq(1) = fac * ( 3 * ( secqq(1,3,1,3) + secqq(2,3,2,3) + secqq(1,2,1,2) ) &
-                + secqq(1,1,1,1) + secqq(2,2,2,2) + secqq(3,3,3,3) &
-        - 0.5 * ( secqq(1,1,2,2) + secqq(1,1,3,3) + secqq(3,3,2,2) + secqq(2,2,1,1) + secqq(3,3,1,1) + secqq(2,2,3,3) ) )
+  Sph_tensor_qq(1) = fac * ( 6 * ( secqq(1,3,1,3) + secqq(2,3,2,3) + secqq(1,2,1,2) ) &
+                           + 2 * ( secqq(1,1,1,1) + secqq(2,2,2,2) + secqq(3,3,3,3) ) &
+                   - ( secqq(1,1,2,2) + secqq(1,1,3,3) + secqq(3,3,2,2) + secqq(2,2,1,1) + secqq(3,3,1,1) + secqq(2,2,3,3) ) )
 
 ! Tenseur 1, vecteur, lz, lx, ly, magnetique
 
-  fac = 2 / sqrt(10._db)
+  fac = 2 / 10._db
 
 ! Q(10)
-  Sph_tensor_qq(2) = img * fac * ( secqq(2,1,1,1) - secqq(1,2,2,2) + secqq(2,3,1,3) &
-               - secqq(1,1,2,1) + secqq(2,2,1,2) - secqq(1,3,2,3) )
+  Sph_tensor_qq(2) = - img * fac * ( secqq(2,1,1,1) - secqq(1,2,2,2) + secqq(2,3,1,3) &
+                                   - secqq(1,1,2,1) + secqq(2,2,1,2) - secqq(1,3,2,3) )
 
-! (1/sqrt(2)) * ( Q(11) - Q(1-1) )
+! Q(11)
   Sph_tensor_qq(3) = - img * fac * ( secqq(3,2,2,2) - secqq(2,3,3,3) + secqq(3,1,2,1) &
-               - secqq(2,2,3,2) + secqq(3,3,2,3) - secqq(2,1,3,1) )
+                                   - secqq(2,2,3,2) + secqq(3,3,2,3) - secqq(2,1,3,1) )
 
-! -i * (1/sqrt(2)) * ( Q(11) + Q(1-1) )
+! Q(1-1)
   Sph_tensor_qq(4) = - img * fac * ( secqq(1,3,3,3) - secqq(3,1,1,1) + secqq(1,2,3,2) &
-               - secqq(3,3,1,3) + secqq(1,1,3,1) - secqq(3,2,1,2) )
+                                   - secqq(3,3,1,3) + secqq(1,1,3,1) - secqq(3,2,1,2) )
 
 ! Tenseur 2 : quadrupole non magnetique
 
@@ -2961,17 +3137,17 @@ subroutine Sph_tensor_qq_cal(n_tens_qq,secqq,Sph_tensor_qq)
 
   fac = 2 / sqrt(42._db)
 
-! (1/sqrt(2)) * ( Q(21) - Q(2-1) )
+! (1/sqrt(2)) * ( Q(21) - Q(2-1) )_comp = Q(21) reel
   Sph_tensor_qq(6) = fac * ( 3 * secqq(2,3,1,2) + secqq(3,3,1,3) + secqq(1,1,1,3) - 2 * secqq(2,2,1,3) &
                      + 3 * secqq(1,2,2,3) + secqq(1,3,3,3) + secqq(1,3,1,1) - 2 * secqq(1,3,2,2) )
 
-! (-i/sqrt(2)) * ( Q(21) + Q(2-1) )
+! (1/sqrt(2)) * ( Q(21) + Q(2-1) )
   Sph_tensor_qq(7) = fac * ( 3 * secqq(1,3,1,2) + secqq(3,3,2,3) + secqq(2,2,2,3) - 2 * secqq(1,1,2,3) &
                      + 3 * secqq(1,2,1,3) + secqq(2,3,3,3) + secqq(2,3,2,2) - 2 * secqq(2,3,1,1) )
 
   fac = 2 / sqrt( 42._db )
 
-! (-i/sqrt(2)) * ( Q(22) - Q(2-2) )
+! (1/sqrt(2)) * ( Q(22) - Q(2-2) )
   Sph_tensor_qq(8) = fac * ( 2 * secqq(3,3,1,2) - secqq(1,1,1,2) - secqq(2,2,2,1) - 3 * secqq(1,3,2,3) &
              + 2 * secqq(1,2,3,3) - secqq(1,2,1,1) - secqq(2,1,2,2) - 3 * secqq(2,3,1,3) )
 
@@ -2984,36 +3160,36 @@ subroutine Sph_tensor_qq_cal(n_tens_qq,secqq,Sph_tensor_qq)
   fac = 1 / sqrt(10._db)
 
 ! Q(30)
-  Sph_tensor_qq(10) = img * fac * ( secqq(1,2,1,1) - secqq(2,1,2,2) + 4 * secqq(1,3,2,3) &
+  Sph_tensor_qq(10) = - img * fac * ( secqq(1,2,1,1) - secqq(2,1,2,2) + 4 * secqq(1,3,2,3) &
            - secqq(1,1,1,2) + secqq(2,2,2,1) - 4 * secqq(2,3,1,3) )
 
   fac = 0.5_db / sqrt(15._db)
 
 ! (1/sqrt(2)) * ( Q(31) - Q(3-1) )
-  Sph_tensor_qq(11) = img *  fac * ( 6 * secqq(1,2,1,3) + 4 * secqq(3,3,2,3) - 5 * secqq(1,1,2,3) + secqq(2,2,2,3) &
+  Sph_tensor_qq(11) = - img *  fac * ( 6 * secqq(1,2,1,3) + 4 * secqq(3,3,2,3) - 5 * secqq(1,1,2,3) + secqq(2,2,2,3) &
                       - 6 * secqq(1,3,1,2) - 4 * secqq(2,3,3,3) + 5 * secqq(2,3,1,1) - secqq(2,3,2,2) )
 
-! (-i/sqrt(2)) * ( Q(31) + Q(3-1) )
+! (1/sqrt(2)) * ( Q(31) + Q(3-1) )
   Sph_tensor_qq(12) = - img * fac * ( 6 * secqq(1,2,2,3) + 4 * secqq(3,3,1,3) - 5 * secqq(2,2,1,3) + secqq(1,1,1,3) &
                       - 6 * secqq(2,3,1,2) - 4 * secqq(1,3,3,3) + 5 * secqq(1,3,2,2) - secqq(1,3,1,1) )
 
   fac = 1 / sqrt(6._db)
 
-! (-i/sqrt(2)) * ( Q(32) - Q(3-2) )
+! (1/sqrt(2)) * ( Q(32) - Q(3-2) )
   Sph_tensor_qq(13) = - img * fac * ( secqq(1,1,3,3) + secqq(2,2,1,1) + secqq(3,3,2,2) &
                - secqq(3,3,1,1) - secqq(1,1,2,2) - secqq(2,2,3,3) )
 
 ! (1/sqrt(2)) * ( Q(32) + Q(3-2) )
-  Sph_tensor_qq(14) = img * fac * ( 2 * secqq(1,2,3,3) - secqq(1,2,1,1) - secqq(1,2,2,2) &
+  Sph_tensor_qq(14) = - img * fac * ( 2 * secqq(1,2,3,3) - secqq(1,2,1,1) - secqq(1,2,2,2) &
            - 2 * secqq(3,3,1,2) + secqq(1,1,1,2) + secqq(2,2,1,2) )
 
   fac = 0.5_db
 
 ! (1/sqrt(2)) * ( Q(33) - Q(3-3) )
-  Sph_tensor_qq(15) = img * fac * ( secqq(2,3,1,1) - secqq(2,3,2,2) + 2 * secqq(1,3,1,2) &
+  Sph_tensor_qq(15) = - img * fac * ( secqq(2,3,1,1) - secqq(2,3,2,2) + 2 * secqq(1,3,1,2) &
            - secqq(1,1,2,3) + secqq(2,2,2,3) - 2 * secqq(1,2,1,3) )
 
-! (-i/sqrt(2)) * ( Q(33) + Q(3-3) )
+! (1/sqrt(2)) * ( Q(33) + Q(3-3) )
   Sph_tensor_qq(16) = - img * fac * ( secqq(1,3,1,1) - secqq(1,3,2,2) + 2 * secqq(2,1,3,2) &
            - secqq(1,1,1,3) + secqq(2,2,1,3) - 2 * secqq(3,2,2,1) )
 
@@ -3032,13 +3208,13 @@ subroutine Sph_tensor_qq_cal(n_tens_qq,secqq,Sph_tensor_qq)
   Sph_tensor_qq(18) = fac * ( 3 * secqq(1,3,1,1) + secqq(1,3,2,2) - 4 * secqq(3,3,1,3) + 2 * secqq(2,3,1,2) &
           + 3 * secqq(1,1,1,3) + secqq(2,2,1,3) - 4 * secqq(1,3,3,3) + 2 * secqq(1,2,2,3) )
 
-! (-i/sqrt(2)) * ( Q(41) + Q(4-1) )
+! (1/sqrt(2)) * ( Q(41) + Q(4-1) )
   Sph_tensor_qq(19) = fac * ( 3 * secqq(2,3,2,2) + secqq(2,3,1,1) - 4 * secqq(2,3,3,3) + 2 * secqq(1,3,1,2) &
           + 3 * secqq(2,2,2,3) + secqq(1,1,2,3) - 4 * secqq(3,3,2,3) + 2 * secqq(1,2,1,3) )
 
   fac = 0.5_db / sqrt(14._db)
 
-! (-i/sqrt(2)) * ( Q(42) - Q(4-2) )
+! (1/sqrt(2)) * ( Q(42) - Q(4-2) )
   Sph_tensor_qq(20) = 2 * fac * ( 2 * secqq(3,3,1,2) - secqq(1,1,1,2) - secqq(2,2,2,1) + 4 * secqq(1,3,2,3) &
           + 2 * secqq(1,2,3,3) - secqq(1,2,1,1) - secqq(2,1,2,2) + 4 * secqq(2,3,1,3) )
 
@@ -3052,13 +3228,13 @@ subroutine Sph_tensor_qq_cal(n_tens_qq,secqq,Sph_tensor_qq)
   Sph_tensor_qq(22) = fac * ( secqq(1,3,2,2) - secqq(1,3,1,1) + 2 * secqq(2,3,1,2) &
            + secqq(2,2,1,3) - secqq(1,1,1,3) + 2 * secqq(1,2,2,3) )
 
-! (-i/sqrt(2)) * ( Q(43) + Q(4-3) )
+! (1/sqrt(2)) * ( Q(43) + Q(4-3) )
   Sph_tensor_qq(23) = fac * ( secqq(2,3,2,2) - secqq(2,3,1,1) - 2 * secqq(1,3,1,2) &
            + secqq(2,2,2,3) - secqq(1,1,2,3) - 2 * secqq(1,2,1,3) )
 
   fac = 1 / sqrt(2._db)
 
-! (-i/sqrt(2)) * ( Q(44) - Q(4-4) )
+! (1/sqrt(2)) * ( Q(44) - Q(4-4) )
   Sph_tensor_qq(24) = fac * ( secqq(1,2,1,1) - secqq(1,2,2,2) + secqq(1,1,1,2) - secqq(2,2,1,2) )
 
 ! (1/sqrt(2)) * ( Q(44) + Q(4-4) )
@@ -3070,10 +3246,279 @@ end
 
 !***********************************************************************
 
-subroutine Tensor_pol_dd_cal(ipl,n_tens_dd,nplt,pe,ps, Tensor_pol_dd)
+subroutine Sph_tensor_dm_cal(n_tens_dm,secmd,Sph_tensor_dm)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
+  
+  integer:: n_tens_dm
+
+  complex(kind=db), dimension(n_tens_dm):: Sph_tensor_dm
+  complex(kind=db), dimension(3,3):: secmd
+
+  real(kind=db):: fac
+  
+! Tenseur 0
+
+  Sph_tensor_dm(1) = ( 1 / 3._db ) * ( secmd(1,1) + secmd(2,2) + secmd(3,3) )
+
+! Tenseur 1
+! Les composantes de ce tenseur sont en cas de seuil K : -lx, ly et lz.
+  fac = 1 / 2._db
+
+! Omega_z
+  Sph_tensor_dm(2) = fac * ( secmd(1,2) - secmd(2,1) )
+
+! Omega_x
+  Sph_tensor_dm(3) = fac * ( secmd(2,3) - secmd(3,2) )
+
+! Omega_y
+  Sph_tensor_dm(4) = fac * ( secmd(3,1) - secmd(1,3) )
+
+! Tenseur 2
+
+! D02 = (1/sqrt(6))*(2*Dzz-Dxx-Dyy) = T_3z2-r2
+  fac = 1 / 6._db
+  Sph_tensor_dm(5) = fac * ( 2*secmd(3,3) - secmd(1,1)  - secmd(2,2) )
+
+  fac = 1 / 2._db
+
+! (-1/sqrt(2))*(D(12) - D(-12)) = T_xz
+  Sph_tensor_dm(6) = fac * ( secmd(1,3) + secmd(3,1) )
+
+! (i/sqrt(2))*(D(12) + D(-12)) = T_yz
+  Sph_tensor_dm(7) = fac * ( secmd(2,3) + secmd(3,2) )
+
+! (-i/sqrt(2))*(D(22) - D(-22)) = T_xy
+  Sph_tensor_dm(8) = fac * ( secmd(1,2) + secmd(2,1) )
+
+! (1/sqrt(2))*(D(22) + D(-22)) = T_x2-y2
+  Sph_tensor_dm(9) = fac * ( secmd(1,1) - secmd(2,2) )
+
+! Les tenseurs cartesiens sont definis par conjg(D).M, il faut conjg(M).D 
+  Sph_tensor_dm(2:4) = - Sph_tensor_dm(2:4)
+  Sph_tensor_dm(:) = Conjg( Sph_tensor_dm(:) ) 
+
+  return
+end
+
+!***********************************************************************
+
+! Ecriture des tenseurs spheriques et de leur integrale
+
+subroutine Write_Spherical_tensor(Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2,Energ,Ephseuil,Epsii, &
+       Eseuil,icheck,ie,Int_tens,jseuil,Magn_sens,n_tens_dd,n_tens_dm,n_tens_dq,n_tens_max,n_tens_qq, &
+       natomsym,nenerg,ninit1,ninitlr,nomfich_s,nseuil,numat_abs, &
+       Sph_tensor_ia_dd,Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Sph_tensor_ia_qq,V0muf)
+
+  use declarations
+  implicit none
+  
+  integer:: i, ia, ie, icheck, initlr, j, jseuil, long, n_tens, n_tens_dd, n_tens_dq, n_tens_max, n_tens_dm, &
+      n_tens_qq, natomsym, nenerg, ninit1, ninitlr, nseuil, numat_abs
+
+  character(len=Length_word):: mot
+  character(len=132):: nomfich_s, nomficht
+  character(len=8), dimension(9):: Tens_name_D
+  character(len=8), dimension(15):: Tens_name_I, Tens_name_I_m 
+  character(len=8), dimension(25):: Tens_name_Q 
+  character(len=8), dimension(9):: Tens_name_T, Tens_name_T_m 
+  character(len=Length_word), dimension(n_tens_max*ninitlr):: nomten
+
+  complex(kind=db):: zero_c
+  complex(kind=db), dimension(1):: cdum
+
+  integer, dimension(0):: idum
+
+  logical:: Core_resolved, E1E1, E1E2, E1M1, E2E2, Magn_sens
+
+  real(kind=db):: de, Densite_atom, E_cut, Ephseuil, Eseuil, V0muf
+  real(kind=db), dimension(0):: rdum
+  real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens
+  real(kind=db), dimension(n_tens_max*ninitlr):: Int_tenst, Tens
+  real(kind=db), dimension(nenerg):: Energ
+  real(kind=db), dimension(ninitlr):: Epsii
+  real(kind=db), dimension(n_tens_dd,0:natomsym,ninitlr):: Sph_tensor_ia_dd
+  real(kind=db), dimension(n_tens_dq,0:natomsym,ninitlr):: Sph_tensor_ia_dq, Sph_tensor_ia_dq_m 
+  real(kind=db), dimension(n_tens_qq,0:natomsym,ninitlr):: Sph_tensor_ia_qq
+  real(kind=db), dimension(n_tens_dm,0:natomsym,ninitlr):: Sph_tensor_ia_dm, Sph_tensor_ia_dm_m
+
+  data Tens_name_D/ '  D(00) ','  lz_dd ','  lx_dd ','  ly_dd ','  D_z2  ','   D_xy ','  D_yx  ','  D_yz  ',' D_x2-y2'/
+  data Tens_name_I/ '   I_z  ','   I_x  ','    I_y ','  I(20) ',' I(21)  ',' I(2-1) ','  I(22) ',' I(2-2) ', &
+                    '  I(30) ',' I(31)  ',' I(3-1) ',' I(32)  ',' I(3-2) ','  I(33) ',' I(3-3) '/
+  data Tens_name_I_m/ '  I_z_m ',' I_x_m  ','  I_y_m ',' I(20)_m',' I(21)_m','I(2-1)_m',' I(22)_m','I(2-2)_m', &
+                      ' I(30)_m',' I(31)_m','I(3-1)_m',' I(32)_m','I(3-2)_m',' I(33)_m','I(3-3)_m'/
+  data Tens_name_Q/ '  Q(00) ','  lz_qq ','  lx_qq ','  ly_qq ','  Q(20) ','  Q(21) ',' Q(2-1) ','  Q(22) ',' Q(2-2) ', &
+                    '  Q(30) ','  Q(31) ',' Q(3-1) ','  Q(32) ',' Q(3-2) ','  Q(33) ',' Q(3-3) ','  Q(40) ','  Q(41) ', &
+                    ' Q(4-1) ','  Q(42) ',' Q(4-2) ','  Q(43) ',' Q(4-3) ','  Q(44) ',' Q(4-4) '/
+  data Tens_name_T/   '  T(00) ','  T_z   ','   T_x  ','    T_y ','  T_z2  ','  T_xz  ','  T_yz  ','  T_yz  ','T_x2-y2 '/
+  data Tens_name_T_m/ ' T(00)_m','  T_z_m ','  T_x_m ','  T_y_m ',' T_z2_m ',' T_xz_m ',' T_yz_m ',' T_yz_m ','Tx2-y2_m'/
+
+  zero_c = (0._db, 0._db)
+
+  do ia = 0,natomsym
+ 
+    if( natomsym == 1 .and. ia == 0 ) cycle
+    if( icheck <= 1 .and. ia > 1 ) exit
+    
+    j = 0
+     
+    do initlr = 1,ninitlr
+  
+      if( E1E1 ) then
+        do i = 1,n_tens_dd
+          j = j + 1
+          select case(i)
+            case(1)
+! On divise la premiere composante du tenseur spherique par rac(3) (premiere composante du tenseur de polarisation) pour obtenir le
+! terme de diffusion isotrope
+              Tens(j) = Sph_tensor_ia_dd(i,ia,initlr)
+            case(2,3,4)
+! On divise les composantes 2, 3 et 4 du tenseur spherique par rac(2) (composantes du tenseur de polarisation) pour obtenir le
+! moment magnetique
+              Tens(j) = Sph_tensor_ia_dd(i,ia,initlr)
+            case default
+              Tens(j) = Sph_tensor_ia_dd(i,ia,initlr)
+          end select
+          mot = Tens_name_D(i) 
+          if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
+          nomten(j) = mot
+        end do 
+      endif
+
+      if( E1E2 ) then
+        do i = 1,n_tens_dq
+          j = j + 1
+          Tens(j) = Sph_tensor_ia_dq(i,ia,initlr)
+          mot = Tens_name_I(i) 
+          if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
+          nomten(j) = mot
+          if( Magn_sens ) then
+            j = j+1
+            Tens(j) = Sph_tensor_ia_dq_m(i,ia,initlr)
+            mot = Tens_name_I_m(i) 
+            if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
+            nomten(j) = mot
+          endif
+        end do 
+      endif
+    
+      if( E2E2 ) then
+        do i = 1,n_tens_qq
+          j = j + 1
+          select case(i)
+            case(1)
+! On divise la premiere composante du tenseur spherique par rac(3) (premiere composante du tenseur de polarisation) pour obtenir le
+! terme de diffusion isotrope
+              Tens(j) = Sph_tensor_ia_qq(i,ia,initlr)
+            case(2,3,4)
+! On divise les composantes 2, 3 et 4 du tenseur spherique par rac(2) (composantes du tenseur de polarisation) pour obtenir le
+! moment magnetique
+              Tens(j) = Sph_tensor_ia_qq(i,ia,initlr)
+            case default
+              Tens(j) = Sph_tensor_ia_qq(i,ia,initlr)
+          end select
+          mot = Tens_name_Q(i) 
+          if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
+          nomten(j) = mot
+       end do 
+      endif
+
+      if( E1M1 ) then
+        do i = 1,n_tens_dm
+          j = j + 1
+          Tens(j) = Sph_tensor_ia_dm(i,ia,initlr)
+          mot = Tens_name_T(i) 
+          if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
+          nomten(j) = mot
+          if( Magn_sens ) then
+            j = j+1
+            Tens(j) = Sph_tensor_ia_dm_m(i,ia,initlr)
+            mot = Tens_name_T_m(i) 
+            if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
+            nomten(j) = mot
+          endif
+        end do 
+      endif
+     
+    end do
+
+    n_tens = j
+    
+    nomficht = nomfich_s
+    long = len_trim(nomficht)
+    nomficht(long+1:long+4) = '_sph'
+    if( ia > 0 ) then
+      nomficht(long+5:long+9) = '_atom'
+      call ad_number(ia,nomficht,132)
+    else
+      nomficht(long+5:long+9) = '_xtal'
+    endif
+    long = len_trim(nomficht)
+    nomficht(long+1:long+4) = '.txt'
+
+    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
+          jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
+          cdum,Tens,V0muf,Core_resolved,0)
+
+    if( nenerg == 1 ) cycle
+
+! Integrale
+  
+    nomficht = nomfich_s
+    long = len_trim(nomficht)
+    nomficht(long+1:long+4) = '_sph'
+    if( ia > 0 ) then
+      nomficht(long+5:long+9) = '_atom'
+      call ad_number(ia,nomficht,132)
+    else
+      nomficht(long+5:long+9) = '_xtal'
+    endif
+    long = len_trim(nomficht)
+    nomficht(long+1:long+8) = '_int.txt'
+
+    if( ie == 1 ) then
+      do i = 1,n_tens
+        mot = nomten(i)
+        mot = adjustl( mot )
+        long = len_trim( mot )
+        if( long < Length_word - 2 ) then
+          mot(1:Length_word) = 'I_' // mot(1:Length_word-2)
+        elseif( long == Length_word - 2 ) then
+          mot(1:Length_word-1) = 'I' // mot(1:Length_word-1)
+        endif
+        nomten(i) = mot
+      end do
+      de = Energ(2) - Energ(1)
+      Int_tens(1:n_tens,ia) = de * Tens(1:n_tens)
+    else
+      if( ie == nenerg ) then
+        de = Energ(ie) - Energ(ie-1)
+      else
+        de = 0.5_db * ( Energ(ie+1) -  Energ(ie-1) )
+      endif
+      Int_tens(1:n_tens,ia) = Int_tens(1:n_tens,ia) + de * Tens(1:n_tens)
+    endif
+
+    Int_tenst(1:n_tens) = Int_tens(1:n_tens,ia)
+    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
+          jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
+          cdum,Int_tenst,v0muf,Core_resolved,0)
+
+  end do
+
+  return
+
+end
+
+!***********************************************************************
+
+subroutine Tensor_pol_dd_cal(ipl,n_tens_dd,nplt,pe,ps,Tensor_pol_dd)
+
+  use declarations
+  implicit none
+  
+  integer:: ipl, n_tens_dd, nplt
 
   complex(kind=db) Px, Py, Pz, Qx, Qy, Qz
   complex(kind=db), dimension(3):: pe, ps
@@ -3084,31 +3529,23 @@ subroutine Tensor_pol_dd_cal(ipl,n_tens_dd,nplt,pe,ps, Tensor_pol_dd)
   Py = Pe(2); Qy = conjg( Ps(2) )
   Pz = Pe(3); Qz = conjg( Ps(3) )
 
-  fac = 1 / sqrt(3._db)
+  Tens(1) = ( Qx*Px + Qy*Py + Qz*Pz )
 
-  Tens(1) = fac * ( Qx*Px + Qy*Py + Qz*Pz )
+  Tens(2) = - img * ( Qx*Py - Qy*Px )
 
-  fac = 1 / sqrt(2._db)
+  Tens(3) = - img * ( Qy*Pz - Qz*Py )
 
-  Tens(2) = - img * fac * ( Qx*Py - Qy*Px )
+  Tens(4) = - img * ( Qz*Px - Qx*Pz )
 
-  Tens(3) = img * fac * ( Qy*Pz - Qz*Py )
+  Tens(5) = ( 2*Qz*Pz - Qx*Px - Qy*Py )
 
-  Tens(4) = fac * ( Qx*Pz - Qz*Px )
+  Tens(6) = ( Qx*Pz + Qz*Px )
 
-  fac = 1 / sqrt(6._db)
+  Tens(7) = ( Qy*Pz + Qz*Py )
 
-  Tens(5) = fac * ( 2*Qz*Pz - Qx*Px - Qy*Py )
+  Tens(8) = ( Qx*Py + Qy*Px )
 
-  fac = 1._db / sqrt( 2._db )
-
-  Tens(6) = - fac * ( Qx*Pz + Qz*Px )
-
-  Tens(7) = - fac * img * ( Qy*Pz + Qz*Py )
-
-  Tens(8) = fac * img * ( Qx*Py + Qy*Px )
-
-  Tens(9) = fac * ( Qx*Px - Qy*Py )
+  Tens(9) = ( Qx*Px - Qy*Py )
 
   Tensor_pol_dd(ipl,:) = Tens(:)
 
@@ -3149,29 +3586,27 @@ subroutine Tensor_pol_dq_cal(ipl,n_tens_dq,nplt,pe,ps,ve,vs, Tensor_pol_dq)
     endif
 
 ! T(10)
-    Tens(j+1) = - ( 1 / sqrt(15._db) ) * ( ( 1.5*Qx*Px + 1.5*Qy*Py + 2*Qz*Pz ) * ( Vz - Wz ) &
-         + ( 1.5*Qx*Pz - Qz*Px ) * Vx - ( 1.5*Qz*Px - Qx*Pz ) * Wx &
-         + ( 1.5*Qy*Pz - Qz*Py ) * Vy - ( 1.5*Qz*Py - Qy*Pz ) * Wy )
+    Tens(j+1) = ( 2*Qz*Pz + 1.5*Qx*Px + 1.5*Qy*Py ) * ( Vz - Wz ) &
+              + ( 1.5*Qx*Pz - Qz*Px ) * Vx - ( 1.5*Qz*Px - Qx*Pz ) * Wx &
+              + ( 1.5*Qy*Pz - Qz*Py ) * Vy - ( 1.5*Qz*Py - Qy*Pz ) * Wy
 
-  fac = 1 / sqrt( 60._db )
+! (T(11)
+    Tens(j+2) = ( 2*Qx*Px + 1.5*Qy*Py + 1.5*Qz*Pz ) * ( Vx - Wx ) &
+              + ( 1.5*Qy*Px - Qx*Py ) * Vy - ( 1.5*Qx*Py - Qy*Px ) * Wy &
+              + ( 1.5*Qz*Px - Qx*Pz ) * Vz - ( 1.5*Qx*Pz - Qz*Px ) * Wz
 
-! (T(11)-T(1-1))/sqrt(2)
-    Tens(j+2) = fac * ( ( 4*Qx*Px + 3*Qy*Py + 3*Qz*Pz ) * ( Vx - Wx ) &
-         + ( 3*Qy*Px - 2*Qx*Py ) * Vy - ( 3*Qx*Py - 2*Qy*Px ) * Wy &
-         + ( 3*Qz*Px - 2*Qx*Pz ) * Vz - ( 3*Qx*Pz - 2*Qz*Px ) * Wz )
-
-! (T(11)+T(1-1))/sqrt(2)
-    Tens(j+3) = fac * img * ( ( 4*Qy*Py + 3*Qx*Px + 3*Qz*Pz ) * ( Vy - Wy ) &
-         + ( 3*Qx*Py - 2*Qy*Px ) * Vx - ( 3*Qy*Px - 2*Qx*Py ) * Wx &
-         + ( 3*Qz*Py - 2*Qy*Pz ) * Vz - ( 3*Qy*Pz - 2*Qz*Py ) * Wz )
+! T(1-1)
+    Tens(j+3) = ( 2*Qy*Py + 1.5*Qx*Px + 1.5*Qz*Pz ) * ( Vy - Wy ) &
+              + ( 1.5*Qx*Py - Qy*Px ) * Vx - ( 1.5*Qy*Px - Qx*Py ) * Wx &
+              + ( 1.5*Qz*Py - Qy*Pz ) * Vz - ( 1.5*Qy*Pz - Qz*Py ) * Wz
 
 ! T(20)
-   Tens(j+4) = 0.5_db * img * ( ( Qx*Py - Qy*Px ) * ( Vz + Wz ) - Qy*Pz*Vx + Qz*Py*Wx + Qx*Pz*Vy - Qz*Px*Wy )
+    Tens(j+4) = 0.5_db * ( ( Qx*Py - Qy*Px ) * ( Vz + Wz ) - Qy*Pz*Vx + Qz*Py*Wx + Qx*Pz*Vy - Qz*Px*Wy )
 
-    fac = 1 / sqrt( 12._db )
+    fac = 0.5_db
 
 ! (T(21)-T(2-1))/sqrt(2)
-    Tens(j+5) = fac * img * ( ( Qz*Pz - Qx*Px ) * ( Vy - Wy ) + ( Qz*Py - 2*Qy*Pz ) * Vz - ( Qy*Pz - 2*Qz*Py ) * Wz &
+    Tens(j+5) = fac * ( ( Qz*Pz - Qx*Px ) * ( Vy - Wy ) + ( Qz*Py - 2*Qy*Pz ) * Vz - ( Qy*Pz - 2*Qz*Py ) * Wz &
             + ( 2*Qy*Px - Qx*Py ) * Vx - ( 2*Qx*Py - Qy*Px ) * Wx )
 
 ! (T(21)+T(2-1))/sqrt(2)
@@ -3183,7 +3618,7 @@ subroutine Tensor_pol_dq_cal(ipl,n_tens_dq,nplt,pe,ps,ve,vs, Tensor_pol_dq)
             + ( 2*Qz*Py - Qy*Pz ) * Vy - ( 2*Qy*Pz - Qz*Py ) * Wy )
 
 ! (T(22)+T(2-2))/sqrt(2)
-    Tens(j+8) = fac * img * ( ( Qx*Py + Qy*Px ) * ( Vz - Wz ) + ( Qx*Pz - 2*Qz*Px ) * Vy - ( Qz*Px - 2*Qx*Pz ) * Wy &
+    Tens(j+8) = fac * ( ( Qx*Py + Qy*Px ) * ( Vz - Wz ) + ( Qx*Pz - 2*Qz*Px ) * Vy - ( Qz*Px - 2*Qx*Pz ) * Wy &
             - ( 2*Qz*Py - Qy*Pz ) * Vx + ( 2*Qy*Pz - Qz*Py ) * Wx )
 
 ! T(30)
@@ -3197,13 +3632,13 @@ subroutine Tensor_pol_dq_cal(ipl,n_tens_dq,nplt,pe,ps,ve,vs, Tensor_pol_dq)
                     - 4 * ( Qx*Pz + Qz*Px ) * ( Vz - Wz ) )
 
 ! (T(31)+T(3-1))/sqrt(2)
-    Tens(j+11) = fac * img * ( ( 3*Qy*Py + Qx*Px - 4*Qz*Pz ) * ( Vy - Wy ) + ( Qx*Py + Qy*Px ) * ( Vx - Wx ) &
+    Tens(j+11) = fac * ( ( 3*Qy*Py + Qx*Px - 4*Qz*Pz ) * ( Vy - Wy ) + ( Qx*Py + Qy*Px ) * ( Vx - Wx ) &
                     - 4 * ( Qy*Pz + Qz*Py ) * ( Vz - Wz ) )
 
     fac = 1 / sqrt( 6._db )
 
 ! (T(32)-T(3-2))/sqrt(2)
-    Tens(j+12) = fac * img * ( ( Qx*Py + Qy*Px ) * ( Vz - Wz ) + ( Qx*Pz + Qz*Px ) * ( Vy - Wy ) &
+    Tens(j+12) = fac * ( ( Qx*Py + Qy*Px ) * ( Vz - Wz ) + ( Qx*Pz + Qz*Px ) * ( Vy - Wy ) &
                              + ( Qy*Pz + Qz*Py ) * ( Vx - Wx ) )
 
 ! (T(32)+T(3-2))/sqrt(2)
@@ -3214,7 +3649,7 @@ subroutine Tensor_pol_dq_cal(ipl,n_tens_dq,nplt,pe,ps,ve,vs, Tensor_pol_dq)
     Tens(j+14) = 0.5_db * ( ( Qy*Py - Qx*Px ) * ( Vx - Wx ) + ( Qy*Px + Qx*Py ) * ( Vy - Wy ) )
 
 ! (T(33)+T(3-3))/sqrt(2)
-    Tens(j+15) = 0.5_db * img * ( ( Qy*Py - Qx*Px ) * ( Vy - Wy ) - ( Qy*Px + Qx*Py ) * ( Vx - Wx ) )
+    Tens(j+15) = 0.5_db * ( ( Qy*Py - Qx*Px ) * ( Vy - Wy ) - ( Qy*Px + Qx*Py ) * ( Vx - Wx ) )
 
   end do
 
@@ -3245,30 +3680,29 @@ subroutine Tensor_pol_qq_cal(ipl,n_tens_qq,nplt,pe,ps,ve,vs, Tensor_pol_qq)
   Vy = Ve(2); Wy = Vs(2)
   Vz = Ve(3); Wz = Vs(3)
 
-  fac = 1 / ( 3 * sqrt( 5._db ) )
-
 ! Scalaire
 
-  Tens(1) = 1.5 * fac * ( Qx*Wz*Px*Vz + Qx*Wz*Pz*Vx + Qz*Wx*Px*Vz + Qz*Wx*Pz*Vx &
-       + Qy*Wz*Py*Vz + Qy*Wz*Pz*Vy + Qz*Wy*Py*Vz + Qz*Wy*Pz*Vy + Qx*Wy*Px*Vy + Qx*Wy*Py*Vx + Qy*Wx*Px*Vy + Qy*Wx*Py*Vx )
-  Tens(1) = Tens(1) + 2 * fac * ( Qx*Wx*Px*Vx + Qy*Wy*Py*Vy + Qz*Wz*Pz*Vz ) - fac &
-     * ( Qx*Wx*Py*Vy + Qy*Wy*Px*Vx + Qx*Wx*Pz*Vz + Qz*Wz*Px*Vx + Qy*Wy*Pz*Vz + Qz*Wz*Py*Vy )
+  Tens(1) = 1.5_db * ( Qx*Wz*Px*Vz + Qx*Wz*Pz*Vx + Qz*Wx*Px*Vz + Qz*Wx*Pz*Vx + Qy*Wz*Py*Vz + Qy*Wz*Pz*Vy &
+                     + Qz*Wy*Py*Vz + Qz*Wy*Pz*Vy + Qx*Wy*Px*Vy + Qx*Wy*Py*Vx + Qy*Wx*Px*Vy + Qy*Wx*Py*Vx ) &
+          + 2 * ( Qx*Wx*Px*Vx + Qy*Wy*Py*Vy + Qz*Wz*Pz*Vz ) &
+          - ( Qx*Wx*Py*Vy + Qy*Wy*Px*Vx + Qx*Wx*Pz*Vz + Qz*Wz*Px*Vx + Qy*Wy*Pz*Vz + Qz*Wz*Py*Vy )
 
 ! Dipole magnetique
 
-  fac = 1 / sqrt(10._db)
+  Tens(2) = img * ( Qy*Wy*Px*Vy + Qy*Wy*Py*Vx + Qx*Wy*Px*Vx + Qy*Wx*Px*Vx &
+                  - Qx*Wy*Py*Vy - Qy*Wx*Py*Vy - Qx*Wx*Px*Vy - Qx*Wx*Py*Vx ) &
+          + 0.5_db * img * ( Qy*Wz*Px*Vz + Qy*Wz*Pz*Vx + Qz*Wy*Px*Vz + Qz*Wy*Pz*Vx &
+                           - Qx*Wz*Py*Vz - Qx*Wz*Pz*Vy - Qz*Wx*Py*Vz - Qz*Wx*Pz*Vy )
 
-  Tens(2) = fac * img * ( Qx*Wy*Px*Vx + Qy*Wx*Px*Vx - Qx*Wy*Py*Vy - Qy*Wx*Py*Vy &
-       - Qx*Wx*Px*Vy - Qx*Wx*Py*Vx + Qy*Wy*Px*Vy + Qy*Wy*Py*Vx ) + 0.5 * fac * img &
-     * ( Qy*Wz*Px*Vz + Qy*Wz*Pz*Vx + Qz*Wy*Px*Vz + Qz*Wy*Pz*Vx - Qx*Wz*Py*Vz - Qx*Wz*Pz*Vy - Qz*Wx*Py*Vz - Qz*Wx*Pz*Vy )
+  Tens(3) = img * ( Qz*Wz*Py*Vz + Qz*Wz*Pz*Vy + Qy*Wz*Py*Vy + Qz*Wy*Py*Vy &
+                  - Qy*Wz*Pz*Vz - Qz*Wy*Pz*Vz - Qy*Wy*Py*Vz - Qy*Wy*Pz*Vy ) &
+          + 0.5_db * img * ( Qx*Wz*Px*Vy + Qx*Wz*Py*Vx + Qz*Wx*Px*Vy + Qz*Wx*Py*Vx &
+                           - Qx*Wy*Px*Vz - Qx*Wy*Pz*Vx - Qy*Wx*Px*Vz - Qy*Wx*Pz*Vx )
 
-  Tens(3) = 0.5 * fac * img * ( Qx*Wy*Px*Vz + Qx*Wy*Pz*Vx + Qy*Wx*Px*Vz + Qy*Wx*Pz*Vx &
-       - Qx*Wz*Px*Vy - Qx*Wz*Py*Vx - Qz*Wx*Px*Vy - Qz*Wx*Py*Vx ) - fac * img &
-     * ( Qz*Wz*Py*Vz + Qz*Wz*Pz*Vy - Qy*Wy*Py*Vz - Qy*Wy*Pz*Vy - Qy*Wz*Pz*Vz - Qz*Wy*Pz*Vz + Qy*Wz*Py*Vy + Qz*Wy*Py*Vy )
-
-  Tens(4) = 0.5 * fac * ( Qx*Wy*Py*Vz + Qx*Wy*Pz*Vy + Qy*Wx*Py*Vz + Qy*Wx*Pz*Vy &
-       - Qy*Wz*Px*Vy - Qy*Wz*Py*Vx - Qz*Wy*Px*Vy - Qz*Wy*Py*Vx ) - fac &
-     * ( Qz*Wz*Px*Vz + Qz*Wz*Pz*Vx - Qx*Wx*Px*Vz - Qx*Wx*Pz*Vx - Qx*Wz*Pz*Vz - Qz*Wx*Pz*Vz + Qx*Wz*Px*Vx + Qz*Wx*Px*Vx )
+  Tens(4) = - img * ( Qz*Wz*Px*Vz + Qz*Wz*Pz*Vx + Qx*Wz*Px*Vx + Qz*Wx*Px*Vx &
+                    - Qx*Wx*Px*Vz - Qx*Wx*Pz*Vx - Qx*Wz*Pz*Vz - Qz*Wx*Pz*Vz ) &
+          + 0.5_db * img * ( Qx*Wy*Py*Vz + Qx*Wy*Pz*Vy + Qy*Wx*Py*Vz + Qy*Wx*Pz*Vy &
+                           - Qy*Wz*Px*Vy - Qy*Wz*Py*Vx - Qz*Wy*Px*Vy - Qz*Wy*Py*Vx )
 
 ! Quadrupole non-magnetique
 
@@ -3286,16 +3720,16 @@ subroutine Tensor_pol_qq_cal(ipl,n_tens_qq,nplt,pe,ps,ve,vs, Tensor_pol_qq)
      * ( Qz*Wz*Px*Vz + Qz*Wz*Pz*Vx + Qx*Wx*Px*Vz + Qx*Wx*Pz*Vx + Qx*Wz*Pz*Vz + Qz*Wx*Pz*Vz + Qx*Wz*Px*Vx + Qz*Wx*Px*Vx ) &
           - 2 * fac * ( Qy*Wy*Px*Vz + Qy*Wy*Pz*Vx + Qx*Wz*Py*Vy + Qz*Wx*Py*Vy )
 
-  Tens(7) = 1.5 * fac * img * ( Qx*Wz*Px*Vy + Qx*Wz*Py*Vx + Qz*Wx*Px*Vy + Qz*Wx*Py*Vx &
-       + Qx*Wy*Px*Vz + Qx*Wy*Pz*Vx + Qy*Wx*Px*Vz + Qy*Wx*Pz*Vx ) + fac * img &
+  Tens(7) = 1.5 * fac * ( Qx*Wz*Px*Vy + Qx*Wz*Py*Vx + Qz*Wx*Px*Vy + Qz*Wx*Py*Vx &
+       + Qx*Wy*Px*Vz + Qx*Wy*Pz*Vx + Qy*Wx*Px*Vz + Qy*Wx*Pz*Vx ) + fac  &
      * ( Qz*Wz*Py*Vz + Qz*Wz*Pz*Vy + Qy*Wy*Py*Vz + Qy*Wy*Pz*Vy + Qy*Wz*Pz*Vz + Qz*Wy*Pz*Vz + Qy*Wz*Py*Vy + Qz*Wy*Py*Vy ) &
-          - 2 * fac * img * ( Qx*Wx*Py*Vz + Qx*Wx*Pz*Vy + Qy*Wz*Px*Vx + Qz*Wy*Px*Vx )
+          - 2 * fac * ( Qx*Wx*Py*Vz + Qx*Wx*Pz*Vy + Qy*Wz*Px*Vx + Qz*Wy*Px*Vx )
 
   fac = 1 / sqrt( 42._db )
 
-  Tens(8) = - fac * img * ( Qx*Wx*Px*Vy + Qx*Wx*Py*Vx + Qy*Wy*Px*Vy + Qy*Wy*Py*Vx &
-       + Qx*Wy*Px*Vx + Qy*Wx*Px*Vx + Qx*Wy*Py*Vy + Qy*Wx*Py*Vy ) + 2 * fac * img &
-     * ( Qz*Wz*Px*Vy + Qz*Wz*Py*Vx + Qx*Wy*Pz*Vz + Qy*Wx*Pz*Vz ) - 1.5 * fac * img &
+  Tens(8) = - fac * ( Qx*Wx*Px*Vy + Qx*Wx*Py*Vx + Qy*Wy*Px*Vy + Qy*Wy*Py*Vx &
+       + Qx*Wy*Px*Vx + Qy*Wx*Px*Vx + Qx*Wy*Py*Vy + Qy*Wx*Py*Vy ) + 2 * fac &
+     * ( Qz*Wz*Px*Vy + Qz*Wz*Py*Vx + Qx*Wy*Pz*Vz + Qy*Wx*Pz*Vz ) - 1.5 * fac &
      * ( Qx*Wz*Py*Vz + Qx*Wz*Pz*Vy + Qz*Wx*Py*Vz + Qz*Wx*Pz*Vy + Qy*Wz*Px*Vz + Qy*Wz*Pz*Vx + Qz*Wy*Px*Vz + Qz*Wy*Pz*Vx )
 
   Tens(9) = 2 * fac * ( Qz*Wz*Px*Vx - Qz*Wz*Py*Vy + Qx*Wx*Pz*Vz - Qy*Wy*Pz*Vz + Qy*Wy*Py*Vy - Qx*Wx*Px*Vx ) + 1.5 * fac &
@@ -3317,15 +3751,15 @@ subroutine Tensor_pol_qq_cal(ipl,n_tens_qq,nplt,pe,ps,ve,vs, Tensor_pol_qq)
      * ( Qy*Wz*Px*Vx + Qz*Wy*Px*Vx - Qx*Wx*Py*Vz - Qx*Wx*Pz*Vy ) + fac * img &
      * ( Qy*Wy*Py*Vz + Qy*Wy*Pz*Vy - Qy*Wz*Py*Vy - Qz*Wy*Py*Vy )
 
-  Tens(12) = 3 * fac * ( Qx*Wy*Py*Vz + Qx*Wy*Pz*Vy + Qy*Wx*Py*Vz + Qy*Wx*Pz*Vy &
-       - Qy*Wz*Px*Vy - Qy*Wz*Py*Vx - Qz*Wy*Px*Vy - Qz*Wy*Py*Vx ) + 4 * fac &
-     * ( Qz*Wz*Px*Vz + Qz*Wz*Pz*Vx - Qx*Wz*Pz*Vz - Qz*Wx*Pz*Vz ) + 5 * fac &
-     * ( Qx*Wz*Py*Vy + Qz*Wx*Py*Vy - Qy*Wy*Px*Vz - Qy*Wy*Pz*Vx ) + fac &
+  Tens(12) = 3 * fac * img * ( Qx*Wy*Py*Vz + Qx*Wy*Pz*Vy + Qy*Wx*Py*Vz + Qy*Wx*Pz*Vy &
+       - Qy*Wz*Px*Vy - Qy*Wz*Py*Vx - Qz*Wy*Px*Vy - Qz*Wy*Py*Vx ) + 4 * fac * img &
+     * ( Qz*Wz*Px*Vz + Qz*Wz*Pz*Vx - Qx*Wz*Pz*Vz - Qz*Wx*Pz*Vz ) + 5 * fac * img &
+     * ( Qx*Wz*Py*Vy + Qz*Wx*Py*Vy - Qy*Wy*Px*Vz - Qy*Wy*Pz*Vx ) + fac * img &
      * ( Qx*Wx*Px*Vz + Qx*Wx*Pz*Vx - Qx*Wz*Px*Vx - Qz*Wx*Px*Vx )
 
   fac = 1 / sqrt( 6._db )
 
-  Tens(13) = fac * ( Qx*Wx*Pz*Vz - Qz*Wz*Px*Vx + Qy*Wy*Px*Vx - Qx*Wx*Py*Vy + Qz*Wz*Py*Vy - Qy*Wy*Pz*Vz )
+  Tens(13) = fac * img * ( Qx*Wx*Pz*Vz - Qz*Wz*Px*Vx + Qy*Wy*Px*Vx - Qx*Wx*Py*Vy + Qz*Wz*Py*Vy - Qy*Wy*Pz*Vz )
 
   Tens(14) = fac * img * ( Qx*Wy*Pz*Vz + Qy*Wx*Pz*Vz - Qz*Wz*Px*Vy - Qz*Wz*Py*Vx ) + 0.5 * fac * img &
      * ( Qx*Wx*Px*Vy + Qx*Wx*Py*Vx + Qy*Wy*Px*Vy + Qy*Wy*Py*Vx - Qx*Wy*Px*Vx - Qy*Wx*Px*Vx - Qx*Wy*Py*Vy - Qy*Wx*Py*Vy )
@@ -3336,7 +3770,7 @@ subroutine Tensor_pol_qq_cal(ipl,n_tens_qq,nplt,pe,ps,ve,vs, Tensor_pol_qq)
        + Qx*Wz*Px*Vy + Qx*Wz*Py*Vx + Qz*Wx*Px*Vy + Qz*Wx*Py*Vx - Qx*Wx*Py*Vz + Qy*Wy*Py*Vz - Qx*Wx*Pz*Vy + Qy*Wy*Pz*Vy &
        - Qx*Wy*Px*Vz - Qy*Wx*Px*Vz - Qx*Wy*Pz*Vx - Qy*Wx*Pz*Vx )
 
-  Tens(16) = fac * ( Qx*Wz*Px*Vx - Qx*Wz*Py*Vy + Qz*Wx*Px*Vx - Qz*Wx*Py*Vy &
+  Tens(16) = fac * img * ( Qx*Wz*Px*Vx - Qx*Wz*Py*Vy + Qz*Wx*Px*Vx - Qz*Wx*Py*Vy &
        - Qy*Wz*Px*Vy - Qy*Wz*Py*Vx - Qz*Wy*Px*Vy - Qz*Wy*Py*Vx - Qx*Wx*Px*Vz + Qy*Wy*Px*Vz - Qx*Wx*Pz*Vx + Qy*Wy*Pz*Vx &
        + Qx*Wy*Py*Vz + Qy*Wx*Py*Vz + Qx*Wy*Pz*Vy + Qy*Wx*Pz*Vy )
 
@@ -3356,16 +3790,16 @@ subroutine Tensor_pol_qq_cal(ipl,n_tens_qq,nplt,pe,ps,ve,vs, Tensor_pol_qq)
        + Qy*Wx*Pz*Vy + Qx*Wy*Pz*Vy + Qx*Wy*Py*Vz + Qy*Wx*Py*Vz ) - 4 * fac &
      * ( Qz*Wz*Px*Vz + Qz*Wz*Pz*Vx + Qx*Wz*Pz*Vz + Qz*Wx*Pz*Vz )
 
-  Tens(19) = 3 * fac * img * ( Qy*Wz*Py*Vy + Qz*Wy*Py*Vy + Qy*Wy*Py*Vz + Qy*Wy*Pz*Vy ) + fac * img &
+  Tens(19) = 3 * fac * ( Qy*Wz*Py*Vy + Qz*Wy*Py*Vy + Qy*Wy*Py*Vz + Qy*Wy*Pz*Vy ) + fac &
      * ( Qy*Wz*Px*Vx + Qz*Wy*Px*Vx + Qx*Wx*Py*Vz + Qx*Wx*Pz*Vy + Qx*Wz*Px*Vy + Qx*Wz*Py*Vx + Qz*Wx*Px*Vy + Qz*Wx*Py*Vx &
-       + Qx*Wy*Px*Vz + Qx*Wy*Pz*Vx + Qy*Wx*Px*Vz + Qy*Wx*Pz*Vx ) - 4 * fac * img &
+       + Qx*Wy*Px*Vz + Qx*Wy*Pz*Vx + Qy*Wx*Px*Vz + Qy*Wx*Pz*Vx ) - 4 * fac &
      * ( Qy*Wz*Pz*Vz + Qz*Wy*Pz*Vz + Qz*Wz*Pz*Vy + Qz*Wz*Py*Vz )
 
   fac = 1 / sqrt( 14._db )
 
-  Tens(20) = fac * img * ( Qz*Wz*Px*Vy + Qz*Wz*Py*Vx + Qx*Wy*Pz*Vz + Qy*Wx*Pz*Vz &
+  Tens(20) = fac * ( Qz*Wz*Px*Vy + Qz*Wz*Py*Vx + Qx*Wy*Pz*Vz + Qy*Wx*Pz*Vz &
        + Qx*Wz*Py*Vz + Qx*Wz*Pz*Vy + Qz*Wx*Py*Vz + Qz*Wx*Pz*Vy + Qy*Wz*Px*Vz + Qy*Wz*Pz*Vx + Qz*Wy*Px*Vz + Qz*Wy*Pz*Vx ) &
-           - 0.5 * fac * img * ( Qx*Wx*Px*Vy + Qx*Wx*Py*Vx + Qy*Wy*Px*Vy + Qy*Wy*Py*Vx &
+           - 0.5 * fac * ( Qx*Wx*Px*Vy + Qx*Wx*Py*Vx + Qy*Wy*Px*Vy + Qy*Wy*Py*Vx &
        + Qx*Wy*Px*Vx + Qy*Wx*Px*Vx + Qx*Wy*Py*Vy + Qy*Wx*Py*Vy )
 
   Tens(21) = fac * ( Qz*Wz*Px*Vx - Qz*Wz*Py*Vy - Qx*Wx*Px*Vx + Qy*Wy*Py*Vy &
@@ -3378,13 +3812,13 @@ subroutine Tensor_pol_qq_cal(ipl,n_tens_qq,nplt,pe,ps,ve,vs, Tensor_pol_qq)
        - Qy*Wz*Py*Vx - Qy*Wz*Px*Vy - Qz*Wy*Py*Vx - Qz*Wy*Px*Vy - Qx*Wy*Pz*Vy + Qx*Wx*Px*Vz - Qy*Wy*Px*Vz + Qx*Wx*Pz*Vx &
        - Qy*Wy*Pz*Vx - Qy*Wx*Py*Vz - Qx*Wy*Py*Vz - Qy*Wx*Pz*Vy )
 
-  Tens(23) = - fac * img * ( Qy*Wz*Px*Vx - Qy*Wz*Py*Vy + Qz*Wy*Px*Vx - Qz*Wy*Py*Vy &
+  Tens(23) = - fac * ( Qy*Wz*Px*Vx - Qy*Wz*Py*Vy + Qz*Wy*Px*Vx - Qz*Wy*Py*Vy &
        + Qx*Wz*Px*Vy + Qx*Wz*Py*Vx + Qz*Wx*Px*Vy + Qz*Wx*Py*Vx + Qy*Wx*Pz*Vx + Qx*Wx*Py*Vz - Qy*Wy*Py*Vz + Qx*Wx*Pz*Vy &
        - Qy*Wy*Pz*Vy + Qx*Wy*Px*Vz + Qy*Wx*Px*Vz + Qx*Wy*Pz*Vx )
 
   fac = 1 / ( 2 * sqrt( 2._db ) )
 
-  Tens(24) = fac * img * ( Qx*Wy*Px*Vx - Qx*Wy*Py*Vy + Qy*Wx*Px*Vx - Qy*Wx*Py*Vy &
+  Tens(24) = fac * ( Qx*Wy*Px*Vx - Qx*Wy*Py*Vy + Qy*Wx*Px*Vx - Qy*Wx*Py*Vy &
        + Qx*Wx*Px*Vy + Qx*Wx*Py*Vx - Qy*Wy*Px*Vy - Qy*Wy*Py*Vx )
 
   Tens(25) = fac * ( Qx*Wx*Px*Vx + Qy*Wy*Py*Vy - Qx*Wx*Py*Vy - Qy*Wy*Px*Vx &
@@ -3397,502 +3831,460 @@ end
 
 !***********************************************************************
 
-! Ecriture des fonctions physiques
-
-subroutine write_phys(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E2E2,Energ,Ephseuil,Epsii, &
-        Eseuil,ia,ie,Int_tens,ipl0,ipl2,ipldafs,jseuil,magn_sens,n_tens_dd,n_tens_dq,n_tens_max, &
-        n_tens_qq,n_tens_t,natomsym,nenerg,ninit1,ninitlr,nomfich_s,npldafs,nplt,nseuil,numat_abs,phdf0t,phdt,Polarise, &
-        Sph_tensor_dd_ni,Sph_tensor_dq_ni,Sph_tensor_dq_m_ni,Sph_tensor_qq_ni,Spherical_signal,Tensor_pol_dd,Tensor_pol_dq, &
-        Tensor_pol_qq,V0muf,writout)
+subroutine Tensor_pol_dm_cal(ipl,n_tens_dm,nplt,Pl_i,Pl_s,Vo_i,Vo_s,Tensor_pol_dm)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
-
-  character(len=Length_word):: mot
-  character(len=132):: nomfich_s, nomficht
-  character(len=8), dimension(49):: nomtens
-  character(len=Length_word), dimension(n_tens_max*ninitlr):: nomten
-
-  complex(kind=db):: cf, cg, Ten, Ten_m, zero_c
-  complex(kind=db), dimension(1):: cdum
-  complex(kind=db), dimension(n_tens_dd):: Sph_tensor_dd
-  complex(kind=db), dimension(n_tens_dq):: Sph_tensor_dq, Sph_tensor_dq_m
-  complex(kind=db), dimension(n_tens_qq):: Sph_tensor_qq
-  complex(kind=db), dimension(n_tens_dd,ninitlr):: Sph_tensor_dd_ni
-  complex(kind=db), dimension(n_tens_dq,ninitlr):: Sph_tensor_dq_ni, Sph_tensor_dq_m_ni
-  complex(kind=db), dimension(n_tens_qq,ninitlr):: Sph_tensor_qq_ni
-  complex(kind=db), dimension(0:nplt,n_tens_dd):: Tensor_pol_dd
-  complex(kind=db), dimension(0:nplt,2*n_tens_dq):: Tensor_pol_dq
-  complex(kind=db), dimension(0:nplt,n_tens_qq):: Tensor_pol_qq
-  complex(kind=db), dimension(npldafs):: phdf0t, phdt
-  complex(kind=db), dimension(n_tens_max):: ph0, phtem
-  complex(kind=db), dimension(n_tens_max*ninitlr):: Resul
-
-  integer, dimension(0):: idum
-
-  logical:: Core_resolved, E1E1, E1E2, E2E2, magn_sens, Polarise, Spherical_signal, Writout
-
-  real(kind=db), dimension(0):: rdum
-  real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens
-  real(kind=db), dimension(n_tens_max*ninitlr):: Int_tenst, Tens
-  real(kind=db), dimension(nenerg):: Energ
-  real(kind=db), dimension(ninitlr):: ct_nelec, Epsii
-
-  data nomtens/ '  D(00) ','  lz_dd ',' -lx_dd ','  ly_dd ','  D(20) ', '  D(21)d','-iD(21)s','-iD(22)d','  D(22)s', &
-     '  I(10) ','  I(11)d','-iI(11)s','-iI(20) ','-iI(21)d','  I(21)s','  I(22)d','-iI(22)s','  I(30) ','  I(31)d', &
-     '  I(31)s','-iI(32)d',' I(32)s ','  I(33)d','-iI(33)s','  Q(00) ','  lz_qq ',' -lx_qq ','  ly_qq ','  Q(20) ', &
-     '  Q(21)d','-iQ(21)s','-iQ(22)d','  Q(22)s','  Q(30) ','  Q(31)d','-iQ(31)s','-iQ(32)d','  Q(32)s','-iQ(33)d', &
-     '-iQ(33)s','  Q(40) ','  Q(41)d','  Q(41)s','-iQ(42)d','  Q(42)s','  Q(43)d','-iQ(43)s','-iQ(44)d','  Q(44)s'/
-
-  zero_c = (0._db, 0._db)
-
-  if( writout ) then
-
-    j = 0
-
-    do initlr = 1,ninitlr
-
-      Sph_tensor_dd(:) = Sph_tensor_dd_ni(:,initlr) 
-      Sph_tensor_dq(:) = Sph_tensor_dq_ni(:,initlr) 
-      Sph_tensor_dq_m(:) = Sph_tensor_dq_m_ni(:,initlr) 
-      Sph_tensor_qq(:) = Sph_tensor_qq_ni(:,initlr)
-
-      do itens = 1,n_tens_t
-
-        if( itens <= n_tens_dd ) then
-
-          if( .not. E1E1 ) cycle
-          i = itens
-          if( i == 1 ) then
-! On divise la premiere composante du tenseur spherique par rac(3) (premiere composante du tenseur de polarisation) pour obtenir le
-! terme de diffusion isotrope
-            Ten = Sph_tensor_dd(i) / sqrt(3._db)
-          elseif( i >= 2 .and. i <= 4 ) then
-! On divise les composantes 2, 3 et 4 du tenseur spherique par rac(2) (composantes du tenseur de polarisation) pour obtenir le
-! moment magnetique
-            Ten = Sph_tensor_dd(i) / sqrt(2._db)
-          else
-            Ten = Sph_tensor_dd(i)
-          endif
-
-        elseif( itens > n_tens_dd .and. itens <= n_tens_dd + n_tens_dq ) then
-
-          if( .not. E1E2 ) cycle
-          i = itens - n_tens_dd
-          Ten = Sph_tensor_dq(i)
-          if( ia == 0 .and. magn_sens ) Ten_m = Sph_tensor_dq_m(i)
-
-        elseif(  itens > n_tens_dd + n_tens_dq) then
-
-          if( .not. E2E2 ) cycle
-          i = itens - n_tens_dd - n_tens_dq
-          if( i == 1 ) then
-! On divise la premiere composante du tenseur spherique par rac(3) (premiere composante du tenseur de polarisation) pour obtenir le
-! terme de diffusion isotrope
-            Ten = Sph_tensor_qq(i) / sqrt(3._db)
-          elseif( i >= 2 .and. i <= 4 ) then
-! On divise les composantes 2, 3 et 4 du tenseur spherique par rac(2) (composantes du tenseur de polarisation) pour obtenir le
-! moment magnetique
-            Ten = Sph_tensor_qq(i) / sqrt(2._db)
-          else
-            Ten = Sph_tensor_qq(i)
-          endif
-
-        endif
-
-        j = j + 1
-        Tens(j) = real( Ten,db )
-        if( ipldafs > 0 .or. ( magn_sens .and. itens > n_tens_dd .and. itens <= n_tens_dd + n_tens_dq ) ) then
-          mot = nomtens(itens)
-          mot = adjustl( mot )
-          l = len_trim( mot )
-          mot(l+1:l+2) = '_r'
-          if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
-          nomten(j) = mot
-          j = j + 1
-          Tens(j) = aimag( Ten )
-          mot(l+2:l+2) = 'i'
-          nomten(j) = mot
-        else
-          mot = nomtens(itens) 
-          if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
-          nomten(j) = mot
-        endif
-        if( ia == 0 .and. magn_sens .and. itens > n_tens_dd .and. itens <= n_tens_dd + n_tens_dq ) then
-          j = j + 1
-          Tens(j) = real( Ten_m,db )
-          mot(l+2:l+3) = 'rm'
-          if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
-          nomten(j) = mot
-          j = j + 1
-          Tens(j) = aimag( Ten_m )
-          mot(l+2:l+3) = 'im'
-          nomten(j) = mot
-        endif
-       
-      end do
-
-    end do
-    
-    n_tens = j
-
-    nomficht = nomfich_s
-    long = len_trim(nomficht)
-    nomficht(long+1:long+4) = '_sph'
-    if( ia > 0 ) then
-      nomficht(long+5:long+9) = '_atom'
-      call ad_number(ia,nomficht,132)
-    else
-     nomficht(long+5:long+9) = '_xtal'
-    endif
-    if( ipldafs > 0 ) then
-      long = len_trim(nomficht)
-      nomficht(long+1:long+4) = '_rxs'
-      call ad_number(ipldafs,nomficht,132)
-    endif
-    long = len_trim(nomficht)
-    nomficht(long+1:long+4) = '.txt'
-
-    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
-            jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
-            cdum,Tens,v0muf,Core_resolved,0)
-
-  endif
-
-! Integrale
-  if( nenerg > 1 .and. ipldafs == 0 .and. writout ) then
+  implicit none
   
-    nomficht = nomfich_s
-    long = len_trim(nomficht)
-    nomficht(long+1:long+4) = '_sph'
-    if( ia > 0 ) then
-      nomficht(long+5:long+9) = '_atom'
-      call ad_number(ia,nomficht,132)
-    else
-      nomficht(long+5:long+9) = '_xtal'
-    endif
-    long = len_trim(nomficht)
-    nomficht(long+1:long+8) = '_int.txt'
+  integer:: i, ipl, is, j, k, n_tens_dm, nplt 
 
-    if( ie == 1 ) then
-      do i = 1,n_tens
-        mot = nomten(i)
-        mot = adjustl( mot )
-        long = len_trim( mot )
-        if( long < Length_word - 2 ) then
-          mot(1:Length_word) = 'I_' // mot(1:Length_word-2)
-        elseif( long == Length_word - 2 ) then
-          mot(1:Length_word-1) = 'I' // mot(1:Length_word-1)
-        endif
-        nomten(i) = mot
+  complex(kind=db), dimension(3):: Pl_i, Pl_s, U_i, U_s
+  complex(kind=db), dimension(2*n_tens_dm):: Tens
+  complex(kind=db), dimension(3,3):: T
+  complex(kind=db), dimension(0:nplt,2*n_tens_dm):: Tensor_pol_dm
+
+  real(kind=db), dimension(3):: Vo_i, Vo_s
+  
+  Tens(:) = ( 0._db, 0._db )
+
+  U_i(1) = Vo_i(2) * Pl_i(3) - Vo_i(3) * Pl_i(2)
+  U_i(2) = Vo_i(3) * Pl_i(1) - Vo_i(1) * Pl_i(3)
+  U_i(3) = Vo_i(1) * Pl_i(2) - Vo_i(2) * Pl_i(1)
+  U_s(1) = Vo_s(2) * Pl_s(3) - Vo_s(3) * Pl_s(2)
+  U_s(2) = Vo_s(3) * Pl_s(1) - Vo_s(1) * Pl_s(3)
+  U_s(3) = Vo_s(1) * Pl_s(2) - Vo_s(2) * Pl_s(1)
+
+! is = -1: non magnetique; is = 1 : magnetique
+  do is = -1,1,2
+
+    do i = 1,3
+      do j = 1,3
+        T(i,j) = Conjg( Pl_s(i) ) * U_i(j) + is * Pl_i(i) * Conjg( U_s(j) ) 
       end do
-      de = Energ(2) - Energ(1)
-      Int_tens(1:n_tens,ia) = de * Tens(1:n_tens)
-    else
-      if( ie == nenerg ) then
-        de = Energ(ie) - Energ(ie-1)
-      else
-        de = 0.5 * ( Energ(ie+1) -  Energ(ie-1) )
-      endif
-      Int_tens(1:n_tens,ia) = Int_tens(1:n_tens,ia) + de * Tens(1:n_tens)
-    endif
-
-    Int_tenst(1:n_tens) = Int_tens(1:n_tens,ia)
-    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
-            jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
-            cdum,Int_tenst,v0muf,Core_resolved,0)
-
-  endif
-
-  if( .not. spherical_signal ) return
-
-! Calcul des tenseurs appliques aux reflexions RXS et au xanes
-
-  if( E1E1 .and. E1E2 .and. E2E2 ) then
-    j0 = 4
-  elseif( ( E1E1 .and. E1E2 ) .or. ( E1E1 .and. E2E2 ) .or. ( E1E2 .and. E2E2 ) ) then
-    j0 = 3
-  else
-    j0 = 1
-  endif
-  jdd0 = 0; jdq0 = 0; jqq0 = 0
-  if( E1E1 ) jdd0 = min(j0,2)
-  if( E1E2 ) then
-    if( E2E2 ) then
-      jdq0 = j0 - 1
-    else
-      jdq0 = j0
-    endif
-  endif
-  if( E2E2 ) jqq0 = j0
-
-  if( polarise ) then
-    iplf = ipl2
-  else
-    iplf = ipl0
-  endif
-
-  do ipl = ipl0,iplf
-
-    Resul(:) = (0._db,0._db)
-
-    jj = 0
-
-    do initlr = 1,ninitlr
-      
-      if( ipldafs > 0 ) then
-        j = jj/2 + j0
-        jdd = jdd0 + jj/2
-        jdq = jdq0 + jj/2
-        jqq = jqq0 + jj/2
-        jj = jj + 2*j0
-      else
-        j = jj + j0
-        jdd = jdd0 + jj
-        jdq = jdq0 + jj
-        jqq = jqq0 + jj
-        jj = jj + j0
-      endif
-      
-      Sph_tensor_dd(:) = Sph_tensor_dd_ni(:,initlr) 
-      Sph_tensor_dq(:) = Sph_tensor_dq_ni(:,initlr) 
-      Sph_tensor_dq_m(:) = Sph_tensor_dq_m_ni(:,initlr) 
-      Sph_tensor_qq(:) = Sph_tensor_qq_ni(:,initlr)
-    
-      do itens = 1,n_tens_t
-
-        if( itens <= n_tens_dd ) then
-          if( .not. E1E1 ) cycle
-          i = itens
-          j = j + 1
-          Resul(j) = Tensor_pol_dd(ipl,i) * Sph_tensor_dd(i)
-
-! Devant le produit, il faut mettre un signe -1 devant les tenseurs impairs
-          if( i >= 2 .and. i <= 4 ) Resul(j) = - Resul(j)
-! On recupere le img omis dans les tenseurs imaginaires
-          if( i == 4 .or. i == 7 .or. i == 8 ) Resul(j) = img*Resul(j)
-! On recupere le -1 devant les tenseurs differences
-          if( i == 3 .or. i == 6 .or. i == 8 ) Resul(j) = - Resul(j)
-! On recupere le (-1)**m
-          if( i == 3 .or. i == 4 .or. i == 6 .or. i == 7) Resul(j) = - Resul(j)
-
-          Resul(jdd) = Resul(jdd) + Resul(j)
-
-        elseif( itens > n_tens_dd .and. itens <= n_tens_dd + n_tens_dq ) then
-
-          if( .not. E1E2 ) cycle
-          i = itens - n_tens_dd
-          do is = 1,2
-            if( is == 2 .and. .not. ( ia == 0 .and. magn_sens ) ) exit
-            j = j + 1
-! Les parties reelles et imaginaires sont a considerer avant la multiplication par le img eventuel.
-            if( is == 1 ) then
-              Resul(j) = Sph_tensor_dq(i) * Tensor_pol_dq(ipl,i)
-            else
-              Resul(j) = Sph_tensor_dq_m(i) * Tensor_pol_dq(ipl,i+n_tens_dq)
-            endif
-
-! Devant le produit, il faut mettre un signe -1 devant les tenseurs impairs
-            if( i >= 4 .and. i <= 8 ) Resul(j) = - Resul(j)
-! On recupere le img omis dans les tenseurs
-            if( i == 3 .or. i == 4 .or. i == 5 .or. i == 8 .or. i == 11 .or. i == 12 .or. i == 15 ) Resul(j) = img * Resul(j)
-
-! On multiplie par -1 devant les tenseurs differences
-            if( i == 2 .or. i == 5 .or. i == 7 .or. i == 10 .or. i == 12 .or. i == 14 ) Resul(j) = - Resul(j)
-! On multiplie par (-1)**m
-            if( i == 2 .or. i == 3 .or. i == 5 .or. i == 6 .or. i == 10 .or. i == 11 .or. i == 14 .or. i == 15 ) &
-                                        Resul(j) = - Resul(j)
-! On recupere le img exterieur au tenseur propre au dipole-quadrupole
-            Resul(j) = img * Resul(j)
-
-            Resul(jdq) = Resul(jdq) + Resul(j)
-
-          end do
-
-        elseif( itens > n_tens_dd + n_tens_dq ) then
-
-          if( .not. E2E2 ) cycle
-          i = itens - n_tens_dd - n_tens_dq
-          j = j + 1
-
-          Resul(j) = Tensor_pol_qq(ipl,i) * Sph_tensor_qq(i)
-! Devant le produit, il faut mettre un signe -1 devant les tenseurs impairs
-          if( ( i >= 2 .and. i <= 4 ) .or. ( i >= 10 .and. i <= 16 ) ) Resul(j) = - Resul(j)
-! On recupere le img omis dans les tenseurs imaginaires
-          if( i == 4 .or. i == 7 .or. i == 8 .or. i == 12 .or. i == 13 .or. i == 16 .or. i == 19 .or. i == 20 &
-              .or. i == 23 .or. i == 24 ) Resul(j) = img * Resul(j)
-! On multiplie par -1 devant les tenseurs differences
-          if( i == 3 .or. i == 6 .or. i == 8 .or. i == 11 .or. i == 13 .or. i == 15 .or. i == 18 .or. i == 20 .or. i == 22 &
-             .or. i == 24 ) Resul(j) = - Resul(j)
-! On multiplie par (-1)**m
-          if( i == 3 .or. i == 4 .or. i == 6 .or. i == 7 .or. i == 11 .or. i == 12 .or. i == 15  .or. i == 16 &
-             .or. i == 18 .or. i == 19 .or. i == 22  .or. i == 23 ) Resul(j) = - Resul(j)
-
-          Resul(jqq) = Resul(jqq) + Resul(j)
-
-        endif
-
-        mot = ' '
-        mot = nomtens(itens)
-        l = len_trim( mot )
-        jj = jj + 1
-        if( itens > n_tens_dd .and. itens <= n_tens_dd + n_tens_dq .and. ia == 0 .and. magn_sens ) then
-          if( ipldafs > 0 ) then
-            mot(l+1:l+2) = '_r'
-            if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
-            nomten(jj) = mot
-            tens(jj) = real( Resul(j-1),db )
-            jj = jj + 1
-            mot(l+1:l+2) = '_i'
-            nomten(jj) = mot
-            tens(jj) = aimag( Resul(j-1) )
-            jj = jj + 1
-            mot(l+1:l+3) = '_mr'
-            do i = l+4,Length_word 
-              mot(i:i) = ' '
-            end do
-            if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
-            nomten(jj) = mot
-            tens(jj) = real( Resul(j),db )
-            jj = jj + 1
-            mot(l+1:l+3) = '_mi'
-            nomten(jj) = mot
-            tens(jj) = aimag( Resul(j) )
-          else
-            nomten(jj) = mot
-            if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
-            tens(jj) = real( Resul(j-1),db )
-            jj = jj + 1
-            mot(l+1:l+2) = '_m'
-            do i = l+3,Length_word 
-              mot(i:i) = ' '
-            end do
-            if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
-            nomten(jj) = mot
-            tens(jj) = real( Resul(j),db )
-          endif
-        else
-          if( ipldafs > 0 ) then
-            mot(l+1:l+2) = '_r'
-            if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
-            nomten(jj) = mot
-            tens(jj) = real( Resul(j),db )
-            jj = jj + 1
-            mot(l+1:l+2) = '_i'
-            nomten(jj) = mot
-            tens(jj) = aimag( Resul(j) )
-          else
-            if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
-            nomten(jj) = mot
-            tens(jj) = real( Resul(j),db )
-          endif
-        endif
-
-      end do
-
-      i0 = (initlr - 1) * jj / initlr
-      if( ipldafs == 0 ) then
-        j_0 = i0
-      else
-        j_0 = i0 / 2
-      endif
-      if( j0 > 1 ) Resul(j_0+1) = sum( Resul(j_0+2:j_0+j0) )
-
-! On donne le Xanes en Megabarns
-      if( ipldafs == 0 ) then
-        do i = i0+1,jj
-           if( abs(Tens(i)) > 1e-20_db ) Tens(i) = Tens(i) / ct_nelec(initlr)
-         end do
-      endif
-      
-      i = i0
-      if( ipldafs == 0 ) then
-        j = i0
-      else
-        j = (initlr - 1) * jj / (2*initlr)
-      endif
-
-      do it = 1,j0
-
-        i = i + 1
-        if( it == jdd0 ) then
-          nomten(i) = 'Sum_dd'
-        elseif( it == jdq0 ) then
-          nomten(i) = 'Sum_dq'
-        elseif( it == jqq0 ) then
-          nomten(i) = 'Sum_qq'
-        else
-          nomten(i) = 'Sum_tot'
-        endif
-
-        j = j + 1
-        Tens(i) = real( Resul(j),db )
-        if( ipldafs > 0 ) then
-          mot = ' '
-          mot = nomten(i)
-          l = len_trim( mot )
-          mot(l+1:l+2) = '_r'
-          if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
-          nomten(i) = mot
-          i = i + 1
-          mot(l+1:l+2) = '_i'
-          nomten(i) = mot
-          Tens(i) = aimag( Resul(j) )
-        else
-          if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,nomten(i),nseuil)
-        endif
-
-      end do
-
     end do
-    
-    n_tens = jj
 
-! Ecriture des tenseurs appliques aux reflexions RXS et au xanes
-
-    nomficht = nomfich_s
-
-    long = len_trim(nomficht)
-    nomficht(long+1:long+11) = '_sph_signal'
-    if( ia > 0 ) then
-      nomficht(long+12:long+16) = '_atom'
-      call ad_number(ia,nomficht,132)
-    endif
-    long = len_trim(nomficht)
-    if( ipldafs > 0 ) then
-      nomficht(long+1:long+4) = '_rxs'
-      call ad_number(ipldafs,nomficht,132)
-    elseif( ipl == 0 ) then
-      nomficht(long+1:long+4) = '_xan'
+    if( is == - 1 ) then
+      k = 0
     else
-      nomficht(long+1:long+4) = '_pol'
-      call ad_number(ipl,nomficht,132)
-    endif
-    long = len_trim(nomficht)
-    nomficht(long+1:long+4) = '.txt'
-
-    if( ipldafs > 0 ) then
-      if( ia == 0 ) then
-        cf = phdt(ipldafs)
-        cg = phdf0t(ipldafs)
-      else
-        cf = (1._db,0._db)
-        cg = (0._db,0._db)
-      endif
-      phtem(:) = cf
-      ph0(:) = cg
-      n_tens2 = n_tens / ( 2 * ninitlr )
-      call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
-            jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,n_tens_max,n_tens2,0,0,nseuil,numat_abs,phtem, &
-            ph0,Tens,v0muf,Core_resolved,0)
-    else
-      call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
-             jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum,cdum,Tens,v0muf, &
-            Core_resolved,0)
+      k = n_tens_dm
     endif
 
+    Tens(k+1) = ( T(1,1) + T(2,2) + T(3,3) )
+
+    Tens(k+2) = ( T(1,2) - T(2,1) )
+
+    Tens(k+3) = ( T(2,3) - T(3,2) )
+
+    Tens(k+4) = ( T(3,1) - T(1,3) )
+
+    Tens(k+5) = ( 2*T(3,3) - T(1,1) - T(2,2) )
+
+    Tens(k+6) = ( T(1,3) + T(3,1) )
+
+    Tens(k+7) = ( T(2,3) + T(3,2) )
+
+    Tens(k+8) = ( T(1,2) + T(2,1) )
+
+    Tens(k+9) = ( T(1,1) - T(2,2) )
+  
   end do
+
+  Tensor_pol_dm(ipl,:) = Tens(:)
 
   return
 end
 
+!***********************************************************************
+
+! Ecriture du signal par tenseur
+
+subroutine Write_Signal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2,Ephseuil,Epsii, &
+      Eseuil,ia,ie,ipl,ipldafs,jseuil,magn_sens,n_tens_dd,n_tens_dq,n_tens_dm, &
+      n_tens_qq,ninit1,ninitlr,nomfich_s,npldafs,nplt,nseuil,numat_abs,phdf0t,phdt, &
+      Sph_tensor_dd_ni,Sph_tensor_dq_ni,Sph_tensor_dq_m_ni,Sph_tensor_dm_ni,Sph_tensor_dm_m_ni,Sph_tensor_qq_ni, &
+      Tensor_pol_dd,Tensor_pol_dq,Tensor_pol_dm,Tensor_pol_qq,V0muf)
+
+  use declarations
+  implicit none
+  
+  integer:: i, ia, ie, initlr, ipl, ipldafs, is, j, j0, jdd, jdd0, jdm, jdmm, jdm0, jdmm0, &
+      jdq, jdq0, jdqm, jdqm0, jqq, jqq0, jseuil, jtot, jtot0, long, n_tens, n_tens_dd, n_tens_dq, n_tens_dm, &
+      n_tens_qq, n_tens2, ninit1, ninitlr, npldafs, nplt, nseuil, numat_abs
+
+  character(len=132):: nomfich_s, nomficht
+  character(len=Length_word), dimension(:), allocatable:: Tens_name
+
+  complex(kind=db):: cf, cg, zero_c
+  complex(kind=db), dimension(1):: cdum
+  complex(kind=db), dimension(n_tens_dd):: Sph_tensor_dd
+  complex(kind=db), dimension(n_tens_dq):: Sph_tensor_dq, Sph_tensor_dq_m
+  complex(kind=db), dimension(n_tens_dm):: Sph_tensor_dm, Sph_tensor_dm_m
+  complex(kind=db), dimension(n_tens_qq):: Sph_tensor_qq
+  complex(kind=db), dimension(n_tens_dd,ninitlr):: Sph_tensor_dd_ni
+  complex(kind=db), dimension(n_tens_dq,ninitlr):: Sph_tensor_dq_ni, Sph_tensor_dq_m_ni
+  complex(kind=db), dimension(n_tens_dm,ninitlr):: Sph_tensor_dm_ni, Sph_tensor_dm_m_ni
+  complex(kind=db), dimension(n_tens_qq,ninitlr):: Sph_tensor_qq_ni
+  complex(kind=db), dimension(0:nplt,n_tens_dd):: Tensor_pol_dd
+  complex(kind=db), dimension(0:nplt,2*n_tens_dq):: Tensor_pol_dq
+  complex(kind=db), dimension(0:nplt,2*n_tens_dm):: Tensor_pol_dm
+  complex(kind=db), dimension(0:nplt,n_tens_qq):: Tensor_pol_qq
+  complex(kind=db), dimension(npldafs):: phdf0t, phdt
+  complex(kind=db), dimension(:), allocatable:: ph0, phtem, Resul
+
+  integer, dimension(0):: idum
+
+  logical:: Core_resolved, Dafs, E1E1, E1E2, E1M1, E2E2, Magn_sens
+  
+  real(kind=db):: Densite_atom, E_cut, Ephseuil, Eseuil, fac, V0muf
+  real(kind=db), dimension(0):: rdum
+  real(kind=db), dimension(ninitlr):: ct_nelec, Epsii
+  real(kind=db), dimension(:), allocatable:: Tens
+
+  zero_c = (0._db, 0._db)
+  Dafs = ipldafs > 0
+
+! Nombre de colonnes sommes
+  j0 = 0
+  if( E1E1 ) j0 = j0 + 1
+  if( E1E2 ) j0 = j0 + 1
+  if( E1E2 .and. Magn_sens ) j0 = j0 + 1
+  if( E2E2 ) j0 = j0 + 1
+  if( E1M1 ) j0 = j0 + 1
+  if( E1M1 .and. Magn_sens ) j0 = j0 + 1
+  if( j0 > 1 ) j0 = j0 + 1 
+
+  n_tens = j0
+  
+! Indices des colones sommes
+  jtot0 = 1; jdd0 = 0; jdq0 = 0; jdqm0 = 0; jqq0 = 0; jdm0 = 0; jdmm0 = 0
+  if( j0 == 1 ) then
+    j = 0
+  else
+    j = 1
+  endif
+  if( E1E1 ) then
+    j = j + 1
+    jdd0 = j
+    n_tens = n_tens + n_tens_dd
+  endif
+  if( E1E2 ) then
+    j = j + 1
+    jdq0 = j
+    n_tens = n_tens + n_tens_dq
+  endif
+  if( E1E2 .and. Magn_sens) then
+    j = j + 1
+    jdqm0 = j
+    n_tens = n_tens + n_tens_dq
+  endif
+  if( E2E2 ) then
+    j = j + 1
+    jqq0 = j
+    n_tens = n_tens + n_tens_qq
+  endif
+  if( E1M1 ) then
+    j = j + 1
+    jdm0 = j
+    n_tens = n_tens + n_tens_dm
+  endif
+  if( E1M1 .and. Magn_sens) then
+    j = j + 1
+    jdmm0 = j
+    n_tens = n_tens + n_tens_dm
+  endif
+
+  n_tens = n_tens * ninitlr
+  allocate( Resul( n_tens ) )
+  allocate( Ph0( n_tens ) )
+  allocate( phtem( n_tens ) )
+  
+  Resul(:) = (0._db,0._db)
+  
+  if( Dafs ) n_tens = 2 * n_tens
+  
+  allocate( Tens( n_tens ) )
+  allocate( Tens_name( n_tens ) )
+  
+  j = 0
+  
+  do initlr = 1,ninitlr
+      
+    jtot = jtot0 + j
+    jdd = jdd0 + j
+    jdq = jdq0 + j
+    jdqm = jdqm0 + j
+    jqq = jqq0 + j
+    jdm = jdm0 + j
+    jdmm = jdmm0 + j
+    j = j + j0
+  
+! On donne le Xanes en Megabarns
+! Pour le DAFS, dans la convolution on multiplie par pi
+    if( Dafs ) then
+      fac = 1 / pi
+    else
+      fac = 1 / ( ct_nelec(initlr) * pi )
+    endif      
+
+    Sph_tensor_dd(:) = fac * Sph_tensor_dd_ni(:,initlr) 
+    Sph_tensor_dq(:) = fac * Sph_tensor_dq_ni(:,initlr) 
+    Sph_tensor_dq_m(:) = fac * Sph_tensor_dq_m_ni(:,initlr) 
+    Sph_tensor_qq(:) = fac * Sph_tensor_qq_ni(:,initlr)
+    Sph_tensor_dm(:) = fac * Sph_tensor_dm_ni(:,initlr) 
+    Sph_tensor_dm_m(:) = fac * Sph_tensor_dm_m_ni(:,initlr) 
+
+    if( E1E1 ) then
+      
+      do i = 1,n_tens_dd
+
+        j = j + 1
+        Resul(j) = Tensor_pol_dd(ipl,i) * Sph_tensor_dd(i)
+
+! Devant le produit, il faut mettre un signe -1 devant les tenseurs impairs (vient des 2 multiplications par -i)
+        if( i >= 2 .and. i <= 4 ) Resul(j) = - Resul(j)
+
+        call Fill_line( Core_resolved, 1, Dafs, i, initlr, j, jseuil, n_tens, nseuil, ninitlr, Resul(j), Tens, Tens_name )
+
+        Resul(jdd) = Resul(jdd) + Resul(j)
+
+      end do
+ 
+      call Fill_line( Core_resolved, 1, Dafs, 0, initlr, jdd, jseuil, n_tens, nseuil, ninitlr, Resul(jdd), Tens, Tens_name )
+      
+    endif
+
+    if( E1E2 ) then
+
+      do is = 1,2 
+        if( is == 2 .and. .not. Magn_sens ) exit
+        do i = 1,n_tens_dq
+        
+          j = j + 1
+! Les parties reelles et imaginaires sont a considerer avant la multiplication par le img eventuel.
+          if( is == 1 ) then
+            Resul(j) = Sph_tensor_dq(i) * Tensor_pol_dq(ipl,i)
+          else
+            Resul(j) = Sph_tensor_dq_m(i) * Tensor_pol_dq(ipl,i+n_tens_dq)
+          endif
+
+! On recupere le img exterieur au tenseur propre au dipole-quadrupole
+          Resul(j) = img * Resul(j)
+
+! Signe est oppose car complex conjugue fait dans conv
+          if( Dafs ) Resul(j) = - Resul(j) 
+
+          call Fill_line( Core_resolved, 1+is, Dafs, i, initlr, j, jseuil, n_tens, nseuil, ninitlr, Resul(j), Tens, Tens_name )
+
+          if( is == 1 ) then
+             Resul(jdq) = Resul(jdq) + Resul(j)
+          else
+             Resul(jdqm) = Resul(jdqm) + Resul(j)
+          endif
+
+        end do
+
+        if( is == 1 ) then
+          call Fill_line( Core_resolved, 2, Dafs, 0, initlr, jdq, jseuil, n_tens, nseuil, ninitlr, Resul(jdq), Tens, Tens_name )
+        else
+          call Fill_line( Core_resolved, 3, Dafs, 0, initlr, jdqm, jseuil, n_tens, nseuil, ninitlr, Resul(jdqm), Tens, Tens_name )
+        endif
+      
+      end do
+      
+    endif
+        
+    if( E2E2 ) then
+
+      do i = 1,n_tens_qq
+      
+        j = j + 1
+
+        Resul(j) = Tensor_pol_qq(ipl,i) * Sph_tensor_qq(i)
+
+        call Fill_line( Core_resolved, 4, Dafs, i, initlr, j, jseuil, n_tens, nseuil, ninitlr, Resul(j), Tens, Tens_name )
+
+        Resul(jqq) = Resul(jqq) + Resul(j)
+
+      end do
+
+      call Fill_line( Core_resolved, 4, Dafs, 0, initlr, jqq, jseuil, n_tens, nseuil, ninitlr, Resul(jqq), Tens, Tens_name )
+        
+    endif
+      
+    if( E1M1 ) then
+
+      do is = 1,2
+        if( is == 2 .and. .not. Magn_sens ) exit
+     
+        do i = 1,n_tens_dm
+        
+          j = j + 1
+! Modif pour que ca cole (je ne comprend pas vraiment), voir aussi fin de la routine Sph_tensor_dm_cal 
+          if( is == 1 ) then
+            Resul(j) = Sph_tensor_dm(i) * Tensor_pol_dm(ipl,i)
+            if( Dafs .and. ( i >= 2 .and. i <= 4 )  ) Resul(j) = - Resul(j) 
+          else
+            Resul(j) = Sph_tensor_dm_m(i) * Tensor_pol_dm(ipl,i+n_tens_dm)
+            if( i >= 2 .and. i <= 4 ) Resul(j) = - Resul(j) 
+          endif
+
+          call Fill_line( Core_resolved, 4+is, Dafs, i, initlr, j, jseuil, n_tens, nseuil, ninitlr, Resul(j), Tens, Tens_name )
+
+          if( is == 1 ) then
+             Resul(jdm) = Resul(jdm) + Resul(j)
+          else
+             Resul(jdmm) = Resul(jdmm) + Resul(j)
+          endif
+
+        end do
+
+        if( is == 1 ) then
+          call Fill_line( Core_resolved, 5, Dafs, 0, initlr, jdm, jseuil, n_tens, nseuil, ninitlr, Resul(jdm), Tens, Tens_name )
+        else
+          call Fill_line( Core_resolved, 6, Dafs, 0, initlr, jdmm, jseuil, n_tens, nseuil, ninitlr, Resul(jdmm), Tens, Tens_name )
+        endif
+      
+      end do
+
+    endif
+
+    if( j0 > 1 ) then
+      Resul(jtot) = sum( Resul(jtot+1:jtot+j0-1) )  
+      call Fill_line( Core_resolved, 0, Dafs, 0, initlr, jtot, jseuil, n_tens, nseuil, ninitlr, Resul(jtot), Tens, Tens_name )
+    endif    
+
+  end do
+  
+! Ecriture des tenseurs
+
+  nomficht = nomfich_s
+
+  long = len_trim(nomficht)
+  nomficht(long+1:long+11) = '_sph_signal'
+  if( ia > 0 ) then
+    nomficht(long+12:long+16) = '_atom'
+    call ad_number(ia,nomficht,132)
+  endif
+  long = len_trim(nomficht)
+  if( ipldafs > 0 ) then
+    nomficht(long+1:long+4) = '_rxs'
+    call ad_number(ipldafs,nomficht,132)
+  elseif( ipl == 0 ) then
+    nomficht(long+1:long+4) = '_xan'
+  else
+    nomficht(long+1:long+4) = '_pol'
+    call ad_number(ipl,nomficht,132)
+  endif
+  long = len_trim(nomficht)
+  nomficht(long+1:long+4) = '.txt'
+
+  if( Dafs ) then
+    if( ia == 0 ) then
+      cf = phdt(ipldafs)
+      cg = phdf0t(ipldafs)
+    else
+      cf = (1._db,0._db)
+      cg = (0._db,0._db)
+    endif
+    phtem(:) = cf
+    ph0(:) = cg
+    n_tens2 = n_tens / ( 2 * ninitlr )
+    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
+          jseuil,n_tens,n_tens,ninit1,ninitlr,nomficht,Tens_name,n_tens,n_tens2,0,0,nseuil,numat_abs,phtem, &
+          ph0,Tens,v0muf,Core_resolved,0)
+  else
+    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
+          jseuil,n_tens,n_tens,ninit1,ninitlr,nomficht,Tens_name,1,0,0,0,nseuil,numat_abs,cdum,cdum,Tens,v0muf, &
+          Core_resolved,0)
+  endif
+
+  deallocate( Ph0, Phtem, Resul, Tens, Tens_name )
+
+  return
+end
+
+!***************************************************************************************************************
+
+! Remplissage valeur et nom du tenseur
+
+subroutine Fill_line( Core_resolved, index, Dafs, i, initlr, j, jseuil, n_tens, nseuil, ninitlr, Resul, Tens, Tens_name )
+
+  use declarations
+  implicit none
+  
+  integer:: i, index, initlr, j, jj, jseuil, l, n_tens, ninitlr, nseuil
+  
+  character(len=Length_word):: mot
+  character(len=8), dimension(0:0):: Tens_name_tot
+  character(len=8), dimension(0:9):: Tens_name_D
+  character(len=8), dimension(0:15):: Tens_name_I, Tens_name_I_m 
+  character(len=8), dimension(0:25):: Tens_name_Q 
+  character(len=8), dimension(0:9):: Tens_name_T, Tens_name_T_m 
+  character(len=Length_word), dimension(n_tens):: Tens_name
+
+  complex(kind=db):: Resul
+  
+  logical:: Core_resolved, Dafs 
+
+  real(kind=db), dimension(n_tens):: Tens
+  
+  data Tens_name_tot/ ' Sum_tot'/
+  data Tens_name_D/ ' Sum_dd ','  D(00) ','  lz_dd ','  lx_dd ','  ly_dd ','  D_z2  ','   D_xy ','  D_yx  ','  D_yz  ',' D_x2-y2'/
+  data Tens_name_I/ ' Sum_dq ','   I_z  ','   I_x  ','    I_y ','  I(20) ',' I(21)  ',' I(2-1) ','  I(22) ',' I(2-2) ', &
+                    '  I(30) ',' I(31)  ',' I(3-1) ',' I(32)  ',' I(3-2) ','  I(33) ',' I(3-3) '/
+  data Tens_name_I_m/ 'Sum_dq_m','  I_z_m ',' I_x_m  ','  I_y_m ',' I(20)_m',' I(21)_m','I(2-1)_m',' I(22)_m','I(2-2)_m', &
+                      ' I(30)_m',' I(31)_m','I(3-1)_m',' I(32)_m','I(3-2)_m',' I(33)_m','I(3-3)_m'/
+  data Tens_name_Q/ ' Sum_qq ','  Q(00) ','  lz_qq ','  lx_qq ','  ly_qq ','  Q(20) ','  Q(21) ',' Q(2-1) ','  Q(22) ',' Q(2-2) ', &
+                    '  Q(30) ','  Q(31) ',' Q(3-1) ','  Q(32) ',' Q(3-2) ','  Q(33) ',' Q(3-3) ','  Q(40) ','  Q(41) ', &
+                    ' Q(4-1) ','  Q(42) ',' Q(4-2) ','  Q(43) ',' Q(4-3) ','  Q(44) ',' Q(4-4) '/
+  data Tens_name_T/   ' Sum_dm ','  T(00) ','  T_z   ','   T_x  ','    T_y ','  T_z2  ','  T_xz  ','  T_yz  ','  T_yz  ','T_x2-y2 '/
+  data Tens_name_T_m/ 'Sum_dm_m',' T(00)_m','  T_z_m ','  T_x_m ','  T_y_m ',' T_z2_m ',' T_xz_m ',' T_yz_m ',' T_yz_m ','Tx2-y2_m'/
+
+  mot = ' '
+  
+  Select case(index)
+    case(0)
+      mot = Tens_name_tot(i)
+    case(1)
+      mot = Tens_name_D(i)
+    case(2)
+      mot = Tens_name_I(i)
+    case(3)
+      mot = Tens_name_I_m(i)
+    case(4)
+      mot = Tens_name_Q(i)
+    case(5)
+      mot = Tens_name_T(i)
+    case(6)
+      mot = Tens_name_T_m(i)
+  end select
+  
+  if( Dafs ) then
+    jj = 2 * j - 1
+  else
+    jj = j
+  endif
+  
+  Tens(jj) = real( Resul, db )
+  
+  if( Dafs ) then
+
+    l = len_trim( mot )
+    mot(l+1:l+2) = '_r'
+    if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
+    Tens_name(jj) = mot
+
+    jj = jj + 1
+    Tens(jj) = aimag( Resul )
+    mot(l+2:l+2) = 'i'
+    Tens_name(jj) = mot
+
+  else
+
+    if( ninitlr > 1 ) call ad_sufix(Core_resolved,initlr,jseuil,Length_word,mot,nseuil)
+    Tens_name(jj) = mot
+
+  endif
+
+  return
+end

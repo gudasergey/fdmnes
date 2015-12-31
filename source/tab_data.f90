@@ -997,7 +997,7 @@ function RayIon(Z)
   return
 end
 
-!---------------------------------------------------------------------------------------------------------------------------
+!---------------------------------------
 
 ! FDMNES subroutines 
 
@@ -1007,7 +1007,9 @@ subroutine fdmx(fdmnes_inp,nomfich,cm2g,nobg,nohole,nodwfact,noimfp,Gamma_hole,G
     imfp_inp, imfp_infile, elf_inp, elf_infile, dwfactor_inp, dwfactor, tdebye_inp, debyetemp, tmeas_inp, tmeas, Energphot, &
     expntl, expntlA, expntlB, victoreen, victA, victB, mermrank)
 
-real( kind = 8 ):: x1, x2, x3, x4, x5, x6, x7, E_cut_imp, dwfactor, tmeas, debyetemp, expntlA, expntlB, victA, victB
+real ( kind = 8 ) x1, x2, x3, x4, x5, x6, x7, &
+  E_cut_imp, dwfactor, tmeas, debyetemp, expntlA, expntlB, &
+  victA, victB
 real ( kind = 8 ), dimension(10) :: Gamma_hole
 real E(8000), mu0(8000), atom(8000), spline(8000), mu(8000), mult(-8000:8000), &
   Einit(8000), mu0init(8000), smalldist, disttemp, spacing, a, pi, eu, sigmaparam, &
@@ -1016,8 +1018,8 @@ real E(8000), mu0(8000), atom(8000), spline(8000), mu(8000), mult(-8000:8000), &
   zpos, avec, bvec, cvec, alphang, betang, gamang, xabspos, yabspos, zabspos, &
   masstotal, imfpvalue, tdeb, tmeasured, atommass, imfpval(8000), Nv, rho, masstot, &
   egap, nvpart, Navag, imfpvaltab, cm2gtombarn(1:92), edgepos, ffastbg, masstotaltemp, &
-  Nvtemp, voltemp, rscratch, mbarntocm2g, background(8000), imfpm, imfpb, &
-  Aint, Bint, Cint, Dint, ddone, ddtwo, bgpart
+  Nvtemp, voltemp, rscratch, mbarntocm2g, background(8000), imfpm, imfpb, mufin(8000), &
+  atomfin(8000), bgfin(8000), imfpfin(8000), Aint, Bint, Cint, Dint, ddone, ddtwo, bgpart
 real*16 scelfimfp(1024,2)
 integer atomtypes(1:92,1:2), mermrank, scelfimfpdim, lines, linesconv, econvmin, &
   absorbeur, imark, Z, maxpoint, ninputs, linetype, natoms, intscratch, Znn, Ztemp, natomstot
@@ -1025,12 +1027,13 @@ character(len=1024) scratch, fnames(100), inpname, outname
 character(len=132) fdmnes_inp, nomfich, imfp_infile, elf_infile
 logical nodwfact, noimfp, Energphot, expntl, victoreen, bgedges, inckedge, cm2g, &
   nobg, nohole, Gamma_hole_imp, E_Fermi_man, imfp_inp, elf_inp, dwfactor_inp, &
-  tdebye_inp, tmeas_inp, imfpdone
+  tdebye_inp, tmeas_inp, imfpdone, molinp
 
 Navag = 6.022141E+23
 pi = 3.14159
 eu = 2.718282
 rydb = 13.60569
+molinp = .false.
 hwidth = -1.0
 if (Gamma_hole_imp) then
    hwidth = Gamma_hole(1)*rydb
@@ -1075,11 +1078,19 @@ do ij=1,ninputs
    open(unit=203,file=trim(fnames(ij)))
    do jk=1,1000
       read(203,*) scratch
-      if (trim(scratch) .EQ. "Crystal" .OR. trim(scratch) .EQ. "molecule") then
+      if (trim(scratch) .EQ. "Crystal" .OR. trim(scratch) .EQ. "crystal") then
          do kji=1,absorbeur
             read(203,*) scratch
          end do
          read(203,*) Z, xabspos, yabspos, zabspos
+         exit
+      end if
+      if (trim(scratch) .EQ. "Molecule" .OR. trim(scratch) .EQ. "molecule") then
+         do kji=1,absorbeur
+            read(203,*) scratch
+         end do
+         read(203,*) Z, xabspos, yabspos, zabspos
+         molinp = .true.
          exit
       end if
    end do
@@ -1090,7 +1101,44 @@ do ij=1,ninputs
    open(unit=203,file=trim(fnames(ij)))
    do jk=1,1000
       read(203,*) scratch
-      if (trim(scratch) .EQ. "Crystal" .OR. trim(scratch) .EQ. "molecule") then
+      if (trim(scratch) .EQ. "Crystal" .OR. trim(scratch) .EQ. "crystal") then
+         read(203,*) scratch
+         natoms = 0
+         natomstot = 0
+         masstotal = 0
+         Nv = 0
+         cm2gtombarn(1:92) = 0.0
+         atomtypes(1:92,1:2) = 0
+         do kij=1,100
+            read(203,*,iostat=linetype) intscratch
+            if (linetype .EQ. 0) then
+               if (intscratch .EQ. Z) then
+                  natoms = natoms + 1
+               end if
+               natomstot = natomstot + 1
+               call amasses(intscratch,atommass)
+               masstotal = masstotal + atommass
+               do iii=1,92
+                  if (atomtypes(iii,2) .EQ. 0) then
+                     atomtypes(iii,2) = intscratch
+                     atomtypes(iii,1) = 1
+                     cm2gtombarn(iii) = (atommass/Navag)*1.0E+18
+                     EXIT
+                  elseif (atomtypes(iii,2) .EQ. intscratch) then
+                     atomtypes(iii,1) = atomtypes(iii,1) + 1
+                     cm2gtombarn(iii) = cm2gtombarn(iii) + (atommass/Navag)*1.0E+18
+                     EXIT
+                  end if
+               end do
+               call amasses(intscratch+118,nvpart)
+               Nv = Nv + nvpart
+            else
+               exit
+            end if
+         end do
+         exit
+      end if
+      if (trim(scratch) .EQ. "Molecule" .OR. trim(scratch) .EQ. "molecule") then
          read(203,*) scratch
          natoms = 0
          natomstot = 0
@@ -1192,7 +1240,8 @@ do ij=1,ninputs
 ! MAIN INPUT FILE
    open(unit=102,file=trim(adjustl(inpname)))
    lines = 0
-   read(102,*) scratch, edgepos
+!   read(102,*) scratch, edgepos
+   read(102,*) edgepos
    edgepos = edgepos/1000
    write(*,904) edgepos
 904 format(" Edge Position is:", F7.3, " keV")
@@ -1482,6 +1531,9 @@ do ij=1,ninputs
          rho = masstotaltemp/voltemp
          masstot = masstotal/natoms
          egap = 3.5
+         if (rho .GT. 7.0 .AND. molinp) then
+            rho = 7.0
+         end if
          if (E(i) .GE. 50.0) then
             imfpvalue = tpp2m(E(i), Nvtemp, rho, masstot, egap)
             convvalue = (1.05457E-34/(imfpvalue*1E-10))*(((2*E(i)*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
@@ -5764,7 +5816,7 @@ subroutine ffast(Z,E,kedge,val)
   allocate( ffastdat_2(np_dim) )
   allocate( ffastdat_3(np_dim) )
    
-  call fastdat( ffastdat_1, ffastdat_2, ffastdat_2, np_dim, Z )
+  call fastdat( ffastdat_1, ffastdat_2, ffastdat_3, np_dim, Z )
      
   do i = 1,np_dim - 1
     if( ffastdat_1(i) <= E ) nlow = i

@@ -535,6 +535,7 @@ subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic_out,Ecl
 !    fnorm = cal_norm(Ecinetic_out,eimag)
 !    fnormc = cmplx( fnorm, 0._db, db)
     fnormc = sqrt( konde / pi )
+    
     fnorm = real( fnormc, db )
   else
     konder = sqrt( Ecinetic_out )
@@ -799,7 +800,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   
   integer, parameter:: nletm = 52
 
-  integer:: i, ii1, ii2, ia, ib, icheck, ii, ispin, ispin0, igrph, indg, isol, isp, ispint, ispo, ispp, ispq, ispt, isym, &
+  integer:: i, ii1, ia, ib, icheck, ii, ispin, ispin0, igrph, indg, isol, isp, ispint, ispo, ispp, ispq, ispt, isym, &
     iv, j, jj, jj1, jjj, k, l, lb1i, lb1r, lb2i, lb2r, ljj, lm, lm0, lmaxso, lmf, lmf0, lmp, lmp0, lms, lp, &
     m, mf, mp, n, natome, nbm, nbtm, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmagm, nlmso, nlmso_i, & 
     nphiato1, nphiato7, npoint, npsom, nsm, nsort, nsort_c, nsortf, nsort_r, nspino, nspinp, nstm, nso1, nlmsam, nspin, nspinr, &
@@ -867,18 +868,6 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 ! Remplissage de la ligne et des seconds membres.
   i = newinv(ii)
 
-!  if ( Spinorbite ) then
-!    do ii2 = nligne,1,-1
-!      if ( newinv(ii2) /= 0 ) exit
-!    end do
-!    if ( i <= 0 ) then
-!      do ii1 = 1,nligne
-!        if ( newinv(ii1) /= 0 ) exit
-!      end do
-!      if ( ii1 <= nligne .and. ii < ii1 .and. mod(ii1-ii2,2) == 0 ) ispin = 3 - ispin0
-!    endif
-!  endif
-
   if( Spinorbite .and. i > 0 ) then
     do ia = natome,1,-1
       if( ii > ianew(ia) ) exit
@@ -890,9 +879,6 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 ! Points du reseau de base
   if( i > 0 ) then
 
-!    if( Spinorbite ) then
-!      if ( mod(ii-ii2,2) == 0 ) ispin = 3 - ispin0
-!    endif
     ispp = min( ispin, nspin )
     indg = 3 - ispin
     ispq = min( indg, nspin )

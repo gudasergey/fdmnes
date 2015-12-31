@@ -1084,7 +1084,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,Base_spin,basereel,Bormann,Cartesian_tensor,Charge_free, &
     Clementi,com,comt,Core_resolved,Coupelapw,Cubmat,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density,Density_comp, &
     Dipmag,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent, &
-    Eneg_i,Eneg_n_i,Energphot,Extract,f_no_res,Fit_cal,Flapw,Flapw_new, &
+    Eneg_i,Eneg_n_i,Energphot,Extract,f_no_res,FDM_comp,Fit_cal,Flapw,Flapw_new, &
     Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s, &
     Green_self,hkl_borm,hkl_dafs,Hubb,Hubbard,Hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,iscratch, &
     isigpi,itdil,its_lapw,iord,itape4,itype,itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,l_selec_max, &
@@ -1170,7 +1170,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Base_spin, Basereel, Bormann, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Clementi, Core_resolved, &
     Core_resolved_e, Coupelapw, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Dipmag, Doping, dyn_eg, dyn_g, &
     E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, &
-    exc_imp, Extract, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, &
+    exc_imp, Extract, FDM_comp, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, &
     Gamma_hole_imp, Gamma_tddft, Green_s, Green_self, Green_int, Hedin, Hubbard, korigimp, lmaxfree, lmoins1, lplus1, M1M1, &
     M1M2, M2M2, Magnetic, matper, muffintin, noncentre, nonexc, nonexc_imp, normaltau, no_core_resolved, no_dipquad, no_e1e3, &
     no_e2e2, no_e3e3, No_solsing, Octupole, Old_reference, One_run, Optic, Overad, Pas_SCF_imp, Pdb, Perdew, &
@@ -1293,6 +1293,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Exc_imp = .false.
   f_no_res(1) = 1._db     ! mag
   f_no_res(2) = -100._db  ! mom
+  Fdm_comp = .false.
   Fermi_auto = .true.
   Flapw_new = .false.
   Force_ecr = .false.
@@ -1454,6 +1455,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('doping')
           read(itape4,*,iostat=ier) itype_dop, igr_dop
           if( ier > 0 ) call write_err_form(itape4,grdat)
+
+        case('fdm_comp')
+          FDM_comp = .true.
 
         case('full_pote')
 
@@ -3474,7 +3478,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       egamme(1) = -5.0_db; egamme(2) =  0.5_db;
       egamme(3) = egamme(1) + ( nenerg - 1 ) * egamme(2)
     endif
-    if( .not. green_s .and. neimagent > 0 ) eimagent(:) = 0._db
+    if( .not. green_s .and. ( .not. FDM_comp ) .and. neimagent > 0 ) eimagent(:) = 0._db
 
 ! Ecriture des entrees :
     if( icheck(1) > 0 ) then
@@ -3923,6 +3927,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Eneg_n_i,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Energphot,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(f_no_res,2,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(FDM_comp,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Force_ecr,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Full_atom_e,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Full_potential,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)

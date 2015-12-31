@@ -774,7 +774,11 @@ subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,ia
   if( icheck > 0 ) write(3,110)
 
   if( natomp == 1 ) then
-    rm = min( rsort, 2.5_db / bohr )
+    if( normrmt == 4 ) then
+      rm = min( rsort, rmtimp( 1 ) )
+    else
+      rm = min( rsort, 2.5_db / bohr )
+    endif
     dab(:) = 0._db
     rdem(:) = rm
     rnorm(:) = rm
