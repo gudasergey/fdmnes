@@ -89,7 +89,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Chi
 
   logical:: All_nrixs, Allsite, Atomic_scr, Base_spin, Cartesian_tensor, Core_resolved, Dafs, Dafs_bio, Dipmag, &
-    Dyn_eg, Dyn_g, E_Fermi_man, Eneg, Energphot, Extract, Final_optic, Final_tddft, &
+    Dyn_eg, Dyn_g, E_Fermi_man, Eneg, Energphot, Extract, FDM_comp, Final_optic, Final_tddft, &
     Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green, Green_int, &
     Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, Magnetic, &
     Moyenne, NRIXS, Octupole, Optic, Quadrupole, Radial_comp, &
@@ -145,6 +145,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
 
   Xan_atom = .false.
   Optic = .false.
+  FDM_comp = .false.
   Final_optic = Optic
   Final_tddft = .true.
   Green = .true.
@@ -451,7 +452,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
       icheck_s = max( icheck(22), icheck(20) )
 
       if( NRIXS ) call S_nrixs_cal(coef_g,Core_resolved,Ecinetic, &
-                      Eimag(ie),Energ(ie),Enervide,Eseuil,Final_tddft,Full_potential,Green,Green_int,Hubb_a,Hubb_d, &
+                      Eimag(ie),Energ(ie),Enervide,Eseuil,FDM_comp,Final_tddft,Full_potential,Green,Green_int,Hubb_a,Hubb_d, &
                       icheck_s,l0_nrixs,lmax_nrixs,is_g,lmax_probe,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
                       mpinodes,mpirank, &
                       n_Ec,n_V,nbseuil,ns_dipmag,nd3,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlm_probe, &
@@ -460,8 +461,8 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
                       V_hubb_t,V_intmax,V0bdc,Vrato,Ylm_comp)
 
       call tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
-                Eimag(ie),Energ(ie),Enervide,Eseuil,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a,Hubb_d, &
-                icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
+                Eimag(ie),Energ(ie),Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
+                Hubb_d,icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
                 n_Ec,n_oo,n_V,nbseuil,ns_dipmag,nd3,nenerg_tddft,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlm_probe,nlm_p_fp, &
                 nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Rmtg,Rmtsd,rof0_e,rot_atom_abs,Rot_int, &
@@ -622,8 +623,8 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Chi
 
   logical:: Allsite, Atomic_scr, Base_spin, Cartesian_tensor, Core_resolved, Dafs, Dafs_bio, Dipmag, &
-    E_Fermi_man, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Eneg, Energphot, Extract, Final_optic, Final_tddft, &
-    Full_potential, Full_self_abs, Gamma_tddft, Green_int, &
+    E_Fermi_man, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Eneg, Energphot, Extract, FDM_comp, Final_optic, Final_tddft, &
+    Full_potential, Full_self_abs, Gamma_tddft, Green, Green_int, &
     Hubb_a, Hubb_d, lmoins1, lplus1, M_depend, M1M1, Magnetic, &
     Moyenne, No_diag, NRIXS, Octupole, Optic, Quadrupole, Radial_comp, &
     Recup_tddft_data, Relativiste, RPALF, Self_abs, Solsing, Solsing_only, Spherical_signal, &
@@ -677,7 +678,10 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
   NRIXS = .false.
   Final_optic = Optic
   Final_tddft = .true.
+  FDM_comp = .false.
+  Green = .true.
   Epsii(:) = 0._db
+  n_tens_max = 0
 
   E1E1 = Multipole(1); E1E2 = Multipole(2); E1E3 = Multipole(3);
   E1M1 = Multipole(4); E2E2 = Multipole(6);
@@ -1009,8 +1013,8 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
         icheck_s = max( icheck(22), icheck(20) )
 
         call tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
-                Eimag_t(1),Energ(ie),Enervide,Eseuil,Final_optic,Final_tddft,Full_potential,Green_int,Hubb_a,Hubb_d, &
-                icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
+                Eimag_t(1),Energ(ie),Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
+                Hubb_d,icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
                 n_Ec,n_oo,n_V,nbseuil,ns_dipmag,nd3,nenerg_tddft,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlm_probe,nlm_p_fp, &
                 nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Rmtg,Rmtsd,rof0_e,rot_atom_abs,Rot_int, &
@@ -1067,14 +1071,14 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
       if( ie > nenerg ) exit
 
       call write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
-            Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
-            f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer, &
-            Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,natomsym,nbseuil, &
-            ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
-            nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
-            phdt,pol,poldafse,poldafss,Rot_int,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
-            secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
-            Spherical_tensor,Spinorbite,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)
+                  Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
+                  f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer, &
+                  Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_tens_max,natomsym,nbseuil, &
+                  ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
+                  nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
+                  phdt,pol,poldafse,poldafss,Rot_int,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
+                  secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
+                  Spherical_tensor,Spinorbite,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)
 
       if( ie == 1 ) nomfich_cal_tddft_conv = nomfich_cal_convt
 

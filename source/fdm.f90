@@ -92,8 +92,8 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
      Axe_loc, Basereel, Base_hexa, Base_ortho, Base_spin, Bormann, Clementi, Cal_xanes, Cartesian_tensor, Charge_free, &
      Convergence, Core_resolved, Convolution_cal, Coupelapw, Dafs, Dafs_bio, Density, Density_comp, Devide_Ei, Dipmag, &
      Doping, Dyn_eg, Dyn_g, E_comp, E1E1, E1E2, E1E2e, E1E3, E1M1, E2E2, E3E3, E_Fermi_man, Eneg, Eneg_i, Eneg_n_i, Energphot, &
-     Extract, Extract_Green, FDM_comp, Fermi, Fermi_first, Final_optic, Final_tddft, Fit_cal, Flapw, Flapw_new, Force_ecr, &
-     Full_atom, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green, Green_i, Green_int, &
+     Extract, Extract_Green, FDM_comp, FDM_comp_m, Fermi, Fermi_first, Final_optic, Final_tddft, Fit_cal, Flapw, Flapw_new, &
+     Force_ecr, Full_atom, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green, Green_i, Green_int, &
      Green_s, Green_self, Hubb_a, Hubb_d, Hubbard, key_calc, korigimp, &
      Level_val_abs, Level_val_exc, lmaxfree, lmoins1, lplus1, M1M1, Magnetic, Matper, Memory_save, Moy_cluster, &
      Moy_loc, Moyenne, Muffintin, No_solsing, Noncentre, Nonexc_g, Nonexc, Normaltau, NRIXS, Octupole, Old_reference, One_run, &
@@ -817,9 +817,17 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
        else
         Green = Green_self
       endif
+
+      FDM_comp_m = FDM_comp
+! Annule l'effet FDM_comp sur calcul soluton singuliere
+!                         sur complexe conjugue dans Mat pour calcul Tau
+!                         sur complexe conjugue dans Tenseur_car sur integrales radiales
+!         --> calcul classique FDM avec complexe conjuge
+      FDM_comp_m = .false.
+
       if( Cal_xanes .and. ( Tddft .or. Optic ) ) then
         Eneg = .false.
-      elseif( Green .or. FDM_comp ) then
+      elseif( Green .or. FDM_comp_m ) then
         Eneg = .not. Eneg_n_i
       else
         Eneg = Eneg_i
@@ -1743,7 +1751,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
             if( No_solsing ) then
               Solsing = .false.
-            elseif( E_comp .and. Green ) then
+            elseif( E_comp .and. ( Green .or. FDM_comp_m ) ) then
               Solsing = .true.
             else
               Solsing = Solsing_s
@@ -1947,7 +1955,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
                     call cnlmmax(lmaxso,lval,n,nlmso)
                     deallocate( lval )
                     call mat(Adimp,Atom_axe,Axe_Atom_grn,Base_hexa,Base_ortho,Basereel,Cal_xanes,cgrad, &
-                    clapl,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,Full_atom, &
+                    clapl,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,FDM_comp_m,Full_atom, &
                     gradvr,iaabsi,iaprotoi,iato,ibord,ich,ie,igreq,igroupi,igrph,irep_util,isbord,iso,ispin,isrt,ivois,isvois, &
                     karact,lato,lmaxa,lmaxso,lso,mato,MPI_host_num_for_mumps,mpirank0,mso, &
                     natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup,ngrph,nim,nicm, &
@@ -2074,7 +2082,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
                 if( mpirank_in_mumps_group == 0 ) then
                   if( NRIXS ) &
                     call S_nrixs_cal(coef_g,Core_resolved,Ecinetic, &
-                      Eimag(ie),Energ(ie),Enervide_t,Eseuil,Final_tddft,Full_potential,Green,Green_i,Hubb_a,Hubb_d, &
+                      Eimag(ie),Energ(ie),Enervide_t,Eseuil,FDM_comp,Final_tddft,Full_potential,Green,Green_i,Hubb_a,Hubb_d, &
                       icheck(20),l0_nrixs,lmax_nrixs,is_g,lmax_probe,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
                       mpinodes,mpirank, &
                       n_Ec,n_V,nbseuil,ns_dipmag,ndim2,ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe, &
@@ -2082,9 +2090,9 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
                       Rmtsd(iprabs),S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Taull_abs, &
                       V_hubb_abs,V_intmax,V0bdc,Vra,Ylm_comp)
 
-                  call tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
-                      Eimag(ie),Energ(ie),Enervide_t,Eseuil,Final_optic,Final_tddft,Full_potential,Green,Green_i,Hubb_a,Hubb_d, &
-                      icheck(20),ie,ip_max,ip00,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
+                  call tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic,Eimag(ie), &
+                      Energ(ie),Enervide_t,Eseuil,FDM_comp_m,Final_optic,Final_tddft,Full_potential,Green,Green_i,Hubb_a, &
+                      Hubb_d,icheck(20),ie,ip_max,ip00,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                       mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi, &
                       Multipole,n_Ec,n_oo,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlv,nlm_pot, &
                       nlm_probe,nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat(itabs),psii,r,Relativiste,Rmtg(iprabs), &

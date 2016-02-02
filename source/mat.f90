@@ -3,7 +3,7 @@
 ! Remplissage de la matrice FDM et resolution du systeme d'equations lineaires.
 
 subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xanes,cgrad, &
-                    clapl,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide,Full_atom, &
+                    clapl,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide,FDM_comp,Full_atom, &
                     gradvr,iaabsi,iaprotoi,iato,ibord,icheck,ie,igreq,igroupi,igrph,irep_util,isbord,iso,ispinin,isrt,ivois, &
                     isvois,karact,lato,lmaxa,lmaxso,lso,mato,MPI_host_num_for_mumps,mpirank0,mso, &
                     natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup_m,ngrph,nim,nicm, &
@@ -44,7 +44,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   complex(kind=db), dimension(:,:,:), allocatable :: Bessel, Neuman
   complex(kind=db), dimension(:,:,:,:), allocatable :: taull_tem
 
-  logical:: Base_hexa, Base_ortho, Basereel, Basereelt, Cal_xanes, Cal_comp, E_comp, Eneg, Full_atom, recop, &
+  logical:: Base_hexa, Base_ortho, Basereel, Basereelt, Cal_xanes, Cal_comp, E_comp, Eneg, FDM_comp, Full_atom, recop, &
     Relativiste, Repres_comp, Rydberg, Spinorbite, Solsing, State_all_r, Stop_job, Sym_cubic, Ylm_comp
   logical, dimension(natome):: Atom_axe
 
@@ -264,7 +264,11 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
             ampl2 = cmplx(smr(lmf,jj),smi(lmf,jj),db)
           endif
 
-          cfac = cfac + conjg( ampl1 ) * ampl2
+          if( FDM_comp ) then
+            cfac = cfac + ampl1 * ampl2
+          else
+            cfac = cfac + conjg( ampl1 ) * ampl2
+          endif
           
         end do
 

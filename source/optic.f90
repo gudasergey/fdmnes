@@ -65,7 +65,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Taull_abs
 
   logical:: Allsite, Base_spin, Cartesian_tensor, Core_resolved, Dafs, Dafs_bio, E_Fermi_man, &
-    E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Eneg, Energphot, Extract, Final_optic, Final_tddft, Full_potential, &
+    E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Eneg, Energphot, Extract, FDM_comp, Final_optic, Final_tddft, Full_potential, &
     Full_self_abs, Green, Green_int, Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, M1M1, &
     Moyenne, Relativiste, Self_abs, Solsing, &
     Solsing_only, Spherical_signal, Spherical_tensor, Spinorbite, Tddft, Xan_atom, Ylm_comp
@@ -105,6 +105,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
 
   Epsii(:) = 0._db
   Green_int = .false.
+  FDM_comp = .false.
   n_V = 1
   n_Ec = 2
   ns_dipmag = 2  ! correspond ici aux 2 energies, pas a la transition E1M1
@@ -261,8 +262,8 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
       allocate( rof0(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil) )
 
       call tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
-                Eimag(ie),Energ(ie),Enervide,Eseuil,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a,Hubb_d, &
-                icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
+                Eimag(ie),Energ(ie),Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
+                Hubb_d,icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
                 n_Ec,n_oo,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlr,nlm_pot,nlm_probe,nlm_p_fp, &
                 nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Rmtg,Rmtsd,rof0,rot_atom_abs,Rot_int, &

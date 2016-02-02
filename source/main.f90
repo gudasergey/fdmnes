@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 16 December 2015, 25 Frimaire, An 22.
+! FDMNES II program, Yves Joly, Oana Bunau, 8 January 2016, 18 Nivose, An 224.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
 
   character(len=50):: com_date, com_time
 
-  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 16 December 2015'
+  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 8 January 2016'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -227,7 +227,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 36
-  integer, parameter:: nkw_fdm = 170
+  integer, parameter:: nkw_fdm = 171
   integer, parameter:: nkw_conv = 30
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
@@ -302,8 +302,8 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
   data kw_fdm/  &
      'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_conf','ang_spin ','atomic_sc','axe_spin ', &
-     'base_comp','base_reel','base_spin','bond     ','cartesian','center   ','center_ab','chlib    ', &
-     'clementi ','core_reso','crystal  ','crystal_p','crystal_t','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_', &
+     'base_comp','base_reel','base_spin','bond     ','cartesian','center   ','center_ab','chlib    ','cif_file ','clementi ', &
+     'core_reso','crystal  ','crystal_c','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_', &
      'delta_eps','density  ','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ','edge     ', &
      'e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot','etatlie  ', &
      'excited  ','extract  ','extractpo','extractsy','fdm_comp ','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ', &
@@ -313,7 +313,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'muffintin','multrmax ','n_self   ','nchemin  ','new_refer','no_core_r','no_e1e1  ','no_e1e2  ','no_e1e3  ', &
      'no_e2e2  ','no_e3e3  ','no_fermi ','no_res_ma','no_res_mo','no_solsin','normaltau','norman   ','noncentre', &
      'non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','octupole ','old_refer','one_run  ','optic    ','optic_dat', &
-     'over_rad ','overlap  ','p_self   ','perdew   ','pointgrou','polarized', &
+     'over_rad ','overlap  ','p_self   ','pdb_file ','perdew   ','pointgrou','polarized', &
      'quadmag  ','quadrupol','radius   ','range    ','rangel   ','raydem   ','rchimp   ','readfast ','relativis', &
      'rmt      ','rmtg     ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ','save_opti','save_tddf', &
      'self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
@@ -1699,6 +1699,10 @@ function traduction(grdat)
       traduction = 'atom_ch'
     case('crist','cryst','cristallo','cristal')
       traduction = 'crystal'
+    case('cristal_c','crystal_c','ciffile')
+      traduction = 'cif_file'
+    case('cristal_p','crystal_p','pdbfile')
+      traduction = 'pdb_file'
     case('molec','molecola')
       traduction = 'molecule'
     case('lapw','wien')

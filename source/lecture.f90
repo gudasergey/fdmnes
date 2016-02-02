@@ -13,26 +13,28 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
   include 'mpif.h'
 
   integer:: eof, eoff, i, ie, ier, igamme, igr, igrdat, io, ipr, ipl, istat, it, itape4, itype_dop, j,&
-    jgr, jpl, kgr, l, ligne, lin_gam, mpinodes0, mpirank0, n, n_adimp, n_radius, n_range,n_dic, n_file_dafs_exp, &
-    n_multi_run_e, na, nb, nb_atom_conf_m, ncolm, neimagent, &
+    jgr, jpl, k, kgr, l, ligne, lin_gam, mpinodes0, mpirank0, n, n_adimp, n_radius, n_range, n_dic, n_file_dafs_exp, &
+    n_multi_run_e, n_skip, na, nb, nb_atom_conf_m, ncolm, neimagent, &
     nenerg, ngamme, ngc, ngroup, ngroup_neq, nhybm, nklapw, nl, &
     nlatm, nlmlapwm, nmatsym, nn, nnombre, norbdil, norbv, mpierr, &
     npldafs, nple, nplm, nplrm, nq_nrixs, nspin, nspino, nspinp, ntype, ntype_conf, Wien_save, Z
 
+  character(len=1):: c
   character(len=2):: Chemical_Symbol, Chemical_Symbol_c, Symbol
+  character(len=4):: mot4
   character(len=6):: mot6
   character(len=9):: grdat
   character(len=13):: Space_Group, Spgr
-  character(len=132):: Fichier, Fichier_pdb,  identmot, mots, motsb, Space_file
+  character(len=132):: Fichier, Fichier_cif, Fichier_pdb, identmot, mot, motsb, Space_file
   character(len=132), dimension(9):: Wien_file
 
   integer, dimension(:), allocatable :: igra, neq, numat
 
-  logical:: Absauto, adimpin, Atom_conf, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Cylindre, Doping, &
+  logical:: Absauto, adimpin, Atom_conf, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Cif, Cylindre, Doping, &
      Extract, Flapw, Full_self_abs, Hubbard, Magnetic, Matper, Memory_save, NRIXS, Pdb, Quadrupole, Readfast, &
      Screening, Self_abs, Spherique, Taux, Temperature, Use_FDMX, Xan_atom
 
-  real(kind=db):: Adimp, de, def, E, phi, q_nrixs_first, q_nrixs, q_nrixs_step, q_nrixs_last, r, Rsorte_s, Theta
+  real(kind=db):: Adimp, de, def, number_from_text, E, phi, q_nrixs_first, q_nrixs, q_nrixs_step, q_nrixs_last, r, Rsorte_s, Theta
   real(kind=db), dimension(3):: p
   real(kind=db), dimension(3,3):: Mat
   real(kind=db), dimension(:), allocatable:: E_adimp, E_radius, Egamme
@@ -43,6 +45,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
   Atom_nonsph = .false.
   Atom_occ_hubb = .false.
   Axe_loc = .false.
+  Cif = .false.
   Cylindre = .false.
   Doping = .false.
   Extract = .false.
@@ -102,10 +105,10 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
 
     boucle_gen: do
 
-      read(itape4,'(A)',iostat=eof) mots
+      read(itape4,'(A)',iostat=eof) mot
       if( eof /= 0 ) exit boucle_gen
 
-      grdat = identmot(mots,9)
+      grdat = identmot(mot,9)
 
       if( grdat(1:1) == '!' ) cycle
 
@@ -166,9 +169,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
 
         case('spgroup')
           n = nnombre(itape4,132)
-          read(itape4,'(A)') mots
-          if( mots(1:1) == ' ' ) mots = adjustl(mots)
-          Space_group = mots(1:13)
+          read(itape4,'(A)') mot
+          if( mot(1:1) == ' ' ) mot = adjustl(mot)
+          Space_group = mot(1:13)
 
         case('temperatu')
           Temperature = .true.
@@ -510,7 +513,68 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
           ngroup = igr - 1
 
 ! Description de l'agregat :
-        case('crystal_p')
+        case('cif_file')
+
+          Cif = .true.
+          Taux = .true.
+          Matper = .true.
+
+          Fichier_cif = ' '
+          read(itape4,'(A)') Fichier_cif
+          Fichier_cif = Adjustl(Fichier_cif)
+          l = len_trim(Fichier_cif)
+          if( l > 4 ) then
+            if( Fichier_cif(l-3:l-3) /= '.' ) Fichier_cif(l+1:l+4) = '.cif'
+          endif
+          open(8, file = Fichier_cif, status='old', iostat=istat)
+          if( istat /= 0 ) call write_open_error(Fichier_cif,istat,1)
+
+          do
+
+            read(8,'(A)',iostat=eoff) mot
+
+            if( eoff /= 0 ) exit
+
+            if( mot(1:30) == '_symmetry_space_group_name_H-M' ) then
+
+              l = len_trim(mot)
+
+              do i = 31,l
+                if( mot(i:i) == '''' ) exit
+              end do
+              k = 0
+              j = i + 1
+              do i = j,l
+               if( mot(i:i) == ' ' ) cycle
+               if( mot(i:i) == '''' ) exit
+               k = k + 1
+               Space_group(k:k) = mot(i:i)
+              end do
+
+            elseif( mot(1:18) == '_atom_site_fract_x' ) then
+
+              do
+                read(8,'(a1)') c
+                if( c /= '_' ) exit
+              end do
+              backspace(8)
+
+              igr = 0
+              do
+                read(8,'(a4)',iostat=eoff) mot4
+                if( eoff /= 0 .or. mot4(1:1) == '_' .or. mot4 == 'loop' ) exit
+                igr = igr + 1
+              end do
+              exit
+
+            endif
+
+          end do
+
+          Close(8)
+          ngroup = igr
+
+        case('pdb_file')
 
           Pdb = .true.
           Taux = .true.
@@ -555,7 +619,6 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
 
               case('ATOM  ','HETATM')
 
-!                read(8,*)
                 igr = igr + 1
 
               case default
@@ -691,7 +754,6 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
 
               backspace(8)
               read(8,'(30x,3f8.3,22x,a2)') p(:), Symbol
-!              read(8,*)
 
               igr = igr + 1
               p = Matmul( Mat, p )
@@ -722,13 +784,70 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
 
         Close(8)
 
+      elseif( Cif ) then
+
+        open(8, file = Fichier_cif, status='old', iostat=istat)
+
+        igr = 0
+
+        do
+          read(8,'(A)') mot
+          if( mot(1:16) == '_atom_site_label' ) exit
+        end do
+        backspace(8)
+
+        n = 0
+        do
+          n = n + 1
+          read(8,'(A)') mot
+          if( mot(1:1) /= '_' ) then
+            backspace(8)
+            exit
+          elseif( mot(1:18) == '_atom_site_fract_x' ) then
+            n_skip = n - 1
+          elseif( mot(1:20) == '_atom_site_occupancy ') then
+            Taux = .true.
+          endif
+        end do
+
+        do igr = 1,ngroup_neq
+
+          read(8,'(A)') mot
+
+! Lecture element chimique
+          Symbol = mot(1:2)
+          if( Symbol(2:2) == '1' .or. Symbol(2:2) == '2' .or. Symbol(2:2) == '3' .or. Symbol(2:2) == '4' .or.  &
+              Symbol(2:2) == '5' .or. Symbol(2:2) == '6' .or. Symbol(2:2) == '7' .or. Symbol(2:2) == '8' .or.  &
+              Symbol(2:2) == '9' ) Symbol(2:2) = ' '
+
+          do i = 1,103
+            if( Chemical_Symbol_c(i) /= Symbol .and. Chemical_Symbol(i) /= Symbol ) cycle
+            numat(igr) = i
+            exit
+          end do
+          if( i == 104 ) then
+            call write_error
+            do ipr = 6,9,3
+              write(ipr,170) igr, Symbol
+            end do
+            stop
+          endif
+
+          posn(1,igr) = number_from_text(n_skip,mot)
+          posn(2,igr) = number_from_text(n_skip+1,mot)
+          posn(3,igr) = number_from_text(n_skip+2,mot)
+
+        end do
+
+        Close(8)
+
       else
 
         Rewind(itape4)
 
         do igrdat = 1,100000
-          read(itape4,'(A)') mots
-          grdat = identmot(mots,9)
+          read(itape4,'(A)') mot
+          grdat = identmot(mot,9)
           if( grdat(1:7) /= 'crystal' .and. grdat(1:7) /= 'molecul' ) cycle
 
           n = nnombre(itape4,132)
@@ -791,8 +910,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
         Rewind(itape4)
 
         do igrdat = 1,100000
-          read(itape4,'(A)') mots
-          grdat = identmot(mots,9)
+          read(itape4,'(A)') mot
+          grdat = identmot(mot,9)
           if( grdat /= 'atom_conf' ) cycle
 
           na = 0
@@ -1115,9 +1234,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   integer:: eof, eoff, i, i_range, ier, ia, ie, igr, igr_dop, igrdat, io, iord, ip, ipar, ipl, ipl0, ipr, ipr0, iscratch, isp, &
     ispin, istat, istop, isymeq, it, itape4, itype_dop, j, jgr, jpl, jseuil, jt, k, kgr, l, l_hubbard, l_level_val, &
     l_selec_max, l1, l2, lamstdens, lecrantage, lin_gam, lmax_nrixs, lmax_pot, lmax_pot_default, lmaxat0, lmaxso0, long, &
-    lseuil, m, &
-    m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank0, multi_run, multrmax, n, n_adimp, n_atom_proto, &
-    n_devide, n_file_dafs_exp, n_multi_run_e, n_orb_rel, n_radius, n_range, n1, n2, natomsym, nb_atom_conf_m, nbseuil, nchemin, &
+    lseuil, m,  m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank0, &
+    multi_run, multrmax, n, n_adimp, n_atom_proto, n_devide, n_file_dafs_exp, n_fract_x, n_fract_y, n_fract_z, n_multi_run_e, &
+    n_occupancy, n_orb_rel, n_radius, n_range, n1, n2, natomsym, nb_atom_conf_m, nbseuil, nchemin, &
     necrantage, neimagent, nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_neq, ngroup_nonsph, &
     ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, nhybm, nlatm, nn, nnlm, nnombre, non_relat, norb, norbdil, normrmt, &
     nparm, nphim, nphimt, npldafs, nple, nq_nrixs, nrato_dirac, nrm, nscan, nself, nseuil, nslapwm, nspin, ntype, ntype_conf, &
@@ -1125,16 +1244,16 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
   character(len=1):: Let
   character(len=2):: Chemical_Symbol, Chemical_Symbol_c, Symbol
-  character(len=3):: seuil
+  character(len=3):: Seuil
   character(len=5):: Solver, Struct
   character(len=6):: mot6
   character(len=8):: PointGroup
   character(len=9):: grdat
   character(len=11):: motpol
   character(len=13):: Chemical_Name, mot13, Space_Group, Spgr
-  character(len=35), dimension(0:ntype):: com
-  character(len=132):: comt, Fichier, identmot, mots, motsb, nomfich, nomfich_optic_data, nomfich_tddft_data, &
+  character(len=132):: comt, Fichier, identmot, mot, motsb, nomfich, nomfich_optic_data, nomfich_tddft_data, &
     nom_fich_Extract, nomfichbav, Space_file
+  character(len=35), dimension(0:ntype):: com
   character(len=132), dimension(9):: Wien_file
   character(len=132), dimension(n_file_dafs_exp):: File_dafs_exp
   character(len=9), dimension(ngroup_par,nparm):: typepar
@@ -1186,7 +1305,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   logical, dimension(0:ntype):: Hubb
 
   real(kind=db):: Alfpot, Ang_borm, D_max_pot, Delta_En_conv, Delta_Epsii, Eclie, Eclie_out, g1, g2, Gamma_max, &
-    Overlap, p_self0, Pas_SCF, phi, pop_nsph, pp, q, r, R_rydb, rad, Rmtt, rn, Roverad, Rpotmax, &
+    number_from_text, Overlap, p_self0, Pas_SCF, phi, pop_nsph, pp, q, r, R_rydb, rad, Rmtt, rn, Roverad, Rpotmax, &
     Step_azim, t, tc, Temp, Test_dist_min, Theta, V_intmax, vv
 
   real(kind=db):: Kern_fac, q_nrixs_first, q_nrixs_step, q_nrixs_last, r_self
@@ -1441,10 +1560,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
     boucle_lect: do igrdat = 1,100000
 
-      read(itape4,'(A)',iostat=eof) mots
+      read(itape4,'(A)',iostat=eof) mot
       if( eof /= 0 ) exit boucle_lect
 
-      grdat = identmot(mots,9)
+      grdat = identmot(mot,9)
       if( grdat(1:1) /= ' ' ) write(6,'(3x,A)') grdat
 
       select case(grdat)
@@ -2572,7 +2691,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             endif
           end do
 
-        case('crystal_p')
+        case('pdb_file')
 
           Pdb = .true.
           Fichier = ' '
@@ -2670,6 +2789,127 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
           Close(8)
 
+! Description de l'agregat :
+        case('cif_file')
+
+          Matper = .true.
+
+          Fichier = ' '
+          read(itape4,'(A)') Fichier
+          Fichier = Adjustl(Fichier)
+          l = len_trim(Fichier)
+          if( l > 4 ) then
+            if( Fichier(l-3:l-3) /= '.' ) Fichier(l+1:l+4) = '.cif'
+          endif
+          open(8, file = Fichier, status='old', iostat=istat)
+          if( istat /= 0 ) call write_open_error(Fichier,istat,1)
+
+          do
+
+            read(8,'(A)',iostat=eof) mot
+
+            if( eof /= 0 ) exit
+
+            if( mot(1:30) == '_symmetry_space_group_name_H-M' ) then
+
+            l = len_trim(mot)
+
+            do i = 31,l
+              if( mot(i:i) == '''' ) exit
+            end do
+            k = 0
+            j = i + 1
+            do i = j,l
+              if( mot(i:i) == ' ' ) cycle
+              if( mot(i:i) == '''' ) exit
+              k = k + 1
+              Space_group(k:k) = mot(i:i)
+            end do
+
+            elseif( mot(1:17) == '_cell_angle_alpha' ) then
+              angxyz(1) = number_from_text(1,mot)
+
+            elseif( mot(1:16) == '_cell_angle_beta' ) then
+              angxyz(2) = number_from_text(1,mot)
+
+            elseif( mot(1:17) == '_cell_angle_gamma' ) then
+              angxyz(3) = number_from_text(1,mot)
+
+            elseif( mot(1:14) == '_cell_length_a') then
+              axyz(1) = number_from_text(1,mot)
+
+            elseif( mot(1:14) == '_cell_length_b') then
+              axyz(2) = number_from_text(1,mot)
+
+            elseif( mot(1:14) == '_cell_length_c') then
+              axyz(3) = number_from_text(1,mot)
+
+            elseif( mot(1:16) == '_atom_site_label') then
+
+              n_fract_x = 0; n_fract_y = 0; n_fract_z = 0
+
+              do n = 1,100000
+                read(8,'(A)') mot
+                if( mot(1:1) /= '_' ) then
+                  backspace(8)
+                  exit
+                elseif( mot(2:18) == 'atom_site_fract_x') then
+                  n_fract_x = n
+                elseif( mot(2:18) == 'atom_site_fract_y') then
+                  n_fract_y = n
+                elseif( mot(2:18) == 'atom_site_fract_z') then
+                  n_fract_z = n
+                elseif( mot(2:20) == 'atom_site_occupancy') then
+                  Taux = .true.
+                  n_occupancy = n
+                endif
+              end do
+
+              if( n_fract_x == 0 .or. n_fract_y == 0 .or. n_fract_z == 0 ) then
+                call write_error
+                do ipr = 6,9,3
+                  write(ipr,100)
+                  write(ipr,165) Fichier
+                end do
+                stop
+              endif
+
+              do igr = 1,ngroup_neq
+
+                read(8,'(A)') mot
+
+! Lecture element chimique
+                Symbol = mot(1:2)
+                if( Symbol(2:2) == '1' .or. Symbol(2:2) == '2' .or. Symbol(2:2) == '3' .or. Symbol(2:2) == '4' .or. &
+                    Symbol(2:2) == '5' .or. Symbol(2:2) == '6' .or. Symbol(2:2) == '7' .or. Symbol(2:2) == '8' .or. &
+                    Symbol(2:2) == '9' ) Symbol(2:2) = ' '
+
+                do i = 1,103
+                  if( Chemical_Symbol_c(i) /= Symbol .and. Chemical_Symbol(i) /= Symbol ) cycle
+                  itype(igr) = i
+                  exit
+                end do
+                if( i == 104 ) then
+                  call write_error
+                  do ipr = 6,9,3
+                    write(ipr,170) igr, Symbol
+                  end do
+                  stop
+                endif
+
+                posn(1,igr) = number_from_text(n_fract_x,mot)
+                posn(2,igr) = number_from_text(n_fract_y,mot)
+                posn(3,igr) = number_from_text(n_fract_z,mot)
+                if( Taux ) Taux_oc(igr) = number_from_text(n_occupancy,mot)
+
+              end do
+
+              exit
+
+            endif
+          end do
+          Close(8)
+
         case('dpos')
           n = nnombre(itape4,132)
           read(itape4,*) dpos(1:3)
@@ -2712,12 +2952,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case default
 
           if( igrdat == 1 ) then
-            comt = mots
+            comt = mot
           elseif( grdat(1:1) /= ' ' ) then
             call write_error
             do ipr = 6,9,3
               write(ipr,100)
-              write(ipr,150) mots
+              write(ipr,150) mot
             end do
             stop
           endif
@@ -3139,14 +3379,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       open(1, file = nom_fich_Extract, status='old', iostat=istat)
       if( istat /= 0 ) call write_open_error(nom_fich_Extract,istat,1)
       do i = 1,100000
-        read(1,'(A)') mots
-        if( mots(2:10) == 'Threshold' ) then
-          l = len_trim(mots)
-          if( mots(l:l) == 'e' ) then
-            seuil = mots(l-7:l-5)
+        read(1,'(A)') mot
+        if( mot(2:10) == 'Threshold' ) then
+          l = len_trim(mot)
+          if( mot(l:l) == 'e' ) then
+            seuil = mot(l-7:l-5)
             seuil = adjustl( seuil )
           else
-            seuil = mots(14:16)
+            seuil = mot(14:16)
           endif
           exit
         endif
@@ -3154,12 +3394,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       end do
       if( Quadrupole ) then
         do i = 1,100000
-          read(1,'(A)') mots
-          if( mots(2:6) == 'Dipol'  ) then
-            read(1,'(A)') mots
-            if( mots(2:6) /= 'Quadr' ) Quadrupole = .false.
-            read(1,'(A)') mots
-            if( mots(2:6) /= 'Octup' ) octupole = .false.
+          read(1,'(A)') mot
+          if( mot(2:6) == 'Dipol'  ) then
+            read(1,'(A)') mot
+            if( mot(2:6) /= 'Quadr' ) Quadrupole = .false.
+            read(1,'(A)') mot
+            if( mot(2:6) /= 'Octup' ) octupole = .false.
             exit
           endif
         end do
@@ -3167,8 +3407,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       Rewind(1)
       Core_resolved = .false.
       do i = 1,100
-        read(1,'(A)') mots
-        if( mots(2:5) /= 'Core'  ) cycle
+        read(1,'(A)') mot
+        if( mot(2:5) /= 'Core'  ) cycle
         Core_resolved = .true.
         exit
       end do
@@ -3489,21 +3729,21 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         open(1, file = nom_fich_Extract, status='old',iostat=istat)
         if( istat /= 0 ) call write_open_error(nom_fich_Extract,istat,1)
         do i = 1,100000
-          read(1,'(A)') mots
-          write(3,'(A)') mots
-          if( mots(2:6) == 'Dipol'  ) exit
+          read(1,'(A)') mot
+          write(3,'(A)') mot
+          if( mot(2:6) == 'Dipol'  ) exit
         end do
       else
         mot13 = Chemical_Name(numat_abs)
         l1 = len_trim(mot13)
         l2 = len_trim(seuil)
-        mots = ' '
-        mots =' Threshold:'
-        mots(13:12+l1) = mot13(1:l1)
-        mots(14+l1:13+l1+l2) = seuil(1:l2)
-        mots(15+l1+l2:18+l1+l2) = 'edge'
-        write(3,'(/A)') mots
-        write(6,'(A)') mots(12:18+l1+l2)
+        mot = ' '
+        mot =' Threshold:'
+        mot(13:12+l1) = mot13(1:l1)
+        mot(14+l1:13+l1+l2) = seuil(1:l2)
+        mot(15+l1+l2:18+l1+l2) = 'edge'
+        write(3,'(/A)') mot
+        write(6,'(A)') mot(12:18+l1+l2)
         if( n_radius == 1 ) then
           write(3,310) Rsorte_s(1)
         else
@@ -3539,18 +3779,18 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
       if( Extract ) then
         do i = 1,100000
-          read(1,'(A)') mots
-          if( mots(2:6) /= 'Relat' .and. mots(6:10) /= 'relat' ) cycle
-          write(3,'(A)') mots
+          read(1,'(A)') mot
+          if( mot(2:6) /= 'Relat' .and. mot(6:10) /= 'relat' ) cycle
+          write(3,'(A)') mot
           exit
         end do
         do i = 1,100000
-          read(1,'(A)') mots
-          if(  mots(2:7) == 'ngroup' .or. mots(2:6) == 'XANES' .or. mots(2:5) == 'DAFS' ) then
+          read(1,'(A)') mot
+          if(  mot(2:7) == 'ngroup' .or. mot(2:6) == 'XANES' .or. mot(2:5) == 'DAFS' ) then
             backspace(1)
             exit
           endif
-          write(3,'(A)') mots
+          write(3,'(A)') mot
         end do
       else
         if( relativiste ) then
@@ -4345,6 +4585,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   160 format(///' Error under the keyword Par_',a6,/ &
                 ' The wanted atom is the number',i3,' !',/ &
                 ' There are only',i3,' atoms in the job !'//)
+  165 format(///' Error in the lecture of the cif_file :',A,/ &
+                '   The position of the atoms are not found',/ &
+                '   (with tag _atom_site_fract_x, _atom_site_fract_y and _atom_site_fract_z) !' //)
   170 format(//'  A parameter index for the fit is not possible !'/, &
                '  Check your indata file under the keyword ',a9,/ &
                '  The index is',i4//)
@@ -4477,6 +4720,53 @@ subroutine Rmt_fix(icheck,ntype,numat,Rmt)
 
   return
   110 format(/' FDM atom radius =',10f6.3)
+end
+
+!***********************************************************************
+
+function number_from_text(n_skip,mot_in)
+
+  use declarations
+  implicit none
+
+  character(len=126):: mot, mot_in
+
+  integer:: i, j, length, n, n_skip
+
+  real(kind=db):: number_from_text
+
+  mot = ' '
+  mot = mot_in
+
+  do n = 1,n_skip
+    mot = adjustl(mot)
+    length = len_trim(mot)
+
+    boucle_i: do i = 1,length
+      if( mot(i:i) == ' ' ) then
+        do j = 1,i-1
+          mot(j:j) = ' '
+        end do
+        exit boucle_i
+      endif
+    end do boucle_i
+    if( n == n_skip ) exit
+  end do
+
+  mot = adjustl(mot)
+  length = len_trim(mot)
+
+  do i = 1,length
+    if( mot(i:i) == ' ' .or. mot(i:i) == '(' ) exit
+  end do
+
+  open(9, status='SCRATCH')
+  write(9,*) mot(1:i-1)
+  backspace(9)
+  read(9,*) number_from_text
+  Close(9)
+
+  return
 end
 
 !***********************************************************************

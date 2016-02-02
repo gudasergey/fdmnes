@@ -2071,7 +2071,7 @@ subroutine pot0muffin(alfpot,Base_ortho,Cal_xanes,chargat,chargat_init,chargat_s
 
 ! Correction due au defaut de charge lie au Full atom = faux
 
-  if( i_self > 1 .and. .not. Full_atom) then
+  if( i_self > 1 .and. .not. Full_atom ) then
     Delta_ch = 0._db
     do ib = 1, natomeq_self
       iprb = iaproto(ib)
