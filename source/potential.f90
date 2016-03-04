@@ -8,9 +8,9 @@ subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,charg
             itypei,itypep,itypepr,ldil,lmax_pot,lvval,Magnetic,mpirank,n_atom_0,n_atom_0_self,n_atom_ind, &
             n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,neqm,ngreq,ngroup_m,ngroup_nonsph, &
             nhybm,nlat,nlatm,nlm_pot,Nonexc,norbdil,norbv,normrmt,npoint,npoint_ns,npsom,nr_abs,nrato,nrm,nrm_self,nspin,ntype, &
-            numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self, psival,r_self,rato,rchimp,rho,rho_chg, &
-            rho_self,rhoato_abs,rhoato_init,rhoit,rhons,rmtg,rmtimp,rmtg0,rmtsd,Rot_Atom_gr,Rot_int,rs, &
-            rsato,rsort,self_nonexc,TdOpt_xanes,V_abs_i,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp,xyz, &
+            numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self, psival,rato,rchimp,rho,rho_chg, &
+            rho_self,rhoato_abs,rhoato_init,rhoit,rhons,rmtg,rmtimp,rmtg0,rmtsd,Rot_Atom_gr,Rot_int,rs,rsato, &
+            rsort,SCF,self_nonexc,TdOpt_xanes,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp,xyz, &
             i_range)
 
   use declarations
@@ -35,9 +35,9 @@ subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,charg
 
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph) :: hybrid
 
-  logical:: Atom_nonsph, Base_ortho, cal_xanes, Full_atom, Magnetic, nonexc, self_nonexc, TdOpt_xanes
+  logical:: Atom_nonsph, Base_ortho, Cal_xanes, Full_atom, Magnetic, nonexc, SCF, Self_nonexc, TdOpt_xanes
 
-  real(kind=db):: alfpot, f_integr3, overlap, r_self, rayint, rsort, V_intmax, v0bdcFimp, Vsphere
+  real(kind=db):: alfpot, f_integr3, overlap, rayint, rsort, V_intmax, v0bdcFimp, Vsphere
   real(kind=db), dimension(3):: dcosxyz
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_init, chargat_self
   real(kind=db), dimension(norbdil):: cdil
@@ -65,7 +65,6 @@ subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,charg
   real(kind=db), dimension(3,3,ngroup_m):: Rot_Atom_gr
   real(kind=db), dimension(0:nrm):: rsato_e
   real(kind=db), dimension(0:nrm,nlm_pot):: Vcato_e
-  real(kind=db), dimension(nrm,nspin):: V_abs_i
   real(kind=db), dimension(0:nrm,nspin):: rho_chg_e, rho_no_sup_e, rhoato_e, rhoato_init_e
   real(kind=db), dimension(0:nrm,nlm_pot,nspin):: vxcato_e
   real(kind=db), dimension(0:nrm,0:n_atom_proto):: vato
@@ -98,7 +97,7 @@ subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,charg
         igreq,igroup,itypepr,lvval,mpirank,n_atom_proto,natomeq,natomp,neqm,ngroup_m,ngroup_nonsph,nhybm,nlat,nlatm,norbv, &
         npoint,npoint_ns,npsom,nrato,nrm,ntype,pop_nonsph,pos,psival,rato,rhons,rhonspr,Rot_Atom_gr,Rot_int,vhns,vhnspr,xyz)
 
-  if( cal_xanes ) then
+  if( Cal_xanes ) then
     iapr0 = n_atom_0
     n_iapr = n_atom_ind
   else
@@ -124,11 +123,10 @@ subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,charg
     iaprex = 0
   endif
 
-! A la premiere iteration, on calcule a la fois l'excite et le non
-! excite
+! A la premiere iteration, on calcule a la fois l'excite et le non excite
   if( i_self == 1 ) iapr0 = 0
 
-  if( icheck(13) > 2 ) write(3,110) i_self, full_atom, iapr0, n_iapr
+  if( icheck(13) > 2 ) write(3,110) i_self, Full_atom, iapr0, n_iapr
 
   do iapr = iapr0,n_iapr
 
@@ -169,8 +167,8 @@ subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,charg
         drho_ex_nex,drhoato_e,dvc_ex_nex,dvcato_e,exc,Full_atom,i_self,ia_eq_inv_self,iaproto,iapot,iapr, &
         icheck(13),ipr,iprabs,itypep,itypepr,lmax_pot,Magnetic,n_atom_0,n_atom_0_self, &
         n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,nlm_pot,nonexc,nrato,nrm,nrm_self, &
-        nspin,ntype,numat,pos,posi,r_self,rato,rho_chg_e,rho_no_sup_e,rho_self,rhoato_e,rhoato_init_e,rhoigr, &
-        rhonspr(ipr),Rmtsd(ipr),rsato_e,self_nonexc,Vato,Vcato_e,Vcato_init_e,Vhnspr(ipr),Vsphere,Vxcato_e)
+        nspin,ntype,numat,pos,posi,rato,rho_chg_e,rho_no_sup_e,rho_self,rhoato_e,rhoato_init_e,rhoigr, &
+        rhonspr(ipr),Rmtsd(ipr),rsato_e,SCF,Self_nonexc,Vato,Vcato_e,Vcato_init_e,Vhnspr(ipr),Vsphere,Vxcato_e)
 
     if( iapr >= n_atom_0 ) then
       rsato(:,iapr) = rsato_e(:)
@@ -192,15 +190,6 @@ subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,charg
       Vcato_init(:,iapr) = Vcato_e(:,1)
       rhoato_init(:,:,iapr) = rhoato_e(:,:)
       rho_chg(:,:,iapr) = rho_chg_e(:,:)
-    endif
-
-! On stocke le potentiel non excite de l'absorbeur (sert au calcul de
-! l'energie du niveau initial )
-    if( iapr == iaprabs .and. ( i_self == 1 .or. ( self_nonexc .and. .not. Cal_Xanes ) .or. &
-      ( Cal_xanes .and. nonexc ) ) ) then
-      do ispin = 1,nspin
-        V_abs_i(1:nrm,ispin) = Vcato_e(1:nrm,1) + Vxcato_e(1:nrm,1,ispin)
-      end do
     endif
 
     if( i_self == 1 ) then
@@ -240,8 +229,8 @@ subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,charg
 ! Calcul du potentiel interstitiel
   call pot0(alfpot,Atom_nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoato,dvcato,Full_atom,i_self, &
         ia_eq_inv,iaabs,iaproto,icheck(12),igreq,igroup,itypep,Magnetic,n_atom_0,n_atom_ind,n_atom_proto,natomeq,natomp, &
-        neqm,ngroup_m,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,pos,rato,rho,rhons,rs,rhoigr,rhomft,rmtg0,V_intmax,vato, &
-        Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
+        neqm,ngroup_m,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,pos,rato,rho,rhons,rs,rhoigr,rhomft,rmtg0,Rmtsd,SCF,V_intmax, &
+        Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
 
 ! Ecriture: la charge des atomes jusqu'au rmtsd, avant toute superposition
   if( i_self == 1 .and. icheck(13) > 2 ) then
@@ -1092,7 +1081,7 @@ subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,ia
 
   endif ! arrive natomp = 1
 
-  if( i_self == 1 .or. cal_xanes ) then
+  if( i_self == 1 .or. Cal_xanes ) then
     rmtsd(:) = rmtg(:)
     if( ipr1 == 1 ) rmtsd(0) = rmtsd(iprabs)
   endif
@@ -1153,8 +1142,8 @@ subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,ia
   140 format(/' Vrop = ',f10.3,' eV',/)
   150 format(' Rmtg : muffin-tin radius',/ &
              ' Rmtsd : Radius for the density of state calculation'/)
-  160 format(' ipr  Z     Rn     Rnorm     Dab     Rdem     Rayop     Rv0     Rmtsd     Rmtg')
-  170 format(i3,i4,8f9.5)
+  160 format('  ipr  Z     Rn     Rnorm     Dab     Rdem     Rayop     Rv0     Rmtsd     Rmtg')
+  170 format(i4,i4,8f9.5)
 end
 
 !***********************************************************************
@@ -1510,8 +1499,8 @@ end
 
 subroutine pot0(alfpot,Atom_nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoato,dvcato,Full_atom,i_self, &
         ia_eq_inv,iaabs,iaproto,icheck,igreq,igroup,itypep,Magnetic,n_atom_0,n_atom_ind,n_atom_proto,natomeq,natomp, &
-        neqm,ngroup_m,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,pos,rato,rho,rhons,rs,rhoigr,rhomft,rmtg0,V_intmax,vato, &
-        Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
+        neqm,ngroup_m,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,pos,rato,rho,rhons,rs,rhoigr,rhomft,rmtg0,Rmtsd,SCF,V_intmax, &
+        Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
 
   use declarations
   implicit none
@@ -1519,16 +1508,17 @@ subroutine pot0(alfpot,Atom_nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoat
   integer:: i, i_self, ia, iaabs, iae, icheck, iga, igr, ipr, ir, isp, ispin, it, itm, kgr, n_atom_0, n_atom_ind, n_atom_proto, &
             natomeq, natomp, neqm, ngroup_m, npoint, npoint_ns, npsom, nrm, nspin, ntype
 
+  integer, dimension(npoint):: ia_close
   integer, dimension(nspin):: ispp
   integer, dimension(natomeq):: ia_eq_inv
   integer, dimension(natomp):: iaproto, igroup, itypep
   integer, dimension(0:ntype):: nrato
   integer, dimension(0:n_atom_proto,neqm):: igreq
 
-  logical:: Atom_nonsph, Base_ortho, Full_atom, Magnetic
+  logical:: Atom_nonsph, Base_ortho, Full_atom, Magnetic, SCF
   logical, dimension(npoint):: iok
 
-  real(kind=db):: alfpot, cosang, drho, dist, dv, f, p1, p2, tiers, V_intmax, vnorme, Vsphere
+  real(kind=db):: alfpot, cosang, drho, dist, dist_min, dv, f, p1, p2, tiers, V_intmax, Vnorme, Vsphere
 
   real(kind=db), dimension(3):: dcosxyz, v
   real(kind=db), dimension(npoint):: rs, Vh
@@ -1537,10 +1527,10 @@ subroutine pot0(alfpot,Atom_nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoat
   real(kind=db), dimension(3,natomp):: pos
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_gr
   real(kind=db), dimension(4,npsom):: xyz
-  real(kind=db), dimension(0:n_atom_proto):: chargat,rmtg0,vcmft
+  real(kind=db), dimension(0:n_atom_proto):: chargat, Rmtg0, Rmtsd, Vcmft
   real(kind=db), dimension(0:n_atom_proto,nspin):: rhomft
   real(kind=db), dimension(0:nrm,n_atom_0:n_atom_ind):: drhoato, dvcato
-  real(kind=db), dimension(0:nrm,0:n_atom_proto):: vato
+  real(kind=db), dimension(0:nrm,0:n_atom_proto):: Vato
   real(kind=db), dimension(0:nrm,nspin,0:n_atom_proto):: rhoigr
   real(kind=db), dimension(0:nrm,0:ntype):: rato
   real(kind=db), dimension(:), allocatable:: rst
@@ -1555,13 +1545,28 @@ subroutine pot0(alfpot,Atom_nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoat
   rho(:,:) = 0._db
   iok(:) = .false.
 
+! When SCF, looking for the closest atom
+  ia_close(:) = 0
+  if( i_self > 1 .and. SCF ) then
+    do i = 1,npoint
+      dist_min = 10000._db
+      do ia = 1,natomeq
+        ipr = iaproto(ia)
+        v(1:3) = xyz(1:3,i) - pos(1:3,ia)
+        dist = vnorme(Base_ortho,dcosxyz,v)
+        if( dist > dist_min .or. dist > Rmtsd(ipr) ) cycle
+        ia_close(i) = ia
+      end do
+    end do
+  endif
+
 ! Calcul du potentiel de Hartree et de la densite electronique.
 
   do ia = 1,natomp
 
     it = itypep(ia)
     ipr = iaproto(ia)
-    if( ia <= natomeq .and. i_self > 1 ) then
+    if( ia <= natomeq .and. i_self > 1 .and. SCF ) then
       if( Full_atom ) then
         iae = ia_eq_inv(ia)
       else
@@ -1593,7 +1598,7 @@ subroutine pot0(alfpot,Atom_nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoat
       if( iok(i) ) cycle
       v(1:3) = xyz(1:3,i) - pos(1:3,ia)
       dist = vnorme(Base_ortho,dcosxyz,v)
-! Si on tombe dans un atome chevauchant la frontiere exterieur,
+! Si on tombe dans un atome chevauchant la frontiere exterieure,
 ! on prend le potentiel au niveau de son rayon muffin-tin.
       if( ia > natomeq ) then
         if( dist < rmtg0(ipr) ) then
@@ -1626,17 +1631,21 @@ subroutine pot0(alfpot,Atom_nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoat
         rho(i,:) = rho(i,:) + 0.5_db * ( p1*rhoigr(ir,1,ipr) + p2*rhoigr(ir-1,1,ipr) &
                                        + p1*rhoigr(ir,nspin,ipr) + p2*rhoigr(ir-1,nspin,ipr) )
       endif
+
 ! Self-consistence :
-      if( ia <= natomeq .and. i_self > 1 ) then
+      if( ia <= natomeq .and. i_self > 1 .and. SCF ) then
         Vh(i) = vh(i) + p1*dvcato(ir,iae) + p2*dvcato(ir-1,iae)
-        drho = ( p1*drhoato(ir,iae) + p2*drhoato(ir-1,iae) ) / nspin
-        rho(i,:) = rho(i,:) + drho
+! On ne superpose pas les densites a l'interieur de l'atome le plus proche
+        if( ia_close(i) == ia ) then
+          drho = ( p1*drhoato(ir,iae) + p2*drhoato(ir-1,iae) ) / nspin
+          rho(i,:) = rho(i,:) + drho
+        endif
       endif
+
     end do
   end do
 
-! On ajoute eventuellement la contribution non spherique des orbitales
-! de valence.
+! On ajoute eventuellement la contribution non spherique des orbitales de valence.
   if( Atom_nonsph ) then
     do i = 1,npoint
       if( iok(i) ) cycle
@@ -1921,8 +1930,8 @@ subroutine pot0muffin(alfpot,Base_ortho,Cal_xanes,chargat,chargat_init,chargat_s
         drho_ex_nex,drhoato,dvc_ex_nex,dvcato,exc,Full_atom,i_self,ia_eq_inv_self,iaproto,iapot,iapr, &
         icheck,ipr,iprabs,itypep,itypepr,lmax_pot,Magnetic,n_atom_0,n_atom_0_self, &
         n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,nlm_pot,nonexc,nrato,nrm,nrm_self, &
-        nspin,ntype,numat,pos,posi,r_self,rato,rho_chg,rho_no_sup,rho_self,rhoato,rhoato_init,rhoigr, &
-        rhonspr,Rmtsd,rsato,self_nonexc,Vato,Vcato,Vcato_init,Vhnspr,Vsphere,Vxcato)
+        nspin,ntype,numat,pos,posi,rato,rho_chg,rho_no_sup,rho_self,rhoato,rhoato_init,rhoigr, &
+        rhonspr,Rmtsd,rsato,SCF,Self_nonexc,Vato,Vcato,Vcato_init,Vhnspr,Vsphere,Vxcato)
 
   use declarations
   implicit none
@@ -1940,10 +1949,9 @@ subroutine pot0muffin(alfpot,Base_ortho,Cal_xanes,chargat,chargat_init,chargat_s
   integer, dimension(0:ntype):: nrato, numat
   integer, dimension(0:n_atom_proto):: iapot, itypepr
 
-  logical:: Atom_self, Base_ortho, Cal_xanes, Full_atom, Magnetic, nonexc, Self_nonexc
+  logical:: Atom_self, Base_ortho, Cal_xanes, Full_atom, Magnetic, Nonexc, Self_nonexc, SCF
 
-  real(kind=db):: alfpot, Cos_theta, dab, dab2, dabr, dch, Delta_ch, &
-    Delta_pot, dist, drhm, dt2, dtheta, dvcm, f, p1, p2, r_self, &
+  real(kind=db):: alfpot, Cos_theta, dab, dab2, dabr, dch, dist, drhm, dt2, dtheta, dvcm, f, p1, p2, &
     ra1, ra2, ra3, rayop, rhonspr, Rmtsd, rpotmin, Sin_theta, Theta, Tiers, Vnorme, Vrop, Vsphere, Vhnspr
 
   real(kind=db), dimension(3):: dcosxyz, p
@@ -1993,7 +2001,7 @@ subroutine pot0muffin(alfpot,Base_ortho,Cal_xanes,chargat,chargat_init,chargat_s
 
   Atom_self = .false.
 
-  if( i_self > 1 .and. ia <= natomeq_self ) then
+  if( i_self > 1 .and. SCF .and. ia <= natomeq_self ) then
     if( Full_atom .and. cal_xanes .and. ia <= natomeq .and. ( ( ia /= iapot(0) .and. ipr /= 0 ) .or. ipr == 0 ) ) then
       do iai = 1,natome_self
         if( ia_eq_inv_self(ia) /= iai ) cycle
@@ -2055,6 +2063,19 @@ subroutine pot0muffin(alfpot,Base_ortho,Cal_xanes,chargat,chargat_init,chargat_s
 
     endif
 
+! Correction due au defaut de charge lie au Full atom = faux
+!    if( i_self > 1 .and. .not. Full_atom ) then
+!      Delta_ch = 0._db
+!      do ib = 1, natomeq_self
+!        iprb = iaproto(ib)
+!        if( iprb == 0 .and. Cal_xanes .and. self_nonexc ) iprb = iprabs
+!        delta_ch = delta_ch + sum( chargat_self(iprb,:) - chargat_init(iprb,:) )
+!      end do
+!      delta_pot = 2 * delta_ch / r_self
+!      Vcato(0:nr,1) = Vcato(0:nr,1) + delta_pot
+!      if( icheck > 2 ) write(3,138) iapr,  delta_ch, delta_pot*rydb
+!    end if
+
   else
 
     dvcato(:) = 0._db
@@ -2068,24 +2089,6 @@ subroutine pot0muffin(alfpot,Base_ortho,Cal_xanes,chargat,chargat_init,chargat_s
     if( i_self == 1 ) rho_no_sup(:,:) = rhoato(:,:)
 
   endif
-
-! Correction due au defaut de charge lie au Full atom = faux
-
-  if( i_self > 1 .and. .not. Full_atom ) then
-    Delta_ch = 0._db
-    do ib = 1, natomeq_self
-      iprb = iaproto(ib)
-      if( iprb == 0 .and. cal_xanes .and. self_nonexc) iprb = iprabs
-      delta_ch = delta_ch + sum( chargat_self(iprb,:) - chargat_init(iprb,:) )
-    end do
-    delta_pot = 2 * delta_ch / r_self
-  else
-    delta_pot = 0._db
-  end if
-
-  if( Atom_self )  Vcato(0:nr,1) = Vcato(0:nr,1) + delta_pot
-
-  if( icheck > 2  .and. i_self > 1 .and. .not. Full_atom ) write(3,138) iapr,  delta_ch, delta_pot*rydb
 
   if( icheck > 2 ) then
     write(3,120) iapr, ipr, numat(itia)
@@ -2390,7 +2393,6 @@ subroutine pot0muffin(alfpot,Base_ortho,Cal_xanes,chargat,chargat_init,chargat_s
   110 format(/' ---- Pot0muffin ',98('-'))
   120 format(/' iapr =',i3,', ipr =',i3,', Z =',i3, '. Avant superposition')
   132 format(/' iapr =',i3)
-  138 format(/' iapr =',i3,', Delta_ch =',f7.3,', Delta_pot =',f7.3, ' eV')
   140 format(4x,'Radius     4pi*r2*rho    Vcato(lm=1,..nlm_pot)')
   150 format(4x,'Radius    4pi*r2*rho_u 4pi*r2*rho_d   Vcato(lm=1,..nlm_pot)')
   160 format(1p,50e13.5)
@@ -2457,7 +2459,7 @@ subroutine potlapw(axyz,Base_ortho,chargat,Coupelapw,dcosxyz,deccent,Flapw_new,F
             mpirank,n_atom_0,n_atom_ind,n_atom_proto,natome,natomeq,natomp,ngreq,ngroup,ngroup_lapw,nklapw,nlm_pot, &
             nlmlapwm,nmatsym,normrmt,npoint,npsom,nrato,nrato_lapw,nrm,nslapwm,nspin,ntype, &
             numat,Orthmat,overlap,pos,rato,rchimp,rho,rlapw,rmtg,rmtg0,rmtimp,rmtsd,Rot_int,rotloc_lapw,rs,rsato,Rsort, &
-            Trace_format_wien,Trace_k,Trace_p,V_abs_i,V_intmax,V0bdcFimp,Vcato,Vh,Vxc,Vxcato,Wien_file,Wien_matsym, &
+            Trace_format_wien,Trace_k,Trace_p,V_intmax,V0bdcFimp,Vcato,Vh,Vxc,Vxcato,Wien_file,Wien_matsym, &
             Wien_save,Wien_taulap,xyz,i_range)
 
   use declarations
@@ -2502,7 +2504,6 @@ subroutine potlapw(axyz,Base_ortho,chargat,Coupelapw,dcosxyz,deccent,Flapw_new,F
   real(kind=db), dimension(0:ntype):: rchimp, rmtimp
   real(kind=db), dimension(0:n_atom_proto):: chargat, rmtg, rmtg0, rmtsd, Vcmft
   real(kind=db), dimension(0:n_atom_proto,nspin):: rhomft, Vxcmft
-  real(kind=db), dimension(nrm,nspin):: V_abs_i
   real(kind=db), dimension(3,nslapwm):: Wien_taulap
   real(kind=db), dimension(0:nrm,n_atom_0:n_atom_ind):: rsato
   real(kind=db), dimension(0:nrm,nlm_pot,n_atom_0:n_atom_ind):: Vcato
@@ -2694,10 +2695,6 @@ subroutine potlapw(axyz,Base_ortho,chargat,Coupelapw,dcosxyz,deccent,Flapw_new,F
         ipr1,itabs,itypei,itypep,itypepr,mpirank,n_atom_0,n_atom_ind,n_atom_proto,natome,natomeq,natomp,ngreq,nlm_pot, &
         normrmt,nrato,nrm,nspin,ntype,numat,Overlap,pos,rato,rchimp,rhoato,rhomft,rmtg,rmtg0,rmtimp, &
         rmtsd,rsort,V_intmax,V0bdcFimp,Vcato,Vcmft,Vxcato,Vxcmft,i_range)
-
-  do ispin = 1,nspin
-    V_abs_i(1:nrm,ispin) = Vcato(1:nrm,1,iprabs) + Vxcato(1:nrm,1,ispin,iprabs)
-  end do
 
   if( Wien_save /= - 1 .and. mpirank == 0 ) then
 
@@ -4007,26 +4004,26 @@ end
 ! Calcul du potentiel interstitiel moyen et de l'énergie cinétique maximum.
 
 subroutine potential_comp(Base_ortho,Cal_xanes,dcosxyz,distai,dV0bdcF,Ecineticmax,Ecineticmax_out, &
-            Eclie,Eclie_out,Eneg,Energ_max,Green,iaabs,iaproto,icheck,imoy,imoy_out,iopsymr,isrt,korigimp,magnetic, &
-            Moy_loc,mpirank,n_atom_proto,natomp,nim,npoint,npsom,nptmoy,nptmoy_out,nsortf,nspin,nstm,poidsov,poidsov_out,pos, &
-            rmtg0,rs,rsbdc,rsbdc_out,rsort,rvol,V0bdcF,V0bdcFimp,V0muf,Vh,Vhbdc,Vhbdc_out,Vr,Vxc,VxcbdcF,VxcbdcF_out,xyz,Workf, &
-            i_range)
+            Eclie,Eclie_out,Eneg,Energ_max,Green,i_range,i_self,iaabs,iaproto,icheck,imoy,imoy_out,iopsymr,isrt,korigimp,magnetic, &
+            Moy_loc,mpirank,n_atom_0,n_atom_ind,n_atom_proto,natomp,nim,nlm_pot,npoint,npsom,nptmoy,nptmoy_out,nrm,nsortf,nspin, &
+            nstm,poidsov,poidsov_out,pos,rmtg0,rs,rsbdc,rsbdc_out,rsort,rvol,SCF,V0bdcF,V0bdcFimp,V0muf,Vcato,Vh,Vhbdc, &
+            Vhbdc_init,Vhbdc_out,Vr,Vxc,VxcbdcF,VxcbdcF_out,xyz,Workf)
 
   use declarations
   implicit none
 
-  integer:: i_range, iaabs, icheck, ipr, ispin, mpirank, n_atom_proto, natomp, nim, npoint, npsom, nptmoy, nptmoy_out, nsortf, &
-            nspin, nstm
+  integer:: i_range, i_self, iaabs, icheck, ipr, ispin, mpirank, n_atom_0, n_atom_ind, n_atom_proto, natomp, nim, nlm_pot, npoint, &
+            npsom, nptmoy, nptmoy_out, nrm, nsortf, nspin, nstm
 
   integer, dimension(natomp):: iaproto
   integer, dimension(npoint):: imoy, imoy_out
   integer, dimension(nstm):: isrt
   integer, dimension(nopsm):: iopsymr
 
-  logical:: Base_ortho, Cal_xanes, Eneg, green, korigimp, Magnetic, Moy_loc
+  logical:: Base_ortho, Cal_xanes, Eneg, green, korigimp, Magnetic, Moy_loc, SCF
 
   real(kind=db):: distai, Ecineticmax, Ecineticmax_out, Eclie, Eclie_out, Energ_max, rsbdc, rsbdc_out, rsort, V0muf, Vhbdc, &
-    Vhbdc_out, Workf
+    Vhbdc_init, Vhbdc_out, Workf
 
   real(kind=db), dimension(3):: dcosxyz
   real(kind=db), dimension(nspin):: dV0bdcF, V0bdcF, V0bdcFimp, V0bdcF_out, VmoyF, VmoyF_out, VxcbdcF, VxcbdcF_out
@@ -4036,6 +4033,7 @@ subroutine potential_comp(Base_ortho,Cal_xanes,dcosxyz,distai,dV0bdcF,Ecineticma
   real(kind=db), dimension(4,npsom):: xyz
   real(kind=db), dimension(npoint):: poidsov, poidsov_out, rs, Vh
   real(kind=db), dimension(npoint,nspin):: Vxc, Vr
+  real(kind=db), dimension(0:nrm,nlm_pot,n_atom_0:n_atom_ind):: Vcato
 
   call ptmoy(Base_ortho,dcosxyz,distai,green,iaabs,iaproto,icheck,imoy,imoy_out,iopsymr,isrt,Moy_loc, &
              n_atom_proto,natomp,nim,npoint,nsortf,npsom,nptmoy,nptmoy_out,nstm,poidsov,poidsov_out, &
@@ -4047,9 +4045,16 @@ subroutine potential_comp(Base_ortho,Cal_xanes,dcosxyz,distai,dV0bdcF,Ecineticma
     end do
   endif
 
-  call Cal_Vmoy(cal_xanes,icheck,imoy,imoy_out,korigimp,Magnetic,mpirank,npoint,nptmoy,nptmoy_out,nspin,poidsov, &
-             poidsov_out,rs,rsbdc,rsbdc_out,V0bdcFimp,Vh,Vhbdc,Vhbdc_out,VmoyF,VmoyF_out,Vr,VxcbdcF,VxcbdcF_out, &
-             i_range)
+  call Cal_Vmoy(Cal_xanes,i_range,i_self,icheck,imoy,imoy_out,korigimp,Magnetic,mpirank,npoint,nptmoy,nptmoy_out,nspin, &
+             poidsov,poidsov_out,rs,rsbdc,rsbdc_out,SCF,V0bdcFimp,Vh,Vhbdc,Vhbdc_out,VmoyF,VmoyF_out,Vr,VxcbdcF,VxcbdcF_out)
+
+! One imposes to the interstial coulomb potential to remain the same to avoid Madelung constant potential problem.
+  if( i_self == 1 ) then
+    Vhbdc_init = Vhbdc
+  elseif( SCF ) then
+    call Shift_V(Cal_xanes,i_range,icheck,korigimp,mpirank,n_atom_0,n_atom_ind,nlm_pot,npoint,nptmoy_out,nrm,nspin,rsbdc, &
+                     rsbdc_out,V0bdcFimp,Vcato,Vh,Vhbdc,Vhbdc_init,Vhbdc_out,VmoyF,VmoyF_out,Vr)
+  endif
 
   if( korigimp ) then
     V0bdcF(1:nspin) = V0bdcFimp(1:nspin)
@@ -4097,18 +4102,17 @@ end
 
 ! Calcul du potentiel moyen dans la zone interstitielle.
 
-subroutine Cal_Vmoy(Cal_xanes,icheck,imoy,imoy_out,korigimp,Magnetic,mpirank,npoint,nptmoy,nptmoy_out,nspin,poidsov, &
-            poidsov_out,rs,rsbdc,rsbdc_out,V0bdcFimp,Vh,Vhbdc,Vhbdc_out,VmoyF,VmoyF_out,Vr,VxcbdcF,VxcbdcF_out, &
-            i_range)
+subroutine Cal_Vmoy(Cal_xanes,i_range,i_self,icheck,imoy,imoy_out,korigimp,Magnetic,mpirank,npoint,nptmoy,nptmoy_out,nspin, &
+            poidsov,poidsov_out,rs,rsbdc,rsbdc_out,SCF,V0bdcFimp,Vh,Vhbdc,Vhbdc_out,VmoyF,VmoyF_out,Vr,VxcbdcF,VxcbdcF_out)
 
   use declarations
   implicit none
 
-  integer:: icheck, ipr, mpirank, npoint, nptmoy, nptmoy_out, ispin, nspin, i_range
+  integer:: i_self,icheck, ipr, mpirank, npoint, nptmoy, nptmoy_out, ispin, nspin, i_range
 
   integer, dimension(npoint):: imoy, imoy_out
 
-  logical:: cal_xanes, korigimp, magnetic
+  logical:: Cal_xanes, korigimp, Magnetic, SCF
 
   real(kind=db):: rsbdc, rsbdc_out, Vhbdc, Vhbdc_out
 
@@ -4137,7 +4141,7 @@ subroutine Cal_Vmoy(Cal_xanes,icheck,imoy,imoy_out,korigimp,Magnetic,mpirank,npo
     rsbdc = sum( (1/rs(imoy(1:nptmoy))**2) * poidsov(1:nptmoy) )
     rsbdc = 1 / sqrt( rsbdc )
 
-    if( mpirank == 0 ) then
+    if( mpirank == 0 .and. ( i_self == 1 .or. .not. SCF ) ) then
       do ipr = 3,6,3
         if( ipr == 6 .and. i_range /= 1 ) cycle
         if( icheck == 0 .and. ipr == 3 ) cycle
@@ -4170,7 +4174,7 @@ subroutine Cal_Vmoy(Cal_xanes,icheck,imoy,imoy_out,korigimp,Magnetic,mpirank,npo
     rsbdc_out = sum( (1/rs(imoy_out(1:nptmoy_out))**2) * poidsov_out(1:nptmoy_out) )
     rsbdc_out = 1 / sqrt( rsbdc_out )
 
-    if( mpirank == 0 ) then
+    if( mpirank == 0 .and. ( i_self == 1 .or. .not. SCF ) ) then
       do ipr = 3,6,3
         if( ipr == 6 .and. i_range /= 1 ) cycle
         if( icheck == 0 .and. ipr == 3 ) cycle
@@ -4183,6 +4187,58 @@ subroutine Cal_Vmoy(Cal_xanes,icheck,imoy,imoy_out,korigimp,Magnetic,mpirank,npo
 
   return
   110 format(/' ---- Potcomp ------',100('-'))
+  130 format(/'     V0bdcF =',f10.3,' eV,     Vhbdc =',f10.3,' eV,     rsbdc =',f8.3,' a.u.')
+  150 format(' V0bdcF_out =',f10.3,' eV, Vhbdc_out =',f10.3,' eV, rsbdc_out =',f8.3,' a.u.')
+end
+
+!***********************************************************************
+
+  subroutine Shift_V(Cal_xanes,i_range,icheck,korigimp,mpirank,n_atom_0,n_atom_ind,nlm_pot,npoint,nptmoy_out,nrm,nspin,rsbdc, &
+                     rsbdc_out,V0bdcFimp,Vcato,Vh,Vhbdc,Vhbdc_init,Vhbdc_out,VmoyF,VmoyF_out,Vr)
+
+  use declarations
+  implicit none
+
+  integer:: i_range, icheck, ipr, mpirank, n_atom_0, n_atom_ind, nlm_pot, npoint, nptmoy_out, nrm, nspin
+
+  logical:: Cal_xanes, korigimp
+
+  real(kind=db):: Delta_V, rsbdc, rsbdc_out, Vhbdc, Vhbdc_init, Vhbdc_out
+
+  real(kind=db), dimension(nspin):: V0bdcFimp, VmoyF, VmoyF_out
+  real(kind=db), dimension(npoint):: Vh
+  real(kind=db), dimension(npoint,nspin):: Vr
+  real(kind=db), dimension(0:nrm,nlm_pot,n_atom_0:n_atom_ind):: Vcato
+
+  Delta_V = Vhbdc_init - Vhbdc
+
+  Vhbdc = Vhbdc_init
+  Vhbdc_out = Vhbdc_out + Delta_V
+  VmoyF(:) = VmoyF(:) + Delta_V
+  VmoyF_out(:) = VmoyF_out(:) + Delta_V
+
+  Vr(:,:) = Vr(:,:) + Delta_V
+  Vh(:) = Vh(:) + Delta_V
+  Vcato(:,:,:) = Vcato(:,:,:) + Delta_V
+
+  if( icheck > 0 ) write(3,110) Delta_V * rydb
+
+  if( mpirank == 0 ) then
+    do ipr = 3,6,3
+      if( ipr == 6 .and. i_range /= 1 ) cycle
+      if( icheck == 0 .and. ipr == 3 ) cycle
+      if( .not. Cal_xanes .and. ipr == 6 ) cycle
+      if( korigimp ) then
+        write(ipr,130) V0bdcFimp(1) * rydb, Vhbdc * rydb, rsbdc
+      else
+        write(ipr,130) VmoyF(1) * rydb, Vhbdc * rydb, rsbdc
+      endif
+      if( nptmoy_out > 0 ) write(ipr,150) VmoyF_out(1) * rydb,  Vhbdc_out * rydb, rsbdc_out
+    end do
+  endif
+
+  return
+  110 format(/' Potential are shifted by :',f10.5,' eV')
   130 format(/'     V0bdcF =',f10.3,' eV,     Vhbdc =',f10.3,' eV,     rsbdc =',f8.3,' a.u.')
   150 format(' V0bdcF_out =',f10.3,' eV, Vhbdc_out =',f10.3,' eV, rsbdc_out =',f8.3,' a.u.')
 end

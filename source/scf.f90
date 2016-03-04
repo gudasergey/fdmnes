@@ -264,9 +264,9 @@ subroutine chg_agr(chargat,chargat_init,ch_c,chg_cluster,chg_open_val,Doping,Ful
   150 format(' Sum of atomic number        =',i5)
   160 format(' Initial charge              =',f9.3)
   170 format(' Cluster charge              =',f9.3)
-  300 format(/' ia   Z     ch_val    ch_core   ch_total     ch_out   Atom charge')
-  305 format(/' ia   Z     ch_val    ch_core   ch_total   ch_up-dn     ch_out     Charge')
-  310 format(i3,i4,6f11.3)
+  300 format(/'  ia   Z     ch_val    ch_core   ch_total     ch_out   Atom charge')
+  305 format(/'  ia   Z     ch_val    ch_core   ch_total   ch_up-dn     ch_out     Charge')
+  310 format(i4,i4,6f11.3)
   350 format(/' Reference charges in the symmetrised cluster ')
   351 format(10x,'valence electrons: ',f9.3)
   352 format(10x,'core electrons: ',f9.3)
@@ -286,7 +286,7 @@ end
 ! Calcul du point du depart en energie, pour la determination du niveau
 ! de Fermi
 
-subroutine En_dep(E_start,E_starta,Full_atom,iaprotoi,icheck,itypepr,lcoeur,n_atom_0,n_atom_0_self, &
+subroutine En_dep(E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck,itypepr,lcoeur,n_atom_0,n_atom_0_self, &
                 n_atom_ind,n_atom_ind_self,n_atom_proto,natome,ncoeur,nenerg_coh,nlm_pot,nrato,nrm,numat,nspin, &
                 ntype,Pas_SCF,psi_coeur,relativiste,rato,Rmtg,Rmtsd,V_intmax,Vcato,Vxcato,workf)
 
@@ -310,8 +310,8 @@ subroutine En_dep(E_start,E_starta,Full_atom,iaprotoi,icheck,itypepr,lcoeur,n_at
   real(kind=db), dimension(0:nrm,0:ntype):: rato
   real(kind=db), dimension(nrm):: r, psi
   real(kind=db), dimension(nrm,1,1):: pot
-  real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: E_starta
-  real(kind=db), dimension(0:nrm,nlm_pot,n_atom_0:n_atom_ind)::Vcato
+  real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: E_coeur_s, E_starta
+  real(kind=db), dimension(0:nrm,nlm_pot,n_atom_0:n_atom_ind):: Vcato
   real(kind=db), dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind) :: Vxcato
   real(kind=db), dimension(0:nrm,2,0:ntype):: psi_coeur
   real(kind=db), dimension(2,n_atom_0_self:n_atom_ind_self):: E_psi
@@ -374,6 +374,8 @@ subroutine En_dep(E_start,E_starta,Full_atom,iaprotoi,icheck,itypepr,lcoeur,n_at
 ! la gamme d'energie commence dessous (workf)
   E_start = E_start + Workf
   E_starta(:) = E_starta(:) + Workf
+  
+  E_coeur_s(:) = E_psi(1,:)
 
   E_max_Fermi = 30._db / rydb
 
@@ -406,8 +408,8 @@ subroutine En_dep(E_start,E_starta,Full_atom,iaprotoi,icheck,itypepr,lcoeur,n_at
 
   return
   110 format(/' ---- En_dep --------',100('-'))
-  120 format(/'  ia     Z    n  l    E_core   n  l     E_val    E_starta')
-  130 format(i3,4x,i3,2x,2(i3,i3,f11.3),f11.3)
+  120 format(/'  ia     Z    n  l     E_core  n  l     E_val    E_starta')
+  130 format(i4,3x,i3,2x,2(i3,i3,f11.3),f11.3)
   135 format(/'  Z = ',i3,3x,'n_coeur = ',i1,3x,'l_coeur = ',i1,3x, 'n_val = ',i1,3x,'l_val = ',i1// &
             4x,'psi_coeur    ','psi_val    '/)
   137 format(1p,2e14.6)
@@ -419,7 +421,7 @@ end
 ! Sousroutine qui corrige l'energie sortie du calcul DFT
 ! les energies sont en rydb
 
-subroutine Energ_DFT(Doping,En_cluster,Energ_self,en_coeur,excato,Full_atom,Hubb,iaprotoi,icheck,ipr_dop,itypepr, &
+subroutine Energ_DFT(Doping,En_cluster,Energ_self,E_coeur,excato,Full_atom,Hubb,iaprotoi,icheck,ipr_dop,itypepr, &
            m_hubb,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nb_eq,ngreq,nlm_pot,nrm,nrm_self, &
            nrato,nspin,nspinp,ntype,numat,rato,rho_self,rmtsd,V_hubb,Vcato,Vxcato)
 
@@ -440,7 +442,7 @@ subroutine Energ_DFT(Doping,En_cluster,Energ_self,en_coeur,excato,Full_atom,Hubb
 
   real(kind=db), dimension(0:nrm_self,nlm_pot,nspin, n_atom_0_self:n_atom_ind_self):: rho_self
   real(kind=db), dimension(nrm,n_atom_0:n_atom_ind):: excato
-  real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: En_coeur, Energ_self, Energ_self_KS, &
+  real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: E_coeur, Energ_self, Energ_self_KS, &
                      E_exc, E_coul, E_hubbard, E_Vxc
   real(kind=db), dimension(0:nrm,0:ntype):: rato
   real(kind=db), dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind) :: Vxcato
@@ -502,14 +504,14 @@ subroutine Energ_DFT(Doping,En_cluster,Energ_self,en_coeur,excato,Full_atom,Hubb
       end do
     endif
 
-! En_coeur: energie des orbitales KS correspondant aux etats de coeur, pour chaque atome;
+! E_coeur: energie des orbitales KS correspondant aux etats de coeur, pour chaque atome;
 
 ! ATTENTION aux signes
-    Energ_self(iapr) = Energ_self_KS(iapr) + En_coeur(iapr) + E_exc(iapr) - E_coul(iapr) - E_Vxc(iapr) + E_hubbard(iapr)
+    Energ_self(iapr) = Energ_self_KS(iapr) + E_coeur(iapr) + E_exc(iapr) - E_coul(iapr) - E_Vxc(iapr) + E_hubbard(iapr)
   end do boucle_ia
 
   Energ_self_KS_agr = 0._db
-  Delta_En_coeur_agr = 0._db
+  Delta_E_coeur_agr = 0._db
   E_exc_agr = 0._db
   E_coul_agr = 0._db
   E_Vxc_agr = 0._db
@@ -524,7 +526,7 @@ subroutine Energ_DFT(Doping,En_cluster,Energ_self,en_coeur,excato,Full_atom,Hubb
       if( Doping .and. iapr == ipr_dop ) n = n - 1
     endif
     Energ_self_KS_agr = Energ_self_KS_agr + n * Energ_self_KS(iapr)
-    Delta_En_coeur_agr = Delta_En_coeur_agr + n * En_coeur(iapr)
+    Delta_E_coeur_agr = Delta_E_coeur_agr + n * E_coeur(iapr)
     E_exc_agr = E_exc_agr + n * E_exc(iapr)
     E_coul_agr = E_coul_agr + n * E_coul(iapr)
     E_Vxc_agr = E_Vxc_agr + n * E_Vxc(iapr)
@@ -547,21 +549,21 @@ subroutine Energ_DFT(Doping,En_cluster,Energ_self,en_coeur,excato,Full_atom,Hubb
         ipr = iapr
       endif
       it = itypepr( ipr )
-      write(3,510) iapr, numat(it), Energ_self(iapr) * rydb, Energ_self_KS(iapr) * rydb, En_coeur(iapr) * rydb, &
+      write(3,510) iapr, numat(it), Energ_self(iapr) * rydb, Energ_self_KS(iapr) * rydb, E_coeur(iapr) * rydb, &
          E_exc(iapr) * rydb, E_coul(iapr) * rydb, E_Vxc(iapr) * rydb, E_hubbard(iapr) * rydb
     end do
-    write(3,520) En_cluster * rydb, Energ_self_KS_agr * rydb, Delta_En_coeur_agr * rydb, &
+    write(3,520) En_cluster * rydb, Energ_self_KS_agr * rydb, Delta_E_coeur_agr * rydb, &
          E_exc_agr * rydb, E_coul_agr * rydb, E_Vxc_agr * rydb, E_hubbard_agr * rydb
   end if
 
   return
 
   100 format(/' ---- En_DFT ------',100('-'))
-  110 format(/' Cluster energy: ', f12.3,' eV')
-  120 format(/' Unit cell energy: ', f12.3,' eV')
-  500 format(/'  ia   Z    Energ_atom      Energ_KS   Delta_En_coeur     E_exc        E_coul        E_Vxc', &
+  110 format(/' Cluster energy: ', f15.3,' eV')
+  120 format(/' Unit cell energy: ', f15.3,' eV')
+  500 format(/'   ia   Z    Energ_atom      Energ_KS    Delta_E_coeur     E_exc        E_coul        E_Vxc', &
     '        E_hubbard')
-  510 format(2i4,7f14.3)
+  510 format(i5,i4,7f14.3)
   520 format(/'  Total:',7f14.3)
 end
 
@@ -574,7 +576,7 @@ end
 
 ! le resultat sera utilise pour le calcul de l'energie de l'agregat
 
-subroutine eps_coeur(ch_coeur,En_coeur,Full_atom,iaprotoi,icheck,itypepr,lcoeur,n_atom_0,n_atom_0_self, &
+subroutine eps_coeur(ch_coeur,E_coeur,E_coeur_s,Full_atom,iaprotoi,icheck,itypepr,lcoeur,n_atom_0,n_atom_0_self, &
               n_atom_ind,n_atom_ind_self,n_atom_proto,natome,ncoeur,nlm_pot,nrato,nrm,nspin,ntype,numat,psi_coeur, &
               rato,Relativiste,Rmtg,Rmtsd,V_intmax,Vcato,Vxcato)
 
@@ -595,7 +597,7 @@ subroutine eps_coeur(ch_coeur,En_coeur,Full_atom,iaprotoi,icheck,itypepr,lcoeur,
   real(kind=db), dimension(nspin):: V0bd
   real(kind=db), dimension(0:n_atom_proto):: Rmtg, Rmtsd
   real(kind=db),dimension(n_atom_0_self:n_atom_ind_self):: ch_coeur
-  real(kind=db),dimension(n_atom_0_self:n_atom_ind_self):: En_coeur
+  real(kind=db),dimension(n_atom_0_self:n_atom_ind_self):: E_coeur, E_coeur_s
   real(kind=db),dimension(0:nrm,0:ntype):: rato
   real(kind=db),dimension(nrm):: r, psi
   real(kind=db),dimension(nrm,1,1):: pot
@@ -609,7 +611,7 @@ subroutine eps_coeur(ch_coeur,En_coeur,Full_atom,iaprotoi,icheck,itypepr,lcoeur,
   nlm_pot_loc = 1
   V0bd(:) = 0._db
 
-  En_coeur(:) = 0._db
+  E_coeur(:) = 0._db
 
   do iapr = n_atom_0_self,n_atom_ind_self
     if( Full_atom ) then
@@ -628,7 +630,8 @@ subroutine eps_coeur(ch_coeur,En_coeur,Full_atom,iaprotoi,icheck,itypepr,lcoeur,
     end do
     res =  psiHpsi(.false.,icheck,1,lcoeur(1,it),lmax_pot_loc,0,ncoeur(1,it),nlm_pot_loc,nr,nrm,1,1, &
               1,1,numat(it),V0bd,pot,psi,r,Relativiste,Rmtg(ipr),Rmtsd(ipr),.false.,V_intmax,Ylm_comp)
-    En_coeur(iapr) = res * ch_coeur(iapr)
+    res = res - E_coeur_s(iapr)
+    E_coeur(iapr) = res * nint( ch_coeur(iapr) )
   end do
 
   return
@@ -639,9 +642,9 @@ end
 ! Preparation de l'iteration suivante
 
 subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,Delta_energ,Delta_energ_s, &
-               Delta_energ_t,Doping,En_cluster,En_cluster_s,En_cluster_t,Energ_self,Energ_self_s,Fermi,Fermi_first,Full_atom, &
+               Delta_energ_t,Doping,En_cluster,En_cluster_s,Energ_self,Energ_self_s,Fermi,Fermi_first,Full_atom, &
                Hubbard,i_self,icheck,ipr_dop,m_hubb,mpirank,n_atom_0_self,n_atom_ind_self,n_atom_proto,n_devide,natome,natomeq, &
-               nb_eq,ngreq,nlm_pot,nrm_self,nself,nspin,nspinp,p_self,p_self_s,p_self_t,p_self0,rho_self,rho_self_s, &
+               nb_eq,ngreq,nlm_pot,nrm_self,nself,nspin,nspinp,p_self,p_self_max,p_self0,rho_self,rho_self_s, &
                V_Hubb,V_Hubb_s) 
 
   use declarations
@@ -649,7 +652,8 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
 
   integer:: i_self, iapr, icheck, ipr, ipr_dop, m_hubb, mpirank, n, n_atom_0_self, n_atom_ind_self, n_atom_proto, &
     natome, natomeq, n_devide, nlm_pot, nrm_self, nself, nspin, nspinp
-    
+  integer, save:: Mod_p
+  
   integer, dimension(0:n_atom_proto):: ngreq
   integer, dimension(natome):: nb_eq
 
@@ -658,7 +662,7 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
   logical:: Convergence, Doping, Fermi, Fermi_first, Full_atom, Hubbard
 
   real(kind=db):: Delta_En_conv, Delta_energ, Delta_energ_s, Delta_energ_t, Delta_lim, En_cluster, En_cluster_s, &
-    En_cluster_t, p_self, p_self_s, p_self_t, p_self0, rap, raq, rar
+    p_self, p_self_max, p_self0
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: Energ_self, Energ_self_s
   real(kind=db), dimension(0:nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self):: rho_self, rho_self_s
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_self, chargat_self_s
@@ -677,12 +681,10 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
   if( i_self == 1 ) then
 
     Delta_energ = 1000000._db
-    p_self = p_self0
-    p_self_s = p_self
-    p_self_t = p_self_s
+    p_self = p_self0 / 2
     En_cluster_s = En_cluster
-    En_cluster_t = En_cluster
-
+    Mod_p = 0
+    
   else
 
     if( icheck > 0 ) write(3,100)
@@ -739,17 +741,23 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
         if( icheck > 0 ) write(3,'(/A)') ' Calculation has not converged !'
         write(6,'(/A)') ' Calculation has not converged !'
       else
-        rap = 1.2 * max( p_self / p_self_s, 1._db )
-        raq = 0.8 * min( p_self / p_self_s, 1._db )
-        rar = 0.8 * min( p_self_s / p_self_t, 1._db )
-        p_self_t = p_self_s
-        p_self_s = p_self
-! Si calcul divergent, on diminue le poids.
-        if( ( ( En_cluster - En_cluster_s ) * ( En_cluster_s - En_cluster_t ) < - eps10 &
-           .and. Delta_energ > Delta_energ_s * raq ) .or. ( Delta_energ > Delta_energ_s * rap ) ) then
-          p_self = max( p_self / 2, p_self0 / 8 )
-        elseif( i_self > 2 .and. Delta_energ < Delta_energ_s * raq .and. Delta_energ_s < Delta_energ_t * rar ) then
-          p_self = min( 2 * p_self, p_self0 )
+        if( i_self == 1 .or. ( En_cluster - En_cluster_s ) > Delta_lim / 10 ) Mod_p = Mod_p + 1  
+! Si calcul divergent, ou avec trop de batement, on diminue le poids.
+        if( ( En_cluster - En_cluster_s  < - eps10 ) .or. Delta_energ > 3._db * abs( En_cluster - En_cluster_s ) ) then
+          if( p_self0 > 0.39_db .or. i_self > 50 ) then
+            p_self = max( p_self / 2, p_self0 / 8 )
+          else
+            p_self = max( p_self / 2, p_self0 / 4 )
+          endif
+          Mod_p = 0
+        elseif( Mod_p >= 4 .or. ( Mod_p >= 3 .and. i_self <= 50 ) ) then
+          if( p_self0 > 0.39_db .or. i_self > 50 ) then
+            p_self = min( 2 * p_self, 2 * p_self0 )
+          else
+            p_self = min( 2 * p_self, 4 * p_self0 )
+          endif
+          p_self = min( p_self, p_self_max )
+          Mod_p = 0
         endif
       end if
     endif
@@ -760,12 +768,10 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
 
   if( Hubbard .and. i_self > 1 ) V_hubb(:,:,:,:,:) =  p_self * V_hubb(:,:,:,:,:) + ( 1 - p_self ) * V_hubb_s(:,:,:,:,:)
 
-! On stoque les valeurs de l'iteration courrante, pour les injecter
-! dans la suivante
+! On stoque les valeurs de l'iteration courrante, pour les injecter dans la suivante
   if( .not. convergence .and. i_self /= nself ) then
     Delta_energ_t = Delta_energ_s
     Delta_energ_s = Delta_energ
-    En_cluster_t = En_cluster_s
     En_cluster_s = En_cluster
     Energ_self_s(:) = Energ_self(:)
     chargat_self_s(:,:) = chargat_self(:,:)

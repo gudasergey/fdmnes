@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 8 January 2016, 18 Nivose, An 224.
+! FDMNES II program, Yves Joly, Oana Bunau, 12 February 2016, 23 Pluviose, An 224.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
 
   character(len=50):: com_date, com_time
 
-  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 8 January 2016'
+  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 12 February 2016'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -227,7 +227,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 36
-  integer, parameter:: nkw_fdm = 171
+  integer, parameter:: nkw_fdm = 173
   integer, parameter:: nkw_conv = 30
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
@@ -303,7 +303,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   data kw_fdm/  &
      'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_conf','ang_spin ','atomic_sc','axe_spin ', &
      'base_comp','base_reel','base_spin','bond     ','cartesian','center   ','center_ab','chlib    ','cif_file ','clementi ', &
-     'core_reso','crystal  ','crystal_c','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_', &
+     'core_reso','crystal  ','crystal_c','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_','e1e1     ', &
      'delta_eps','density  ','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ','edge     ', &
      'e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot','etatlie  ', &
      'excited  ','extract  ','extractpo','extractsy','fdm_comp ','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ', &
@@ -313,7 +313,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'muffintin','multrmax ','n_self   ','nchemin  ','new_refer','no_core_r','no_e1e1  ','no_e1e2  ','no_e1e3  ', &
      'no_e2e2  ','no_e3e3  ','no_fermi ','no_res_ma','no_res_mo','no_solsin','normaltau','norman   ','noncentre', &
      'non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','octupole ','old_refer','one_run  ','optic    ','optic_dat', &
-     'over_rad ','overlap  ','p_self   ','pdb_file ','perdew   ','pointgrou','polarized', &
+     'over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ','pointgrou','polarized', &
      'quadmag  ','quadrupol','radius   ','range    ','rangel   ','raydem   ','rchimp   ','readfast ','relativis', &
      'rmt      ','rmtg     ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ','save_opti','save_tddf', &
      'self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
@@ -1663,6 +1663,8 @@ function traduction(grdat)
   traduction = grdat
 
   select case(grdat)
+    case('all_site')
+      traduction = 'allsite'
     case('borman')
       traduction = 'bormann'
     case('dmaxpot','dmax_pot','d_maxpot','distmaxpo','dist_maxp')
@@ -1775,13 +1777,15 @@ function traduction(grdat)
       traduction = 'r_self'
     case('p_self0','pself','pself0','p0_self','p_scf','p0_scf', 'pscf','pscf0','p0scf')
       traduction = 'p_self'
-    case('selfcons','nself','self_cons')
+    case('p_scf_max','pselfmax','pscfmax','ppscf_max','p_scfmax','p_selfmax', 'pself_max')
+      traduction = 'p_self_max'
+    case('selfcons','self_cons')
       traduction = 'scf'
     case('selfexc','self_exc','scfexc')
       traduction = 'scf_exc'
-    case('selfnonex','self_non_','self_none','scfnonexc', 'scf_nonex')
+    case('selfnonex','self_non_','self_none','scfnonexc', 'scf_nonex','scf_nohol','scf_no_ho')
       traduction = 'scf_non_e'
-    case('converge','deltae','delta_e_c','delta_en')
+    case('converge','deltae','delta_e_c','delta_en','delta_e_s')
       traduction = 'delta_en_'
     case('nofermi')
       traduction = 'no_fermi'
@@ -1793,7 +1797,7 @@ function traduction(grdat)
       traduction = 'screening'
     case('fprim_ato','fprimatom','fprimeato')
       traduction = 'fprime_at'
-    case('non_exc','nonexcite','non_excit')
+    case('non_exc','nonexcite','non_excit','no_hole','nohole')
       traduction = 'nonexc'
     case('seuil','threshold','soglia')
       traduction = 'edge'
@@ -1807,6 +1811,8 @@ function traduction(grdat)
       traduction = 'm1m2'
     case('m1_m1')
       traduction = 'm1m1'
+    case('dipole')
+      traduction = 'e1e1'
     case('e3e1')
       traduction = 'e1e3'
     case('notdipole','nondipole','nodipole','no_dipole','noe1e1')
@@ -1877,6 +1883,8 @@ function traduction(grdat)
       traduction = 'optic_dat'
     case('recup_tdd')
       traduction = 'tddft_dat'
+    case('n_scf','nself','nscf')
+      traduction = 'n_self'
     case('nrato_dir','nratodira','nr_ato')
       traduction = 'nrato'
     case('not_core_','not_corer','notcorere','notcorer_','no_core_r','no_corere','nocoreres','nocore_re')

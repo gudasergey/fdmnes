@@ -592,6 +592,23 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   end do boucle_lect
 
+! Test sur nom de fichier non convolue
+  do ifich = 1,nfich
+    open(2, file = fichin(ifich), status='old', iostat=istat)
+    if( istat /= 0 ) then
+      mot = fichin(ifich)
+      l = len_trim(mot)
+      if( mot(l-3:l) /= '.txt' ) then
+        mot(l+1:l+4) = '.txt'
+        Close(2) 
+        open(2, file = mot, status='old', iostat=istat)
+        if( istat /= 0 ) call write_open_error(fichin(ifich),istat,1)
+        fichin(ifich) = mot
+      endif
+      Close(2)
+    endif
+  end do
+  
   if( convolution_out == ' ' ) then
     if( nomfich == 'fdmnes_out' ) then
       mot = fichin(1)
@@ -700,7 +717,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     endif
   endif
 
-  if( .not. ( seah .or. Arc ) .and. nelor == 0 ) then
+  if( .not. ( Seah .or. Arc ) .and. nelor == 0 ) then
     nelor = 1
     allocate( Elor(nelor) )
     allocate( betalor(nelor) )
@@ -722,10 +739,9 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   ninitlm = 1
   do ifich = 1,nfich
     open(2, file = fichin(ifich), status='old', iostat=istat)
-    if( istat /= 0 ) call write_open_error(fichin(ifich),istat,1)
     n = nnombre(2,13200)
     if( n > 8 ) then
-      read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, v0muf, En_fermi(ifich), ninit
+      read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, V0muf, En_fermi(ifich), ninit
       if( n == ninit + 11 ) then
         vnew_format = .true.
         ninitl(ifich) = ninit

@@ -2825,7 +2825,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr
     end do
 
 ! Angle des liasons autour de l'absorbeur
-    write(3,'(/A)') ' ia ib Za Zb   Angle(a,O,b)'
+    write(3,'(/A)') '   ia   ib   Za   Zb   Angle(a,O,b)'
     rad = 180 / pi
     Distm = 3.2_db / bohr
     Dist_max = Dista(iaabs) + Distm
@@ -2909,7 +2909,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr
   225 format(i4,3f11.6,'   ! ',f11.6,i4,i6,2i4,f9.5)
   230 format(/' ipr   iapot')
   240 format(i4,i6)
-  250 format(4i3,f13.3)
+  250 format(4i5,f13.3)
   260 format(/' Cluster charge =',f11.5,'  Vsphere =',f11.5,' eV')
 end
 
@@ -9714,9 +9714,9 @@ end
 
 ! Calcul de l'energie du niveau de coeur initial.
 
-subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,Eseuil,icheck,is_g, &
+subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_cut,Epsii,Epsii_moy,Eseuil,icheck,is_g, &
            itabs_nonexc,lseuil,m_g,mpirank,nbseuil,ninit1,ninitl,ninitlr,nr,nrm,nseuil,nspine,ntype,numat,psii,rato,Rmtg, &
-           Rmtsd,V_abs_i,V_intmax,V0bde)
+           Rmtsd,V_abs_i,V_intmax,V0bde,WorkF)
 
   use declarations
   implicit none
@@ -9731,7 +9731,7 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,Ese
   integer, dimension(ninitl):: is_g
   integer, dimension(ninitl,2):: m_g
 
-  real(kind=db):: Delta, Delta_Epsii, Delta_Eseuil, Ep_moy, Epsii_moy, j, mj, psiHpsi, Rmtg, Rmtsd, V_intmax
+  real(kind=db):: Delta, Delta_Epsii, Delta_Eseuil, E_cut, Ep_moy, Epsii_moy, j, mj, psiHpsi, Rmtg, Rmtsd, V_intmax, WorkF
   real(kind=db), dimension(nbseuil):: Epsii_m, Eseuil
   real(kind=db), dimension(ninitlr):: Epsii
   real(kind=db), dimension(ninitl):: dEpsii, Epsi
@@ -9760,8 +9760,7 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,Ese
 
   r(1:nr) = rato(1:nr,itabs_nonexc)
 
-! Le calcul de l'energie des niveaux initiaux est toujours avec
-! spinorbite
+! Le calcul de l'energie des niveaux initiaux est toujours avec spinorbite
   nm1 = - lseuil - 1
   nm2 = lseuil
 
@@ -9785,10 +9784,8 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,Ese
       nsol = 2
       if( is_g(initl) == 1 ) then
         isol = 1
-!        isol = 2
       else
         isol = 2
-!        isol = 1
       endif
     endif
 
@@ -9797,6 +9794,9 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,Ese
     Epsi(initl) = - psiHpsi(.true.,icheck,isol,lseuil,lmax_pot_loc,m,nseuil,nlm_pot_loc,nr,nr,nsol,nspin, &
                nspino,nspinp,numat,V0bd,V_abs,psi,r,Relativiste,Rmtg,Rmtsd,Spinorbite,V_intmax,Ylm_comp)
   end do
+
+! Epsii is versus the Fermi energy
+  Epsi(:) = Epsi(:) - WorkF + E_cut
 
   Epsii_m(1) = sum( Epsi(1:ninit1) ) / ninit1
 
@@ -9898,8 +9898,7 @@ end
 !***********************************************************************
 
 ! Calcul de l'energie d'un niveau lie par E = <psi|H|psi> / <psi|psi>
-! Dans le cas relativiste, il faut plusieurs cycles car l'Hamiltonien
-! depend de l'energie calculee.
+! Dans le cas relativiste, il faut plusieurs cycles car l'Hamiltonien depend de l'energie calculee.
 
 function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
               nspino,nspinp,numat,V0bd,Vrato,psi,r,Relativiste,Rmtg,Rmtsd,Spinorbite,V_intmax,Ylm_comp)
@@ -9938,8 +9937,7 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
 
   Eimag = 0._db
   Ecomp = .false.
-! Pour le calcul de l'energie des orbitales de coeur on neglige
-! l'aspect non spherique
+! Pour le calcul de l'energie des orbitales de coeur on neglige l'aspect non spherique
   Full_potential = .false.
   Hubb_a = .false.
   Hubb_d = .true.

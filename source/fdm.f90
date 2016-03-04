@@ -99,13 +99,13 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
      Moy_loc, Moyenne, Muffintin, No_solsing, Noncentre, Nonexc_g, Nonexc, Normaltau, NRIXS, Octupole, Old_reference, One_run, &
      Optic, Optic_xanes, Overad, Pdb, PointGroup_Auto, Polarise, Proto_all, Quadmag, &
      Quadrupole, Readfast, Recop, Recup_optic, Recup_tddft_data, Relativiste, RPALF, &
-     Rydberg, Save_optic, Save_tddft_data, Scan_a, Scf_elecabs, SCF_mag_fix, &
+     Rydberg, Save_optic, Save_tddft_data, Scan_a, SCF, SCF_elecabs, SCF_mag_fix, &
      SCF_mag_free, Second_run, Self_abs, Self_cons, Self_nonexc, &
      Solsing, Solsing_s, Solsing_o, Solsing_only, Spherical_signal, Spherical_tensor, Spino, Spinorbite, State_all, &
      State_all_out, Supermuf, Sym_4, Sym_cubic, Symauto, Symmol, Tau_nondiag, Taux, Tddft, &
      Tddft_xanes, TdOpt_Xanes, Temperature, Trace_format_wien, Use_FDMX, Xan_atom, Ylm_comp, Ylm_comp_inp
 
-  logical, dimension(4):: SCF_log
+  logical, dimension(5):: SCF_log
   logical, dimension(10):: Multipole
 
   logical, dimension(:), allocatable:: Atom_axe, Atom_with_axe, Atom_nsph_e, Hubb, Hubb_diag, Repres_comp, &
@@ -114,12 +114,12 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   real(kind=db):: adimp, alfpot, Ang_borm, Cal_Volume_maille, chargm, d_ecrant, D_max_pot, de, Delta_E_conv, Delta_edge, &
      Delta_En_conv, Delta_energ, Delta_energ_s, Delta_energ_t, Delta_Epsii, Delta_Eseuil, Densite_atom, E_cut, &
      E_cut_imp, E_Fermi, E_Open_val, E_Open_val_exc, E_start, Ec, Ecent, Ecineticmax, Ecineticmax_out, &
-     Eclie, Eclie_out, Ecmax, Ecmax_out, Ei0, Eii, Elarg, Em, En_cluster, En_cluster_s, En_cluster_t, &
+     Eclie, Eclie_out, Ecmax, Ecmax_out, Ei0, Eii, Elarg, Em, En_cluster, En_cluster_s, &
      Energ_max, Enervide, Enragr, Epsii_moy, Estart, Extract_E_cut, Extract_V0bdcF, &
-     Gamma_max, Kern_fac, overlap, p_self, p_self_s, p_self_t, p_self0, Pas_SCF, R_rydb, R_self, Rmax, &
+     Gamma_max, Kern_fac, overlap, p_self, p_self_max, p_self0, Pas_SCF, R_rydb, R_self, Rmax, &
      Rmtsd_abs, Roverad, Rpotmax, rsbdc, rsbdc_out, Rsort, Rsorte, Rtph, &
      Temp, Test_dist_min, Time_fill, Time_tria, Time_init, Time_tot, tp_SCF_1, tp_SCF_2, V_intmax, V0muf, &
-     Vhbdc, Vhbdc_out, Volume_maille, Vsphere, Workf
+     Vhbdc, Vhbdc_init, Vhbdc_out, Volume_maille, Vsphere, Workf
 
   real(kind=db), dimension(2):: chg_open_val, f_no_res, pop_open_val
   real(kind=db), dimension(3):: Ang_rotsup, angxyz, axyz, dcosxyz, deccent, dpos, Vec_orig
@@ -132,7 +132,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
   real(kind=db), dimension(:), allocatable:: Adimp_e, Angle_or, cdil, ch_coeur, chargat, chg_cluster, cgrad, clapl, dista, &
      distai, dV0bdcF, dvc_ex_nex, dv_ex_nex, E_adimp, E_max_range, E_radius, E_starta, Ecinetic, Ecinetic_out, Ecrantage, &
-     Eeient, Egamme, Eimag, Eimag_coh, Eimag_s, Eimagent, En_coeur, En_coeur_s, Energ, Energ_coh, Energ_s, Energ_self, &
+     Eeient, Egamme, Eimag, Eimag_coh, Eimag_s, Eimagent, E_coeur, E_coeur_s, Energ, Energ_coh, Energ_s, Energ_self, &
      Energ_self_s, Enervide_t, Epsii, Eseuil, poidso, poidsov, poidsov_out,  q_nrixs, r0_lapw, r, rchimp, &
      rhons, rlapw, rmt, rmtimp, rmtg, rmtg0, rmtsd, rs, rsato_t, Rsorte_s, rvol, sec_atom, Taux_eq, Taux_ipr, Taux_oc, &
      Temp_coef, V_hubbard, Vh, Vhns, V0bdc, V0bdcF, V0bdc_out, V0bdcFimp, VxcbdcF, VxcbdcF_out
@@ -306,7 +306,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
     nphim,npldafs,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
     nself,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_conf,numat,numat_abs, &
-    nvval,occ_hubb_e,Octupole,Old_reference,One_run,Optic,Overad,Overlap,p_self0, &
+    nvval,occ_hubb_e,Octupole,Old_reference,One_run,Optic,Overad,Overlap,p_self_max,p_self0, &
     param,Pas_SCF,pdpolar,PointGroup,PointGroup_Auto,Polar,Polarise,poldafsem,poldafssm, &
     pop_nonsph,popats,popval,posn,q_nrixs,Quadmag,Quadrupole,R_rydb, &
     r0_lapw,rchimp,Readfast,Recup_optic,Recup_tddft_data,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
@@ -318,10 +318,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
   E1E2e = Multipole(2)
 
-  SCF_elecabs = SCF_log(1)
-  SCF_mag_free = SCF_log(2)
-  Self_cons = SCF_log(3)
-  Self_nonexc = SCF_log(4)
+  SCF_elecabs = SCF_log(1); SCF_mag_free = SCF_log(2); Self_cons = SCF_log(3); Self_nonexc = SCF_log(4); SCF = SCF_log(5)
 
   l0_nrixs = 0
   if( Dipmag ) then
@@ -1055,7 +1052,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 ! Le nombre d'atomes decrivant le potentiel est defini soit par les  atomes prototypiques,
 ! soit par les atomes a l'interieur du petit agregat
         if( ( i_self == 1 .or. Second_run ) .and. i_range == 1 ) &
-          Full_atom = ( Full_atom_e  .or. ( Self_cons .and. .not. (Self_nonexc .and. Proto_all ) ) &
+          Full_atom = ( Full_atom_e  .or. ( Self_cons .and. .not. ( Self_nonexc .and. Proto_all ) ) &
                      .or. ( natome <= n_atom_proto + 1 ) .or. Full_potential .or. Hubbard ) .and. .not. Flapw
 
         if( Full_atom ) then
@@ -1098,8 +1095,8 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
           allocate( dv_ex_nex(nrm) )
           allocate( Energ_self(n_atom_0_self:n_atom_ind_self) )
           allocate( Energ_self_s(n_atom_0_self:n_atom_ind_self) )
-          allocate( En_coeur(n_atom_0_self:n_atom_ind_self) )
-          allocate( En_coeur_s(n_atom_0_self:n_atom_ind_self) )
+          allocate( E_coeur(n_atom_0_self:n_atom_ind_self) )
+          allocate( E_coeur_s(n_atom_0_self:n_atom_ind_self) )
           allocate( pop_orb_val(n_atom_0_self:n_atom_ind_self,nspin) )
           allocate( rho_chg(0:nrm_self,nspin,n_atom_0_self:n_atom_ind_self) )
           allocate( rho_self(0:nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self) )
@@ -1311,7 +1308,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
               mpirank0,n_atom_0,n_atom_ind,n_atom_proto,natome,natomeq,natomp,ngreq,ngroup,ngroup_lapw,nklapw,nlm_pot, &
               nlmlapwm,nmatsym,normrmt,npoint,npsom,nrato,nrato_lapw,nrm,nslapwm,nspin,ntype, &
               numat,Orthmat,overlap,pos,rato,rchimp,rho,rlapw,rmtg,rmtg0,rmtimp,rmtsd,Rot_int,rotloc_lapw,rs,rsato,rsort, &
-              Trace_format_wien,Trace_k,Trace_p,V_abs_i,V_intmax,V0bdcFimp(1),Vcato,Vh,Vxc,Vxcato,Wien_file,Wien_matsym, &
+              Trace_format_wien,Trace_k,Trace_p,V_intmax,V0bdcFimp(1),Vcato,Vh,Vxc,Vxcato,Wien_file,Wien_matsym, &
               Wien_save,Wien_taulap,xyz,i_range)
 
           else
@@ -1323,9 +1320,9 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
               itypei,itypep,itypepr,ldil,lmax_pot,lvval,Magnetic,mpirank0,n_atom_0,n_atom_0_self,n_atom_ind, &
               n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,neqm,ngreq,ngroup_m,ngroup_nonsph, &
               nhybm,nlat,nlatm,nlm_pot,Nonexc,norbdil,norbv,normrmt,npoint,npoint_ns,npsom,nr,nrato,nrm,nrm_self,nspin,ntype, &
-              numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self,psival,r_self,rato,rchimp,rho,rho_chg, &
-              rho_self,rhoato_abs,rhoato_init,rhoit,rhons,Rmtg,Rmtimp,Rmtg0,Rmtsd,Rot_Atom_gr,Rot_int,rs, &
-              rsato,rsort,Self_nonexc,TdOpt_xanes,V_abs_i,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp(1),xyz, &
+              numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self,psival,rato,rchimp,rho,rho_chg, &
+              rho_self,rhoato_abs,rhoato_init,rhoit,rhons,Rmtg,Rmtimp,Rmtg0,Rmtsd,Rot_Atom_gr,Rot_int,rs,rsato, &
+              rsort,SCF,Self_nonexc,TdOpt_xanes,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp(1),xyz, &
               i_range)
 
 ! Initialisation de rho_self, une fois avoir calcule le nouveau potentiel en potsup.
@@ -1339,7 +1336,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
 ! Calcul de l'energie de depart du comptage d'electrons; on la calcule  une seule fois,
 ! bien que les Vcato et Vxcato changent a chaque iteration
-                call En_dep(E_start,E_starta,Full_atom,iaprotoi,icheck(27),itypepr,lcoeur,n_atom_0,n_atom_0_self, &
+                call En_dep(E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck(27),itypepr,lcoeur,n_atom_0,n_atom_0_self, &
                   n_atom_ind,n_atom_ind_self,n_atom_proto,natome,ncoeur,nenerg_coh,nlm_pot,nrato,nrm,numat,nspin, &
                   ntype,Pas_SCF,psi_coeur,Relativiste,rato,Rmtg,Rmtsd,V_intmax,Vcato,Vxcato,Workf)
 
@@ -1347,7 +1344,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
                 call chg_agr(chargat,chargat_init,ch_coeur,chg_cluster,chg_open_val,Doping,Full_atom,iaprotoi,ipr_dop, &
                   iprabs_nonexc,ispin_maj,itabs,icheck(27),itypepr,mpirank0,natome,n_atom_0_self,n_atom_ind_self, &
                   n_atom_proto,nb_eq,ngreq,nrato,nrm,nrm_self,nspin,ntype,numat,pop_open_val, &
-                  psi_open_val,rato,rho_chg,rho_coeur,rhoato_init,rmtsd,SCF_mag_fix,SCF_mag_free)
+                  psi_open_val,rato,rho_chg,rho_coeur,rhoato_init,Rmtsd,SCF_mag_fix,SCF_mag_free)
 
                 chargat_self_s(:,:) = chargat_init(:,:)
 ! Mise en place de la grille en energie pour l'autocoherence
@@ -1419,32 +1416,34 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
         else
           iaprabs = iprabs_nonexc
         endif
-! On stocke le potentiel non excite de l'absorbeur (sert au calcul de l'energie du niveau initial )
-        if( Second_run ) then
-          do ispin = 1,nspin
-            V_abs_i(1:nrm,ispin) = Vcato(1:nrm,1,iaprabs) + Vxcato(1:nrm,1,ispin,iaprabs)
-          end do
-        endif
 
         if( ipr1 == 1 ) rmtg(0) = rmtg(iprabs_nonexc)
 
         allocate( V0bdcF(nspin) )
 
 ! Operations complementaires sur le potentiel
-        call potential_comp(Base_ortho,Cal_xanes,dcosxyz,distai(natome),dV0bdcF,ecineticmax,ecineticmax_out, &
-          Eclie,Eclie_out,Eneg,Energ(nenerg),Green,iaabs,iaproto,icheck(13),imoy,imoy_out,iopsymr,isrt,korigimp,Magnetic, &
-          Moy_loc,mpirank0,n_atom_proto,natomp,nim,npoint,npsom,nptmoy,nptmoy_out,nsortf,nspin,nstm,poidsov,poidsov_out,pos, &
-          rmtg0,rs,rsbdc,rsbdc_out,rsort,rvol,V0bdcF,V0bdcFimp,V0muf,Vh,Vhbdc,Vhbdc_out,Vr,Vxc,VxcbdcF,VxcbdcF_out,xyz,Workf, &
-          i_range)
+        call potential_comp(Base_ortho,Cal_xanes,dcosxyz,distai(natome),dV0bdcF,Ecineticmax,Ecineticmax_out,Eclie,Eclie_out, &
+          Eneg,Energ(nenerg),Green,i_range,i_self,iaabs,iaproto,icheck(13),imoy,imoy_out,iopsymr,isrt,korigimp,Magnetic, &
+          Moy_loc,mpirank0,n_atom_0,n_atom_ind,n_atom_proto,natomp,nim,nlm_pot,npoint,npsom,nptmoy,nptmoy_out,nrm,nsortf,nspin, &
+          nstm,poidsov,poidsov_out,pos,rmtg0,rs,rsbdc,rsbdc_out,rsort,rvol,SCF,V0bdcF,V0bdcFimp,V0muf,Vcato,Vh,Vhbdc, &
+          Vhbdc_init,Vhbdc_out,Vr,Vxc,VxcbdcF,VxcbdcF_out,xyz,Workf)
+
+! On stocke le potentiel non excite de l'absorbeur (sert au calcul de l'energie du niveau initial )
+! Si SCF et SCFexc, on est en Full_atom, donc iaprabs = iaabsi, donc niveau avec trou.
+        if( Second_run .or. i_self == 1 .or. .not. Cal_Xanes .or. ( Cal_xanes .and. Nonexc ) ) then
+          do ispin = 1,nspin
+            V_abs_i(1:nrm,ispin) = Vcato(1:nrm,1,iaprabs) + Vxcato(1:nrm,1,ispin,iaprabs)
+          end do
+        endif
 
 ! Calcul de l'energie du niveau de coeur initial.
         if( Cal_xanes .and. i_range == 1 ) then
           if( Optic ) then
             Epsii(:) = 0._db; Epsii_moy = 0._db
           else
-            call Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,Eseuil,icheck(14),is_g, &
+            call Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_cut,Epsii,Epsii_moy,Eseuil,icheck(14),is_g, &
               itabs_nonexc,lseuil,m_g,mpirank0,nbseuil,ninit1,ninitl,ninitlr,nrato(itabs_nonexc),nrm,nseuil,nspin,ntype, &
-              numat_abs,psii,rato,Rmtg(iprabs_nonexc),Rmtsd(iprabs_nonexc),V_abs_i,V_intmax,V0bdcf)
+              numat_abs,psii,rato,Rmtg(iprabs_nonexc),Rmtsd(iprabs_nonexc),V_abs_i,V_intmax,V0bdcf,Workf)
           endif
         endif
 
@@ -2279,26 +2278,13 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
         if( mpirank0 == 0 ) then
 
-          call eps_coeur(ch_coeur,En_coeur,Full_atom,iaprotoi,icheck(27),itypepr,lcoeur,n_atom_0,n_atom_0_self, &
+          call eps_coeur(ch_coeur,E_coeur,E_coeur_s,Full_atom,iaprotoi,icheck(27),itypepr,lcoeur,n_atom_0,n_atom_0_self, &
               n_atom_ind,n_atom_ind_self,n_atom_proto,natome,ncoeur,nlm_pot,nrato,nrm,nspin,ntype,numat,psi_coeur, &
               rato,Relativiste,Rmtg,Rmtsd,V_intmax,Vcato,Vxcato)
 
-          if( i_self == 1 ) then
-            En_coeur_s(:) = En_coeur(:)
-            En_coeur(:) = 0._db
-          else
-            En_coeur(:) = En_coeur(:) - En_coeur_s(:)
-          end if
-
-          call Energ_DFT(Doping,En_cluster,Energ_self,En_coeur,excato,Full_atom,Hubb,iaprotoi,icheck(27),ipr_dop,itypepr, &
+          call Energ_DFT(Doping,En_cluster,Energ_self,E_coeur,excato,Full_atom,Hubb,iaprotoi,icheck(27),ipr_dop,itypepr, &
             m_hubb,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nb_eq,ngreq,nlm_pot,nrm,nrm_self, &
             nrato,nspin,nspinp,ntype,numat,rato,rho_self,rmtsd,V_hubb,Vcato,Vxcato)
-
-          if( i_self == 1 ) then
-            En_coeur(:) = 0._db
-          else
-            En_coeur(:) = En_coeur(:) - En_coeur_s(:)
-          end if
 
         end if
 
@@ -2321,10 +2307,10 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
           Delta_E_conv = Delta_En_conv
         endif
         call prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_E_conv,Delta_energ,Delta_energ_s, &
-             Delta_energ_t,Doping,En_cluster,En_cluster_s,En_cluster_t,Energ_self,Energ_self_s,Fermi,Fermi_first,Full_atom, &
+             Delta_energ_t,Doping,En_cluster,En_cluster_s,Energ_self,Energ_self_s,Fermi,Fermi_first,Full_atom, &
              Hubbard,i_self,icheck(27),ipr_dop,m_hubb,mpirank0,n_atom_0_self, &
              n_atom_ind_self,n_atom_proto,n_devide,natome,natomeq,nb_eq,ngreq,nlm_pot,nrm_self,nself,nspin,nspinp, &
-             p_self,p_self_s,p_self_t,p_self0,rho_self,rho_self_s,V_hubb,V_hubb_s)
+             p_self,p_self_max,p_self0,rho_self,rho_self_s,V_hubb,V_hubb_s)
 
       endif
 
@@ -2526,7 +2512,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
       deallocate( chargat_self, chargat_self_s )
       deallocate( distai, drho_ex_nex, dvc_ex_nex, dv_ex_nex )
       deallocate( Energ_self, Energ_self_s )
-      deallocate( En_coeur, En_coeur_s )
+      deallocate( E_coeur, E_coeur_s )
       deallocate( ia_eq, ia_eq_inv, ia_eq_inv_self, ia_rep )
       deallocate( igroupi, iopsym_atom, is_eq, itypei )
       deallocate( nb_eq, nb_rpr, nb_rep_t )

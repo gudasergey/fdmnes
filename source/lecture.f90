@@ -14,12 +14,11 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
 
   integer:: eof, eoff, i, ie, ier, igamme, igr, igrdat, io, ipr, ipl, istat, it, itape4, itype_dop, j,&
     jgr, jpl, k, kgr, l, ligne, lin_gam, mpinodes0, mpirank0, n, n_adimp, n_radius, n_range, n_dic, n_file_dafs_exp, &
-    n_multi_run_e, n_skip, na, nb, nb_atom_conf_m, ncolm, neimagent, &
+    n_fract_x, n_fract_y, n_fract_z, n_multi_run_e, n_skip, na, nb, nb_atom_conf_m, ncolm, neimagent, &
     nenerg, ngamme, ngc, ngroup, ngroup_neq, nhybm, nklapw, nl, &
     nlatm, nlmlapwm, nmatsym, nn, nnombre, norbdil, norbv, mpierr, &
     npldafs, nple, nplm, nplrm, nq_nrixs, nspin, nspino, nspinp, ntype, ntype_conf, Wien_save, Z
 
-  character(len=1):: c
   character(len=2):: Chemical_Symbol, Chemical_Symbol_c, Symbol
   character(len=4):: mot4
   character(len=6):: mot6
@@ -551,13 +550,32 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
                Space_group(k:k) = mot(i:i)
               end do
 
-            elseif( mot(1:18) == '_atom_site_fract_x' ) then
+            elseif( mot(1:16) == '_atom_site_label') then
 
-              do
-                read(8,'(a1)') c
-                if( c /= '_' ) exit
+              n_fract_x = 0; n_fract_y = 0; n_fract_z = 0
+
+              do n = 1,100000
+                read(8,'(A)') mot
+                if( mot(1:1) /= '_' ) then
+                  backspace(8)
+                  exit
+                elseif( mot(2:18) == 'atom_site_fract_x') then
+                  n_fract_x = n
+                elseif( mot(2:18) == 'atom_site_fract_y') then
+                  n_fract_y = n
+                elseif( mot(2:18) == 'atom_site_fract_z') then
+                  n_fract_z = n
+                endif
               end do
-              backspace(8)
+
+              if( n_fract_x == 0 .or. n_fract_y == 0 .or. n_fract_z == 0 ) then
+                call write_error
+                do ipr = 6,9,3
+                  write(ipr,110)
+                  write(ipr,165) Fichier_cif
+                end do
+                stop
+              endif
 
               igr = 0
               do
@@ -572,7 +590,26 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
           end do
 
           Close(8)
+
           ngroup = igr
+
+          if( Space_group == ' ' ) then
+            call write_error
+            do ipr = 6,9,3
+              write(ipr,110)
+              write(ipr,166) Fichier_cif
+            end do
+            stop
+          endif
+
+          if( ngroup == 0 ) then
+            call write_error
+            do ipr = 6,9,3
+              write(ipr,110)
+              write(ipr,167) Fichier_cif
+            end do
+            stop
+          endif
 
         case('pdb_file')
 
@@ -1058,8 +1095,15 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
   140 format(//' After the keyword "Dafs", for the reflection number', i3,',',/ &
                ' the polarization or the indexes are not well set.',/ &
                ' Check the format !'//)
-  150 format(///' Just after the keyword "',A,'"', ', the following line is red :',/)
+  150 format(///' Just after the keyword "',A,'"', ', the following line is read :',/)
   160 format(/' It must not be there or it contains unwanted characters !'//)
+  165 format(///' Error in the lecture of the cif_file :',A,/ &
+                '   The position of the atoms are not found',/ &
+                '   (with tag _atom_site_fract_x, _atom_site_fract_y and _atom_site_fract_z) !' //)
+  166 format(///' Error in the lecture of the cif_file :',A,/ &
+                '   No space group found ( with tag _symmetry_space_group_name_H-M ) !' //)
+  167 format(///' Error in the lecture of the cif_file :',A,/ &
+                '   No list of atom position found !' //)
   170 format(/' Error in the Pdb file :',// &
               ' The chemical symbol of atom number',i6,' is: ', a2,', what is not known!'//)
 end
@@ -1217,7 +1261,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
     nphim,npldafs,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
     nself,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_conf,numat,numat_abs, &
-    nvval,occ_hubb_e,Octupole,Old_reference,One_run,Optic,Overad,Overlap,p_self0, &
+    nvval,occ_hubb_e,Octupole,Old_reference,One_run,Optic,Overad,Overlap,p_self_max,p_self0, &
     param,Pas_SCF,pdpolar,PointGroup,PointGroup_Auto,polar,Polarise,poldafsem,poldafssm, &
     pop_nonsph,popats,popval,posn,q_nrixs,Quadmag,Quadrupole,R_rydb, &
     r0_lapw,rchimp,Readfast,Recup_optic,Recup_tddft_data,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
@@ -1294,18 +1338,18 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     M1M2, M2M2, Magnetic, matper, muffintin, noncentre, nonexc, nonexc_imp, normaltau, no_core_resolved, no_dipquad, no_e1e3, &
     no_e2e2, no_e3e3, No_solsing, Octupole, Old_reference, One_run, Optic, Overad, Pas_SCF_imp, Pdb, Perdew, &
     PointGroup_Auto, Polarise, quadmag, Quadrupole, r_self_imp, Readfast, Recup_optic, Recup_tddft_data, Relativiste, &
-    rpalf, rydberg, Save_optic, Save_tddft_data, scf_elecabs, SCF_mag_free, Self_abs, self_cons, self_exc_imp, self_nonexc, &
+    rpalf, rydberg, Save_optic, Save_tddft_data, SCF, SCF_elecabs, SCF_mag_free, Self_abs, self_cons, self_exc_imp, self_nonexc, &
     self_nonexc_imp, solsing_only, solsing_s, spherical_signal, spherical_tensor, spherique, &
     Spinorbite, State_all, State_all_out, Supermuf, Symauto, Symmol, Taux, Tddft, Temperature, &
     Trace_format_wien, Use_FDMX, Ylm_comp_inp
 
-  logical, dimension(4):: SCF_log
+  logical, dimension(5):: SCF_log
   logical, dimension(10):: Multipole
   logical, dimension(ngroup):: Atom_nsph_e
   logical, dimension(0:ntype):: Hubb
 
   real(kind=db):: Alfpot, Ang_borm, D_max_pot, Delta_En_conv, Delta_Epsii, Eclie, Eclie_out, g1, g2, Gamma_max, &
-    number_from_text, Overlap, p_self0, Pas_SCF, phi, pop_nsph, pp, q, r, R_rydb, rad, Rmtt, rn, Roverad, Rpotmax, &
+    number_from_text, Overlap, p_self_max, p_self0, Pas_SCF, phi, pop_nsph, pp, q, r, R_rydb, rad, Rmtt, rn, Roverad, Rpotmax, &
     Step_azim, t, tc, Temp, Test_dist_min, Theta, V_intmax, vv
 
   real(kind=db):: Kern_fac, q_nrixs_first, q_nrixs_step, q_nrixs_last, r_self
@@ -1402,7 +1446,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Ecrantage(:) = 1._db / nspin
   Eclie = 0.2_db
   Eclie_out = 1._db
-  Delta_En_conv = 1._db
+  Delta_En_conv = 0.1_db
   Delta_Epsii = 1000000._db * Rydb
   Density = .false.
   Density_comp = .false.
@@ -1483,6 +1527,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Optic = .false.
   overad = .false.
   overlap = 0.1_db
+  p_self_max = 1._db
   p_self0 = 0.1_db
   Pas_SCF_imp = .false.
   Pdb = .false.
@@ -1507,7 +1552,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   R_rydb = 1._db
   Save_optic = .false.
   Save_tddft_data = .false.
-  scf_elecabs = .false.
+  SCF = .false.
+  SCF_elecabs = .false.
   SCF_mag_free = .false.
   self_cons = .false.
   self_exc_imp = .false.
@@ -1891,6 +1937,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('octupole','dipole_oc','dip_oct')
           Octupole = .true.
 
+        case('e1e1')
+          E1E1 = .true.
+
         case('e1e2')
           E1E2e = .true.
 
@@ -2101,7 +2150,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                   case default
                     call write_error
                     do ipr = 6,9,3
-                      write(ipr,120) ipl
+                      write(ipr,110) ipl
                     end do
                     stop
                 end select
@@ -2134,7 +2183,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 call write_error
                 do ipr = 6,9,3
                    write(ipr,100)
-                   write(ipr,110) ipl
+                   write(ipr,120) ipl
                 end do
                 stop
             end select
@@ -2162,7 +2211,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
               call write_error
               do ipr = 6,9,3
                  write(ipr,100)
-                 write(ipr,120) ipl
+                 write(ipr,110) ipl
               end do
               stop
             endif
@@ -2351,7 +2400,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('scf')
           ier = 0
-          self_cons = .true.
+          SCF = .true.
           n = nnombre(itape4,132)
           if( n == 1 ) then
             read(itape4,*,iostat=ier) nself
@@ -2367,6 +2416,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('p_self')
           read(itape4,*,iostat=ier) p_self0
+          if( ier > 0 ) call write_err_form(itape4,grdat)
+
+        case('p_self_ma')
+          read(itape4,*,iostat=ier) p_self_max
           if( ier > 0 ) call write_err_form(itape4,grdat)
 
         case('n_self')
@@ -2526,7 +2579,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                   call write_error
                   do ipr = 6,9,3
                     write(ipr,100)
-                    write(ipr,130)  it
+                    write(ipr,130) it
                   end do
                   stop
                 endif
@@ -2865,15 +2918,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 endif
               end do
 
-              if( n_fract_x == 0 .or. n_fract_y == 0 .or. n_fract_z == 0 ) then
-                call write_error
-                do ipr = 6,9,3
-                  write(ipr,100)
-                  write(ipr,165) Fichier
-                end do
-                stop
-              endif
-
               do igr = 1,ngroup_neq
 
                 read(8,'(A)') mot
@@ -3001,18 +3045,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         end do
       endif
     endif
-
-! xRadius and xadimp default parameters
-!      if( .NOT. xadimp_kw .AND. .NOT. const_adimp ) then
-!        nxadimp = 10
-!        allocate( xadimp(nxadimp) )
-!        xadimp(1:10) = (/ -1000.0, 0.24, 100.0, 0.20, 250.0, 0.16, 400.0, 0.12, 500.0, 0.08 /)
-!      end if
-!      if (.NOT. xradius_kw .AND. .NOT. const_radius) then
-!        nxradius = 8
-!        allocate( xradius(nxradius) )
-!        xradius(1:8) = (/ -1000.0, 8.3, 100.0, 7.0, 250.0, 5.0, 400.0, 4.0 /)
-!      end if
 
     l = len_trim(nomfich)
     write(6,'(/a9,A)') ' Filout: ',nomfich(1:l)
@@ -3205,8 +3237,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
     endif
 
+    if( .not. Matper ) Space_group = ' '
+
     iabsorig(:) = iabsm(:)
-    if( Space_group /= ' ' .and. Matper ) then
+    if( Matper .and. Space_group /= ' ' ) then
       allocate( neq(ngroup_neq) )
       allocate( pos(3,ngroup_neq) )
       do igr = 1,ngroup_neq
@@ -3331,13 +3365,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
     if( Atom_occ_hubb ) Fermi_auto = .false.
     if( Flapw .or. Extract .or. .not. Fermi_auto ) then
-      Self_cons = .false.
+      SCF = .false.
       Fermi_auto = .false.
       nself = 0
     end if
     if( .not. r_self_imp ) r_self = rsorte_s(1)
-    if( Self_cons ) then
-      if( nself == 0 ) nself = 30
+    if( SCF ) then
+      Self_cons = .true.
+      if( nself == 0 ) nself = 100
     elseif( ( Fermi_auto .or. ( Hubbard .and. .not. Atom_occ_hubb) ) .and. nself == 0 ) then
       Self_cons = .true.
       p_self0 = 0._db
@@ -3947,7 +3982,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
       else
 
-        if( matper ) then
+        if( Matper ) then
           write(3,'(/A)') ' Crystal'
         else
           write(3,'(/A)') ' Molecule'
@@ -4064,12 +4099,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       endif
       if( ATA ) write(3,'(/A)') ' Average T-matrix Approximation'
 
-      if( self_cons .or. fermi_auto ) then
+      if( SCF .or. Fermi_auto ) then
         if( Fermi_auto .and. abs(p_self0) < eps10 .and. nself == 1 ) then
           write(3,'(/A)')' One cycle for the Fermi level calculation'
         else
           write(3,'(/A)') ' Self consistent calculation'
-          write(3,708) nself, p_self0, Delta_En_conv
+          write(3,708) nself, p_self0, p_self_max, Delta_En_conv
         endif
         write(3,709) r_self
         if( scf_elecabs ) write(3,'(A)') '   Cuting energy criterium using the number of electron in the absorbing atom'
@@ -4246,6 +4281,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Optic,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Overad,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Overlap,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(p_self_max,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(p_self0,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     if( nple > 0 ) then
       call MPI_Bcast(pdpolar,nple*2,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
@@ -4279,7 +4315,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Rydberg,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Save_optic,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Save_tddft_data,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
-    call MPI_Bcast(Scf_elecabs,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
+    call MPI_Bcast(SCF,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(SCF_elecabs,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Self_cons,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Self_nonexc,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     do i = 1,3
@@ -4562,15 +4599,16 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   SCF_log(2) = SCF_mag_free
   SCF_log(3) = Self_cons
   SCF_log(4) = Self_nonexc
+  SCF_log(5) = SCF
 
   return
   100 format(//'  Error in the indata file :')
   110 format(//' After the keyword Dafs (or RXS),',/ &
-               '    the polarization is not defined for the reflexion number',i3,'!')
-  120 format(//' After the keyword Dafs (or RXS),',/ &
                '    for the reflexion number',i3,/ &
                '    there are at least 2 directions for an angular scan.',/ &
                ' Just one is allowed !'//)
+  120 format(//' After the keyword Dafs (or RXS),',/ &
+               '    the polarization is not defined for the reflexion number',i3,'!')
   125 format(/' After the keyword Atom_conf, for the atom number',i2,',',/ &
               ' check how is written the corresponding electronic configuration !'//)
   130 format(/' After the keyword Atom, for the atom number',i2,',',/  &
@@ -4585,9 +4623,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   160 format(///' Error under the keyword Par_',a6,/ &
                 ' The wanted atom is the number',i3,' !',/ &
                 ' There are only',i3,' atoms in the job !'//)
-  165 format(///' Error in the lecture of the cif_file :',A,/ &
-                '   The position of the atoms are not found',/ &
-                '   (with tag _atom_site_fract_x, _atom_site_fract_y and _atom_site_fract_z) !' //)
   170 format(//'  A parameter index for the fit is not possible !'/, &
                '  Check your indata file under the keyword ',a9,/ &
                '  The index is',i4//)
@@ -4670,7 +4705,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   702 format('   multrmax =',i2)
   703 format('   Rpotmax =',f7.3,' A')
   704 format('   D_max_pot =',f7.3,' A')
-  708 format('   Maximum number of iteration = ',i3,/ '   Weight =',f6.3,/ &
+  708 format('   Maximum number of iteration = ',i3,/ '   Weight =',f6.3,',   Weight max =',f6.3/ &
              '   Delta energy for convergence =',f7.3,' eV / atom')
   709 format('   Cluster radius used for this part = ',f7.3,' A')
   710 format('  with',i3,' processors including',i3,' for the energy loop and',i3,' for MUMPS')
