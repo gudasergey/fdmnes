@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 12 February 2016, 23 Pluviose, An 224.
+! FDMNES II program, Yves Joly, Oana Bunau, 1 March 2016, 11 Ventose, An 224.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
 
   character(len=50):: com_date, com_time
 
-  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 12 February 2016'
+  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 1 March 2016'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -240,8 +240,8 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   integer, parameter:: nparam_tot = nparam_conv + nparam_fdm
 
   integer:: eof, i, i1, ibl, ical, ifdm, igr, index_Met_Fit, indpar, &
-    inotskip, ip, ipar, ipbl, ipr, istat, istop, itape, itape_minim, itape1, itape2, itape3, itape4, itape5, itph, itpm, itps, &
-    itape6, iscratch, iscratchconv, j, jgr, jpar, k, l, Length_line, &
+    inotskip, ip, ipar, ipbl, ipr, istat, istop, itape, itape_minim, itape1, itape2, itape3, itape4, itape5, itph, itpj, itpm, &
+    itps, itape6, iscratch, iscratchconv, j, jgr, jpar, k, l, Length_line, &
     ligne, ligne2, m, MPI_host_num_for_mumps, mpierr, mpirank, mpirank0, mpinodes0, n, &
     n_atom_proto_p, n_shift, n1, n2, nb_datafile, nblock, ncal, ncal_nonfdm, ndem, ndm, ng, ngamh, ngroup_par, ngroup_par_conv, &
     nmetric, nn, nnombre, nnotskip, nnotskipm, nparm, npm, mermrank
@@ -303,8 +303,8 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   data kw_fdm/  &
      'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_conf','ang_spin ','atomic_sc','axe_spin ', &
      'base_comp','base_reel','base_spin','bond     ','cartesian','center   ','center_ab','chlib    ','cif_file ','clementi ', &
-     'core_reso','crystal  ','crystal_c','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_','e1e1     ', &
-     'delta_eps','density  ','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ','edge     ', &
+     'core_reso','crystal  ','crystal_c','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_','e1e1     ','delta_eps', &
+     'density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ','edge     ', &
      'e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot','etatlie  ', &
      'excited  ','extract  ','extractpo','extractsy','fdm_comp ','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ', &
      'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','hubbard  ', &
@@ -318,7 +318,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'rmt      ','rmtg     ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ','save_opti','save_tddf', &
      'self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
      'screening','solsing  ','spgroup  ','sphere_al', &
-     'spherical','spinorbit','state_all','step_azim','supermuf ', 'symmol   ', &
+     'spherical','spinorbit','step_azim','supermuf ', 'symmol   ', &
      'symsite  ','tddft    ','tddft_dat','temperatu', &
      'test_dist','trace    ','vmax     ','v0imp    ','xalpha   ', &
      'xan_atom ','ylm_comp ','z_absorbe','z_nospino','zero_azim'/
@@ -1581,13 +1581,15 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
     call CPU_TIME(time)
     tp_fin = real(time,db)
     tpt = tp_fin - tp_deb
+    itpj = int( tpt / 86400 )
     itph = int( tpt / 3600 )
     rtph = tpt - itph * 3600
     itpm = int( rtph / 60 )
     itps = nint( rtph - itpm * 60 )
     write(3,130) tpt
     if( itph > 0 .or. itpm > 0 ) write(3,140) itph, itpm, itps
-    write(3,150)
+    if( itpj > 1 ) write(3,150) itpj, itph-24*itpj, itpm, itps
+    write(3,160)
     Close(3)
   endif
 
@@ -1600,7 +1602,8 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
                 ' Check your indata file under the keyword parameter !'//)
   130 format(/' ',121('-'),//' Total time =',f10.1,' sCPU')
   140 format('            =',i4,' h,',i3,' min,',i3,' sCPU')
-  150 format(/'    Have a beautiful day !')
+  150 format('            =',i4,' d',i3,' h,',i3,' min,',i3,' sCPU')
+  160 format(/'    Have a beautiful day !')
 
 end
 
@@ -1741,8 +1744,8 @@ function traduction(grdat)
       traduction = 'energphot'
     case('state_den','statedens','densite')
       traduction = 'density'
-    case('stateall')
-      traduction = 'state_all'
+    case('stateall','state_all','densityal')
+      traduction = 'density_a'
     case('oldrefere')
       traduction = 'old_refer'
     case('newrefere')

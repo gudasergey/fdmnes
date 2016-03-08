@@ -604,6 +604,8 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         open(2, file = mot, status='old', iostat=istat)
         if( istat /= 0 ) call write_open_error(fichin(ifich),istat,1)
         fichin(ifich) = mot
+      else
+        call write_open_error(fichin(ifich),istat,1)
       endif
       Close(2)
     endif

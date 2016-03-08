@@ -675,7 +675,7 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
     stop
   endif
 
-  if( mpirank == 0 ) write(6,120) En_cluster * rydb
+  if( mpirank == 0 ) write(6,120) i_self, En_cluster * rydb
 
 ! Interpolation d'une iteration de la boucle coherente a l'autre
   if( i_self == 1 ) then
@@ -687,7 +687,7 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
     
   else
 
-    if( icheck > 0 ) write(3,100)
+    if( icheck > 0 ) write(3,125)
 
 ! Test convergence: sur l'energie et sur la charge de l'atome central
 ! a faire avant l'interpolation
@@ -714,9 +714,9 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
 
       if( icheck > 0 ) then
         write(3,*)
-        write(3,130) Delta_energ*rydb, Delta_lim*rydb, p_self
+        write(3,130) Delta_energ*rydb, '<', Delta_lim*rydb, p_self
       endif
-      if( mpirank == 0 ) write(6,130) Delta_energ*rydb, Delta_lim*rydb, p_self
+      if( mpirank == 0 ) write(6,130) Delta_energ*rydb, '<', Delta_lim*rydb, p_self
       
       if( Fermi_first ) then
         Convergence = .false.
@@ -730,9 +730,9 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
 
       if( icheck > 0 ) then
         write(3,*)
-        write(3,140) Delta_energ*rydb, Delta_lim*rydb, p_self
+        write(3,130) Delta_energ*rydb, '>', Delta_lim*rydb, p_self
       endif
-      if( mpirank == 0 ) write(6,140) Delta_energ*rydb, Delta_lim*rydb, p_self
+      if( mpirank == 0 ) write(6,130) Delta_energ*rydb, '>', Delta_lim*rydb, p_self
 
     endif
     
@@ -780,12 +780,11 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
   endif
 
   return
-  100 format(/'----- prep_next_iter ', 70('-'))
   110 format(/' The Fermi level was not reached ! ')
-  120 format(/11x,'Total Cluster energy =',f14.3,' eV')
-  130 format(11x,'Delta_energ =',f11.3, ' eV < Delta =',f8.3,' eV,  Weight =',f8.5)
+  120 format(/' Cycle',i4,', Total Cluster energy =',f14.3,' eV')
+  125 format(/'----- prep_next_iter ', 70('-'))
+  130 format(12x,'Delta_energ =',f11.3, ' eV ',a1,' Delta =',f8.3,' eV,  Weight =',f8.5)
   135 format(/' New Fermi optimization with imaginary energy divided by',i2)
-  140 format(11x,'Delta_energ =',f11.3, ' eV > Delta =',f8.3,' eV,  Weight =',f8.5)
 end
 
 !***********************************************************************
@@ -1522,9 +1521,9 @@ subroutine Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Dop
   268 format(i3,7(1x,2f11.7))
   269 format(2i3,2(1x,7(1x,2f11.7)))
   270 format(15x,' Energy =',f10.3,' eV')
-  289 format(/' Cycle',i3,',   Fermi Energy =',f8.3,' eV,  maj, min =',2f8.3,' eV', &
+  289 format(/' Cycle',i4,',  Fermi Energy =',f8.3,' eV,  maj, min =',2f8.3,' eV', &
                       ',  Cluster Energy_KS =',f11.3,' eV')
-  290 format(/' Cycle',i3,',   Fermi Energy =',f8.3,' eV,  Cluster Energy_KS =',f11.3,' eV')
+  290 format(/' Cycle',i4,',  Fermi Energy =',f8.3,' eV,  Cluster Energy_KS =',f11.3,' eV')
   292 format(9x,'Level val excite =',f8.3,' eV')
   293 format(9x,'Level val absorb =',f8.3,' eV')
   294 format(9x,'Popul val absorb =',f8.3)

@@ -33,13 +33,15 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
      Extract, Flapw, Full_self_abs, Hubbard, Magnetic, Matper, Memory_save, NRIXS, Pdb, Quadrupole, Readfast, &
      Screening, Self_abs, Spherique, Taux, Temperature, Use_FDMX, Xan_atom
 
-  real(kind=db):: Adimp, de, def, number_from_text, E, phi, q_nrixs_first, q_nrixs, q_nrixs_step, q_nrixs_last, r, Rsorte_s, Theta
+  real(kind=db):: Adimp, Angz, de, def, number_from_text, E, phi, q_nrixs_first, q_nrixs, q_nrixs_step, q_nrixs_last, r, &
+                  Rsorte_s, Theta
   real(kind=db), dimension(3):: p
   real(kind=db), dimension(3,3):: Mat
   real(kind=db), dimension(:), allocatable:: E_adimp, E_radius, Egamme
   real(kind=db), dimension(:,:), allocatable:: pop, posn, posout
 
   Absauto = .true.
+  Angz = 0._db
   Atom_conf = .false.
   Atom_nonsph = .false.
   Atom_occ_hubb = .false.
@@ -459,7 +461,11 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
             end do
             stop
           endif
-          read(itape4,*)
+          if( n > 5 ) then
+            read(itape4,*,iostat=ier) ( Angz, i = 1,6 )
+          else
+            read(itape4,*)
+          endif
 
           if( Readfast .or. Taux ) then
             do igr = 1,100000
@@ -515,7 +521,6 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
         case('cif_file')
 
           Cif = .true.
-          Taux = .true.
           Matper = .true.
 
           Fichier_cif = ' '
@@ -550,6 +555,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
                Space_group(k:k) = mot(i:i)
               end do
 
+            elseif( mot(1:17) == '_cell_angle_gamma' ) then
+              Angz = number_from_text(1,mot)
+
             elseif( mot(1:16) == '_atom_site_label') then
 
               n_fract_x = 0; n_fract_y = 0; n_fract_z = 0
@@ -565,6 +573,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
                   n_fract_y = n
                 elseif( mot(2:18) == 'atom_site_fract_z') then
                   n_fract_z = n
+                elseif( mot(2:20) == 'atom_site_occupancy') then
+                  Taux = .true.
                 endif
               end do
 
@@ -580,7 +590,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
               igr = 0
               do
                 read(8,'(a4)',iostat=eoff) mot4
-                if( eoff /= 0 .or. mot4(1:1) == '_' .or. mot4 == 'loop' ) exit
+                if( eoff /= 0 .or. mot4(1:1) == '_' .or. mot4 == 'loop' .or. mot4 == ' ' ) exit
                 igr = igr + 1
               end do
               exit
@@ -644,7 +654,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
               case('CRYST1' )
 
                 backspace(8)
-                read(8,'(54x,a13)') Spgr
+                read(8,'(47x,f7.2,a13)') Angz, Spgr
 
                 l = len_trim(Spgr)
                 j = 0
@@ -977,6 +987,14 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Doping,Extr
       endif
 
       if( Space_Group /= ' ' ) then
+
+! Atom defined with few digits
+        if( abs( Angz - 120._db ) < 0.0001_db ) then
+          do i = 1,11
+            if( i == 3 .or. i == 6 .or. i == 9 ) cycle
+            Where( abs( Posn - i / 12._db ) < 0.00005_db ) Posn = i / 12._db
+          end do
+        endif
 
         do igr = 1,ngroup_neq
           if( cylindre ) then
@@ -1569,8 +1587,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Spinorbite = .false.
   core_resolved_e = .false.
   no_core_resolved = .false.
-  state_all = .false.
-  state_all_out = .false.
+  State_all = .false.
+  State_all_out = .false.
   supermuf = .false.
   PointGroup = ' '
   PointGroup_Auto = .true.
@@ -1700,9 +1718,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           Density = .true.
           Density_comp = .true.
 
-        case('state_all')
+        case('density_a')
           Density = .true.
-          state_all = .true.
+          State_all = .true.
           state_all_out = .true.
 
         case('supermuf')
@@ -3095,6 +3113,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       endif
       if( ngroup_pdb > 0 ) Kgroup(ngroup) = Kgroup(igr_dop)
       if( ngroup_temp > 0 ) Temp_coef(ngroup) = Temp_coef(igr_dop)
+    endif
+
+! Atom defined with few digits
+    if( abs( Angxyz(3) - 120._db ) < 0.0001_db ) then
+      do i = 1,11
+        if( i == 3 .or. i == 6 .or. i == 9 ) cycle
+        Where( abs( Posn - i / 12._db ) < 0.00005_db ) Posn = i / 12._db
+      end do
     endif
 
 ! Modification en cas de fit.

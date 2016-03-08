@@ -12,9 +12,9 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   use declarations
   implicit none
 
-  integer:: i, i_newind, ia, ib, icheck, ie, igrph, ii, ipr, isp, ispin, ispinin, iv, j, jj, k, lb1i, lb1r, lb2i, lb2r, lm, lmaxso, &
-    lms, MPI_host_num_for_mumps, mpirank0, natome, nbm, nbtm, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmagm, nlmmax, &
-    nlmomax, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, & 
+  integer:: i, i_newind, ia, ib, icheck, ie, igrph, ii, ipr, isp, ispin, ispinin, iv, j, jj, k, lb1i, lb1r, lb2i, lb2r, lm, &
+    lmaxso, lms, MPI_host_num_for_mumps, mpirank0, natome, nbm, nbtm, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmagm, &
+    nlmmax, nlmomax, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, & 
     npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, nvois
 
   integer(kind=8):: lk, nb_not_zero_tot

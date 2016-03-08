@@ -618,11 +618,12 @@ function ptgrname_sch(igrpt)
   character(len=8):: ptgrname_sch
   character(len=8), dimension(ngrptm+ngrpt_compm):: ptgrname_sch_t
 
-  data ptgrname_sch_t/'C1   ','Ci   ','Cs   ','C2   ','C2h  ', 'C2v  ','D2   ','D2h  ','C4   ','S4   ', &
-                    'C4h  ','C4v  ','D2d  ','D4   ','D4h  ', 'C3   ','S6   ','C3v  ','D3   ','D3d  ', &
-                    'C3h  ','C6   ','C6h  ','D3h  ','C6v  ', 'D6   ','D6h  ','T    ','Th   ','Td   ', 'O    ','Oh   ', &
-      'Csx     ','Csy     ','C2x     ','C2y     ','C2hx    ', 'C2hy    ','C2vx    ','C2vy    ','D3v     ','C2d     ', &
-      'C3d     '/
+  data ptgrname_sch_t/'C1      ','Ci      ','Cs      ','C2      ','C2h     ','C2v     ','D2      ','D2h     ','C4      ', &
+                      'S4      ','C4h     ','C4v     ','D2d     ','D4      ','D4h     ','C3      ','S6      ','C3v     ', &
+                      'D3      ','D3d     ','C3h     ','C6      ','C6h     ','D3h     ','C6v     ','D6      ','D6h     ', &
+                      'T       ','Th      ','Td      ','O       ','Oh      ', &
+                      'Csx     ','Csy     ','C2x     ','C2y     ','C2hx    ','C2hy    ','C2vx    ','C2vy    ','D3v     ', &
+                      'C2d     ','C3d     '/
 
   ptgrname_sch = ptgrname_sch_t(igrpt)
 
@@ -731,7 +732,7 @@ function Chemical_Symbol(Z)
       'Sc','Ti','V ','Cr','Mn','Fe','Co','Ni','Cu','Zn', 'Ga','Ge','As','Se','Br','Kr','Rb','Sr','Y ','Zr', &
       'Nb','Mo','Tc','Ru','Rh','Pd','Ag','Cd','In','Sn', 'Sb','Te','I ','Xe','Cs','Ba','La','Ce','Pr','Nd', &
       'Pm','Sm','Eu','Gd','Tb','Dy','Ho','Er','Tm','Yb', 'Lu','Hf','Ta','W ','Re','Os','Ir','Pt','Au','Hg', &
-      'Tl','Pb','Bi','Po','At','Rn','Fr','Ra','Ac','Th', 'Pa','U ','Np','Pu','Am','Cm','Bk','Cf','Es','Fm', 'Md','No','Lw'/
+      'Tl','Pb','Bi','Po','At','Rn','Fr','Ra','Ac','Th', 'Pa','U ','Np','Pu','Am','Cm','Bk','Cf','Es','Fm','Md','No','Lw'/
 
   Chemical_Symbol = Symbol(Z)
 
@@ -751,7 +752,7 @@ function Chemical_Symbol_c(Z)
       'SC','TI','V ','CR','MN','FE','CO','NI','CU','ZN', 'GA','GE','AS','SE','BR','KR','RB','SR','Y ','ZR', &
       'NB','MO','TC','RU','RH','PD','AG','CD','IN','SN', 'SB','TE','I ','XE','CS','BA','LA','CE','PR','ND', &
       'PM','SM','EU','GD','TB','DY','HO','ER','TM','YB', 'LU','HF','TA','W ','RE','OS','IR','PT','AU','HG', &
-      'TL','PB','BI','PO','AT','RN','FR','RA','AC','TH', 'PA','U ','NP','PU','AM','CM','BK','CF','ES','FM', 'MD','NO','LW'/
+      'TL','PB','BI','PO','AT','RN','FR','RA','AC','TH', 'PA','U ','NP','PU','AM','CM','BK','CF','ES','FM','MD','NO','LW'/
 
   Chemical_Symbol_c = Symbol(Z)
 
@@ -767,31 +768,27 @@ function Chemical_Name(Z)
   character(len=13):: Chemical_Name
   character(len=13), dimension(103):: Name
 
-  data Name/ 'Hydrogen     ','Helium       ','Lithium      ','Beryllium    ', &
-   'Boron        ','Carbon       ','Nitrogen     ','Oxygen       ', &
-   'Fluorine     ','Neon         ','Sodium       ','Magnesium    ', &
-   'Aluminium    ','Silicon      ','Phosphorus   ','Sulfur       ', &
-   'Chlorine     ','Argon        ','Potassium    ','Calcium      ', &
-   'Scandium     ','Titanium     ','Vanadium     ','Chromium     ', &
-   'Manganese    ','Iron         ','Cobalt       ','Nickel       ', &
-   'Copper       ','Zinc         ','Gallium      ','Germanium    ', &
-   'Arsenic      ','Selenium     ','Bromine      ','Krypton      ', &
-   'Rubidium     ','Strontium    ','Yttrium      ','Zirconium    ', &
-   'Niobium      ','Molybdenum   ','Technetium   ','Ruthenium    ', &
-   'Rhodium      ','Palladium    ','Silver       ','Cadmium      ', &
-   'Indium       ','Tin          ','Antimony     ','Tellurium    ', &
-   'Iodine       ','Xenon        ','Cesium       ','Barium       ', &
-   'Lanthanum    ','Cerium       ','Praeseodymium','Neodymium    ', &
-   'Promethium   ','Samarium     ','Europium     ','Gadolinium   ', &
-   'Terbium      ','Dysprosium   ','Holmium      ','Erbium       ', &
-   'Thulium      ','Ytterbium    ','Lutetium     ','Hafnium      ', &
-   'Tantalum     ','Tungsten     ','Rhenium      ','Osmium       ', &
-   'Iridium      ','Platinum     ','Gold         ','Mercury      ', &
-   'Thallium     ','Lead         ','Bismuth      ','Polonium     ', &
-   'Astatine     ','Radon        ','Francium     ','Radium       ', &
-   'Actinium     ','Thorium      ','Protactinium ','Uranium      ', &
-   'Neptunium    ','Plutonium    ','Americium    ','Curium       ', &
-   'Berkelium    ','Californium  ','Einsteinium  ','Fermium      ', 'Mendelevium  ','Nobelium     ','Lawrencium   '/
+  data Name/ 'Hydrogen     ','Helium       ','Lithium      ','Beryllium    ','Boron        ', &
+             'Carbon       ','Nitrogen     ','Oxygen       ','Fluorine     ','Neon         ', &
+             'Sodium       ','Magnesium    ','Aluminium    ','Silicon      ','Phosphorus   ', &
+             'Sulfur       ','Chlorine     ','Argon        ','Potassium    ','Calcium      ', &
+             'Scandium     ','Titanium     ','Vanadium     ','Chromium     ','Manganese    ', &
+             'Iron         ','Cobalt       ','Nickel       ','Copper       ','Zinc         ', &
+             'Gallium      ','Germanium    ','Arsenic      ','Selenium     ','Bromine      ', &
+             'Krypton      ','Rubidium     ','Strontium    ','Yttrium      ','Zirconium    ', &
+             'Niobium      ','Molybdenum   ','Technetium   ','Ruthenium    ','Rhodium      ', &
+             'Palladium    ','Silver       ','Cadmium      ','Indium       ','Tin          ', &
+             'Antimony     ','Tellurium    ','Iodine       ','Xenon        ','Cesium       ', &
+             'Barium       ','Lanthanum    ','Cerium       ','Praeseodymium','Neodymium    ', &
+             'Promethium   ','Samarium     ','Europium     ','Gadolinium   ','Terbium      ', &
+             'Dysprosium   ','Holmium      ','Erbium       ','Thulium      ','Ytterbium    ', &
+             'Lutetium     ','Hafnium      ','Tantalum     ','Tungsten     ','Rhenium      ', &
+             'Osmium       ','Iridium      ','Platinum     ','Gold         ','Mercury      ', &
+             'Thallium     ','Lead         ','Bismuth      ','Polonium     ','Astatine     ', &
+             'Radon        ','Francium     ','Radium       ','Actinium     ','Thorium      ', &
+             'Protactinium ','Uranium      ','Neptunium    ','Plutonium    ','Americium    ', &
+             'Curium       ','Berkelium    ','Californium  ','Einsteinium  ','Fermium      ', &
+             'Mendelevium  ','Nobelium     ','Lawrencium   '/
 
   Chemical_Name = Name(Z)
 
@@ -800,8 +797,7 @@ end
 
 !*********************************************************************
 
-! Table contenant l'indice l de l'orbitale sur laquelle s'applique
-! la correction de Hubbard
+! Table contenant l'indice l de l'orbitale sur laquelle s'applique la correction de Hubbard
 
   integer function l_hubbard(Z)
 
@@ -836,10 +832,11 @@ function nvnonrel(Z)
 
   return
 end
+
 !*********************************************************************
 
-! Table qui contient le nombre d'orbitales de valence qui sont accesibles
-! pour toutes les espèces chimiques: (relativistes)
+! Table qui contient le nombre d'orbitales de valence qui sont accessibles
+! pour toutes les especes chimiques: (relativistes)
 
 function nvrel(Z)
 
@@ -884,8 +881,8 @@ function n_orb_rel(Z)
   integer, dimension(103):: n
 
   data n/ 1, 1, 2, 2, 4, 4, 4, 4, 4, 4, 5, 5, 7, 7, 7, 7, 7, 7, 8, 8,10,10,10,10,10,10,10,10,10,10,12,12,12,12,12,12, &
-   13,13,15,15,15,15,15,15,15,15,15,15,17,17,17,17,17,17, 18,18,24,24,24,24,24,24,24,24,24,24,24,24,24,24, &
-         24,24,24,24,24,24,24,24,24,24,26,26,26,26,26,26, 27,27,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31/
+   13,13,15,15,15,15,15,15,15,15,15,15,17,17,17,17,17,17,18,18,24,24,24,24,24,24,24,24,24,24,24,24,24,24, &
+         24,24,24,24,24,24,24,24,24,24,26,26,26,26,26,26,27,27,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31/
 
   n_orb_rel = n(Z)
 
@@ -895,14 +892,13 @@ end
 !*********************************************************************
 
 ! Indice de la derniere orbitale de coeur. Appele par dirgen.
+! Ordre d'occupation des orbitales: 1s[He]2s2p[Ne]3s3p[Ar]4s3d4p[Kr]5s4d5p[Xe]6s4f5d6p[Rn]7s6d5f
+! inversion: 6s2 4f0 5d1 puis on remplit les 4f puis les 6p
 
 function n_orb_coeur(Z)
 
   integer Z
   integer, dimension(103):: nc
-
-! ordre d'occupation des orbitales:1s[He]2s2p[Ne]3s3p[Ar]4s3d4p[Kr]5s4d5p[Xe]6s4f5d6p[Rn]7s6d5f
-! inversion: 6s2 4f0 5d1 puis on remplit les 4f puis les 6p
 
   data nc/ 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, &
      7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10, &
@@ -915,7 +911,7 @@ end
 
 !*********************************************************************
 
-! Orbitale de valence partiellement rempli par defaut.
+! Orbitale de valence partiellement remplie par defaut.
 
 function l_level_val(Z)
 
@@ -966,7 +962,12 @@ end
 
 !*********************************************************************
 
-! Masse atomique
+! Ionic radius
+! Come from Shannon (1976), most common valence in octahedral coordinance.
+! For rare earth (Z = 2,10,18,36,54,86) and carbone (6), it is the atomic radius.
+! For astatine (85), Polonium (84) value.
+! For Fm (100) and Md (101), Es (99) value.
+! For Lr (103), No (102) value.
 
 function RayIon(Z)
 
@@ -976,13 +977,6 @@ function RayIon(Z)
 
   real(kind=db):: Rayion
   real(kind=db), dimension(103):: Ray
-
-! Rayon ioniques venant de Shannon (1976) coordinance octaédrique
-! valence la plus courante.
-! Pour les gaz rares (Z = 2,10,18,36,54,86) et le carbone (6),
-! c'est le rayon atomique. Pour l'astatine (85), valeur du polonium (84),
-! pour Fm (100) et Md (101), valeur de Es (99),
-! pour Lr (103), valeur de No (102).
 
   data Ray/ 0.012, 0.49,  0.76,  0.45,  0.27,  0.91,  1.46,  1.40,  1.33,  0.51,  1.02,  0.67,  0.48,  0.40,  0.44,  &
             1.84,  1.81,  0.88,  1.38,  1.00,  0.745, 0.86,  0.79,  0.80,  0.83,  0.78,  0.74,  0.69,  0.73,  0.74,  &
@@ -1007,10 +1001,8 @@ subroutine fdmx(fdmnes_inp,nomfich,cm2g,nobg,nohole,nodwfact,noimfp,Gamma_hole,G
     imfp_inp, imfp_infile, elf_inp, elf_infile, dwfactor_inp, dwfactor, tdebye_inp, debyetemp, tmeas_inp, tmeas, Energphot, &
     expntl, expntlA, expntlB, victoreen, victA, victB, mermrank)
 
-real ( kind = 8 ) x1, x2, x3, x4, x5, x6, x7, &
-  E_cut_imp, dwfactor, tmeas, debyetemp, expntlA, expntlB, &
-  victA, victB
-real ( kind = 8 ), dimension(10) :: Gamma_hole
+real( kind = 8 ) x1, x2, x3, x4, x5, x6, x7, E_cut_imp, dwfactor, tmeas, debyetemp, expntlA, expntlB, victA, victB
+real( kind = 8 ), dimension(10):: Gamma_hole
 real E(8000), mu0(8000), atom(8000), spline(8000), mu(8000), mult(-8000:8000), &
   Einit(8000), mu0init(8000), smalldist, disttemp, spacing, a, pi, eu, sigmaparam, &
   BG(8000), mu1(8000), lite, Econv(8000), convval(8000), convvalue, xpostemp, &
@@ -1018,8 +1010,8 @@ real E(8000), mu0(8000), atom(8000), spline(8000), mu(8000), mult(-8000:8000), &
   zpos, avec, bvec, cvec, alphang, betang, gamang, xabspos, yabspos, zabspos, &
   masstotal, imfpvalue, tdeb, tmeasured, atommass, imfpval(8000), Nv, rho, masstot, &
   egap, nvpart, Navag, imfpvaltab, cm2gtombarn(1:92), edgepos, ffastbg, masstotaltemp, &
-  Nvtemp, voltemp, rscratch, mbarntocm2g, background(8000), imfpm, imfpb, mufin(8000), &
-  atomfin(8000), bgfin(8000), imfpfin(8000), Aint, Bint, Cint, Dint, ddone, ddtwo, bgpart
+  Nvtemp, voltemp, rscratch, mbarntocm2g, background(8000), imfpm, imfpb, &
+  Aint, Bint, Cint, Dint, ddone, ddtwo, bgpart
 real*16 scelfimfp(1024,2)
 integer atomtypes(1:92,1:2), mermrank, scelfimfpdim, lines, linesconv, econvmin, &
   absorbeur, imark, Z, maxpoint, ninputs, linetype, natoms, intscratch, Znn, Ztemp, natomstot
@@ -1035,7 +1027,7 @@ eu = 2.718282
 rydb = 13.60569
 molinp = .false.
 hwidth = -1.0
-if (Gamma_hole_imp) then
+if( Gamma_hole_imp ) then
    hwidth = Gamma_hole(1)*rydb
 end if
 bgedges = .true.

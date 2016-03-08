@@ -163,7 +163,7 @@ subroutine symsite(absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
   logical, dimension(0:ngroup_m):: Atom_with_axe
   logical, dimension(:), allocatable:: Far_atom
 
-  real(kind=db):: dist, distm_neq, dpop, pp1, pp2, rad, vnorme
+  real(kind=db):: dist, distm_neq, dpop, pp1, pp2, rad, Vnorme
 
   real(kind=db), dimension(3):: angxyz, Axe_atom_c, axyz, dcosxyz, ps, spini, vspin, wspin
   real(kind=db), dimension(3,3):: Cubmat, Cubmati, matopsym
@@ -298,7 +298,7 @@ subroutine symsite(absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
           where( ps < -0.5_db ) ps = ps + 1._db
         endif
         ps(:) = ps(:) * axyz(:)
-        dist = vnorme(Base_ortho,dcosxyz,ps)
+        dist = Vnorme(Base_ortho,dcosxyz,ps)
         if( dist <= distm_neq ) then
           Far_atom(igr) =  .false.
           exit
@@ -1327,7 +1327,7 @@ subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
     do igr = 1,ngroup
       if( abs( itype(igr) ) /= itabs ) cycle
       do l = 1,nlat(itabs)
-        popats(igr,l,1:nspin) = popval(itabs,l,1:spin)
+        popats(igr,l,1:nspin) = popval(itabs,l,1:nspin)
       end do
     end do
 
@@ -2117,7 +2117,7 @@ subroutine natomp_cal(angxyz,ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccen
               if( sum( abs( posg(:,igr) - posg(:,jgr) ) ) < eps6 )  cycle boucle_igr
             end do
           endif
-          dist = vnorme(Base_ortho,dcosxyz,ps)
+          dist = Vnorme(Base_ortho,dcosxyz,ps)
           if( dist <= r_self + eps10 ) then
             natomeq_coh = natomeq_coh + 1
             boucle_ipr: do ipr = 1,n_atom_proto
@@ -2166,7 +2166,7 @@ subroutine natomp_cal(angxyz,ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccen
           if( Kgroup(igr1) /= Kgroup(igr2) .and. Kgroup(igr1) /= 0 .and. Kgroup(igr2) /= 0 ) cycle
         endif
         ps(1:3) = posg(1:3,igr1) - posg(1:3,igr2)
-        r = vnorme(Base_ortho,dcosxyz,ps)
+        r = Vnorme(Base_ortho,dcosxyz,ps)
         if( r > Test_dist_min ) cycle
         if( Taux .and. r < eps10 .and. .not. Doping ) then
           if( Taux_oc(igr1) + Taux_oc(igr2) < 1._db + eps10 ) cycle
@@ -2342,7 +2342,7 @@ subroutine clust(ATA,axyz,Base_ortho,dcosxyz,deccent,dista,Doping,dpos,iaabs,iaa
 
   logical:: ATA, Base_ortho, Doping, Matper, Noncentre, One_run
 
-  real(kind=db):: dist, dist12, rmax, vnorme
+  real(kind=db):: dist, dist12, rmax, Vnorme
   real(kind=db), dimension(3):: axyz, dcosxyz, deccent, dpos, ps, v
   real(kind=db), dimension(ngroup_taux):: Taux_oc
   real(kind=db), dimension(natomp):: dista
@@ -2389,7 +2389,7 @@ subroutine clust(ATA,axyz,Base_ortho,dcosxyz,deccent,dista,Doping,dpos,iaabs,iaa
               endif
             end do
           endif
-          dist = vnorme(Base_ortho,dcosxyz,ps)
+          dist = Vnorme(Base_ortho,dcosxyz,ps)
           if( dist > rmax + eps10 ) cycle
           ia = ia + 1
           pos(1:3,ia) = ps(1:3)
@@ -2426,7 +2426,7 @@ subroutine clust(ATA,axyz,Base_ortho,dcosxyz,deccent,dista,Doping,dpos,iaabs,iaa
 ! Mise en ordre par distance croissante au centre
   do ia = 1,natomp
     v(:) = pos(:,ia)
-    dista(ia) = vnorme(Base_ortho,dcosxyz,v)
+    dista(ia) = Vnorme(Base_ortho,dcosxyz,v)
   end do
 
   do ia1 = 1,natomp
@@ -3059,7 +3059,7 @@ end
 
 !*********************************************************************
 
-  real(kind=db) function vnorme(Base_ortho,dcosxyz,v)
+  real(kind=db) function Vnorme(Base_ortho,dcosxyz,v)
 
   use declarations
   implicit none
@@ -3069,9 +3069,9 @@ end
   real(kind=db), dimension(3):: dcosxyz, v
 
   if( Base_ortho ) then
-    vnorme = sqrt( sum( v(:)**2 ) )
+    Vnorme = sqrt( sum( v(:)**2 ) )
   else
-    vnorme = sqrt( sum( v(:)**2 ) + v(1)*v(2)*dcosxyz(3) + v(1)*v(3)*dcosxyz(2) + v(2)*v(3)*dcosxyz(1) )
+    Vnorme = sqrt( sum( v(:)**2 ) + v(1)*v(2)*dcosxyz(3) + v(1)*v(3)*dcosxyz(2) + v(2)*v(3)*dcosxyz(1) )
   endif
 
   return
@@ -3341,7 +3341,7 @@ subroutine sym_cluster(Atom_with_axe,Axe_atom_clu,Base_ortho,dcosxyz,iaabs,igrou
   logical:: Base_ortho, Symmol
   logical, dimension(0:ngroup_m):: Atom_with_axe
 
-  real(kind=db):: dpop, vnorme
+  real(kind=db):: dpop, Vnorme
 
   real(kind=db), dimension(3):: Axe_atom_c, Axe_atom_s, dcosxyz, ps, pt, vspin, vspini, wspin, wspini
   real(kind=db), dimension(3,3):: matopsym
@@ -3425,7 +3425,7 @@ subroutine sym_cluster(Atom_with_axe,Axe_atom_clu,Base_ortho,dcosxyz,iaabs,igrou
               wspin(3) = 1._db;  wspin(1:2) = 0._db
             endif
             call prodvec( vspin, Axe_atom_c, wspin )
-            vspin = vspin / vnorme(Base_ortho,dcosxyz,vspin)
+            vspin = vspin / Vnorme(Base_ortho,dcosxyz,vspin)
 
             call prodvec( wspin, Axe_atom_c, vspin )
 
@@ -6028,12 +6028,12 @@ subroutine prepdafs(Angle_or,angpoldafs,angxyz,Axe_atom_gr,axyz,Base_spin,Borman
 
   if( Temp > 0.00001_db ) then
     Debye = .true.
-    Tempt = max (1._db, temp)      ! le cas defaut: T = 1 K
+    Tempt = max( 1._db, Temp )      ! le cas defaut: T = 1 K
   else
     Debye = .false.
   endif
 
-  if( Temperature ) write(3,'(/A)') ' ( h, k, l)   Z   Debye-Waller Attenuation'
+  if( icheck > 1 .and. Temperature ) write(3,'(/A)') ' ( h, k, l)   Z   Debye-Waller Attenuation'
 
   do ipr = 1,n_atom_proto
 
@@ -8056,7 +8056,7 @@ end
 ! Selection des atomes du petit agregat
 ! Evaluation de leur groupe ponctuel dans cet agregat.
 
-subroutine Atom_selec(adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_mat,Axe_atom_clu,Base_ortho,dcosxyz, &
+subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_mat,Axe_atom_clu,Base_ortho,dcosxyz, &
            dista,distai,Full_atom,Green,hubbard,i_self,ia_eq,ia_eq_inv,ia_rep,iaabs,iaabsi,iaproto,iaprotoi,icheck,igreq, &
            igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,is_eq,itype,itypei,itypep,itypepr,magnetic,m_hubb, &
            m_hubb_e,mpirank,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,nb_eq,nb_rpr, &
@@ -8304,12 +8304,12 @@ subroutine Atom_selec(adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_mat,Axe_
     if( overad ) then
       rm = distai(natome) + rmt(it) + roverad
     else
-      rm = distai(natome) + rmt(it) + adimp
+      rm = distai(natome) + rmt(it) + Adimp
     endif
-    rsort = max( rsorte, rm + adimp )
+    rsort = max( rsorte, rm + Adimp )
   endif
-  rsort = max( rsort, rmt(itypei(1)) + adimp )
-  rmax = ( rsort / adimp + sqrt(2._db) * ( iord / 2 ) + epspos ) / cos( pi / 6 )
+  rsort = max( rsort, rmt(itypei(1)) + Adimp )
+  rmax = ( rsort / Adimp + sqrt(2._db) * ( iord / 2 ) + epspos ) / cos( pi / 6 )
   nx = nint( rmax )
 
   if( icheck > 0) then
@@ -8385,12 +8385,12 @@ subroutine Atom_selec(adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_mat,Axe_
       do ia2 = ia1+1,natome
         it2 = itypei(ia2)
         v(:) = posi(:,ia1) - posi(:,ia2)
-        dist = vnorme(Base_ortho,dcosxyz,v)
-        if( dist < rmt(it1) + rmt(it2) - adimp .and. mpirank == 0) then
+        dist = Vnorme(Base_ortho,dcosxyz,v)
+        if( dist < rmt(it1) + rmt(it2) - Adimp .and. mpirank == 0) then
           call write_error
           do ipr = 3,9,3
             write(ipr,280) ia1, numat(itypei(ia1)), igroupi(ia1), ia2, numat(itypei(ia2)), igroupi(ia2), dist*bohr, &
-                   rmt(it1)*bohr, rmt(it2)*bohr, adimp*bohr
+                   rmt(it1)*bohr, rmt(it2)*bohr, Adimp*bohr
           end do
           stop
         endif
@@ -8890,33 +8890,36 @@ end
 ! Calcul du nombre de point du maillage.
 
 subroutine nbpoint(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,igrpt_nomag,iopsymr,iord,Moy_loc, &
-               mpirank,natomp,npoint,npso,nvois,nx,pos,rsort)
+               mpirank,natomp,npoint,npso,nvois,nx,pos,Rsort)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
+  integer:: ia, iaabs, igrpt_nomag, iord, isym, ix, iy, iz, mpirank, natomp, npoint, npso, nvois, nx
   integer, dimension(nopsm):: iopsymr
 
   logical Base_hexa, Base_ortho, Green, Moy_loc
 
+  real(kind=db):: Adimp, D_max_pot, Dist, Dist_max, Dista, dcour, f, Rmax, Rsort, Vnorme
   real(kind=db), dimension(3):: dcosxyz, p, v, w
   real(kind=db), dimension(3,natomp):: pos
 
-  f = sqrt(3._db)/2
+  Dist_max = D_max_pot / Adimp + eps10
+  f = sqrt(3._db) / 2
 
   if( Moy_loc ) then
     dcour = rsort
     do ia = 1,natomp
       if( ia == iaabs ) cycle
       p(:) = pos(:,ia) - pos(:,iaabs)
-      dcour = min(dcour,vnorme(Base_ortho,dcosxyz,p))
+      dcour = min(dcour,Vnorme(Base_ortho,dcosxyz,p))
     end do
-    rmax = min(dcour,rsort) / adimp + epspos
+    rmax = min(dcour,rsort) / Adimp + epspos
   else
-    rmax = rsort / adimp + sqrt(2._db) * iord / 2 + epspos
+    rmax = rsort / Adimp + sqrt(2._db) * iord / 2 + epspos
   endif
 
-  p(:) = pos(:,iaabs) / adimp
+  p(:) = pos(:,iaabs) / Adimp
   npoint = 0
   npso = 0
   do ix = -nx,nx
@@ -8932,9 +8935,9 @@ subroutine nbpoint(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,igrp
         v(3) = 1._db * iz
         if( Moy_loc ) then
           w(:) = v(:) - p(:)
-          dist = vnorme(Base_ortho,dcosxyz,w)
+          dist = Vnorme(Base_ortho,dcosxyz,w)
         else
-          dist = vnorme(Base_ortho,dcosxyz,v)
+          dist = Vnorme(Base_ortho,dcosxyz,v)
         endif
         if( dist > rmax ) cycle
         w(:) = v(:)
@@ -8945,14 +8948,14 @@ subroutine nbpoint(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,igrp
 ! Pour la moyenne du potentiel, on ne prend pas les points loin de tout
 ! atome
           do ia = 1,natomp
-            w(:) = pos(:,ia) / adimp - v(:)
-            dista = vnorme(Base_ortho,dcosxyz,w)
-            if( dista < D_max_Pot / adimp ) exit
+            w(:) = pos(:,ia) / Adimp - v(:)
+            dista = Vnorme(Base_ortho,dcosxyz,w)
+            if( dista < Dist_max ) exit
           end do
           if( ia > natomp ) cycle
         endif
         npso = npso + 1
-        if( dist*adimp <= rsort + epspos ) npoint = npoint + 1
+        if( dist*Adimp <= Rsort + epspos ) npoint = npoint + 1
      end do
     end do
   end do
@@ -8972,10 +8975,13 @@ end
 
 subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,icheck, &
                igrpt_nomag,indice,iopsymr,iord,itypei,Moy_loc,mpirank,mpres,natome,natomp,nim, &
-               npoint,npr,npso,npsom,ntype,numia,nx,pos,posi,rmt,rsort,rvol,xyz)
+               npoint,npr,npso,npsom,ntype,numia,nx,pos,posi,Rmt,Rsort,rvol,xyz)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
+
+  integer:: i, ia, iaabs, icheck, igrpt_nomag, indi1, indi2, indi3, iord, ipr, istop, isym, it, ix, ix1, iy, iy1, iz, iz1, j, &
+            mpirank, natome, natomp, nim, npoint, npr, npso, npsom, ntype, nx
 
   integer, dimension(natome):: itypei
   integer, dimension(nopsm):: iopsymr
@@ -8985,6 +8991,7 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
 
   logical:: Base_hexa, Base_ortho, Green, Moy_loc
 
+  real(kind=db):: Adimp, D_max_pot, Dist, Dist_max, Dista, dcour, df3, dr, f, f3, Rmax, Rsort, Rvmax, Vnorme, xyzij
   real(kind=db), dimension(3):: dcosxyz, p, x, v, w, w1
   real(kind=db), dimension(nim):: rvol
   real(kind=db), dimension(0:ntype) :: rmt
@@ -8994,6 +9001,8 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
 
   if( icheck > 0 ) write(3,100)
 
+  Dist_max = D_max_pot / Adimp + eps10
+
   mpres(:,:,:) = 0
   f = sqrt(3._db) / 2
 
@@ -9002,18 +9011,18 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
     do ia = 1,natomp
       if( ia == iaabs ) cycle
       p(:) = pos(:,ia) - pos(:,iaabs)
-      dcour = min(dcour,vnorme(Base_ortho,dcosxyz,p))
+      dcour = min(dcour,Vnorme(Base_ortho,dcosxyz,p))
     end do
-    rmax = min(dcour,rsort) / adimp + epspos
+    rmax = min(dcour,rsort) / Adimp + epspos
   else
-    rmax = rsort / adimp + sqrt(2._db) * iord / 2 + epspos
+    rmax = rsort / Adimp + sqrt(2._db) * iord / 2 + epspos
   endif
 
-  p(:) = pos(:,iaabs) / adimp
+  p(:) = pos(:,iaabs) / Adimp
   i = 0
   do ix = -nx,nx
     do iy = -nx,nx
-      if( base_hexa ) then
+      if( Base_hexa ) then
         v(1) = ix - 0.5_db * iy
         v(2) = f * iy
       else
@@ -9021,24 +9030,24 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
         v(2) = 1._db * iy
       endif
       do iz = -nx,nx
+
         v(3) = 1._db * iz
         if( Moy_loc ) then
           w(:) = v(:) - p(:)
-          dist = vnorme(Base_ortho,dcosxyz,w)
+          dist = Vnorme(Base_ortho,dcosxyz,w)
         else
-          dist = vnorme(Base_ortho,dcosxyz,v)
+          dist = Vnorme(Base_ortho,dcosxyz,v)
         endif
-        if( dist > rmax ) cycle
+        if( dist > Rmax ) cycle
         w(:) = v(:)
         call posequiv(mpirank,w,iopsymr,isym,igrpt_nomag)
         if( abs(v(1)-w(1)) > epspos .or. abs(v(2)-w(2)) > epspos .or. abs(v(3)-w(3)) > epspos ) cycle
         if( Green .and. .not. Moy_loc ) then
-! Pour la moyenne du potentiel, on ne prend pas les points loin de tout
-! atome
+! Pour la moyenne du potentiel, on ne prend pas les points loin de tout atome
           do ia = 1,natomp
-            w(:) = pos(:,ia) / adimp - v(:)
-            dista = vnorme(Base_ortho,dcosxyz,w)
-            if( dista < D_max_Pot / adimp ) exit
+            w(:) = pos(:,ia) / Adimp - v(:)
+            dista = Vnorme(Base_ortho,dcosxyz,w)
+            if( dista < Dist_max ) exit
           end do
           if( ia > natomp ) cycle
         endif
@@ -9046,7 +9055,7 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
         indice(i,1) = ix
         indice(i,2) = iy
         indice(i,3) = iz
-        xyz(4,i) = adimp * dist
+        xyz(4,i) = Adimp * Dist
       end do
     end do
   end do
@@ -9071,11 +9080,11 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
 
   do i = 1,npso
     if( base_hexa ) then
-      xyz(1,i) = ( indice(i,1) - 0.5_db * indice(i,2) ) * adimp
-      xyz(2,i) = f * indice(i,2) * adimp
-      xyz(3,i) = indice(i,3) * adimp
+      xyz(1,i) = ( indice(i,1) - 0.5_db * indice(i,2) ) * Adimp
+      xyz(2,i) = f * indice(i,2) * Adimp
+      xyz(3,i) = indice(i,3) * Adimp
     else
-      xyz(1:3,i) = indice(i,1:3) * adimp
+      xyz(1:3,i) = indice(i,1:3) * Adimp
     endif
   end do
 
@@ -9111,7 +9120,7 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
   f3 = 1 / sqrt(3._db)
   df3 = 2 * f3
   istop = 0
-  p(:) = pos(:,iaabs) / adimp
+  p(:) = pos(:,iaabs) / Adimp
   rvol(:) = 0._db
   boucle_ix: do ix = -nx,nx
     do iy = -nx,nx
@@ -9123,14 +9132,15 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
         v(2) = 1._db * iy
       endif
       do iz = -nx,nx
+
         v(3) = 1._db * iz
         if( Moy_loc ) then
           w(:) = v(:) - p(:)
-          dist = vnorme(Base_ortho,dcosxyz,w)
+          dist = Vnorme(Base_ortho,dcosxyz,w)
         else
-          dist = vnorme(Base_ortho,dcosxyz,v)
+          dist = Vnorme(Base_ortho,dcosxyz,v)
         endif
-        if( dist > rmax ) cycle
+        if( dist > Rmax ) cycle
         w(:) = v(:)
         call posequiv(mpirank,w,iopsymr,isym,igrpt_nomag)
 
@@ -9138,9 +9148,9 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
 ! Pour la moyenne du potentiel, on ne prend pas les points loin de tout
 ! atome
           do ia = 1,natomp
-            w1(:) = pos(:,ia) / adimp - w(:)
-            dista = vnorme(Base_ortho,dcosxyz,w1)
-            if( dista < D_max_Pot /adimp ) exit
+            w1(:) = pos(:,ia) / Adimp - w(:)
+            dista = Vnorme(Base_ortho,dcosxyz,w1)
+            if( Dista < Dist_max ) exit
           end do
           if( ia > natomp ) cycle
         endif
@@ -9171,9 +9181,9 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
   if( istop == 0 ) then
     rvmax = 1._db
     do i = 1,npoint
-      rvmax = max(rvmax,rvol(i))
+      Rvmax = max(rvmax,rvol(i))
     end do
-    rvol(1:npoint) = rvol(1:npoint) / rvmax
+    rvol(1:npoint) = rvol(1:npoint) / Rvmax
   endif
 
   if( icheck > 0 ) then
@@ -9181,7 +9191,7 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
     write(3,160) natome
   endif
   if( icheck > 1 .or. istop == 1 ) then
-    if( base_hexa ) then
+    if( Base_hexa ) then
       write(3,170)
     else
       write(3,175)
@@ -9197,7 +9207,7 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
 
   return
   100 format(/' ---- Reseau -------',100('-'))
-  130 format(//' Pour ix, iy, iz =',3i3,', point equivalent en ix1, iy1, iz1 =',3i3,/' non trouve dans reseau !'/ )
+  130 format(//' For ix, iy, iz =',3i3,', equivalent point in ix1, iy1, iz1 =',3i3,/' not found in Reseau !'/ )
   150 format(/' npr =',i6,', npoint =',i6,', npso =',i6)
   160 format(' natome =',i4)
   170 format(/ ' Point index along hexagonal mesh',// '    i  ix  iy  iz  ia   xval    yval    zval    rval    rvol')
@@ -9220,7 +9230,7 @@ subroutine posrel(Base_ortho,dcosxyz,iopsymr,x,a,u,dr,isym)
   real(kind=db), dimension(3,3):: matopsym
 
   u(:) = x(:) - a(:)
-  dr = vnorme(Base_ortho,dcosxyz,u)
+  dr = Vnorme(Base_ortho,dcosxyz,u)
   isym = 1
 
   do is = 2,nopsm
@@ -9242,7 +9252,7 @@ subroutine posrel(Base_ortho,dcosxyz,iopsymr,x,a,u,dr,isym)
     w(1:3) = x(1:3) - b(1:3)
     call opsym(isi,matopsym)
     v = matmul( matopsym, w )
-    dr1 = vnorme(Base_ortho,dcosxyz,v)
+    dr1 = Vnorme(Base_ortho,dcosxyz,v)
     if( dr1 < dr-epspos ) then
       u(:) = v(:)
       dr = dr1
@@ -9283,7 +9293,7 @@ subroutine laplac(Adimp,Base_hexa,cgrad,clapl,icheck, igrpt_nomag,indice,iopsymr
 
   indpro = 0
 
-  ad2 = adimp**2
+  ad2 = Adimp**2
   coeford(1) = 1._db
   if( iord == 2 ) then
     cl = 1._db / ad2
@@ -9321,9 +9331,9 @@ subroutine laplac(Adimp,Base_hexa,cgrad,clapl,icheck, igrpt_nomag,indice,iopsymr
 
   coeford(1) = 1._db
   if( iord == 2 ) then
-    cd = 1 / ( 2 * adimp )
+    cd = 1 / ( 2 * Adimp )
   else
-    cd = (4._db/3._db) / ( 2 * adimp )
+    cd = (4._db/3._db) / ( 2 * Adimp )
     coeford(2) = - 1._db/8
   endif
   f = 1 /sqrt(3._db)
@@ -9357,7 +9367,7 @@ subroutine laplac(Adimp,Base_hexa,cgrad,clapl,icheck, igrpt_nomag,indice,iopsymr
     end do
     write(3,160)
     do iv = 1,nvois
-      write(3,150) iv, indpro(iv,:), cgrad(iv) * adimp
+      write(3,150) iv, indpro(iv,:), cgrad(iv) * Adimp
     end do
   endif
 
@@ -9410,7 +9420,7 @@ subroutine laplac(Adimp,Base_hexa,cgrad,clapl,icheck, igrpt_nomag,indice,iopsymr
   130 format(/' nvois =',i3)
   140 format(/' iv  indpro  clapl * ad2')
   150 format(4i3,f12.6)
-  160 format(/' iv  indpro  cgrad * adimp')
+  160 format(/' iv  indpro  cgrad * Adimp')
   170 format(/'    i  ivois, isvois')
   180 format(i6,16(i6,i4))
 end
@@ -9960,7 +9970,7 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
   do ir = 2,nrmtg-1
     dr(ir) = 0.5_db * ( r(ir+1) - r(ir-1) )
   end do
-  dr(nrmtg) = Rmtg - 0.5 * ( r(nrmtg-2) + r(nrmtg-1) )
+  dr(nrmtg) = Rmtg - 0.5_db * ( r(nrmtg-2) + r(nrmtg-1) )
 
   nip_cycle = 200
 
@@ -10375,10 +10385,10 @@ subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,it
   200 format(///'   nlmso0 =',i4,' > nspino*nsortf =',i4, // &
     ' Solution :',/'  Reduce the maximum energy or ',/ &
     '  Reduce the outersphere lmax using the lmaxso keyword or',/ &
-    '  Reduce the interpoint distance using the keyword adimp'//)
+    '  Reduce the interpoint distance using the keyword Adimp'//)
   210 format(///'   nlmsa0(ia=',i2,') =',i4,' > nspino*nbordf =',i4, // &
     ' Solution :',/'  Reduce the maximum energy or ',/ &
-    '  Reduce the atomic lmax using the lmax keyword or',/ '  Reduce the interpoint distance using the keyword adimp'//)
+    '  Reduce the atomic lmax using the lmax keyword or',/ '  Reduce the interpoint distance using the keyword Adimp'//)
 end
 
 !***********************************************************************
@@ -10862,7 +10872,7 @@ function cal_norm(Energ,Eimag)
   rho = 0._db
 
   do je = je1,je2
-    e = ( je - 0.5 ) * de_int
+    e = ( je - 0.5_db ) * de_int
     k = sqrt( e )
     fac = de_int / ( ( Energ - e )**2 + Eimag2 )
     rho = rho + k * fac
