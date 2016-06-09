@@ -158,7 +158,7 @@ subroutine symsite(absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
   integer, dimension(ntype):: itequ
   integer, dimension(:), allocatable:: iabsmm, isymq
 
-  logical:: absauto, Atom_nonsph, base_ortho, Doping, Extract, Flapw, Magnetic, matper, Memory_save, mspinor
+  logical:: Atom_nonsph, absauto, base_ortho, Doping, Extract, Flapw, Magnetic, matper, Memory_save, mspinor
   logical, dimension(ngroup):: Atom_nsph_e, ok
   logical, dimension(0:ngroup_m):: Atom_with_axe
   logical, dimension(:), allocatable:: Far_atom
@@ -1722,6 +1722,48 @@ end
 
 !***********************************************************************
 
+function extract_E_Fermi(multi_run,nom_fich_extract)
+
+  use declarations
+  implicit none
+
+  integer:: eof, i, istat, multi_run
+
+  character(len=132) mot, nom_fich_extract
+
+  real(kind=db):: E_Fermi, extract_E_Fermi
+
+  open(1, file = nom_fich_extract, status='old', iostat=istat)
+  if( istat /= 0 ) call write_open_error(nom_fich_extract,istat,1)
+
+  E_Fermi = -5._db / Rydb
+
+  i = 0
+  do
+    read(1,'(A)' ) mot
+    if( mot(2:15) /= 'Absorbing atom' ) cycle
+    i = i + 1
+    if( i == multi_run ) exit
+  end do
+
+  do
+    read(1,'(A)',iostat=eof) mot
+    if( eof /= 0 ) exit
+    if( mot(2:6) /= 'E_cut' ) cycle
+    backspace(1)
+    read(1,'(33x,f11.5)') E_Fermi
+    exit
+  end do
+
+  extract_E_Fermi = E_Fermi / Rydb
+
+  Close(1)
+
+  return
+end
+
+!***********************************************************************
+
 function extract_E_cut(multi_run,nom_fich_extract)
 
   use declarations
@@ -1736,7 +1778,7 @@ function extract_E_cut(multi_run,nom_fich_extract)
   open(1, file = nom_fich_extract, status='old', iostat=istat)
   if( istat /= 0 ) call write_open_error(nom_fich_extract,istat,1)
 
-  E_cut = -5._db / Rydb
+  E_cut = 0._db / Rydb
 
   i = 0
   do
@@ -1783,7 +1825,7 @@ function extract_v0bdcF()
       exit
     elseif( mot(6:11) == 'V0bdcF' ) then
       backspace(1)
-      read(1,'(13x,f10.3)') V0bdcF
+      read(1,'(13x,f12.5)') V0bdcF
       exit
     endif
   end do
@@ -2460,7 +2502,7 @@ end
 
 ! Elaboration de l'agregat.
 
-subroutine agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn,axyz,Base_hexa,Base_ortho, &
+subroutine agregat(angxyz,ATA,Atom_with_axe,Nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn,axyz,Base_hexa,Base_ortho, &
           chargat,chargm,Cubmat,dcosxyz,deccent,dista,Doping,dpos,Flapw,iaabs,iaabsfirst,iabsorbeur,iaproto,iapot, &
           icheck,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,iopsymc,iopsymr,itab,itype,itypep,karact,Kgroup,Magnetic,Matper, &
           mpirank,multi_run,n_atom_proto,natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat, &
@@ -2486,7 +2528,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr
                      PointSubGroup_name, PointSubGroup_Sch
   character(len=5):: Struct
 
-  logical:: ATA, Atom_mag_cal, Atom_nonsph, Base_hexa, Base_ortho, Doping, Flapw, Magnetic, Matper, Noncentre, Nonexc_g, &
+  logical:: ATA, Atom_mag_cal, Nonsph, Base_hexa, Base_ortho, Doping, Flapw, Magnetic, Matper, Noncentre, Nonexc_g, &
     One_run, PointGroup_Auto, Self_nonexc, Spinorbite, Sym_4, Sym_cubic, Symmol, Taux
   logical, dimension(0:ngroup_m):: Atom_with_axe
 
@@ -2526,7 +2568,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr
 
   call cal_iaeqrmt(iaabs,iaproto,iapot,igreq,igroup,n_atom_proto,natomp,neqm,ngreq,nonexc_g,self_nonexc)
 
-  if( magnetic .or. Atom_nonsph ) then
+  if( magnetic .or. Nonsph ) then
     do igr = 1,ngroup
       v(:) = Axe_atom_gr(:,igr) * axyz(:)
       Axe_atom_grn(:,igr) = v(:)
@@ -2546,7 +2588,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr
         pos(k,ia) = sum( cubmat(k,1:3) * v(1:3) )
       end do
     end do
-    if( Magnetic .or. Atom_nonsph ) then
+    if( Magnetic .or. Nonsph ) then
       do ia = 1,ngroup
         v(:) = Axe_atom_gr(:,ia) * axyz(:)
         do k = 1,3
@@ -2583,7 +2625,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr
 ! Faux en cas de one_run avec des spins non alignes.
   Axe_spin(:) = 0._db
   Atom_with_axe(0) = .false.
-  if( Magnetic .or. Atom_nonsph ) then
+  if( Magnetic .or. Nonsph ) then
     do ia = 1,natomp
       if( ia /= iaabs ) cycle
       igr = igroup(ia)
@@ -2641,7 +2683,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr
         v = matmul( rot_tem, v )
         pos(:,ia) = v(:)
       end do
-      if( magnetic .or. Atom_nonsph ) then
+      if( magnetic .or. Nonsph ) then
         do ia = 1,natomp
           v(:) = Axe_atom_clu(:,ia)
           v = matmul( rot_tem, v )
@@ -2667,7 +2709,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr
         v = matmul( rot_so, v )
         pos(:,ia) = v(:)
       end do
-      if( magnetic .or. Atom_nonsph ) then
+      if( magnetic .or. Nonsph ) then
         do ia = 1,natomp
           v(:) = Axe_atom_clu(:,ia)
           v = matmul( rot_so, v )
@@ -4248,7 +4290,7 @@ end
 
 ! Sousprogramme calculant la forme des tenseurs
 
-subroutine Tensor_shape(Atom_with_axe,Atom_nonsph, Axe_atom_clu,Base_ortho,dcosxyz,Dipmag, &
+subroutine Tensor_shape(Atom_with_axe,Nonsph, Axe_atom_clu,Base_ortho,dcosxyz,Dipmag, &
                E1E2e,Green,iaabs,icheck,igroup,igrpt0,iopsymc,iopsymr,itype,itypep,ldip,loct,lqua,lseuil,magnetic, &
                msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo, msymooi,msymqq,msymqqi,Multipole,n_oo,natomp,ngroup, &
                ngroup_m,nlat,nlatm,nspin,ntype,numat, octupole,popats,pos,quadrupole,rot_atom_abs,Rot_int, &
@@ -4269,7 +4311,7 @@ subroutine Tensor_shape(Atom_with_axe,Atom_nonsph, Axe_atom_clu,Base_ortho,dcosx
   integer, dimension(ngroup):: itype
   integer, dimension(0:ntype):: nlat, numat
 
-  logical:: Atom_comp, Atom_comp_cal, Atom_mag, Atom_mag_cal, Atom_nonsph, Base_ortho, Dipmag, E1E1, E1E2, E1E2e, E1E3, &
+  logical:: Atom_comp, Atom_comp_cal, Atom_mag, Atom_mag_cal, Nonsph, Base_ortho, Dipmag, E1E1, E1E2, E1E2e, E1E3, &
      E2E2, E3E3, Green, magnet, Magnetic, Octupole, Quadrupole, Spinorbite, State_all, Symmol
   logical, dimension(10):: Multipole
   logical, dimension(0:ngroup_m):: Atom_with_axe
@@ -4311,18 +4353,18 @@ subroutine Tensor_shape(Atom_with_axe,Atom_nonsph, Axe_atom_clu,Base_ortho,dcosx
     iopsym_abs(:) = iopsymc(:)
   else
     if( spinorbite ) then
-      call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
+      call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
         iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsym_abs,iopsymr,itype,itypep,Magnetic,mpirank, &
         natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol)
     else
 ! On prend la symetrie complete (iopsymc)
-      call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
+      call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
         iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsym_abs,iopsymc,itype,itypep,Magnetic,mpirank, &
         natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol)
     endif
   endif
 ! La rotation est calcule avec la symetrie utilisee (iopsymr)
-  call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
+  call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
       iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsymt,iopsymr,itype,itypep,Magnetic,mpirank, &
       natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol)
 
@@ -5565,25 +5607,28 @@ end
 
 ! Sousprogramme effectuant certaines preparations pour le DAFS
 
-subroutine prepdafs(Angle_or,angpoldafs,angxyz,Axe_atom_gr,axyz,Base_spin,Bormann,Dafs_bio,Eseuil,f_no_res,hkl_dafs, &
-            icheck,igreq,iprabs,isigpi,itabs,itypepr,lvval,Magnetic,Mat_or,mpirank,n_atom_proto,natomsym,nbseuil, &
-            neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs,nphim,npldafs, &
-            nrato,nrm,nspin,ntype,numat,Orthmat,Orthmati,phdafs,phdf0t,phdt,poldafse,poldafsem,poldafss,poldafssm, &
-            popatm,posn,psival,rato,Rot_int,Taux,Taux_oc,temp,Temp_coef,Temperature,Vec_orig,vecdafse,vecdafsem, &
-            vecdafss,vecdafssm,xsect_file)
+subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Base_spin, &
+            Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_no_res,Film, &
+            Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck,igreq,iprabs,isigpi,itabs,itypepr,lvval, &
+            Magnetic,Mat_or,mpirank,n_atom_bulk,n_atom_cap,n_atom_proto,natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m, &
+            ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmat,Orthmati,phdafs, &
+            phdf0t,phdt,poldafse,poldafsem,poldafss,poldafssm,popatm,posn,posn_bulk,posn_cap,psival,rato,Rot_int,Taux,Taux_cap, &
+            Taux_oc,Temp,Temp_coef,Temperature,Vec_orig,vecdafse,vecdafsem,vecdafss,vecdafssm,xsect_file,Z_bulk,Z_cap)
 
   use declarations
   implicit none
 
-  integer:: i, icheck, igr, ip, ipl, ipr, iprabs, istop, it, itabs, &
-    iwrite, j, jgr, kgr, mpirank, n, n_atom_proto, natomsym, &
-    nbseuil, neqm, ngrm, ngroup, ngroup_m, ngroup_taux, ngroup_temp, nlatm, nphim, npldafs, nrm, nspin, ntype
+  integer:: i, i0, icheck, igr, ip, ipl, ipr, iprabs, it, itabs, iwrite, j, jgr, kgr, mpirank, n, &
+    n_atom_bulk, n_atom_cap, n_atom_proto, natomsym, nbseuil, neqm, ngrm, ngroup, ngroup_m, ngroup_taux, &
+    ngroup_temp, nlatm, nphim, npldafs, nrm, nspin, ntype, Z, Z_bottom_cap, Z_bottom_film, Z_top_bulk, Z_top_cap, Z_top_film
+
+  integer, dimension(2):: Mult_bulk, Mult_film
 
   character(len=4) elemv, mot4
   character(len=2) Chemical_symbol
   character(len=132):: xsect_file
 
-  complex(kind=db):: cfac, ph, ph_cjg
+  complex(kind=db):: Bragg_bulk, Bragg_cap, cfac, ph, ph_cjg, Troncature
   complex(kind=db), dimension(3):: vec_a, vec_b, pe, ps
   complex(kind=db), dimension(npldafs):: phdabs, v_vec_a, v_vec_b
   complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdt
@@ -5591,37 +5636,47 @@ subroutine prepdafs(Angle_or,angpoldafs,angxyz,Axe_atom_gr,axyz,Base_spin,Borman
   complex(kind=db), dimension(n_atom_proto,npldafs):: phd, phd_f0, phd_f0_cjg, phd_fan_cjg, phd_fan, phd_fmag
   complex(kind=db), dimension(3,npldafs):: poldafsem, poldafssm
   complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
+  complex(kind=db), dimension(:), allocatable:: phd_f_bulk, phd_f_cap
   complex(kind=db), dimension(:,:), allocatable:: Bragg
   complex(kind=db), dimension(:,:,:), allocatable:: phd_fmo,phd_fms
 
   integer, dimension(0:ntype):: nlat, nrato, numat
+  integer, dimension(n_atom_bulk):: Z_bulk
+  integer, dimension(n_atom_cap):: Z_cap
   integer, dimension(0:ntype,nlatm):: lvval
-  integer, dimension(3,npldafs):: hkl_dafs
   integer, dimension(npldafs):: nphi_dafs
   integer, dimension(npldafs,2):: isigpi
   integer, dimension(0:n_atom_proto):: itypepr, ngreq
   integer, dimension(0:n_atom_proto,neqm):: igreq
   integer, dimension(neqm):: igr_tem
 
-  logical:: Base_spin, Bormann, Dafs_bio, Debye, Magnetic, Taux, Temperature
+  logical:: Base_spin, Bulk, Bormann, Cap_layer, Dafs_bio, Debye, Film, hkl_film, Magnetic, Taux, Temperature
 
   real(kind=sg):: getf0, s
 
-  real(kind=db):: Angle, arg, cos_pe, cos_ps, cosb, cosp, Deb, Delta_2, deltak_A, detmat, dhkl, dp, dpdeg, DW, &
-    Emc2, fac, fmo, fms, konde, pp, psi, qkn, rad, rap_lsur2s, sin_pe, sin_ps, sinb, sinp, Temp, Tempt, Thetabragg, vol, wn, wsn
+  real(kind=db):: abs_cap, abs_mesh, arg, Atom_radius, Cal_Volume_maille, cos_z, cos_z_b, cos_z_c, Cap_disorder, Cap_roughness, &
+    Cap_thickness, Cap_thickness_used, Cap_shift, Conv_mbarn_nelec, Deb, Delta_2, Deltak_A, Delta_bulk, Delta_cap, delta_z, &
+    delta_z_bottom_cap, delta_z_bottom_film, delta_z_top_bulk, delta_z_top_cap, delta_z_top_film, dpdeg, &
+    DW, f0_bulk, f0_cap, Film_roughness, Film_thickness, Film_thickness_used, fp_bulk, fp_cap, fpp_bulk, fpp_bulk_tot, &
+    fpp_cap, fpp_cap_tot, konde, pp, R_bottom_cap, R_bottom_film, R_top_bulk, R_top_cap, R_top_film, rad, rap_lsur2s, Taux_r, Taux_r2, &
+    Temp, Tempt, Thickness, Volume_maille, x, z_min_cap, z_min_film, z_min_2_film, z_max_bulk, z_max_cap, z_max_film, z_max_2_film, &
+    z_pos, z_roughness_cap, z_roughness_film
 
   real(kind=db), dimension(2):: f_no_res
-  real(kind=db), dimension(3):: ang, angxyz, axyz, cosdir, hklred, &
-     qi, qj, qk, v, Vec_orig, vpie, vpe, vps, vpis, vsig, vx, vy, vz, w, we, ws, wx, wy, wz
+  real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_cap, axyz, axyz_bulk, axyz_cap, hkl, &
+     p, v, Vec_orig, w, we, ws
+  real(kind=db), dimension(4):: Film_shift
   real(kind=db), dimension(npldafs):: Angle_or, deltak
+  real(kind=db), dimension(n_atom_cap):: Taux_cap
   real(kind=db), dimension(ngroup_taux):: Taux_oc
   real(kind=db), dimension(ngroup_temp):: Temp_coef
   real(kind=db), dimension(nbseuil):: Eseuil
-  real(kind=db), dimension(0:3):: det
-  real(kind=db), dimension(3,3):: Mat, Mat_or, Mat_ori, Orthmat, Orthmati, Rot_int
+  real(kind=db), dimension(3,3):: Mat_bulk, Mat_bulk_i, Mat_or, Orthmat, Orthmati, Rot_int
   real(kind=db), dimension(3,ngroup):: posn
+  real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
+  real(kind=db), dimension(3,n_atom_cap):: posn_cap
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_g, Axe_atom_gr
-  real(kind=db), dimension(3,npldafs):: angpoldafs, vecdafsem, vecdafssm
+  real(kind=db), dimension(3,npldafs):: angpoldafs, hkl_dafs, vecdafsem, vecdafssm
   real(kind=db), dimension(3,npldafs,nphim):: vecdafse, vecdafss
   real(kind=db), dimension(0:nrm,0:ntype):: rato
   real(kind=db), dimension(0:nrm,nlatm,0:ntype):: psival
@@ -5631,13 +5686,1020 @@ subroutine prepdafs(Angle_or,angpoldafs,angxyz,Axe_atom_gr,axyz,Base_spin,Borman
 
   if( icheck > 0 ) write(3,110)
 
+  rad = pi / 180._db
+
+  Mult_film(:) = 0
+  Mult_bulk(:) = 0
+
 ! lambda = 2 * pi / k = 2 * d * sintheta
 ! En S.I. vecond = k = E*alfa*4*pi*epsilon0 / (e*e)
 ! En ua et rydb : k = 0.5 * alfa * E
-  konde = 0.5_db * alfa_sf * eseuil(nbseuil)   ! exact que pour nbseuil = 1
+  konde = 0.5_db * alfa_sf * Eseuil(nbseuil)   ! exact que pour nbseuil = 1
+
+  call Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Bormann,Bulk,Dafs_bio,deltak,Eseuil,f_ms,f_mo,f_no_res, &
+            f0,Film,hkl_dafs,hkl_film,icheck,isigpi,itypepr,lvval,Magnetic,Mat_or,mpirank,n_atom_proto,nbseuil,&
+            nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmat,Orthmati, &
+            poldafse,poldafsem,poldafss,poldafssm,popatm,psival,rato,Vec_orig,vecdafse,vecdafsem,vecdafss,vecdafssm)
+
+  if( Magnetic ) then
+    allocate( phd_fmo(n_atom_proto,ngrm,npldafs) )
+    allocate( phd_fms(n_atom_proto,ngrm,npldafs) )
+    phd_fms(:,:,:) = (0._db,0._db)
+    phd_fmo(:,:,:) = (0._db,0._db)
+  endif
+
+  if( Temp > 0.00001_db ) then
+    Debye = .true.
+    Tempt = max( 1._db, Temp )      ! le cas defaut: T = 1 K
+  else
+    Debye = .false.
+  endif
+
+  if( Film ) cos_z = sqrt( sin( rad * angxyz(2) )**2 &
+                - ( ( cos( rad * angxyz(1) ) - cos( rad * angxyz(3) ) * cos( rad * angxyz(2) ) ) / sin( rad * angxyz(3) ) )**2 )
+
+  if( Film .and. Bulk ) then
+
+    call bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_bulk,Mult_bulk,Mult_film)
+    if( hkl_film ) call invermat( Mat_bulk, Mat_bulk_i )
+
+    cos_z_b = sqrt( sin( rad * angxyz_bulk(2) )**2 &
+                - ( ( cos( rad * angxyz_bulk(1) ) - cos( rad * angxyz_bulk(3) ) * cos( rad * angxyz_bulk(2) ) ) &
+                    / sin( rad * angxyz_bulk(3) ) )**2 )
+
+  endif
+
+  if( Film ) then
+
+    if( .not. Bulk ) Film_shift(:) = 0._db
+
+    Film_thickness_used = 0._db
+    z_roughness_film = 0._db
+
+    z_max_film = - 1000000._db
+    z_max_2_film = - 1000000._db
+    z_min_film = 1000000._db
+    if( Film_thickness > axyz(3) * cos_z ) then
+      z_min_2_film = - 1000000._db
+    else
+      z_min_2_film = 1000000._db
+    endif
+
+    do ipr = 1,n_atom_proto
+
+      it = itypepr( ipr )
+      if( numat( it ) == 0 ) cycle
+      igr_tem(:) = igreq(ipr,:)
+
+      do igr = 1,ngreq(ipr)
+        jgr = igr_tem(igr)
+        z_pos = posn(3,jgr) * axyz(3) * cos_z
+        if( z_pos < z_min_film ) then
+          z_min_film = z_pos
+          Z_bottom_film = numat(it)
+        endif
+      end do
+
+    end do
+
+    do ipr = 1,n_atom_proto
+
+      it = itypepr( ipr )
+      if( numat( it ) == 0 ) cycle
+      igr_tem(:) = igreq(ipr,:)
+
+      do igr = 1,ngreq(ipr)
+        jgr = igr_tem(igr)
+        if( Film_thickness > axyz(3) * cos_z ) then
+          z_pos = ( posn(3,jgr) - 1 ) * axyz(3) * cos_z
+          if( z_pos > z_min_2_film ) z_min_2_film = z_pos
+        else
+          z_pos = posn(3,jgr) * axyz(3) * cos_z
+          if( z_pos < z_min_film + eps10 ) cycle
+          if( z_pos < z_min_2_film ) z_min_2_film = z_pos
+       endif
+      end do
+
+    end do
+
+    R_bottom_film = Atom_radius( Z_bottom_film )
+
+    if( z_min_2_film >= 100000._db ) then
+      delta_z = 0.5_db * axyz(3) * cos_z
+    else
+      delta_z = 0.5_db * abs( z_min_2_film - z_min_film )
+    endif
+    delta_z_bottom_film = min( delta_z, R_bottom_film )
+
+! Si Film_thickness non defini, on prend une maille
+    if( Film_thickness <= - 100._db ) then
+
+      do ipr = 1,n_atom_proto
+        it = itypepr( ipr )
+        if( numat( it ) == 0 ) cycle
+        igr_tem(:) = igreq(ipr,:)
+        do igr = 1,ngreq(ipr)
+          jgr = igr_tem(igr)
+          z_pos = posn(3,jgr) * axyz(3) * cos_z
+          if( z_pos > z_max_film ) then
+            z_max_film = z_pos
+            Z_top_film = numat(it)
+          endif
+        end do
+      end do
+      R_top_film = Atom_radius( Z_top_film )
+      Film_thickness = axyz(3) * cos_z
+      delta_z_top_film = Film_thickness - ( z_max_film - z_min_film ) - delta_z_bottom_film
+      Film_thickness_used = Film_thickness
+      z_max_film = z_max_film + delta_z_top_film
+      z_min_film = z_min_film - delta_z_bottom_film
+
+    elseif( Film_thickness > eps10 ) then
+
+      Film_thickness = max( Film_thickness, 2 * delta_z_bottom_film )
+
+    endif
+
+    if( Film_thickness > eps10 .and. Film_thickness_used < eps10 ) then
+
+      z_max_film = -1000000._db
+      z_max_2_film = -1000000._db
+
+      do ipr = 1,n_atom_proto
+
+        it = itypepr( ipr )
+        if( numat( it ) == 0 ) cycle
+
+        R_top_film = Atom_radius( numat(it) )
+
+        igr_tem(:) = igreq(ipr,:)
+
+        do igr = 1,ngreq(ipr)
+          jgr = igr_tem(igr)
+
+          do i = 0,1000000
+            z_pos = ( posn(3,jgr) + i ) * axyz(3) * cos_z
+            Thickness = z_pos - z_min_film
+            if( Thickness > Film_thickness - eps10 ) exit
+            if( z_pos > z_max_film ) then
+              z_max_film = z_pos
+              Z_top_film = numat(it)
+            endif
+          end do
+
+        end do
+      end do
+
+      R_top_film = Atom_radius( Z_top_film )
+
+      delta_z = Film_thickness - ( z_max_film - z_min_film ) - delta_z_bottom_film
+      delta_z_top_film = min( delta_z, R_top_film )
+
+      z_max_film = z_max_film + delta_z_top_film
+      z_min_film = z_min_film - delta_z_bottom_film
+
+      Film_thickness_used = z_max_film - z_min_film
+
+    elseif( Film_thickness_used < eps10 ) then
+
+      z_max_film = -1000._db
+      Film_thickness_used = 0._db
+      Film_thickness = 0._db
+
+    endif
+
+    if( z_roughness_film < eps10 ) then
+      z_roughness_film = 0._db
+    else
+      z_roughness_film = Film_thickness_used
+    endif
+
+  endif
+
+  if( icheck > 1 .and. Temperature ) write(3,'(/A)') ' ( h, k, l)   Z   Debye-Waller Attenuation'
+
+  do ipr = 1,n_atom_proto
+
+! Calcul des termes de Bragg
+    it = itypepr( ipr )
+    if( numat( it ) == 0 ) cycle
+    igr_tem(:) = igreq(ipr,:)
+
+    allocate( Bragg(ngreq(ipr),npldafs) )
+    Bragg(:,:) = cmplx( 0._db, 0._db )
+
+    do ipl = 1,npldafs
+
+      hkl(:) = hkl_dafs(:,ipl)
+      if( Bulk .and. .not. hkl_film ) hkl = matmul( Mat_bulk, hkl )
+
+      if( Debye ) then
+        deltak_A = deltak(ipl) / bohr   ! on le veut en angstroem - 1
+        Deb = DW(deltak_A,numat(it),tempt)
+        write(3,165) nint( hkl_dafs(1:3,ipl) ), numat(it), Deb
+      elseif( Temperature ) then
+! Delta_2 = ( Sin(Theta_Bragg)/Lambda )^2
+! Temp_coef = 8*pi^2 * <u>^2 est en Angtroem^2
+        Delta_2 = ( deltak(ipl) / ( quatre_pi * bohr ) )**2
+      endif
+
+      do igr = 1,ngreq(ipr)
+        jgr = igr_tem(igr)
+        p(:) = posn(:,jgr)
+
+ ! Shift between film and bulk
+        if( Bulk ) p(1:2) = p(1:2) +  Film_shift(1:2) / axyz(1:2)
+
+        do i = 0,1000000
+          if( Film ) then
+            z_pos = p(3) * axyz(3) * cos_z
+            if( z_pos > z_max_film + z_roughness_film + eps10 ) exit
+          elseif( i > 0 ) then
+            exit
+          endif
+          if( Film_roughness > eps10 ) then
+            x = ( z_max_film - z_pos ) / Film_roughness
+            Taux_r = 1._db - erfc( x ) * 0.5_db
+          else
+            Taux_r = 1._db
+          endif
+          arg = deux_pi * sum( p(:) * hkl(:) )
+          Bragg(igr,ipl) = Bragg(igr,ipl) + Taux_r * cmplx( cos(arg), sin(arg), db )
+          p(3) = p(3) + 1._db
+        end do
+
+        if( Bulk ) then
+          cfac = ( 0._db, 0._db )
+          do i = 0,Max( Mult_film(1)-1, 0 )
+            do j = 0,Max( Mult_film(2)-1, 0 )
+              arg = deux_pi * ( i * hkl(1) + j * hkl(2) )
+              cfac = cfac + cmplx( cos(arg), sin(arg), db )
+            end do
+          end do
+          if( abs( cfac ) < eps10 ) then
+            Bragg(igr,ipl) = ( 0._db, 0._db )
+          else
+            Bragg(igr,ipl) = cfac * Bragg(igr,ipl)
+          endif
+        endif
+
+        if( Taux ) Bragg(igr,ipl) = Bragg(igr,ipl) * Taux_oc(jgr)
+        if( Temperature ) Deb = exp( - Temp_coef(igr) * Delta_2 )
+        if( Debye .or. Temperature ) Bragg(igr,ipl) = Bragg(igr,ipl) * Deb
+        if( ipr == iprabs ) phdafs(igr,ipl) = Bragg(igr,ipl)
+
+      end do
+      phd(ipr,ipl) = sum( Bragg(1:ngreq(ipr),ipl) )
+      if( ipr == iprabs ) phdabs(ipl) = phd(ipr,ipl)
+
+    end do
+
+    n = numat( itypepr( ipr ) )
+    if( n == 0 ) cycle
+! On ne tient pas compte de l'anomale de l'atome absorbeur puisqu'il est
+! calcule dans le programme !
+    if( n /= numat(itabs) ) then
+      call fprime(n,eseuil(nbseuil),fpp(ipr),fp(ipr),xsect_file)
+    else
+      fp(:) = 0._db; fpp(ipr) = 0._db
+    endif
+
+    do ipl = 1,npldafs
+
+      phd_f0(ipr,ipl) = phd(ipr,ipl) * f0(ipr,ipl)
+      phd_fan(ipr,ipl) = phd(ipr,ipl) * cmplx(fp(ipr), fpp(ipr), db)
+
+      if( Dafs_bio ) then
+        phd_f0_cjg(ipr,ipl) = conjg( phd(ipr,ipl) ) * f0(ipr,ipl)
+        phd_fan_cjg(ipr,ipl) = conjg( phd(ipr,ipl) ) * cmplx(fp(ipr), fpp(ipr), db)
+      endif
+
+      if( Magnetic ) then
+
+        if( abs(f_ms(ipr,ipl)) > eps10 ) then
+          kgr = igreq(ipr,1)
+          do igr = 1,ngreq(ipr)
+            jgr = igreq(ipr,igr)
+! Les signes moins sont pour transformer vers la convention cristallo (Green moins), les formules de Gibbs.
+! Ces donnees sont utilisees dans la routine convolution a un endroit ou on est en Green -.
+! Bragg est deja en Green -.
+            phd_fms(ipr,igr,ipl) = - img * Bragg(igr,ipl) * f_ms(ipr,ipl)
+            phd_fmo(ipr,igr,ipl) = - img * Bragg(igr,ipl) * f_mo(ipr,ipl)
+          end do
+        endif
+
+      endif
+
+    end do
+
+    deallocate( Bragg )
+
+  end do  ! fin boucle ipr
+
+  if( icheck > 1 .and. magnetic ) then
+    write(3,'(/A)') ' ipr ipl      f_ms         f_mo      phd_fms(ipr,ipl,1..ngr)'
+    do ipr = 1,n_atom_proto
+      do ipl = 1,npldafs
+        if( abs(f_ms(ipr,ipl)) < eps10 ) cycle
+        write(3,'(2i4,1p,50e13.5)') ipr, ipl, f_ms(ipr,ipl), f_mo(ipr,ipl), phd_fms(ipr,1:ngreq(ipr),ipl)
+      end do
+    end do
+  endif
+
+  if( Film ) then
+    allocate( phd_f_bulk(npldafs) )
+    phd_f_bulk(:) = ( 0._db, 0._db )
+  endif
+
+  if( Bulk ) then
+
+! Determination of Film-bulk spacing
+    z_max_bulk = -100000._db
+    do igr = 1,n_atom_bulk
+      if( posn_bulk(3,igr) < z_max_bulk ) cycle
+      z_max_bulk = posn_bulk(3,igr)
+      Z_top_bulk = Z_bulk(igr)
+    end do
+
+    z_pos = z_max_bulk + 1._db
+    do igr = 1,n_atom_bulk
+      if( posn_bulk(3,igr) + 1._db > z_pos ) cycle
+      z_pos = posn_bulk(3,igr) + 1._db
+    end do
+
+    z_max_bulk = z_max_bulk * cos_z_b * axyz_bulk(3)
+    z_pos = z_pos * cos_z_b * axyz_bulk(3)
+
+    R_top_bulk = Atom_radius( Z_top_bulk )
+
+    delta_z = 0.5_db * ( z_pos - z_max_bulk )
+    delta_z_top_bulk = min( delta_z, R_top_bulk )
+
+    z_max_bulk = z_max_bulk + delta_z_top_bulk
+
+    if( Film_thickness > eps10 ) then
+      Delta_bulk = ( z_min_film + delta_z_bottom_film ) - ( z_max_bulk - delta_z_top_bulk )
+      if( Film_shift(3) < - 100._db ) Film_shift(3) = R_top_bulk + R_bottom_film
+      Delta_bulk = Delta_bulk - Film_shift(3)
+    else
+      Delta_bulk = - ( z_max_bulk - delta_z_top_bulk )
+      Film_shift(3) = 0._db
+    endif
+
+    fpp_bulk_tot = 0._db
+    do igr = 1,n_atom_bulk
+      Z = Z_bulk(igr)
+      call fprime(Z,Eseuil(nbseuil),fpp_bulk,fp_bulk,xsect_file)
+      fpp_bulk_tot = fpp_bulk_tot + fpp_bulk
+    end do
+! Conversion en Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
+    fpp_bulk_tot = fpp_bulk_tot / ( conv_mbarn_nelec(Eseuil(nbseuil)) * pi )
+! Conversion en coefficient d'absorption lineaire en micrometre^-1
+    Volume_maille = Cal_Volume_maille(axyz_bulk,angxyz_bulk)
+    fpp_bulk_tot = 100 * fpp_bulk_tot / ( Volume_maille * bohr**3 )
+! Valeur pour une maille (facteur pour maille en micrometre)
+    fpp_bulk_tot = 0.00001_db * bohr * fpp_bulk_tot * axyz_bulk(3) / cos_z_b
+
+    abs_mesh = exp( - fpp_bulk_tot )
+
+    do ipl = 1,npldafs
+
+      s = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
+      s = s / bohr                 ! on le veut en angstroem - 1
+
+      hkl(:) = hkl_dafs(:,ipl)
+      if( hkl_film ) hkl = Matmul( Mat_bulk_i, hkl )
+
+      if( ( abs( hkl(1) ) > eps10 .and. Mult_bulk(1) == 0 ) .or. &
+          ( abs( hkl(2) ) > eps10 .and. Mult_bulk(2) == 0 ) ) cycle
+
+      do igr = 1,n_atom_bulk
+
+        elemv = ' '
+        elemv(1:2) = Chemical_Symbol( Z_bulk(igr) )
+        f0_bulk = getf0(elemv,s)
+
+        if( Z_bulk(igr) /= Z ) then
+          Z = Z_bulk(igr)
+          call fprime(Z,Eseuil(nbseuil),fpp_bulk,fp_bulk,xsect_file)
+        endif
+
+        arg = deux_pi * sum( posn_bulk(:,igr) * hkl(:) )
+        Bragg_bulk = cmplx( cos(arg), sin(arg), db )
+
+        cfac = ( 0._db, 0._db )
+        do i = 0,Max( Mult_bulk(1)-1, 0 )
+          do j = 0,Max( Mult_bulk(2)-1, 0 )
+            arg = deux_pi * ( i * hkl(1) + j * hkl(2) )
+            cfac = cfac + cmplx( cos(arg), sin(arg), db )
+          end do
+        end do
+        if( abs( cfac ) < eps10 )  cfac = ( 0._db, 0._db )
+
+        phd_f_bulk(ipl) = phd_f_bulk(ipl) + Bragg_bulk * cfac * cmplx( f0_bulk + fp_bulk, fpp_bulk, db )
+
+      end do
+
+      if( hkl_film ) then
+        arg = deux_pi * hkl(3) * Delta_bulk / ( axyz(3) * cos_z )
+      else
+        arg = deux_pi * hkl(3) * Delta_bulk / ( axyz_bulk(3) * cos_z_b )
+      endif
+      phd_f_bulk(ipl) = phd_f_bulk(ipl) * cmplx( cos(arg), sin(arg), db )
+
+! Case of non rationnal ratio between bulk and film, or R45 (sqrt(2), sqrt(2))
+      do i = 1,2
+        if( ( abs( hkl(i) ) < eps10 .and. Mult_bulk(i) == 0 ) .or. abs( Film_shift(4) - 45 ) < 1._db ) &
+                                                            phd_f_bulk(ipl) = phd_f_bulk(ipl) * axyz(i) / axyz_bulk(i)
+      end do
+
+      Troncature = 1._db / ( 1._db - abs_mesh * exp( - img * 2 * pi * hkl(3) ) )
+
+      phd_f_bulk(ipl) = phd_f_bulk(ipl) * Troncature
+
+    end do
+
+  endif
+
+  if( Film ) then
+    allocate( phd_f_cap(npldafs) )
+    phd_f_cap(:) = ( 0._db, 0._db )
+  endif
+
+  if( Cap_layer ) then
+
+    cos_z_c = sqrt( sin( rad * angxyz_cap(2) )**2 &
+                - ( ( cos( rad * angxyz_cap(1) ) - cos( rad * angxyz_cap(3) ) * cos( rad * angxyz_cap(2) ) ) &
+                    / sin( rad * angxyz_cap(3) ) )**2 )
+
+    z_min_cap = 1000000._db
+    z_max_cap = -1000000._db
+
+    do igr = 1,n_atom_cap
+      if( posn_cap(3,igr) > z_min_cap ) cycle
+      z_min_cap = posn_cap(3,igr)
+      Z_bottom_cap = Z_cap(igr)
+    end do
+
+    z_pos = z_min_cap - 1._db
+    do igr = 1,n_atom_cap
+      if( posn_cap(3,igr) - 1._db < z_pos ) cycle
+      z_pos = posn_cap(3,igr) - 1._db
+    end do
+
+    z_min_cap = z_min_cap * cos_z_c * axyz_cap(3)
+    z_pos = z_pos * cos_z_c * axyz_cap(3)
+
+    R_bottom_cap = Atom_radius( Z_bottom_cap )
+
+    delta_z = 0.5_db * ( z_min_cap - z_pos )
+    delta_z_bottom_cap = min( delta_z, R_bottom_cap )
+    z_min_cap = z_min_cap - delta_z_bottom_cap
+
+    Cap_thickness = max( Cap_thickness, 2 * R_bottom_cap )
+
+    delta_z = delta_z_bottom_cap
+    do igr = 1,n_atom_cap
+      R_top_cap = Atom_radius( Z_cap(igr) )
+      do i = 0,1000000
+        z_pos = ( posn_cap(3,igr) + i ) * axyz_cap(3) * cos_z_c
+        if( z_pos < z_max_cap ) cycle
+        Thickness = z_pos - z_min_cap + delta_z
+        if( Thickness > Cap_thickness ) exit
+        if( z_pos > z_max_cap ) then
+          z_max_cap = z_pos
+          Z_top_cap = Z_cap(igr)
+        endif
+      end do
+    end do
+
+    R_top_cap = Atom_radius( Z_top_cap )
+    delta_z = R_top_cap
+
+    do igr = 1,n_atom_cap
+      R_top_cap = Atom_radius( Z_cap(igr) )
+      do i = 0,1000000
+        z_pos = ( posn_cap(3,igr) + i ) * axyz_cap(3) * cos_z_c
+        if( z_pos > z_max_cap - eps10 ) exit
+        delta_z = min( delta_z, 0.5_db * ( z_max_cap - z_pos ) )
+      end do
+    end do
+    delta_z_top_cap = delta_z
+
+    z_max_cap = z_max_cap + delta_z_top_cap
+    Cap_thickness_used = z_max_cap - z_min_cap
+
+    if( Film_thickness < eps10 .and. .not. Bulk ) then
+      Delta_cap = 0._db
+      Cap_shift = 0._db
+    elseif( Film_thickness < eps10 ) then
+      Delta_cap = z_min_cap + delta_z_bottom_cap
+      if( Cap_shift < -100._db ) Cap_shift = R_top_bulk + R_bottom_cap
+    else
+      Delta_cap = ( z_max_film - delta_z_top_film ) - ( z_min_cap + delta_z_bottom_cap )
+      if( Cap_shift < -100._db ) Cap_shift = R_top_film + R_bottom_cap
+    endif
+    Delta_cap = Delta_cap + Cap_shift
+
+    if( Cap_roughness < eps10 ) then
+      z_roughness_cap = 0._db
+    else
+      z_roughness_cap = z_max_cap - z_min_cap
+    endif
+
+    if( z_roughness_film > eps10 ) then
+      i0 = - nint( z_roughness_film / ( axyz_cap(3) * cos_z_c ) ) - 1
+    else
+      i0 = 0
+    endif
+
+    Z = 0
+
+    do ipl = 1,npldafs
+
+      hkl(:) = hkl_dafs(:,ipl)
+
+      if( abs( hkl(1) ) > eps10 .or. abs( hkl(2) ) > eps10 ) cycle
+
+      s = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
+      s = s / bohr                      ! on le veut en angstroem - 1
+
+! Delta_2 = ( Sin(Theta_Bragg)/Lambda )^2
+      if( Cap_disorder > eps10 ) then
+        Deb = exp( - 0.5_db * ( Cap_disorder * deltak(ipl) )**2 )
+      else
+        Deb = 1._db
+      endif
+
+      if( hkl_film ) then
+        hkl(3) = hkl(3) * cos_z_c * axyz_cap(3) / ( cos_z * axyz(3) )
+      else
+        hkl(3) = hkl(3) * cos_z_c * axyz_cap(3) / ( cos_z_b * axyz_bulk(3) )
+      endif
+
+      do igr = 1,n_atom_cap
+
+        elemv = ' '
+        elemv(1:2) = Chemical_Symbol( Z_cap(igr) )
+        f0_cap = getf0(elemv,s)
+
+        if( Z_cap(igr) /= Z ) then
+          Z = Z_cap(igr)
+          call fprime(Z,Eseuil(nbseuil),fpp_cap,fp_cap,xsect_file)
+        endif
+
+        Bragg_cap = ( 0._db, 0._db )
+
+        do i = i0,1000000
+          p(:) = posn_cap(:,igr)
+          p(3) = p(3) + i
+          z_pos = p(3) * axyz_cap(3) * cos_z_c
+          if( z_pos < z_min_cap - z_roughness_film - eps10 ) cycle
+          if( z_pos > z_max_cap + z_roughness_cap + eps10 ) exit
+          if( Cap_roughness > eps10 ) then
+            x = ( z_max_cap - z_pos ) / Cap_roughness
+            Taux_r = 1._db - erfc( x ) * 0.5_db
+          else
+            Taux_r = 1._db
+          endif
+          if( Film_roughness > eps10 .and. z_pos < z_min_cap + z_roughness_film + eps10 ) then
+            x = ( z_pos - z_min_cap ) / Film_roughness
+            Taux_r2 =  erfc( x )
+            Taux_r2 = 1._db - Taux_r2 * 0.5_db
+            Taux_r = Taux_r * Taux_r2
+          endif
+          arg = deux_pi * sum( p(:) * hkl(:) )
+          Bragg_cap = Bragg_cap + Deb * Taux_r * cmplx( cos(arg), sin(arg), db )
+        end do
+
+        phd_f_cap(ipl) = phd_f_cap(ipl) + Taux_cap(igr) * Bragg_cap * cmplx( f0_cap + fp_cap, fpp_cap, db )
+
+      end do
+
+      if( hkl_film ) then
+        arg = deux_pi * hkl(3) * Delta_cap / ( axyz(3) * cos_z )
+      else
+        arg = deux_pi * hkl(3) * Delta_cap / ( axyz_bulk(3) * cos_z_b )
+      endif
+      phd_f_cap(ipl) = phd_f_cap(ipl) * cmplx( cos(arg), sin(arg), db )
+
+! Case of non rationnal ratio between bulk and film, or R45 (sqrt(2), sqrt(2))
+
+      if( hkl_film ) then
+        n = max( 1, Mult_film(1) * Mult_film(2) )
+        s = n * axyz(1) * axyz(2) * sin( rad * angxyz(3) ) / ( axyz_cap(1) *  axyz_cap(2) * sin( rad * angxyz_cap(3) ) )
+      else
+        n = max( 1, Mult_bulk(1) * Mult_bulk(2) )
+        s = n * axyz_bulk(1) * axyz_bulk(2) * sin( rad * angxyz_bulk(3) ) &
+                                                           / ( axyz_cap(1) *  axyz_cap(2) * sin( rad * angxyz_cap(3) ) )
+      endif
+      phd_f_cap(ipl) = s * phd_f_cap(ipl)
+
+    end do
+
+ ! Absorption a travers la couche
+    fpp_cap_tot = 0._db
+    do igr = 1,n_atom_cap
+      Z = Z_cap(igr)
+      call fprime(Z,Eseuil(nbseuil),fpp_cap,fp_cap,xsect_file)
+      fpp_cap_tot = fpp_cap_tot + Taux_cap(igr) * fpp_cap
+    end do
+! Conversion en Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
+    fpp_cap_tot = fpp_cap_tot / ( conv_mbarn_nelec(Eseuil(nbseuil)) * pi )
+! Conversion en coefficient d'absorption lineaire en micrometre^-1
+    Volume_maille = Cal_Volume_maille(axyz_cap,angxyz_cap)
+    fpp_cap_tot = 100 * fpp_cap_tot / ( Volume_maille * bohr**3 )
+! Valeur l' epaisseur traversee aller-retour (a multiplier par 2/sin(theta_bragg) )
+    fpp_cap_tot = 0.00001_db * bohr * fpp_cap_tot * Cap_thickness_used
+
+  endif
+
+! Multplication par epsilon_e * espilon_s
+  do ipl = npldafs,1,-1
+    ph = sum( phd_f0(1:n_atom_proto,ipl) ) + sum( phd_fan(1:n_atom_proto,ipl) )
+    if( Bulk ) ph = ph + phd_f_bulk(ipl)
+
+    if( Cap_layer ) then
+      s = deltak(ipl) / konde      ! = 2 * sin(theta)
+      abs_cap = exp( - fpp_cap_tot * s )
+      ph = abs_cap * ph
+      phdafs(1:natomsym,ipl) = abs_cap * phdafs(1:natomsym,ipl)
+
+      ph = ph + phd_f_cap(ipl)
+    endif
+
+    if( Dafs_bio ) ph_cjg = sum( phd_f0_cjg(1:n_atom_proto,ipl) ) + sum( phd_fan_cjg(1:n_atom_proto,ipl) )
+    do ip = nphi_dafs(ipl),1,-1
+      pe(:) = poldafse(:,ipl,ip)
+      ps(:) = poldafss(:,ipl,ip)
+      cfac = sum( conjg( ps(:) ) * pe(:) )
+      if( Dafs_bio .and. ip > 2 ) then
+        phdf0t(ipl,ip) = cfac * ph_cjg
+        phdt(ipl,ip) = cfac * conjg( phdabs(ipl) )
+      else
+        phdf0t(ipl,ip) = cfac * ph
+        phdt(ipl,ip) = cfac * phdabs(ipl)
+      endif
+    end do
+    phd_f0(1:n_atom_proto,ipl) = cfac * phd_f0(1:n_atom_proto,ipl)
+    phd_fan(1:n_atom_proto,ipl) = cfac * phd_fan(1:n_atom_proto,ipl)
+  end do
+
+! Voir M. Blume and Doon Gibbs, PRB, 37, 1779 (1988)
+! Formule modifiee pour vect A'' car erreur trouve dans l'article
+  phd_fmag(:,:) = (0._db,0._db)
+  if( Magnetic ) then
+    Axe_atom_g = matmul( orthmat, Axe_atom_gr )
+    do ipl = 1,npldafs
+      do ip = nphi_dafs(ipl),1,-1
+        pe(:) = poldafse(:,ipl,ip)
+        ps(:) = poldafss(:,ipl,ip)
+        we(:) = vecdafse(:,ipl,ip)
+        ws(:) = vecdafss(:,ipl,ip)
+! Approximation pour le moment orbital pris oriente parallelement a lui.
+! Voir aussi appendix de G. T. Trammell, PR 92, 1387 (1953)
+        call get_vec_b(pe,ps,vec_b,we,ws)
+        call get_vec_a(pe,ps,vec_a,we,ws)
+        do ipr = 1,n_atom_proto
+
+          do igr = 1,ngreq(ipr)
+            jgr = igreq(ipr,igr)
+            v(:) = Axe_atom_g(:,jgr)
+            v_vec_b(ipl) = dot_product(v,vec_b)
+            v_vec_a(ipl) = dot_product(v,vec_a)
+            if( icheck > 1 ) then
+              write(3,182) ipl
+              do i = 1,3
+                write(3,185) v(i), vec_b(i), vec_a(i)
+              end do
+              write(3,187) v_vec_b(ipl), v_vec_a(ipl)
+            endif
+
+            if( ip == 1 ) &
+              phd_fmag(ipr,ipl) = phd_fmag(ipr,ipl) + v_vec_a(ipl) * phd_fmo(ipr,igr,ipl) + v_vec_b(ipl) * phd_fms(ipr,igr,ipl)
+
+            phdf0t(ipl,ip) = phdf0t(ipl,ip) + v_vec_a(ipl) * phd_fmo(ipr,igr,ipl) + v_vec_b(ipl) * phd_fms(ipr,igr,ipl)
+
+          end do
+        end do
+      end do
+
+    end do
+
+  endif
+
+  if( magnetic ) then
+    deallocate( phd_fmo )
+    deallocate( phd_fms )
+  endif
+
+  if( icheck > 0 ) then
+
+    if( icheck > 1 ) then
+      do ipl = 1,npldafs
+        if( nphi_dafs(ipl) == 1 ) cycle
+        dpdeg = 360._db / nphi_dafs(ipl)
+        if( Dafs_bio ) then
+          write(3,200)
+        elseif( Film ) then
+          write(3,205) hkl_dafs(:,ipl), isigpi(ipl,:)
+        else
+          write(3,210) nint( hkl_dafs(:,ipl) ), isigpi(ipl,:)
+        endif
+        do ip = 1,nphi_dafs(ipl)
+          pe(:) = poldafse(:,ipl,ip)
+          ps(:) = poldafss(:,ipl,ip)
+          we(:) = vecdafse(:,ipl,ip)
+          ws(:) = vecdafss(:,ipl,ip)
+
+          pe = matmul( orthmati, pe )
+          ps = matmul( orthmati, ps )
+          we = matmul( orthmati, we )
+          ws = matmul( orthmati, ws )
+          if( Dafs_bio ) then
+            if( ip == 1 .or. ip == 3 ) then
+              mot4 = ' sig'
+            else
+              mot4 = '  pi'
+            endif
+            if( ip == 1 .or. ip == 2 ) then
+              write(3,215) nint(hkl_dafs(:,ipl)), mot4, real(pe(:)), real(ps(:)), we(:), ws(:)
+            else
+              write(3,215) - nint(hkl_dafs(:,ipl)), mot4, real(pe(:)), real(ps(:)), we(:), ws(:)
+            endif
+          else
+            write(3,220)  ( ip - 1 ) * dpdeg, real(pe(:)), aimag(pe(:)), real(ps(:)), aimag(ps(:)), we(:), ws(:)
+          endif
+        end do
+      end do
+    endif
+
+    if( Film .and. Film_thickness > eps10 ) then
+      write(3,222) 'Film_thickness', Film_thickness * bohr, 'Film_thickness_used', Film_thickness_used * bohr
+      write(3,223) 'Film_shift    ', Film_shift(3) * bohr
+      write(3,223) 'Film_roughness', Film_roughness * bohr
+      write(3,224) 'bottom_film', Z_bottom_film, 'bottom_film', R_bottom_film * bohr, 'bottom_film', delta_z_bottom_film * bohr
+      write(3,224) 'top_film   ', Z_top_film, 'top_film   ', R_top_film * bohr, 'top_film   ', delta_z_top_film * bohr
+      write(3,226) 'film', z_min_film * bohr, 'film', z_max_film * bohr
+    endif
+    if( Bulk ) then
+      write(3,*)
+      write(3,224) 'top_bulk   ', Z_top_bulk, 'top_bulk   ', R_top_bulk * bohr, 'top_bulk   ', delta_z_top_bulk * bohr
+      write(3,232) z_max_bulk * bohr
+      write(3,230) 'bulk', Delta_bulk * bohr
+    endif
+    if( Cap_layer ) then
+      write(3,222) 'Cap_thickness ', Cap_thickness * bohr, 'Cap_thickness_used ', Cap_thickness_used * bohr
+      write(3,223) 'Cap_shift     ', Cap_shift * bohr
+      write(3,223) 'Cap_roughness ', Cap_roughness * bohr
+      write(3,224) 'bottom_cap ', Z_bottom_cap, 'bottom_cap ', R_bottom_cap * bohr, 'bottom_cap ', delta_z_bottom_cap * bohr
+      write(3,224) 'top_cap    ', Z_top_cap, 'top_cap    ', R_top_cap * bohr, 'top_cap    ', delta_z_top_cap * bohr
+      write(3,226) 'cap ', z_min_cap * bohr, 'cap ', z_max_cap * bohr
+      write(3,230) 'cap ', Delta_cap * bohr
+      write(3,'(a29,1p,e13.5)') ' Absorption through the cap =', 1._db - Abs_cap
+    endif
+
+    if( Film ) then
+      write(3,'(/A)') '  (   h,      k,      l)  exp(i*Q.R_ia) (ia = 1,natomsym)'
+    else
+      write(3,'(/A)') '  (h,k,l)  exp(i*Q.R_ia) (ia = 1,natomsym)'
+    endif
+
+    do ipl = 1,npldafs
+      if( Film ) then
+        write(3,235) hkl_dafs(:,ipl), phdafs(1:natomsym,ipl)
+      else
+        write(3,240) nint(hkl_dafs(:,ipl)), phdafs(1:natomsym,ipl)
+      endif
+    end do
+
+    if( Magnetic ) then
+      write(3,245) f_no_res(1)
+      ipl = 1  ! le rapport ne depend pas de la reflexion.
+      do ipr = 1,n_atom_proto
+        if( abs( f_ms(ipr,ipl) ) > eps10 ) then
+          rap_lsur2s = 0.5_db * f_mo(ipr,ipl) / f_ms(ipr,ipl)
+        else
+          rap_lsur2s = 0._db
+        endif
+        write(3,246) ipr, rap_lsur2s
+      end do
+    endif
+
+    write(3,250)
+    do ipr = 1,n_atom_proto
+      if( nspin == 1 ) then
+        if( Film ) then
+          write(3,260) ipr, numat( itypepr(ipr) )
+        else
+          write(3,265) ipr, numat( itypepr(ipr) )
+        endif
+        do ipl = 1,npldafs
+          if( Film ) then
+            write(3,270) hkl_dafs(:,ipl), f0(ipr,ipl), fp(ipr), fpp(ipr), phd(ipr,ipl), phd_f0(ipr,ipl), phd_fan(ipr,ipl)
+          else
+            write(3,275) nint(hkl_dafs(:,ipl)), f0(ipr,ipl), fp(ipr), fpp(ipr), phd(ipr,ipl), phd_f0(ipr,ipl), phd_fan(ipr,ipl)
+          endif
+        end do
+      else
+        if( Film ) then
+          write(3,280) ipr, numat( itypepr(ipr) )
+        else
+          write(3,285) ipr, numat( itypepr(ipr) )
+        endif
+        do ipl = 1,npldafs
+          if( Film ) then
+            write(3,290) hkl_dafs(:,ipl), f0(ipr,ipl), fp(ipr), fpp(ipr), f_ms(ipr,ipl), f_mo(ipr,ipl), phd(ipr,ipl), &
+              phd_f0(ipr,ipl), phd_fan(ipr,ipl), phd_fmag(ipr,ipl), v_vec_b(ipl), v_vec_a(ipl)
+          else
+            write(3,295) nint(hkl_dafs(:,ipl)), f0(ipr,ipl), fp(ipr), fpp(ipr), f_ms(ipr,ipl), f_mo(ipr,ipl), phd(ipr,ipl), &
+              phd_f0(ipr,ipl), phd_fan(ipr,ipl), phd_fmag(ipr,ipl), v_vec_b(ipl), v_vec_a(ipl)
+          endif
+        end do
+      endif
+    end do
+
+    if( Film ) then
+      write(3,'(/A)') '  (   h,      k,      l)    Total Structure factor           Bulk troncature                Cover cap'
+    else
+      write(3,'(/A)') '  (h,k,l)   Total Structure factor'
+    endif
+
+    do ipl = 1,npldafs
+      if( Film ) then
+        write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1), phd_f_bulk(ipl), phd_f_cap(ipl)
+      else
+        write(3,275) nint( hkl_dafs(:,ipl) ), phdf0t(ipl,1)
+      endif
+    end do
+
+  endif
+
+! On passe en base R1
+  pp  = abs( Rot_int(1,1) - 1._db ) + abs( Rot_int(2,2) - 1._db ) + abs( Rot_int(3,3) - 1._db )
+  if( .not. Base_spin .and.  pp > eps10 ) then
+    do ipl = 1,npldafs
+      do ip = 1,nphi_dafs(ipl)
+        v(:) = real( poldafse(:,ipl,ip), db )
+        v = matmul( Rot_int, v )
+        w(:) = aimag( poldafse(:,ipl,ip) )
+        w = matmul( rot_int, w )
+        poldafse(:,ipl,ip) = cmplx( v(:), w(:), db )
+
+        v(:) = real( poldafss(:,ipl,ip), db )
+        v = matmul( rot_int, v )
+        w(:) = aimag( poldafss(:,ipl,ip) )
+        w = matmul( rot_int, w )
+        poldafss(:,ipl,ip) = cmplx( v(:), w(:), db )
+
+        v(:) = vecdafse(:,ipl,ip)
+        v = matmul( rot_int, v )
+        vecdafse(:,ipl,ip) = v(:)
+
+        v(:) = vecdafss(:,ipl,ip)
+        v = matmul( rot_int, v )
+        vecdafss(:,ipl,ip) = v(:)
+      end do
+    end do
+  endif
+
+  if( icheck > 1 ) then
+    iwrite = 1
+    do ipl = 1,npldafs
+      if( nphi_dafs(ipl) == 1 ) cycle
+      if( iwrite == 1 ) then
+        if( Base_spin ) then
+          write(3,370)
+        else
+          write(3,375)
+        endif
+        iwrite = 0
+      endif
+      write(3,376) ipl
+      do ip = 1,nphi_dafs(ipl)
+        write(3,*)
+        do i = 1,3
+         write(3,380) poldafse(i,ipl,ip), vecdafse(i,ipl,ip), poldafss(i,ipl,ip), vecdafss(i,ipl,ip)
+        end do
+      end do
+    end do
+  endif
+
+  if( Film ) deallocate( phd_f_bulk, phd_f_cap )
+
+  return
+  110 format(/' ---- Prepdafs -----',100('-'))
+  165 format(1x,3i3,i5,10x,f9.5)
+  182 format(/' ipl =',i3,//'  Spin_axis          vec_b',17x,'vec_a')
+  185 format(f10.5,2(2x,2f10.5))
+  187 format(/' V.Vec_b =',2f10.5,',  V.Vec_a =',2f10.5)
+  200 format(/'  (h, k, l)   pol',11x,'Poldafse',20x, 'Poldafss',20x,'Vecdafse',20x,'Vecdafss')
+  205 format(/' (h,k,l) = (',3f8.3,'),  isigpi =',2i3,/' angle', &
+        8x,'real(Poldafse)',13x,'imag(Poldafse)',11x,'real(Poldafss)',12x, 'imag(Poldafse)',15x,'Vecdafse',15x,'Vecdafss')
+  210 format(/' (h,k,l) = (',3i3,'),  isigpi =',2i3,/' angle', &
+        8x,'real(Poldafse)',13x,'imag(Poldafse)',11x,'real(Poldafss)',12x, 'imag(Poldafse)',15x,'Vecdafse',15x,'Vecdafss')
+  215 format(3i4,1x,a4, 6(1x,3f9.5))
+  220 format(f6.1, 6(1x,3f9.5))
+  222 format(/1x,a14,' =',f7.3,'    ',a19,' =',f7.3,' A')
+  223 format( 1x,a14,' =',f7.3,' A')
+  224 format( ' Z_',a11,'  =',i3,'        R_',a11,' =',f7.3,'  delta_z_',a11,' =',f7.3,' A')
+  226 format( ' z_min_',a4,'     =',f7.3,'    z_max_',a4,'    =',f7.3,' A')
+  230 format( ' Delta_',a4,'     =',f7.3,' A')
+  232 format( ' z_max_bulk     =',f7.3,' A')
+  235 format(3f8.3,1p,48(1x,2e13.5))
+  240 format(3i3,1p,48(1x,2e13.5))
+  245 format(/' Attenuation factor for non resonant magnetic structure', ' factor :'/,'      General : fma =',f7.3,/ &
+        '      Orbital : Site    L/2S     (f_orb = (L/S)*f_spin)')
+  246 format(10x,i9,f9.3)
+  250 format(/' Value of the structure factors per atom site :')
+  260 format(/' Site =',i3,', Z =',i3,//, '  (     h,     k,     l)',6x,'f0',14x,'fp',10x,'fpp',10x,'Ph = Sum(exp(iQR))', &
+        10x,'Ph*f0*(eps_e.eps_s)     Ph*(fp+i*fpp)*(eps_e.eps_s)')
+  265 format(/' Site =',i3,', Z =',i3,//, '  (h,k,l)',6x,'f0',14x,'fp',10x,'fpp',10x,'Ph = Sum(exp(iQR))', &
+        10x,'Ph*f0*(eps_e.eps_s)     Ph*(fp+i*fpp)*(eps_e.eps_s)')
+  270 format(3f8.3,1p,e13.5,2x,2e13.5,5(2x,2e13.5))
+  275 format(3i3,1p,e13.5,2x,2e13.5,5(2x,2e13.5))
+  280 format(/' Site =',i3,', Z =',i3,//, '  (     h,     k,     l)',6x,'f0',14x,'fp',10x,'fpp',11x,'f_spin',9x, &
+        'f_orb',10x,'Ph = Sum(exp(iQR))',10x,'Ph*f0*(eps_e.eps_s)    Ph*(fp+i*fpp)*(eps_e.eps_s)', &
+        ' i*Ph_m*fma*(f_spin*vs+f_orb*vo)   vs = spin.vec_b',13x, 'vo = spin.vec_a')
+  285 format(/' Site =',i3,', Z =',i3,//, '  (h,k,l)',6x,'f0',14x,'fp',10x,'fpp',11x,'f_spin',9x, &
+        'f_orb',10x,'Ph = Sum(exp(iQR))',10x,'Ph*f0*(eps_e.eps_s)    Ph*(fp+i*fpp)*(eps_e.eps_s)', &
+        ' i*Ph_m*fma*(f_spin*vs+f_orb*vo)   vs = spin.vec_b',13x, 'vo = spin.vec_a')
+  290 format(3f8.3,1p,e13.5,2x,2e13.5,2(2x,e13.5),6(2x,2e13.5))
+  295 format(3i3,1p,e13.5,2x,2e13.5,2(2x,e13.5),6(2x,2e13.5))
+  300 format(3f8.3,1p,3(2x,2e13.5))
+  370 format(/'  Polarization and wave vectors in the internal basis R4 ( orthogonal basis, z along spin direction )',// &
+              '         pol            vec           pls',12x,'vos')
+  375 format(/'  Polarization and wave vectors in the internal basis R1 ( orthogonal basis, z along c crystal )',// &
+              '         pol            vec           pls',12x,'vos')
+  376 format(/' ipl = ',i5)
+  380 format(2(2f9.5,1x,f9.5,1x))
+
+end
+
+!*********************************************************************
+
+! Polarization calculation for DAFS
+! and f0, f_ms, f_mo calculations
+
+subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Bormann,Bulk,Dafs_bio,deltak,Eseuil,f_ms,f_mo,f_no_res, &
+            f0,Film,hkl_dafs,hkl_film,icheck,isigpi,itypepr,lvval,Magnetic,Mat_or,mpirank,n_atom_proto,nbseuil,&
+            nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmat,Orthmati, &
+            poldafse,poldafsem,poldafss,poldafssm,popatm,psival,rato,Vec_orig,vecdafse,vecdafsem,vecdafss,vecdafssm)
+
+  use declarations
+  implicit none
+
+  integer:: i, icheck, ip, ipl, ipr, istop, it, j, mpirank, n_atom_proto, nbseuil, &
+    nlatm, nphim, npldafs, nrm, nspin, ntype
+
+  character(len=4) elemv
+  character(len=2) Chemical_symbol
+
+  complex(kind=db), dimension(3):: pe, ps
+  complex(kind=db), dimension(3,npldafs):: poldafsem, poldafssm
+  complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
+
+  integer, dimension(0:ntype):: nlat, nrato, numat
+  integer, dimension(0:ntype,nlatm):: lvval
+  integer, dimension(npldafs):: nphi_dafs
+  integer, dimension(npldafs,2):: isigpi
+  integer, dimension(0:n_atom_proto):: itypepr
+
+  logical:: Bormann, Bulk, Film, hkl_film, Dafs_bio, Magnetic
+
+  real(kind=sg):: getf0, s
+
+  real(kind=db):: Angle, cos_pe, cos_ps, cosb, cosp, detmat, dhkl, dp, Emc2,  &
+    fac, fmo, fms, konde, pp, psi, qkn, rad, rad_i, sin_pe, sin_ps, sinb, sinp, &
+    Thetabragg, Vol, wn, wsn
+
+  real(kind=db), dimension(2):: f_no_res
+  real(kind=db), dimension(3):: ang, angxyz, angxyz_bulk, axyz, axyz_bulk, cosdir, hklred, &
+     qi, qj, qk, v, Vec_orig, vpie, vpe, vps, vpis, vsig, vx, vy, vz, w, we, ws, wx, wy, wz
+  real(kind=db), dimension(npldafs):: Angle_or, deltak
+  real(kind=db), dimension(nbseuil):: Eseuil
+  real(kind=db), dimension(0:3):: det
+  real(kind=db), dimension(3,3):: Mat, Mat_or, Mat_ori, Orthmat, Orthmati
+  real(kind=db), dimension(3,npldafs):: angpoldafs, hkl_dafs, vecdafsem, vecdafssm
+  real(kind=db), dimension(3,npldafs,nphim):: vecdafse, vecdafss
+  real(kind=db), dimension(0:nrm,0:ntype):: rato
+  real(kind=db), dimension(0:nrm,nlatm,0:ntype):: psival
+  real(kind=db), dimension(n_atom_proto,npldafs):: f_ms, f_mo, f0
+  real(kind=db), dimension(0:n_atom_proto,nlatm,nspin):: popatm
+
+  rad = pi / 180._db
+
+! lambda = 2 * pi / k = 2 * d * sintheta
+! En S.I. vecond = k = E*alfa*4*pi*epsilon0 / (e*e)
+! En ua et rydb : k = 0.5 * alfa * E
+  konde = 0.5_db * alfa_sf * Eseuil(nbseuil)   ! exact que pour nbseuil = 1
 
   istop = 0
-  cosdir(:) = cos( angxyz(:) * pi / 180 )
+  if( Bulk .and. .not. hkl_film ) then
+    cosdir(:) = cos( angxyz_bulk(:) * rad )
+  else
+    cosdir(:) = cos( angxyz(:) * rad )
+  endif
 
   if( Bormann ) then
     poldafse(:,:,:) = ( 0._db, 0._db )
@@ -5648,14 +6710,18 @@ subroutine prepdafs(Angle_or,angpoldafs,angxyz,Axe_atom_gr,axyz,Base_spin,Borman
 
   do ipl = 1,npldafs
 
-    if( hkl_dafs(1,ipl) == 0 .and. hkl_dafs(2,ipl) == 0 .and. hkl_dafs(3,ipl) == 0 ) then
+    if( sum( abs( hkl_dafs(:,ipl) ) ) < eps10 ) then
 
       dhkl = 0._db
       thetabragg = 0._db
 
     else
 
-      hklred(:) = hkl_dafs(:,ipl) / axyz(:)
+      if( Bulk .and. .not. hkl_film ) then
+        hklred(:) = hkl_dafs(:,ipl) / axyz_bulk(:)
+      else
+        hklred(:) = hkl_dafs(:,ipl) / axyz(:)
+      endif
       do i = 0,3
         do j = 1,3
           mat(j,j) = 1._db
@@ -5677,13 +6743,17 @@ subroutine prepdafs(Angle_or,angpoldafs,angxyz,Axe_atom_gr,axyz,Base_spin,Borman
         if( istop == 0 ) call write_error
         do ipr = 3,9,3
           if( ipr == 3 .and. icheck == 0 ) cycle
-          write(ipr,120) ipl, hkl_dafs(:,ipl)
+          if( Film ) then
+            write(ipr,120) ipl, hkl_dafs(:,ipl)
+          else
+            write(ipr,125) ipl, nint( hkl_dafs(:,ipl) )
+          endif
         end do
         istop = 1
         cycle
       endif
 
-      thetabragg = asin( pi / ( konde * dhkl ) )
+      Thetabragg = asin( pi / ( konde * dhkl ) )
 
     endif
 
@@ -5801,7 +6871,11 @@ subroutine prepdafs(Angle_or,angpoldafs,angxyz,Axe_atom_gr,axyz,Base_spin,Borman
       call prodvec(qj,qk,qi)
 
       if( icheck > 1 ) then
-        write(3,130) hkl_dafs(:,ipl)
+        if( Film ) then
+          write(3,130) hkl_dafs(:,ipl)
+        else
+          write(3,135) nint( hkl_dafs(:,ipl) )
+        endif
         write(3,140) ( wx(i)/bohr, wy(i)/bohr, wz(i)/bohr, i = 1,3 )
         write(3,150) ( qi(i), qj(i), qk(i), i = 1,3 )
       endif
@@ -5816,9 +6890,8 @@ subroutine prepdafs(Angle_or,angpoldafs,angxyz,Axe_atom_gr,axyz,Base_spin,Borman
 ! Matrice de rotation inverse
         Angle = Angle_or(ipl) * pi / 180
         Mat(1,1) = 1._db; Mat(1,2:3) = 0._db
-        Mat(2,1) = 0._db;  Mat(2,2) = cos( Angle )
-                                           Mat(2,3) = sin( Angle )
-        Mat(3,1) = 0._db; Mat(3,1) = - Mat(2,3); Mat(3,3) = Mat(2,2)
+        Mat(2,1) = 0._db; Mat(2,2) = cos( Angle ); Mat(2,3) = sin( Angle )
+        Mat(3,1) = 0._db; Mat(3,1) = - Mat(2,3);    Mat(3,3) = Mat(2,2)
 
         Mat = Matmul( Mat_ori, Mat )
         Mat = Matmul( Orthmat, Mat )
@@ -5931,7 +7004,7 @@ subroutine prepdafs(Angle_or,angpoldafs,angxyz,Axe_atom_gr,axyz,Base_spin,Borman
       endif
     endif
 
-    if( hkl_dafs(1,ipl) == 0 .and. hkl_dafs(2,ipl) == 0 .and. hkl_dafs(3,ipl) == 0 ) then
+    if( sum( abs(hkl_dafs(:,ipl) ) ) < eps10 ) then
 
       if( Bormann ) then
 
@@ -5994,8 +7067,14 @@ subroutine prepdafs(Angle_or,angpoldafs,angxyz,Axe_atom_gr,axyz,Base_spin,Borman
     end do
 
     if( icheck > 0 ) then
-      if( ipl == 1 ) write(3,170)
-      rad = 180 / pi
+      if( ipl == 1 ) then
+        if( Film ) then
+          write(3,170)
+        else
+          write(3,175)
+        endif
+      endif
+      rad_i = 1 / rad
       do i = 1,3
         if( abs( angpoldafs(i,ipl) ) > 9999._db ) then
           Ang(i) = 0._db
@@ -6011,369 +7090,182 @@ subroutine prepdafs(Angle_or,angpoldafs,angxyz,Axe_atom_gr,axyz,Base_spin,Borman
       ps = matmul( orthmati, ps )
       we = matmul( orthmati, we )
       ws = matmul( orthmati, ws )
-      write(3,180) hkl_dafs(:,ipl), Thetabragg * rad, dhkl * bohr, Ang(1:3)*rad, ( Real(pe(i)), aimag(pe(i)), we(i), &
-                 Real(ps(i)), aimag(ps(i)), ws(i), i = 1,3)
+      if( Film ) then
+        write(3,180) hkl_dafs(:,ipl), Thetabragg * rad_i, dhkl * bohr, Ang(1:3)*rad_i, ( Real(pe(i)), aimag(pe(i)), &
+                 we(i), Real(ps(i)), aimag(ps(i)), ws(i), i = 1,3)
+      else
+        write(3,181) nint(hkl_dafs(:,ipl)), Thetabragg * rad_i, dhkl * bohr, Ang(1:3)*rad_i, ( Real(pe(i)), aimag(pe(i)), &
+                 we(i), Real(ps(i)), aimag(ps(i)), ws(i), i = 1,3)
+      endif
     endif
 
   end do  ! fin boucle ipl
 
   if( istop == 1 ) stop
 
-  if( Magnetic ) then
-    allocate( phd_fmo(n_atom_proto,ngrm,npldafs) )
-    allocate( phd_fms(n_atom_proto,ngrm,npldafs) )
-    phd_fms(:,:,:) = (0._db,0._db)
-    phd_fmo(:,:,:) = (0._db,0._db)
-  endif
-
-  if( Temp > 0.00001_db ) then
-    Debye = .true.
-    Tempt = max( 1._db, Temp )      ! le cas defaut: T = 1 K
-  else
-    Debye = .false.
-  endif
-
-  if( icheck > 1 .and. Temperature ) write(3,'(/A)') ' ( h, k, l)   Z   Debye-Waller Attenuation'
-
-  do ipr = 1,n_atom_proto
-
-! Calcul des termes de Bragg
-    it = itypepr( ipr )
-    if( numat( it ) == 0 ) cycle
-    igr_tem(:) = igreq(ipr,:)
-
-    allocate( Bragg(ngreq(ipr),npldafs) )
-
-    do ipl = 1,npldafs
-
-      if( Debye ) then
-        deltak_A = deltak(ipl) / bohr   ! on le veut en angstroem - 1
-        Deb = DW(deltak_A,numat(it),tempt)
-        write(3,165) hkl_dafs(1:3,ipl), numat(it), Deb
-      elseif( Temperature ) then
-! Delta_2 = ( Sin(Theta_Bragg)/Lambda )^2
-! Temp_coef = 8*pi^2 * <u>^2 est en Angtroem^2
-        Delta_2 = ( deltak(ipl) / ( quatre_pi * bohr ) )**2
-      endif
-
-      do igr = 1,ngreq(ipr)
-        jgr = igr_tem(igr)
-        arg = deux_pi * sum( posn(:,jgr) * hkl_dafs(:,ipl) )
-        Bragg(igr,ipl) = cmplx( cos(arg), sin(arg), db )
-        if( Taux ) Bragg(igr,ipl) = Bragg(igr,ipl) * Taux_oc(jgr)
-        if( Temperature ) Deb = exp( - Temp_coef(igr) * Delta_2 )
-        if( Debye .or. Temperature) Bragg(igr,ipl) = Bragg(igr,ipl) * Deb
-        if( ipr == iprabs ) phdafs(igr,ipl) = Bragg(igr,ipl)
-      end do
-      phd(ipr,ipl) = sum( Bragg(1:ngreq(ipr),ipl) )
-      if( ipr == iprabs ) phdabs(ipl) = phd(ipr,ipl)
-
-    end do
-
-    n = numat( itypepr( ipr ) )
-    if( n == 0 ) cycle
-! On ne tient pas compte de l'anomale de l'atome absorbeur puisqu'il est
-! calcule dans le programme !
-    if( n /= numat(itabs) ) then
-      call fprime(n,eseuil(nbseuil),fpp(ipr),fp(ipr),xsect_file)
-    else
-      fp(:) = 0._db; fpp(ipr) = 0._db
-    endif
-
-    do ipl = 1,npldafs
-
-      phd_f0(ipr,ipl) = phd(ipr,ipl) * f0(ipr,ipl)
-      phd_fan(ipr,ipl) = phd(ipr,ipl) * cmplx(fp(ipr), fpp(ipr), db)
-
-      if( Dafs_bio ) then
-        phd_f0_cjg(ipr,ipl) = conjg( phd(ipr,ipl) ) * f0(ipr,ipl)
-        phd_fan_cjg(ipr,ipl) = conjg( phd(ipr,ipl) ) * cmplx(fp(ipr), fpp(ipr), db)
-      endif
-
-      if( Magnetic ) then
-
-        if( abs(f_ms(ipr,ipl)) > eps10 ) then
-          kgr = igreq(ipr,1)
-          do igr = 1,ngreq(ipr)
-            jgr = igreq(ipr,igr)
-! Les signes moins sont pour transformer vers la convention cristallo (Green moins), les formules de Gibbs.
-! Ces donnees sont utilisees dans la routine convolution a un endroit ou on est en Green -.
-! Bragg est deja en Green -.
-            phd_fms(ipr,igr,ipl) = - img * Bragg(igr,ipl) * f_ms(ipr,ipl)
-            phd_fmo(ipr,igr,ipl) = - img * Bragg(igr,ipl) * f_mo(ipr,ipl)
-          end do
-        endif
-
-      endif
-
-    end do
-
-    deallocate( Bragg )
-
-  end do  ! fin boucle ipr
-
-  if( icheck > 1 .and. magnetic ) then
-    write(3,'(/A)') ' ipr ipl      f_ms         f_mo      phd_fms(ipr,ipl,1..ngr)'
-    do ipr = 1,n_atom_proto
-      do ipl = 1,npldafs
-        if( abs(f_ms(ipr,ipl)) < eps10 ) cycle
-        write(3,'(2i4,1p,50e13.5)') ipr, ipl, f_ms(ipr,ipl), f_mo(ipr,ipl), phd_fms(ipr,1:ngreq(ipr),ipl)
-      end do
-    end do
-  endif
-
-! Multplication par epsilon_e * espilon_s
-  do ipl = npldafs,1,-1
-    ph = sum( phd_f0(1:n_atom_proto,ipl) ) + sum( phd_fan(1:n_atom_proto,ipl) )
-    if( Dafs_bio ) ph_cjg = sum( phd_f0_cjg(1:n_atom_proto,ipl) ) + sum( phd_fan_cjg(1:n_atom_proto,ipl) )
-    do ip = nphi_dafs(ipl),1,-1
-      pe(:) = poldafse(:,ipl,ip)
-      ps(:) = poldafss(:,ipl,ip)
-      cfac = sum( conjg( ps(:) ) * pe(:) )
-      if( Dafs_bio .and. ip > 2 ) then
-        phdf0t(ipl,ip) = cfac * ph_cjg
-        phdt(ipl,ip) = cfac * conjg( phdabs(ipl) )
-      else
-        phdf0t(ipl,ip) = cfac * ph
-        phdt(ipl,ip) = cfac * phdabs(ipl)
-      endif
-    end do
-    phd_f0(1:n_atom_proto,ipl) = cfac * phd_f0(1:n_atom_proto,ipl)
-    phd_fan(1:n_atom_proto,ipl) = cfac * phd_fan(1:n_atom_proto,ipl)
-  end do
-
-! Voir M. Blume and Doon Gibbs, PRB, 37, 1779 (1988)
-! Formule modifiee pour vect A'' car erreur trouve dans l'article
-  phd_fmag(:,:) = (0._db,0._db)
-  if( Magnetic ) then
-    Axe_atom_g = matmul( orthmat, Axe_atom_gr )
-    do ipl = 1,npldafs
-      do ip = nphi_dafs(ipl),1,-1
-        pe(:) = poldafse(:,ipl,ip)
-        ps(:) = poldafss(:,ipl,ip)
-        we(:) = vecdafse(:,ipl,ip)
-        ws(:) = vecdafss(:,ipl,ip)
-! Approximation pour le moment orbital pris oriente parallelement a lui.
-! Voir aussi appendix de G. T. Trammell, PR 92, 1387 (1953)
-        call get_vec_b(pe,ps,vec_b,we,ws)
-        call get_vec_a(pe,ps,vec_a,we,ws)
-        do ipr = 1,n_atom_proto
-
-          do igr = 1,ngreq(ipr)
-            jgr = igreq(ipr,igr)
-            v(:) = Axe_atom_g(:,jgr)
-            v_vec_b(ipl) = dot_product(v,vec_b)
-            v_vec_a(ipl) = dot_product(v,vec_a)
-            if( icheck > 1 ) then
-              write(3,182) ipl
-              do i = 1,3
-                write(3,185) v(i), vec_b(i), vec_a(i)
-              end do
-              write(3,187) v_vec_b(ipl), v_vec_a(ipl)
-            endif
-
-            if( ip == 1 ) &
-              phd_fmag(ipr,ipl) = phd_fmag(ipr,ipl) + v_vec_a(ipl) * phd_fmo(ipr,igr,ipl) + v_vec_b(ipl) * phd_fms(ipr,igr,ipl)
-
-            phdf0t(ipl,ip) = phdf0t(ipl,ip) + v_vec_a(ipl) * phd_fmo(ipr,igr,ipl) + v_vec_b(ipl) * phd_fms(ipr,igr,ipl)
-
-          end do
-        end do
-      end do
-
-    end do
-
-  endif
-
-  if( magnetic ) then
-    deallocate( phd_fmo )
-    deallocate( phd_fms )
-  endif
-
-  if( icheck > 0 ) then
-
-    if( icheck > 1 ) then
-      do ipl = 1,npldafs
-        if( nphi_dafs(ipl) == 1 ) cycle
-        dpdeg = 360._db / nphi_dafs(ipl)
-        if( Dafs_bio ) then
-          write(3,200)
-        else
-          write(3,210) hkl_dafs(:,ipl), isigpi(ipl,:)
-        endif
-        do ip = 1,nphi_dafs(ipl)
-          pe(:) = poldafse(:,ipl,ip)
-          ps(:) = poldafss(:,ipl,ip)
-          we(:) = vecdafse(:,ipl,ip)
-          ws(:) = vecdafss(:,ipl,ip)
-
-          pe = matmul( orthmati, pe )
-          ps = matmul( orthmati, ps )
-          we = matmul( orthmati, we )
-          ws = matmul( orthmati, ws )
-          if( Dafs_bio ) then
-            if( ip == 1 .or. ip == 3 ) then
-              mot4 = ' sig'
-            else
-              mot4 = '  pi'
-            endif
-            if( ip == 1 .or. ip == 2 ) then
-              write(3,215) hkl_dafs(:,ipl), mot4, real(pe(:)), real(ps(:)), we(:), ws(:)
-            else
-              write(3,215) -hkl_dafs(:,ipl), mot4, real(pe(:)), real(ps(:)), we(:), ws(:)
-            endif
-          else
-            write(3,220)  ( ip - 1 ) * dpdeg, real(pe(:)), aimag(pe(:)), real(ps(:)), aimag(ps(:)), we(:), ws(:)
-          endif
-        end do
-      end do
-    endif
-
-    write(3,230)
-    do ipl = 1,npldafs
-      write(3,240) hkl_dafs(:,ipl), phdafs(1:natomsym,ipl)
-    end do
-
-    if( Magnetic ) then
-      write(3,245) f_no_res(1)
-      ipl = 1  ! le rapport ne depend pas de la reflexion.
-      do ipr = 1,n_atom_proto
-        if( abs( f_ms(ipr,ipl) ) > eps10 ) then
-          rap_lsur2s = 0.5_db * f_mo(ipr,ipl) / f_ms(ipr,ipl)
-        else
-          rap_lsur2s = 0._db
-        endif
-        write(3,246) ipr, rap_lsur2s
-      end do
-    endif
-
-    write(3,250)
-    do ipr = 1,n_atom_proto
-      if( nspin == 1 ) then
-        write(3,260) ipr, numat( itypepr(ipr) )
-        do ipl = 1,npldafs
-          write(3,270) hkl_dafs(:,ipl), f0(ipr,ipl), fp(ipr), fpp(ipr), phd(ipr,ipl), phd_f0(ipr,ipl), phd_fan(ipr,ipl)
-        end do
-      else
-        write(3,280) ipr, numat( itypepr(ipr) )
-        do ipl = 1,npldafs
-          write(3,290) hkl_dafs(:,ipl), f0(ipr,ipl), fp(ipr), fpp(ipr), f_ms(ipr,ipl), f_mo(ipr,ipl), phd(ipr,ipl), &
-            phd_f0(ipr,ipl), phd_fan(ipr,ipl), phd_fmag(ipr,ipl), v_vec_b(ipl), v_vec_a(ipl)
-        end do
-      endif
-    end do
-
-    write(3,300)
-    do ipl = 1,npldafs
-      write(3,270) hkl_dafs(:,ipl), phdf0t(ipl,1)
-    end do
-
-  endif
-
-! On passe en base R1
-  pp  = abs( Rot_int(1,1) - 1._db ) + abs( Rot_int(2,2) - 1._db ) + abs( Rot_int(3,3) - 1._db )
-  if( .not. Base_spin .and.  pp > eps10 ) then
-    do ipl = 1,npldafs
-      do ip = 1,nphi_dafs(ipl)
-        v(:) = real( poldafse(:,ipl,ip), db )
-        v = matmul( Rot_int, v )
-        w(:) = aimag( poldafse(:,ipl,ip) )
-        w = matmul( rot_int, w )
-        poldafse(:,ipl,ip) = cmplx( v(:), w(:), db )
-
-        v(:) = real( poldafss(:,ipl,ip), db )
-        v = matmul( rot_int, v )
-        w(:) = aimag( poldafss(:,ipl,ip) )
-        w = matmul( rot_int, w )
-        poldafss(:,ipl,ip) = cmplx( v(:), w(:), db )
-
-        v(:) = vecdafse(:,ipl,ip)
-        v = matmul( rot_int, v )
-        vecdafse(:,ipl,ip) = v(:)
-
-        v(:) = vecdafss(:,ipl,ip)
-        v = matmul( rot_int, v )
-        vecdafss(:,ipl,ip) = v(:)
-      end do
-    end do
-  endif
-
-  if( icheck > 1 ) then
-    iwrite = 1
-    do ipl = 1,npldafs
-      if( nphi_dafs(ipl) == 1 ) cycle
-      if( iwrite == 1 ) then
-        if( Base_spin ) then
-          write(3,370)
-        else
-          write(3,375)
-        endif
-        iwrite = 0
-      endif
-      write(3,376) ipl
-      do ip = 1,nphi_dafs(ipl)
-        write(3,*)
-        do i = 1,3
-         write(3,380) poldafse(i,ipl,ip), vecdafse(i,ipl,ip), poldafss(i,ipl,ip), vecdafss(i,ipl,ip)
-        end do
-      end do
-    end do
-  endif
-
   return
-  110 format(/' ---- Prepdafs -----',100('-'))
-  120 format(//' The reflection number',i3,' : (h,k,l) = (',3i3,') does not exist at this energy !'//)
-  130 format(/' (h,k,l) = (',3i3,')')
+  120 format(//' The reflection number',i3,' : (h,k,l) = (',3f8.3,') does not exist at this energy !'//)
+  125 format(//' The reflection number',i3,' : (h,k,l) = (',3i3,') does not exist at this energy !'//)
+  130 format(/' (h,k,l) = (',3f8.3,')')
+  135 format(/' (h,k,l) = (',3i3,')')
   140 format('  Reciprocal mesh base (A-1) :',/5x,'X',8x,'Y',8x,'Z', 3(/3f9.5))
   150 format('  Local base (A-1) :',/5x,'I',8x,'J',8x,'Q', 3(/3f9.5))
   160 format(' Calculations with (h,k,l) = (0,0,0)  need non zero values for the incoming and outgoing'/, &
         ' wave vector in order to calculate the scattering angle !')
-  165 format(1x,3i3,i5,10x,f9.5)
-  170 format(/'  (h,k,l) ThetaBragg  d_hkl (A)    Polarization angles        poldafse',5x, &
+  170 format(/'  (     h,     k,     l) ThetaBragg  d_hkl (A)    Polarization angles        poldafse',5x, &
       'vecdafse',7x,'poldafss',5x,'vecdafss'/)
-  180 format(3i3,2f10.3,2x,3f8.3,2(2x,2f8.5,2x,f8.5)/, 2(55x,2(2x,2f8.5,2x,f8.5)/))
-  182 format(/' ipl =',i3,//'  Spin_axis          vec_b',17x,'vec_a')
-  185 format(f10.5,2(2x,2f10.5))
-  187 format(/' V.Vec_b =',2f10.5,',  V.Vec_a =',2f10.5)
-  200 format(/'  (h, k, l)   pol',11x,'Poldafse',20x, 'Poldafss',20x,'Vecdafse',20x,'Vecdafss')
-  210 format(/' (h,k,l) = (',3i3,'),  isigpi =',2i3,/' angle', &
-  8x,'real(Poldafse)',13x,'imag(Poldafse)',11x,'real(Poldafss)',12x, 'imag(Poldafse)',15x,'Vecdafse',15x,'Vecdafss')
-  215 format(3i4,1x,a4, 6(1x,3f9.5))
-  220 format(f6.1, 6(1x,3f9.5))
-  230 format(/'  (h,k,l)  exp(i*Q.R_ia) (ia = 1,natomsym)')
-  240 format(3i3,1p,48(1x,2e13.5))
-  245 format(/' Attenuation factor for non resonant magnetic structure', ' factor :'/,'      General : fma =',f7.3,/ &
-    '      Orbital : Site    L/2S     (f_orb = (L/S)*f_spin)')
-  246 format(10x,i9,f9.3)
-  250 format(/' Value of the structure factors per atom site :')
-  260 format(/' Site =',i3,', Z =',i3,//, '  (h,k,l)',6x,'f0',14x,'fp',10x,'fpp',10x,'Ph = Sum(exp(iQR))', &
-    10x,'Ph*f0*(eps_e.eps_s)     Ph*(fp+i*fpp)*(eps_e.eps_s)')
-  270 format(3i3,1p,e13.5,2x,2e13.5,5(2x,2e13.5))
-  280 format(/' Site =',i3,', Z =',i3,//, '  (h,k,l)',6x,'f0',14x,'fp',10x,'fpp',11x,'f_spin',9x, &
-    'f_orb',10x,'Ph = Sum(exp(iQR))',10x,'Ph*f0*(eps_e.eps_s)    Ph*(fp+i*fpp)*(eps_e.eps_s)', &
-    ' i*Ph_m*fma*(f_spin*vs+f_orb*vo)   vs = spin.vec_b',13x, 'vo = spin.vec_a')
-  290 format(3i3,1p,e13.5,2x,2e13.5,2(2x,e13.5),6(2x,2e13.5))
-  300 format(/'  (h,k,l)   Total Structure factor')
-  370 format(/'  Polarization and wave vectors in the internal basis R4 ( orthogonal basis, z along spin direction )',// &
-              '         pol            vec           pls',12x,'vos')
-  375 format(/'  Polarization and wave vectors in the internal basis R1 ( orthogonal basis, z along c crystal )',// &
-              '         pol            vec           pls',12x,'vos')
-  376 format(/' ipl = ',i5)
-  380 format(2(2f9.5,1x,f9.5,1x))
+  175 format(/'  (h,k,l) ThetaBragg  d_hkl (A)    Polarization angles        poldafse',5x, &
+      'vecdafse',7x,'poldafss',5x,'vecdafss'/)
+  180 format(3f8.3,2f10.3,2x,3f8.3,2(2x,2f8.5,2x,f8.5)/, 2(70x,2(2x,2f8.5,2x,f8.5)/))
+  181 format(3i3,2f10.3,2x,3f8.3,2(2x,2f8.5,2x,f8.5)/, 2(55x,2(2x,2f8.5,2x,f8.5)/))
+  end
 
+!***********************************************************************
+
+! Changement de base RR Bulk --> RR film.
+
+subroutine bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_bulk,Mult_bulk,Mult_film)
+
+  use declarations
+  implicit none
+
+  integer:: i, icheck
+  integer, dimension(2):: Mult_bulk, Mult_film
+
+  real(kind=db):: Cal_Volume_maille, cos_g, sin_g, rad, Vol
+  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, cos_a, V, Vec_a, Vec_b, Vec_c
+  real(kind=db), dimension(4):: Film_shift
+  real(kind=db), dimension(3,3):: Mat, Mat_bulk, Mat_film, Mat_i
+
+  rad = pi / 180._db
+
+! Bulk
+
+  cos_a(:) = cos( rad * angxyz_bulk(:) )
+  sin_g = sin( rad * angxyz_bulk(3) )
+
+  Vec_a(1) = axyz_bulk(1); Vec_a(2:3) = 0._db
+  Vec_b(1) = axyz_bulk(2) * cos_a(3); Vec_b(2) = axyz_bulk(2) * sin_g; Vec_b(3) = 0._db
+  Vec_c(1) = axyz_bulk(3) * cos_a(2); Vec_c(2) = axyz_bulk(3) * ( cos_a(1) - cos_a(3)*cos_a(2) ) / sin_g
+  Vec_c(3) = sqrt( axyz_bulk(3)**2 - Vec_c(1)**2 - Vec_c(2)**2 )
+
+  Vol = Cal_Volume_maille(axyz_bulk,angxyz_bulk)
+
+! base RR bulk --> Matrice base ortho
+  call prodvec(V,Vec_b,Vec_c)
+  Mat_bulk(:,1) = V(:) / Vol
+  call prodvec(V,Vec_c,Vec_a)
+  Mat_bulk(:,2) = V(:) / Vol
+  call prodvec(V,Vec_a,Vec_b)
+  Mat_bulk(:,3) = V(:) / Vol
+
+  if( abs( Film_shift(4) ) > eps10 ) then
+    cos_g = cos( rad * Film_shift(4) )
+    sin_g = sin( rad * Film_shift(4) )
+    Mat(1,1) = cos_g; Mat(1,2) = - sin_g; Mat(1,3) = 0._db
+    Mat(2,1) = sin_g; Mat(2,2) = cos_g;   Mat(2,3) = 0._db
+    Mat(3,1) = 0._db; Mat(3,2) = 0._db;   Mat(3,3) = 1._db
+    Mat_bulk = matmul( Mat, Mat_bulk )
+  endif
+
+! Film
+
+  cos_a(:) = cos( rad * angxyz(:) )
+  sin_g = sin( rad * angxyz(3) )
+
+  Vec_a(1) = axyz(1); Vec_a(2:3) = 0._db
+  Vec_b(1) = axyz(2) * cos_a(3); Vec_b(2) = axyz(2) * sin_g; Vec_b(3) = 0._db
+  Vec_c(1) = axyz(3) * cos_a(2); Vec_c(2) = axyz(3) * ( cos_a(1) - cos_a(3)*cos_a(2) ) / sin_g
+  Vec_c(3) = sqrt( axyz(3)**2 - Vec_c(1)**2 - Vec_c(2)**2 )
+
+  Vol = Cal_Volume_maille(axyz,angxyz)
+
+! Matrice RR --> base orthonorme
+  call prodvec(V,Vec_b,Vec_c)
+  Mat_film(:,1) = V(:) / Vol
+  call prodvec(V,Vec_c,Vec_a)
+  Mat_film(:,2) = V(:) / Vol
+  call prodvec(V,Vec_a,Vec_b)
+  Mat_film(:,3) = V(:) / Vol
+
+  call invermat(Mat_film,Mat_i)
+
+  Mat_bulk = matmul( Mat_i, Mat_bulk )
+
+  if( icheck > 0 ) then
+    write(3,'(/A)') ' Bulk - Film reciprocal space transformation Matrix'
+    do i = 1,3
+      write(3,'(3f10.5)') Mat_bulk(i,:)
+    end do
+  endif
+
+! PPCM
+  call mult_film_bulk(angxyz_bulk,axyz,axyz_bulk,Film_shift,Mult_bulk,Mult_film)
+
+  if( icheck > 0 ) then
+    write(3,*)
+    write(3,110) 'film', Mult_film(:)
+    write(3,110) 'bulk', Mult_bulk(:)
+  endif
+
+  return
+  110 format(' Mat_',a4,' =',2i5)
 end
 
 !***********************************************************************
 
-subroutine col_dafs_name(angpoldafs,Bormann,Full_self_abs, hkl_dafs,isigpi,mpirank,ncolm,ncolr,ncolt, &
+  subroutine mult_film_bulk(angxyz_bulk,axyz,axyz_bulk,Film_shift,Mult_bulk,Mult_film)
+
+  use declarations
+  implicit none
+
+  integer:: i, j, k
+  integer, dimension(2):: Mult_bulk, Mult_film
+
+  logical:: Diagonal
+
+  real(kind=db):: diag_bulk, Val_bulk, Val_film
+  real(kind=db), dimension(3):: angxyz_bulk, axyz, axyz_bulk
+  real(kind=db), dimension(4):: Film_shift
+
+  Diagonal = abs( angxyz_bulk(3) - 90 ) < 1._db .and. ( abs( Film_shift(4) - 45 ) <  1._db .or. abs( Film_shift(4) + 45 ) < 1._db )
+
+  if( Diagonal ) diag_bulk = sqrt( axyz_bulk(1)**2 + axyz_bulk(2)**2 )
+
+  do i = 1,2
+    boucle_j: do j = 1,1000
+      Val_film = j * axyz(i)
+      do k = 1,1000
+        if( Diagonal ) then
+          Val_bulk = k * diag_bulk
+        else
+          Val_bulk = k * axyz_bulk(i)
+        endif
+        if( abs( Val_film - Val_bulk ) < eps6 ) exit boucle_j
+        if( Val_bulk > Val_film ) exit
+      end do
+    end do boucle_j
+    if( j > 1000 .or. k > 1000 ) then
+      Mult_film(i) = 0
+      Mult_bulk(i) = 0
+    else
+      Mult_film(i) = j
+      Mult_bulk(i) = k
+    endif
+  end do
+
+  return
+end
+
+!***********************************************************************
+
+subroutine col_dafs_name(angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpirank,ncolm,ncolr,ncolt, &
          nomabs,npldafs,Self_abs)
 
   use declarations
   implicit none
 
   integer:: i, icol, index, ipldafs, ipr, j, k, mpirank, ncolm, ncolr, ncolt, npldafs
-  integer, dimension(3):: hkl
-  integer, dimension(3,npldafs):: hkl_dafs
   integer, dimension(npldafs,2):: isigpi
 
   character(len=Length_word) nomab
@@ -6382,7 +7274,8 @@ subroutine col_dafs_name(angpoldafs,Bormann,Full_self_abs, hkl_dafs,isigpi,mpira
   Logical:: Bormann, Full_self_abs, Self_abs
 
   real(kind=db):: a
-  real(kind=db), dimension(3,npldafs):: angpoldafs
+  real(kind=db), dimension(3):: hkl
+  real(kind=db), dimension(3,npldafs):: angpoldafs, hkl_dafs
 
   icol = ncolr
 
@@ -6391,7 +7284,7 @@ subroutine col_dafs_name(angpoldafs,Bormann,Full_self_abs, hkl_dafs,isigpi,mpira
     hkl(:) = hkl_dafs(1:3,ipldafs)
     nomab = ' r('
     j = 3
-    call trnom(j,hkl,Length_word,nomab)
+    call trnom_r(j,hkl,nomab)
     j = j + 1
     if( j < Length_word-1 ) nomab(j:j) = ')'
     if( Bormann ) then
@@ -7641,6 +8534,30 @@ end
 
 !***********************************************************************
 
+subroutine trnom_r(j,ind,nomab)
+
+  use declarations
+  implicit none
+
+  integer:: j, k
+
+  character(len=Length_word):: nomab, nomac
+
+  real(kind=db), dimension(3):: ind
+
+  nomac = ' '
+  nomac(1:Length_word-1) = nomab(1:Length_word-1)
+  do k = 1,3
+    call ad_number_r(ind(k),nomac)
+  end do
+  nomab(1:Length_word-1) = nomac(1:Length_word-1)
+  j = len_trim(nomab)
+
+  return
+end
+
+!***********************************************************************
+
 subroutine trvec(mpirank,Orthmat,ve,vs)
 
   use declarations
@@ -8056,7 +8973,7 @@ end
 ! Selection des atomes du petit agregat
 ! Evaluation de leur groupe ponctuel dans cet agregat.
 
-subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_mat,Axe_atom_clu,Base_ortho,dcosxyz, &
+subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_clu,Base_ortho,dcosxyz, &
            dista,distai,Full_atom,Green,hubbard,i_self,ia_eq,ia_eq_inv,ia_rep,iaabs,iaabsi,iaproto,iaprotoi,icheck,igreq, &
            igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,is_eq,itype,itypei,itypep,itypepr,magnetic,m_hubb, &
            m_hubb_e,mpirank,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,nb_eq,nb_rpr, &
@@ -8083,7 +9000,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_mat,Axe_
 
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb
 
-  logical:: Atom_mag_cal, Atom_nonsph, Atom_occ_mat, Base_ortho, Full_atom, Green, Hubbard, magnetic, overad, &
+  logical:: Atom_mag_cal, Nonsph, Atom_occ_mat, Base_ortho, Full_atom, Green, Hubbard, magnetic, overad, &
           Spinorbite, Symmol, Ylm_comp
   logical, dimension(nb_sym_op):: Fait
   logical, dimension(natome):: Atom_comp, Atom_axe
@@ -8272,7 +9189,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_mat,Axe_
   do ia = 1,natome
     if( icheck > 1 ) write(3,130) ia
     ps(:) = posi(:,ia)
-    call point_group_atom(Atom_comp(ia),Atom_mag(ia),Atom_with_axe, Atom_nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
+    call point_group_atom(Atom_comp(ia),Atom_mag(ia),Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
         iaabs,iatomp(ia),icheck,igroup,igroupi(ia),igrpt(ia),igrpt0,iopsyma,iopsymr,itype,itypep,magnetic,mpirank,natomp, &
         ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_a,Spinorbite,Symmol)
 
@@ -8321,7 +9238,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Atom_nonsph,Atom_occ_mat,Axe_
     else
       write(3,'(A)') ' No Full_atom mode'
     endif
-    if( Magnetic .or. Atom_nonsph ) then
+    if( Magnetic .or. Nonsph ) then
       write(3,170)
     else
       write(3,180)
@@ -8687,7 +9604,7 @@ end
 
 !***********************************************************************
 
-subroutine point_group_atom(Ylm_comp,Atom_mag,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
+subroutine point_group_atom(Ylm_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
           iaabs,iap,icheck,igroup,igra,igrpt,igrpt0,iopsym,iopsymr,itype,itypep,magnetic,mpirank,natomp, &
           ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,posi,rot_atom,Spinorbite,Symmol)
 
@@ -8699,7 +9616,7 @@ subroutine point_group_atom(Ylm_comp,Atom_mag,Atom_with_axe,Atom_nonsph,Axe_atom
   integer, dimension(ngroup):: itype
   integer, dimension(0:ntype):: nlat, numat
 
-  logical:: Ylm_comp, Atom_comp_cal, Atom_mag, Atom_mag_cal, Atom_nonsph, Base_ortho, Magnetic, Spinorbite, Symmol
+  logical:: Ylm_comp, Atom_comp_cal, Atom_mag, Atom_mag_cal, Nonsph, Base_ortho, Magnetic, Spinorbite, Symmol
   logical, dimension(0:ngroup_m):: Atom_with_axe
 
   real(kind=db), dimension(3):: dcosxyz, posi, px, py, pz, v
@@ -8749,7 +9666,7 @@ subroutine point_group_atom(Ylm_comp,Atom_mag,Atom_with_axe,Atom_nonsph,Axe_atom
         v = matmul( rot_tem, v )
         p(:,ib) = v(:)
       end do
-      if( magnetic .or. Atom_nonsph ) then
+      if( magnetic .or. Nonsph ) then
         do ib = 1,natomp
           v(:) = Axe_atom_clut(:,ib)
           v = matmul( rot_tem, v )
@@ -9724,7 +10641,7 @@ end
 
 ! Calcul de l'energie du niveau de coeur initial.
 
-subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_cut,Epsii,Epsii_moy,Eseuil,icheck,is_g, &
+subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_moy,Eseuil,icheck,is_g, &
            itabs_nonexc,lseuil,m_g,mpirank,nbseuil,ninit1,ninitl,ninitlr,nr,nrm,nseuil,nspine,ntype,numat,psii,rato,Rmtg, &
            Rmtsd,V_abs_i,V_intmax,V0bde,WorkF)
 
@@ -9741,7 +10658,7 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_cut,Epsii,Epsii_m
   integer, dimension(ninitl):: is_g
   integer, dimension(ninitl,2):: m_g
 
-  real(kind=db):: Delta, Delta_Epsii, Delta_Eseuil, E_cut, Ep_moy, Epsii_moy, j, mj, psiHpsi, Rmtg, Rmtsd, V_intmax, WorkF
+  real(kind=db):: Delta, Delta_Epsii, Delta_Eseuil, E_zero, Ep_moy, Epsii_moy, j, mj, psiHpsi, Rmtg, Rmtsd, V_intmax, WorkF
   real(kind=db), dimension(nbseuil):: Epsii_m, Eseuil
   real(kind=db), dimension(ninitlr):: Epsii
   real(kind=db), dimension(ninitl):: dEpsii, Epsi
@@ -9806,7 +10723,9 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_cut,Epsii,Epsii_m
   end do
 
 ! Epsii is versus the Fermi energy
-  Epsi(:) = Epsi(:) - WorkF + E_cut
+! E_zero = E_cut if Old_zero; E_zero = 0. in the other case
+! WorkF = WorkF - EFermi when not Old_zero
+  Epsi(:) = Epsi(:) - WorkF + E_zero
 
   Epsii_m(1) = sum( Epsi(1:ninit1) ) / ninit1
 

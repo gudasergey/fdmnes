@@ -1,11 +1,12 @@
 ! FDMNES subroutines
-! Paquet contenant divers tableaux
+! Package with different tables
+! Contains also the FDMX extension by Bourke and Chantler.
 
 !***********************************************************************
 
 ! Selection de l'energie de seuil et du travail de sortie de l'element
 
-subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat, Old_reference,Workf,mpirank) 
+subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,Old_zero,Workf,mpirank) 
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -14,10 +15,10 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat, Old_reference,Workf
 
   integer:: Zm
   
-  logical:: old_reference
+  logical:: Old_zero
 
   real(kind=db), dimension(nbseuil):: Eseuil
-  real(kind=db), dimension(nassm):: ek1, el1, el2, el3, workfct, workref
+  real(kind=db), dimension(nassm):: ek1, el1, el2, el3, workfct
   real(kind=db), dimension(nm1:nassm):: em1, em2, em3
   real(kind=db), dimension(nm4:nassm):: em4, em5
   real(kind=db), dimension(nn1:nassm):: en1, en2, en3
@@ -38,22 +39,6 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat, Old_reference,Workf
                 4.00,  4.29,  4.72,  4.62,  4.00,  0.00,  2.09,  2.74,  4.00,  3.73,  &
                 2.29,  4.15,  4.00,  4.00,  4.57,  4.97,  4.73,  4.07,  4.00,  4.38,  &
                 4.01,  4.04,  4.00,  0.00,  4.70,  2.48,  4.00,  2.84,  4.00,  4.00,  &
-                4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  &
-                4.00,  4.00,  4.05,  4.49,  5.00,  4.00,  4.00,  4.09,  4.82,  4.53,  &
-                3.68,  3.97,  4.25,  4.00,  4.00,  0.00,  4.00,  4.00,  4.00,  3.38,  &
-                0.00,  3.63,  4.00,  4.00,  4.00,  0.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00/
-
-! Valeurs references calculees par le programme sur les elements simples
-! donnant le niveau de Fermi servant d'origine pour l'energie.
-! Pour les gaz rares et H, F, N, O, Cl, les seuils sont par rapport au
-! niveau du vide. On prend donc l'origine a zero.
-
-  data workref/ 0.00,  0.00,  8.78, 15.92, 17.50,  8.81,  0.00,  0.00,  0.00,  0.00,  &
-                5.48,  7.68,  4.08,  4.37,  7.30,  7.00,  0.00,  0.00,  3.54,  5.306, &
-                7.00, 10.35, 11.57, 12.17, 11.26, 11.80, 12.35, 12.81, 10.00, 15.08,  &
-                8.30,  8.09,  8.22,  5.82,  5.20,  0.00,  5.09,  5.74,  5.80,  7.03,  &
-               10.49, 10.95, 11.00, 11.20, 11.17, 11.07, 11.63, 10.07,  1.70,  6.78,  &
-                4.31,  4.44,  5.20,  0.00,  4.70,  2.48,  4.00,  2.84,  4.00,  4.00,  &
                 4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  &
                 4.00,  4.00,  4.05,  4.49,  5.00,  4.00,  4.00,  4.09,  4.82,  4.53,  &
                 3.68,  3.97,  4.25,  4.00,  4.00,  0.00,  4.00,  4.00,  4.00,  3.38,  &
@@ -427,10 +412,10 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat, Old_reference,Workf
     stop
   endif
 
-  if( old_reference ) then
-    workf = workfct( numat )
+  if( Old_zero ) then
+    Workf = workfct( numat )
   else
-    workf = workref( numat )
+    Workf = 0._db
   endif
 
   Eseuil(:) = nint( 100 * Eseuil(:) ) / 100._db
@@ -456,6 +441,74 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat, Old_reference,Workf
                ' It may be that it does not exist !'//)
   150 format(/' E_edge =',f9.2,' eV, WorkF =',f7.2,' eV')
   160 format(/' E_edge(1) =',f9.2,' eV, E_edge(2) =',f9.2,' eV,', ' WorkF =',f7.2,' eV')
+end
+
+!***********************************************************************
+
+! Reference value for the Kohn-Sham energy of the core state.
+! Contains also a shift to get the edge energy at the reference data value.
+! Used to shift the edge, versus the reference in convolution.f90
+
+function Epsii_ref(jseuil,nseuil,Z)
+
+  use declarations
+  implicit none
+
+  integer, parameter:: nassm = 103
+  integer, parameter:: nm1 = 18
+  integer, parameter:: nm4 = 30
+  integer, parameter:: nn1 = 36
+  integer, parameter:: nn4 = 48
+  integer, parameter:: nn6 = 58
+  integer, parameter:: no1 = 54
+  integer, parameter:: no4 = 80
+  integer, parameter:: np1 = 86
+  integer, parameter:: np2 = 87
+  
+  integer:: jseuil, nseuil, Z
+  
+  real(kind=db):: Epsii_ref
+  
+  real(kind=db), dimension(nassm):: Epsii_K
+!  real(kind=db), dimension(nassm):: Epsii_K, Epsii_L1, Epsii_L2, Epsii_L3
+!  real(kind=db), dimension(nm1:nassm):: Epsii_m1, Epsii_m2, Epsii_m3
+!  real(kind=db), dimension(nm4:nassm):: Epsii_m4, Epsii_m5
+!  real(kind=db), dimension(nn1:nassm):: Epsii_n1, Epsii_n2, Epsii_n3
+!  real(kind=db), dimension(nn4:nassm):: Epsii_n4, Epsii_n5
+!  real(kind=db), dimension(nn6:nassm):: Epsii_n6, Epsii_n7
+!  real(kind=db), dimension(no1:nassm):: Epsii_o1, Epsii_o2, Epsii_o3
+!  real(kind=db), dimension(no4:nassm):: Epsii_o4, Epsii_o5
+!  real(kind=db), dimension(np1:nassm):: Epsii_p1
+!  real(kind=db), dimension(np2:nassm):: Epsii_p2, Epsii_p3
+
+  data Epsii_K/  0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                 0._db,    0._db,    0._db/
+
+  if( Z > nassm ) then
+    Epsii_ref = 0._db
+    return
+  endif
+   
+  select case(nseuil)
+
+    case(1)
+      Epsii_ref = Epsii_K( Z )
+
+    case default
+      Epsii_ref = 0._db
+    
+  end select
+    
+  return
 end
 
 !***********************************************************************
@@ -962,6 +1015,34 @@ end
 
 !*********************************************************************
 
+! Atom radius
+! Covalent, single bond, radius
+! From Z = 58 up to 70, and Z > 90, metallic radius
+
+function Atom_radius(Z)
+
+  use declarations
+
+  integer:: Z
+
+  real(kind=db):: Atom_radius
+  real(kind=db), dimension(103):: Ray
+
+  data Ray/ 0.38,  0.32,  1.34,  0.90,  0.82,  0.77,  0.75,  0.73,  0.71,  0.69,  1.54,  1.30,  1.18,  1.11,  1.06,  &
+            1.02,  0.99,  0.97,  1.96,  1.74,  1.44,  1.36,  1.25,  1.27,  1.39,  1.25,  1.26,  1.21,  1.38,  1.31,  &
+            1.26,  1.22,  1.19,  1.16,  1.14,  1.10,  2.11,  1.92,  1.62,  1.48,  1.37,  1.45,  1.56,  1.26,  1.35,  &
+            1.31,  1.53,  1.48,  1.44,  1.41,  1.38,  1.35,  1.33,  1.30,  2.25,  1.98,  1.69,  1.818, 1.824, 1.814, &
+            1.834, 1.804, 1.804, 1.804, 1.773, 1.781, 1.762, 1.761, 1.759, 1.76,  1.60,  1.50,  1.38,  1.46,  1.59,  &
+            1.28,  1.37,  1.28,  1.44,  1.49,  1.48,  1.47,  1.46,  1.29,  1.38,  1.33,  1.33,  1.59,  1.40,  1.79,  &
+            1.63,  1.56,  1.55,  1.59,  1.73,  1.74,  1.70,  1.86,  1.86,  1.86,  1.86,  1.86,  1.86/
+
+  Atom_radius = Ray(Z) / bohr
+
+  return
+end
+
+!*********************************************************************
+
 ! Ionic radius
 ! Come from Shannon (1976), most common valence in octahedral coordinance.
 ! For rare earth (Z = 2,10,18,36,54,86) and carbone (6), it is the atomic radius.
@@ -1001,8 +1082,9 @@ subroutine fdmx(fdmnes_inp,nomfich,cm2g,nobg,nohole,nodwfact,noimfp,Gamma_hole,G
     imfp_inp, imfp_infile, elf_inp, elf_infile, dwfactor_inp, dwfactor, tdebye_inp, debyetemp, tmeas_inp, tmeas, Energphot, &
     expntl, expntlA, expntlB, victoreen, victA, victB, mermrank)
 
-real( kind = 8 ) x1, x2, x3, x4, x5, x6, x7, E_cut_imp, dwfactor, tmeas, debyetemp, expntlA, expntlB, victA, victB
-real( kind = 8 ), dimension(10):: Gamma_hole
+real ( kind = 8 ) x1, x2, x3, x4, x5, x6, x7, E_cut_imp, dwfactor, tmeas, debyetemp, expntlA, expntlB, &
+  victA, victB
+real ( kind = 8 ), dimension(10):: Gamma_hole
 real E(8000), mu0(8000), atom(8000), spline(8000), mu(8000), mult(-8000:8000), &
   Einit(8000), mu0init(8000), smalldist, disttemp, spacing, a, pi, eu, sigmaparam, &
   BG(8000), mu1(8000), lite, Econv(8000), convval(8000), convvalue, xpostemp, &
@@ -1012,14 +1094,14 @@ real E(8000), mu0(8000), atom(8000), spline(8000), mu(8000), mult(-8000:8000), &
   egap, nvpart, Navag, imfpvaltab, cm2gtombarn(1:92), edgepos, ffastbg, masstotaltemp, &
   Nvtemp, voltemp, rscratch, mbarntocm2g, background(8000), imfpm, imfpb, &
   Aint, Bint, Cint, Dint, ddone, ddtwo, bgpart
-real*16 scelfimfp(1024,2)
+real ( kind = 8 ) scelfimfp(1024,2)
 integer atomtypes(1:92,1:2), mermrank, scelfimfpdim, lines, linesconv, econvmin, &
   absorbeur, imark, Z, maxpoint, ninputs, linetype, natoms, intscratch, Znn, Ztemp, natomstot
 character(len=1024) scratch, fnames(100), inpname, outname
 character(len=132) fdmnes_inp, nomfich, imfp_infile, elf_infile
 logical nodwfact, noimfp, Energphot, expntl, victoreen, bgedges, inckedge, cm2g, &
   nobg, nohole, Gamma_hole_imp, E_Fermi_man, imfp_inp, elf_inp, dwfactor_inp, &
-  tdebye_inp, tmeas_inp, imfpdone, molinp
+  tdebye_inp, tmeas_inp, imfpdone, molinp, elfinexists
 
 Navag = 6.022141E+23
 pi = 3.14159
@@ -1027,7 +1109,8 @@ eu = 2.718282
 rydb = 13.60569
 molinp = .false.
 hwidth = -1.0
-if( Gamma_hole_imp ) then
+scelfimfp = 0.0
+if (Gamma_hole_imp) then
    hwidth = Gamma_hole(1)*rydb
 end if
 bgedges = .true.
@@ -1392,14 +1475,19 @@ do ij=1,ninputs
 
 ! Find IMFP if ELFin is used
    if (elf_inp .AND. .NOT. noimfp) then
-      call scelf(elf_infile,mermrank,scelfimfp,inpname,Efermi)
-      do i=1,1024
-         if (scelfimfp(i,1) .NE. 0) then
-            scelfimfpdim = i
-         else
-            EXIT
-         end if
-      end do
+      INQUIRE(file=trim(adjustl(elf_infile)),exist=elfinexists)
+      if (.NOT. elfinexists) then
+         write(*,*) "WARNING: ELFin file not found - using default IMFP values"
+      else
+         call scelf(elf_infile,mermrank,scelfimfp,inpname,Efermi)
+         do i=1,1024
+            if (scelfimfp(i,1) .NE. 0) then
+               scelfimfpdim = i
+            else
+               EXIT
+            end if
+         end do
+      endif
    endif
 
 ! DEFINE OUTPUT FILE
@@ -1714,18 +1802,18 @@ end
 ! Self-consistent model for electron ELF using dynamic-width Mermin functions
 subroutine scelf(elf_infile,mermrank,scelfimfp,inpname,Efermi)
 
-real*16 elf0(0:25000), win(0:25000), Ni
-real*16 e, c, alpha, beta, Ai, sp, a0
-real*16 elf(1300), pi, hbar, me, wq
-real*16 wi(1300), q(0:100), wiout2(130)
-real*16 elfmag(1300), elfout(1300), elfout2(130)
-real*16 bestelf(0:1300,0:80), bestelf2(0:120,0:80)
-real*16 merminwidths(0:1300,0:80), mw, widthint
-real*16 w, k2, w0, elfpart, kfact, wqo, groupv
-real*16 vferm, wisi, eps0, quadbit, quartbit
-real*16 alphavos, wq1, scelfimfp(1024,2), maxelfen
+real ( kind = 8 ) elf0(0:25000), win(0:25000), Ni
+real ( kind = 8 ) e, c, alpha, beta, Ai, sp, a0
+real ( kind = 8 ) elf(1300), pi, hbar, me, wq
+real ( kind = 8 ) wi(1300), q(0:100), wiout2(130)
+real ( kind = 8 ) elfmag(1300), elfout(1300), elfout2(130)
+real ( kind = 8 ) bestelf(0:1300,0:80), bestelf2(0:120,0:80)
+real ( kind = 8 ) merminwidths(0:1300,0:80), mw, widthint
+real ( kind = 8 ) w, k2, w0, elfpart, kfact, wqo, groupv
+real ( kind = 8 ) vferm, wisi, eps0, quadbit, quartbit
+real ( kind = 8 ) alphavos, wq1, scelfimfp(1024,2), maxelfen
 real Efermi
-complex*16 eps
+complex ( kind = 8 ) eps
 character(len=1024) inpname, outname
 character(len=132) elf_infile
 integer i, j, wiint, qint, lines, jmax
@@ -2025,11 +2113,11 @@ call elftoimfp(outname,scelfimfp,Efermi)
 end
 
 subroutine lindelf(w, k2, wq, gamma, eps, elf)
-real*16 hbar, e, me, wsi
-real*16 pi, wq, gamma, w, elf, wqsi
-real*16 eps0, k2, vfsi, kf, ksi, gamsi
+real ( kind = 8 ) hbar, e, me, wsi
+real ( kind = 8 ) pi, wq, gamma, w, elf, wqsi
+real ( kind = 8 ) eps0, k2, vfsi, kf, ksi, gamsi
 !real*16 efev, temp1
-complex*16 iota, u, z, f1, f2, eps
+complex ( kind = 8 ) iota, u, z, f1, f2, eps
 pi = 3.14159265
 hbar = 1.05457148E-34
 me = 9.10938188E-31
@@ -2055,9 +2143,9 @@ elf = AIMAG(eps)/(REAL(eps)**2+AIMAG(eps)**2)
 end
 
 subroutine mermelf(w, k2, wq, gamma, eps, elf)
-real*16 w, k2, wq, gamma, elf, scratch
-real*16 w2, gamma2
-complex*16 eps1, eps2, eps, iota
+real ( kind = 8 ) w, k2, wq, gamma, elf, scratch
+real ( kind = 8 ) w2, gamma2
+complex ( kind = 8 ) eps1, eps2, eps, iota
 iota = SQRT(CMPLX(-1.0))
 w2 = 1.0E-08
 gamma2 = 1.0E-08
@@ -2071,8 +2159,8 @@ end
 
 subroutine switchelf(lindmerm, w, k2, wq, gamma, eps, elf)
 integer lindmerm
-real*16 w, k2, wq, gamma, elf
-complex*16 eps
+real ( kind = 8 ) w, k2, wq, gamma, elf
+complex ( kind = 8 ) eps
 if (lindmerm .EQ. 1) then
    call lindelf(w, k2, wq, gamma, eps, elf)
 else
@@ -2083,7 +2171,7 @@ end
 ! Integration program for converting a full ELF to an IMFP
 subroutine elftoimfp(inpname,scelfimfp,Efermi)
 !program main
-real*16 scelfimfp(1024,2)
+real ( kind = 8 ) scelfimfp(1024,2)
 real win(500), qin(500), elfin(500,500), scratch1, scratch2
 real wfine(4000), qfine(4000), elffine(4000,4000)
 real qfineev(4000), qev, wmax1, wmax2
@@ -2225,10 +2313,8 @@ do k=1,120
    if (wmax2 .GT. 0.0) then
       if (wmax2 .LE. win(wins)) then
          scelfimfp(k,1) = wmax2
-      else
-         scelfimfp(k,1) = 0.0
+         scelfimfp(k,2) = imfp
       end if
-      scelfimfp(k,2) = imfp
    end if
 end do
 end
@@ -21895,7 +21981,7 @@ end
 subroutine wqlookup(wi,k,wqout)
 
   integer:: wi, k
-  real*16:: wqout
+  real(kind=8):: wqout
   real(kind=8), dimension(1200):: wq_00, wq_01, wq_02, wq_03, wq_04, wq_05, wq_06, wq_07, wq_08, wq_09, wq_10, wq_11, wq_12, &
       wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19, wq_20, wq_21, wq_22, wq_23, wq_24, wq_25, wq_26, wq_27, wq_28, wq_29, &
       wq_30, wq_31, wq_32, wq_33, wq_34, wq_35, wq_36, wq_37, wq_38, wq_39, wq_40, wq_41, wq_42, wq_43, wq_44, wq_45, wq_46, &

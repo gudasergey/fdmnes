@@ -16,7 +16,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   integer:: eof, i, ical, icheck, ie, ie1, ie2, ifich, ifichref, igr, ii, initl, initlref, ip, ipar, &
     ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, j0, je, jfich, jfichref, jpl, js, jseuil, &
-    k, l, Length_line, long, longf, mfich, n, n_col, n_selec_core, n_Stokes, n1, n2, n3, n4, natomsym, &
+    k, l, Length_line, long, longf, mfich, n, n_col, n_energ_tr, n_selec_core, n_signal, n_Stokes, n1, n2, n3, n4, natomsym, &
     ncal, ne2, nef, nelor, nemax, nen2, nenerg, nenerge, nes, nfich, &
     nfich_tot, ngamh, ngroup_par, ninit, ninit1, ninitlm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
     npldafs_th, npldafs1, ns, nseuil, nt, numat, nxan, nxan1, nw
@@ -42,7 +42,6 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   complex(kind=db), dimension(:,:,:), allocatable :: Ad, Adafs, As
   complex(kind=db), dimension(:,:,:,:), allocatable :: mu, mus
 
-  integer, dimension(0) :: idum
   integer, dimension(3) :: hkl_S
   integer, dimension(10) :: num_core
   integer, dimension(ngroup_par) :: npar
@@ -54,7 +53,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     Deuxieme, Double_cor, E_Fermi_man, Energphot, Epsii_ref_man, Extrap, Fermip, Fit_cal, Forbidden, fprim, fprime_atom, &
     Full_self_abs, Gamma, Gamma_hole_imp, Gamma_var, Gaussian_default, Green_int, Magn, new_format, no_extrap, &
     nxan_lib, Photo_emission, Scan_a, scan_true, Seah, Self_abs, &
-    Shift_auto, Signal_Sph, Stokes, Sup_sufix, Tenseur, Tenseur_car, Thomson, vnew_format
+    Shift_auto, Signal_Sph, Stokes, Sup_sufix, Tenseur, Tenseur_car, Thomson, Transpose_file, vnew_format
   logical, dimension(:), allocatable:: fichdone, run_done, Skip_run
 
   real(kind=db):: a, a1, a2, a3, a4, alambda, Asea, b, b1, b2, b3, b4, bba, bbb, c, Cal_Volume_maille, conv_mbarn_nelec, &
@@ -68,8 +67,8 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(ngroup_par,nparm) :: param
   real(kind=db), dimension(:), allocatable:: angle, bb, betalor, decal, e1, e2, Efermip, Elor, En_fermi, Energ, &
-        Ep, Eph1, Ephoton, Es, Eseuil, fi, fr, lori, lorix, lorr, Pds, p1f, p2f, Tens, Yr, Yi
-  real(kind=db), dimension(:,:), allocatable:: decal_initl, Ef, Epsii, mua_r, mua_i, Stokes_param, Xa, Xanes, Xs
+        Energ_tr, Ep, Eph1, Ephoton, Es, Eseuil, fi, fr, lori, lorix, lorr, Pds, p1f, p2f, Tens, Yr, Yi
+  real(kind=db), dimension(:,:), allocatable:: decal_initl, Ef, Epsii, mua_r, mua_i, Signal, Stokes_param, Xa, Xanes, Xs
   real(kind=db), dimension(:,:,:), allocatable:: Icirc, Icirccor, Icor, Icircdcor, Idcor
 
 ! Mis a vrai si TDDFT
@@ -128,6 +127,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Tenseur = .false.
   Tenseur_car = .false.
   Thomson = .false.
+  Transpose_file = .false.
   Vibration = 0._db
 
   if( bav_open .or. icheck > 1 ) Check_conv = .true.
@@ -517,6 +517,14 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         deallocate( fr )
         deallocate( fi )
 
+      case('transpose')
+        Transpose_file = .true.
+        n_energ_tr = nnombre(itape1,132)
+        if( n_energ_tr > 0 ) then 
+          allocate( Energ_tr(n_energ_tr) )
+          read(itape1,*) Energ_tr(:)
+        endif
+         
       case('s0_2')
 
         read(itape1,*,iostat=eof) S0_2
@@ -602,10 +610,34 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         mot(l+1:l+4) = '.txt'
         Close(2) 
         open(2, file = mot, status='old', iostat=istat)
-        if( istat /= 0 ) call write_open_error(fichin(ifich),istat,1)
+        if( istat /= 0 ) then
+          l = len_trim(mot)
+          mot(l-3:l+2) = '_1.txt'
+          open(2, file = mot, status='old', iostat=istat)
+          if( istat == 0 ) then
+           call write_error
+           do ipr = 6,9,3
+             write(ipr,112) fichin(ifich), mot
+           end do
+           stop
+         else
+           call write_open_error(fichin(ifich),istat,1)
+         endif
+        endif
         fichin(ifich) = mot
       else
-        call write_open_error(fichin(ifich),istat,1)
+       l = len_trim(mot)
+       mot(l-3:l+2) = '_1.txt'
+       open(2, file = mot, status='old', iostat=istat)
+       if( istat == 0 ) then
+         call write_error
+         do ipr = 6,9,3
+           write(ipr,112) fichin(ifich), mot
+         end do
+         stop
+       else
+         call write_open_error(fichin(ifich),istat,1)
+       endif
       endif
       Close(2)
     endif
@@ -642,6 +674,11 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       mot(l:l+8) = '_conv.txt'
     endif
     convolution_out = mot
+  else
+    l = len_trim( convolution_out )
+    if( l > 5 ) then
+      if( convolution_out(l-3:l) /= '.txt' ) convolution_out(l+1:l+4) = '.txt'  
+    endif
   endif
 
   if( .not. bav_open .and. Check_conv ) then
@@ -1921,6 +1958,8 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     end do ! fin boucle initl
 
   end do ! fin boucle fichier
+  
+!As(:,:,:) = (0._db,0._db)
 
   deallocate( run_done )
   if( .not. ( seah .or. Arc ) ) then
@@ -2102,6 +2141,17 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   zero_c = (0._db, 0._db)
 
+  if( Transpose_file ) then
+    if( Double_cor ) then
+      n_signal = 3 * nes
+    elseif( Cor_abs ) then
+      n_signal = 2*nes
+    else
+      n_signal = nes
+    endif
+    allocate( Signal(npldafs,n_signal) )
+  endif
+  
   do ie = 1,nes
 
     do ipl = 1,nxan
@@ -2140,6 +2190,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         if( .not. ( Tenseur .or. Bormann ) ) then
           jpl = jpl + 1
           Tens(jpl) = abs( As(ie,1,ipl) )**2
+          if( Transpose_file ) Signal(ipl,ie) = Tens(jpl)
         endif
         if( fprim .or. Tenseur .or. Bormann ) then
           jpl = jpl + 1
@@ -2151,10 +2202,12 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         if( Cor_abs ) then
           jpl = jpl + 1
           Tens(jpl) = Icor(ie,1,ipl)
+          if( Transpose_file ) Signal(ipl,nes+ie) = Tens(jpl)
         endif
         if( Double_cor ) then
           jpl = jpl + 1
           Tens(jpl) = Idcor(ie,1,ipl)
+          if( Transpose_file ) Signal(ipl,2*nes+ie) = Tens(jpl)
         endif
         if( Cor_abs ) then
           do i = 1,2
@@ -2193,12 +2246,24 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     endif
     allocate( Ep(1) )
     Ep(:) = 0._db
-    call write_out(rdum,rdum,Densite_atom,zero_c,Efermi,Es(ie),Ep,0._db,.false.,idum,ie, &
-                   0,n_col,jpl,0,1,convolution_out,nom_col,1,0,0,0,0,n,cdum, cdum,Tens,v0muf,.false.,0)
+    call write_out(rdum,rdum,Densite_atom,zero_c,Efermi,Es(ie),Ep,0._db,.false.,rdum,ie, &
+                   0,n_col,jpl,0,1,Convolution_out,nom_col,1,0,0,0,0,n,cdum,cdum,Tens,v0muf,.false.,0)
     deallocate( Ep )
   end do
 
   deallocate( Tens )
+  
+  if( Transpose_file ) then
+    if( n_energ_tr == 0 ) then
+      n_energ_tr = nes
+      allocate( Energ_tr(n_energ_tr) )
+      Energ_tr(:) = Es(:)
+    else
+      Energ_tr(:) = Energ_tr(:) / rydb
+    endif
+    call Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal,nes,nom_col,npldafs,Signal)
+    deallocate( Energ_tr, Signal )
+  endif
 
   if( Scan_true .and. .not. Dafs_bio ) then
 
@@ -2331,6 +2396,9 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           '   - How many numbers are supposed to be there.',/ &
           '   - Numbers must be separated by spaces.',/ &
           '   - Are there extra characters (points, tabulations...)'//)
+  112 format(//' Error opening the file:',//3x,A,//  &
+           5x,'It does not exist but the following file is found existing: ',//3x,A,// &
+           5x,'Modify the input file and eventualy add other indata files with the convenient indexes !',//)
   115 format(/' ---- Convolution ------',100('-'))
   120 format(///' The output file has the same name than one of the input files.',/ &
                 ' This last will be overwritten !',// &
@@ -3582,5 +3650,203 @@ subroutine Angle_Bragg(alfa_S,angxyz,axyz,Eseuil,hkl,hkl_S, theta_B)
 
   return
   120 format(//' The reflection number',i3,' : (h,k,l) = (',3i3,') does not exist at this energy !'//)
+end
+
+!*******************************************************************************************************************
+
+subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal,nes,nom_col,npldafs,Signal)
+
+  use declarations
+  implicit none
+  
+  integer:: i, i_col, i_cor, i_hk, i1, i2, ie, index, index_hk, index_max, ipas, ipr, j, l, l2, l3, le, n_col, n_cor, &
+            n_hk_tr, n_energ_tr, n_signal, nes, npldafs
+  integer, dimension(:), allocatable:: n_index_hk
+  integer, dimension(n_energ_tr):: index_ie
+
+  logical:: Cor_abs, Double_cor
+  
+  character(len=4):: mot4, mot4_b
+  character(len=4), dimension(:), allocatable:: hk
+  character(len=15):: mot15, mot15_b, mot15_c, mot15_d
+  character(len=15), dimension(n_col):: nom_col
+  character(len=15), dimension(:,:,:), allocatable:: E_string, l_value
+  character(len=15), dimension(:,:,:,:), allocatable:: Signal_out
+  character(len=132):: Convolution_out, Convolution_tr
+
+  real(kind=8), dimension(nes):: Es
+  real(kind=8), dimension(n_energ_tr):: Energ_tr, p1
+  real(kind=8), dimension(npldafs,n_signal):: Signal
+ 
+  Convolution_tr = Convolution_out
+  l = len_trim(Convolution_tr)
+  Convolution_tr(l-3:l+3) = '_tr.txt'
+  
+  ipr = 4
+  
+  open( ipr, file = Convolution_tr )
+
+  if( n_signal == 3*nes ) then
+    Cor_abs = .true.
+    Double_cor = .true.
+    i1 = n_col - 5*npldafs + 1
+    ipas = 5
+    n_cor = 3
+  elseif( n_signal == 3*nes ) then
+    Cor_abs = .true.
+    Double_cor = .false.
+    i1 = n_col - 4*npldafs + 1
+    ipas = 4
+    n_cor = 2
+  else
+    Cor_abs = .false.
+    Double_cor = .false.
+    i1 = n_col - npldafs + 1
+    ipas = 1
+    n_cor = 1
+  endif
+
+  do ie = 1,n_energ_tr
+    do i = 2,nes
+      if( Es(i) > Energ_tr(ie) - eps10 ) exit
+    end do
+    i = min( i, nes )
+    index_ie(ie) = i 
+    p1(ie) = ( Energ_tr(ie) - Es(i-1) ) / ( Es(i) - Es(i-1) )
+  end do
+
+  do j = 1,2
+  
+    i_hk = 0
+    index_hk = 0
+    mot4_b = ' '
+    do i_col = i1,n_col,ipas
+      mot15 = ' '
+      mot15 = nom_col(i_col)
+      do i = 1,15
+        if( mot15(i:i) /= '(' ) cycle
+        mot4 = ' '
+        if( mot15(i+1:i+1) == '-' .and. mot15(i+3:i+3) == '-' ) then
+          mot4(1:4) = mot15(i+1:i+4)
+        elseif( mot15(i+1:i+1) == '-' .or. mot15(i+2:i+2) == '-' ) then
+          mot4(1:3) = mot15(i+1:i+3)
+        else
+          mot4(1:2) = mot15(i+1:i+2)  
+        endif
+        exit
+      end do
+      if( mot4 == mot4_b ) then    
+        index_hk = index_hk + 1
+        if( j == 2 ) n_index_hk(i_hk) = index_hk 
+      else  
+        i_hk = i_hk + 1
+        index_hk = 1
+        if( j == 2 ) hk(i_hk) = mot4
+        mot4_b = mot4 
+      endif
+    end do
+    
+    if( j == 1 ) then
+      n_hk_tr = i_hk
+      allocate( n_index_hk(n_hk_tr) )
+      n_index_hk(:) = 1
+      allocate( hk(n_hk_tr) )
+    endif
+    
+  end do
+  
+  index_max = 0  
+  do i_hk = 1,n_hk_tr
+    index_max = max( index_max, n_index_hk(i_hk) )
+  end do
+  
+  allocate( l_value(index_max,n_cor,n_hk_tr) )
+  allocate( Signal_out(index_max,n_energ_tr,n_cor,n_hk_tr) )
+  allocate( E_string(n_energ_tr,n_cor,n_hk_tr) )
+  Signal_out(:,:,:,:) = ' '
+  l_value(:,:,:) = ' '
+
+  index = 0
+  index_hk = 0
+  i_hk = 1
+
+  do i_col = i1,n_col,ipas
+    index = index + 1
+    index_hk = index_hk + 1
+    mot15 = ' '
+    mot15 = nom_col(i_col)
+    i2 = 16
+    do i = 1,15
+      if( mot15(i:i) == '(' ) then
+        i1 = i + len_trim( hk(i_hk) ) + 1
+      elseif( mot15(i:i) == ')' ) then
+        i2 = i-1
+        exit
+      endif
+    end do
+    mot15_b = ' '
+    mot15_b(1:i2-i1+1) = mot15(i1:i2)
+    l_value(index_hk,:,i_hk) = adjustr( mot15_b )
+
+    do i_cor = 1,n_cor
+      do ie = 1,n_energ_tr
+        j = ( i_cor - 1 ) * nes + index_ie(ie)
+        mot15_b = ' '
+        write(mot15_b,'(1p,e15.7)') ( 1 - p1(ie) ) * Signal(index,j-1) + p1(ie) * Signal(index,j)
+        Signal_out(index_hk,ie,i_cor,i_hk) = mot15_b
+      end do
+    end do 
+    
+    if( index_hk == n_index_hk(i_hk) ) then
+      index_hk = 0
+      i_hk = i_hk + 1
+      if( i_hk > n_hk_tr ) exit
+    endif   
+  end do 
+
+  l = 1
+  mot15_b = ''
+  mot15_b(1:1) = 'I'
+  do i_cor = 1,n_cor
+    if( i_cor == 2 ) then
+      mot15_b(2:2) = 'c'
+      l = 2
+    elseif( i_cor == 3 ) then
+      mot15_b(2:2) = 'd'
+      l = 2
+    endif
+    do i_hk = 1,n_hk_tr
+      mot15_d = mot15_b
+      mot4 = hk(i_hk)
+      le = len_trim( mot4 ) 
+      mot15_d(l+1:l+1) = '_'
+      mot15_d(l+2:l+1+le) = mot4(1:le) 
+      l2 = len_trim(mot15_d) + 1
+      mot15_d(l2:l2) = '('
+      do i = 1,n_energ_tr
+        mot15_c = mot15_d
+        mot15 = ' '
+        write(mot15,'(f15.3)') Energ_tr(i)*rydb
+        mot15 = adjustl(mot15)
+        l3 = len_trim(mot15)
+        mot15_c(l2+1:l2+l3) = mot15(1:l3)
+        mot15_c(l2+l3+1:l2+l3+1) = ')'
+        mot15 = adjustr( mot15_c )
+        E_string(i,i_cor,i_hk) = mot15
+      end do
+    end do
+  end do
+  
+  write(ipr,110) (( '         l_'//hk(i_hk), E_string(:,i_cor,i_hk), i_cor = 1,n_cor ), i_hk = 1,n_hk_tr )
+
+  do index = 1,index_max
+    write(ipr,110) ( ( l_value(index,i_cor,i_hk), Signal_out(index,:,i_cor,i_hk), i_cor = 1,n_cor ), i_hk = 1,n_hk_tr )
+  end do 
+  
+  Close(ipr)
+  
+  deallocate( E_string, hk, l_value, n_index_hk, Signal_out )
+
+  110 format(10000a15)
 end
 

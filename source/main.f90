@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 1 March 2016, 11 Ventose, An 224.
+! FDMNES II program, Yves Joly, Oana Bunau, 2 June 2016, 14 Prairial, An 224.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
 
   character(len=50):: com_date, com_time
 
-  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 1 March 2016'
+  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 2nd of June 2016'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -227,7 +227,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 36
-  integer, parameter:: nkw_fdm = 173
+  integer, parameter:: nkw_fdm = 185
   integer, parameter:: nkw_conv = 30
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
@@ -280,7 +280,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
   real(kind=db):: Ang_borm, Delta_edge, E_cut_imp, e1, e2, Ecent, &
     Elarg, Estart, Gamma_max, fac, Gmin, param_dep, prop, rtph, tp_deb, tp_fin, tpt, x, &
-    dwfactor, tdebye, tmeas, expntlA, expntlB, victA, victB!*** JDB
+    dwfactor, tdebye, tmeas, expntlA, expntlB, victA, victB !*** JDB
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(nmetricm):: Dist_Min, Gen_Shift_min
   real(kind=db), dimension(:), allocatable:: par_op, parsum, RapIntegrT_min_g
@@ -293,7 +293,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'delta_edg','ecent    ','efermi   ','elarg    ','estart   ', &
      'filout   ','folder_da','fprime_at','gamma_hol','gamma_max','length_li','no_check ', &
      'imfpin   ','elfin    ','dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
-     'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/   !*** JDB
+     'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/
 
   data kw_conv / 'cal_tddft','calculati','circular ', 'conv_out ','convoluti','dead_laye','dec      ','directory', &
      'double_co','eintmax  ','epsii    ','forbidden','fprime   ', &
@@ -302,25 +302,25 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
   data kw_fdm/  &
      'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_conf','ang_spin ','atomic_sc','axe_spin ', &
-     'base_comp','base_reel','base_spin','bond     ','cartesian','center   ','center_ab','chlib    ','cif_file ','clementi ', &
-     'core_reso','crystal  ','crystal_c','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_','e1e1     ','delta_eps', &
-     'density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ','edge     ', &
-     'e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot','etatlie  ', &
-     'excited  ','extract  ','extractpo','extractsy','fdm_comp ','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ', &
-     'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','hubbard  ', &
+     'base_comp','base_reel','base_spin','bond     ','bulk     ','cap_disor','cap_rough','cap_layer','cap_shift','cap_thick', &
+     'cartesian','center   ','center_ab','chlib    ','cif_file ','clementi ','core_reso','crystal  ','crystal_c','crystal_t', &
+     'd_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_', &
+     'e1e1     ','delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ', &
+     'dyn_eg   ','edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ', &
+     'energphot','etatlie  ','excited  ','extract  ','extractpo','extractsy','fdm_comp ','film     ','film     ','film_roug', &
+     'film_shif','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ','flapw_s  ', &
+     'flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','hkl_film ','hubbard  ', &
      'iord     ','kern_fac ','lmax     ','lmax_nrix','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ', &
      'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','molecule ','molecule_', &
-     'muffintin','multrmax ','n_self   ','nchemin  ','new_refer','no_core_r','no_e1e1  ','no_e1e2  ','no_e1e3  ', &
-     'no_e2e2  ','no_e3e3  ','no_fermi ','no_res_ma','no_res_mo','no_solsin','normaltau','norman   ','noncentre', &
-     'non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','octupole ','old_refer','one_run  ','optic    ','optic_dat', &
+     'muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_e1e1  ','no_e1e2  ','no_e1e3  ', &
+     'no_e2e2  ','no_e3e3  ','no_fermi ','no_res_ma','no_res_mo','no_solsin','normaltau','norman   ','noncentre','non_relat', &
+     'nonexc   ','not_eneg ','nrato    ','nrixs    ','octupole ','old_zero ','one_run  ','optic    ','optic_dat', &
      'over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ','pointgrou','polarized', &
      'quadmag  ','quadrupol','radius   ','range    ','rangel   ','raydem   ','rchimp   ','readfast ','relativis', &
      'rmt      ','rmtg     ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ','save_opti','save_tddf', &
      'self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
-     'screening','solsing  ','spgroup  ','sphere_al', &
-     'spherical','spinorbit','step_azim','supermuf ', 'symmol   ', &
-     'symsite  ','tddft    ','tddft_dat','temperatu', &
-     'test_dist','trace    ','vmax     ','v0imp    ','xalpha   ', &
+     'screening','solsing  ','spgroup  ','sphere_al','spherical','spinorbit','step_azim','supermuf ', 'symmol   ', &
+     'symsite  ','tddft    ','tddft_dat','temperatu','test_dist','trace    ','vmax     ','v0imp    ','xalpha   ', &
      'xan_atom ','ylm_comp ','z_absorbe','z_nospino','zero_azim'/
 
   data kw_fit / 'parameter'/
@@ -1862,6 +1862,8 @@ function traduction(grdat)
       traduction = 'hubbard'
     case('dilat','dilatati','dilat_or')
       traduction = 'dilatorb'
+    case('oldzero')
+      traduction = 'old_zero'
     case('voimp','v0bdcfim','vmoyf','korigimp')
       traduction = 'v0imp'
     case('v_intmax','v_max')
@@ -1951,6 +1953,8 @@ function traduction(grdat)
 ! General
     case('e_cut','ecut','e_cut_imp','ecut_imp','ecutimp','e_cutimp', 'e_fermi')
       traduction = 'efermi'
+    case('e_start')
+      traduction = 'estart'
 
   end select
 

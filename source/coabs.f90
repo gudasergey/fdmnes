@@ -55,10 +55,8 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   complex(kind=db), dimension(:,:,:,:,:), allocatable :: mu, mudd, mudo, mudq, mumd, mumm, muoo, muqq
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable :: secooia, secooia_m
 
-  integer, dimension(0):: idum
   integer, dimension(natomsym):: isymeq
   integer, dimension(npldafs):: nphi_dafs
-  integer, dimension(3,npldafs):: hkl_dafs
   integer, dimension(npldafs,2):: isigpi
 
   logical Allsite, Base_spin, Cartesian_tensor, Cor_abs, Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, E_vec, Dafs, &
@@ -79,6 +77,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   real(kind=db), dimension(ninitlr) :: sec_atom
   real(kind=db), dimension(3,nplrm) :: vec
   real(kind=db), dimension(nplrm,2) :: pdp
+  real(kind=db), dimension(3,npldafs):: hkl_dafs
   real(kind=db), dimension(ncolm*ninitlr) :: tens
   real(kind=db), dimension(natomsym) :: Taux_eq
   real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens
@@ -368,7 +367,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   else
     nplt = nplr + npldafs
   endif
-
+  
   do ixandafs = 1,2
 
     do ipl = 1,nplt
@@ -403,8 +402,9 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
 
       Tensor_eval = .true.
       if( idafs .and. ipldafs > 1 ) then
-        if( ( hkl_dafs(1,ipldafs) == hkl_dafs(1,ipldafs-1) ) .and. ( hkl_dafs(2,ipldafs) == hkl_dafs(2,ipldafs-1) ) &
-          .and. ( hkl_dafs(3,ipldafs) == hkl_dafs(3,ipldafs-1) ) ) Tensor_eval = .false.
+        if(     ( abs( hkl_dafs(1,ipldafs) - hkl_dafs(1,ipldafs-1) ) < eps10 ) &
+          .and. ( abs( hkl_dafs(2,ipldafs) - hkl_dafs(2,ipldafs-1) ) < eps10 ) &
+          .and. ( abs( hkl_dafs(3,ipldafs) - hkl_dafs(3,ipldafs-1) ) < eps10 ) ) Tensor_eval = .false.
       endif
       if( ipl > 1 .and. .not. idafs ) Tensor_eval = .false.
 
@@ -1456,13 +1456,13 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
             npldafs,npldafs,3,npldafs,nseuil,numat_abs,phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym)
     else
       call write_out(rdum,rdum,Densite_atom,f_avantseuil,E_cut, Ephseuil, &
-            Epsii,Eseuil(nbseuil),Green_int,idum,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title, &
+            Epsii,Eseuil(nbseuil),Green_int,rdum,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title, &
             npldafs,npldafs,0,0,nseuil,numat_abs,phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym)
     endif
 
 ! Ecriture a l'ecran
     if( ia == 0 ) call write_out(rdum,rdum,Densite_atom,f_avantseuil,E_cut, Ephseuil, &
-            Epsii,Eseuil(nbseuil),Green_int,idum,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title, &
+            Epsii,Eseuil(nbseuil),Green_int,rdum,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title, &
             npldafs,npldafs,0,0,nseuil,-1,phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym)
 
     if( Dafs .and. nphim > 1 ) then
@@ -1515,9 +1515,9 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
       do ipl = 1,npldafs
 
         if( Dafs_bio ) then
-          write(7,407) hkl_dafs(:,ipl)
+          write(7,407) nint( hkl_dafs(:,ipl) )
         else
-          write(7,410) hkl_dafs(:,ipl), isigpi(ipl,:)
+          write(7,410) nint( hkl_dafs(:,ipl) ), isigpi(ipl,:)
         endif
         dang = 360._db / nphi_dafs(ipl)
 
@@ -1705,7 +1705,6 @@ subroutine write_nrixs(All_nrixs,Allsite,Core_resolved, &
   complex(kind=db):: f_avantseuil
   complex(kind=db), dimension(0):: cdum
 
-  integer, dimension(0):: idum
   integer, dimension(natomsym):: isymeq
 
   logical:: All_nrixs, Allsite, Core_resolved, Final_tddft, Energphot, Extract, Green_int, Green_int_mag, Magn_sens, Spinorbite
@@ -1874,12 +1873,12 @@ subroutine write_nrixs(All_nrixs,Allsite,Core_resolved, &
 
 ! Ecriture dans le fichier
     call write_out(rdum,rdum,Densite_atom,f_avantseuil,E_cut,Ephseuil, &
-            Epsii,Eseuil(nbseuil),Green_int,idum,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title, &
+            Epsii,Eseuil(nbseuil),Green_int,rdum,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title, &
             npldafs,npldafs,0,0,nseuil,numat_abs,cdum,cdum,Tens,V0muf,Core_resolved,natomsym)
 
 ! Ecriture a l'ecran
     if( ia == 0 ) call write_out(rdum,rdum,Densite_atom,f_avantseuil,E_cut,Ephseuil, &
-            Epsii,Eseuil(nbseuil),Green_int,idum,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title, &
+            Epsii,Eseuil(nbseuil),Green_int,rdum,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title, &
             npldafs,npldafs,0,0,nseuil,-1,cdum,cdum,Tens,V0muf,Core_resolved,natomsym)
 
   end do
@@ -1936,8 +1935,6 @@ subroutine write_cartesian_tensor(Densite_atom,E_cut,E1E2,E2E2,Ephseuil, Epsii,E
   complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secddia, secmdia
   complex(kind=db), dimension(3,3,3,ninitlr,0:natomsym):: secdqia, secdqia_m
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:natomsym):: secqqia
-
-  integer, dimension(0):: idum
 
   logical:: Core_resolved, E1E2, E2E2, M1M1, magn_sens, tens_comp
 
@@ -2097,7 +2094,7 @@ subroutine write_cartesian_tensor(Densite_atom,E_cut,E1E2,E2E2,Ephseuil, Epsii,E
 
   zero_c = (0._db, 0._db)
 
-  call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
+  call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,nomtens,1,0,0,0,nseuil,numat_abs,cdum, &
            cdum,tens,v0muf,Core_resolved,0) 
 
@@ -2115,8 +2112,6 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
 
   parameter(n_tens_max = 10000)
 
-  integer, dimension(3,npps):: hkl_dafs
-
   character(len=132):: nomficht
   character(len=95):: mot1
   character(len=27):: mot2
@@ -2133,6 +2128,8 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
   real(kind=db), dimension(nppa):: angxyz, axyz
   real(kind=db), dimension(ninitlr):: Epsii
   real(kind=db), dimension(n_dim):: Tens
+  real(kind=db), dimension(3,npps):: hkl_dafs
+
 
   dummy = ' '
 
@@ -2266,7 +2263,7 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
           end do
           stop
       end select
-      if( nppa > 0 ) write(ipr,155) natomsym, axyz(:)*bohr, angxyz(:), ( hkl_dafs(:,i), i = 1,npp )
+      if( nppa > 0 ) write(ipr,155) natomsym, axyz(:)*bohr, angxyz(:), ( nint( hkl_dafs(:,i) ), i = 1,npp )
     endif
     do i = 1,n
       mot = title(i)
@@ -2401,6 +2398,52 @@ subroutine ad_number(ib,nomfich,Length)
 
   end do
 
+  return
+end
+
+!***********************************************************************
+
+subroutine ad_number_r(r,nom)
+
+  use declarations
+  implicit none
+
+  integer:: i, l, l2, l3
+
+  character(len=1) a
+  character(len=Length_word) mot, nom
+
+  real(kind=db):: r
+  
+  if( Length_word >= 15 ) then 
+    write(mot,'(f15.4)') r
+  elseif( Length_word >= 13 ) then 
+    write(mot,'(f13.3)') r
+  elseif( Length_word >= 10 ) then 
+    write(mot,'(f10.2)') r
+  else
+    write(mot,'(f5.2)') r
+  endif
+  
+  mot = adjustl( mot )
+  
+  l2 = len_trim(mot) 
+  l3 = l2
+
+  do i = l3,2,-1
+    a = mot(i:i)
+    if( a /= '0' .and. a /= '.' ) exit
+    mot(i:i) = ' '
+    l2 = l2 - 1
+    if( a == '.' ) exit
+  end do
+ 
+  l = len_trim( nom )
+
+  do i = l+1,min(l+l2,Length_word) 
+    nom(i:i) = mot(i-l:i-l)
+  end do
+      
   return
 end
 
@@ -3328,8 +3371,6 @@ subroutine Write_Spherical_tensor(Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M
   complex(kind=db):: zero_c
   complex(kind=db), dimension(1):: cdum
 
-  integer, dimension(0):: idum
-
   logical:: Core_resolved, E1E1, E1E2, E1M1, E2E2, Magn_sens
 
   real(kind=db):: de, Densite_atom, E_cut, Ephseuil, Eseuil, V0muf
@@ -3457,7 +3498,7 @@ subroutine Write_Spherical_tensor(Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M
     long = len_trim(nomficht)
     nomficht(long+1:long+4) = '.txt'
 
-    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
+    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
           jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
           cdum,Tens,V0muf,Core_resolved,0)
 
@@ -3501,7 +3542,7 @@ subroutine Write_Spherical_tensor(Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M
     endif
 
     Int_tenst(1:n_tens) = Int_tens(1:n_tens,ia)
-    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
+    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
           jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
           cdum,Int_tenst,v0muf,Core_resolved,0)
 
@@ -3931,8 +3972,6 @@ subroutine Write_Signal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1
   complex(kind=db), dimension(npldafs):: phdf0t, phdt
   complex(kind=db), dimension(:), allocatable:: ph0, phtem, Resul
 
-  integer, dimension(0):: idum
-
   logical:: Core_resolved, Dafs, E1E1, E1E2, E1M1, E2E2, Magn_sens
   
   real(kind=db):: Densite_atom, E_cut, Ephseuil, Eseuil, fac, V0muf
@@ -4189,11 +4228,11 @@ subroutine Write_Signal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1
     phtem(:) = cf
     ph0(:) = cg
     n_tens2 = n_tens / ( 2 * ninitlr )
-    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
+    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
           jseuil,n_tens,n_tens,ninit1,ninitlr,nomficht,Tens_name,n_tens,n_tens2,0,0,nseuil,numat_abs,phtem, &
           ph0,Tens,v0muf,Core_resolved,0)
   else
-    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,idum,ie, &
+    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
           jseuil,n_tens,n_tens,ninit1,ninitlr,nomficht,Tens_name,1,0,0,0,nseuil,numat_abs,cdum,cdum,Tens,v0muf, &
           Core_resolved,0)
   endif

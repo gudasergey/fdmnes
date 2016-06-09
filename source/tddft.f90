@@ -21,7 +21,7 @@
 
 subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef_g, &
         Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Delta_edge,Delta_Eseuil,Densite_atom,Dipmag, &
-        dv0bdcF,Dyn_eg,Dyn_g,E_cut,E_cut_imp,E_Fermi_man,Ecent,Eclie,Elarg,Eneg, &
+        dv0bdcF,Dyn_eg,Dyn_g,E_cut,E_cut_imp,E_Fermi,E_Fermi_man,Ecent,Eclie,Elarg,Eneg, &
         Energ_t,Energphot,Epsii_a,Extract,Epsii_moy,Eseuil,Estart,f_avantseuil,Full_potential,Full_self_abs, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_dafs,Hubb_a,Hubb_d,icheck, &
         iabsorig,iopsymc_25,is_g,isigpi,isymeq, &
@@ -32,7 +32,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
         natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ngamh,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlmamax, &
         nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nomfich_tddft_data, &
         nphi_dafs,nphim,npldafs,nplr,nplrm,nq_nrixs,nr,NRIXS,nrm,nseuil,nspin,nspino,nspinp, &
-        numat,nxanout,Octupole,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
+        numat,nxanout,Octupole,Old_zero,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
         psii,q_nrixs,Quadrupole,r,Recup_tddft_data,Relativiste,rhoato_abs,Rmtg,Rmtsd, &
         rof0,rot_atom_abs,Rot_int,RPALF,rsato,rsbdc,Self_abs,Solsing_only, &
         Spherical_signal,Spherical_tensor,Spinorbite,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb,V0muf, &
@@ -58,7 +58,6 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
   integer, dimension(npldafs):: nphi_dafs
   integer, dimension(ninitl,2):: m_g
   integer, dimension(npldafs,2):: isigpi
-  integer, dimension(3,npldafs):: hkl_dafs
   integer, dimension(3):: ldip
   integer, dimension(3,3):: lqua, msymdd, msymddi
   integer, dimension(3,3,3):: loct, msymdq, msymdqi
@@ -92,7 +91,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
     Dyn_eg, Dyn_g, E_Fermi_man, Eneg, Energphot, Extract, FDM_comp, Final_optic, Final_tddft, &
     Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green, Green_int, &
     Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, Magnetic, &
-    Moyenne, NRIXS, Octupole, Optic, Quadrupole, Radial_comp, &
+    Moyenne, NRIXS, Octupole, Old_zero, Optic, Quadrupole, Radial_comp, &
     Recup_tddft_data, Relativiste, RPALF, Self_abs, Solsing, Solsing_only, Spherical_signal, &
     Spherical_tensor, Spinorbite, Xan_atom, Ylm_comp, Ylm_comp_e
 
@@ -100,7 +99,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
 
   real(kind=sg) time
 
-  real(kind=db):: alfpot, Delta_edge, Delta_Eseuil, Densite_atom, E_cut, E_cut_imp, E_cut_tddft, Eclie, &
+  real(kind=db):: alfpot, Delta_edge, Delta_Eseuil, Densite_atom, E_cut, E_cut_imp, E_cut_tddft, E_fermi, Eclie, &
      Ecent, Ecmax, EFermi_min, Elarg, Energ_tt, Enervide_t, Epsii_moy, Estart, &
      Gamma_max, Kern_fac, p, Rmtg, Rmtsd, rsbdc, V_intmax, V0muf, Vhbdc, Volume_maille, Workf
 
@@ -125,6 +124,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
   real(kind=db), dimension(nr,nlm_pot):: Vcato
   real(kind=db), dimension(nr,2,2):: fxc
   real(kind=db), dimension(3,npldafs,nphim):: Vecdafse, Vecdafss
+  real(kind=db), dimension(3,npldafs):: hkl_dafs
   real(kind=db), dimension(nr,nlm_pot,nspin) :: Vxcato
   real(kind=db), dimension(nq_nrixs):: q_nrixs
   real(kind=db), dimension(nq_nrixs,ninitl_out,0:mpinodes-1):: S_nrixs, S_nrixs_m
@@ -295,7 +295,11 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
     if( ie <= nenerg ) then
 
       do ie_e = 1,n_Ec
-        Enervide(ie_e) = Energ(ie) - Decal_initl(ie_e) - Workf
+        if( Old_zero ) then
+          Enervide(ie_e) = Energ(ie) - Decal_initl(ie_e) - Workf
+        else
+          Enervide(ie_e) = Energ(ie) - Decal_initl(ie_e) + E_Fermi
+        endif
       end do
 
 ! Calcul du potentiel excite
@@ -590,7 +594,6 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
   integer, dimension(npldafs):: nphi_dafs
   integer, dimension(ninitl,2):: m_g
   integer, dimension(npldafs,2):: isigpi
-  integer, dimension(3,npldafs):: hkl_dafs
   integer, dimension(3):: ldip
   integer, dimension(3,3):: lqua, msymdd, msymddi
   integer, dimension(3,3,3):: loct, msymdq, msymdqi
@@ -649,6 +652,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
   real(kind=db), dimension(natomsym) :: Taux_eq
   real(kind=db), dimension(3,3):: rot_atom_abs, Rot_int
   real(kind=db), dimension(nplrm,2) :: pdp
+  real(kind=db), dimension(3,npldafs):: hkl_dafs
   real(kind=db), dimension(3,nplrm) :: vec
   real(kind=db), dimension(ninitl,2):: coef_g
   real(kind=db), dimension(nrm,nbseuil):: psii

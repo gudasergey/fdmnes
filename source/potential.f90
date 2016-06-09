@@ -2,13 +2,13 @@
 ! FDMNES subroutines
 ! Calculation of the potential.
 
-subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,chargat,chargat_init, &
+subroutine potsup(alfpot,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,chargat,chargat_init, &
             chargat_self,dcosxyz,drho_ex_nex,dv_ex_nex,dvc_ex_nex,excato,Full_atom,Hybrid,i_self, &
             ia_eq_inv,ia_eq_inv_self,iaabs,iaproto,iaprotoi,iapot,icheck,igreq,igroup,iprabs,iprabs_reel,ipr1,itab,itdil, &
             itypei,itypep,itypepr,ldil,lmax_pot,lvval,Magnetic,mpirank,n_atom_0,n_atom_0_self,n_atom_ind, &
             n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,neqm,ngreq,ngroup_m,ngroup_nonsph, &
-            nhybm,nlat,nlatm,nlm_pot,Nonexc,norbdil,norbv,normrmt,npoint,npoint_ns,npsom,nr_abs,nrato,nrm,nrm_self,nspin,ntype, &
-            numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self, psival,rato,rchimp,rho,rho_chg, &
+            nhybm,nlat,nlatm,nlm_pot,Nonexc,Nonsph,norbdil,norbv,normrmt,npoint,npoint_ns,npsom,nr_abs,nrato,nrm,nrm_self,nspin, &
+            ntype,numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self, psival,rato,rchimp,rho,rho_chg, &
             rho_self,rhoato_abs,rhoato_init,rhoit,rhons,rmtg,rmtimp,rmtg0,rmtsd,Rot_Atom_gr,Rot_int,rs,rsato, &
             rsort,SCF,self_nonexc,TdOpt_xanes,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp,xyz, &
             i_range)
@@ -35,7 +35,7 @@ subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,charg
 
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph) :: hybrid
 
-  logical:: Atom_nonsph, Base_ortho, Cal_xanes, Full_atom, Magnetic, nonexc, SCF, Self_nonexc, TdOpt_xanes
+  logical:: Base_ortho, Cal_xanes, Full_atom, Magnetic, Nonexc, Nonsph, SCF, Self_nonexc, TdOpt_xanes
 
   real(kind=db):: alfpot, f_integr3, overlap, rayint, rsort, V_intmax, v0bdcFimp, Vsphere
   real(kind=db), dimension(3):: dcosxyz
@@ -44,7 +44,7 @@ subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,charg
   real(kind=db), dimension(npoint):: rs, Vh
   real(kind=db), dimension(npoint_ns):: rhons, Vhns
   real(kind=db), dimension(0:ntype):: rchimp, rmtimp
-  real(kind=db), dimension(0:n_atom_proto):: chargat, rhonspr, rmtg, rmtg0, Rmtsd, vcmft, vhnspr
+  real(kind=db), dimension(0:n_atom_proto):: chargat, rhonspr, rmtg, rmtg0, Rmtsd, Vcmft, Vhnspr
   real(kind=db), dimension(3,natome_self):: posi_self
   real(kind=db), dimension(3,natome):: posi
   real(kind=db), dimension(3,natomp):: pos
@@ -93,9 +93,9 @@ subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,charg
   rhonspr(:) = 0._db
   Vhnspr(:) = 0._db
 
-  if( Atom_nonsph .and. i_self == 1 ) call orbval(Base_ortho,dcosxyz,Hybrid,iaproto,iapot,icheck(11), &
+  if( Nonsph ) call orbval(Base_ortho,dcosxyz,Hybrid,iaproto,iapot,icheck(11), &
         igreq,igroup,itypepr,lvval,mpirank,n_atom_proto,natomeq,natomp,neqm,ngroup_m,ngroup_nonsph,nhybm,nlat,nlatm,norbv, &
-        npoint,npoint_ns,npsom,nrato,nrm,ntype,pop_nonsph,pos,psival,rato,rhons,rhonspr,Rot_Atom_gr,Rot_int,vhns,vhnspr,xyz)
+        npoint,npoint_ns,npsom,nrato,nrm,ntype,pop_nonsph,pos,psival,rato,rhons,rhonspr,Rot_Atom_gr,Rot_int,Vhns,Vhnspr,xyz)
 
   if( Cal_xanes ) then
     iapr0 = n_atom_0
@@ -227,7 +227,7 @@ subroutine potsup(alfpot,Atom_nonsph,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,charg
         rmtsd,rsort,V_intmax,v0bdcFimp,Vcato,vcmft,Vxcato,Vxcmft,i_range)
 
 ! Calcul du potentiel interstitiel
-  call pot0(alfpot,Atom_nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoato,dvcato,Full_atom,i_self, &
+  call pot0(alfpot,Nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoato,dvcato,Full_atom,i_self, &
         ia_eq_inv,iaabs,iaproto,icheck(12),igreq,igroup,itypep,Magnetic,n_atom_0,n_atom_ind,n_atom_proto,natomeq,natomp, &
         neqm,ngroup_m,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,pos,rato,rho,rhons,rs,rhoigr,rhomft,rmtg0,Rmtsd,SCF,V_intmax, &
         Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
@@ -1497,7 +1497,7 @@ end
 ! l'interieur d'un meme atome.
 ! Dans chaque atome les orbitales sont toutes a symetrie spherique.
 
-subroutine pot0(alfpot,Atom_nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoato,dvcato,Full_atom,i_self, &
+subroutine pot0(alfpot,Nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoato,dvcato,Full_atom,i_self, &
         ia_eq_inv,iaabs,iaproto,icheck,igreq,igroup,itypep,Magnetic,n_atom_0,n_atom_ind,n_atom_proto,natomeq,natomp, &
         neqm,ngroup_m,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,pos,rato,rho,rhons,rs,rhoigr,rhomft,rmtg0,Rmtsd,SCF,V_intmax, &
         Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
@@ -1515,7 +1515,7 @@ subroutine pot0(alfpot,Atom_nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoat
   integer, dimension(0:ntype):: nrato
   integer, dimension(0:n_atom_proto,neqm):: igreq
 
-  logical:: Atom_nonsph, Base_ortho, Full_atom, Magnetic, SCF
+  logical:: Base_ortho, Full_atom, Magnetic, Nonsph, SCF
   logical, dimension(npoint):: iok
 
   real(kind=db):: alfpot, cosang, drho, dist, dist_min, dv, f, p1, p2, tiers, V_intmax, Vnorme, Vsphere
@@ -1646,7 +1646,7 @@ subroutine pot0(alfpot,Atom_nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoat
   end do
 
 ! On ajoute eventuellement la contribution non spherique des orbitales de valence.
-  if( Atom_nonsph ) then
+  if( Nonsph ) then
     do i = 1,npoint
       if( iok(i) ) cycle
       rho(i,1:nspin) = rho(i,1:nspin) + rhons(i)
@@ -1702,7 +1702,7 @@ subroutine pot0(alfpot,Atom_nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoat
   endif
 
   if( icheck > 2 ) then
-    if( Atom_nonsph ) then
+    if( Nonsph ) then
       write(3,120)
       do i = 1,npoint
         write(3,130) i, xyz(1:3,i)*bohr, Vh(i)*rydb, Vhns(i)*rydb, rhons(i), rs(i), Vxc(i,1:nspin)*rydb
@@ -4187,8 +4187,8 @@ subroutine Cal_Vmoy(Cal_xanes,i_range,i_self,icheck,imoy,imoy_out,korigimp,Magne
 
   return
   110 format(/' ---- Potcomp ------',100('-'))
-  130 format(/'     V0bdcF =',f10.3,' eV,     Vhbdc =',f10.3,' eV,     rsbdc =',f8.3,' a.u.')
-  150 format(' V0bdcF_out =',f10.3,' eV, Vhbdc_out =',f10.3,' eV, rsbdc_out =',f8.3,' a.u.')
+  130 format(/'     V0bdcF =',f12.5,' eV,     Vhbdc =',f10.3,' eV,     rsbdc =',f8.3,' a.u.')
+  150 format(' V0bdcF_out =',f12.5,' eV, Vhbdc_out =',f10.3,' eV, rsbdc_out =',f8.3,' a.u.')
 end
 
 !***********************************************************************
@@ -4248,7 +4248,7 @@ end
 ! Calcul du potentiel dans l'etat excite.
 ! Amene une modification de Vr.
 
-subroutine potex(Atom_nonsph,axyz,alfpot,Cal_xanes,dv0bdcF,Energ,Enervide,Full_atom, &
+subroutine potex(Nonsph,axyz,alfpot,Cal_xanes,dv0bdcF,Energ,Enervide,Full_atom, &
           iaabsi,iapot,iaprotoi,icheck,iprabs,iprabs_reel,itab,itypepr,Magnetic, &
           n_atom_0,n_atom_ind,n_atom_proto,n_vr_0,n_vr_ind,natome,nlm_pot,Nonexc_g,npoint,npoint_ns,npsom,nptmoy, &
           nptmoy_out,nrato,nrm,nspin,ntype,Optic,rato,rho,rhons,Rmtg,rs,rsato,rsbdc,rsbdc_out,Trace_k,Trace_p, &
@@ -4264,7 +4264,7 @@ subroutine potex(Atom_nonsph,axyz,alfpot,Cal_xanes,dv0bdcF,Energ,Enervide,Full_a
   integer, dimension(natome):: iaprotoi
   integer, dimension(0:n_atom_proto):: iapot, itypepr
 
-  logical:: Atom_nonsph, Cal_xanes, Optic, Full_atom, magnetic, nonexc_g
+  logical:: Cal_xanes, Optic, Full_atom, magnetic, nonexc_g, Nonsph
 
   real(kind=db):: alfpot, Energ, Enervide, p, p1, rsbdc, rsbdc_out, V_intmax, Vhbdc, Vhbdc_out
   real(kind=db), dimension(3):: axyz
@@ -4491,7 +4491,7 @@ subroutine potex(Atom_nonsph,axyz,alfpot,Cal_xanes,dv0bdcF,Energ,Enervide,Full_a
 
   if( Trace_k /= 0 ) then
     do ispin = 1,nspin
-      call trace(Atom_nonsph,axyz,npoint,npoint_ns,ispin,npsom,xyz,rhons,Trace_k,Trace_p,Vhns,nspin,Vr,rho)
+      call trace(Nonsph,axyz,npoint,npoint_ns,ispin,npsom,xyz,rhons,Trace_k,Trace_p,Vhns,nspin,Vr,rho)
     end do
   endif
 
@@ -4614,7 +4614,7 @@ end
 
 ! Trace en sortie des coupes du potentiel.
 
-subroutine trace(Atom_nonsph,axyz,npoint,npoint_ns,ispin,npsom,xyz,rhons,Trace_k,Trace_p,vhns,nspin,Vr,rho)
+subroutine Trace(Nonsph,axyz,npoint,npoint_ns,ispin,npsom,xyz,rhons,Trace_k,Trace_p,vhns,nspin,Vr,rho)
 
   use declarations
   implicit none
@@ -4623,7 +4623,7 @@ subroutine trace(Atom_nonsph,axyz,npoint,npoint_ns,ispin,npsom,xyz,rhons,Trace_k
 
   integer, dimension(npoint):: itrace
 
-  logical:: Atom_nonsph
+  logical:: Nonsph
 
   real(kind=db):: ctrace, fac, p, x1, x2
   real(kind=db), dimension(3):: axyz, Ptrace, v, Vectrace
@@ -4685,14 +4685,14 @@ subroutine trace(Atom_nonsph,axyz,npoint,npoint_ns,ispin,npsom,xyz,rhons,Trace_k
   elseif( Trace_k == 2 ) then
     write(3,120) vectrace(1:3), ptrace(1)
   endif
-  if( Atom_nonsph ) then
+  if( Nonsph ) then
     write(3,130) ntrace
   else
     write(3,135) ntrace
   endif
   do j = 1,ntrace
     k = itrace(j)
-    if( Atom_nonsph ) then
+    if( Nonsph ) then
       write(3,140) xyz(1:3,k)*bohr, Vr(k,ispin)*rydb, vhns(k)*rydb, rho(k,ispin), rhons(k)
     else
       write(3,140) xyz(1:3,k)*bohr, Vr(k,ispin)*rydb, rho(k,ispin)
@@ -4711,7 +4711,7 @@ end
 
 ! On rend le potentiel muffintin.
 
-subroutine mdfmuf(Atom_nonsph,Axe_Atom_gr,axyz,Base_ortho,dcosxyz,Full_atom,iaabs,iaproto,iaprotoi,icheck, &
+subroutine mdfmuf(Nonsph,Axe_Atom_gr,axyz,Base_ortho,dcosxyz,Full_atom,iaabs,iaproto,iaprotoi,icheck, &
               igreq,igroup,ispin,itypep,n_atom_0,n_atom_ind,n_atom_proto,natome,natomp,neqm,ngroup_m,nlm_pot, &
               npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,pos,rato,rho,rhons,Rmtg,Trace_k,Trace_p,Vhns,Vm,Vr,Vrato,xyz)
 
@@ -4724,7 +4724,7 @@ subroutine mdfmuf(Atom_nonsph,Axe_Atom_gr,axyz,Base_ortho,dcosxyz,Full_atom,iaab
   integer, dimension(0:ntype):: nrato
   integer, dimension(0:n_atom_proto,neqm):: igreq
 
-  logical:: Base_ortho, Atom_nonsph, Full_atom
+  logical:: Base_ortho, Full_atom, Nonsph
 
   real(kind=db), dimension(3):: axyz, dcosxyz, v
   real(kind=db), dimension(6):: Trace_p
@@ -4798,7 +4798,7 @@ subroutine mdfmuf(Atom_nonsph,Axe_Atom_gr,axyz,Base_ortho,dcosxyz,Full_atom,iaab
 
   if( Trace_k /= 0 ) then
     do ispin = 1,nspin
-      call trace(Atom_nonsph,axyz,npoint,npoint_ns,ispin,npsom,xyz,rhons,Trace_k,Trace_p,vhns,nspin,Vr,rho)
+      call Trace(Nonsph,axyz,npoint,npoint_ns,ispin,npsom,xyz,rhons,Trace_k,Trace_p,vhns,nspin,Vr,rho)
     end do
   endif
 

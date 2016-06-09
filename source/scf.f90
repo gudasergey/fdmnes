@@ -1319,6 +1319,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Dop
           cycle
         case(2)
           E_Fermi = En_f
+ ! On demand or when "calculation and SCF" excited and l = 2 or 3.
           if( Open_val_exc .and. scf_elecabs ) then
             E_cut = E_Open_val_exc
           else

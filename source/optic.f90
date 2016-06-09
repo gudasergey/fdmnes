@@ -37,7 +37,6 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
   integer, dimension(npldafs):: nphi_dafs
   integer, dimension(ninitl,2):: m_g
   integer, dimension(npldafs,2):: isigpi
-  integer, dimension(3,npldafs):: hkl_dafs
   integer, dimension(3):: ldip
   integer, dimension(3,3):: lqua, msymdd, msymddi
   integer, dimension(3,3,3):: loct, msymdq, msymdqi
@@ -89,6 +88,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
   real(kind=db), dimension(3,3):: rot_atom_abs, Rot_int
   real(kind=db), dimension(nplrm,2):: pdp
   real(kind=db), dimension(3,nplrm):: vec
+  real(kind=db), dimension(3,npldafs):: hkl_dafs
   real(kind=db), dimension(ninitl,2):: coef_g
   real(kind=db), dimension(nrm,nbseuil):: psii
   real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens

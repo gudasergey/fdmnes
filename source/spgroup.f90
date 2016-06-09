@@ -6,7 +6,7 @@
 !   Space_Group      Name of the symmetry group
 !   NMAXOP      Maximum number of symmetry operations
 
-subroutine spgroup(Do_exp,neq,ngroup,ngroup_neq,itype,posn,posout,Space_file,Space_group)
+subroutine spgroup(Cif,Do_exp,neq,ngroup,ngroup_neq,itype,posn,posout,Space_file,Space_group)
 
   use declarations
   implicit none
@@ -23,7 +23,7 @@ subroutine spgroup(Do_exp,neq,ngroup,ngroup_neq,itype,posn,posout,Space_file,Spa
   integer, dimension(ngroup_neq):: neq
   integer, dimension(:), allocatable:: itypeq
 
-  logical:: Check, Do_exp
+  logical:: Check, Cif, Do_exp
 
   real(kind=db):: eps
   real(kind=db), dimension(3):: Along_XY, Along_YZ, Along_XZ, Along_XYZ, q
@@ -42,7 +42,7 @@ subroutine spgroup(Do_exp,neq,ngroup,ngroup_neq,itype,posn,posout,Space_file,Spa
   Trans(:,:) = 0._db
   Check = .false.
 
-  call symgrp(Space_Group,Mat,Trans,nsym,nmaxop,SGTrans,Space_file)
+  call symgrp(Cif,Space_Group,Mat,Trans,nsym,nmaxop,SGTrans,Space_file)
 
   select case(SGTrans)
 
@@ -171,17 +171,16 @@ end
 
 !*********************************************************************
 
-subroutine symgrp(Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans, Space_file)
+subroutine symgrp(Cif,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans,Space_file)
 
 ! This subroutine looks for the space group whose name is in Space_Group.
-! If it is found, it outputs the number of symmetry operations,
-! and builds the matrices for these operations.
+! If it is found, it outputs the number of symmetry operations, and builds the matrices for these operations.
 
 ! Variable description :
-!   Space_Group      Name of the symmetry group
+!   Space_Group Name of the symmetry group
 !   NBSYOP      Number of symmetry operations
 !   NMAXOP      Maximum number of symmetry operations
-!   sgnb      Space group number
+!   sgnb        Space group number
 
   use declarations
   implicit none
@@ -192,13 +191,13 @@ subroutine symgrp(Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans, Space_file)
   character(len=10):: sgnbcar, sgnbcar0
   character(len=13):: sgschoenfliess, Space_Group
   character(len=27):: sgHMshort, sgHMlong
-  character(len=80):: line
+  character(len=80):: line, mot
   character(len=132):: Space_file
   character(len=80), dimension(nmaxop):: lines
 
-  integer i, i1, i2, ipr, istat, itape, nbsyop, sgnb
+  integer:: i, i1, i2, ipr, istat, itape, j, k, n, nbsyop, nnombre, sgnb
 
-  logical pareil
+  logical:: Cif, pareil
 
   real(kind=db), dimension(3,3,nmaxop):: Mat
   real(kind=db), dimension(3,nmaxop):: Trans
@@ -207,59 +206,100 @@ subroutine symgrp(Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans, Space_file)
   pareil = .false.
   itape = 7
 
-! Ask for exact definition of space group.
-! sgnbcar0 is the detailed number of the spacegroup,
-! specifying axis and origin conventions
-
   Open(itape, file = Space_file, status='old', iostat=istat)
   if( istat /= 0 ) call write_open_error(Space_file,istat,1)
 
-  call locateSG(itape,Space_file,Space_Group,sgnbcar0)
+  if( Cif ) then
 
-  Rewind(itape)
+    do
+     read(itape,'(A)') mot
+     if( mot(1:26) == '_symmetry_equiv_pos_as_xyz' ) exit 
+    end do
+    
+    do i = 1,1000
+      n = nnombre(itape,132)
+      if( n == 0 ) exit
+      read(itape,'(A)' ) mot
+      line = ' '
+      
+      do j = 1,80
+        if( mot(j:j) /= "'" ) cycle
+        do k = 1,j
+          mot(k:k) = ' '
+        end do
+        exit
+      end do
+      mot = adjustl(mot)
+
+      k = 0
+      do j = 1,80
+        if( mot(j:j) == "'" ) exit
+        if( mot(j:j) == ' ' ) cycle
+        k = k + 1      
+        line(k:k) = mot(j:j)
+      end do
+    
+      lines(i) = line
+        
+    end do
+    
+    nbsyop = i - 1
+
+    SGTrans = Space_group(1:1)
+        
+  else
+  
+! Ask for exact definition of space group.
+! sgnbcar0 is the detailed number of the spacegroup, specifying axis and origin conventions
+
+    call locateSG(itape,Space_file,Space_Group,sgnbcar0)
+
+    Rewind(itape)
 
 ! In spacegroup.txt the name of the symmetry group follows a *<space>
 ! look for it. If a * is found, check that the following string
 ! is the name of the desired symmetry group.
 
-  do i = 1,10000
+    do i = 1,10000
 
-    Read(itape,'(a80)',iostat=istat) line
-    if( istat /= 0 ) then
-      call write_error
-      do ipr = 6,9,3
-        write(ipr,100) Space_group, Trim( Space_file )
-      end do
-      stop
-    endif
-    if (line(1:1) /= '*') cycle
+      Read(itape,'(a80)',iostat=istat) line
+      if( istat /= 0 ) then
+        call write_error
+        do ipr = 6,9,3
+          write(ipr,100) Space_group, Trim( Space_file )
+        end do
+        stop
+      endif
+      if (line(1:1) /= '*') cycle
 
 ! Analyse the line giving space group name(s)
-    call analysename(line,sgnb,sgnbcar,sgschoenfliess, sgHMshort,sgHMlong)
-    Pareil = sgnbcar == sgnbcar0
-    SGTrans = sgHMlong(1:1)
-    if( index(sgHMlong,'H') /= 0 ) SGTrans = 'H'
-    if( pareil ) exit
+      call analysename(line,sgnb,sgnbcar,sgschoenfliess,sgHMshort,sgHMlong)
+      Pareil = sgnbcar == sgnbcar0
+      SGTrans = sgHMlong(1:1)
+      if( index(sgHMlong,'H') /= 0 ) SGTrans = 'H'
+      if( pareil ) exit
 
-  end do
+    end do
 
 ! Look for nbsyop
-  do i = 1,1000
-    read(itape,'(a80)',iostat=eof) line
-    if( eof /= 0 ) exit
-    if( line(1:1) == '*' .or. line(1:1) == ' ' ) exit
-    lines(i) = line
-  end do
-  nbsyop = i - 1
-
-  if( index(sgnbcar,'R') /= 0 ) then
-    call write_error
-    do ipr = 6,9,3
-      write(ipr,110) Space_file
+    do i = 1,1000
+      read(itape,'(a80)',iostat=eof) line
+      if( eof /= 0 ) exit
+      if( line(1:1) == '*' .or. line(1:1) == ' ' ) exit
+      lines(i) = line
     end do
-    stop
-  end if
+    nbsyop = i - 1
 
+    if( index(sgnbcar,'R') /= 0 ) then
+      call write_error
+      do ipr = 6,9,3
+        write(ipr,110) Space_file
+      end do
+      stop
+    end if
+
+  endif
+   
 ! Read the NBSYOP symmetry operations, and build the corresponding
 ! transformation matrix.
 
@@ -305,7 +345,7 @@ subroutine findop(line,matrix)
 ! Initialize Matrix
   do i=1,3
     do j=1,4
-      Matrix(i,j) = 0.
+      Matrix(i,j) = 0._db
     end do
   end do
   ibegin = 1
@@ -327,206 +367,206 @@ subroutine findop(line,matrix)
     select case( line(ibegin:ifin) )
 
       case('x')
-        Matrix(i,1) = 1.
+        Matrix(i,1) = 1._db
 
       case('-x')
-        Matrix(i,1) = -1.
+        Matrix(i,1) = -1._db
 
       case('y')
-        Matrix(i,2) = 1.
+        Matrix(i,2) = 1._db
 
       case('-y')
-        Matrix(i,2) = -1.
+        Matrix(i,2) = -1._db
 
       case('z')
-        Matrix(i,3) = 1.
+        Matrix(i,3) = 1._db
 
       case('-z')
-        Matrix(i,3) = -1.
+        Matrix(i,3) = -1._db
 
       case('x-y')
-        Matrix(i,1) = 1.
-        Matrix(i,2) = -1.
+        Matrix(i,1) = 1._db
+        Matrix(i,2) = -1._db
 
       case('-y+x')
-        Matrix(i,1) = 1.
-        Matrix(i,2) = -1.
+        Matrix(i,1) = 1._db
+        Matrix(i,2) = -1._db
 
       case('y-x')
-        Matrix(i,1) = -1.
-        Matrix(i,2) = 1.
+        Matrix(i,1) = -1._db
+        Matrix(i,2) = 1._db
 
       case('-x+y')
-        Matrix(i,1) = -1.
-        Matrix(i,2) = 1.
+        Matrix(i,1) = -1._db
+        Matrix(i,2) = 1._db
 
       case('1/2+x')
-        Matrix(i,1) = 1.
-        Matrix(i,4) = 0.5
+        Matrix(i,1) = 1._db
+        Matrix(i,4) = 0.5_db
 
       case('x+1/2')
-        Matrix(i,1) = 1.
-        Matrix(i,4) = 0.5
+        Matrix(i,1) = 1._db
+        Matrix(i,4) = 0.5_db
 
       case('1/2-x')
-        Matrix(i,1) = -1.
-        Matrix(i,4) = 0.5
+        Matrix(i,1) = -1._db
+        Matrix(i,4) = 0.5_db
 
       case('-x+1/2')
-        Matrix(i,1) = -1.
-        Matrix(i,4) = 0.5
+        Matrix(i,1) = -1._db
+        Matrix(i,4) = 0.5_db
 
       case('1/2+y')
-        Matrix(i,2) = 1.
-        Matrix(i,4) = 0.5
+        Matrix(i,2) = 1._db
+        Matrix(i,4) = 0.5_db
 
       case('y+1/2')
-        Matrix(i,2) = 1.
-        Matrix(i,4) = 0.5
+        Matrix(i,2) = 1._db
+        Matrix(i,4) = 0.5_db
 
       case('1/2-y')
-        Matrix(i,2) = -1.
-        Matrix(i,4) = 0.5
+        Matrix(i,2) = -1._db
+        Matrix(i,4) = 0.5_db
 
       case('-y+1/2')
-        Matrix(i,2) = -1.
-        Matrix(i,4) = 0.5
+        Matrix(i,2) = -1._db
+        Matrix(i,4) = 0.5_db
 
       case('1/2+z')
-        Matrix(i,3) = 1.
-        Matrix(i,4) = 0.5
+        Matrix(i,3) = 1._db
+        Matrix(i,4) = 0.5_db
 
       case('z+1/2')
-        Matrix(i,3) = 1.
-        Matrix(i,4) = 0.5
+        Matrix(i,3) = 1._db
+        Matrix(i,4) = 0.5_db
 
       case('1/2-z')
-        Matrix(i,3) = -1.
-        Matrix(i,4) = 0.5
+        Matrix(i,3) = -1._db
+        Matrix(i,4) = 0.5_db
 
       case('-z+1/2')
-        Matrix(i,3) = -1.
-        Matrix(i,4) = 0.5
+        Matrix(i,3) = -1._db
+        Matrix(i,4) = 0.5_db
 
       case('1/4+x')
-        Matrix(i,1) = 1.
-        Matrix(i,4) = 0.25
+        Matrix(i,1) = 1._db
+        Matrix(i,4) = 0.25_db
 
       case('x+1/4')
-        Matrix(i,1) = 1.
-        Matrix(i,4) = 0.25
+        Matrix(i,1) = 1._db
+        Matrix(i,4) = 0.25_db
 
       case('1/4-x')
-        Matrix(i,1) = -1.
-        Matrix(i,4) = 0.25
+        Matrix(i,1) = -1._db
+        Matrix(i,4) = 0.25_db
 
       case('-x+1/4')
-        Matrix(i,1) = -1.
-        Matrix(i,4) = 0.25
+        Matrix(i,1) = -1._db
+        Matrix(i,4) = 0.25_db
 
       case('1/4+y')
-        Matrix(i,2) = 1.
-        Matrix(i,4) = 0.25
+        Matrix(i,2) = 1._db
+        Matrix(i,4) = 0.25_db
 
       case('y+1/4')
-        Matrix(i,2) = 1.
-        Matrix(i,4) = 0.25
+        Matrix(i,2) = 1._db
+        Matrix(i,4) = 0.25_db
 
       case('1/4-y')
-        Matrix(i,2) = -1.
-        Matrix(i,4) = 0.25
+        Matrix(i,2) = -1._db
+        Matrix(i,4) = 0.25_db
 
       case('-y+1/4')
-        Matrix(i,2) = -1.
-        Matrix(i,4) = 0.25
+        Matrix(i,2) = -1._db
+        Matrix(i,4) = 0.25_db
 
       case('1/4+z')
-        Matrix(i,3) = 1.
-        Matrix(i,4) = 0.25
+        Matrix(i,3) = 1._db
+        Matrix(i,4) = 0.25_db
 
       case('z+1/4')
-        Matrix(i,3) = 1.
-        Matrix(i,4) = 0.25
+        Matrix(i,3) = 1._db
+        Matrix(i,4) = 0.25_db
 
       case('1/4-z')
-        Matrix(i,3) = -1.
-        Matrix(i,4) = 0.25
+        Matrix(i,3) = -1._db
+        Matrix(i,4) = 0.25_db
 
       case('-z+1/4')
-        Matrix(i,3) = -1.
-        Matrix(i,4) = 0.25
+        Matrix(i,3) = -1._db
+        Matrix(i,4) = 0.25_db
 
       case('3/4+x')
-        Matrix(i,1) = 1.
-        Matrix(i,4) = 0.75
+        Matrix(i,1) = 1._db
+        Matrix(i,4) = 0.75_db
 
       case('x+3/4')
-        Matrix(i,1) = 1.
-        Matrix(i,4) = 0.75
+        Matrix(i,1) = 1._db
+        Matrix(i,4) = 0.75_db
 
       case('3/4-x')
-        Matrix(i,1) = -1.
-        Matrix(i,4) = 0.75
+        Matrix(i,1) = -1._db
+        Matrix(i,4) = 0.75_db
 
       case('-x+3/4')
-        Matrix(i,1) = -1.
-        Matrix(i,4) = 0.75
+        Matrix(i,1) = -1._db
+        Matrix(i,4) = 0.75_db
 
       case('3/4+y')
-        Matrix(i,2) = 1.
-        Matrix(i,4) = 0.75
+        Matrix(i,2) = 1._db
+        Matrix(i,4) = 0.75_db
 
       case('y+3/4')
-        Matrix(i,2) = 1.
-        Matrix(i,4) = 0.75
+        Matrix(i,2) = 1._db
+        Matrix(i,4) = 0.75_db
 
       case('3/4-y')
-        Matrix(i,2) = -1.
-        Matrix(i,4) = 0.75
+        Matrix(i,2) = -1._db
+        Matrix(i,4) = 0.75_db
 
       case('-y+3/4')
-        Matrix(i,2) = -1.
-        Matrix(i,4) = 0.75
+        Matrix(i,2) = -1._db
+        Matrix(i,4) = 0.75_db
 
       case('3/4+z')
-        Matrix(i,3) = 1.
-        Matrix(i,4) = 0.75
+        Matrix(i,3) = 1._db
+        Matrix(i,4) = 0.75_db
 
       case('z+3/4')
-        Matrix(i,3) = 1.
-        Matrix(i,4) = 0.75
+        Matrix(i,3) = 1._db
+        Matrix(i,4) = 0.75_db
 
       case('3/4-z')
-        Matrix(i,3) = -1.
-        Matrix(i,4) = 0.75
+        Matrix(i,3) = -1._db
+        Matrix(i,4) = 0.75_db
 
       case('-z+3/4')
-        Matrix(i,3) = -1.
-        Matrix(i,4) = 0.75
+        Matrix(i,3) = -1._db
+        Matrix(i,4) = 0.75_db
 
       case('z+1/6')
-        Matrix(i,3) = 1.
-        Matrix(i,4) = 1/6.d0
+        Matrix(i,3) = 1._db
+        Matrix(i,4) = 1/6._db
 
       case('z+1/3')
-        Matrix(i,3) = 1.
-        Matrix(i,4) = 1/3.d0
+        Matrix(i,3) = 1._db
+        Matrix(i,4) = 1/3._db
 
       case('-z+1/3')
-        Matrix(i,3) = -1.
-        Matrix(i,4) = 1/3.d0
+        Matrix(i,3) = -1._db
+        Matrix(i,4) = 1/3._db
 
       case('z+2/3')
-        Matrix(i,3) = 1.
-        Matrix(i,4) = 2/3.d0
+        Matrix(i,3) = 1._db
+        Matrix(i,4) = 2/3._db
 
       case('-z+2/3')
-        Matrix(i,3) = -1.
-        Matrix(i,4) = 2/3.d0
+        Matrix(i,3) = -1._db
+        Matrix(i,4) = 2/3._db
 
       case('z+5/6')
         Matrix(i,3) = 1.
-        Matrix(i,4) = 5/6.d0
+        Matrix(i,4) = 5/6._db
 
       case default
         call write_error
