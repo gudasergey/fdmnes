@@ -1454,7 +1454,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
   real(kind=db), dimension(nq_nrixs):: q_nrixs
   real(kind=db), dimension(2):: f_no_res
-  real(kind=db), dimension(4):: Film_shift
+  real(kind=db), dimension(5):: Film_shift
   real(kind=db), dimension(3):: Ang, Ang_rotsup, Ang_spin, Angxyz, Angxyz_bulk, Angxyz_cap, Axe, Axe_spin, axyz, axyz_bulk, &
                                 axyz_cap, Centre, dpos, p, Vec_orig
   real(kind=db), dimension(6):: Trace_p
@@ -1570,6 +1570,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Film_roughness = 0._db
   Film_shift(:) = 0._db
   Film_shift(3) = -1000._db
+  Film_shift(5) = -1000._db  ! Film_zero
   Film_thickness = -1000._db
   Flapw_new = .false.
   Force_ecr = .false.
@@ -1797,9 +1798,13 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           elseif( n == 3 ) then
             read(itape4,*,iostat=ier) Film_shift(1:3)
           else
-            read(itape4,*,iostat=ier) Film_shift(:)
+            read(itape4,*,iostat=ier) Film_shift(1:4)
           endif
           if(ier > 0 ) call write_err_form(itape4,grdat)
+
+       case('film_zero')
+         read(itape4,*,iostat=ier) Film_shift(5)
+         if( ier > 0 ) call write_err_form(itape4,grdat)
 
         case('film_thic')
           read(itape4,*,iostat=ier) Film_thickness
@@ -4367,6 +4372,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             write(3,'(a13,2f13.5)') ' Film shift =', Film_shift(1:2)
           endif
           if( abs( Film_shift(4) ) > eps10 ) write(3,'(a13,2f13.5)') ' Film rotat =', Film_shift(4)
+          if( abs( Film_shift(5) ) > -100._db )  write(3,'(a13,f13.5)') ' Film zero =', Film_shift(5)
           if( Film_roughness > eps10 ) write(3,'(a17,f13.5)') ' Film roughness =', Film_roughness
           if( hkl_film ) then
             write(3,'(A)') ' hkl definition of the film'
@@ -4548,7 +4554,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(FDM_comp,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Film_roughness,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Film_thickness,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Film_shift,4,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Film_shift,5,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Force_ecr,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Full_atom_e,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Full_potential,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)

@@ -1689,7 +1689,7 @@ subroutine write_nrixs(All_nrixs,Allsite,Core_resolved, &
                   Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
                   f_avantseuil,Green_int,iabsorig,icheck,ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
                   jseuil,mpinodee,n_multi_run,natomsym,nbseuil,nenerg,ninit1,ninitlr,nomfich,nomfich_cal_convt, &
-                  nq_nrixs,nseuil,nspinp,numat_abs,q_nrixs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Spinorbite,Taux_eq,v0muf)
+                  nq_nrixs,nseuil,nspinp,numat_abs,q_nrixs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Spinorbite,Taux_eq,V0muf)
                   
   use declarations
   implicit none

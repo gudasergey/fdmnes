@@ -124,7 +124,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   real(kind=db), dimension(2):: chg_open_val, f_no_res, pop_open_val
   real(kind=db), dimension(3):: Ang_rotsup, angxyz, angxyz_bulk, angxyz_cap, axyz, axyz_bulk, axyz_cap, dcosxyz, deccent, &
                                 dpos, Vec_orig
-  real(kind=db), dimension(4):: Film_shift
+  real(kind=db), dimension(5):: Film_shift
   real(kind=db), dimension(6):: Trace_p
   real(kind=db), dimension(7):: Time_loc
   real(kind=db), dimension(10):: Gamma_hole

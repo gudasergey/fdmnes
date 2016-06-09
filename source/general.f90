@@ -5618,7 +5618,7 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
   use declarations
   implicit none
 
-  integer:: i, i0, icheck, igr, ip, ipl, ipr, iprabs, it, itabs, iwrite, j, jgr, kgr, mpirank, n, &
+  integer:: i, i0, icheck, igr, ip, ipl, ipr, iprabs, it, itabs, iwrite, j, jgr, kgr, mpirank, n,  &
     n_atom_bulk, n_atom_cap, n_atom_proto, natomsym, nbseuil, neqm, ngrm, ngroup, ngroup_m, ngroup_taux, &
     ngroup_temp, nlatm, nphim, npldafs, nrm, nspin, ntype, Z, Z_bottom_cap, Z_bottom_film, Z_top_bulk, Z_top_cap, Z_top_film
 
@@ -5665,14 +5665,14 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
   real(kind=db), dimension(2):: f_no_res
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_cap, axyz, axyz_bulk, axyz_cap, hkl, &
      p, v, Vec_orig, w, we, ws
-  real(kind=db), dimension(4):: Film_shift
+  real(kind=db), dimension(5):: Film_shift
   real(kind=db), dimension(npldafs):: Angle_or, deltak
   real(kind=db), dimension(n_atom_cap):: Taux_cap
   real(kind=db), dimension(ngroup_taux):: Taux_oc
   real(kind=db), dimension(ngroup_temp):: Temp_coef
   real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(3,3):: Mat_bulk, Mat_bulk_i, Mat_or, Orthmat, Orthmati, Rot_int
-  real(kind=db), dimension(3,ngroup):: posn
+  real(kind=db), dimension(3,ngroup):: posn, posn_t
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
   real(kind=db), dimension(3,n_atom_cap):: posn_cap
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_g, Axe_atom_gr
@@ -5731,7 +5731,17 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
 
   if( Film ) then
 
-    if( .not. Bulk ) Film_shift(:) = 0._db
+! Stockage if modification
+    posn_t(:,:) = posn(:,:)
+
+    if( Film .and. Film_shift(5) > - eps10 ) then
+      do jgr = 1,ngroup
+        posn(3,jgr) = posn(3,jgr) - Film_shift(5)
+        if( posn(3,jgr) < 0._db - eps10 ) posn(3,jgr) = posn(3,jgr) + 1._db
+      end do
+    endif
+
+    if( .not. Bulk ) Film_shift(1:4) = 0._db
 
     Film_thickness_used = 0._db
     z_roughness_film = 0._db
@@ -6255,7 +6265,8 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
           p(3) = p(3) + i
           z_pos = p(3) * axyz_cap(3) * cos_z_c
           if( z_pos < z_min_cap - z_roughness_film - eps10 ) cycle
-          if( z_pos > z_max_cap + z_roughness_cap + eps10 ) exit
+!          if( z_pos > z_max_cap + z_roughness_cap + eps10 ) exit
+          if( z_pos > z_max_cap + 2 * Cap_roughness + eps10 ) exit
           if( Cap_roughness > eps10 ) then
             x = ( z_max_cap - z_pos ) / Cap_roughness
             Taux_r = 1._db - erfc( x ) * 0.5_db
@@ -6585,7 +6596,10 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
     end do
   endif
 
-  if( Film ) deallocate( phd_f_bulk, phd_f_cap )
+  if( Film ) then
+    deallocate( phd_f_bulk, phd_f_cap )
+    posn(:,:) = posn_t(:,:)
+  endif
 
   return
   110 format(/' ---- Prepdafs -----',100('-'))
@@ -7134,7 +7148,7 @@ subroutine bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_
 
   real(kind=db):: Cal_Volume_maille, cos_g, sin_g, rad, Vol
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, cos_a, V, Vec_a, Vec_b, Vec_c
-  real(kind=db), dimension(4):: Film_shift
+  real(kind=db), dimension(5):: Film_shift
   real(kind=db), dimension(3,3):: Mat, Mat_bulk, Mat_film, Mat_i
 
   rad = pi / 180._db
@@ -7226,7 +7240,7 @@ end
 
   real(kind=db):: diag_bulk, Val_bulk, Val_film
   real(kind=db), dimension(3):: angxyz_bulk, axyz, axyz_bulk
-  real(kind=db), dimension(4):: Film_shift
+  real(kind=db), dimension(5):: Film_shift
 
   Diagonal = abs( angxyz_bulk(3) - 90 ) < 1._db .and. ( abs( Film_shift(4) - 45 ) <  1._db .or. abs( Film_shift(4) + 45 ) < 1._db )
 

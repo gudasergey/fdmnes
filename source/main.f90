@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 2 June 2016, 14 Prairial, An 224.
+! FDMNES II program, Yves Joly, Oana Bunau, 9 June 2016, 21 Prairial, An 224.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
 
   character(len=50):: com_date, com_time
 
-  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 2nd of June 2016'
+  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 9th of June 2016'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -227,7 +227,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 36
-  integer, parameter:: nkw_fdm = 185
+  integer, parameter:: nkw_fdm = 186
   integer, parameter:: nkw_conv = 30
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
@@ -273,14 +273,14 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   logical:: bav_open, Bormann, Case_fdm, Check_file, Conv_done, &
     Convolution_cal, Dafs_bio, E_Fermi_man, Fdmnes_cal, Fit_cal, Gamma_hole_imp, Gamma_tddft, Metric_cal, &
     Minim_fdm_ok, minimok, Mult_cal, Scan_a, Selec_cal, &
-    Use_FDMX, FDMX_only, cm2g, nobg, nohole, nodw, noimfp, imfp_inp, elf_inp, dwfactor_inp, tdebye_inp, tmeas_inp, & !*** JDB
-    Energphot, expntl, victoreen !*** JDB
+    Use_FDMX, FDMX_only, cm2g, nobg, nohole, nodw, noimfp, imfp_inp, elf_inp, dwfactor_inp, tdebye_inp, tmeas_inp, &
+    Energphot, expntl, victoreen
 
   logical, dimension(:), allocatable:: block_sum
 
   real(kind=db):: Ang_borm, Delta_edge, E_cut_imp, e1, e2, Ecent, &
     Elarg, Estart, Gamma_max, fac, Gmin, param_dep, prop, rtph, tp_deb, tp_fin, tpt, x, &
-    dwfactor, tdebye, tmeas, expntlA, expntlB, victA, victB !*** JDB
+    dwfactor, tdebye, tmeas, expntlA, expntlB, victA, victB
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(nmetricm):: Dist_Min, Gen_Shift_min
   real(kind=db), dimension(:), allocatable:: par_op, parsum, RapIntegrT_min_g
@@ -308,7 +308,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'e1e1     ','delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ', &
      'dyn_eg   ','edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ', &
      'energphot','etatlie  ','excited  ','extract  ','extractpo','extractsy','fdm_comp ','film     ','film     ','film_roug', &
-     'film_shif','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ','flapw_s  ', &
+     'film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ','flapw_s  ', &
      'flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','hkl_film ','hubbard  ', &
      'iord     ','kern_fac ','lmax     ','lmax_nrix','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ', &
      'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','molecule ','molecule_', &
