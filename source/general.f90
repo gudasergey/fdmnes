@@ -5658,9 +5658,9 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
     Cap_thickness, Cap_thickness_used, Cap_shift, Conv_mbarn_nelec, Deb, Delta_2, Deltak_A, Delta_bulk, Delta_cap, delta_z, &
     delta_z_bottom_cap, delta_z_bottom_film, delta_z_top_bulk, delta_z_top_cap, delta_z_top_film, dpdeg, &
     DW, f0_bulk, f0_cap, Film_roughness, Film_thickness, Film_thickness_used, fp_bulk, fp_cap, fpp_bulk, fpp_bulk_tot, &
-    fpp_cap, fpp_cap_tot, konde, pp, R_bottom_cap, R_bottom_film, R_top_bulk, R_top_cap, R_top_film, rad, rap_lsur2s, Taux_r, Taux_r2, &
-    Temp, Tempt, Thickness, Volume_maille, x, z_min_cap, z_min_film, z_min_2_film, z_max_bulk, z_max_cap, z_max_film, z_max_2_film, &
-    z_pos, z_roughness_cap, z_roughness_film
+    fpp_cap, fpp_cap_tot, konde, pp, R_bottom_cap, R_bottom_film, R_top_bulk, R_top_cap, R_top_film, rad, rap_lsur2s, Taux_r, &
+    Taux_r2, Temp, Tempt, Thickness, Volume_maille, x, z_min_cap, z_min_film, z_min_2_film, z_max_bulk, z_max_cap, &
+    z_max_film, z_max_2_film, z_pos, z_roughness_cap, z_roughness_film
 
   real(kind=db), dimension(2):: f_no_res
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_cap, axyz, axyz_bulk, axyz_cap, hkl, &

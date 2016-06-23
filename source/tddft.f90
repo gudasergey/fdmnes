@@ -28,7 +28,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
         jseuil,Kern_fac,l0_nrixs,ldip,lmax_pot,lmax_nrixs,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1, &
         lqua,lseuil,ltypcal,m_g,m_hubb,Magnetic,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
         msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_run,Multipole, &
-        n_multi_run,n_oo,n_tens_max, &
+        n_multi_run,n_oo,n_rel,n_tens_max, &
         natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ngamh,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlmamax, &
         nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nomfich_tddft_data, &
         nphi_dafs,nphim,npldafs,nplr,nplrm,nq_nrixs,nr,NRIXS,nrm,nseuil,nspin,nspino,nspinp, &
@@ -46,7 +46,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
   integer:: cal_nenerge, iabsorig, icheck_s, ie, ie_computer, ie_e, initl, iopsymc_25, ip_max, ip0, &
     ir, isp, je, jseuil, l, l0_nrixs, lmax, lmax_pot, lmax_probe, lmax_nrixs, lmaxabs_t, &
     lmaxat0, lseuil,m_hubb, MPI_host_num_for_mumps, mpinodes, mpirank, mpirank0, multi_run, &
-    n_Ec, n_multi_run, n_oo, n_tens_max, n_V, natomsym, nbseuil, &
+    n_Ec, n_multi_run, n_oo, n_rel, n_tens_max, n_V, natomsym, nbseuil, &
     ncolm, ncolr, ncolt, nd3, nenerg, nenerg_s, nenerg_tddft, nenerge, ngamh, nge, ninit1, ninitl, ninitl_out, &
     ninitlv, nlm, nlm_fp, nlm_pot, nlm_probe, nlm_p_fp, nlmamax, nlms_f, nlms_g, nlmsm_f, &
     nphim, npldafs, nplr, nplrm, nq_nrixs, nr, nrm, ns_dipmag, &
@@ -74,7 +74,8 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
   complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdt
   complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
   complex(kind=db), dimension(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil):: rof0
-  complex(kind=db), dimension(3,3,ninitl_out,0:mpinodes-1):: secdd, secdd_m, secmd, secmd_m, secmm, secmm_m
+  complex(kind=db), dimension(3,3,ninitl_out,0:mpinodes-1):: secmd, secmd_m, secmm, secmm_m
+  complex(kind=db), dimension(3,3,n_rel,ninitl_out,0:mpinodes-1):: secdd, secdd_m
   complex(kind=db), dimension(3,3,3,ninitl_out,0:mpinodes-1):: secdq, secdq_m
   complex(kind=db), dimension(3,3,3,3,ninitl_out,0:mpinodes-1):: secdo, secdo_m, secqq, secqq_m
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitl_out,0:mpinodes-1):: secoo, secoo_m
@@ -468,8 +469,8 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
                 Eimag(ie),Energ(ie),Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
                 Hubb_d,icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
-                n_Ec,n_oo,n_V,nbseuil,ns_dipmag,nd3,nenerg_tddft,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlm_probe,nlm_p_fp, &
-                nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Rmtg,Rmtsd,rof0_e,rot_atom_abs,Rot_int, &
+                n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,nd3,nenerg_tddft,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlm_probe, &
+                nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Rmtg,Rmtsd,rof0_e,rot_atom_abs,Rot_int, &
                 secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m, &
                 secqq,secqq_m,Solsing,Solsing_only,Spinorbite,Chi,.true.,V_hubb_t,V_intmax,V0bdc,Vrato,Ylm_comp)
 
@@ -484,10 +485,10 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
 
     if( mpinodes > 1 ) then
 
-      call MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo,ninitl_out,nq_nrixs, &
-                        S_nrixs,S_nrixs_l,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
+      call MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo,n_rel,ninitl_out, &
+                        nq_nrixs,S_nrixs,S_nrixs_l,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
       if( Green_int ) call MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo, &
-                        ninitl_out,nq_nrixs,S_nrixs_m,S_nrixs_l_m,secdd_m,secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
+                        n_rel,ninitl_out,nq_nrixs,S_nrixs_m,S_nrixs_l_m,secdd_m,secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
 
     endif
 
@@ -502,7 +503,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
       call write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer, &
-            Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_tens_max,natomsym,nbseuil, &
+            Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
             nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
             phdt,pol,poldafse,poldafss,Rot_int,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
@@ -560,7 +561,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
         jseuil,Kern_fac,ldip,lmax_pot,lmaxabs_t,lmoins1,loct,lplus1, &
         lqua,lseuil,ltypcal,m_g,m_hubb,Magnetic,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
         msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_run,Multipole, &
-        n_multi_run,n_oo,n_tens_max, &
+        n_multi_run,n_oo,n_rel,n_tens_max, &
         natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlmamax, &
         nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nomfich_tddft_data, &
         nphi_dafs,nphim,npldafs,nplr,nplrm,nr,nrm,nseuil,nspin,nspino,nspinp, &
@@ -582,7 +583,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
   integer:: i, iabsorig, icheck_s, ie, ie_computer, ie_e, ie_g, ief, iopsymc_25, ip_max, ip0, &
     iso1, iso2, isp, isp1, isp2, j, je, jef, jseuil, l, lm1, lm2, lmax, lmax_pot, &
     lmax_probe, lmaxabs_t, lseuil, m_hubb, MPI_host_num_for_mumps, mpinodes, mpirank, mpirank0, multi_run, &
-    n_Ec, n_multi_run, n_oo, n_tens_max, n_V, natomsym, nbseuil, &
+    n_rel, n_Ec, n_multi_run, n_oo, n_tens_max, n_V, natomsym, nbseuil, &
     ncolm, ncolr, ncolt, nd3, nenerg, nenerg_s, nenerg_tddft, nge, ninit1, ninitl, ninitl_out, &
     ninitlv, nlm, nlm_fp, nlm_pot, nlm_probe, nlm_p_fp, nlmamax, nlms, nlms_g, nlms_f, &
     nphim, npldafs, nplr, nplrm, nr, nr_zet, nrm, ns_dipmag, &
@@ -610,7 +611,8 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
   complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdt
   complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
   complex(kind=db), dimension(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil):: rof0
-  complex(kind=db), dimension(3,3,ninitl_out,0:mpinodes-1):: secdd, secdd_m, secmd, secmd_m, secmm, secmm_m, secdd_t, secdd_m_t, &
+  complex(kind=db), dimension(3,3,n_rel,ninitl_out,0:mpinodes-1):: secdd, secdd_m, secdd_t, secdd_m_t
+  complex(kind=db), dimension(3,3,ninitl_out,0:mpinodes-1):: secmd, secmd_m, secmm, secmm_m, &
                                                              secmd_t, secmd_m_t, secmm_t, secmm_m_t
   complex(kind=db), dimension(3,3,3,ninitl_out,0:mpinodes-1):: secdq, secdq_m, secdq_t, secdq_m_t
   complex(kind=db), dimension(3,3,3,3,ninitl_out,0:mpinodes-1):: secdo, secdo_m, secqq, secqq_m, secdo_t, secdo_m_t, secqq_t, &
@@ -870,13 +872,13 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
 !     .and. abs( Energ(ie)*rydb -1.69_db ) > 0.0001_db ) cycle
     if( ie <= nenerg ) then
 
-      secdd(:,:,:,mpirank) = (0._db,0._db)
+      secdd(:,:,:,:,mpirank) = (0._db,0._db)
       secmm(:,:,:,mpirank) = (0._db,0._db)
       secmd(:,:,:,mpirank) = (0._db,0._db)
       secdq(:,:,:,:,mpirank) = (0._db,0._db)
       secqq(:,:,:,:,:,mpirank) = (0._db,0._db)
       secdo(:,:,:,:,:,mpirank) = (0._db,0._db)
-      secdd_m(:,:,:,mpirank) = (0._db,0._db)
+      secdd_m(:,:,:,:,mpirank) = (0._db,0._db)
       secmm_m(:,:,:,mpirank) = (0._db,0._db)
       secmd_m(:,:,:,mpirank) = (0._db,0._db)
       secdq_m(:,:,:,:,mpirank) = (0._db,0._db)
@@ -1020,16 +1022,15 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
                 Eimag_t(1),Energ(ie),Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
                 Hubb_d,icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
-                n_Ec,n_oo,n_V,nbseuil,ns_dipmag,nd3,nenerg_tddft,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlm_probe,nlm_p_fp, &
-                nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Rmtg,Rmtsd,rof0_e,rot_atom_abs,Rot_int, &
+                n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,nd3,nenerg_tddft,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlm_probe, &
+                nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Rmtg,Rmtsd,rof0_e,rot_atom_abs,Rot_int, &
                 secdd_t,secdd_m_t,secdo_t,secdo_m_t,secdq_t,secdq_m_t,secmd_t,secmd_m_t,secmm_t,secmm_m_t,secoo_t,secoo_m_t, &
                 secqq_t,secqq_m_t,Solsing,Solsing_only,Spinorbite,Chi,.true.,V_hubb_t,V_intmax,V0bdc,Vrato,Ylm_comp)
 
         deallocate( Eimag_t, rof0_e )
 
-        if( E1E1 ) secdd(:,:,:,mpirank) = secdd(:,:,:,mpirank) + secdd_t(:,:,:,mpirank)
-!        write(6,'(1p,10e11.3)') real(secdd(1,:,1,mpirank)),real(secdd(2,2:3,1,mpirank)),real(secdd(3,3,1,mpirank))
-        if( E1E1 ) secdd_m(:,:,:,mpirank) = secdd_m(:,:,:,mpirank) + secdd_m_t(:,:,:,mpirank)
+        if( E1E1 ) secdd(:,:,:,:,mpirank) = secdd(:,:,:,:,mpirank) + secdd_t(:,:,:,:,mpirank)
+        if( E1E1 ) secdd_m(:,:,:,:,mpirank) = secdd_m(:,:,:,:,mpirank) + secdd_m_t(:,:,:,:,mpirank)
         if( M1M1 ) secmm(:,:,:,mpirank) = secmm(:,:,:,mpirank) + secmm_t(:,:,:,mpirank)
         if( M1M1 ) secmm_m(:,:,:,mpirank) = secmm_m(:,:,:,mpirank) + secmm_m_t(:,:,:,mpirank)
         if( E1M1 ) secmd(:,:,:,mpirank) = secmd(:,:,:,mpirank) + secmd_t(:,:,:,mpirank)
@@ -1059,10 +1060,10 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
 
     if( mpinodes > 1 ) then
 
-      call MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo,ninitl_out,nq_nrixs, &
-                        S_nrixs,S_nrixs_l,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
+      call MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo,n_rel,ninitl_out, &
+                        nq_nrixs,S_nrixs,S_nrixs_l,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
       if( Green_int ) call MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo, &
-                        ninitl_out,nq_nrixs,S_nrixs_m,S_nrixs_l_m,secdd_m,secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
+                        n_rel,ninitl_out,nq_nrixs,S_nrixs_m,S_nrixs_l_m,secdd_m,secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
 
     endif
 
@@ -1077,9 +1078,9 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
       call write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
                   Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
                   f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer, &
-                  Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_tens_max,natomsym,nbseuil, &
-                  ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
-                  nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
+                  Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max,natomsym, &
+                  nbseuil,ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs, &
+                  npldafs,nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
                   phdt,pol,poldafse,poldafss,Rot_int,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
                   secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
                   Spherical_tensor,Spinorbite,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)

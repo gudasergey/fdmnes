@@ -5,7 +5,7 @@
 subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer, &
-            Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_tens_max,natomsym,nbseuil, &
+            Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
             nphim,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss,Rot_int, &
             sec_atom,secdd_a,secdd_m_a,secdq_a,secdq_m_a,secdo_a,secdo_m_a, &
@@ -16,10 +16,12 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   use declarations
   implicit none
 
+  real(kind=db), parameter:: quatre_mc2 = 4 * 2 / alfa_sf**2  ! en Rydberg
+  
   integer:: he, hs, i, ia, iabsorig, ib, ic1, ic2, icheck, icn1, icn2, id, ie, &
-    ie_computer, ig, ii, ind_mu, initlr, ip, ipl, ipldafs, iseuil, &
+    ie_computer, ig, ii, ind_mu, initlr, ip, ipl, ipldafs, iseuil, ispfg, &
     isym, ixandafs, j, j1, je, jhe, jhs, jpl, js, jseuil, ke, ks, l, &
-    ll, long, mpinodee, n_dim, n_tens_max, n_multi_run, n_oo, n_tens, n1, n2, na, &
+    ll, long, mpinodee, n_dim, n_tens_max, n_multi_run, n_oo, n_rel, n_tens, n1, n2, na, &
     natomsym, nb, nbseuil, nc, nccm, ncolm, ncolr, ncolt, nenerg, ninit1, ninitlr, nl, np, npldafs, &
     nphim, nplt, nplr, nplrm, nseuil, nspin, numat_abs, nxanout, nw
 
@@ -27,20 +29,22 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   character(len=length_word), dimension(ncolm):: nomabs
   character(len=length_word), dimension(ncolm*ninitlr):: title
   character(len=13), dimension(nplrm):: ltypcal
-  character(len=132) nomfich, nomfich_cal_convt, nomfich_s, nomfichdafst, nomficht
-  character(len=2310) mot
+  character(len=132):: nomfich, nomfich_cal_convt, nomfich_s, nomfichdafst, nomficht
+  character(len=2310):: mot
 
-  complex(kind=db):: cf, f_avantseuil, ph, ph_m, sec
+  complex(kind=db):: cf, f_avantseuil, matpole, matpols, ph, ph_m, sec
   complex(kind=db), dimension(3):: plae, plas, uae, uas
   complex(kind=db), dimension(8*ninitlr):: compnum
   complex(kind=db), dimension(3,3):: secdd, secmd, secmm
   complex(kind=db), dimension(3,3,3):: secdq
   complex(kind=db), dimension(3,3,3,3):: secdo, secqq
   complex(kind=db), dimension(3,3,3,3,3,3):: Mat6
-  complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secddia, secddia_m, secmdia, secmdia_m, secmmia, secmmia_m
+  complex(kind=db), dimension(3,3,n_rel,ninitlr,0:natomsym):: secddia, secddia_m
+  complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secmdia, secmdia_m, secmmia, secmmia_m
   complex(kind=db), dimension(3,3,3,ninitlr,0:natomsym):: secdqia, secdqia_m
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:natomsym):: secdoia, secdoia_m, secqqia, secqqia_m
-  complex(kind=db), dimension(3,3,ninitlr,0:mpinodee-1):: secdd_a, secdd_m_a, secmd_a, secmd_m_a, secmm_a, secmm_m_a
+  complex(kind=db), dimension(3,3,n_rel,ninitlr,0:mpinodee-1):: secdd_a, secdd_m_a
+  complex(kind=db), dimension(3,3,ninitlr,0:mpinodee-1):: secmd_a, secmd_m_a, secmm_a, secmm_m_a
   complex(kind=db), dimension(3,3,3,ninitlr,0:mpinodee-1):: secdq_a, secdq_m_a
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:mpinodee-1):: secdo_a, secdo_m_a, secqq_a, secqq_m_a
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:mpinodee-1):: secoo_a, secoo_m_a
@@ -59,14 +63,14 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   integer, dimension(npldafs):: nphi_dafs
   integer, dimension(npldafs,2):: isigpi
 
-  logical Allsite, Base_spin, Cartesian_tensor, Cor_abs, Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, E_vec, Dafs, &
-    Dafs_bio, Final_tddft, Energphot, Extract, Full_self_abs, Green_int, Green_int_mag, idafs, M1M1, Magn_sens, &
+  logical Allsite, Base_spin, Cartesian_tensor, Cor_abs, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, E_vec, &
+    Dafs, Dafs_bio, Final_tddft, Energphot, Extract, Full_self_abs, Green_int, Green_int_mag, idafs, M1M1, Magn_sens, &
     Moyenne, mu_cal, Self_abs, Spherical_signal, Spherical_tensor, Spinorbite_p, Tens_comp, Tensor_eval, Xan_atom
 
   logical, dimension(10):: Multipole
 
   real(kind=db):: ang, c_micro, c_milli, cst, conv_mbarn_nelec, dang, Densite_atom, E_cut, &
-    eph2, Ephoton, Ephseuil, V0muf, Volume_maille
+    eph2, Ephoton, Ephseuil, Omega, V0muf, Volume_maille
 
   real(kind=db), dimension(0):: rdum
   real(kind=db), dimension(ninitlr) :: ct_nelec, Epsii
@@ -91,6 +95,8 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   E1M1 = Multipole(4); E2E2 = Multipole(6);
   E3E3 = Multipole(7); M1M1 = Multipole(8)
 
+  Dip_rel = n_rel == 4
+  
   if( E3E3 ) then
     allocate( secooia(3,n_oo,3,n_oo,ninitlr,0:natomsym) )
     allocate( secooia_m(3,n_oo,3,n_oo,ninitlr,0:natomsym) )
@@ -177,7 +183,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
 ! Les tenseurs sont convertis en megabarn
     if( .not. Extract ) then
       if( xan_atom ) sec_atom(initlr) = sec_atom(initlr) * cst
-      if( E1E1 ) secdd_a(:,:,initlr,ie_computer) = secdd_a(:,:,initlr,ie_computer) * cst
+      if( E1E1 ) secdd_a(:,:,:,initlr,ie_computer) = secdd_a(:,:,:,initlr,ie_computer) * cst
       if( E1E2 ) secdq_a(:,:,:,initlr,ie_computer) = secdq_a(:,:,:,initlr,ie_computer) * cst
       if( E2E2 ) secqq_a(:,:,:,:,initlr,ie_computer) = secqq_a(:,:,:,:,initlr,ie_computer) * cst
       if( E1E3 ) secdo_a(:,:,:,:,initlr,ie_computer) = secdo_a(:,:,:,:,initlr,ie_computer) * cst
@@ -185,7 +191,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
       if( E1M1 ) secmd_a(:,:,initlr,ie_computer) = - secmd_a(:,:,initlr,ie_computer) * cst
       if( M1M1 ) secmm_a(:,:,initlr,ie_computer) = secmm_a(:,:,initlr,ie_computer) * cst
       if( Green_int_mag ) then
-        if( E1E1 ) secdd_m_a(:,:,initlr,ie_computer) = secdd_m_a(:,:,initlr,ie_computer) * cst
+        if( E1E1 ) secdd_m_a(:,:,:,initlr,ie_computer) = secdd_m_a(:,:,:,initlr,ie_computer) * cst
         if( E1E2 ) secdq_m_a(:,:,:,initlr,ie_computer) = secdq_m_a(:,:,:,initlr,ie_computer) * cst
         if( E2E2 ) secqq_m_a(:,:,:,:,initlr,ie_computer) = secqq_m_a(:,:,:,:,initlr,ie_computer) * cst
         if( E1E3 ) secdo_m_a(:,:,:,:,initlr,ie_computer) = secdo_m_a(:,:,:,:,initlr,ie_computer) * cst
@@ -205,16 +211,18 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
       endif
 
       if( E1E1 ) then
-        secdd(:,:) = secdd_a(:,:,initlr,ie_computer)
-        if( isym /= 1 ) call rot_tensor_2( secdd, matopsym )
-        if( isymeq(ia) < 0 .and. .not. Green_int ) secdd(:,:) = conjg( secdd(:,:) )
-        secddia(:,:,initlr,ia) = secdd(:,:)
-        if( Green_int_mag ) then
-          secdd(:,:) = secdd_m_a(:,:,initlr,ie_computer)
+        do ispfg = 1,n_rel
+          secdd(:,:) = secdd_a(:,:,ispfg,initlr,ie_computer)
           if( isym /= 1 ) call rot_tensor_2( secdd, matopsym )
-          if( isymeq(ia) < 0 ) secdd(:,:) = - secdd(:,:)
-          secddia_m(:,:,initlr,ia) = secdd(:,:)
-        endif
+          if( isymeq(ia) < 0 .and. .not. Green_int ) secdd(:,:) = conjg( secdd(:,:) )
+          secddia(:,:,ispfg,initlr,ia) = secdd(:,:)
+          if( Green_int_mag ) then
+            secdd(:,:) = secdd_m_a(:,:,ispfg,initlr,ie_computer)
+            if( isym /= 1 ) call rot_tensor_2( secdd, matopsym )
+            if( isymeq(ia) < 0 ) secdd(:,:) = - secdd(:,:)
+            secddia_m(:,:,ispfg,initlr,ia) = secdd(:,:)
+          endif
+        end do
       endif
 
       if( E1E2 ) then
@@ -354,7 +362,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   endif
 
   if( Spherical_tensor ) call Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2, &
-            Energ,Ephseuil,Epsii,Eseuil(nbseuil),icheck,ie,Int_tens,jseuil,Magn_sens,Moyenne,n_tens_max, &
+            Energ,Ephseuil,Epsii,Eseuil(nbseuil),icheck,ie,Int_tens,jseuil,Magn_sens,Moyenne,n_rel,n_tens_max, &
             natomsym,nenerg,ninit1,ninitlr,nomfich_s,nphim,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdafs,phdf0t1, &
             phdt1,pol,Poldafse,Poldafss,secddia,secdqia,secmdia,secqqia,Spherical_signal,Taux_eq,V0muf,Vec,Vecdafse,Vecdafss)
 
@@ -410,7 +418,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
 
       if( Tensor_eval ) then
 
-        secddia(:,:,:,0) = (0._db,0._db)
+        secddia(:,:,:,:,0) = (0._db,0._db)
         secdqia(:,:,:,:,0) = (0._db,0._db)
         secdqia_m(:,:,:,:,0) = (0._db,0._db)
         secqqia(:,:,:,:,:,0) = (0._db,0._db)
@@ -420,7 +428,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
         secmdia_m(:,:,:,0) = (0._db,0._db)
         secmmia(:,:,:,0) = (0._db,0._db)
         if( Green_int_mag ) then
-          secddia_m(:,:,:,0) = (0._db,0._db)
+          secddia_m(:,:,:,:,0) = (0._db,0._db)
           secqqia_m(:,:,:,:,:,0) = (0._db,0._db)
           secdoia_m(:,:,:,:,:,0) = (0._db,0._db)
           if( E3E3 ) secooia_m(:,:,:,:,:,0) = (0._db,0._db)
@@ -438,7 +446,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
           endif
           ph_m = img * ph
 
-          if( E1E1 ) secddia(:,:,:,0) = secddia(:,:,:,0) + ph * secddia(:,:,:,ia)
+          if( E1E1 ) secddia(:,:,:,:,0) = secddia(:,:,:,:,0) + ph * secddia(:,:,:,:,ia)
           
           if( E1E2 ) then
             if( Green_int ) then
@@ -468,7 +476,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
           if( M1M1 ) secmmia(:,:,:,0) = secmmia(:,:,:,0) + ph * secmmia(:,:,:,ia)
 
           if( Green_int_mag ) then
-            if( E1E1 ) secddia_m(:,:,:,0) = secddia_m(:,:,:,0) + ph * secddia_m(:,:,:,ia)
+            if( E1E1 ) secddia_m(:,:,:,:,0) = secddia_m(:,:,:,:,0) + ph * secddia_m(:,:,:,:,ia)
             if( E1E2 ) secdqia_m(:,:,:,:,0) = secdqia_m(:,:,:,:,0) + ph * secdqia_m(:,:,:,:,ia)
             if( E2E2 ) secqqia_m(:,:,:,:,:,0) = secqqia_m(:,:,:,:,:,0) + ph * secqqia_m(:,:,:,:,:,ia)
             if( E1E3 ) secdoia_m(:,:,:,:,:,0) = secdoia_m(:,:,:,:,:,0) + ph * secdoia_m(:,:,:,:,:,ia)
@@ -491,7 +499,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
             endif
             if( ia /= 0 .and. ( ipl > 1 .and. .not. idafs ) ) cycle
             call write_cartesian_tensor(Densite_atom,E_cut,E1E2,E2E2,Ephseuil,Epsii,Eseuil(nbseuil),ia,ie,ipldafs,jseuil, &
-               M1M1,Magn_sens,natomsym,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,secddia,secdqia, &
+               M1M1,Magn_sens,n_rel,natomsym,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,secddia,secdqia, &
                secdqia_m,secqqia,secmdia,Tens_comp,V0muf,Core_resolved)
           end do
         endif
@@ -577,14 +585,17 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
                   write(3,149) ia
                 endif
               endif
-              do ke = 1,3
-                if( Green_int_mag ) then
-                  write(3,150) secddia(ke,:,initlr,ia), secddia_m(ke,:,initlr,ia)
-                elseif( Tens_comp ) then
-                  write(3,150) secddia(ke,:,initlr,ia)
-                else
-                  write(3,150) real( secddia(ke,:,initlr,ia) )
-                endif
+              do ispfg = 1,n_rel
+                if( ispfg > 1 ) write(3,*)
+                do ke = 1,3
+                  if( Green_int_mag ) then
+                    write(3,150) secddia(ke,:,ispfg,initlr,ia), secddia_m(ke,:,ispfg,initlr,ia)
+                  elseif( Tens_comp ) then
+                    write(3,150) secddia(ke,:,ispfg,initlr,ia)
+                  else
+                    write(3,150) real( secddia(ke,:,ispfg,initlr,ia) )
+                  endif
+                end do
               end do
             endif
             if( E1E2 ) then
@@ -933,16 +944,145 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
         do ia = 0,na
           do initlr = 1,ninitlr
 
+            if( Core_resolved .and. .not. Final_tddft ) then
+              if( initlr <= ninit1 ) then
+                iseuil = 1
+              else
+                iseuil = min(2, nbseuil)
+              endif
+            elseif( Final_tddft ) then
+              iseuil = min(2, nbseuil)
+            else
+              iseuil = initlr
+            endif
+
+            Ephoton = Energ(ie) + Eseuil(iseuil)
+! Pour les seuils de tres basse Energie:
+            Ephoton = max(0.001_db/Rydb, Ephoton)
+            Omega = Ephoton / quatre_mc2 
+
             if( E1E1 ) then
               sec = (0._db,0._db)
-              do ke = 1,3
-                sec = sec + plae(ke) * sum( conjg(plas(:)) * secddia(:,ke,initlr,ia))
-              end do
-              if( Green_int_mag ) then
+ 
+              if( .not. Dip_rel ) then
                 do ke = 1,3
-                  sec = sec + plae(ke) * sum( conjg(plas(:)) * secddia_m(:,ke,initlr,ia) )
+                  sec = sec + plae(ke) * sum( conjg(plas(:)) * secddia(:,ke,1,initlr,ia))
                 end do
+                if( Green_int_mag ) then
+                  do ke = 1,3
+                    sec = sec + plae(ke) * sum( conjg(plas(:)) * secddia_m(:,ke,1,initlr,ia) )
+                  end do
+                endif
+                
+              else
+
+                do ispfg = 1,n_rel
+
+                  do ke = 1,3
+
+                    if( ispfg == 1 .or. ispfg == 4 ) then
+                      matpole =  plae(ke)
+                    else
+                      matpole = (0._db, 0._db)
+                    endif
+                    if( ispfg == 1 ) then
+                      if( ke == 1 ) then
+                        matpole = matpole - img * Omega * plae(2)
+                      elseif( ke == 2 ) then
+                        matpole = matpole + img * Omega * plae(1)
+                      endif
+                    elseif( ispfg == 2 ) then
+                      if( ke == 1 ) then
+                        matpole = matpole - Omega * plae(3)
+                      elseif( ke == 2 ) then
+                        matpole = matpole - img * Omega * plae(3)
+                      elseif( ke == 3 ) then
+                        matpole = matpole + img * Omega * ( plae(2) - img * plae(1) )
+                      endif
+                    elseif( ispfg == 3 ) then
+                      if( ke == 1 ) then
+                        matpole = matpole + Omega * plae(3)
+                      elseif( ke == 2 ) then
+                        matpole = matpole - img * Omega * plae(3)
+                      elseif( ke == 3 ) then
+                        matpole = matpole + img * Omega * ( plae(2) + img * plae(1) )
+                      endif
+                    elseif( ispfg == 4 ) then
+                       if( ke == 1 ) then
+                        matpole = matpole + img * Omega * plae(2)
+                      elseif( ke == 2 ) then
+                        matpole = matpole - img * Omega * plae(1)
+                      endif
+                    endif 
+ 
+                    do ks = 1,3
+                      if( ispfg == 1 .or. ispfg == 4 ) then
+                        matpols = plas(ks)
+                      else
+                        matpols = (0._db, 0._db)
+                      endif 
+ 
+                      if( ispfg == 1 ) then
+                        if( ke == 1 ) then
+                          matpols = matpols - img * Omega * plas(2)
+                        elseif( ke == 2 ) then
+                          matpols = matpols + img * Omega * plas(1)
+                        endif
+                      elseif( ispfg == 2 ) then
+                        if( ke == 1 ) then
+                          matpols = matpols - Omega * plas(3)
+                        elseif( ke == 2 ) then
+                          matpols = matpols - img * Omega * plas(3)
+                        elseif( ke == 3 ) then
+                          matpols = matpols + img * Omega * ( plas(2) - img * plas(1) )
+                        endif
+                      elseif( ispfg == 3 ) then
+                        if( ke == 1 ) then
+                          matpols = matpols + Omega * plas(3)
+                        elseif( ke == 2 ) then
+                          matpols = matpols - img * Omega * plas(3)
+                        elseif( ke == 3 ) then
+                          matpols = matpols + img * Omega * ( plas(2) + img * plas(1) )
+                        endif
+                      elseif( ispfg == 4 ) then
+                         if( ke == 1 ) then
+                          matpols = matpols + img * Omega * plas(2)
+                        elseif( ke == 2 ) then
+                          matpols = matpols - img * Omega * plas(1)
+                        endif
+                      endif 
+
+                      select case(ispfg )
+                        case(1)
+                          sec = sec + matpole * conjg( matpols ) * ( secddia(ks,ke,1,initlr,ia) + secddia(ks,ke,4,initlr,ia) ) / 2 
+                        case(2)
+                          sec = sec + matpole * conjg( matpols ) * ( secddia(ks,ke,2,initlr,ia) + secddia(ks,ke,3,initlr,ia) ) / 2 
+                        case(3)
+                          sec = sec + matpole * conjg( matpols ) * ( secddia(ks,ke,2,initlr,ia) - secddia(ks,ke,3,initlr,ia) ) / 2 
+                        case(4)
+                          sec = sec + matpole * conjg( matpols ) * ( secddia(ks,ke,1,initlr,ia) - secddia(ks,ke,4,initlr,ia) ) / 2
+                      end select
+                      
+                      if( .not. Green_int_mag ) cycle
+ 
+                      select case(ispfg )
+                        case(1)
+                          sec = sec + matpole * conjg( matpols ) * ( secddia_m(ks,ke,1,initlr,ia) + secddia_m(ks,ke,4,initlr,ia))/2 
+                        case(2)
+                          sec = sec + matpole * conjg( matpols ) * ( secddia_m(ks,ke,2,initlr,ia) + secddia_m(ks,ke,3,initlr,ia))/2 
+                        case(3)
+                          sec = sec + matpole * conjg( matpols ) * ( secddia_m(ks,ke,2,initlr,ia) - secddia_m(ks,ke,3,initlr,ia))/2 
+                        case(4)
+                          sec = sec + matpole * conjg( matpols ) * ( secddia_m(ks,ke,1,initlr,ia) - secddia_m(ks,ke,4,initlr,ia))/2
+                      end select
+                      
+                    end do
+ 
+                  end do
+                end do
+
               endif
+              
 ! Il manque un facteur pi qui a deja ete pris en compte dans le calcul
 ! du tenseur dans la routine Tens_ab.
               if( idafs ) then
@@ -1227,6 +1367,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   endif
 
   if( icheck > 0 ) then
+    write(3,'(/1x,a7,1p,e12.5)') 'Omega =', Omega
     do ia = 0,na
       if( ia == 0 ) then
         if( nseuil /= 0 ) then
@@ -1918,7 +2059,7 @@ end
 !***********************************************************************
 
 subroutine write_cartesian_tensor(Densite_atom,E_cut,E1E2,E2E2,Ephseuil, Epsii,Eseuil,ia,ie,ipldafs,jseuil, &
-                 M1M1,magn_sens,natomsym,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,secddia,secdqia,secdqia_m, &
+                 M1M1,magn_sens,n_rel,natomsym,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,secddia,secdqia,secdqia_m, &
                  secqqia,secmdia,tens_comp,v0muf,Core_resolved)
 
   use declarations
@@ -1930,9 +2071,12 @@ subroutine write_cartesian_tensor(Densite_atom,E_cut,E1E2,E2E2,Ephseuil, Epsii,E
   character(len=Length_word) mot
   character(len=Length_word), dimension(n_dim):: nomtens
 
+  integer:: n_rel
+  
   complex(kind=db):: zero_c
   complex(kind=db), dimension(1):: cdum
-  complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secddia, secmdia
+  complex(kind=db), dimension(3,3,n_rel,ninitlr,0:natomsym):: secddia
+  complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secmdia
   complex(kind=db), dimension(3,3,3,ninitlr,0:natomsym):: secdqia, secdqia_m
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:natomsym):: secqqia
 
@@ -1969,13 +2113,13 @@ subroutine write_cartesian_tensor(Densite_atom,E_cut,E1E2,E2E2,Ephseuil, Epsii,E
         index = index + 1
         mot(4:4) = achar(j+119)
         if( tens_comp ) mot(5:6) = '_r'
-        Tens(index) = real( secddia(i,j,initlr,ia),db )
+        Tens(index) = real( secddia(i,j,1,initlr,ia),db )
         nomtens(index) = mot
         if( tens_comp ) then
           index = index + 1
           mot(6:6) = 'i'
           nomtens(index) = mot
-          Tens(index) = aimag( secddia(i,j,initlr,ia) )
+          Tens(index) = aimag( secddia(i,j,1,initlr,ia) )
         endif
       end do
     end do
@@ -2484,7 +2628,7 @@ end
 !***********************************************************************
 
 subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2, &
-            Energ,Ephseuil,Epsii,Eseuil,icheck,ie,Int_tens,jseuil,Magn_sens,Moyenne,n_tens_max, &
+            Energ,Ephseuil,Epsii,Eseuil,icheck,ie,Int_tens,jseuil,Magn_sens,Moyenne,n_rel,n_tens_max, &
             natomsym,nenerg,ninit1,ninitlr,nomfich_s,nphim,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdafs,phdf0t, &
             phdt,pol,Poldafse,Poldafss,secddia,secdqia,secmdia,secqqia,Spherical_signal,Taux_eq,V0muf,Vec,Vecdafse,Vecdafss)
 
@@ -2496,7 +2640,7 @@ subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E
   integer, parameter:: n_tens_qq = 25 
   integer, parameter:: n_tens_dm = 9 
 
-  integer:: i, ib, icheck, ie, initlr, ipl, ipldafs, jseuil, n_tens_max, natomsym, nenerg, &
+  integer:: i, ib, icheck, ie, initlr, ipl, ipldafs, jseuil, n_rel, n_tens_max, natomsym, nenerg, &
             ninit1, ninitlr, nphim, npldafs, nplr, nplrm, nplt, nseuil, numat_abs
   
   character(len=132):: nomfich_s
@@ -2509,7 +2653,8 @@ subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E
   complex(kind=db), dimension(n_tens_dq,ninitlr):: Sph_tensor_dq, Sph_tensor_dq_m
   complex(kind=db), dimension(n_tens_qq,ninitlr):: Sph_tensor_qq
   complex(kind=db), dimension(n_tens_dm,ninitlr):: Sph_tensor_dm, Sph_tensor_dm_m
-  complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secddia, secmdia
+  complex(kind=db), dimension(3,3,n_rel,ninitlr,0:natomsym):: secddia
+  complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secmdia
   complex(kind=db), dimension(3,3,3,ninitlr,0:natomsym):: secdqia
   complex(kind=db), dimension(3):: Pl_i, Pl_s
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:natomsym):: secqqia
@@ -2625,13 +2770,13 @@ subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E
   
 ! Calcul des tenseurs de l'absorption
   call Abs_Spherical_tensor(Com_dm,Com_dm_m,Com_dd,Com_dq,Com_dq_m,Com_qq,ct_nelec,E1E1,E1E2,E1M1,E2E2,icheck,ie, &
-       Magn_sens,natomsym,ninitlr,secddia,secdqia,secmdia,secqqia, &
+       Magn_sens,n_rel,natomsym,ninitlr,secddia,secdqia,secmdia,secqqia, &
        Sph_tensor_ia_dd,Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_qq,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Taux_eq)
 
   call Write_Spherical_tensor(Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2,Energ,Ephseuil,Epsii, &
        Eseuil,icheck,ie,Int_tens,jseuil,Magn_sens,n_tens_dd,n_tens_dm,n_tens_dq,n_tens_max,n_tens_qq, &
        natomsym,nenerg,ninit1,ninitlr,nomfich_s,nseuil,numat_abs, &
-       Sph_tensor_ia_dd,Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_qq,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,V0muf)
+       Sph_tensor_ia_dd,Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Sph_tensor_ia_qq,V0muf)
 
   if( .not. Spherical_signal ) return
   
@@ -2853,7 +2998,7 @@ end
 !***********************************************************************
 
 subroutine Abs_Spherical_tensor(Com_dm,Com_dm_m,Com_dd,Com_dq,Com_dq_m,Com_qq,ct_nelec,E1E1,E1E2,E1M1,E2E2,icheck,ie, &
-       Magn_sens,natomsym,ninitlr,secddia,secdqia,secmdia,secqqia, &
+       Magn_sens,n_rel,natomsym,ninitlr,secddia,secdqia,secmdia,secqqia, &
        Sph_tensor_ia_dd,Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_qq,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Taux_eq)
 
   use declarations
@@ -2864,7 +3009,7 @@ subroutine Abs_Spherical_tensor(Com_dm,Com_dm_m,Com_dd,Com_dq,Com_dq_m,Com_qq,ct
   integer, parameter:: n_tens_qq = 25 
   integer, parameter:: n_tens_dm = 9 
 
-  integer:: i, ia, ib, icheck, ie, initlr, natomsym, ninitlr
+  integer:: i, ia, ib, icheck, ie, initlr, n_rel, natomsym, ninitlr
   
   character(len=58), dimension(9):: Com_dd, com_dm, Com_dm_m
   character(len=58), dimension(15):: Com_dq, Com_dq_m
@@ -2877,7 +3022,8 @@ subroutine Abs_Spherical_tensor(Com_dm,Com_dm_m,Com_dd,Com_dq,Com_dq_m,Com_qq,ct
   complex(kind=db), dimension(3,3):: secdd, secmd
   complex(kind=db), dimension(3,3,3):: secdq
   complex(kind=db), dimension(3,3,3,3):: secqq
-  complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secddia, secmdia
+  complex(kind=db), dimension(3,3,n_rel,ninitlr,0:natomsym):: secddia
+  complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secmdia
   complex(kind=db), dimension(3,3,3,ninitlr,0:natomsym):: secdqia
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:natomsym):: secqqia
 
@@ -2902,7 +3048,7 @@ subroutine Abs_Spherical_tensor(Com_dm,Com_dm_m,Com_dd,Com_dq,Com_dq_m,Com_qq,ct
     do ia = 1,natomsym
 
       if( E1E1 ) then
-        secdd(:,:) = secddia(:,:,initlr,ia)
+        secdd(:,:) = secddia(:,:,1,initlr,ia)
         call Sph_tensor_dd_cal(n_tens_dd,secdd,Sph_tensor_dd)
  ! conversion en nombre d'electrons
         Sph_tensor_ia_dd(:,ia,initlr) = ct_nelec(initlr) * pi * real( Sph_Tensor_dd(:), db )

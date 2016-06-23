@@ -1343,7 +1343,8 @@ end
 subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk,axyz_cap,Base_spin, &
     basereel,Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free,Clementi,com, &
-    comt,Core_resolved,Coupelapw,Cubmat,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density,Density_comp,Dipmag,Doping, &
+    comt,Core_resolved,Coupelapw,Cubmat,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density,Density_comp,Dip_rel,Dipmag, &
+    Doping, &
     dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Eneg_i,Eneg_n_i,Energphot, &
     Extract,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e, &
     Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs, &
@@ -1430,8 +1431,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
   logical:: Absauto, adimpin, All_nrixs, Allsite, ATA, Atom, Atom_conf, Atom_nonsph, Atom_occ_hubb, Atomic_scr, Axe_loc, &
     Base_spin, Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Cif, Clementi, &
-    Core_resolved, Core_resolved_e, Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, Dipmag, &
-    Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Film, &
+    Core_resolved, Core_resolved_e, Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, Dip_rel,&
+    Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Film, &
     exc_imp, Extract, FDM_comp, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, &
     Gamma_hole_imp, Gamma_tddft, Green_s, Green_self, Green_int, Hedin, hkl_film, Hubbard, korigimp, lmaxfree, lmoins1, lplus1, &
     M1M1, M1M2, M2M2, Magnetic, matper, muffintin, noncentre, nonexc, nonexc_imp, normaltau, no_core_resolved, no_dipquad, &
@@ -1528,6 +1529,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Cif = .false.
   com(:) = ' Dirac'
   Coupelapw = .false.
+  Dip_rel = .false.
   E1E1 = .true.;  E1E2e = .false.; E1E3 = .false.
   E1M1 = .false.
   E1M2 = .true.
@@ -1812,6 +1814,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('hkl_film')
           hkl_film = .true.
+
+        case('dip_rel')
+          Dip_rel = .true.
 
         case('fdm_comp')
           FDM_comp = .true.
@@ -3692,7 +3697,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       alfpot = -1._db
     endif
 
-    if( Optic ) Seuil = 'Opt'
+    if( Optic ) then
+      Seuil = 'Opt'
+      Dip_rel = .false.
+    endif
 
     if( seuil /= 'K1' .and. seuil /= 'L1' .and. seuil /= 'L2' .and. &
         seuil /= 'L3' .and. seuil /= 'M1' .and. seuil /= 'M2' .and. &
@@ -3756,6 +3764,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     if( SCF_exc_imp .and. .not. Optic ) self_nonexc = .false.
     if( SCF_exc_imp .and. .not. Optic .and. .not. nonexc_imp ) nonexc = .false.
     if( nonexc ) self_nonexc = .true.
+    if( .not. nonexc .and. .not. SCF ) self_nonexc = .false.
     l = l_level_val(numat_abs)
     if( .not. ( nonexc .and. self_nonexc ) .and. ( l == 2 .or. l == 3 ) ) scf_elecabs = .true.
 
@@ -4070,6 +4079,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         write(3,350) egamme(1:ngamme)
         write(3,'(A)') ' Dipole component'
       endif
+      if( Dip_rel ) write(3,'(A)') ' E1E1 includes the spin-orbit relativistic transition channel'
       if( Quadrupole ) write(3,'(A)') ' Quadrupole component'
       if( Octupole ) write(3,'(A)') ' Octupole component'
       if( Dipmag ) write(3,'(A)') ' Magnetic dipole component'
@@ -4518,6 +4528,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Cap_shift,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Cap_thickness,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(D_max_pot,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Dip_rel,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(dyn_eg,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(dyn_g,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Bormann,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)

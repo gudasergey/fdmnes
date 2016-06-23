@@ -449,27 +449,27 @@ end
 ! Contains also a shift to get the edge energy at the reference data value.
 ! Used to shift the edge, versus the reference in convolution.f90
 
-function Epsii_ref(jseuil,nseuil,Z)
+!function Epsii_ref(jseuil,nseuil,Z)
 
-  use declarations
-  implicit none
+!  use declarations
+!  implicit none
 
-  integer, parameter:: nassm = 103
-  integer, parameter:: nm1 = 18
-  integer, parameter:: nm4 = 30
-  integer, parameter:: nn1 = 36
-  integer, parameter:: nn4 = 48
-  integer, parameter:: nn6 = 58
-  integer, parameter:: no1 = 54
-  integer, parameter:: no4 = 80
-  integer, parameter:: np1 = 86
-  integer, parameter:: np2 = 87
+!  integer, parameter:: nassm = 103
+!  integer, parameter:: nm1 = 18
+!  integer, parameter:: nm4 = 30
+!  integer, parameter:: nn1 = 36
+!  integer, parameter:: nn4 = 48
+!  integer, parameter:: nn6 = 58
+!  integer, parameter:: no1 = 54
+!  integer, parameter:: no4 = 80
+!  integer, parameter:: np1 = 86
+!  integer, parameter:: np2 = 87
   
-  integer:: jseuil, nseuil, Z
+!  integer:: jseuil, nseuil, Z
   
-  real(kind=db):: Epsii_ref
+!  real(kind=db):: Epsii_ref
   
-  real(kind=db), dimension(nassm):: Epsii_K
+!  real(kind=db), dimension(nassm):: Epsii_K
 !  real(kind=db), dimension(nassm):: Epsii_K, Epsii_L1, Epsii_L2, Epsii_L3
 !  real(kind=db), dimension(nm1:nassm):: Epsii_m1, Epsii_m2, Epsii_m3
 !  real(kind=db), dimension(nm4:nassm):: Epsii_m4, Epsii_m5
@@ -481,35 +481,35 @@ function Epsii_ref(jseuil,nseuil,Z)
 !  real(kind=db), dimension(np1:nassm):: Epsii_p1
 !  real(kind=db), dimension(np2:nassm):: Epsii_p2, Epsii_p3
 
-  data Epsii_K/  0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-                 0._db,    0._db,    0._db/
+!  data Epsii_K/  0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+!                 0._db,    0._db,    0._db/
 
-  if( Z > nassm ) then
-    Epsii_ref = 0._db
-    return
-  endif
+!  if( Z > nassm ) then
+!    Epsii_ref = 0._db
+!    return
+!  endif
    
-  select case(nseuil)
+!  select case(nseuil)
 
-    case(1)
-      Epsii_ref = Epsii_K( Z )
+!    case(1)
+!      Epsii_ref = Epsii_K( Z )
 
-    case default
-      Epsii_ref = 0._db
+!    case default
+!      Epsii_ref = 0._db
     
-  end select
+!  end select
     
-  return
-end
+!  return
+!end
 
 !***********************************************************************
 

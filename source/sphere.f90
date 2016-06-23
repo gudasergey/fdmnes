@@ -1761,7 +1761,7 @@ end
 
 !**********************************************************************
 
-! Calcul de l'integrale radiale de la regle d'or de Fermi.
+! Calcul de l'integrale radiale de la regle d'or dite de Fermi.
 ! psii, u et ur sont les fonctions d'onde fois r.
 
 subroutine radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,l,nlm1,nlm2,nbseuil, &

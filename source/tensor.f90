@@ -16,8 +16,8 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
                 Eimag,Energ,Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a,Hubb_d, &
                 icheck,ie,ip_max,ip0,is_g,lmax,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
-                n_Ec,n_oo,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe,nlm_p_fp, &
-                nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Rmtg,Rmtsd,rof0,rot_atom_abs,Rot_int, &
+                n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe, &
+                nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Rmtg,Rmtsd,rof0,rot_atom_abs,Rot_int, &
                 secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m, &
                 secqq,secqq_m,Solsing,Solsing_only,Spinorbite,Taull,Tddft,V_hubb,V_intmax,V0bd,Vrato,Ylm_comp)
 
@@ -25,9 +25,9 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
   implicit none
 
   integer:: he, hhe, hhs, hs, i, icheck, ie, ief, initlr, initlt, ip, ip_max, ip0, ipr, irang, irang1, is, isi, isol, &
-    isp, j, je, jhe, jhs, jje, jjhe, jjhs, jjs, jrang, js, k, ke, kke, kks, ks, le, lm, lmax, lmax_pot, lme, &
-    lmomax, lms, lomax, ls, lseuil, m_hubb, me, mpinodes, mpirank, mpirank0, &
-    ms, n_Ec, n_oo ,n_V, nbseuil, ndim2, nenerg_tddft, ninit1, ninitl, &
+    isp, ispfg, isping, ispinf, j, je, jhe, jhs, jje, jjhe, jjhs, jjs, jrang, js, k, ke, kke, kks, ks, le, lm, lmax, lmax_pot, &
+    lme, lmomax, lms, lomax, ls, lseuil, m_hubb, me, mpinodes, mpirank, mpirank0, &
+    ms, n_Ec, n_oo, n_rel, n_V, nbseuil, ndim2, nenerg_tddft, ninit1, ninitl, &
     ninitlr, ninitlv, nhe, nje, nhs, njs, nlm_pot, nlm_probe, nlm1g, &
     nlm2g, nlm_p_fp, nlmamax, nr, nr_zet, nrang, nrm, ns_dipmag, nspin, nspino, nspinp, numat
 
@@ -38,11 +38,12 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
   complex(kind=db), dimension(3,3,3) :: Mat3
   complex(kind=db), dimension(3,3,3,3) :: Mat4
   complex(kind=db), dimension(3,3,3,3,3,3) :: Mat6
-  complex(kind=db), dimension(3,3,ninitlr,0:mpinodes-1):: secdd, secdd_m, secmd, secmd_m, secmm, secmm_m
+  complex(kind=db), dimension(3,3,ninitlr,0:mpinodes-1):: secmd, secmd_m, secmm, secmm_m
   complex(kind=db), dimension(3,3,3,ninitlr,0:mpinodes-1):: secdq, secdq_m
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:mpinodes-1):: secdo, secdo_m, secqq, secqq_m
+  complex(kind=db), dimension(3,3,n_rel,ninitlr,0:mpinodes-1):: secdd, secdd_m
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:mpinodes-1):: secoo, secoo_m
-  complex(kind=db), dimension(lmomax,lmomax,ninitlr):: Tens_lm, Tens_lm_m
+  complex(kind=db), dimension(lmomax,lmomax,n_rel,ninitlr):: Tens_lm, Tens_lm_m
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
   complex(kind=db), dimension(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil):: rof0
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
@@ -57,9 +58,9 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
   integer, dimension(3,3,3,3):: msymdo, msymdoi, msymqq, msymqqi
   integer, dimension(3,n_oo,3,n_oo):: msymoo, msymooi
 
-  logical Base_spin, Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, FDM_comp, Final_optic, Final_tddft, Full_potential, &
-    Green, Green_int, Hubb_a, Hubb_d, lmoins1, lplus1, M_depend, M1M1, No_diag, NRIXS, Relativiste, Solsing, Solsing_only, &
-    Spinorbite, Tddft, Ylm_comp
+  logical Base_spin, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, FDM_comp, Final_optic, Final_tddft, &
+    Full_potential, Green, Green_int, Hubb_a, Hubb_d, lmoins1, lplus1, M_depend, M1M1, No_diag, NRIXS, Relativiste, &
+    Solsing, Solsing_only, Spinorbite, Tddft, Ylm_comp
 
   logical, dimension(10):: Multipole
 
@@ -89,6 +90,8 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
   E3E3 = Multipole(7); M1M1 = Multipole(8)
 
   NRIXS = .false.
+  Dip_rel = n_rel == 4
+
 ! Calcul des integrales radiales et de la solution singuliere
   if( Final_optic ) then
 
@@ -295,21 +298,22 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
 
   end do
 
-  secdd(:,:,:,mpirank) = (0._db,0._db)
   secmm(:,:,:,mpirank) = (0._db,0._db)
   secmd(:,:,:,mpirank) = (0._db,0._db)
   secdq(:,:,:,:,mpirank) = (0._db,0._db)
   secqq(:,:,:,:,:,mpirank) = (0._db,0._db)
   secdo(:,:,:,:,:,mpirank) = (0._db,0._db)
+  secdd(:,:,:,:,mpirank) = (0._db,0._db)
+
   if( E3E3 ) secoo(:,:,:,:,:,mpirank) = (0._db,0._db)
 
   if( Green_int ) then
-    secdd_m(:,:,:,mpirank) = (0._db,0._db)
     secmm_m(:,:,:,mpirank) = (0._db,0._db)
     secmd_m(:,:,:,mpirank) = (0._db,0._db)
     secdq_m(:,:,:,:,mpirank) = (0._db,0._db)
     secqq_m(:,:,:,:,:,mpirank) = (0._db,0._db)
     secdo_m(:,:,:,:,:,mpirank) = (0._db,0._db)
+    secdd_m(:,:,:,:,mpirank) = (0._db,0._db)
     if( E3E3 ) secoo_m(:,:,:,:,:,mpirank) = (0._db,0._db)
   endif
 ! Boucles sur le rang des tenseurs
@@ -318,8 +322,8 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
 
   do irang = irang1,nrang
     do jrang = irang,nrang
-      Tens_lm(:,:,:) = (0._db,0._db)
-      Tens_lm_m(:,:,:) = (0._db,0._db)
+      Tens_lm(:,:,:,:) = (0._db,0._db)
+      Tens_lm_m(:,:,:,:) = (0._db,0._db)
       if( .not. E1E1 .and. irang == 1 .and. jrang == 1 ) cycle
       if( .not. E1E2 .and. irang == 1 .and. jrang == 2 ) cycle
       if( .not. E2E2 .and. irang == 2 .and. jrang == 2 ) cycle
@@ -389,7 +393,7 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
                   elseif( irang == 1 .and. jrang == 1 ) then
                     if( ks < ke ) cycle
                     if( msymdd(ke,ks) == 0 .and. msymddi(ke,ks) == 0 ) cycle
-                    if( sum( abs( secdd(ke,ks,:,mpirank) ) ) > 1.e-15_db ) cycle
+                    if( sum( abs( secdd(ke,ks,1,:,mpirank) ) ) > 1.e-15_db ) cycle
                   elseif( irang == 1 .and. jrang == 2 ) then
                     if( msymdq(ke,ks,js) == 0 .and. msymdqi(ke,ks,js) == 0 ) cycle
                     if( sum( abs( secdq(ke,ks,js,:,mpirank) ) ) > 1.e-15_db ) cycle
@@ -403,10 +407,16 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
                     if( sum( abs( secoo(ke,jhe,ks,jhs,:,mpirank) ) ) > 1.e-15_db ) cycle
                   endif
 
-                  Tens(:) = (0._db,0._db)
-                  Tens_m(:) = (0._db,0._db)
+! To take into account the relativistic transition channel (just for E1E1). 
+                  do ispfg = 1,n_rel
+                    if( ispfg > 1 .and. ( irang /= 1 .or. jrang /= 1 ) ) exit 
+                    isping = ( ispfg + 1 ) / 2
+                    ispinf = 2 - mod(ispfg,2) 
 
-                  if( icheck > 1 ) write(3,140) ke, je, he, ks, js, hs
+                    Tens(:) = (0._db,0._db)
+                    Tens_m(:) = (0._db,0._db)
+
+                    if( icheck > 1 ) write(3,140) ke, je, he, ks, js, hs, ispfg
 
 ! Boucles sur les composantes spheriques des tenseurs
                   lme = 0
@@ -426,7 +436,7 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
                           if( abs(clms) < eps10 ) cycle
 
 ! Calcul de la composante du tenseur
-                          if( sum( abs( Tens_lm(lme,lms,:) ) ) < 1.e-15_db ) then
+                          if( sum( abs( Tens_lm(lme,lms,ispfg,:) ) ) < 1.e-15_db ) then
 
                             if( icheck > 1 ) write(3,150) le, me, ls, ms, clme, clms
 
@@ -435,18 +445,19 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
                                 lplus1,M_depend,ns_dipmag,ndim2,ninitlr,nlm1g,nlm2g,nlm_probe,nlm_p_fp,nspinp,nspino,roff_rr, &
                                 Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
                             else
-                              call tens_ab(coef_g,Core_resolved,FDM_comp,Final_tddft,Green,Green_int,icheck,ip_max,ip0,irang, &
-                                is_g,jrang,le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2,ninit1, &
-                                ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
+                              call tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green_int,icheck,ip_max, &
+                                ip0,irang,is_g,isping,ispinf,jrang,le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2, &
+                                ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
                                 Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
                             endif
 
-                            Tens_lm(lme,lms,:) = Ten(:)
-                            Tens_lm_m(lme,lms,:) = Ten_m(:)
+                            Tens_lm(lme,lms,ispfg,:) = Ten(:)
+                            Tens_lm_m(lme,lms,ispfg,:) = Ten_m(:)
+
                           endif
 
-                          Tens(:) = Tens(:) + clme * clms * Tens_lm(lme,lms,:)
-                          Tens_m(:) = Tens_m(:) + clme * clms * Tens_lm_m(lme,lms,:)
+                          Tens(:) = Tens(:) + clme * clms * Tens_lm(lme,lms,ispfg,:)
+                          Tens_m(:) = Tens_m(:) + clme * clms * Tens_lm_m(lme,lms,ispfg,:)
                         end do
                       end do
                     end do
@@ -494,15 +505,15 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
                           isi = 0
                         endif
                         if( Green_int ) then
-                          secdd(kke,kks,:,mpirank) = is * Tens(:)
-                          secdd(kks,kke,:,mpirank) = is * Tens(:)
-                          secdd_m(kke,kks,:,mpirank) = isi*Tens_m(:)
-                          secdd_m(kks,kke,:,mpirank) =-isi*Tens_m(:)
+                          secdd(kke,kks,ispfg,:,mpirank) = is * Tens(:)
+                          secdd(kks,kke,ispfg,:,mpirank) = is * Tens(:)
+                          secdd_m(kke,kks,ispfg,:,mpirank) = isi * Tens_m(:)
+                          secdd_m(kks,kke,ispfg,:,mpirank) = -isi * Tens_m(:)
                         else
 ! tenseur hermitique
-                          Te(:) = cmplx(is*Tensr(:),isi*Tensi(:),db)
-                          secdd(kke,kks,:,mpirank) = Te(:)
-                          secdd(kks,kke,:,mpirank) = conjg( Te(:) )
+                          Te(:) = cmplx( is*Tensr(:), isi*Tensi(:), db)
+                          secdd(kke,kks,ispfg,:,mpirank) = Te(:)
+                          secdd(kks,kke,ispfg,:,mpirank) = conjg( Te(:) )
                         endif
                       end do
                     end do
@@ -684,6 +695,8 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
 
                   endif
 
+                  end do  ! fin boucle ispfg
+
                 end do
               end do
             end do
@@ -705,11 +718,17 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
          do ls = 0,max(jrang,1)
             do ms = -ls,ls
               lms = lms + 1
-              if( sum( abs(Tens_lm(lme,lms,:)) ) > eps15 ) write(3,170) irang, jrang, le, me, ls, ms, &
-                   ( Tens_lm(lme,lms,initlr), initlr = 1,ninitlr )
+              do ispfg = 1,n_rel
+                if( ( irang /= 1 .or. jrang /= 1 ) .and. ispfg > 1 ) exit
+                if( sum( abs(Tens_lm(lme,lms,ispfg,:)) ) > eps15 ) write(3,170) irang, jrang, le, me, ls, ms, &
+                    ispfg, ( Tens_lm(lme,lms,ispfg,initlr), initlr = 1,ninitlr )
+              end do
               if( .not. Green_int ) cycle
-              if( sum( abs(Tens_lm_m(lme,lms,:)) ) > eps15 ) write(3,180) irang, jrang, le, me, ls, ms, &
-                   ( Tens_lm_m(lme,lms,initlr) ,initlr = 1,ninitlr )
+              do ispfg = 1,n_rel
+                if( ( irang /= 1 .or. jrang /= 1 ) .and. ispfg > 1 ) exit
+                if( sum( abs(Tens_lm_m(lme,lms,ispfg,:)) ) > eps15 ) write(3,180) irang, jrang, le, me, ls, ms, &
+                   ispfg, ( Tens_lm_m(lme,lms,ispfg,initlr), initlr = 1,ninitlr )
+              end do
             end do
           end do
         end do
@@ -717,6 +736,44 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
 
     end do
   end do
+
+! ispg = 1 : up-up + dn-dn 
+! ispg = 2 : up-dn + dn-up 
+! ispg = 3 : up-dn - dn-up 
+! ispg = 4 : up-up - dn-dn 
+  if( E1E1 .and. n_rel == 4 ) then
+    do initlr = 1,ninitlr
+
+      mat2(:,:) = secdd(:,:,1,initlr,mpirank) + secdd(:,:,4,initlr,mpirank)
+      secdd(:,:,1,initlr,mpirank) = mat2(:,:)
+
+      mat2(:,:) =  mat2(:,:) - 2 * secdd(:,:,4,initlr,mpirank)
+      secdd(:,:,4,initlr,mpirank) = mat2(:,:)
+
+      mat2(:,:) = secdd(:,:,2,initlr,mpirank) + secdd(:,:,3,initlr,mpirank)
+      secdd(:,:,2,initlr,mpirank) = mat2(:,:)
+
+      mat2(:,:) =  mat2(:,:) - 2 * secdd(:,:,3,initlr,mpirank)
+      secdd(:,:,3,initlr,mpirank) = mat2(:,:)
+
+      if( .not. Green_int ) cycle
+      
+      mat2(:,:) = secdd_m(:,:,1,initlr,mpirank) + secdd_m(:,:,4,initlr,mpirank)
+      secdd_m(:,:,1,initlr,mpirank) = mat2(:,:)
+
+      mat2(:,:) =  mat2(:,:) - 2 * secdd_m(:,:,4,initlr,mpirank)
+      secdd_m(:,:,4,initlr,mpirank) = mat2(:,:)
+
+      mat2(:,:) = secdd_m(:,:,2,initlr,mpirank) + secdd_m(:,:,3,initlr,mpirank)
+      secdd_m(:,:,2,initlr,mpirank) = mat2(:,:)
+
+      mat2(:,:) =  mat2(:,:) - 2 * secdd_m(:,:,3,initlr,mpirank)
+      secdd_m(:,:,3,initlr,mpirank) = mat2(:,:)
+
+      
+    end do
+  endif
+
 
 ! Rotation pour avoir les tenseurs dans la base R1
 
@@ -727,9 +784,11 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
     do initlr = 1,ninitlr
 
       if( E1E1 ) then
-        mat2(:,:) = secdd(:,:,initlr,mpirank)
-        call rot_tensor_2( mat2, rot_tem )
-        secdd(:,:,initlr,mpirank) = mat2(:,:)
+        do ispfg = 1,n_rel
+          mat2(:,:) = secdd(:,:,ispfg,initlr,mpirank)
+          call rot_tensor_2( mat2, rot_tem )
+          secdd(:,:,ispfg,initlr,mpirank) = mat2(:,:)
+        end do
       endif
 
       if( E1E2 ) then
@@ -795,9 +854,11 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
       if( .not. Green_int ) Cycle
 
       if( E1E1 ) then
-        mat2(:,:) = secdd_m(:,:,initlr,mpirank)
-        call rot_tensor_2( mat2, rot_tem )
-        secdd_m(:,:,initlr,mpirank) = mat2(:,:)
+        do ispfg = 1,n_rel
+          mat2(:,:) = secdd_m(:,:,ispfg,initlr,mpirank)
+          call rot_tensor_2( mat2, rot_tem )
+          secdd_m(:,:,ispfg,initlr,mpirank) = mat2(:,:)
+        end do
       endif
 
       if( E1E2 ) then
@@ -875,19 +936,19 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
   110 format(/' ---- Tens_ab --------',100('-'))
   120 format(/' lseuil =',i2)
   130 format(/' -- irang =',i2,', jrang =',i2,' --')
-  140 format(/' ke, je, he =',3i3,',  ks, js, hs =',3i3)
+  140 format(/' ke, je, he =',3i3,',  ks, js, hs =',3i3,',  ispfg =',i2)
   150 format(/' le, me =',2i3,',  ls, ms =',2i3,', Clme, Clms =',1p, 2e13.5)
-  160 format(/' Tensor by harmonics (basis R4) :'/, ' ir jr  le me  ls ms      Tens(Ylm,i=1,ninitlr)')
-  170 format(2i3,2(i4,i3),1p,20e15.7)
+  160 format(/' Tensor by harmonics (basis R4) :'/, ' ir jr  le me  ls ms ispfg     Tens(Ylm,i=1,ninitlr)')
+  170 format(2i3,2(i4,i3),i5,1p,20e15.7)
   180 format('i',i2,i3,2(i4,i3),1p,20e15.7)
 
 end
 
 !***********************************************************************
 
-subroutine tens_ab(coef_g,Core_resolved,FDM_comp,Final_tddft,Green,Green_int,icheck,ip_max,ip0,irang,is_g,jrang, &
-                              le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2,ninit1, &
-                              ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
+subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green_int,icheck,ip_max, &
+                              ip0,irang,is_g,isping,ispinf,jrang,le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2, &
+                              ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
                               Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
 
   use declarations
@@ -899,8 +960,8 @@ subroutine tens_ab(coef_g,Core_resolved,FDM_comp,Final_tddft,Green,Green_int,ich
   integer, dimension(ninitl), intent(in):: is_g
 
   integer:: i_g_1, i_g_2, initl1, initl2, initlr, is_dipmag, is_r1, is_r2, iseuil1, iseuil2, iso1, iso2, ispf1, ispf2, &
-    ispinf1, ispinf2, isping1, isping2, ispp_f1, ispp_f2, l1, l2, li, lm01, lm02, lm_f1, lm_f2, lmax, lmp01, lmp02, lmp_f1, &
-    lmp_f2, lms_f1, lms_f2, lp_f1, lp_f2, m1, m2, mi1, mi2, mp_f1, mp_f2, mv1, mv2
+    ispinf, ispinf1, ispinf2, isping, isping1, isping2, ispp_f1, ispp_f2, l1, l2, li, lm01, lm02, lm_f1, lm_f2, lmax, lmp01, &
+    lmp02, lmp_f1, lmp_f2, lms_f1, lms_f2, lp_f1, lp_f2, m1, m2, mi1, mi2, mp_f1, mp_f2, mv1, mv2
 
   complex(kind=db):: cfe, cfs, Cg, dfe, dfs, Tau_rad, Tau_rad_i
 
@@ -910,12 +971,12 @@ subroutine tens_ab(coef_g,Core_resolved,FDM_comp,Final_tddft,Green,Green_int,ich
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
   complex(kind=db), dimension(nlm_probe,nspinp,ip0:ip_max,ip0:ip_max,ninitlv):: Singul
 
-  logical:: Core_resolved, FDM_comp, Final_tddft, Green, Green_int, lmoins1, lplus1, NRIXS, Solsing, Solsing_only, Spinorbite, &
-            Titre, Ylm_comp
+  logical:: Core_resolved, Dip_rel, FDM_comp, Final_tddft, Green, Green_int, lmoins1, lplus1, NRIXS, Solsing, Solsing_only, &
+            Spinorbite, Titre, Ylm_comp
 
   real(kind=db):: Ci_1, Ci_2, Ci2, J_initl1, J_initl2, Jz1, Jz2
   real(kind=db), dimension(ninitl,2):: coef_g
-
+  
   li = lseuil
 
   Ten(:) = (0._db,0._db)
@@ -959,6 +1020,8 @@ subroutine tens_ab(coef_g,Core_resolved,FDM_comp,Final_tddft,Green,Green_int,ich
 
 ! Boucle sur le spin
     do isping1 = 1,2  ! Spin de l'etat initial
+    
+      if( irang == 1 .and. jrang == 1 .and. Dip_rel .and. isping /= isping1 ) cycle
 
       mi1 = m_g(i_g_1,isping1)
       Ci_1 = Coef_g(i_g_1,isping1)
@@ -1018,6 +1081,9 @@ subroutine tens_ab(coef_g,Core_resolved,FDM_comp,Final_tddft,Green,Green_int,ich
               if( lm_f1 > nlm_probe ) cycle
 
               do ispinf1 = 1,2  ! spin de l'etat final en entree
+
+                if( irang == 1 .and. jrang == 1 .and. Dip_rel .and. ispinf /= ispinf1 ) cycle
+
                 ispf1 = min( ispinf1, nspinp )
 
                 if( NRIXS ) then
@@ -1029,8 +1095,9 @@ subroutine tens_ab(coef_g,Core_resolved,FDM_comp,Final_tddft,Green,Green_int,ich
                 endif
                 if( abs(Gaunte) < eps10 ) cycle
 
-! Il n'y a que pour le dipole magnetique qu'on peut avoir du spin-flip
-                if( ispinf1 /= isping1 .and. ( NRIXS .or. irang /= 0 ) ) cycle 
+! Il n'y a que pour le dipole magnetique qu'on peut avoir du spin-flip (ou pour le terme dipolaire relativiste)
+                if( ispinf1 /= isping1 .and. ( NRIXS .or. irang > 1 .or. ( irang == 1 .and. &
+                                                                           ( .not. Dip_rel .or. jrang /= 1 ) ) ) ) cycle 
 
 ! Boucle sur les harmoniques de l'etat final en sortie
                 do l2 = 0,lmax
@@ -1046,7 +1113,8 @@ subroutine tens_ab(coef_g,Core_resolved,FDM_comp,Final_tddft,Green,Green_int,ich
                     do ispinf2 = 1,2  ! spin etat final en sortie
                       ispf2 = min( ispinf2, nspinp )
 
-                      if( ispinf2 /= isping2 .and. jrang /= 0 ) cycle
+                      if( ispinf2 /= isping2 .and. ( NRIXS .or. jrang > 1 .or. ( jrang == 1 &
+                                                                             .and. ( .not. Dip_rel .or. irang /= 1 ) ) ) ) cycle 
 
 ! Meme en TDDFT avec dipole magnetique, il n'y a pas la situation ci-dessous
                       if( ( ispinf1 == ispinf2 .and. isping1 /= isping2 ) .or. ( ispinf1 /= ispinf2 .and. isping1 == isping2 ) ) &
@@ -2121,17 +2189,18 @@ end
 !***********************************************************************
 
 subroutine extract_coabs(Ang_rotsup,Core_resolved,Green_int,icheck,ie,isymext,multi_run,Multipole, &
-              n_oo,nenerg,ninit1,ninitlr,nom_fich_extract,Rotsup,secdd,secdd_m,secdo,secdo_m,secdq, &
+              n_oo,n_rel,nenerg,ninit1,ninitlr,nom_fich_extract,Rotsup,secdd,secdd_m,secdo,secdo_m,secdq, &
               secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Tensor_rot,Tddft)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
 
-  integer:: eof, he, hs, je, js, jhe, jhs, n_oo
+  integer:: eof, he, hs, ispfg, je, js, jhe, jhs, n_oo, n_rel
 
   character(len=132) mot, nom_fich_extract
 
-  complex(kind=db), dimension(3,3,ninitlr,0:0):: secdd, secdd_m, secmd, secmd_m, secmm, secmm_m
+  complex(kind=db), dimension(3,3,n_rel,ninitlr,0:0):: secdd, secdd_m
+  complex(kind=db), dimension(3,3,ninitlr,0:0):: secmd, secmd_m, secmm, secmm_m
   complex(kind=db), dimension(3,3,3,ninitlr,0:0):: secdq, secdq_m
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:0):: secdo, secdo_m, secqq, secqq_m
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:0):: secoo, secoo_m
@@ -2206,17 +2275,19 @@ subroutine extract_coabs(Ang_rotsup,Core_resolved,Green_int,icheck,ie,isymext,mu
     if( mot(7:11) == 'Coabs' ) exit
   end do
 
-  call extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,Green_int,isymext,M1M1,n_oo,ninit1,ninitlr,secdd, &
-          secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m)
+  call extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,Green_int,isymext,M1M1,n_oo,n_rel,ninit1, &
+     ninitlr,secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m)
 
   if( tensor_rot ) then
 
     do i_g = 1,ninitlr
 
       if( E1E1 ) then
-        secdd_t(:,:) = secdd(:,:,i_g,0)
-        call rot_tensor_2( secdd_t, rotsup )
-        secdd(:,:,i_g,0) = secdd_t(:,:)
+        do ispfg = 1,n_rel
+          secdd_t(:,:) = secdd(:,:,ispfg,i_g,0)
+          call rot_tensor_2( secdd_t, rotsup )
+          secdd(:,:,ispfg,i_g,0) = secdd_t(:,:)
+        end do
       endif
 
       if( E1E2 ) then
@@ -2282,9 +2353,11 @@ subroutine extract_coabs(Ang_rotsup,Core_resolved,Green_int,icheck,ie,isymext,mu
       if( .not. ( Comp .and. Green_int ) ) cycle
 
       if( E1E1 ) then
-        secdd_t(:,:) = secdd_m(:,:,i_g,0)
-        call rot_tensor_2( secdd_t, rotsup )
-        secdd_m(:,:,i_g,0) = secdd_t(:,:)
+        do ispfg = 1,n_rel
+          secdd_t(:,:) = secdd_m(:,:,ispfg,i_g,0)
+          call rot_tensor_2( secdd_t, rotsup )
+          secdd_m(:,:,ispfg,i_g,0) = secdd_t(:,:)
+        end do
       endif
 
       if( E1E2 ) then
@@ -2360,17 +2433,17 @@ end
 
 !***********************************************************************
 
-subroutine extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,Green_int,isymext,M1M1,n_oo,ninit1,ninitlr,secdd, &
-      secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m)
+subroutine extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,Green_int,isymext,M1M1,n_oo,n_rel,ninit1, &
+      ninitlr,secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m)
 
   use declarations
   implicit none
 
-  integer:: he, hs, i_g, ipr, istat, isym, isymext, j_g, j1, je, &
-    jhe, jhs, js, k, ke, ks, Multipole, n, n_g, n_oo, ninit1, ninitlr, nnombre
+  integer:: he, hs, i_g, ipr, istat, isym, ispfg, isymext, j_g, j1, je, &
+    jhe, jhs, js, k, ke, ks, Multipole, n, n_g, n_oo, n_rel, ninit1, ninitlr, nnombre
   character(len=132) mot
 
-  logical comp, Core_resolved_e, Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Green_int, M1M1
+  logical:: comp, Core_resolved_e, Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Green_int, M1M1
 
   real(kind=db), dimension(3):: vi, vr, wi, wr
   real(kind=db), dimension(3,3):: matopsym, voi, vor, woi, wor
@@ -2379,19 +2452,20 @@ subroutine extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,Green_i
   complex(kind=db), dimension(3,3,3):: mat3
   complex(kind=db), dimension(3,3,3,3):: mat4
   complex(kind=db), dimension(3,3,3,3,3,3):: mat6
-  complex(kind=db), dimension(3,3,ninitlr):: secdd, secdd_m, secmd, secmd_m, secmm, secmm_m
+  complex(kind=db), dimension(3,3,n_rel,ninitlr):: secdd, secdd_m
+  complex(kind=db), dimension(3,3,ninitlr):: secmd, secmd_m, secmm, secmm_m
   complex(kind=db), dimension(3,3,3,ninitlr):: secdq, secdq_m
   complex(kind=db), dimension(3,3,3,3,ninitlr):: secdo, secdo_m, secqq, secqq_m
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr):: secoo, secoo_m
 
-  if( E1E1 ) secdd(:,:,:) = (0._db,0._db)
+  if( E1E1 ) secdd(:,:,:,:) = (0._db,0._db)
   if( E1E2 ) secdq(:,:,:,:) = (0._db,0._db)
   if( E2E2 ) secqq(:,:,:,:,:) = (0._db,0._db)
   if( E1E3 ) secdo(:,:,:,:,:) = (0._db,0._db)
   if( E3E3 ) secoo(:,:,:,:,:) = (0._db,0._db)
   if( E1M1 ) secmd(:,:,:) = (0._db,0._db)
   if( M1M1 ) secmm(:,:,:) = (0._db,0._db)
-  if( E1E1 ) secdd_m(:,:,:) = (0._db,0._db)
+  if( E1E1 ) secdd_m(:,:,:,:) = (0._db,0._db)
   if( E1E2 ) secdq_m(:,:,:,:) = (0._db,0._db)
   if( E2E2 ) secqq_m(:,:,:,:,:) = (0._db,0._db)
   if( E1E3 ) secdo_m(:,:,:,:,:) = (0._db,0._db)
@@ -2494,6 +2568,7 @@ subroutine extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,Green_i
       if( mot(43:56) == 'Green integral' ) Green_int = .true.
 
       n = nnombre(1,1320)
+
       if( n == 12 .or. ( n == 6 .and. .not. Green_int ) .or. n == 36 .or. ( n == 18 .and. .not. Green_int ) ) then
         Comp = .true.
       else
@@ -2504,32 +2579,38 @@ subroutine extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,Green_i
       select case(Multipole)
         Case(1,5,6)
 
-          do ke = 1,3
+          do ispfg = 1,n_rel
+          
+            if( Multipole /= 1 .and. ispfg > 1 ) exit
+            if( ispfg > 1 ) read(1,*)
+              
+            do ke = 1,3
 
-            if( Green_int .and. comp ) then
-              read(1,*) ( wr(k), wi(k), k = 1,3 ), ( vr(k), vi(k), k = 1,3 )
-            elseif( comp ) then
-              read(1,*) ( wr(k), wi(k), k = 1,3 )
-            else
-              read(1,*) wr(1:3)
-            endif
-
-            if( Multipole == 1 ) then
-              if( Green_int .and. comp ) secdd_m(ke,:,i_g) = cmplx( vr(:), vi(:),db )
-              secdd(ke,:,i_g) = cmplx( wr(:), wi(:),db )
-            elseif( Multipole == 5 ) then
-              if( Green_int .and. comp ) secmd_m(ke,:,i_g) = cmplx( vr(:), vi(:),db )
-              secmd(ke,:,i_g) = cmplx( wr(:), wi(:),db )
-            elseif( Multipole == 6 ) then
               if( Green_int .and. comp ) then
-                secmm_m(ke,:,i_g) = cmplx( vr(:), vi(:),db )
-              elseif( Comp ) then
-                secmm(ke,:,i_g) = cmplx( wr(:), wi(:),db )
+                read(1,*) ( wr(k), wi(k), k = 1,3 ), ( vr(k), vi(k), k = 1,3 )
+              elseif( comp ) then
+                read(1,*) ( wr(k), wi(k), k = 1,3 )
               else
-                secmm(ke,:,i_g) = cmplx( wi(:), wr(:),db )
+                read(1,*) wr(1:3)
               endif
-            endif
 
+              if( Multipole == 1 ) then
+                if( Green_int .and. comp ) secdd_m(ke,:,ispfg,i_g) = cmplx( vr(:), vi(:),db )
+                secdd(ke,:,ispfg,i_g) = cmplx( wr(:), wi(:),db )
+              elseif( Multipole == 5 ) then
+                if( Green_int .and. comp ) secmd_m(ke,:,i_g) = cmplx( vr(:), vi(:),db )
+                secmd(ke,:,i_g) = cmplx( wr(:), wi(:),db )
+              elseif( Multipole == 6 ) then
+                if( Green_int .and. comp ) then
+                  secmm_m(ke,:,i_g) = cmplx( vr(:), vi(:),db )
+                elseif( Comp ) then
+                  secmm(ke,:,i_g) = cmplx( wr(:), wi(:),db )
+                else
+                  secmm(ke,:,i_g) = cmplx( wi(:), wr(:),db )
+                endif
+              endif
+
+            end do
           end do
 
         Case(2)
@@ -2633,10 +2714,12 @@ subroutine extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,Green_i
     call opsym(isym,matopsym)
 
     if( E1E1 ) then
-      mat2(:,:) = secdd(:,:,i_g)
-      call rot_tensor_2( mat2, matopsym )
-      if( isymext < 0 ) mat2(:,:) = conjg( mat2(:,:) )
-      secdd(:,:,i_g) = mat2(:,:)
+      do ispfg = 1,n_rel
+        mat2(:,:) = secdd(:,:,ispfg,i_g)
+        call rot_tensor_2( mat2, matopsym )
+        if( isymext < 0 ) mat2(:,:) = conjg( mat2(:,:) )
+        secdd(:,:,ispfg,i_g) = mat2(:,:)
+      end do
     endif
 
     if( E1E2 ) then
@@ -2708,10 +2791,12 @@ subroutine extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,Green_i
     if( .not. ( Green_int .and. Comp ) ) cycle
 
     if( E1E1 ) then
-      mat2(:,:) = secdd_m(:,:,i_g)
-      call rot_tensor_2( mat2, matopsym )
-      if( isymext < 0 ) mat2(:,:) = - mat2(:,:)
-      secdd_m(:,:,i_g) = mat2(:,:)
+      do ispfg = 1,n_rel
+        mat2(:,:) = secdd_m(:,:,ispfg,i_g)
+        call rot_tensor_2( mat2, matopsym )
+        if( isymext < 0 ) mat2(:,:) = - mat2(:,:)
+        secdd_m(:,:,ispfg,i_g) = mat2(:,:)
+      end do
     endif
 
     if( E1E2 ) then
@@ -2906,9 +2991,9 @@ subroutine S_nrixs_cal(coef_g,Core_resolved,Ecinetic, &
     
             if( icheck > 1 ) write(3,110) le, me, ls, ms
 
-            call tens_ab(coef_g,Core_resolved,FDM_comp,Final_tddft,Green,Green_int,icheck,lmax_nrixs,l0_nrixs,le,is_g,ls, &
-                                le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2,ninit1, &
-                                ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
+            call tens_ab(coef_g,Core_resolved,.false.,FDM_comp,Final_tddft,Green,Green_int,icheck,lmax_nrixs, &
+                                l0_nrixs,le,is_g,1,1,ls,le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2, &
+                                ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
                                 Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
 
             if( le == ls ) then
