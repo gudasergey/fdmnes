@@ -2370,13 +2370,13 @@ end
 
 !*********************************************************************
 
-subroutine clust(ATA,axyz,Base_ortho,dcosxyz,deccent,dista,Doping,dpos,iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,itab,itype, &
-              itypep,Kgroup,matper,mpirank,multi_run,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre,One_run,pos,posn,rmax,Taux_oc)
+subroutine clust(ATA,axyz,Base_ortho,dcosxyz,deccent,dista,Doping,dpos,iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,itabs,itype, &
+              itypep,Kgroup,Matper,mpirank,multi_run,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre,One_run,pos,posn,rmax,Taux_oc)
 
   use declarations
   implicit none
 
-  integer:: ia, ia1, ia2, iaabs, iaabsfirst, iabsorbeur, ib, igr, igr_dop, igr12, ipr, itab, ity12, ix, iy, iz, mpirank, &
+  integer:: ia, ia1, ia2, iaabs, iaabsfirst, iabsorbeur, ib, igr, igr_dop, igr12, ipr, itabs, ity12, ix, iy, iz, mpirank, &
     multi_run, natomp, ngroup, ngroup_pdb, ngroup_taux, nxmaille, nymaille, nzmaille
   integer, dimension(natomp):: igroup, itypep
   integer, dimension(ngroup):: itype
@@ -2395,7 +2395,7 @@ subroutine clust(ATA,axyz,Base_ortho,dcosxyz,deccent,dista,Doping,dpos,iaabs,iaa
     posg(1:3,igr) = posn(1:3,igr) * axyz(1:3) - deccent(1:3)
   end do
 
-  if( matper ) then
+  if( Matper ) then
     nxmaille = nint( rmax / axyz(1) ) + 3
     nymaille = nint( rmax / axyz(2) ) + 3
     nzmaille = nint( rmax / axyz(3) ) + 3
@@ -2437,7 +2437,7 @@ subroutine clust(ATA,axyz,Base_ortho,dcosxyz,deccent,dista,Doping,dpos,iaabs,iaa
           pos(1:3,ia) = ps(1:3)
           igroup(ia) = igr
           if( igr == iabsorbeur .and. ix == 0 .and. iy == 0 .and. iz == 0 ) then
-            itypep(ia) = itab
+            itypep(ia) = itabs
             iaabs = ia
           else
             itypep(ia) = abs( itype(igr) )
@@ -2502,18 +2502,18 @@ end
 
 ! Elaboration de l'agregat.
 
-subroutine agregat(angxyz,ATA,Atom_with_axe,Nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn,axyz,Base_hexa,Base_ortho, &
-          chargat,chargm,Cubmat,dcosxyz,deccent,dista,Doping,dpos,Flapw,iaabs,iaabsfirst,iabsorbeur,iaproto,iapot, &
-          icheck,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,iopsymc,iopsymr,itab,itype,itypep,karact,Kgroup,Magnetic,Matper, &
+subroutine agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn,axyz,Base_hexa,Base_ortho, &
+          chargat,Cubmat,dcosxyz,deccent,dista,Doping,dpos,iaabs,iaabsfirst,iabsorbeur,iaproto,iapot, &
+          icheck,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,iopsymc,iopsymr,itabs,itype,itypep,karact,Kgroup,Magnetic,Matper, &
           mpirank,multi_run,n_atom_proto,natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat, &
-          nlatm,noncentre,nonexc_g,nspin,ntype,numat,One_run,Orthmat,Orthmati,PointGroup,PointGroup_Auto, &
-          popats,pos,posn,rmax,Rot_int,Self_nonexc,Spinorbite,Rot_Atom_gr,sym_4,Struct,Sym_cubic,Symmol,Taux,Taux_oc,Vsphere)
+          nlatm,noncentre,nspin,ntype,numat,One_run,Orthmat,Orthmati,PointGroup,PointGroup_Auto, &
+          popats,pos,posn,rmax,Rot_int,Self_nonexc,Spinorbite,Rot_Atom_gr,sym_4,Struct,Sym_cubic,Symmol,Taux,Taux_oc)
 
   use declarations
   implicit none
 
   integer:: i, ia, iaabs, iaabsfirst, iabsorbeur, ib, icheck, igr, igr_dop, igrpt, igrpt_nomag, igrpt_sg, igrpt_sg_cmp, &
-    igrpt_sg_cal, igrpt_sg_so, igrpt0, igrptn, ipr, ired, it, itab, k, mpirank, multi_run, n_atom_proto, natomp, nb_rep, &
+    igrpt_sg_cal, igrpt_sg_so, igrpt0, igrptn, ipr, ired, it, itabs, k, mpirank, multi_run, n_atom_proto, natomp, nb_rep, &
     nb_sym_op, neqm, ngroup, ngroup_m, ngroup_pdb, ngroup_taux, nlatm, npr1, nspin, ntype
 
   integer, dimension(natomp):: iaproto, igroup, itypep
@@ -2528,11 +2528,11 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Nonsph,Axe_atom_clu,Axe_atom_gr,Axe_
                      PointSubGroup_name, PointSubGroup_Sch
   character(len=5):: Struct
 
-  logical:: ATA, Atom_mag_cal, Nonsph, Base_hexa, Base_ortho, Doping, Flapw, Magnetic, Matper, Noncentre, Nonexc_g, &
+  logical:: ATA, Atom_mag_cal, Atom_nonsph, Base_hexa, Base_ortho, Doping, Magnetic, Matper, Noncentre, &
     One_run, PointGroup_Auto, Self_nonexc, Spinorbite, Sym_4, Sym_cubic, Symmol, Taux
   logical, dimension(0:ngroup_m):: Atom_with_axe
 
-  real(kind=db):: Angle, Chagreg, Chargm, Dist_max, Distm, Dsa, Dsb, Prod, rad, Rmax, Vsphere
+  real(kind=db):: Angle, Dist_max, Distm, Dsa, Dsb, Prod, rad, Rmax
 
   real(kind=db), dimension(3):: angxyz, Axe_spin, Axe_spin_0, axyz, dcosxyz, deccent, dpos, pa, pb, v
   real(kind=db), dimension(3,3):: Cubmat, Orthmat, Orthmati, Orthmatt, Rot_un, Rotmat, Rot_int, Rot_so, Rot_tem, Rotspin
@@ -2561,14 +2561,14 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Nonsph,Axe_atom_clu,Axe_atom_gr,Axe_
     base_ortho = .false.
   endif
 
-  call clust(ATA,axyz,Base_ortho,dcosxyz,deccent,dista,Doping,dpos,iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,itab,itype, &
-              itypep,Kgroup,matper,mpirank,multi_run,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre,One_run,pos,posn,rmax,Taux_oc)
+  call clust(ATA,axyz,Base_ortho,dcosxyz,deccent,dista,Doping,dpos,iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,itabs,itype, &
+              itypep,Kgroup,Matper,mpirank,multi_run,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre,One_run,pos,posn,rmax,Taux_oc)
 
   if( icheck > 0 ) write(3,130) iaabs
 
-  call cal_iaeqrmt(iaabs,iaproto,iapot,igreq,igroup,n_atom_proto,natomp,neqm,ngreq,nonexc_g,self_nonexc)
+  call cal_iaeqrmt(iaabs,iaproto,iapot,igreq,igroup,n_atom_proto,natomp,neqm,ngreq,self_nonexc)
 
-  if( magnetic .or. Nonsph ) then
+  if( magnetic .or. Atom_nonsph ) then
     do igr = 1,ngroup
       v(:) = Axe_atom_gr(:,igr) * axyz(:)
       Axe_atom_grn(:,igr) = v(:)
@@ -2588,7 +2588,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Nonsph,Axe_atom_clu,Axe_atom_gr,Axe_
         pos(k,ia) = sum( cubmat(k,1:3) * v(1:3) )
       end do
     end do
-    if( Magnetic .or. Nonsph ) then
+    if( Magnetic .or. Atom_nonsph ) then
       do ia = 1,ngroup
         v(:) = Axe_atom_gr(:,ia) * axyz(:)
         do k = 1,3
@@ -2625,7 +2625,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Nonsph,Axe_atom_clu,Axe_atom_gr,Axe_
 ! Faux en cas de one_run avec des spins non alignes.
   Axe_spin(:) = 0._db
   Atom_with_axe(0) = .false.
-  if( Magnetic .or. Nonsph ) then
+  if( Magnetic .or. Atom_nonsph ) then
     do ia = 1,natomp
       if( ia /= iaabs ) cycle
       igr = igroup(ia)
@@ -2683,7 +2683,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Nonsph,Axe_atom_clu,Axe_atom_gr,Axe_
         v = matmul( rot_tem, v )
         pos(:,ia) = v(:)
       end do
-      if( magnetic .or. Nonsph ) then
+      if( magnetic .or. Atom_nonsph ) then
         do ia = 1,natomp
           v(:) = Axe_atom_clu(:,ia)
           v = matmul( rot_tem, v )
@@ -2709,7 +2709,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Nonsph,Axe_atom_clu,Axe_atom_gr,Axe_
         v = matmul( rot_so, v )
         pos(:,ia) = v(:)
       end do
-      if( magnetic .or. Nonsph ) then
+      if( Magnetic .or. Atom_nonsph ) then
         do ia = 1,natomp
           v(:) = Axe_atom_clu(:,ia)
           v = matmul( rot_so, v )
@@ -2903,24 +2903,6 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Nonsph,Axe_atom_clu,Axe_atom_gr,Axe_
     Base_hexa = .false.
   endif
 
-! Calcul de la charge de l'agregat :
-  if( .not. flapw .and. matper ) then
-    chagreg = 0._db
-    do ia = 1,natomp
-      ipr = iaproto(ia)
-      chagreg = chagreg + chargat( ipr )
-    end do
-! On met une charge opposee sur la sphere a dista(natomp) du centre
-    if( natomp > 1 ) then
-      Vsphere = 2 * ( Chagreg - Chargm ) / dista(natomp)
-    else
-      Vsphere = 0._db
-    endif
-    if( icheck > 0 ) write(3,260) Chagreg, Vsphere * rydb
-  else
-    Vsphere = 0._db
-  endif
-
   return
   110 format(/' ---- Agregat ------',100('-'))
   130 format(/' Index of the absorbing atom, iaabs =',i3)
@@ -2952,7 +2934,44 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Nonsph,Axe_atom_clu,Axe_atom_gr,Axe_
   230 format(/' ipr   iapot')
   240 format(i4,i6)
   250 format(4i5,f13.3)
-  260 format(/' Cluster charge =',f11.5,'  Vsphere =',f11.5,' eV')
+end
+
+
+! **********************************************************************
+
+function Vsphere_cal(Chargat,Chargm,dista_natomp,Flapw,iaproto,icheck,Matper,n_atom_proto,natomp)
+
+  use declarations
+  implicit none
+
+  integer:: ia,icheck, ipr, n_atom_proto, natomp
+  integer, dimension(natomp):: iaproto
+
+  logical:: Flapw, Matper
+
+  real(kind=db):: Chagreg, Chargm, dista_natomp, Vsphere_cal
+  real(kind=db), dimension(0:n_atom_proto):: Chargat
+
+! Calcul de la charge de l'agregat :
+  if( .not. Flapw .and. Matper ) then
+    Chagreg = 0._db
+    do ia = 1,natomp
+      ipr = iaproto(ia)
+      Chagreg = Chagreg + Chargat( ipr )
+    end do
+! On met une charge opposee sur la sphere a dista(natomp) du centre
+    if( natomp > 1 ) then
+      Vsphere_cal = 2 * ( Chagreg - Chargm ) / dista_natomp
+    else
+      Vsphere_cal = 0._db
+    endif
+    if( icheck > 0 ) write(3,110) Chagreg, Vsphere_cal * rydb
+  else
+    Vsphere_cal = 0._db
+  endif
+
+  return
+  110 format(/' Cluster charge =',f11.5,'  Vsphere =',f11.5,' eV')
 end
 
 ! **********************************************************************
@@ -4290,7 +4309,7 @@ end
 
 ! Sousprogramme calculant la forme des tenseurs
 
-subroutine Tensor_shape(Atom_with_axe,Nonsph, Axe_atom_clu,Base_ortho,dcosxyz,Dipmag, &
+subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz,Dipmag, &
                E1E2e,Green,iaabs,icheck,igroup,igrpt0,iopsymc,iopsymr,itype,itypep,ldip,loct,lqua,lseuil,magnetic, &
                msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo, msymooi,msymqq,msymqqi,Multipole,n_oo,natomp,ngroup, &
                ngroup_m,nlat,nlatm,nspin,ntype,numat, octupole,popats,pos,quadrupole,rot_atom_abs,Rot_int, &
@@ -5478,7 +5497,7 @@ end
 
 !*********************************************************************
 
-subroutine cal_iaeqrmt(iaabs,iaproto,iapot,igreq,igroup,n_atom_proto,natomp,neqm,ngreq,nonexc_g,self_nonexc)
+subroutine cal_iaeqrmt(iaabs,iaproto,iapot,igreq,igroup,n_atom_proto,natomp,neqm,ngreq,self_nonexc)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -5487,7 +5506,7 @@ subroutine cal_iaeqrmt(iaabs,iaproto,iapot,igreq,igroup,n_atom_proto,natomp,neqm
   integer, dimension(0:n_atom_proto):: iapot, ngreq
   integer, dimension(0:n_atom_proto,neqm):: igreq
 
-  logical nonexc_g, self_nonexc
+  logical:: self_nonexc
 
   iapot(:) = 0
 ! Choix des atomes prototypiques dont le potentiel sera calcule
@@ -5513,8 +5532,6 @@ subroutine cal_iaeqrmt(iaabs,iaproto,iapot,igreq,igroup,n_atom_proto,natomp,neqm
     end do boucle_i
     iaproto(ia) = ipr
   end do
-
-  if( .not. nonexc_g ) iaproto(iaabs) = 0
 
   return
 end

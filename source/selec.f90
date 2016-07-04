@@ -7,7 +7,7 @@ subroutine selec(itape5)
   use declarations
   implicit none
 
-  integer:: eof, i, ia, iaa, iang, ibeam, ie, igrdat, indm, iref, istat, itape5, n, n_ang, n1, nbeam, ne, nf, nnombre
+  integer:: eof, i, ia, iaa, iang, ibeam, ie, igrdat, indm, iref, istat, itape5, l, n, n_ang, n1, nbeam, ne, nf, nnombre
 
   character(len=9) grdat, grdat1
   character(len=Length_word), dimension(:), allocatable:: nombeam
@@ -152,7 +152,19 @@ subroutine selec(itape5)
   endif
 
   open(1, file = file_in, status = 'old', iostat=istat )
-  if( istat /= 0 ) call write_open_error(file_in,istat,1)
+  if( istat /= 0 ) then
+    l = len_trim( file_in )
+    if( file_in(l-3:l) /= '.txt' ) then
+      mots = file_in 
+      mots(l+1:l+4) = '.txt'
+      Close(1) 
+      open(1, file = mots, status='old', iostat=istat)
+      if( istat /= 0 ) call write_open_error(file_in,istat,1)
+    endif
+  endif
+
+  l = len_trim(file_out)
+  if( file_out(l-3:l) /= '.txt' ) file_out(l+1:l+4) = '.txt'
   open(2, file = file_out, iostat=istat)
   if( istat /= 0 ) call write_open_error(file_out,istat,1)
 

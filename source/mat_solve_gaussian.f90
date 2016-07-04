@@ -213,7 +213,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     call CPU_TIME(time)
     tp2 = real(time,db)
 
-    Time_fill = tp2 - tp1
+    Time_fill = Time_fill + tp2 - tp1
 
 ! Triangularisation :
 
@@ -295,7 +295,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     call CPU_TIME(time)
     tp3 = real(time,db)
 
-    Time_tria = tp3 - tp2
+    Time_tria = Time_tria + tp3 - tp2
 
   end do boucle_ii      ! fin de la boucle sur les lignes
 

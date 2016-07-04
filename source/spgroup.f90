@@ -195,7 +195,7 @@ subroutine symgrp(Cif,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans,Space_file)
   character(len=132):: Space_file
   character(len=80), dimension(nmaxop):: lines
 
-  integer:: i, i1, i2, ipr, istat, itape, j, k, n, nbsyop, nnombre, sgnb
+  integer:: i, i1, i2, ipr, istat, itape, j, nbsyop, sgnb
 
   logical:: Cif, pareil
 
@@ -213,39 +213,30 @@ subroutine symgrp(Cif,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans,Space_file)
 
     do
      read(itape,'(A)') mot
-     if( mot(1:26) == '_symmetry_equiv_pos_as_xyz' ) exit 
+     if( mot(1:26) == '_symmetry_equiv_pos_as_xyz' .or. mot(1:32) == '_space_group_symop_operation_xyz' ) exit 
     end do
     
-    do i = 1,1000
-      n = nnombre(itape,132)
-      if( n == 0 ) exit
+    boucle_i: do i = 1,1000
+
       read(itape,'(A)' ) mot
       line = ' '
       
       do j = 1,80
-        if( mot(j:j) /= "'" ) cycle
-        do k = 1,j
-          mot(k:k) = ' '
-        end do
-        exit
+        if( mot(j:j) == ',' ) exit
       end do
-      mot = adjustl(mot)
+      if( j > 80 ) exit boucle_i
 
-      k = 0
       do j = 1,80
-        if( mot(j:j) == "'" ) exit
-        if( mot(j:j) == ' ' ) cycle
-        k = k + 1      
-        line(k:k) = mot(j:j)
+        if( mot(j:j) == "'" ) mot(j:j) = ' '
       end do
-    
-      lines(i) = line
+
+      lines(i) = adjustl(mot)
         
-    end do
+    end do boucle_i
     
     nbsyop = i - 1
 
-    SGTrans = Space_group(1:1)
+    SGTrans = ' ' ! Space_group(1:1)
         
   else
   

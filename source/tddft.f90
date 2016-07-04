@@ -28,7 +28,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
         jseuil,Kern_fac,l0_nrixs,ldip,lmax_pot,lmax_nrixs,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1, &
         lqua,lseuil,ltypcal,m_g,m_hubb,Magnetic,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
         msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_run,Multipole, &
-        n_multi_run,n_oo,n_rel,n_tens_max, &
+        n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
         natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ngamh,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlmamax, &
         nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nomfich_tddft_data, &
         nphi_dafs,nphim,npldafs,nplr,nplrm,nq_nrixs,nr,NRIXS,nrm,nseuil,nspin,nspino,nspinp, &
@@ -46,7 +46,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
   integer:: cal_nenerge, iabsorig, icheck_s, ie, ie_computer, ie_e, initl, iopsymc_25, ip_max, ip0, &
     ir, isp, je, jseuil, l, l0_nrixs, lmax, lmax_pot, lmax_probe, lmax_nrixs, lmaxabs_t, &
     lmaxat0, lseuil,m_hubb, MPI_host_num_for_mumps, mpinodes, mpirank, mpirank0, multi_run, &
-    n_Ec, n_multi_run, n_oo, n_rel, n_tens_max, n_V, natomsym, nbseuil, &
+    n_Ec, n_multi_run, n_oo, n_rel, n_rout, n_tens_max, n_V, natomsym, nbseuil, &
     ncolm, ncolr, ncolt, nd3, nenerg, nenerg_s, nenerg_tddft, nenerge, ngamh, nge, ninit1, ninitl, ninitl_out, &
     ninitlv, nlm, nlm_fp, nlm_pot, nlm_probe, nlm_p_fp, nlmamax, nlms_f, nlms_g, nlmsm_f, &
     nphim, npldafs, nplr, nplrm, nq_nrixs, nr, nrm, ns_dipmag, &
@@ -107,7 +107,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
   real(kind=db), dimension(3):: angxyz, axyz
   real(kind=db), dimension(8):: Time_loc
   real(kind=db), dimension(10):: Gamma_hole
-  real(kind=db), dimension(21):: Time_rout
+  real(kind=db), dimension(n_rout):: Time_rout
   real(kind=db), dimension(nspin):: dv0bdcF, V0bdc_t, VxcbdcF
   real(kind=db), dimension(nenerg_s):: Energ_s, Energ_t
   real(kind=db), dimension(nbseuil):: Eseuil
@@ -523,15 +523,15 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,
     if( mpirank0 == 0 ) then
       call CPU_TIME(time)
       Time_loc(8) = real(time,db)
-      Time_rout(5) = Time_rout(5) + Time_loc(2) - Time_loc(1)  ! Potex
+      Time_rout(6) = Time_rout(6) + Time_loc(2) - Time_loc(1)  ! Potex
 
-      Time_rout(13) = Time_rout(13) + Time_loc(3) - Time_loc(2)
-      Time_rout(14) = Time_rout(14) + Time_loc(4) - Time_loc(3)
-      Time_rout(15) = Time_rout(15) + Time_loc(5) - Time_loc(4)
-      Time_rout(16) = Time_rout(16) + Time_loc(6) - Time_loc(5)
+      Time_rout(14) = Time_rout(14) + Time_loc(3) - Time_loc(2)
+      Time_rout(15) = Time_rout(15) + Time_loc(4) - Time_loc(3)
+      Time_rout(16) = Time_rout(16) + Time_loc(5) - Time_loc(4)
+      Time_rout(17) = Time_rout(17) + Time_loc(6) - Time_loc(5)
 
       Time_rout(11) = Time_rout(11) + Time_loc(7) - Time_loc(6) ! Tenseur
-      Time_rout(12) = Time_rout(12) + Time_loc(8) - Time_loc(7) ! Coabs
+      Time_rout(13) = Time_rout(13) + Time_loc(8) - Time_loc(7) ! Coabs
     endif
 
   end do boucle_energ   ! Fin de la boucle sur l'energie.
@@ -561,7 +561,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
         jseuil,Kern_fac,ldip,lmax_pot,lmaxabs_t,lmoins1,loct,lplus1, &
         lqua,lseuil,ltypcal,m_g,m_hubb,Magnetic,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
         msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_run,Multipole, &
-        n_multi_run,n_oo,n_rel,n_tens_max, &
+        n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
         natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlmamax, &
         nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nomfich_tddft_data, &
         nphi_dafs,nphim,npldafs,nplr,nplrm,nr,nrm,nseuil,nspin,nspino,nspinp, &
@@ -583,7 +583,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
   integer:: i, iabsorig, icheck_s, ie, ie_computer, ie_e, ie_g, ief, iopsymc_25, ip_max, ip0, &
     iso1, iso2, isp, isp1, isp2, j, je, jef, jseuil, l, lm1, lm2, lmax, lmax_pot, &
     lmax_probe, lmaxabs_t, lseuil, m_hubb, MPI_host_num_for_mumps, mpinodes, mpirank, mpirank0, multi_run, &
-    n_rel, n_Ec, n_multi_run, n_oo, n_tens_max, n_V, natomsym, nbseuil, &
+    n_rel, n_Ec, n_multi_run, n_oo, n_rout, n_tens_max, n_V, natomsym, nbseuil, &
     ncolm, ncolr, ncolt, nd3, nenerg, nenerg_s, nenerg_tddft, nge, ninit1, ninitl, ninitl_out, &
     ninitlv, nlm, nlm_fp, nlm_pot, nlm_probe, nlm_p_fp, nlmamax, nlms, nlms_g, nlms_f, &
     nphim, npldafs, nplr, nplrm, nr, nr_zet, nrm, ns_dipmag, &
@@ -645,7 +645,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
   real(kind=db), dimension(1):: Energ_u
   real(kind=db), dimension(3):: angxyz, axyz
   real(kind=db), dimension(8):: Time_loc
-  real(kind=db), dimension(21):: Time_rout
+  real(kind=db), dimension(n_rout):: Time_rout
   real(kind=db), dimension(nspin):: dv0bdcF, VxcbdcF
   real(kind=db), dimension(nenerg_s):: Energ_s, Energ_t
   real(kind=db), dimension(nbseuil):: Eseuil
@@ -849,7 +849,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
     call CPU_TIME(time)
     Time_loc(2) = real(time,db)
   endif
-  Time_rout(13) = Time_rout(13) + Time_loc(2) - Time_loc(1) ! Radial
+  Time_rout(14) = Time_rout(13) + Time_loc(2) - Time_loc(1) ! Radial
 
 ! Valeur eventuellement decalee vers le bas pour ne rien couper a la convolution.
 
@@ -1047,10 +1047,10 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
         if( mpirank0 == 0 ) then
           call CPU_TIME(time)
           Time_loc(7) = real(time,db)
-          Time_rout(13) = Time_rout(13) + Time_loc(3) - Time_loc(2) ! Radial
-          Time_rout(14) = Time_rout(14) + Time_loc(4) - Time_loc(3)
-          Time_rout(15) = Time_rout(15) + Time_loc(5) - Time_loc(4)
-          Time_rout(16) = Time_rout(16) + Time_loc(6) - Time_loc(5)
+          Time_rout(14) = Time_rout(14) + Time_loc(3) - Time_loc(2) ! Radial
+          Time_rout(15) = Time_rout(15) + Time_loc(4) - Time_loc(3)
+          Time_rout(16) = Time_rout(16) + Time_loc(5) - Time_loc(4)
+          Time_rout(17) = Time_rout(17) + Time_loc(6) - Time_loc(5)
           Time_rout(11) = Time_rout(11) + Time_loc(7) - Time_loc(6) ! Tenseur
         endif
 
@@ -1092,7 +1092,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,coef
     if( mpirank0 == 0 ) then
       call CPU_TIME(time)
       Time_loc(8) = real(time,db)
-      Time_rout(12) = Time_rout(12) + Time_loc(8) - Time_loc(7) ! Coabs
+      Time_rout(13) = Time_rout(13) + Time_loc(8) - Time_loc(7) ! Coabs
     endif
 
   end do boucle_energ   ! Fin de la boucle sur l'energie.
