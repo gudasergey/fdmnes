@@ -3375,7 +3375,7 @@ subroutine Euler_mat(icheck,Mat,alfa,beta,gamma)
 
   integer:: icheck
 
-  real(kind=db):: alfa, beta, cos_a, cos_b, cos_g, gamma, rad, sin_a, sin_b, sin_g
+  real(kind=db):: alfa, beta, cos_a, cos_b, cos_g, gamma, sin_a, sin_b, sin_g
   real(kind=db), dimension(3,3):: Mat
 
   cos_b = Mat(3,3)
@@ -3408,10 +3408,7 @@ subroutine Euler_mat(icheck,Mat,alfa,beta,gamma)
   gamma = acos( cos_g )
   if( sin_g < 0._db ) gamma = - gamma
 
-  if( icheck > 3 ) then
-    rad = pi / 180
-    write(3,100) alfa/rad, beta/rad, gamma/rad
-  endif
+  if( icheck > 3 ) write(3,100) alfa / radian, beta / radian, gamma / radian
 
   return
   100 format(/' alfa, beta, gamma = ',3f10.5)

@@ -1342,9 +1342,9 @@ end
 
 subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk,axyz_cap,Base_spin, &
-    basereel,Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free,Clementi,com, &
-    comt,Core_resolved,Coupelapw,Cubmat,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density,Density_comp,Dip_rel,Dipmag, &
-    Doping, &
+    basereel,Bormann,Bulk,Bulk_lay,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free, &
+    Clementi,com,comt,Core_resolved,Coupelapw,Cubmat,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density,Density_comp, &
+    Dip_rel,Dipmag,Doping, &
     dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Eneg_i,Eneg_n_i,Energphot, &
     Extract,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e, &
     Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs, &
@@ -1448,10 +1448,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   logical, dimension(ngroup):: Atom_nsph_e
   logical, dimension(0:ntype):: Hubb
 
-  real(kind=db):: Alfpot, Ang_borm, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, D_max_pot, Delta_En_conv, Delta_Epsii, &
-    Eclie, Eclie_out, Film_roughness, Film_thickness, g1, g2, Gamma_max, Kern_fac, number_from_text, Overlap, p_self_max, &
-    p_self0, Pas_SCF, phi, pop_nsph, pp, q, q_nrixs_first, q_nrixs_step, q_nrixs_last, &
-    r, r_self, R_rydb, rad, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, V_intmax, vv
+  real(kind=db):: Alfpot, Ang_borm, Bulk_lay, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, D_max_pot, Delta_En_conv, &
+    Delta_Epsii, Eclie, Eclie_out, Film_roughness, Film_thickness, g1, g2, Gamma_max, Kern_fac, number_from_text, Overlap, &
+    p_self_max, p_self0, Pas_SCF, phi, pop_nsph, pp, q, q_nrixs_first, q_nrixs_step, q_nrixs_last, &
+    r, r_self, R_rydb, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, V_intmax, vv
 
   real(kind=db), dimension(nq_nrixs):: q_nrixs
   real(kind=db), dimension(2):: f_no_res
@@ -1516,6 +1516,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Axe_spin(1) = 0._db; Axe_spin(2) = 0._db; Axe_spin(3) = 1._db
   Base_spin = .false.
   Basereel = .true.
+  Bulk_lay = 1._db
   Cap_roughness = 0._db
   Cap_disorder = 0._db
   Cap_thickness = -1000._db
@@ -1747,6 +1748,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           do igr = 1,n_atom_bulk
             read(itape4,*) Z_bulk(igr), posn_bulk(:,igr)
           end do
+
+        case('bulk_laye')
+          read(itape4,*) Bulk_lay
 
         case('cap_layer')
           n = nnombre(itape4,132)
@@ -4650,6 +4654,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     if( Bulk ) then
     call MPI_Bcast(axyz_bulk,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(angxyz_bulk,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Bulk_lay,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(posn_bulk,3*n_atom_bulk,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Z_bulk,n_atom_bulk,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     endif
@@ -4793,11 +4798,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   endif
 
 ! Conversion en unites atomiques.
-  rad = pi / 180
 
   adimp(:) = adimp(:) / bohr
 
-  where( abs(angpoldafs) < 9999._db ) angpoldafs = angpoldafs * rad
+  where( abs(angpoldafs) < 9999._db ) angpoldafs = angpoldafs * radian
   axyz(1:3) = axyz(1:3) / bohr
   if( Bulk ) axyz_bulk(1:3) = axyz_bulk(1:3) / bohr
   if( Cap_layer ) axyz_cap(1:3) = axyz_cap(1:3) / bohr
@@ -5473,7 +5477,7 @@ subroutine cal_cubmat(angxyz,cubmat,struct)
 
   logical ang(3), ange(3)
 
-  real(kind=db):: a, alfa, b, beta, cosa, cosb, cosg, gamma, rad, sina, sinb
+  real(kind=db):: a, alfa, b, beta, cosa, cosb, cosg, gamma, sina, sinb
   real(kind=db), dimension(3):: angxyz(3)
   real(kind=db), dimension(3,3):: cubmat
 
@@ -5496,19 +5500,18 @@ subroutine cal_cubmat(angxyz,cubmat,struct)
 
   if( struct /= 'cubic' ) then
 
-    rad = pi / 180
     if( struct == 'trigo' ) then
-      alfa = angxyz(1) * rad
-      cosa = sqrt( ( 1._db + 2 * cos( alfa ) ) / 3. )
+      alfa = angxyz(1) * radian
+      cosa = sqrt( ( 1._db + 2 * cos( alfa ) ) / 3._db )
       sina = sqrt( 1._db - cosa**2 )
       cubmat(1,1) = sina;  cubmat(1,2:3) = -0.5_db * sina
       cubmat(2,1) = 0._db;  cubmat(2,2) = sqrt(3._db) * sina / 2
       cubmat(2,3) = - cubmat(2,2)
       cubmat(3,1:3) = cosa
     else
-      alfa = angxyz(1) * rad
-      beta = angxyz(2) * rad
-      gamma = angxyz(3) * rad
+      alfa = angxyz(1) * radian
+      beta = angxyz(2) * radian
+      gamma = angxyz(3) * radian
       sina = sin( alfa )
       cosa = cos( alfa )
       sinb = sin( beta )

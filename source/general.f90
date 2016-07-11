@@ -163,7 +163,7 @@ subroutine symsite(absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
   logical, dimension(0:ngroup_m):: Atom_with_axe
   logical, dimension(:), allocatable:: Far_atom
 
-  real(kind=db):: dist, distm_neq, dpop, pp1, pp2, rad, Vnorme
+  real(kind=db):: dist, distm_neq, dpop, pp1, pp2, Vnorme
 
   real(kind=db), dimension(3):: angxyz, Axe_atom_c, axyz, dcosxyz, ps, spini, vspin, wspin
   real(kind=db), dimension(3,3):: Cubmat, Cubmati, matopsym
@@ -184,8 +184,7 @@ subroutine symsite(absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
 
   neqm = 0
 
-  rad = pi / 180
-  dcosxyz(:) = 2 * cos( angxyz(:) * rad )
+  dcosxyz(:) = 2 * cos( angxyz(:) * radian )
   if( abs( dcosxyz(1) ) < eps10 .and. abs( dcosxyz(2) ) < eps10 .and. abs( dcosxyz(3) ) < eps10 ) then
     Base_ortho = .true.
   else
@@ -2098,8 +2097,7 @@ subroutine natomp_cal(angxyz,ATA,axyz,Base_ortho,chargat,d_ecrant,dcosxyz,deccen
   real(kind=db), dimension(3,ngroup):: posg, posn
   real(kind=db), dimension(0:n_atom_proto):: chargat
 
-  rad = pi / 180
-  dcosxyz(:) = 2 * cos( angxyz(:) * rad )
+  dcosxyz(:) = 2 * cos( angxyz(:) * radian )
   if( abs( dcosxyz(1) ) < eps10 .and. abs( dcosxyz(2) ) < eps10 .and. abs( dcosxyz(3) ) < eps10 ) then
     Base_ortho = .true.
   else
@@ -2532,7 +2530,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr
     One_run, PointGroup_Auto, Self_nonexc, Spinorbite, Sym_4, Sym_cubic, Symmol, Taux
   logical, dimension(0:ngroup_m):: Atom_with_axe
 
-  real(kind=db):: Angle, Dist_max, Distm, Dsa, Dsb, Prod, rad, Rmax
+  real(kind=db):: Angle, Dist_max, Distm, Dsa, Dsb, Prod, rad_i, Rmax
 
   real(kind=db), dimension(3):: angxyz, Axe_spin, Axe_spin_0, axyz, dcosxyz, deccent, dpos, pa, pb, v
   real(kind=db), dimension(3,3):: Cubmat, Orthmat, Orthmati, Orthmatt, Rot_un, Rotmat, Rot_int, Rot_so, Rot_tem, Rotspin
@@ -2553,8 +2551,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr
 
   if( icheck > 0 ) write(3,110)
 
-  rad = pi / 180
-  dcosxyz(:) = 2 * cos( angxyz(:) * rad )
+  dcosxyz(:) = 2 * cos( angxyz(:) * radian )
   if( abs( dcosxyz(1) ) < eps10 .and. abs( dcosxyz(2) ) < eps10 .and. abs( dcosxyz(3) ) < eps10 ) then
     base_ortho = .true.
   else
@@ -2868,7 +2865,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr
 
 ! Angle des liasons autour de l'absorbeur
     write(3,'(/A)') '   ia   ib   Za   Zb   Angle(a,O,b)'
-    rad = 180 / pi
+    rad_i = 180._db / pi
     Distm = 3.2_db / bohr
     Dist_max = Dista(iaabs) + Distm
     do ia = 1,natomp
@@ -2889,7 +2886,7 @@ subroutine agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr
         elseif( Prod > 1._db - eps10 ) then
           Angle = 0._db
         else
-          Angle = rad * acos( Prod )
+          Angle = rad_i * acos( Prod )
         endif
         write(3,250) ia, ib, numat(itypep(ia)), numat(itypep(ib)), Angle
       end do
@@ -5625,7 +5622,7 @@ end
 ! Sousprogramme effectuant certaines preparations pour le DAFS
 
 subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Base_spin, &
-            Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_no_res,Film, &
+            Bormann,Bulk,Bulk_lay,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_no_res,Film, &
             Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck,igreq,iprabs,isigpi,itabs,itypepr,lvval, &
             Magnetic,Mat_or,mpirank,n_atom_bulk,n_atom_cap,n_atom_proto,natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m, &
             ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmat,Orthmati,phdafs, &
@@ -5635,17 +5632,16 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
   use declarations
   implicit none
 
-  integer:: i, i0, icheck, igr, ip, ipl, ipr, iprabs, it, itabs, iwrite, j, jgr, kgr, mpirank, n,  &
+  integer:: i, icheck, igr, ip, ipl, ipr, iprabs, it, itabs, iwrite, j, jgr, kgr, mpirank,  &
     n_atom_bulk, n_atom_cap, n_atom_proto, natomsym, nbseuil, neqm, ngrm, ngroup, ngroup_m, ngroup_taux, &
-    ngroup_temp, nlatm, nphim, npldafs, nrm, nspin, ntype, Z, Z_bottom_cap, Z_bottom_film, Z_top_bulk, Z_top_cap, Z_top_film
+    ngroup_temp, nlatm, nphim, npldafs, nrm, nspin, ntype, Z, Z_abs
 
   integer, dimension(2):: Mult_bulk, Mult_film
 
-  character(len=4) elemv, mot4
-  character(len=2) Chemical_symbol
+  character(len=4):: mot4
   character(len=132):: xsect_file
 
-  complex(kind=db):: Bragg_bulk, Bragg_cap, cfac, ph, ph_cjg, Troncature
+  complex(kind=db):: cfac, ph, ph_cjg
   complex(kind=db), dimension(3):: vec_a, vec_b, pe, ps
   complex(kind=db), dimension(npldafs):: phdabs, v_vec_a, v_vec_b
   complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdt
@@ -5669,15 +5665,12 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
 
   logical:: Base_spin, Bulk, Bormann, Cap_layer, Dafs_bio, Debye, Film, hkl_film, Magnetic, Taux, Temperature
 
-  real(kind=sg):: getf0, s
-
-  real(kind=db):: abs_cap, abs_mesh, arg, Atom_radius, Cal_Volume_maille, cos_z, cos_z_b, cos_z_c, Cap_disorder, Cap_roughness, &
-    Cap_thickness, Cap_thickness_used, Cap_shift, Conv_mbarn_nelec, Deb, Delta_2, Deltak_A, Delta_bulk, Delta_cap, delta_z, &
-    delta_z_bottom_cap, delta_z_bottom_film, delta_z_top_bulk, delta_z_top_cap, delta_z_top_film, dpdeg, &
-    DW, f0_bulk, f0_cap, Film_roughness, Film_thickness, Film_thickness_used, fp_bulk, fp_cap, fpp_bulk, fpp_bulk_tot, &
-    fpp_cap, fpp_cap_tot, konde, pp, R_bottom_cap, R_bottom_film, R_top_bulk, R_top_cap, R_top_film, rad, rap_lsur2s, Taux_r, &
-    Taux_r2, Temp, Tempt, Thickness, Volume_maille, x, z_min_cap, z_min_film, z_min_2_film, z_max_bulk, z_max_cap, &
-    z_max_film, z_max_2_film, z_pos, z_roughness_cap, z_roughness_film
+  real(kind=db):: abs_cap, arg, Bulk_lay, c_cos_z, c_cos_z_b, Cap_disorder, Cap_roughness, &
+    Cap_thickness, Cap_thickness_used, Cap_shift, Deb, Delta_2, Deltak_A, Delta_roughness_film, &
+    delta_z_bottom_cap, delta_z_bottom_film, delta_z_top_cap, delta_z_top_film, dpdeg, &
+    DW, Film_roughness, Film_thickness, Film_thickness_used, &
+    fpp_cap_tot, konde, pp, R_bottom_film, R_top_bulk, R_top_film, rap_lsur2s, Taux_r, &
+    Temp, Tempt, x,  z_min_film, z_max_film, z_pos
 
   real(kind=db), dimension(2):: f_no_res
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_cap, axyz, axyz_bulk, axyz_cap, hkl, &
@@ -5703,10 +5696,10 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
 
   if( icheck > 0 ) write(3,110)
 
-  rad = pi / 180._db
-
   Mult_film(:) = 0
   Mult_bulk(:) = 0
+
+  Z_abs = numat(itabs)
 
 ! lambda = 2 * pi / k = 2 * d * sintheta
 ! En S.I. vecond = k = E*alfa*4*pi*epsilon0 / (e*e)
@@ -5732,176 +5725,10 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
     Debye = .false.
   endif
 
-  if( Film ) cos_z = sqrt( sin( rad * angxyz(2) )**2 &
-                - ( ( cos( rad * angxyz(1) ) - cos( rad * angxyz(3) ) * cos( rad * angxyz(2) ) ) / sin( rad * angxyz(3) ) )**2 )
-
-  if( Film .and. Bulk ) then
-
-    call bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_bulk,Mult_bulk,Mult_film)
-    if( hkl_film ) call invermat( Mat_bulk, Mat_bulk_i )
-
-    cos_z_b = sqrt( sin( rad * angxyz_bulk(2) )**2 &
-                - ( ( cos( rad * angxyz_bulk(1) ) - cos( rad * angxyz_bulk(3) ) * cos( rad * angxyz_bulk(2) ) ) &
-                    / sin( rad * angxyz_bulk(3) ) )**2 )
-
-  endif
-
-  if( Film ) then
-
-! Stockage if modification
-    posn_t(:,:) = posn(:,:)
-
-    if( Film .and. Film_shift(5) > - eps10 ) then
-      do jgr = 1,ngroup
-        posn(3,jgr) = posn(3,jgr) - Film_shift(5)
-        if( posn(3,jgr) < 0._db - eps10 ) posn(3,jgr) = posn(3,jgr) + 1._db
-      end do
-    endif
-
-    if( .not. Bulk ) Film_shift(1:4) = 0._db
-
-    Film_thickness_used = 0._db
-    z_roughness_film = 0._db
-
-    z_max_film = - 1000000._db
-    z_max_2_film = - 1000000._db
-    z_min_film = 1000000._db
-    if( Film_thickness > axyz(3) * cos_z ) then
-      z_min_2_film = - 1000000._db
-    else
-      z_min_2_film = 1000000._db
-    endif
-
-    do ipr = 1,n_atom_proto
-
-      it = itypepr( ipr )
-      if( numat( it ) == 0 ) cycle
-      igr_tem(:) = igreq(ipr,:)
-
-      do igr = 1,ngreq(ipr)
-        jgr = igr_tem(igr)
-        z_pos = posn(3,jgr) * axyz(3) * cos_z
-        if( z_pos < z_min_film ) then
-          z_min_film = z_pos
-          Z_bottom_film = numat(it)
-        endif
-      end do
-
-    end do
-
-    do ipr = 1,n_atom_proto
-
-      it = itypepr( ipr )
-      if( numat( it ) == 0 ) cycle
-      igr_tem(:) = igreq(ipr,:)
-
-      do igr = 1,ngreq(ipr)
-        jgr = igr_tem(igr)
-        if( Film_thickness > axyz(3) * cos_z ) then
-          z_pos = ( posn(3,jgr) - 1 ) * axyz(3) * cos_z
-          if( z_pos > z_min_2_film ) z_min_2_film = z_pos
-        else
-          z_pos = posn(3,jgr) * axyz(3) * cos_z
-          if( z_pos < z_min_film + eps10 ) cycle
-          if( z_pos < z_min_2_film ) z_min_2_film = z_pos
-       endif
-      end do
-
-    end do
-
-    R_bottom_film = Atom_radius( Z_bottom_film )
-
-    if( z_min_2_film >= 100000._db ) then
-      delta_z = 0.5_db * axyz(3) * cos_z
-    else
-      delta_z = 0.5_db * abs( z_min_2_film - z_min_film )
-    endif
-    delta_z_bottom_film = min( delta_z, R_bottom_film )
-
-! Si Film_thickness non defini, on prend une maille
-    if( Film_thickness <= - 100._db ) then
-
-      do ipr = 1,n_atom_proto
-        it = itypepr( ipr )
-        if( numat( it ) == 0 ) cycle
-        igr_tem(:) = igreq(ipr,:)
-        do igr = 1,ngreq(ipr)
-          jgr = igr_tem(igr)
-          z_pos = posn(3,jgr) * axyz(3) * cos_z
-          if( z_pos > z_max_film ) then
-            z_max_film = z_pos
-            Z_top_film = numat(it)
-          endif
-        end do
-      end do
-      R_top_film = Atom_radius( Z_top_film )
-      Film_thickness = axyz(3) * cos_z
-      delta_z_top_film = Film_thickness - ( z_max_film - z_min_film ) - delta_z_bottom_film
-      Film_thickness_used = Film_thickness
-      z_max_film = z_max_film + delta_z_top_film
-      z_min_film = z_min_film - delta_z_bottom_film
-
-    elseif( Film_thickness > eps10 ) then
-
-      Film_thickness = max( Film_thickness, 2 * delta_z_bottom_film )
-
-    endif
-
-    if( Film_thickness > eps10 .and. Film_thickness_used < eps10 ) then
-
-      z_max_film = -1000000._db
-      z_max_2_film = -1000000._db
-
-      do ipr = 1,n_atom_proto
-
-        it = itypepr( ipr )
-        if( numat( it ) == 0 ) cycle
-
-        R_top_film = Atom_radius( numat(it) )
-
-        igr_tem(:) = igreq(ipr,:)
-
-        do igr = 1,ngreq(ipr)
-          jgr = igr_tem(igr)
-
-          do i = 0,1000000
-            z_pos = ( posn(3,jgr) + i ) * axyz(3) * cos_z
-            Thickness = z_pos - z_min_film
-            if( Thickness > Film_thickness - eps10 ) exit
-            if( z_pos > z_max_film ) then
-              z_max_film = z_pos
-              Z_top_film = numat(it)
-            endif
-          end do
-
-        end do
-      end do
-
-      R_top_film = Atom_radius( Z_top_film )
-
-      delta_z = Film_thickness - ( z_max_film - z_min_film ) - delta_z_bottom_film
-      delta_z_top_film = min( delta_z, R_top_film )
-
-      z_max_film = z_max_film + delta_z_top_film
-      z_min_film = z_min_film - delta_z_bottom_film
-
-      Film_thickness_used = z_max_film - z_min_film
-
-    elseif( Film_thickness_used < eps10 ) then
-
-      z_max_film = -1000._db
-      Film_thickness_used = 0._db
-      Film_thickness = 0._db
-
-    endif
-
-    if( z_roughness_film < eps10 ) then
-      z_roughness_film = 0._db
-    else
-      z_roughness_film = Film_thickness_used
-    endif
-
-  endif
+  if( Film ) call Prep_film(angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,c_cos_z,c_cos_z_b,Delta_roughness_film,delta_z_bottom_film, &
+            delta_z_top_film,Film_roughness,Film_shift,Film_thickness,Film_thickness_used,hkl_film,icheck,igreq,itypepr, &
+            Mat_bulk,Mat_bulk_i,Mult_bulk,Mult_film,n_atom_proto,neqm,ngreq,ngroup,ntype,numat,posn,posn_t,R_bottom_film, &
+            R_top_film,z_max_film,z_min_film)
 
   if( icheck > 1 .and. Temperature ) write(3,'(/A)') ' ( h, k, l)   Z   Debye-Waller Attenuation'
 
@@ -5939,13 +5766,13 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
 
         do i = 0,1000000
           if( Film ) then
-            z_pos = p(3) * axyz(3) * cos_z
-            if( z_pos > z_max_film + z_roughness_film + eps10 ) exit
+            z_pos = p(3) * c_cos_z
+            if( z_pos > z_max_film + delta_z_top_film + Delta_roughness_film + eps10 ) exit
           elseif( i > 0 ) then
             exit
           endif
           if( Film_roughness > eps10 ) then
-            x = ( z_max_film - z_pos ) / Film_roughness
+            x = ( z_max_film + delta_z_top_film - z_pos ) / Film_roughness
             Taux_r = 1._db - erfc( x ) * 0.5_db
           else
             Taux_r = 1._db
@@ -5981,12 +5808,12 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
 
     end do
 
-    n = numat( itypepr( ipr ) )
-    if( n == 0 ) cycle
+    Z = numat( itypepr( ipr ) )
+    if( Z == 0 ) cycle
 ! On ne tient pas compte de l'anomale de l'atome absorbeur puisqu'il est
 ! calcule dans le programme !
-    if( n /= numat(itabs) ) then
-      call fprime(n,eseuil(nbseuil),fpp(ipr),fp(ipr),xsect_file)
+    if( Z /= Z_abs ) then
+      call fprime(Z,Eseuil(nbseuil),fpp(ipr),fp(ipr),xsect_file)
     else
       fp(:) = 0._db; fpp(ipr) = 0._db
     endif
@@ -6038,309 +5865,20 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
     phd_f_bulk(:) = ( 0._db, 0._db )
   endif
 
-  if( Bulk ) then
-
-! Determination of Film-bulk spacing
-    z_max_bulk = -100000._db
-    do igr = 1,n_atom_bulk
-      if( posn_bulk(3,igr) < z_max_bulk ) cycle
-      z_max_bulk = posn_bulk(3,igr)
-      Z_top_bulk = Z_bulk(igr)
-    end do
-
-    z_pos = z_max_bulk + 1._db
-    do igr = 1,n_atom_bulk
-      if( posn_bulk(3,igr) + 1._db > z_pos ) cycle
-      z_pos = posn_bulk(3,igr) + 1._db
-    end do
-
-    z_max_bulk = z_max_bulk * cos_z_b * axyz_bulk(3)
-    z_pos = z_pos * cos_z_b * axyz_bulk(3)
-
-    R_top_bulk = Atom_radius( Z_top_bulk )
-
-    delta_z = 0.5_db * ( z_pos - z_max_bulk )
-    delta_z_top_bulk = min( delta_z, R_top_bulk )
-
-    z_max_bulk = z_max_bulk + delta_z_top_bulk
-
-    if( Film_thickness > eps10 ) then
-      Delta_bulk = ( z_min_film + delta_z_bottom_film ) - ( z_max_bulk - delta_z_top_bulk )
-      if( Film_shift(3) < - 100._db ) Film_shift(3) = R_top_bulk + R_bottom_film
-      Delta_bulk = Delta_bulk - Film_shift(3)
-    else
-      Delta_bulk = - ( z_max_bulk - delta_z_top_bulk )
-      Film_shift(3) = 0._db
-    endif
-
-    fpp_bulk_tot = 0._db
-    do igr = 1,n_atom_bulk
-      Z = Z_bulk(igr)
-      call fprime(Z,Eseuil(nbseuil),fpp_bulk,fp_bulk,xsect_file)
-      fpp_bulk_tot = fpp_bulk_tot + fpp_bulk
-    end do
-! Conversion en Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
-    fpp_bulk_tot = fpp_bulk_tot / ( conv_mbarn_nelec(Eseuil(nbseuil)) * pi )
-! Conversion en coefficient d'absorption lineaire en micrometre^-1
-    Volume_maille = Cal_Volume_maille(axyz_bulk,angxyz_bulk)
-    fpp_bulk_tot = 100 * fpp_bulk_tot / ( Volume_maille * bohr**3 )
-! Valeur pour une maille (facteur pour maille en micrometre)
-    fpp_bulk_tot = 0.00001_db * bohr * fpp_bulk_tot * axyz_bulk(3) / cos_z_b
-
-    abs_mesh = exp( - fpp_bulk_tot )
-
-    do ipl = 1,npldafs
-
-      s = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
-      s = s / bohr                 ! on le veut en angstroem - 1
-
-      hkl(:) = hkl_dafs(:,ipl)
-      if( hkl_film ) hkl = Matmul( Mat_bulk_i, hkl )
-
-      if( ( abs( hkl(1) ) > eps10 .and. Mult_bulk(1) == 0 ) .or. &
-          ( abs( hkl(2) ) > eps10 .and. Mult_bulk(2) == 0 ) ) cycle
-
-      do igr = 1,n_atom_bulk
-
-        elemv = ' '
-        elemv(1:2) = Chemical_Symbol( Z_bulk(igr) )
-        f0_bulk = getf0(elemv,s)
-
-        if( Z_bulk(igr) /= Z ) then
-          Z = Z_bulk(igr)
-          call fprime(Z,Eseuil(nbseuil),fpp_bulk,fp_bulk,xsect_file)
-        endif
-
-        arg = deux_pi * sum( posn_bulk(:,igr) * hkl(:) )
-        Bragg_bulk = cmplx( cos(arg), sin(arg), db )
-
-        cfac = ( 0._db, 0._db )
-        do i = 0,Max( Mult_bulk(1)-1, 0 )
-          do j = 0,Max( Mult_bulk(2)-1, 0 )
-            arg = deux_pi * ( i * hkl(1) + j * hkl(2) )
-            cfac = cfac + cmplx( cos(arg), sin(arg), db )
-          end do
-        end do
-        if( abs( cfac ) < eps10 )  cfac = ( 0._db, 0._db )
-
-        phd_f_bulk(ipl) = phd_f_bulk(ipl) + Bragg_bulk * cfac * cmplx( f0_bulk + fp_bulk, fpp_bulk, db )
-
-      end do
-
-      if( hkl_film ) then
-        arg = deux_pi * hkl(3) * Delta_bulk / ( axyz(3) * cos_z )
-      else
-        arg = deux_pi * hkl(3) * Delta_bulk / ( axyz_bulk(3) * cos_z_b )
-      endif
-      phd_f_bulk(ipl) = phd_f_bulk(ipl) * cmplx( cos(arg), sin(arg), db )
-
-! Case of non rationnal ratio between bulk and film, or R45 (sqrt(2), sqrt(2))
-      do i = 1,2
-        if( ( abs( hkl(i) ) < eps10 .and. Mult_bulk(i) == 0 ) .or. abs( Film_shift(4) - 45 ) < 1._db ) &
-                                                            phd_f_bulk(ipl) = phd_f_bulk(ipl) * axyz(i) / axyz_bulk(i)
-      end do
-
-      Troncature = 1._db / ( 1._db - abs_mesh * exp( - img * 2 * pi * hkl(3) ) )
-
-      phd_f_bulk(ipl) = phd_f_bulk(ipl) * Troncature
-
-    end do
-
-  endif
+  if( Bulk ) call Bulk_scat(angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_lay,c_cos_z,c_cos_z_b,deltak, &
+        Eseuil,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck,Mat_bulk_i,Mult_bulk,n_atom_bulk, &
+        nbseuil,npldafs,phd_f_bulk,posn_bulk,R_bottom_film,R_top_bulk,xsect_file,Z_abs,Z_bulk,z_min_film)
 
   if( Film ) then
     allocate( phd_f_cap(npldafs) )
     phd_f_cap(:) = ( 0._db, 0._db )
   endif
 
-  if( Cap_layer ) then
-
-    cos_z_c = sqrt( sin( rad * angxyz_cap(2) )**2 &
-                - ( ( cos( rad * angxyz_cap(1) ) - cos( rad * angxyz_cap(3) ) * cos( rad * angxyz_cap(2) ) ) &
-                    / sin( rad * angxyz_cap(3) ) )**2 )
-
-    z_min_cap = 1000000._db
-    z_max_cap = -1000000._db
-
-    do igr = 1,n_atom_cap
-      if( posn_cap(3,igr) > z_min_cap ) cycle
-      z_min_cap = posn_cap(3,igr)
-      Z_bottom_cap = Z_cap(igr)
-    end do
-
-    z_pos = z_min_cap - 1._db
-    do igr = 1,n_atom_cap
-      if( posn_cap(3,igr) - 1._db < z_pos ) cycle
-      z_pos = posn_cap(3,igr) - 1._db
-    end do
-
-    z_min_cap = z_min_cap * cos_z_c * axyz_cap(3)
-    z_pos = z_pos * cos_z_c * axyz_cap(3)
-
-    R_bottom_cap = Atom_radius( Z_bottom_cap )
-
-    delta_z = 0.5_db * ( z_min_cap - z_pos )
-    delta_z_bottom_cap = min( delta_z, R_bottom_cap )
-    z_min_cap = z_min_cap - delta_z_bottom_cap
-
-    Cap_thickness = max( Cap_thickness, 2 * R_bottom_cap )
-
-    delta_z = delta_z_bottom_cap
-    do igr = 1,n_atom_cap
-      R_top_cap = Atom_radius( Z_cap(igr) )
-      do i = 0,1000000
-        z_pos = ( posn_cap(3,igr) + i ) * axyz_cap(3) * cos_z_c
-        if( z_pos < z_max_cap ) cycle
-        Thickness = z_pos - z_min_cap + delta_z
-        if( Thickness > Cap_thickness ) exit
-        if( z_pos > z_max_cap ) then
-          z_max_cap = z_pos
-          Z_top_cap = Z_cap(igr)
-        endif
-      end do
-    end do
-
-    R_top_cap = Atom_radius( Z_top_cap )
-    delta_z = R_top_cap
-
-    do igr = 1,n_atom_cap
-      R_top_cap = Atom_radius( Z_cap(igr) )
-      do i = 0,1000000
-        z_pos = ( posn_cap(3,igr) + i ) * axyz_cap(3) * cos_z_c
-        if( z_pos > z_max_cap - eps10 ) exit
-        delta_z = min( delta_z, 0.5_db * ( z_max_cap - z_pos ) )
-      end do
-    end do
-    delta_z_top_cap = delta_z
-
-    z_max_cap = z_max_cap + delta_z_top_cap
-    Cap_thickness_used = z_max_cap - z_min_cap
-
-    if( Film_thickness < eps10 .and. .not. Bulk ) then
-      Delta_cap = 0._db
-      Cap_shift = 0._db
-    elseif( Film_thickness < eps10 ) then
-      Delta_cap = z_min_cap + delta_z_bottom_cap
-      if( Cap_shift < -100._db ) Cap_shift = R_top_bulk + R_bottom_cap
-    else
-      Delta_cap = ( z_max_film - delta_z_top_film ) - ( z_min_cap + delta_z_bottom_cap )
-      if( Cap_shift < -100._db ) Cap_shift = R_top_film + R_bottom_cap
-    endif
-    Delta_cap = Delta_cap + Cap_shift
-
-    if( Cap_roughness < eps10 ) then
-      z_roughness_cap = 0._db
-    else
-      z_roughness_cap = z_max_cap - z_min_cap
-    endif
-
-    if( z_roughness_film > eps10 ) then
-      i0 = - nint( z_roughness_film / ( axyz_cap(3) * cos_z_c ) ) - 1
-    else
-      i0 = 0
-    endif
-
-    Z = 0
-
-    do ipl = 1,npldafs
-
-      hkl(:) = hkl_dafs(:,ipl)
-
-      if( abs( hkl(1) ) > eps10 .or. abs( hkl(2) ) > eps10 ) cycle
-
-      s = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
-      s = s / bohr                      ! on le veut en angstroem - 1
-
-! Delta_2 = ( Sin(Theta_Bragg)/Lambda )^2
-      if( Cap_disorder > eps10 ) then
-        Deb = exp( - 0.5_db * ( Cap_disorder * deltak(ipl) )**2 )
-      else
-        Deb = 1._db
-      endif
-
-      if( hkl_film ) then
-        hkl(3) = hkl(3) * cos_z_c * axyz_cap(3) / ( cos_z * axyz(3) )
-      else
-        hkl(3) = hkl(3) * cos_z_c * axyz_cap(3) / ( cos_z_b * axyz_bulk(3) )
-      endif
-
-      do igr = 1,n_atom_cap
-
-        elemv = ' '
-        elemv(1:2) = Chemical_Symbol( Z_cap(igr) )
-        f0_cap = getf0(elemv,s)
-
-        if( Z_cap(igr) /= Z ) then
-          Z = Z_cap(igr)
-          call fprime(Z,Eseuil(nbseuil),fpp_cap,fp_cap,xsect_file)
-        endif
-
-        Bragg_cap = ( 0._db, 0._db )
-
-        do i = i0,1000000
-          p(:) = posn_cap(:,igr)
-          p(3) = p(3) + i
-          z_pos = p(3) * axyz_cap(3) * cos_z_c
-          if( z_pos < z_min_cap - z_roughness_film - eps10 ) cycle
-!          if( z_pos > z_max_cap + z_roughness_cap + eps10 ) exit
-          if( z_pos > z_max_cap + 2 * Cap_roughness + eps10 ) exit
-          if( Cap_roughness > eps10 ) then
-            x = ( z_max_cap - z_pos ) / Cap_roughness
-            Taux_r = 1._db - erfc( x ) * 0.5_db
-          else
-            Taux_r = 1._db
-          endif
-          if( Film_roughness > eps10 .and. z_pos < z_min_cap + z_roughness_film + eps10 ) then
-            x = ( z_pos - z_min_cap ) / Film_roughness
-            Taux_r2 =  erfc( x )
-            Taux_r2 = 1._db - Taux_r2 * 0.5_db
-            Taux_r = Taux_r * Taux_r2
-          endif
-          arg = deux_pi * sum( p(:) * hkl(:) )
-          Bragg_cap = Bragg_cap + Deb * Taux_r * cmplx( cos(arg), sin(arg), db )
-        end do
-
-        phd_f_cap(ipl) = phd_f_cap(ipl) + Taux_cap(igr) * Bragg_cap * cmplx( f0_cap + fp_cap, fpp_cap, db )
-
-      end do
-
-      if( hkl_film ) then
-        arg = deux_pi * hkl(3) * Delta_cap / ( axyz(3) * cos_z )
-      else
-        arg = deux_pi * hkl(3) * Delta_cap / ( axyz_bulk(3) * cos_z_b )
-      endif
-      phd_f_cap(ipl) = phd_f_cap(ipl) * cmplx( cos(arg), sin(arg), db )
-
-! Case of non rationnal ratio between bulk and film, or R45 (sqrt(2), sqrt(2))
-
-      if( hkl_film ) then
-        n = max( 1, Mult_film(1) * Mult_film(2) )
-        s = n * axyz(1) * axyz(2) * sin( rad * angxyz(3) ) / ( axyz_cap(1) *  axyz_cap(2) * sin( rad * angxyz_cap(3) ) )
-      else
-        n = max( 1, Mult_bulk(1) * Mult_bulk(2) )
-        s = n * axyz_bulk(1) * axyz_bulk(2) * sin( rad * angxyz_bulk(3) ) &
-                                                           / ( axyz_cap(1) *  axyz_cap(2) * sin( rad * angxyz_cap(3) ) )
-      endif
-      phd_f_cap(ipl) = s * phd_f_cap(ipl)
-
-    end do
-
- ! Absorption a travers la couche
-    fpp_cap_tot = 0._db
-    do igr = 1,n_atom_cap
-      Z = Z_cap(igr)
-      call fprime(Z,Eseuil(nbseuil),fpp_cap,fp_cap,xsect_file)
-      fpp_cap_tot = fpp_cap_tot + Taux_cap(igr) * fpp_cap
-    end do
-! Conversion en Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
-    fpp_cap_tot = fpp_cap_tot / ( conv_mbarn_nelec(Eseuil(nbseuil)) * pi )
-! Conversion en coefficient d'absorption lineaire en micrometre^-1
-    Volume_maille = Cal_Volume_maille(axyz_cap,angxyz_cap)
-    fpp_cap_tot = 100 * fpp_cap_tot / ( Volume_maille * bohr**3 )
-! Valeur l' epaisseur traversee aller-retour (a multiplier par 2/sin(theta_bragg) )
-    fpp_cap_tot = 0.00001_db * bohr * fpp_cap_tot * Cap_thickness_used
-
-  endif
+  if( Cap_layer ) call Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,Cap_disorder,Cap_roughness, &
+              Cap_thickness,Cap_thickness_used,Cap_shift,c_cos_z,c_cos_z_b,Delta_roughness_film,delta_z_bottom_cap, &
+              delta_z_top_cap,deltak,Eseuil,Film_roughness,Film_thickness,fpp_cap_tot,hkl_dafs,hkl_film, &
+              icheck,Mult_bulk,Mult_film,n_atom_cap,nbseuil,npldafs,phd_f_cap,posn_cap,R_top_bulk,R_top_film,Taux_cap, &
+              xsect_file,Z_cap,z_max_film)
 
 ! Multplication par epsilon_e * espilon_s
   do ipl = npldafs,1,-1
@@ -6348,15 +5886,16 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
     if( Bulk ) ph = ph + phd_f_bulk(ipl)
 
     if( Cap_layer ) then
-      s = deltak(ipl) / konde      ! = 2 * sin(theta)
-      abs_cap = exp( - fpp_cap_tot * s )
+      x = deltak(ipl) / konde      ! = 2 * sin(theta)
+      abs_cap = exp( - fpp_cap_tot * x )
+      if( ipl == 1 .and. icheck == 1 )  write(3,'(a29,1p,e13.5)') ' Absorption through the cap =', 1._db - Abs_cap
       ph = abs_cap * ph
       phdafs(1:natomsym,ipl) = abs_cap * phdafs(1:natomsym,ipl)
-
       ph = ph + phd_f_cap(ipl)
     endif
 
     if( Dafs_bio ) ph_cjg = sum( phd_f0_cjg(1:n_atom_proto,ipl) ) + sum( phd_fan_cjg(1:n_atom_proto,ipl) )
+
     do ip = nphi_dafs(ipl),1,-1
       pe(:) = poldafse(:,ipl,ip)
       ps(:) = poldafss(:,ipl,ip)
@@ -6462,31 +6001,6 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
       end do
     endif
 
-    if( Film .and. Film_thickness > eps10 ) then
-      write(3,222) 'Film_thickness', Film_thickness * bohr, 'Film_thickness_used', Film_thickness_used * bohr
-      write(3,223) 'Film_shift    ', Film_shift(3) * bohr
-      write(3,223) 'Film_roughness', Film_roughness * bohr
-      write(3,224) 'bottom_film', Z_bottom_film, 'bottom_film', R_bottom_film * bohr, 'bottom_film', delta_z_bottom_film * bohr
-      write(3,224) 'top_film   ', Z_top_film, 'top_film   ', R_top_film * bohr, 'top_film   ', delta_z_top_film * bohr
-      write(3,226) 'film', z_min_film * bohr, 'film', z_max_film * bohr
-    endif
-    if( Bulk ) then
-      write(3,*)
-      write(3,224) 'top_bulk   ', Z_top_bulk, 'top_bulk   ', R_top_bulk * bohr, 'top_bulk   ', delta_z_top_bulk * bohr
-      write(3,232) z_max_bulk * bohr
-      write(3,230) 'bulk', Delta_bulk * bohr
-    endif
-    if( Cap_layer ) then
-      write(3,222) 'Cap_thickness ', Cap_thickness * bohr, 'Cap_thickness_used ', Cap_thickness_used * bohr
-      write(3,223) 'Cap_shift     ', Cap_shift * bohr
-      write(3,223) 'Cap_roughness ', Cap_roughness * bohr
-      write(3,224) 'bottom_cap ', Z_bottom_cap, 'bottom_cap ', R_bottom_cap * bohr, 'bottom_cap ', delta_z_bottom_cap * bohr
-      write(3,224) 'top_cap    ', Z_top_cap, 'top_cap    ', R_top_cap * bohr, 'top_cap    ', delta_z_top_cap * bohr
-      write(3,226) 'cap ', z_min_cap * bohr, 'cap ', z_max_cap * bohr
-      write(3,230) 'cap ', Delta_cap * bohr
-      write(3,'(a29,1p,e13.5)') ' Absorption through the cap =', 1._db - Abs_cap
-    endif
-
     if( Film ) then
       write(3,'(/A)') '  (   h,      k,      l)  exp(i*Q.R_ia) (ia = 1,natomsym)'
     else
@@ -6495,6 +6009,7 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
 
     do ipl = 1,npldafs
       if( Film ) then
+        if( mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
         write(3,235) hkl_dafs(:,ipl), phdafs(1:natomsym,ipl)
       else
         write(3,240) nint(hkl_dafs(:,ipl)), phdafs(1:natomsym,ipl)
@@ -6524,6 +6039,7 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
         endif
         do ipl = 1,npldafs
           if( Film ) then
+            if( mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
             write(3,270) hkl_dafs(:,ipl), f0(ipr,ipl), fp(ipr), fpp(ipr), phd(ipr,ipl), phd_f0(ipr,ipl), phd_fan(ipr,ipl)
           else
             write(3,275) nint(hkl_dafs(:,ipl)), f0(ipr,ipl), fp(ipr), fpp(ipr), phd(ipr,ipl), phd_f0(ipr,ipl), phd_fan(ipr,ipl)
@@ -6537,6 +6053,7 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
         endif
         do ipl = 1,npldafs
           if( Film ) then
+            if( mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
             write(3,290) hkl_dafs(:,ipl), f0(ipr,ipl), fp(ipr), fpp(ipr), f_ms(ipr,ipl), f_mo(ipr,ipl), phd(ipr,ipl), &
               phd_f0(ipr,ipl), phd_fan(ipr,ipl), phd_fmag(ipr,ipl), v_vec_b(ipl), v_vec_a(ipl)
           else
@@ -6555,6 +6072,7 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
 
     do ipl = 1,npldafs
       if( Film ) then
+        if( mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
         write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1), phd_f_bulk(ipl), phd_f_cap(ipl)
       else
         write(3,275) nint( hkl_dafs(:,ipl) ), phdf0t(ipl,1)
@@ -6631,12 +6149,6 @@ subroutine prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
         8x,'real(Poldafse)',13x,'imag(Poldafse)',11x,'real(Poldafss)',12x, 'imag(Poldafse)',15x,'Vecdafse',15x,'Vecdafss')
   215 format(3i4,1x,a4, 6(1x,3f9.5))
   220 format(f6.1, 6(1x,3f9.5))
-  222 format(/1x,a14,' =',f7.3,'    ',a19,' =',f7.3,' A')
-  223 format( 1x,a14,' =',f7.3,' A')
-  224 format( ' Z_',a11,'  =',i3,'        R_',a11,' =',f7.3,'  delta_z_',a11,' =',f7.3,' A')
-  226 format( ' z_min_',a4,'     =',f7.3,'    z_max_',a4,'    =',f7.3,' A')
-  230 format( ' Delta_',a4,'     =',f7.3,' A')
-  232 format( ' z_max_bulk     =',f7.3,' A')
   235 format(3f8.3,1p,48(1x,2e13.5))
   240 format(3i3,1p,48(1x,2e13.5))
   245 format(/' Attenuation factor for non resonant magnetic structure', ' factor :'/,'      General : fma =',f7.3,/ &
@@ -6669,8 +6181,7 @@ end
 
 !*********************************************************************
 
-! Polarization calculation for DAFS
-! and f0, f_ms, f_mo calculations
+! Polarization calculation for DAFS and f0, f_ms, f_mo calculations
 
 subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Bormann,Bulk,Dafs_bio,deltak,Eseuil,f_ms,f_mo,f_no_res, &
             f0,Film,hkl_dafs,hkl_film,icheck,isigpi,itypepr,lvval,Magnetic,Mat_or,mpirank,n_atom_proto,nbseuil,&
@@ -6701,8 +6212,8 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
   real(kind=sg):: getf0, s
 
   real(kind=db):: Angle, cos_pe, cos_ps, cosb, cosp, detmat, dhkl, dp, Emc2,  &
-    fac, fmo, fms, konde, pp, psi, qkn, rad, rad_i, sin_pe, sin_ps, sinb, sinp, &
-    Thetabragg, Vol, wn, wsn
+    fac, fmo, fms, konde, pp, psi, qkn, rad_i, sin_pe, sin_ps, sinb, sinp, &
+    Thetabragg, Vol, wn, wsn, x
 
   real(kind=db), dimension(2):: f_no_res
   real(kind=db), dimension(3):: ang, angxyz, angxyz_bulk, axyz, axyz_bulk, cosdir, hklred, &
@@ -6718,8 +6229,6 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
   real(kind=db), dimension(n_atom_proto,npldafs):: f_ms, f_mo, f0
   real(kind=db), dimension(0:n_atom_proto,nlatm,nspin):: popatm
 
-  rad = pi / 180._db
-
 ! lambda = 2 * pi / k = 2 * d * sintheta
 ! En S.I. vecond = k = E*alfa*4*pi*epsilon0 / (e*e)
 ! En ua et rydb : k = 0.5 * alfa * E
@@ -6727,9 +6236,9 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
 
   istop = 0
   if( Bulk .and. .not. hkl_film ) then
-    cosdir(:) = cos( angxyz_bulk(:) * rad )
+    cosdir(:) = cos( angxyz_bulk(:) * radian )
   else
-    cosdir(:) = cos( angxyz(:) * rad )
+    cosdir(:) = cos( angxyz(:) * radian )
   endif
 
   if( Bormann ) then
@@ -7070,8 +6579,8 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
     endif
 
 ! Facteur de structure atomique
-    s = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
-    s = s / bohr                 ! on le veut en angstroem - 1
+    x = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
+    s = x / bohr                 ! on le veut en angstroem - 1
 
     do ipr = 1,n_atom_proto
 
@@ -7105,7 +6614,8 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
           write(3,175)
         endif
       endif
-      rad_i = 1 / rad
+      if( Film .and. mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
+      rad_i = 180._db / pi
       do i = 1,3
         if( abs( angpoldafs(i,ipl) ) > 9999._db ) then
           Ang(i) = 0._db
@@ -7163,17 +6673,15 @@ subroutine bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_
   integer:: i, icheck
   integer, dimension(2):: Mult_bulk, Mult_film
 
-  real(kind=db):: Cal_Volume_maille, cos_g, sin_g, rad, Vol
+  real(kind=db):: Cal_Volume_maille, cos_g, sin_g, Vol
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, cos_a, V, Vec_a, Vec_b, Vec_c
   real(kind=db), dimension(5):: Film_shift
   real(kind=db), dimension(3,3):: Mat, Mat_bulk, Mat_film, Mat_i
 
-  rad = pi / 180._db
-
 ! Bulk
 
-  cos_a(:) = cos( rad * angxyz_bulk(:) )
-  sin_g = sin( rad * angxyz_bulk(3) )
+  cos_a(:) = cos( radian * angxyz_bulk(:) )
+  sin_g = sin( radian * angxyz_bulk(3) )
 
   Vec_a(1) = axyz_bulk(1); Vec_a(2:3) = 0._db
   Vec_b(1) = axyz_bulk(2) * cos_a(3); Vec_b(2) = axyz_bulk(2) * sin_g; Vec_b(3) = 0._db
@@ -7191,8 +6699,8 @@ subroutine bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_
   Mat_bulk(:,3) = V(:) / Vol
 
   if( abs( Film_shift(4) ) > eps10 ) then
-    cos_g = cos( rad * Film_shift(4) )
-    sin_g = sin( rad * Film_shift(4) )
+    cos_g = cos( radian * Film_shift(4) )
+    sin_g = sin( radian * Film_shift(4) )
     Mat(1,1) = cos_g; Mat(1,2) = - sin_g; Mat(1,3) = 0._db
     Mat(2,1) = sin_g; Mat(2,2) = cos_g;   Mat(2,3) = 0._db
     Mat(3,1) = 0._db; Mat(3,2) = 0._db;   Mat(3,3) = 1._db
@@ -7201,8 +6709,8 @@ subroutine bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_
 
 ! Film
 
-  cos_a(:) = cos( rad * angxyz(:) )
-  sin_g = sin( rad * angxyz(3) )
+  cos_a(:) = cos( radian * angxyz(:) )
+  sin_g = sin( radian * angxyz(3) )
 
   Vec_a(1) = axyz(1); Vec_a(2:3) = 0._db
   Vec_b(1) = axyz(2) * cos_a(3); Vec_b(2) = axyz(2) * sin_g; Vec_b(3) = 0._db
@@ -7286,6 +6794,672 @@ end
   end do
 
   return
+end
+
+!***********************************************************************
+
+subroutine Prep_film(angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,c_cos_z,c_cos_z_b,Delta_roughness_film,delta_z_bottom_film, &
+            delta_z_top_film,Film_roughness,Film_shift,Film_thickness,Film_thickness_used,hkl_film,icheck,igreq,itypepr, &
+            Mat_bulk,Mat_bulk_i,Mult_bulk,Mult_film,n_atom_proto,neqm,ngreq,ngroup,ntype,numat,posn,posn_t,R_bottom_film, &
+            R_top_film,z_max_film,z_min_film)
+
+  use declarations
+  implicit none
+
+  integer:: i, icheck, igr, ipr, jgr, it, ngroup, n_atom_proto, neqm, ntype, Z_bottom_film, Z_top_film
+
+  integer, dimension(2):: Mult_bulk, Mult_film
+
+  integer, dimension(0:ntype):: numat
+  integer, dimension(0:n_atom_proto):: itypepr, ngreq
+  integer, dimension(0:n_atom_proto,neqm):: igreq
+  integer, dimension(neqm):: igr_tem
+
+  logical:: Bulk, hkl_film
+
+  real(kind=db):: Atom_radius, c_cos_z, c_cos_z_b, cos_z, cos_z_b, Delta_roughness_film, delta_z, delta_z_bottom_film, &
+    delta_z_top_film, Film_roughness, Film_thickness, Film_thickness_used, R_bottom_film, R_top_film, Thickness, z_max_film, &
+    z_max_2_film, z_min_film, z_min_2_film, z_pos
+
+  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk
+  real(kind=db), dimension(3,3):: Mat_bulk, Mat_bulk_i
+  real(kind=db), dimension(5):: Film_shift
+  real(kind=db), dimension(3,ngroup):: posn, posn_t
+
+  cos_z = sqrt( sin( radian * angxyz(2) )**2 &
+        - ( ( cos( radian * angxyz(1) ) - cos( radian * angxyz(3) ) * cos( radian * angxyz(2) ) ) &
+        / sin( radian * angxyz(3) ) )**2 )
+
+  c_cos_z = axyz(3) * cos_z
+
+  if( Bulk ) then
+
+    call bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_bulk,Mult_bulk,Mult_film)
+    if( hkl_film ) call invermat( Mat_bulk, Mat_bulk_i )
+
+    cos_z_b = sqrt( sin( radian * angxyz_bulk(2) )**2 &
+                - ( ( cos( radian * angxyz_bulk(1) ) - cos( radian * angxyz_bulk(3) ) * cos( radian * angxyz_bulk(2) ) ) &
+                    / sin( radian * angxyz_bulk(3) ) )**2 )
+
+    c_cos_z_b = axyz_bulk(3) * cos_z_b
+
+  endif
+
+! Stockage if modification
+  posn_t(:,:) = posn(:,:)
+
+  if( Film_shift(5) > - eps10 ) then
+    do jgr = 1,ngroup
+      posn(3,jgr) = posn(3,jgr) - Film_shift(5)
+      if( posn(3,jgr) < 0._db - eps10 ) posn(3,jgr) = posn(3,jgr) + 1._db
+    end do
+  endif
+
+  if( .not. Bulk ) Film_shift(1:4) = 0._db
+
+  Film_thickness_used = 0._db
+  Delta_roughness_film = 0._db
+
+  z_max_film = - 1000000._db
+  z_max_2_film = - 1000000._db
+  z_min_film = 1000000._db
+  if( Film_thickness > c_cos_z ) then
+    z_min_2_film = - 1000000._db
+  else
+    z_min_2_film = 1000000._db
+  endif
+
+  do ipr = 1,n_atom_proto
+
+    it = itypepr( ipr )
+    if( numat( it ) == 0 ) cycle
+    igr_tem(:) = igreq(ipr,:)
+
+    do igr = 1,ngreq(ipr)
+      jgr = igr_tem(igr)
+      z_pos = posn(3,jgr) * c_cos_z
+      if( z_pos < z_min_film ) then
+        z_min_film = z_pos
+        Z_bottom_film = numat(it)
+      endif
+    end do
+
+  end do
+
+  do ipr = 1,n_atom_proto
+
+    it = itypepr( ipr )
+    if( numat( it ) == 0 ) cycle
+    igr_tem(:) = igreq(ipr,:)
+
+    do igr = 1,ngreq(ipr)
+      jgr = igr_tem(igr)
+      if( Film_thickness > c_cos_z ) then
+        z_pos = ( posn(3,jgr) - 1 ) * c_cos_z
+        if( z_pos > z_min_2_film ) z_min_2_film = z_pos
+      else
+        z_pos = posn(3,jgr) * c_cos_z
+        if( z_pos < z_min_film + eps10 ) cycle
+        if( z_pos < z_min_2_film ) z_min_2_film = z_pos
+     endif
+    end do
+
+  end do
+
+  R_bottom_film = Atom_radius( Z_bottom_film )
+
+  if( z_min_2_film >= 100000._db ) then
+    delta_z = 0.5_db * c_cos_z
+  else
+    delta_z = 0.5_db * abs( z_min_2_film - z_min_film )
+  endif
+  delta_z_bottom_film = min( delta_z, R_bottom_film )
+
+! Si Film_thickness non defini, on prend une maille
+  if( Film_thickness <= - 100._db ) then
+
+    do ipr = 1,n_atom_proto
+      it = itypepr( ipr )
+      if( numat( it ) == 0 ) cycle
+      igr_tem(:) = igreq(ipr,:)
+      do igr = 1,ngreq(ipr)
+        jgr = igr_tem(igr)
+        z_pos = posn(3,jgr) * c_cos_z
+        if( z_pos > z_max_film ) then
+          z_max_film = z_pos
+          Z_top_film = numat(it)
+        endif
+      end do
+    end do
+    R_top_film = Atom_radius( Z_top_film )
+    Film_thickness = c_cos_z
+    delta_z_top_film = Film_thickness - ( z_max_film - z_min_film ) - delta_z_bottom_film
+    Film_thickness_used = Film_thickness
+
+  elseif( Film_thickness > eps10 ) then
+
+    Film_thickness = max( Film_thickness, 2 * delta_z_bottom_film )
+
+  endif
+
+  if( Film_thickness > eps10 .and. Film_thickness_used < eps10 ) then
+
+    z_max_film = -1000000._db
+    z_max_2_film = -1000000._db
+
+    do ipr = 1,n_atom_proto
+
+      it = itypepr( ipr )
+      if( numat( it ) == 0 ) cycle
+
+      R_top_film = Atom_radius( numat(it) )
+
+      igr_tem(:) = igreq(ipr,:)
+
+      do igr = 1,ngreq(ipr)
+        jgr = igr_tem(igr)
+
+        do i = 0,1000000
+          z_pos = ( posn(3,jgr) + i ) * axyz(3) * cos_z
+          Thickness = z_pos - z_min_film
+          if( Thickness > Film_thickness - eps10 ) exit
+          if( z_pos > z_max_film ) then
+            z_max_film = z_pos
+            Z_top_film = numat(it)
+          endif
+        end do
+
+      end do
+    end do
+
+    R_top_film = Atom_radius( Z_top_film )
+
+    delta_z = Film_thickness - ( z_max_film - z_min_film ) - delta_z_bottom_film
+    delta_z_top_film = min( delta_z, R_top_film )
+
+    Film_thickness_used = z_max_film - z_min_film + delta_z_top_film + delta_z_bottom_film
+
+  elseif( Film_thickness_used < eps10 ) then
+
+    z_max_film = -1000._db
+    Film_thickness_used = 0._db
+    Film_thickness = 0._db
+
+  endif
+
+  if( Delta_roughness_film < eps10 ) then
+    Delta_roughness_film = 0._db
+  else
+    Delta_roughness_film = Film_thickness_used
+  endif
+
+  if( icheck > 0 .and. Film_thickness > eps10 ) then
+    write(3,222) 'Film_thickness', Film_thickness * bohr, 'Film_thickness_used', Film_thickness_used * bohr
+    write(3,223) 'Film_roughness', Film_roughness * bohr
+    write(3,224) 'bottom_film', Z_bottom_film, 'bottom_film', R_bottom_film * bohr, 'bottom_film', delta_z_bottom_film * bohr
+    write(3,224) 'top_film   ', Z_top_film, 'top_film   ', R_top_film * bohr, 'top_film   ', delta_z_top_film * bohr
+    write(3,226) 'film', z_min_film * bohr, 'film', z_max_film * bohr
+  endif
+
+  return
+  222 format(/1x,a14,' =',f7.3,'    ',a19,' =',f7.3,' A')
+  223 format( 1x,a14,' =',f7.3,' A')
+  224 format( ' Z_',a11,'  =',i3,'        R_',a11,' =',f7.3,'  delta_z_',a11,' =',f7.3,' A')
+  226 format( ' z_min_',a4,'     =',f7.3,'    z_max_',a4,'    =',f7.3,' A')
+end
+
+!*********************************************************************************************************
+
+subroutine Bulk_scat(angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_lay,c_cos_z,c_cos_z_b,deltak, &
+        Eseuil,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck,Mat_bulk_i,Mult_bulk,n_atom_bulk, &
+        nbseuil,npldafs,phd_f_bulk,posn_bulk,R_bottom_film,R_top_bulk,xsect_file,Z_abs,Z_bulk,z_min_film)
+
+  use declarations
+  implicit none
+
+  integer:: i, icheck, igr, ipl, j, jgr, n_atom_bulk, na, nbseuil, npldafs, Z, Z_abs, Z_top_bulk
+
+  integer, dimension(2):: Mult_bulk
+  integer, dimension(n_atom_bulk):: Z_bulk
+  integer, dimension(:), allocatable:: index
+
+  character(len=4):: elemv
+  character(len=2):: Chemical_symbol
+  character(len=132):: xsect_file
+
+  logical:: Bulk_layer, hkl_film
+
+  complex(kind=db):: Bragg_bulk, cfac, phd_f_bulk_layer, Troncature
+  complex(kind=db), dimension(npldafs):: phd_f_bulk
+
+  real(kind=sg):: getf0, s
+
+  real(kind=db):: abs_mesh, arg, Atom_radius, Bulk_lay, Cal_Volume_maille, conv_mbarn_nelec, c_cos_z, c_cos_z_b, Delta_bulk, &
+    delta_z, delta_z_top_bulk, Dist_layer, f0_bulk, Film_thickness, fpp_bulk_tot, R_bottom_film, &
+    R_top_bulk, Volume_maille, x, z_max_bulk, z_min, z_min_film, z_pos
+
+  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, hkl, p
+  real(kind=db), dimension(3,3):: Mat_bulk_i
+  real(kind=db), dimension(5):: Film_shift
+  real(kind=db), dimension(nbseuil):: Eseuil
+  real(kind=db), dimension(n_atom_bulk):: fp_bulk, fpp_bulk
+  real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
+  real(kind=db), dimension(npldafs):: deltak
+  real(kind=db), dimension(3,npldafs):: hkl_dafs
+
+  Bulk_layer = abs( Bulk_lay - 1._db ) > eps10
+  Dist_layer = Bulk_lay * axyz_bulk(3) / 2
+
+! Determination of Film-bulk spacing
+  z_max_bulk = -100000._db
+  do igr = 1,n_atom_bulk
+    if( posn_bulk(3,igr) < z_max_bulk ) cycle
+    z_max_bulk = posn_bulk(3,igr)
+    Z_top_bulk = Z_bulk(igr)
+  end do
+
+  z_pos = z_max_bulk + 1._db
+  do igr = 1,n_atom_bulk
+    if( posn_bulk(3,igr) + 1._db > z_pos ) cycle
+    z_pos = posn_bulk(3,igr) + 1._db
+  end do
+
+  z_max_bulk = z_max_bulk * c_cos_z_b
+  z_pos = z_pos * c_cos_z_b
+
+  R_top_bulk = Atom_radius( Z_top_bulk )
+
+! demi distance interplan
+  delta_z = 0.5_db * ( z_pos - z_max_bulk )
+  delta_z_top_bulk = min( delta_z, R_top_bulk )
+
+  if( Film_thickness > eps10 ) then
+    Delta_bulk = z_min_film - z_max_bulk
+    if( Film_shift(3) < - 100._db ) Film_shift(3) = R_top_bulk + R_bottom_film
+    Delta_bulk = Delta_bulk - Film_shift(3)
+  else
+    Delta_bulk = - z_max_bulk
+    Film_shift(3) = 0._db
+  endif
+
+  fpp_bulk_tot = 0._db
+  do igr = 1,n_atom_bulk
+    Z = Z_bulk(igr)
+    call fprime(Z,Eseuil(nbseuil),fpp_bulk(igr),fp_bulk(igr),xsect_file)
+    fpp_bulk_tot = fpp_bulk_tot + fpp_bulk(igr)
+    if( Z_bulk(igr) /= Z_abs ) cycle
+    fp_bulk(igr) = 0._db
+    fpp_bulk(igr) = 0._db
+  end do
+! Conversion en Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
+  fpp_bulk_tot = fpp_bulk_tot / ( conv_mbarn_nelec(Eseuil(nbseuil)) * pi )
+! Conversion en coefficient d'absorption lineaire en micrometre^-1
+  Volume_maille = Cal_Volume_maille(axyz_bulk,angxyz_bulk)
+  fpp_bulk_tot = 100 * fpp_bulk_tot / ( Volume_maille * bohr**3 )
+! Valeur pour une maille (facteur pour maille en micrometre)
+  fpp_bulk_tot = 0.00001_db * bohr * fpp_bulk_tot * c_cos_z_b
+
+  ! Ajout d'un plan
+  na = 0
+  if( Bulk_layer ) then
+    z_min = 1000._db
+    do igr = 1,n_atom_bulk
+      z_min = min( z_min, posn_bulk(3,igr) )
+    end do
+    do igr = 1,n_atom_bulk
+      if( abs( z_min - posn_bulk(3,igr) ) < eps10 ) na = na + 1
+    end do
+    allocate( index(na) )
+    jgr = 0
+    do igr = 1,n_atom_bulk
+      if( abs( z_min - posn_bulk(3,igr) ) > eps10 ) cycle
+      jgr = jgr + 1
+      index(jgr) = igr
+    end do
+
+    p(3) = ( Dist_layer + z_max_bulk ) / c_cos_z_b
+
+    Delta_bulk = Delta_bulk - Dist_layer
+  endif
+
+  do ipl = 1,npldafs
+
+    x = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
+    s = x / bohr                 ! on le veut en angstroem - 1
+
+    x = deltak(ipl) / ( alfa_sf * Eseuil(nbseuil) )  ! = sin(theta)
+    x = max( eps10, x )
+
+    abs_mesh = exp( - fpp_bulk_tot / x )
+
+    hkl(:) = hkl_dafs(:,ipl)
+    if( hkl_film ) hkl = Matmul( Mat_bulk_i, hkl )
+
+    if( ( abs( hkl(1) ) > eps10 .and. Mult_bulk(1) == 0 ) .or. ( abs( hkl(2) ) > eps10 .and. Mult_bulk(2) == 0 ) ) cycle
+
+    phd_f_bulk_layer = (0._db, 0._db )
+
+    do igr = 1,n_atom_bulk + na
+
+      elemv = ' '
+      if( igr > n_atom_bulk ) then
+        jgr = igr - n_atom_bulk
+        elemv(1:2) = Chemical_Symbol( Z_bulk(jgr) )
+      else
+        elemv(1:2) = Chemical_Symbol( Z_bulk(igr) )
+      endif
+      f0_bulk = getf0(elemv,s)
+
+      if( igr > n_atom_bulk ) then
+        p(1:2) = posn_bulk(1:2,index(jgr))
+        arg = deux_pi * sum( p(:) * hkl(:) )
+      else
+        arg = deux_pi * sum( posn_bulk(:,igr) * hkl(:) )
+      endif
+      Bragg_bulk = cmplx( cos(arg), sin(arg), db )
+
+      cfac = ( 0._db, 0._db )
+      do i = 0,Max( Mult_bulk(1)-1, 0 )
+        do j = 0,Max( Mult_bulk(2)-1, 0 )
+          arg = deux_pi * ( i * hkl(1) + j * hkl(2) )
+          cfac = cfac + cmplx( cos(arg), sin(arg), db )
+        end do
+      end do
+      if( abs( cfac ) < eps10 )  cfac = ( 0._db, 0._db )
+
+      if( igr > n_atom_bulk ) then
+        phd_f_bulk_layer = phd_f_bulk_layer + Bragg_bulk * cfac * cmplx( f0_bulk + fp_bulk(jgr), fpp_bulk(jgr), db )
+      else
+        phd_f_bulk(ipl) = phd_f_bulk(ipl) + Bragg_bulk * cfac * cmplx( f0_bulk + fp_bulk(igr), fpp_bulk(igr), db )
+      endif
+
+    end do
+
+    Troncature = 1._db / ( 1._db - abs_mesh * exp( - img * deux_pi * hkl(3) ) )
+
+    phd_f_bulk(ipl) = phd_f_bulk(ipl) * Troncature
+
+    if( Bulk_layer ) phd_f_bulk(ipl) = phd_f_bulk(ipl) + phd_f_bulk_layer
+
+    if( hkl_film ) then
+      arg = deux_pi * hkl(3) * Delta_bulk / c_cos_z
+    else
+      arg = deux_pi * hkl(3) * Delta_bulk / c_cos_z_b
+    endif
+    phd_f_bulk(ipl) = phd_f_bulk(ipl) * cmplx( cos(arg), sin(arg), db )
+
+! Case of non rationnal ratio between bulk and film, or R45 (sqrt(2), sqrt(2))
+    if( Mult_bulk(1) == 0 .and. Mult_bulk(2) == 0 ) then
+      phd_f_bulk(ipl) = phd_f_bulk(ipl) * axyz(1) * axyz(2) * sin( radian * angxyz(3) ) &
+                                        / ( axyz_bulk(1) * axyz_bulk(2) * sin( radian * angxyz_bulk(3) ) )
+    else
+      do i = 1,2
+        if( ( abs( hkl(i) ) < eps10 .and. Mult_bulk(i) == 0 ) .or. abs( Film_shift(4) - 45 ) < 1._db ) &
+                                                          phd_f_bulk(ipl) = phd_f_bulk(ipl) * axyz(i) / axyz_bulk(i)
+      end do
+    endif
+
+  end do
+
+  if( Bulk_layer ) deallocate( index )
+
+  if( icheck > 0 ) then
+    write(3,223) 'Film_shift    ', Film_shift(3) * bohr
+    write(3,*)
+    write(3,224) 'top_bulk   ', Z_top_bulk, 'top_bulk   ', R_top_bulk * bohr, 'top_bulk   ', delta_z_top_bulk * bohr
+    write(3,232) z_max_bulk * bohr
+    write(3,230) 'bulk', Delta_bulk * bohr
+    write(3,233) 1._db - abs_mesh
+    if( Bulk_layer ) write(3,235) Dist_layer * bohr, p(3)
+  endif
+
+  return
+  223 format( 1x,a14,' =',f7.3,' A')
+  224 format( ' Z_',a11,'  =',i3,'        R_',a11,' =',f7.3,'  delta_z_',a11,' =',f7.3,' A')
+  230 format( ' Delta_',a4,'     =',f7.3,' A')
+  232 format( ' z_max_bulk     =',f7.3,' A')
+  233 format( ' 1 - abs_mesh   =',1p,e13.5)
+  235 format( ' Dist_layer     =',f7.3,' A,    p(3) =',f8.5)
+end
+
+!***********************************************************************************************************
+
+subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,Cap_disorder,Cap_roughness, &
+              Cap_thickness,Cap_thickness_used,Cap_shift,c_cos_z,c_cos_z_b,Delta_roughness_film,delta_z_bottom_cap, &
+              delta_z_top_cap,deltak,Eseuil,Film_roughness,Film_thickness,fpp_cap_tot,hkl_dafs,hkl_film, &
+              icheck,Mult_bulk,Mult_film,n_atom_cap,nbseuil,npldafs,phd_f_cap,posn_cap,R_top_bulk,R_top_film,Taux_cap, &
+              xsect_file,Z_cap,z_max_film)
+
+  use declarations
+  implicit none
+
+  integer:: i, i0, icheck,igr, ipl, n_atom_cap, n, nbseuil, npldafs, Z, Z_bottom_cap, Z_top_cap
+
+  integer, dimension(n_atom_cap):: Z_cap
+
+  integer, dimension(2):: Mult_bulk, Mult_film
+
+  character(len=4):: elemv
+  character(len=2):: Chemical_symbol
+  character(len=132):: xsect_file
+
+  complex(kind=db):: Bragg_cap
+  complex(kind=db), dimension(npldafs):: phd_f_cap
+
+  logical:: Bulk, hkl_film
+
+  real(kind=sg):: getf0, s
+
+  real(kind=db):: arg, Atom_radius, Conv_mbarn_nelec, c_cos_z, c_cos_z_b, c_cos_z_c, cos_z_c, Cap_disorder, Cap_roughness, &
+    Cap_thickness, Cap_thickness_used, Cap_shift, Cal_Volume_maille, Deb, Delta_cap, Delta_roughness_cap, Delta_roughness_film, &
+    delta_z, delta_z_bottom_cap, delta_z_top_cap, f0_cap, Film_roughness, Film_thickness, fpp_cap_tot, &
+    R_bottom_cap, R_top_bulk, R_top_cap, R_top_film, Taux_r, Taux_r2, Thickness, Volume_maille, x, z_max_cap, z_max_film, &
+    z_min_cap, z_pos
+
+  real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_cap, axyz, axyz_bulk, axyz_cap, hkl, p
+  real(kind=db), dimension(nbseuil):: Eseuil
+  real(kind=db), dimension(n_atom_cap):: fp_cap, fpp_cap, Taux_cap
+  real(kind=db), dimension(npldafs):: deltak
+  real(kind=db), dimension(3,n_atom_cap):: posn_cap
+  real(kind=db), dimension(3,npldafs):: hkl_dafs
+
+  cos_z_c = sqrt( sin( radian * angxyz_cap(2) )**2 &
+                - ( ( cos( radian * angxyz_cap(1) ) - cos( radian * angxyz_cap(3) ) * cos( radian * angxyz_cap(2) ) ) &
+                    / sin( radian * angxyz_cap(3) ) )**2 )
+
+  c_cos_z_c = cos_z_c * axyz_cap(3)
+
+  z_min_cap = 1000000._db
+  z_max_cap = -1000000._db
+
+  do igr = 1,n_atom_cap
+    if( posn_cap(3,igr) > z_min_cap ) cycle
+    z_min_cap = posn_cap(3,igr)
+    Z_bottom_cap = Z_cap(igr)
+  end do
+
+  z_pos = z_min_cap - 1._db
+  do igr = 1,n_atom_cap
+    if( posn_cap(3,igr) - 1._db < z_pos ) cycle
+    z_pos = posn_cap(3,igr) - 1._db
+  end do
+
+  z_min_cap = z_min_cap * c_cos_z_c
+  z_pos = z_pos * c_cos_z_c
+
+  R_bottom_cap = Atom_radius( Z_bottom_cap )
+
+  delta_z = 0.5_db * ( z_min_cap - z_pos )
+  delta_z_bottom_cap = min( delta_z, R_bottom_cap )
+
+  Cap_thickness = max( Cap_thickness, 2 * R_bottom_cap )
+
+  delta_z = delta_z_bottom_cap
+  do igr = 1,n_atom_cap
+    R_top_cap = Atom_radius( Z_cap(igr) )
+    do i = 0,1000000
+      z_pos = ( posn_cap(3,igr) + i ) * c_cos_z_c
+      if( z_pos < z_max_cap ) cycle
+      Thickness = z_pos + delta_z - z_min_cap - delta_z_bottom_cap
+      if( Thickness > Cap_thickness ) exit
+      if( z_pos > z_max_cap ) then
+        z_max_cap = z_pos
+        Z_top_cap = Z_cap(igr)
+      endif
+    end do
+  end do
+
+  R_top_cap = Atom_radius( Z_top_cap )
+  delta_z = R_top_cap
+
+  do igr = 1,n_atom_cap
+    R_top_cap = Atom_radius( Z_cap(igr) )
+    do i = 0,1000000
+      z_pos = ( posn_cap(3,igr) + i ) * c_cos_z_c
+      if( z_pos > z_max_cap - eps10 ) exit
+      delta_z = min( delta_z, 0.5_db * ( z_max_cap - z_pos ) )
+    end do
+  end do
+  delta_z_top_cap = delta_z
+
+  Cap_thickness_used = z_max_cap - z_min_cap + delta_z_top_cap + delta_z_bottom_cap
+
+  if( Film_thickness < eps10 .and. .not. Bulk ) then
+    Delta_cap = 0._db
+    Cap_shift = 0._db
+  elseif( Film_thickness < eps10 ) then
+    Delta_cap = z_min_cap
+    if( Cap_shift < -100._db ) Cap_shift = R_top_bulk + R_bottom_cap
+  else
+    Delta_cap = z_max_film - z_min_cap
+    if( Cap_shift < -100._db ) Cap_shift = R_top_film + R_bottom_cap
+  endif
+  Delta_cap = Delta_cap + Cap_shift
+
+  if( Cap_roughness < eps10 ) then
+    Delta_roughness_cap = 0._db
+  else
+    Delta_roughness_cap = z_max_cap - z_min_cap + delta_z_top_cap - delta_z_bottom_cap
+  endif
+
+  if( Delta_roughness_film > eps10 ) then
+    i0 = - nint( Delta_roughness_film / c_cos_z_c ) - 1
+  else
+    i0 = 0
+  endif
+
+  fpp_cap_tot = 0._db
+  do igr = 1,n_atom_cap
+    Z = Z_cap(igr)
+    call fprime(Z,Eseuil(nbseuil),fpp_cap(igr),fp_cap(igr),xsect_file)
+    fpp_cap_tot = fpp_cap_tot + Taux_cap(igr) * fpp_cap(igr)
+  end do
+
+! Absorption a travers la couche
+! Conversion en Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
+  fpp_cap_tot = fpp_cap_tot / ( conv_mbarn_nelec(Eseuil(nbseuil)) * pi )
+! Conversion en coefficient d'absorption lineaire en micrometre^-1
+  Volume_maille = Cal_Volume_maille(axyz_cap,angxyz_cap)
+  fpp_cap_tot = 100 * fpp_cap_tot / ( Volume_maille * bohr**3 )
+! Valeur l' epaisseur traversee aller-retour (a multiplier par 2/sin(theta_bragg) )
+  fpp_cap_tot = 0.00001_db * bohr * fpp_cap_tot * Cap_thickness_used
+
+  do ipl = 1,npldafs
+
+    hkl(:) = hkl_dafs(:,ipl)
+
+    if( abs( hkl(1) ) > eps10 .or. abs( hkl(2) ) > eps10 ) cycle
+
+    x = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
+    s = x / bohr                      ! on le veut en angstroem - 1
+
+! Delta_2 = ( Sin(Theta_Bragg)/Lambda )^2
+    if( Cap_disorder > eps10 ) then
+      Deb = exp( - 0.5_db * ( Cap_disorder * deltak(ipl) )**2 )
+    else
+      Deb = 1._db
+    endif
+
+    if( hkl_film ) then
+      hkl(3) = hkl(3) * c_cos_z_c / c_cos_z
+    else
+      hkl(3) = hkl(3) * c_cos_z_c / c_cos_z_b
+    endif
+
+    Z = 0
+
+    do igr = 1,n_atom_cap
+
+      elemv = ' '
+      elemv(1:2) = Chemical_Symbol( Z_cap(igr) )
+      f0_cap = getf0(elemv,s)
+
+      Bragg_cap = ( 0._db, 0._db )
+
+      do i = i0,1000000
+        p(:) = posn_cap(:,igr)
+        p(3) = p(3) + i
+        z_pos = p(3) * c_cos_z_c
+        if( z_pos < z_min_cap - delta_z_bottom_cap - Delta_roughness_film - eps10 ) cycle
+!        if( z_pos > z_max_cap + delta_z_top_cap + Delta_roughness_cap + eps10 ) exit
+        if( z_pos > z_max_cap + delta_z_top_cap + 2 * Cap_roughness + eps10 ) exit
+        if( Cap_roughness > eps10 ) then
+          x = ( z_max_cap - z_pos ) / Cap_roughness
+          Taux_r = 1._db - erfc( x ) * 0.5_db
+        else
+          Taux_r = 1._db
+        endif
+        if( Film_roughness > eps10 .and. z_pos < z_min_cap + Delta_roughness_film + eps10 ) then
+          x = ( z_pos - z_min_cap ) / Film_roughness
+          Taux_r2 =  erfc( x )
+          Taux_r2 = 1._db - Taux_r2 * 0.5_db
+          Taux_r = Taux_r * Taux_r2
+        endif
+        arg = deux_pi * sum( p(:) * hkl(:) )
+        Bragg_cap = Bragg_cap + Deb * Taux_r * cmplx( cos(arg), sin(arg), db )
+      end do
+
+      phd_f_cap(ipl) = phd_f_cap(ipl) + Taux_cap(igr) * Bragg_cap * cmplx( f0_cap + fp_cap(igr), fpp_cap(igr), db )
+
+    end do
+
+    if( hkl_film ) then
+      arg = deux_pi * hkl(3) * Delta_cap / c_cos_z
+    else
+      arg = deux_pi * hkl(3) * Delta_cap / c_cos_z_b
+    endif
+    phd_f_cap(ipl) = phd_f_cap(ipl) * cmplx( cos(arg), sin(arg), db )
+
+! Case of non rationnal ratio between bulk and film, or R45 (sqrt(2), sqrt(2))
+
+    if( hkl_film ) then
+      n = max( 1, Mult_film(1) * Mult_film(2) )
+      x = n * axyz(1) * axyz(2) * sin( radian * angxyz(3) ) / ( axyz_cap(1) *  axyz_cap(2) * sin( radian * angxyz_cap(3) ) )
+    else
+      n = max( 1, Mult_bulk(1) * Mult_bulk(2) )
+      x = n * axyz_bulk(1) * axyz_bulk(2) * sin( radian * angxyz_bulk(3) ) &
+                                                           / ( axyz_cap(1) *  axyz_cap(2) * sin( radian * angxyz_cap(3) ) )
+    endif
+    phd_f_cap(ipl) = x * phd_f_cap(ipl)
+
+  end do
+
+  if( icheck > 0 ) then
+    write(3,222) 'Cap_thickness ', Cap_thickness * bohr, 'Cap_thickness_used ', Cap_thickness_used * bohr
+    write(3,223) 'Cap_shift     ', Cap_shift * bohr
+    write(3,223) 'Cap_roughness ', Cap_roughness * bohr
+    write(3,224) 'bottom_cap ', Z_bottom_cap, 'bottom_cap ', R_bottom_cap * bohr, 'bottom_cap ', delta_z_bottom_cap * bohr
+    write(3,224) 'top_cap    ', Z_top_cap, 'top_cap    ', R_top_cap * bohr, 'top_cap    ', delta_z_top_cap * bohr
+    write(3,226) 'cap ', z_min_cap * bohr, 'cap ', z_max_cap * bohr
+    write(3,230) 'cap ', Delta_cap * bohr
+  endif
+
+  return
+  222 format(/1x,a14,' =',f7.3,'    ',a19,' =',f7.3,' A')
+  223 format( 1x,a14,' =',f7.3,' A')
+  224 format( ' Z_',a11,'  =',i3,'        R_',a11,' =',f7.3,'  delta_z_',a11,' =',f7.3,' A')
+  226 format( ' z_min_',a4,'     =',f7.3,'    z_max_',a4,'    =',f7.3,' A')
+  230 format( ' Delta_',a4,'     =',f7.3,' A')
 end
 
 !***********************************************************************

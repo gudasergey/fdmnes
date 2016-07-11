@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 27 June 2016, 9 Messidor, An 224.
+! FDMNES II program, Yves Joly, Oana Bunau, 6 July 2016, 18 Messidor, An 224.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
 
   character(len=50):: com_date, com_time
 
-  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 27th of June 2016'
+  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 6th of July 2016'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -59,6 +59,7 @@ module declarations
   real(kind=db), parameter:: deux_pi = 2 * pi
   real(kind=db), parameter:: quatre_pi = 4 * pi
   real(kind=db), parameter:: huit_pi = 8 * pi
+  real(kind=db), parameter:: radian = pi / 180._db
 
   real(kind=db), parameter:: eps4 = 1.e-4_db
   real(kind=db), parameter:: eps6 = 1.e-6_db
@@ -227,7 +228,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 36
-  integer, parameter:: nkw_fdm = 187
+  integer, parameter:: nkw_fdm = 188
   integer, parameter:: nkw_conv = 30
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
@@ -302,9 +303,9 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
   data kw_fdm/  &
      'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_conf','ang_spin ','atomic_sc','axe_spin ', &
-     'base_comp','base_reel','base_spin','bond     ','bulk     ','cap_disor','cap_rough','cap_layer','cap_shift','cap_thick', &
-     'cartesian','center   ','center_ab','chlib    ','cif_file ','clementi ','core_reso','crystal  ','crystal_c','crystal_t', &
-     'd_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_','dip_rel  ', &
+     'base_comp','base_reel','base_spin','bond     ','bulk     ','bulk_laye','cap_disor','cap_rough','cap_layer','cap_shift', &
+     'cap_thick','cartesian','center   ','center_ab','chlib    ','cif_file ','clementi ','core_reso','crystal  ','crystal_c', &
+     'crystal_t','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_','dip_rel  ', &
      'e1e1     ','delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ', &
      'dyn_eg   ','edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ', &
      'energphot','etatlie  ','excited  ','extract  ','extractpo','extractsy','fdm_comp ','film     ','film     ','film_roug', &
