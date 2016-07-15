@@ -2249,13 +2249,15 @@ end
 
 subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil,Green_int,hkl_dafs,ie, &
             jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,np,npp,nppa,npps,nseuil,numat,ph1, &
-            ph2,tens,v0muf,Core_resolved,natomsym)
+            ph2,tens,V0muf,Core_resolved,natomsym)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
-  parameter(n_tens_max = 10000)
+  integer, parameter:: n_tens_max = 10000
 
+  integer:: i, icor, ie, ipr, jseuil, n, n_dim, n_tens, natomsym, ninit1, ninitlr, np, npp, nppa, npps, nseuil, numat 
+  
   character(len=132):: nomficht
   character(len=95):: mot1
   character(len=27):: mot2
@@ -2268,7 +2270,8 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
 
   logical:: Core_resolved, Gnuplot, Green_int
 
-  real(kind=db):: f0_forward, fpp_avantseuil
+  real(kind=db):: Densite_atom, E_cut, Ephseuil, Eseuil, f0_forward, fpp_avantseuil, V0muf
+  
   real(kind=db), dimension(nppa):: angxyz, axyz
   real(kind=db), dimension(ninitlr):: Epsii
   real(kind=db), dimension(n_dim):: Tens
@@ -2419,28 +2422,53 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
     open(ipr, file = nomficht, position='append')
   endif
 
-  select case(Length_word)
-    case(11)
-      write(ipr,161) Ephseuil*rydb, Tens(1:n)
-    case(12)
-      write(ipr,162) Ephseuil*rydb, Tens(1:n)
-    case(13)
-      write(ipr,163) Ephseuil*rydb, Tens(1:n)
-    case(14)
-      write(ipr,164) Ephseuil*rydb, Tens(1:n)
-    case(15)
-      write(ipr,165) Ephseuil*rydb, Tens(1:n)
-    case(16)
-      write(ipr,166) Ephseuil*rydb, Tens(1:n)
-    case(17)
-      write(ipr,167) Ephseuil*rydb, Tens(1:n)
-    case default
-      call write_error
-      do ipr = 6,9,3
-        write(ipr,150) Length_word
-      end do
-      stop
-  end select
+  if( abs( Ephseuil*rydb )  < 10._db ) then
+    select case(Length_word)
+      case(11)
+        write(ipr,161) Ephseuil*rydb, Tens(1:n)  
+      case(12)
+        write(ipr,162) Ephseuil*rydb, Tens(1:n)
+      case(13)
+        write(ipr,163) Ephseuil*rydb, Tens(1:n)
+      case(14)
+        write(ipr,164) Ephseuil*rydb, Tens(1:n)
+      case(15)
+        write(ipr,165) Ephseuil*rydb, Tens(1:n)
+      case(16)
+        write(ipr,166) Ephseuil*rydb, Tens(1:n)
+      case(17)
+        write(ipr,167) Ephseuil*rydb, Tens(1:n)
+      case default
+        call write_error
+        do ipr = 6,9,3
+          write(ipr,150) Length_word
+        end do
+        stop
+    end select
+  else
+    select case(Length_word)
+      case(11)
+        write(ipr,171) Ephseuil*rydb, Tens(1:n)  
+      case(12)
+        write(ipr,172) Ephseuil*rydb, Tens(1:n)
+      case(13)
+        write(ipr,173) Ephseuil*rydb, Tens(1:n)
+      case(14)
+        write(ipr,174) Ephseuil*rydb, Tens(1:n)
+      case(15)
+        write(ipr,175) Ephseuil*rydb, Tens(1:n)
+      case(16)
+        write(ipr,176) Ephseuil*rydb, Tens(1:n)
+      case(17)
+        write(ipr,177) Ephseuil*rydb, Tens(1:n)
+      case default
+        call write_error
+        do ipr = 6,9,3
+          write(ipr,150) Length_word
+        end do
+        stop
+    end select
+  endif
 
   if( numat >= 0 ) close(ipr)
 
@@ -2476,13 +2504,20 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
   150 format(//' Length_word =',i3, ' This parameter must be set between 11 and 17 !'//)
   155 format(i4,3f10.5,3x,3f10.5,10000(14x,3i4))
   160 format('    Energy',10000A)
-  161 format(f10.3,1p,10000e11.3)
-  162 format(f10.3,1p,10000e12.4)
-  163 format(f10.3,1p,10000e13.5)
-  164 format(f10.3,1p,10000e14.6)
-  165 format(f10.3,1p,10000e15.7)
-  166 format(f10.3,1p,10000e16.8)
-  167 format(f10.3,1p,10000e17.9)
+  161 format(f10.5,1p,10000e11.3)
+  162 format(f10.5,1p,10000e12.4)
+  163 format(f10.5,1p,10000e13.5)
+  164 format(f10.5,1p,10000e14.6)
+  165 format(f10.5,1p,10000e15.7)
+  166 format(f10.5,1p,10000e16.8)
+  167 format(f10.5,1p,10000e17.9)
+  171 format(f10.3,1p,10000e11.3)
+  172 format(f10.3,1p,10000e12.4)
+  173 format(f10.3,1p,10000e13.5)
+  174 format(f10.3,1p,10000e14.6)
+  175 format(f10.3,1p,10000e15.7)
+  176 format(f10.3,1p,10000e16.8)
+  177 format(f10.3,1p,10000e17.9)
 end
 
 !***********************************************************************

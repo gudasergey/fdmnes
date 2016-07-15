@@ -2303,7 +2303,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
           deallocate( rot_atom )
         endif
 
-        if( Second_run ) allocate( posi_self(3,natome) )
+        if( Second_run .or. .not. self_cons ) allocate( posi_self(3,natome) )
 
         allocate( Atom_axe(natome) )
         allocate( distai(natome) )
@@ -2734,7 +2734,9 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 ! Boucle sur l'energie
         nge = ( nenerg0 - ie0 ) / mpinodes + 1
 
-        if( One_run .and. mpinodes0 > 1 .and. multi_run == 1 ) &
+! En fait, on ne stocke que si mpinodes > 1, sinon, on écrit dans un fichier temporaire
+ !       if( One_run .and. mpinodes > 1 .and. multi_run == 1 ) &
+        if( One_run .and. multi_run == 1 .and. i_range == 1 ) &
           allocate( taull_stk(nlm_probe,nspinp,nlm_probe,nspinp,2:n_multi_run,nge) )
         index_e = 0
 
@@ -3267,13 +3269,17 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
                 ich = icheck(28)
 
-                call Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Doping,drho_self,E_cut,E_Open_val, &
+               allocate( E_starta(n_atom_0_self:n_atom_ind_self) )
+
+               call Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Doping,drho_self,E_cut,E_Open_val, &
                   E_Open_val_exc,E_starta,Energ,E_Fermi,Enragr,Energ_self,Fermi,Full_atom,Hubb,Hubb_diag,iaabsi,iaprotoi, &
                   i_self,ich,ie,ie_computer,Int_statedens,ipr_dop,ispin_maj,itypei,itypepr,lamstdens, &
                   Level_val_abs,Level_val_exc,lla_state,lla2_state,lmaxat,m_hubb,mpinodes,n_atom_0,n_atom_0_self, &
                   n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nb_eq,nenerg,ngreq,nlm_pot,nomfich_s,Nonexc_g,nrato, &
                   nrm,nrm_self,nspin,nspinp,ntype,numat,occ_hubb,occ_hubb_i,pop_orb_val,rato,rho_self,rho_self_t,Rmtsd, &
                   SCF_elecabs,SCF_mag_fix,Self_nonexc,State_all_out,Statedens,Statedens_i,V_hubb,V_hubbard)
+
+               deallocate( E_starta )
 
               endif
 
@@ -3290,7 +3296,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
       end do boucle_i_range
 
       if( .not. TDDFT ) deallocate( rof0 )
-      if( One_run .and. mpinodes > 1 .and. multi_run == n_multi_run ) deallocate( taull_stk )
+      if( One_run .and. multi_run == n_multi_run ) deallocate( taull_stk )
+!      if( One_run .and. mpinodes > 1 .and. multi_run == n_multi_run ) deallocate( taull_stk )
       if( Save_tddft_data .and. mpirank0 == 0 ) call Write_tddft_data(E_cut,Energ_s,multi_run,n_multi_run, &
                                                 nbseuil,nenerg,nlmamax,nomfich,nspinp,nspino,rof0,Taull_tdd)
       deallocate( drho_self, Statedens, Statedens_i )

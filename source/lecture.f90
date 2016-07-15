@@ -3135,7 +3135,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                   n_fract_z = n - 1
                 elseif( mot(2:20) == 'atom_site_occupancy') then
                   Taux = .true.
-                  n_occupancy = n
+                  n_occupancy = n - 1
                 endif
               end do
 
