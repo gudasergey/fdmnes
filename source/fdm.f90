@@ -1215,9 +1215,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
         V_hubb_s(:,:,:,:,:) = (0._db, 0._db)
       endif
       Hubb_diag(:) = .true.
+      chargat_self(:,:) = 0._db
     endif
-
-    chargat_self(:,:) = 0._db
 
 ! Self_cons = nself > 0
     if( Self_cons .and. ( .not. second_run ) .and. ( .not. Extract ) ) then
@@ -3270,6 +3269,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
                 ich = icheck(28)
 
                allocate( E_starta(n_atom_0_self:n_atom_ind_self) )
+               allocate( ispin_maj(n_atom_0_self:n_atom_ind_self) )
 
                call Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Doping,drho_self,E_cut,E_Open_val, &
                   E_Open_val_exc,E_starta,Energ,E_Fermi,Enragr,Energ_self,Fermi,Full_atom,Hubb,Hubb_diag,iaabsi,iaprotoi, &
@@ -3279,7 +3279,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
                   nrm,nrm_self,nspin,nspinp,ntype,numat,occ_hubb,occ_hubb_i,pop_orb_val,rato,rho_self,rho_self_t,Rmtsd, &
                   SCF_elecabs,SCF_mag_fix,Self_nonexc,State_all_out,Statedens,Statedens_i,V_hubb,V_hubbard)
 
-               deallocate( E_starta )
+               deallocate( E_starta, ispin_maj )
 
               endif
 
