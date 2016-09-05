@@ -9233,19 +9233,24 @@ end
 ! Selection des atomes du petit agregat
 ! Evaluation de leur groupe ponctuel dans cet agregat.
 
-subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_clu,Base_ortho,dcosxyz, &
-           dista,distai,Full_atom,Green,hubbard,i_self,ia_eq,ia_eq_inv,ia_rep,iaabs,iaabsi,iaproto,iaprotoi,icheck,igreq, &
-           igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,is_eq,itype,itypei,itypep,itypepr,magnetic,m_hubb, &
+subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_clu,Base_ortho,dcosxyz,dista, &
+           distai,Full_atom,Green,hubbard,i_self,ia_eq,ia_eq_inv,ia_rep,iaabs,iaabsi,iabsorbeur,iaproto,iaprotoi,icheck,igreq, &
+           igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,ipr0,is_eq,itype,itypei,itypep,itypepr,magnetic,m_hubb, &
            m_hubb_e,mpirank,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,nb_eq,nb_rpr, &
-           nb_rep_t,nb_sym_op,neqm,ngroup,ngroup_hubb,ngroup_m,nlat,nlatm,nspin,nspinp,ntype,numat,nx,occ_hubb_e,overad,popats, &
-           pos,posi,rmt,rot_atom,roverad,rsort,rsorte,Spinorbite,Symmol,V_hubb,V_hubbard,Ylm_comp)
+           nb_rep_t,nb_sym_op,neqm,ngreq,ngroup,ngroup_hubb,ngroup_m,nlat,nlatm,nspin,nspinp,ntype,numat,nx,occ_hubb_e,overad, &
+           popats,pos,posi,rmt,rot_atom,roverad,rsort,rsorte,Spinorbite,Symmol,V_hubb,V_hubbard,Ylm_comp)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
   character(len=8):: ptgrname_int
 
-  integer, dimension(nopsm):: iopsyma, iopsymr
+  integer:: i, i_self, ia, ia1, ia2, iaabs, iaabsi, iabsorbeur, iapr, ib, icheck, ie, ig, iga, igr, igrpt_nomag, igrpt0, ind_rep, &
+     iord, ipr, ipr0, is, isp, isym, it, it1, it2, j, js, l, l_hubbard, m, m_hubb, mp, m_hubb_e, mpirank, &
+     n_atom_0_self, n_atom_ind_self, n_atom_proto, na_ligne, na1, na2, natome, natomeq, natomp, &
+     nb_sym_op, neqm, ngroup, ngroup_hubb, ngroup_m, nlatm, nspin, nspinp, ntype, nx
+
+  integer, dimension(nopsm):: iopsyma, iopsym_abs, iopsymr
   integer, dimension(nopsm,natome):: iopsym_atom
   integer, dimension(natome):: iaprotoi, iatomp, igroupi, igrpt, itypei, nb_eq
   integer, dimension(0:n_atom_proto,neqm):: igreq
@@ -9256,7 +9261,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   integer, dimension(natomp):: iaproto, igroup, itypep
   integer, dimension(ngroup):: itype
   integer, dimension(0:ntype):: nlat, numat
-  integer, dimension(0:n_atom_proto):: itypepr
+  integer, dimension(0:n_atom_proto):: itypepr, ngreq
 
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb
 
@@ -9266,6 +9271,8 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   logical, dimension(natome):: Atom_comp, Atom_axe
   logical, dimension(0:natome):: Atom_mag
   logical, dimension(0:ngroup_m):: Atom_with_axe
+
+  real(kind=db):: Adimp, Dist, Rm, Rmax, Rsort, Rsorte, Roverad, Vnorme
 
   real(kind=db), dimension(3):: dcosxyz, dp, ps, v
   real(kind=db), dimension(3,3):: matopsym, rot_a
@@ -9278,7 +9285,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   real(kind=db), dimension(ngroup,nlatm,nspin):: popats
   real(kind=db), dimension(-m_hubb_e:m_hubb_e,-m_hubb_e:m_hubb_e,nspin,ngroup_hubb):: occ_hubb_e
 
-  common/iopsym_abs/ iopsym_abs(nopsm)
+  common/iopsym_abs/ iopsym_abs
 
   if( icheck > 0) write(3,110)
 
@@ -9301,18 +9308,21 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     posi(:,ib) = pos(:,ia)
     Axe_atom_clui(:,ib) = Axe_atom_clu(:,ia)
     distai(ib) = dista(ia)
-    if( ia == iaabs ) iaabsi = ib
   end do
-  if( iaabsi == 0 ) then
-    ps(:) = pos(:,iaabs)
-    call posequiv(mpirank,ps,iopsymr,isym,igrpt_nomag)
-    do ia = 1,natome
-      dp(:) = abs( ps(:) - posi(:,ia) )
-      if( dp(1) > epspos .or. dp(2) > epspos .or. dp(3) > epspos ) cycle
-      iaabsi = ia
-      exit
+
+  do ipr = ipr0,n_atom_proto
+    if( igreq(ipr,1) == iabsorbeur ) exit
+  end do
+
+  boucle_ia: do ia = 1,natome
+    if( iaprotoi(ia) /= ipr ) cycle
+    do igr = 1,ngreq(ipr)
+      if( igreq(ipr,igr) == igroupi(ia) ) then
+        iaabsi = ia
+        exit boucle_ia
+      endif
     end do
-  endif
+  end do boucle_ia
 
   if( Atom_occ_mat .and. hubbard .and. i_self == 1 ) then
     V_hubb(:,:,:,:,:) = ( 0._db, 0._db )

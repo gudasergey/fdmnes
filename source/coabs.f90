@@ -1198,9 +1198,10 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Block,Cartesian_tensor,Core
 
             if( M1M1 ) then
               sec = (0._db,0._db)
+              
               do ke = 1,3
                 sec = sec + uae(ke) * sum( conjg(uas(:)) * secmmia(:,ke,initlr,ia) )
-                if( .not. Green_int_mag ) cycle
+               if( .not. Green_int_mag ) cycle
                 sec = sec + uae(ke) * sum( conjg(uas(:))*secmmia_m(:,ke,initlr,ia) )
               end do
 ! Il manque un facteur pi qui a deja ete pris en compte dans le calcul

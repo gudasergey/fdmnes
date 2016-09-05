@@ -3421,7 +3421,7 @@ end
 
 ! Ecriture ou lecture des amplitudes de diffusion en cas de calcul en mode One run.
 
-subroutine Data_one_run(iabsm,iaprotoi,icheck,igreq,index_e,igroupi,lmax_probe,lmaxa, &
+subroutine Data_one_run(iabsm,iaprotoi,icheck,igreq,index_e,igroupi,ipr0,lmax_probe,lmaxa, &
                 mpinodes,multi_run,n_atom_proto,n_multi_run,natome,neqm,nge,ngreq,nlm_probe,nlmagm,nspinp, &
                 Rot_atom,Rot_int,Spinorbite,taull,taull_stk,Ylm_comp)
 
@@ -3429,8 +3429,8 @@ subroutine Data_one_run(iabsm,iaprotoi,icheck,igreq,index_e,igroupi,lmax_probe,l
   implicit none
   include 'mpif.h'
 
-  integer:: i, ia, icheck, igr, index_e, ipr, is1, is2, l, l1, l2, lm1, lm2, lmax_probe, lmw, lmx, m, m1, m2, mpinodes, mu, &
-            multi_run, n_atom_proto, n_multi_run, natome, neqm, nge, nlm_probe, nlmagm, nlmw, nspinp
+  integer:: i, ia, icheck, igr, index_e, ipr, ipr0, is1, is2, l, l1, l2, lm1, lm2, lmax_probe, lmw, lmx, m, m1, m2, mpinodes, &
+            mu, multi_run, n_atom_proto, n_multi_run, natome, neqm, nge, nlm_probe, nlmagm, nlmw, nspinp
   integer, dimension(natome):: iaprotoi, igroupi, lmaxa
   integer, dimension(n_multi_run):: iabsm
   integer, dimension(0:n_atom_proto):: ngreq
@@ -3458,7 +3458,7 @@ subroutine Data_one_run(iabsm,iaprotoi,icheck,igreq,index_e,igroupi,lmax_probe,l
   do mu = 2,n_multi_run
     Found = .false.
 
-    do ipr = n_atom_proto,0,-1
+    do ipr = ipr0,n_atom_proto
       if( igreq(ipr,1) == iabsm(mu) ) exit
     end do
 
