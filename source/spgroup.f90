@@ -191,11 +191,11 @@ subroutine symgrp(Cif,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans,Space_file)
   character(len=10):: sgnbcar, sgnbcar0
   character(len=13):: sgschoenfliess, Space_Group
   character(len=27):: sgHMshort, sgHMlong
-  character(len=80):: line, mot
+  character(len=80):: line, mot, motb
   character(len=132):: Space_file
   character(len=80), dimension(nmaxop):: lines
 
-  integer:: i, i1, i2, ipr, istat, itape, j, nbsyop, sgnb
+  integer:: i, i1, i2, ipr, istat, itape, j, k, l, nbsyop, sgnb
 
   logical:: Cif, pareil
 
@@ -226,10 +226,31 @@ subroutine symgrp(Cif,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans,Space_file)
       end do
       if( j > 80 ) exit boucle_i
 
-      do j = 1,80
-        if( mot(j:j) == "'" ) mot(j:j) = ' '
-      end do
+      boucle_j: do j = 1,80
+        if( mot(j:j) == "'" ) then
+          do k = 1,j
+            mot(k:k) = ' '
+          end do
+          do k = j+1,80
+            if( mot(k:k) == "'" ) then
+              mot(k:k) = ' '
+              exit boucle_j
+            endif
+          end do
+        endif 
+      end do boucle_j
 
+      do k = 1,2
+        motb = adjustl( mot )
+        l = len_trim( motb )
+        do j = 1,l-1
+          if( motb(j:j) /= ' ' ) cycle
+          mot = ' '
+          mot(1:j-1) = motb(1:j-1)
+          mot(j:l-1) = motb(j+1:l)  
+        end do
+      end do
+      
       lines(i) = adjustl(mot)
         
     end do boucle_i

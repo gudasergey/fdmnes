@@ -2,10 +2,11 @@
 
 ! Calculate the absorption cross sections and the RXS amplitudes
 
-subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Block,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
-            f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer, &
-            Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
+            f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer,Int_tens, &
+            isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_block,n_multi_run,n_oo,n_rel,n_tens_max, &
+            natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
             nphim,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss,Rot_int, &
             sec_atom,secdd_a,secdd_m_a,secdq_a,secdq_m_a,secdo_a,secdo_m_a, &
@@ -18,10 +19,10 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
 
   real(kind=db), parameter:: quatre_mc2 = 4 * 2 / alfa_sf**2  ! en Rydberg
   
-  integer:: he, hs, i, ia, iabsorig, ib, ic1, ic2, icheck, icn1, icn2, id, ie, &
+  integer:: Block, he, hs, i, ia, iabsorig, ib, ic1, ic2, icheck, icn1, icn2, id, ie, &
     ie_computer, ig, ii, ind_mu, initlr, ip, ipl, ipldafs, iseuil, ispfg, &
     isym, ixandafs, j, j1, je, jhe, jhs, jpl, js, jseuil, ke, ks, l, &
-    ll, long, mpinodee, n_dim, n_tens_max, n_multi_run, n_oo, n_rel, n_tens, n1, n2, na, &
+    ll, long, mpinodee, n_block, n_dim, n_tens_max, n_multi_run, n_oo, n_rel, n_tens, n1, n2, na, &
     natomsym, nb, nbseuil, nc, nccm, ncolm, ncolr, ncolt, nenerg, ninit1, ninitlr, nl, np, npldafs, &
     nphim, nplt, nplr, nplrm, nseuil, nspin, numat_abs, nxanout, nw
 
@@ -65,7 +66,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
 
   logical Allsite, Base_spin, Cartesian_tensor, Cor_abs, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, E_vec, &
     Dafs, Dafs_bio, Final_tddft, Energphot, Extract, Full_self_abs, Green_int, Green_int_mag, idafs, M1M1, Magn_sens, &
-    Moyenne, mu_cal, Self_abs, Spherical_signal, Spherical_tensor, Spinorbite_p, Tens_comp, Tensor_eval, Xan_atom
+    Matper, Moyenne, mu_cal, Self_abs, Spherical_signal, Spherical_tensor, Spinorbite_p, Tens_comp, Tensor_eval, Xan_atom
 
   logical, dimension(10):: Multipole
 
@@ -1354,7 +1355,8 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
     if( M1M1 ) mumm(:,:,:,:,:) = c_micro * mumm(:,:,:,:,:)
     if( E1M1 ) mumd(:,:,:,:,:) = c_micro * mumd(:,:,:,:,:)
   endif
-  if( nseuil == 0 ) then ! cas de l'optique: en millimetre^-1
+ ! Optic case: output in millimeter^-1, possible only for periodical system
+  if( nseuil == 0 .and. Matper ) then
     c_milli = 100000 / ( Volume_maille * bohr**3 )
     secabs(:,:,:) = c_milli * secabs(:,:,:)
     if( E1E1 ) secabsdd(:,:,:) = c_milli * secabsdd(:,:,:)
@@ -1367,10 +1369,10 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   endif
 
   if( icheck > 0 ) then
-    write(3,'(/1x,a7,1p,e12.5)') 'Omega =', Omega
+    if( Dip_rel ) write(3,'(/1x,a7,1p,e12.5)') 'Omega =', Omega
     do ia = 0,na
       if( ia == 0 ) then
-        if( nseuil /= 0 ) then
+        if( nseuil /= 0 .or. Matper ) then
           write(3,283) ct_nelec(:) * pi
         else
           write(3,284) c_milli
@@ -1487,6 +1489,14 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
 
     nomficht = nomfich
     nomfichdafst = nomfich
+
+    if( n_block > 1 ) then
+      long = len_trim(nomficht)
+      nomficht(long+1:long+2) = '_b'
+      call ad_number(Block,nomficht,132)
+      nomfichdafst(long+1:long+5) = '_b'
+      call ad_number(Block,nomfichdafst,132)
+    endif
 
     if( ia > 0 ) then
       long = len_trim(nomficht)
@@ -1799,7 +1809,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   218 format(/' Atom ',i3,3(' Tensor_oo(ke,je,he',3(',',i1),')',36x), ' Green integral')
   219 format(/' Atom ',i3,3(' Tensor_oo(ke,je,he',3(',',i1),')',36x))
   283 format(/' Conversion factor (numb. of electron/Mbarn) =',10f10.5)
-  284 format(/' Output in mm^(-1), conversion factor (mm^(-1)/Mbarn) =',10f10.5)
+  284 format(/' Output in mm^(-1), conversion factor =',f13.5,' mm^(-1)/Mbarn' )
   285 format(/'   Total signal')
   290 format(/'   Signal atom',i3)
   295 format(/'   Core state or edge',i3)
@@ -2058,7 +2068,7 @@ end
 
 !***********************************************************************
 
-subroutine write_cartesian_tensor(Densite_atom,E_cut,E1E2,E2E2,Ephseuil, Epsii,Eseuil,ia,ie,ipldafs,jseuil, &
+subroutine write_cartesian_tensor(Densite_atom,E_cut,E1E2,E2E2,Ephseuil,Epsii,Eseuil,ia,ie,ipldafs,jseuil, &
                  M1M1,magn_sens,n_rel,natomsym,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,secddia,secdqia,secdqia_m, &
                  secqqia,secmdia,tens_comp,v0muf,Core_resolved)
 
@@ -2422,7 +2432,15 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
     open(ipr, file = nomficht, position='append')
   endif
 
-  if( abs( Ephseuil*rydb )  < 10._db ) then
+  if( Length_word < 11 .or. Length_word > 17 ) then
+    call write_error
+    do ipr = 6,9,3
+      write(ipr,150) Length_word
+    end do
+    stop
+  endif
+    
+  if( abs( Ephseuil*rydb ) < 10._db ) then
     select case(Length_word)
       case(11)
         write(ipr,161) Ephseuil*rydb, Tens(1:n)  
@@ -2438,14 +2456,8 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
         write(ipr,166) Ephseuil*rydb, Tens(1:n)
       case(17)
         write(ipr,167) Ephseuil*rydb, Tens(1:n)
-      case default
-        call write_error
-        do ipr = 6,9,3
-          write(ipr,150) Length_word
-        end do
-        stop
     end select
-  else
+  elseif( abs( Ephseuil*rydb ) < 100._db ) then
     select case(Length_word)
       case(11)
         write(ipr,171) Ephseuil*rydb, Tens(1:n)  
@@ -2461,12 +2473,23 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
         write(ipr,176) Ephseuil*rydb, Tens(1:n)
       case(17)
         write(ipr,177) Ephseuil*rydb, Tens(1:n)
-      case default
-        call write_error
-        do ipr = 6,9,3
-          write(ipr,150) Length_word
-        end do
-        stop
+    end select
+  else
+    select case(Length_word)
+      case(11)
+        write(ipr,181) Ephseuil*rydb, Tens(1:n)  
+      case(12)
+        write(ipr,182) Ephseuil*rydb, Tens(1:n)
+      case(13)
+        write(ipr,183) Ephseuil*rydb, Tens(1:n)
+      case(14)
+        write(ipr,184) Ephseuil*rydb, Tens(1:n)
+      case(15)
+        write(ipr,185) Ephseuil*rydb, Tens(1:n)
+      case(16)
+        write(ipr,186) Ephseuil*rydb, Tens(1:n)
+      case(17)
+        write(ipr,187) Ephseuil*rydb, Tens(1:n)
     end select
   endif
 
@@ -2511,13 +2534,20 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
   165 format(f10.5,1p,10000e15.7)
   166 format(f10.5,1p,10000e16.8)
   167 format(f10.5,1p,10000e17.9)
-  171 format(f10.3,1p,10000e11.3)
-  172 format(f10.3,1p,10000e12.4)
-  173 format(f10.3,1p,10000e13.5)
-  174 format(f10.3,1p,10000e14.6)
-  175 format(f10.3,1p,10000e15.7)
-  176 format(f10.3,1p,10000e16.8)
-  177 format(f10.3,1p,10000e17.9)
+  171 format(f10.4,1p,10000e11.3)
+  172 format(f10.4,1p,10000e12.4)
+  173 format(f10.4,1p,10000e13.5)
+  174 format(f10.4,1p,10000e14.6)
+  175 format(f10.4,1p,10000e15.7)
+  176 format(f10.4,1p,10000e16.8)
+  177 format(f10.4,1p,10000e17.9)
+  181 format(f10.3,1p,10000e11.3)
+  182 format(f10.3,1p,10000e12.4)
+  183 format(f10.3,1p,10000e13.5)
+  184 format(f10.3,1p,10000e14.6)
+  185 format(f10.3,1p,10000e15.7)
+  186 format(f10.3,1p,10000e16.8)
+  187 format(f10.3,1p,10000e17.9)
 end
 
 !***********************************************************************
@@ -2569,8 +2599,8 @@ subroutine ad_number(ib,nomfich,Length)
     if( l + iu <= Length ) then
       l = l + 1
       nomfich(l:l) = achar(in+48)
-    elseif( l + iu == Length-1 .and. nomfich(l:l) == '_' ) then
-      nomfich(l:l) = achar(in+48)
+    elseif( l + iu == Length-1 ) then
+      if( nomfich(l:l) == '_' ) nomfich(l:l) = achar(in+48)
     endif
 
     i = i - ipuis * in

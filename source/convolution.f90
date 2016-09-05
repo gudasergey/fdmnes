@@ -21,7 +21,6 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     nfich_tot, ngamh, ngroup_par, ninit, ninit1, ninitlm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
     npldafs_th, npldafs1, ns, nseuil, nt, numat, nxan, nxan1, nw
 
-  integer, parameter:: nassm = 103
 ! njp : Points au dela de la gamme pour diminuer les effets de bord de la convolution
   integer, parameter:: njp = 500
 
@@ -793,6 +792,12 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         ninitl(ifich) = n - 8
       endif
       ninitlm = max( ninitlm, ninitl(ifich) )
+    else
+      call write_error
+      do ipr = 6,9,3
+        write(ipr,'(///,A/)') ' Old format in the first line of not convoluted file !'
+      end do
+      stop
     endif
     Close(2)
   end do
@@ -808,42 +813,22 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   do ifich = 1,nfich
     open(2, file = fichin(ifich), status='old', iostat=istat)
-    n = nnombre(2,132)
-    v0muf = 10._db
-    Select case(n)
-      Case(1)
-        read(2,*) Eseuil(ifich)
-        numat = 1
-      Case(2)
-        read(2,*) Eseuil(ifich), numat
-      Case(4)
-        read(2,*) Eseuil(ifich), numat, nseuil
-      Case(5)
-        read(2,*) Eseuil(ifich), numat, nseuil, jseuil, v0muf
-      Case(6)
-        read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, v0muf
-      Case(7)
-        read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, v0muf, En_fermi(ifich)
-      Case(8)
-        read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, v0muf, En_fermi(ifich), Epsii(1,ifich)
-      Case default
-        if( vnew_format ) then
-          read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, v0muf, En_fermi(ifich), ninitl(ifich), &
-            ninit1, Epsii(1:ninitl(ifich),ifich), Densite_atom, f0_forward
-        elseif( new_format ) then
-          read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, v0muf, En_fermi(ifich), ninitl(ifich), &
-            ninit1, Epsii(1:ninitl(ifich),ifich), Densite_atom
-        else
-          read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, v0muf, En_fermi(ifich), ninit1, &
-                  Epsii(1:ninitl(ifich),ifich)
-        endif
-        if( ninit1 < 0 ) then
-          Green_int = .true.
-          ninit1 = abs( ninit1 )
-        else
-          Green_int = .false.
-        endif
-    end select
+    if( vnew_format ) then
+      read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, V0muf, En_fermi(ifich), ninitl(ifich), &
+        ninit1, Epsii(1:ninitl(ifich),ifich), Densite_atom, f0_forward
+    elseif( new_format ) then
+      read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, V0muf, En_fermi(ifich), ninitl(ifich), &
+        ninit1, Epsii(1:ninitl(ifich),ifich), Densite_atom
+    else
+      read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, V0muf, En_fermi(ifich), ninit1, &
+              Epsii(1:ninitl(ifich),ifich)
+    endif
+    if( ninit1 < 0 ) then
+      Green_int = .true.
+      ninit1 = abs( ninit1 )
+    else
+      Green_int = .false.
+    endif
     if( abs(fpp_avantseuil) > 1.e-10_db ) then
       if( fpp_avantseuil < - 1.e-10_db ) then
         Full_self_abs = .true.
@@ -1080,7 +1065,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   if( E_Fermi_man ) En_Fermi(:) = Efermi
 
-  if( Gaussian_default ) deltar = Eseuil(1) / 10000
+  if( Gaussian_default ) deltar = max( Eseuil(1) / 10000, 0.0001_db )
 
   deltar = deltar / sqrt( 8 * log(2._db) )
   vibration = vibration / sqrt( 8 * log(2._db) )
@@ -2704,6 +2689,8 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
 
   endif
 
+  Close(2)
+  
   deallocate( nom_col_in )
 
   return
@@ -2723,7 +2710,7 @@ function Tab_width(Eseuil,jseuil,nseuil,numat)
   
   integer:: jseuil, nseuil, numat
   
-  real(kind=db):: Es, Eseuil, Gamma_hole, Tab_width
+  real(kind=db):: Es, Eseuil, Gamma_hole, Shift_edge, Tab_width
   real(kind=db), dimension(10:nam):: GH_K1, GH_L1, GH_L2, GH_L3
 
   data GH_K1/                                                                                  0.24_db, &
@@ -2779,8 +2766,9 @@ function Tab_width(Eseuil,jseuil,nseuil,numat)
     case(1)   ! Seuil K
     
       if( numat < 10 .or. numat > nam ) then
-   ! Formule ajustee sur les data de Krause et Oliver (correspond donc a une extrapolation).
-        Es = Eseuil * Rydb
+   ! Formule ajustee sur les data de Krause et Oliver (correspond donc a une extrapolation)
+   ! We substract the shift
+        Es = ( Eseuil - Shift_edge(0,numat) ) * Rydb
         Gamma_hole = 0.13007_db + 0.00011544_db * Es + 9.2262E-09_db * Es**2 - 3.2344E-14_db * Es**3
       else
         Gamma_hole = GH_K1( numat )
@@ -2832,6 +2820,10 @@ function Tab_width(Eseuil,jseuil,nseuil,numat)
     case default
 
       select case(jseuil)
+
+        case(0) ! Optic
+
+          Gamma_hole = 0._db
 
         case(1,2,3)
 

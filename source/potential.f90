@@ -984,15 +984,16 @@ subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,ia
       rayop(ipr) = min( rayop(ipr), dab(ipr) )
     end do boucle_ia
 
-!        do ipr = ipr1,n_atom_proto
-!          if( iapot(ipr) == 0 ) cycle
-!          jpr = iaproto( iaproxp(ipr) )
-!          rap = (1 + overlap) * dab(ipr) / ( rayop(ipr) + rayop(jpr) )
-!          rayop(ipr) = rap * rayop(ipr)
-!          rayop(jpr) = rap * rayop(jpr)
-!        end do
-
   endif
+
+! Hydrogen case
+  do ipr = ipr1,n_atom_proto
+    if( iapot(ipr) == 0 .or. rn(ipr) < eps10 ) cycle
+    Z = numat( itypepr(ipr)  )
+    if( Z /= 1 ) cycle
+    if( rayop(ipr) > 0.45*rdem(ipr) .and. rayop(ipr) < 1.75*rdem(ipr) ) cycle
+    rayop(ipr) = min( (1 + overlap) * rdem(ipr), 0.8_db / bohr )
+  end do
 
   do ipr = ipr1,n_atom_proto
     rv0(ipr) = 0._db
@@ -1067,10 +1068,20 @@ subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,ia
     end select
   end do
 
+! When optimized radius are not ok, one uses Normann criterion
   if( normrmt == 1 ) then
     do ipr = ipr1,n_atom_proto
       if( iapot(ipr) == 0 .or. rn(ipr) < eps10 ) cycle
-      if( rayop(ipr) > 0.25*rdem(ipr) .and. rayop(ipr) < 1.5*rdem(ipr) ) cycle
+      Z = numat( itypepr(ipr)  )
+      if( Z < 2 ) cycle
+      ia = iaproxp(ipr)
+      if( ia > natomp ) cycle
+      Z = numat( itypep(ia) )
+      if( Z == 1 ) then
+        if( rayop(ipr) > 0.99*rdem(ipr) .and. rayop(ipr) < 1.75*rdem(ipr) ) cycle
+      else
+        if( rayop(ipr) > 0.25*rdem(ipr) .and. rayop(ipr) < 1.5*rdem(ipr) ) cycle
+      endif
       do jpr = ipr1,n_atom_proto
         if( iapot(jpr) == 0 .or. rn(jpr) < eps10 ) cycle
         rmtg0(jpr) = rn(jpr)

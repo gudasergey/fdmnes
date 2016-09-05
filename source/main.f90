@@ -1,9 +1,9 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 15 July 2016, 27 Messidor, An 224.
+! FDMNES II program, Yves Joly, Oana Bunau, 1 September 2016, 15 Fructidor, An 224.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
 
-! Program performing calculations of x-ray spectroscopies, XANES, RXD, dichroism.
+! Program performing calculations of x-ray spectroscopies, XANES, RXD, dichroism, Raman X-ray scattering, 2D RXD.
 ! Work using the finite difference method or the multiple scattering theory.
 ! Monoelectronic approach or TD-DFT (LSDA).
 
@@ -39,12 +39,14 @@ module declarations
 
   integer, parameter:: Length_word = 15 ! number of character in words
 
+  integer, parameter:: nassm = 103   ! Number of chemical elements in the Mendeleiev table
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
+!  integer, parameter:: nopsm = 72    ! Number of symmetry operation
 
   character(len=50):: com_date, com_time
 
-  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 15th of July 2016'
+  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 1st of September 2016'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )

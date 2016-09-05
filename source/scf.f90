@@ -283,8 +283,7 @@ end
 
 !***********************************************************************
 
-! Calcul du point du depart en energie, pour la determination du niveau
-! de Fermi
+! Calcul du point du depart en energie, pour la determination du niveau de Fermi
 
 subroutine En_dep(E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck,itypepr,lcoeur,n_atom_0,n_atom_0_self, &
                 n_atom_ind,n_atom_ind_self,n_atom_proto,natome,ncoeur,nenerg_coh,nlm_pot,nrato,nrm,numat,nspin, &
@@ -358,7 +357,8 @@ subroutine En_dep(E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck,itypepr,l
             1,1,numat(it),V0bdm,pot,psi,r,Relativiste,Rmtg(ipr),Rmtsd(ipr),.false.,V_intmax,Ylm_comp)
     end do
 
-    if( E_psi(2,iapr) - E_psi(1,iapr) > 2*E_marge ) then
+! In case of H or He there is one single core level
+    if( E_psi(2,iapr) - E_psi(1,iapr) > 2*E_marge .or. numat(it) < 3 ) then
       E_starta(iapr) = E_psi(2,iapr) - E_marge
     else
       E_starta(iapr) = 0.5_db * ( E_psi(1,iapr) + E_psi(2,iapr) )

@@ -1547,6 +1547,7 @@ subroutine radial(Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft,Full_potentia
     else
       Ephoton = Energ + Eseuil(i)
     endif
+    Ephoton = max( 0.001_db, Ephoton ) ! Optic case
 ! Terme multiplicatif pour les transitions quadrupolaires
 ! En S.I. vecond = k = E*alfa_sf*4*pi*epsilon0 / (e*e)
 ! En ua et rydb : k = 0.5 * alfa_sf * E
@@ -2747,7 +2748,8 @@ subroutine cal_phiato(Base_ortho,dcosxyz,Full_potential,ia,iang,ibord,icheck,iop
     do i = 2,nr
       if( r(i) > rrel ) exit
     end do
-    i = min(i,nr)
+    i = min(i,nr)   
+    i = max(i,3)
 
     rm = r(i-2)
     r0 = r(i-1)

@@ -1957,7 +1957,7 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
     Ereel = .false.
   endif
 
-  if( natome > 1 .and. nb_sym_op > 1 ) then
+  if( natome > 1 .or. nb_sym_op > 1 ) then
     allocate( Cmat(natome,nlmsamax,nb_sym_op,-lmaxg:lmaxg,nspino) )
     call Cmat_cal(Cmat,iato,icheck,igrph,iopsymr,irep_util,is_eq,karact,lato,lmaxg,mato,natome,nb_eq,nb_sym_op,ngrph, &
                 nlmsamax,nlmsa,nlmsam,nspino,rot_atom,Ylm_comp)
@@ -2439,7 +2439,7 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
 
   endif
 
-  if( natome > 1 .and. nb_sym_op > 1 ) deallocate( Cmat )
+  if( natome > 1 .or. nb_sym_op > 1 ) deallocate( Cmat )
 
   if( icheck > 2 ) then
     write(3,150)
@@ -2610,10 +2610,13 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
     end do
   endif
 
-  call CPU_TIME(time)
-  tp3 = real(time,db)
-
-  Time_tria = tp3 - tp2
+  if( ndim == 0 ) then
+    Time_tria = 0._db
+  else
+    call CPU_TIME(time)
+    tp3 = real(time,db)
+    Time_tria = tp3 - tp2
+  endif
 
   return
   110 format(/' ---- MSM ---------',100('-'))

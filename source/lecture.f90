@@ -243,7 +243,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           endif
 
         case('range','rangel')
-          ngamme = nnombre(itape4,132)
+          ngamme = nnombre(itape4,1320)
           if( mod(ngamme,2) == 0 ) then
             call write_error
             do ipr = 6,9,3
@@ -1354,7 +1354,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto,n_devide,n_file_dafs_exp,n_multi_run_e,n_radius, &
     n_range,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg,ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw,ngroup_m, &
     ngroup_neq,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
-    ngroup_temp,nhybm,nlat,nlatm,nnlm,No_solsing,nom_fich_Extract, &
+    ngroup_temp,nhybm,nlat,nlatm,No_solsing,nom_fich_Extract, &
     nomfich,nomfich_optic_data,nomfich_tddft_data,nomfichbav,Noncentre, &
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
     nphim,npldafs,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
@@ -1378,9 +1378,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     l_selec_max, l1, l2, lamstdens, lecrantage, lin_gam, lmax_nrixs, lmax_pot, lmax_pot_default, lmaxat0, lmaxso0, long, &
     lseuil, m,  m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank0, multi_run, multrmax, &
     n, n_adimp, n_atom_bulk, n_atom_cap, n_atom_proto, n_devide, n_file_dafs_exp, n_fract_x, n_fract_y, n_fract_z, n_label,  &
-    n_multi_run_e, n_occupancy, n_orb_rel, n_radius, n_range, n1, n2, natomsym, nb_atom_conf_m, nbseuil, nchemin, &
+    n_multi_run_e, n_occupancy, n_radius, n_range, n1, n2, natomsym, nb_atom_conf_m, nbseuil, nchemin, &
     necrantage, neimagent, nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_neq, ngroup_nonsph, &
-    ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, nhybm, nlatm, nn, nnlm, nnombre, non_relat, norb, norbdil, normrmt, &
+    ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, nhybm, nlatm, nn, nnombre, non_relat, norb, norbdil, normrmt, &
     nparm, nphim, nphimt, npldafs, nple, nq_nrixs, nrato_dirac, nrm, nscan, nself, nseuil, nslapwm, nspin, ntype, ntype_conf, &
     numat_abs, Trace_k, Wien_save, Z_nospinorbite, Z
 
@@ -1883,7 +1883,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           if( grdat == 'trace_for' .or. grdat == 'trace_wie' ) trace_format_wien = .true.
 
         case('range','rangel')
-          n = nnombre(itape4,132)
+          n = nnombre(itape4,1320)
           if( grdat == 'rangel' ) then
             lin_gam = 1
           else
@@ -4839,18 +4839,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   V_intmax = V_intmax / Rydb
   V0bdcFimp(:) = V0bdcFimp(:) / Rydb
 
-! Nombre d'orbitales atomiques maximum
-  nnlm = 0
-  do it = 1,ntype
-    n = n_orb_rel( numat(it) )
-    if( numat(it) == numat_abs )then
-      n = n + 2 * max( 1, nlat(it) )
-    elseif( nlat(it) > 0 ) then
-      n = n + 2 * nlat(it)
-    endif
-    nnlm = max( nnlm, n )
-  end do
-
   call cal_cubmat(angxyz,cubmat,struct)
 
   if( Magnetic .or. Atom_nonsph ) then
@@ -5047,7 +5035,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   320 format('    Roverad =',f6.2)
   330 format(' icheck =',30i2)
   340 format(' Linear range :')
-  350 format(' Range =',9f8.3,5(/9x,9f8.3))
+  350 format(' Range =',20f8.3,5(/8x,20f8.3))
   400 format(' Spin-orbit not taken into account for the atomic number', i3)
   410 format('    Path expansion, n =',i3)
   420 format('    Imposed type muffin-tin radius, Rmtimp =',10f6.3,/9x,10f6.3)

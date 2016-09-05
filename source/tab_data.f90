@@ -4,21 +4,28 @@
 
 !***********************************************************************
 
-! Selection de l'energie de seuil et du travail de sortie de l'element
+! Table with edge energies and shift to make the correspondance with the Fermi energy
 
-subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,Old_zero,Workf,mpirank) 
+subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,mpirank) 
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
-  parameter(nassm=103, nm1=18, nm4=30, nn1=36, nn4=48, nn6=58, no1=54, no4=80, np1=86, np2=87)
+  integer, parameter:: nm1 = 18
+  integer, parameter:: nm4 = 30
+  integer, parameter:: nn1 = 36
+  integer, parameter:: nn4 = 48
+  integer, parameter:: nn6 = 58
+  integer, parameter:: no1 = 54
+  integer, parameter:: no4 = 80
+  integer, parameter:: np1 = 86
+  integer, parameter:: np2 = 87
 
-  integer:: Zm
+  integer:: icheck, ipr, jseuil, mpirank, nbseuil, nseuil, numat, Zm
   
-  logical:: Old_zero
-
+  real(kind=db):: Shift, Shift_edge
   real(kind=db), dimension(nbseuil):: Eseuil
-  real(kind=db), dimension(nassm):: ek1, el1, el2, el3, workfct
+  real(kind=db), dimension(nassm):: ek1, el1, el2, el3
   real(kind=db), dimension(nm1:nassm):: em1, em2, em3
   real(kind=db), dimension(nm4:nassm):: em4, em5
   real(kind=db), dimension(nn1:nassm):: en1, en2, en3
@@ -28,21 +35,6 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,Old_zero,Workf,mpira
   real(kind=db), dimension(no4:nassm):: eo4, eo5
   real(kind=db), dimension(np1:nassm):: ep1
   real(kind=db), dimension(np2:nassm):: ep2, ep3
-
-! Handbook of chemistry and physics, E-82
-! Pour les gaz rares et H, F, N, O, Cl, les seuils sont par rapport au
-! niveau du vide. On prend donc le travail de sortie a zero.
-
-  data workfct/ 0.00,  0.00,  2.28,  3.92,  4.50,  4.81,  0.00,  0.00,  0.00,  0.00,  &
-                2.28,  3.68,  4.08,  4.37,  4.00,  4.00,  0.00,  0.00,  2.24,  2.706, &
-                4.00,  3.95,  3.77,  4.37,  3.76,  4.70,  3.90,  5.01,  4.00,  3.08,  &
-                4.00,  4.29,  4.72,  4.62,  4.00,  0.00,  2.09,  2.74,  4.00,  3.73,  &
-                2.29,  4.15,  4.00,  4.00,  4.57,  4.97,  4.73,  4.07,  4.00,  4.38,  &
-                4.01,  4.04,  4.00,  0.00,  4.70,  2.48,  4.00,  2.84,  4.00,  4.00,  &
-                4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  &
-                4.00,  4.00,  4.05,  4.49,  5.00,  4.00,  4.00,  4.09,  4.82,  4.53,  &
-                3.68,  3.97,  4.25,  4.00,  4.00,  0.00,  4.00,  4.00,  4.00,  3.38,  &
-                0.00,  3.63,  4.00,  4.00,  4.00,  0.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00/
 
 ! Compile par Gwyn Williams,
 ! http://xray.uu.se/hypertext/EBindEnergies.html
@@ -250,7 +242,6 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,Old_zero,Workf,mpira
                 0.0,   16.8,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0, &
                 0.0,    0.0,    0.0/
 
-  if( icheck > 0 ) write(3,100)
   Eseuil(:) = 0._db
 
   if( numat > nassm .and. mpirank == 0 ) then
@@ -412,35 +403,103 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,Old_zero,Workf,mpira
     stop
   endif
 
-  if( Old_zero ) then
-    Workf = workfct( numat )
-  else
-    Workf = 0._db
-  endif
-
   Eseuil(:) = nint( 100 * Eseuil(:) ) / 100._db
 
   if( mpirank == 0 ) then
     do ipr = 3,6,3
       if( ipr == 3 .and. icheck == 0 ) cycle
       if( nbseuil == 1 ) then
-        write(ipr,150) Eseuil(1), Workf
+        write(ipr,150) Eseuil(:)
       else
-        write(ipr,160) Eseuil(1:nbseuil), Workf
+        write(ipr,160) Eseuil(:)
       endif
     end do
   endif
 
-  Eseuil(1:nbseuil) = Eseuil(1:nbseuil) / rydb
-  Workf = Workf / rydb
+  Eseuil(:) = Eseuil(:) / rydb
+
+  if( nseuil /= 0 ) then  
+ ! Shift of the conventional edge energy in order its value correspond to the Fermi energy or the HOMO.
+    Shift = Shift_edge(icheck,numat)
+    Eseuil(:) = Eseuil(:) + Shift
+  endif
 
   return
-  100 format(/' ---- Esdata -------',100('-'))
   105 format(//' Z =',i4,' > nassm in routine esdata !'//)
   120 format(//' Threshold non included in the data of the routine Esdata in the file tab_data.f !',// &
                ' It may be that it does not exist !'//)
-  150 format(/' E_edge =',f9.2,' eV, WorkF =',f7.2,' eV')
-  160 format(/' E_edge(1) =',f9.2,' eV, E_edge(2) =',f9.2,' eV,', ' WorkF =',f7.2,' eV')
+  150 format(/' E_edge     =',f9.2,' eV')
+  160 format(/' E_edge(1)  =',f9.2,' eV,  E_edge(2) =',f9.2,' eV')
+end
+
+!***********************************************************************
+
+function Shift_edge(icheck,Z) 
+
+  use declarations
+  implicit none
+
+  integer:: icheck, Z
+
+  real(kind=db):: Shift_edge
+  real(kind=db), dimension(nassm):: Shift
+
+  data Shift/ -13.6_db, -24.6_db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
+                0._db,    0._db,    0._db/
+                
+  Shift_edge = Shift(Z)
+  
+  if( icheck > 0 .and. abs(Shift_edge) > eps10 ) write(3,110) Shift_edge
+
+  Shift_edge = Shift_edge / Rydb
+  
+  return
+  110 format(' Shift_edge =',f9.2,' eV')
+end
+
+!***********************************************************************
+
+function Workf_val(icheck,numat) 
+
+  use declarations
+  implicit none
+
+  integer:: icheck, numat
+
+  real(kind=db):: Workf_val
+  real(kind=db), dimension(nassm):: Workfct
+
+! Handbook of chemistry and physics, E-82
+! Pour les gaz rares et H, F, N, O, Cl, les seuils sont par rapport au
+! niveau du vide. On prend donc le travail de sortie a zero.
+
+  data Workfct/ 0.00,  0.00,  2.28,  3.92,  4.50,  4.81,  0.00,  0.00,  0.00,  0.00,  &
+                2.28,  3.68,  4.08,  4.37,  4.00,  4.00,  0.00,  0.00,  2.24,  2.706, &
+                4.00,  3.95,  3.77,  4.37,  3.76,  4.70,  3.90,  5.01,  4.00,  3.08,  &
+                4.00,  4.29,  4.72,  4.62,  4.00,  0.00,  2.09,  2.74,  4.00,  3.73,  &
+                2.29,  4.15,  4.00,  4.00,  4.57,  4.97,  4.73,  4.07,  4.00,  4.38,  &
+                4.01,  4.04,  4.00,  0.00,  4.70,  2.48,  4.00,  2.84,  4.00,  4.00,  &
+                4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  &
+                4.00,  4.00,  4.05,  4.49,  5.00,  4.00,  4.00,  4.09,  4.82,  4.53,  &
+                3.68,  3.97,  4.25,  4.00,  4.00,  0.00,  4.00,  4.00,  4.00,  3.38,  &
+                0.00,  3.63,  4.00,  4.00,  4.00,  0.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00/
+
+  Workf_val = Workfct( numat )
+  if( icheck > 0 ) write(3,110) Workf_val
+
+  Workf_val = Workf_val / rydb
+
+  return
+ 110 format(' WorkF     =',f9.2,' eV')
 end
 
 !***********************************************************************
@@ -454,7 +513,6 @@ end
 !  use declarations
 !  implicit none
 
-!  integer, parameter:: nassm = 103
 !  integer, parameter:: nm1 = 18
 !  integer, parameter:: nm4 = 30
 !  integer, parameter:: nn1 = 36
@@ -776,7 +834,9 @@ end
 
 function Chemical_Symbol(Z)
 
-  Integer:: Z
+  implicit none
+  
+  integer:: Z
 
   character(len=2):: Chemical_Symbol
   character(len=2), dimension(103):: Symbol
@@ -796,7 +856,8 @@ end
 
 function Chemical_Symbol_c(Z)
 
-  Integer:: Z
+  implicit none
+  integer:: Z
 
   character(len=2):: Chemical_Symbol_c
   character(len=2), dimension(103):: Symbol
@@ -816,7 +877,8 @@ end
 
 function Chemical_Name(Z)
 
-  Integer:: Z
+  implicit none
+  integer:: Z
 
   character(len=13):: Chemical_Name
   character(len=13), dimension(103):: Name
@@ -852,10 +914,12 @@ end
 
 ! Table contenant l'indice l de l'orbitale sur laquelle s'applique la correction de Hubbard
 
-  integer function l_hubbard(Z)
+function l_hubbard(Z)
 
-  Integer:: Z
-  Integer, dimension(103):: lh
+  implicit none
+  
+  integer:: l_hubbard, Z
+  integer, dimension(103):: lh
 
   data lh/ 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, &
            1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 0, 0, &
@@ -874,7 +938,9 @@ end
 
 function nvnonrel(Z)
 
-  integer Z
+  implicit none
+  
+  integer:: nvnonrel, Z
   integer, dimension(103):: nvnr
 
   data nvnr / 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, &
@@ -893,7 +959,9 @@ end
 
 function nvrel(Z)
 
-  integer Z
+  implicit none
+  
+  integer nvrel, Z
   integer, dimension(103):: nvr
 
   data nvr / 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, &
@@ -930,7 +998,7 @@ end
 
 function n_orb_rel(Z)
 
-  integer Z
+  integer:: n_orb_rel, Z
   integer, dimension(103):: n
 
   data n/ 1, 1, 2, 2, 4, 4, 4, 4, 4, 4, 5, 5, 7, 7, 7, 7, 7, 7, 8, 8,10,10,10,10,10,10,10,10,10,10,12,12,12,12,12,12, &
@@ -950,7 +1018,7 @@ end
 
 function n_orb_coeur(Z)
 
-  integer Z
+  integer:: n_orb_coeur, Z
   integer, dimension(103):: nc
 
   data nc/ 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, &
@@ -968,7 +1036,7 @@ end
 
 function l_level_val(Z)
 
-  integer Z, l_level_val
+  integer:: Z, l_level_val
 
   select case( Z )
     case(1,2,3,4,11,12,19,20,37,38,55,56,87,88)
@@ -991,11 +1059,12 @@ end
 function Mass_atom(Z)
 
   use declarations
+  implicit none
 
   integer:: Z
 
   real(kind=db):: Mass_atom
-  real(kind=db), dimension(103):: Mass
+  real(kind=db), dimension(nassm):: Mass
 
   data Mass /  1.0079,  4.0026,  6.941,   9.0122,  10.811,  12.0107, 14.0067, 15.9994, 18.9984,  20.1797, &
               22.9898, 24.3050, 26.9815, 28.0855,  30.9738, 32.066,  35.4527, 39.948,  39.0983,  40.078, &
@@ -1026,7 +1095,7 @@ function Atom_radius(Z)
   integer:: Z
 
   real(kind=db):: Atom_radius
-  real(kind=db), dimension(103):: Ray
+  real(kind=db), dimension(nassm):: Ray
 
   data Ray/ 0.38,  0.32,  1.34,  0.90,  0.82,  0.77,  0.75,  0.73,  0.71,  0.69,  1.54,  1.30,  1.18,  1.11,  1.06,  &
             1.02,  0.99,  0.97,  1.96,  1.74,  1.44,  1.36,  1.25,  1.27,  1.39,  1.25,  1.26,  1.21,  1.38,  1.31,  &
@@ -1057,7 +1126,7 @@ function RayIon(Z)
   integer:: Z
 
   real(kind=db):: Rayion
-  real(kind=db), dimension(103):: Ray
+  real(kind=db), dimension(nassm):: Ray
 
   data Ray/ 0.012, 0.49,  0.76,  0.45,  0.27,  0.91,  1.46,  1.40,  1.33,  0.51,  1.02,  0.67,  0.48,  0.40,  0.44,  &
             1.84,  1.81,  0.88,  1.38,  1.00,  0.745, 0.86,  0.79,  0.80,  0.83,  0.78,  0.74,  0.69,  0.73,  0.74,  &
@@ -1150,26 +1219,35 @@ do ij=1,ninputs
       end if
    end do
    20 close(203)
+ 
    open(unit=203,file=trim(fnames(ij)))
-   do jk=1,1000
-      read(203,*) scratch
-      if (trim(scratch) .EQ. "Crystal" .OR. trim(scratch) .EQ. "crystal") then
-         do kji=1,absorbeur
-            read(203,*) scratch
-         end do
-         read(203,*) Z, xabspos, yabspos, zabspos
+
+! --- Yves: change for more general format reading ---------------
+   do jk = 1,1000
+     read(203,*) scratch
+     if( .not. ( trim(scratch) .EQ. "Crystal" .OR. trim(scratch) .EQ. "crystal" .or. &
+                 trim(scratch) .EQ. "Molecule" .OR. trim(scratch) .EQ. "molecule" ) ) cycle
+
+     if (trim(scratch) .EQ. "Molecule" .OR. trim(scratch) .EQ. "molecule") molinp = .true.
+
+     kji = 0      
+     do i = 1,1000
+       n = nnombre(203,132)
+       read(203,*)
+       if( n == 0 ) cycle
+       kji = kji + 1
+       if( kji == absorbeur + 1 ) then
+         backspace(203)
          exit
-      end if
-      if (trim(scratch) .EQ. "Molecule" .OR. trim(scratch) .EQ. "molecule") then
-         do kji=1,absorbeur
-            read(203,*) scratch
-         end do
-         read(203,*) Z, xabspos, yabspos, zabspos
-         molinp = .true.
-         exit
-      end if
+       endif 
+     end do
+     read(203,*) Z, xabspos, yabspos, zabspos
+     exit
    end do
+   
    close(203)
+! end Yves change
+
    if (Z .LT. 21) then
       STOP "Z for absorbing atom is too low (required Z>=21)"
    end if
@@ -1177,6 +1255,10 @@ do ij=1,ninputs
    do jk=1,1000
       read(203,*) scratch
       if (trim(scratch) .EQ. "Crystal" .OR. trim(scratch) .EQ. "crystal") then
+! --- Yves: change for more general format reading ---------------
+         n = nnombre(203,132)
+         if( n == 0 ) read(203,*)
+! end Yves change
          read(203,*) scratch
          natoms = 0
          natomstot = 0
@@ -1185,6 +1267,15 @@ do ij=1,ninputs
          cm2gtombarn(1:92) = 0.0
          atomtypes(1:92,1:2) = 0
          do kij=1,100
+            n = nnombre(203,132)
+ ! --- Yves: change for more general format reading ---------------
+           if( n == 0 ) then
+              read(203,*) scratch
+              scratch = adjustl(scratch)
+              if( scratch(1:1) /= '!' ) exit
+              cycle
+            endif
+! --- end Yves change ---------------
             read(203,*,iostat=linetype) intscratch
             if (linetype .EQ. 0) then
                if (intscratch .EQ. Z) then
@@ -1214,6 +1305,8 @@ do ij=1,ninputs
          exit
       end if
       if (trim(scratch) .EQ. "Molecule" .OR. trim(scratch) .EQ. "molecule") then
+         n = nnombre(203,132)
+         if( n == 0 ) read(203,*)
          read(203,*) scratch
          natoms = 0
          natomstot = 0
@@ -1222,6 +1315,15 @@ do ij=1,ninputs
          cm2gtombarn(1:92) = 0.0
          atomtypes(1:92,1:2) = 0
          do kij=1,100
+! --- Yves: change for more general format reading ---------------
+            n = nnombre(203,132)
+            if( n == 0 ) then
+              read(203,*) scratch
+              scratch = adjustl(scratch)
+              if( scratch(1:1) /= '!' ) exit
+              cycle
+            endif
+! end Yves change ---------------
             read(203,*,iostat=linetype) intscratch
             if (linetype .EQ. 0) then
                if (intscratch .EQ. Z) then
@@ -1259,6 +1361,12 @@ do ij=1,ninputs
       if (trim(scratch) .EQ. "Crystal" .OR. trim(scratch) .EQ. "molecule") then
          read(203,*) avec, bvec, cvec, alphang, betang, gamang, scratch
          do kji=1,natomstot
+! --- Yves: change for more general format reading ---------------
+            do
+              n = nnombre(203,132)
+              if( n == 0 ) read(203,*)
+            end do
+! end Yves change
             read(203,*) Ztemp, xpostemp, ypostemp, zpostemp
             xpostemp1 = (xpostemp - xabspos) * avec
             ypostemp1 = (ypostemp - yabspos) * bvec

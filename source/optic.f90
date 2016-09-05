@@ -4,15 +4,15 @@
 
 !***********************************************************************
 
-subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Block,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
           Densite_atom,dv0bdcF,E_cut,E_cut_imp,E_Fermi_man,Eclie,Eneg,Energ_t, &
           Extract,Eseuil,Full_potential,Full_self_abs,Green,hkl_dafs,Hubb_a,Hubb_d,icheck, &
           iabsorig,ip_max,ip0,isigpi,isymeq, &
           jseuil,ldip,lmax_pot,lmax_probe,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua, &
-          lseuil,ltypcal,m_hubb,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
-          msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_multi_run, &
+          lseuil,ltypcal,m_hubb,Matper,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
+          msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_block,n_multi_run, &
           n_oo,n_rel,n_rout,n_tens_max,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitl,ninitlr,nlm_pot,nlm_probe, &
-          nlmamax,nomabs,nomfich,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm, &
+          nlmamax,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm, &
           nr,nrm,nseuil,nspin,nspino,nspinp, &
           numat,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss,psii, &
           r,Relativiste,Rmtg,Rmtsd,rot_atom_abs,Rot_int,Self_abs,Solsing_only, &
@@ -22,10 +22,10 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
   use declarations
   implicit none
 
-  integer:: iabsorig, icheck_s, ie, ie_computer, ie_q, ie_s, ie_t, ip_max, ip0, &
+  integer:: Block, iabsorig, icheck_s, ie, ie_computer, ie_q, ie_s, ie_t, ip_max, ip0, &
     iso1, iso2, isp, isp1, isp2, iss1, iss2, je, jseuil, l0_nrixs, lm1, lm2, lmax, lmax_pot, &
     lmax_probe, lmaxabs_t, lms1, lms2, lseuil, m_hubb, MPI_host_num_for_mumps, mpinodes, mpirank, mpirank0, &
-    lmax_nrixs, lmaxat0, n_Ec, n_multi_run, n_oo, n_rel, n_rout, &
+    lmax_nrixs, lmaxat0, n_block, n_Ec, n_multi_run, n_oo, n_rel, n_rout, &
     n_tens_max, n_V, natomsym, nbseuil, ncolm, ncolr, ncolt, &
     ndim2, nenerg, nenerg_s, nenerg_tddft, nge, ninit1, ninitl, ninitlr, nlm_pot, nlm_probe, nlm_p_fp, &
     nlmamax, nphim, npldafs, nplr, nplrm, nq_nrixs, nr, nrm, ns_dipmag, nseuil, nspin, &
@@ -65,7 +65,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
 
   logical:: Allsite, Base_spin, Cartesian_tensor, Core_resolved, Dafs, Dafs_bio, E_Fermi_man, &
     E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Eneg, Energphot, Extract, FDM_comp, Final_optic, Final_tddft, Full_potential, &
-    Full_self_abs, Green, Green_int, Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, M1M1, &
+    Full_self_abs, Green, Green_int, Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, M1M1, Matper, &
     Moyenne, Relativiste, Self_abs, Solsing, &
     Solsing_only, Spherical_signal, Spherical_tensor, Spinorbite, Tddft, Xan_atom, Ylm_comp
 
@@ -162,106 +162,109 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
     V0bdc(isp,1) = Vhbdc + VxcbdcF(isp) + dV0bdcF(isp)   
   end do
 
-! Boucle sur l'energie
   nge = ( nenerg - 1 ) / mpinodes + 1
 
+! Loop over photon energy
   boucle_energ: do je = 1,nge
 
     ie = ( je - 1 ) * mpinodes + mpirank + 1
-    if( abs( Energ(ie)*rydb -1.7_db ) > 0.0001_db .and. abs( Energ(ie)*rydb -0.01_db ) > 0.0001_db ) cycle
 
     if( ie <= nenerg ) then
 
-    secdd(:,:,:,:,mpirank) = (0._db,0._db)
-    secmm(:,:,:,mpirank) = (0._db,0._db)
-    secmd(:,:,:,mpirank) = (0._db,0._db)
-    secdq(:,:,:,:,mpirank) = (0._db,0._db)
-    secqq(:,:,:,:,:,mpirank) = (0._db,0._db)
-    secdo(:,:,:,:,:,mpirank) = (0._db,0._db)
-    secdd_m(:,:,:,:,mpirank) = (0._db,0._db)
-    secmm_m(:,:,:,mpirank) = (0._db,0._db)
-    secmd_m(:,:,:,mpirank) = (0._db,0._db)
-    secdq_m(:,:,:,:,mpirank) = (0._db,0._db)
-    secqq_m(:,:,:,:,:,mpirank) = (0._db,0._db)
-    secdo_m(:,:,:,:,:,mpirank) = (0._db,0._db)
-    if( E3E3 ) secoo(:,:,:,:,:,mpirank) = (0._db,0._db)
-    if( E3E3 ) secoo_m(:,:,:,:,:,mpirank) = (0._db,0._db)
+      secdd(:,:,:,:,mpirank) = (0._db,0._db)
+      secmm(:,:,:,mpirank) = (0._db,0._db)
+      secmd(:,:,:,mpirank) = (0._db,0._db)
+      secdq(:,:,:,:,mpirank) = (0._db,0._db)
+      secqq(:,:,:,:,:,mpirank) = (0._db,0._db)
+      secdo(:,:,:,:,:,mpirank) = (0._db,0._db)
+      secdd_m(:,:,:,:,mpirank) = (0._db,0._db)
+      secmm_m(:,:,:,mpirank) = (0._db,0._db)
+      secmd_m(:,:,:,mpirank) = (0._db,0._db)
+      secdq_m(:,:,:,:,mpirank) = (0._db,0._db)
+      secqq_m(:,:,:,:,:,mpirank) = (0._db,0._db)
+      secdo_m(:,:,:,:,:,mpirank) = (0._db,0._db)
+      if( E3E3 ) secoo(:,:,:,:,:,mpirank) = (0._db,0._db)
+      if( E3E3 ) secoo_m(:,:,:,:,:,mpirank) = (0._db,0._db)
 
-    do ie_s = 1,nenerg_s
+! Loop over valence electron energy (below Fermi level)
+      do ie_s = 1,nenerg_s
 
-      if( mpirank0 == 0 ) then
-        call CPU_TIME(time)
-        tp(1) = real(time,db)
-      endif
+        if( mpirank0 == 0 ) then
+          call CPU_TIME(time)
+          tp(1) = real(time,db)
+        endif
 
-      En(1) = Energ_s(ie_s)
-      En(2) = Energ_s(ie_s) + Energ(ie)
-      if( En(1) > E_cut_optic - eps10 ) exit
-      if( En(2) < E_cut_optic .or. En(2) > Energ_s(nenerg_s) ) cycle
+        En(1) = Energ_s(ie_s)
+        En(2) = Energ_s(ie_s) + Energ(ie)
+        if( En(1) > E_cut_optic - eps10 ) exit
+        if( En(2) < E_cut_optic - eps10 .or. En(2) > Energ_s(nenerg_s) + eps10 ) cycle
 
-      do ie_t = 1,n_Ec
-        Enervide(ie_t) = En(ie_t) - Workf
-        Ecinetic(:,ie_t) = Enervide(ie_t) - V0bdc(:,1)
-        if( .not. Eneg ) Ecinetic(:,ie_t) = max( Ecinetic(:,ie_t), Eclie )
-      end do
+! n_Ec = 2
+! ie_t = 1: index of valence level energy
+! ie_t = 2: index of conduction level energy
+        do ie_t = 1,n_Ec
+          Enervide(ie_t) = En(ie_t) - Workf
+          Ecinetic(:,ie_t) = Enervide(ie_t) - V0bdc(:,1)
+          if( .not. Eneg ) Ecinetic(:,ie_t) = max( Ecinetic(:,ie_t), Eclie )
+        end do
 
-      Ecmax = maxval( Ecinetic )
-      call clmax(Ecmax,Rmtg,lmaxat0,lmax,numat,lmaxfree)
-      lmax = min(lmax,lmaxabs_t)
+        Ecmax = maxval( Ecinetic )
+        call clmax(Ecmax,Rmtg,lmaxat0,lmax,numat,lmaxfree)
+        lmax = min(lmax,lmaxabs_t)
 
 ! Calcul des tenseurs cartesiens
 
-      icheck_s = max( icheck(29), icheck(20) )
+        icheck_s = max( icheck(29), icheck(20) )
 
-      do ie_t = 1,n_Ec
-        do ie_q = 2,nenerg_s
-          if( Energ_s(ie_q) > En(ie_t) - eps10 ) exit
-        end do
-        p = ( En(ie_t) - Energ_s(ie_q - 1) ) / ( Energ_s(ie_q) - Energ_s(ie_q - 1) )
-        lms1 = 0
-        do lm1 = 1,nlm_probe
-          do iso1 = 1,nspino
-            lms1 = lms1 + 1
-            lms2 = 0
-            do lm2 = 1,nlm_probe
-              do iso2 = 1,nspino
-                lms2 = lms2 + 1
-                do isp1 = 1,2
-                  do isp2 = 1,2
-                    if( Spinorbite ) then
-                      iss1 = iso1; iss2 = iso2
-                    else
-                      if( isp1 /= isp2 ) cycle
-                      iss1 = min(isp1,nspinp)
-                      iss2 = min(isp2,nspinp)
-                    endif
-
-                    Taull_abs(lms1,lms2,1,1,isp1,isp2,ie_t) = p * Taull_tdd(ie_q,lm1,iss1,lm2,iss2) &
-                                                            + (1 - p ) * Taull_tdd(ie_q-1,lm1,iss1,lm2,iss2)
+        do ie_t = 1,n_Ec
+          do ie_q = 2,nenerg_s
+            if( Energ_s(ie_q) > En(ie_t) - eps10 ) exit
+          end do
+          p = ( En(ie_t) - Energ_s(ie_q - 1) ) / ( Energ_s(ie_q) - Energ_s(ie_q - 1) )
+          lms1 = 0
+          do lm1 = 1,nlm_probe
+            do iso1 = 1,nspino
+              lms1 = lms1 + 1
+              lms2 = 0
+              do lm2 = 1,nlm_probe
+                do iso2 = 1,nspino
+                  lms2 = lms2 + 1
+                  do isp1 = 1,2
+                    do isp2 = 1,2
+                      if( Spinorbite ) then
+                        iss1 = iso1; iss2 = iso2
+                      else
+                        if( isp1 /= isp2 ) cycle
+                        iss1 = min(isp1,nspinp)
+                        iss2 = min(isp2,nspinp)
+                      endif
+! In practice interpolation is only on the conduction electron (ie_t = 2 ) and when steps are different
+                      Taull_abs(lms1,lms2,1,1,isp1,isp2,ie_t) = p * Taull_tdd(ie_q,lm1,iss1,lm2,iss2) &
+                                                              + (1 - p ) * Taull_tdd(ie_q-1,lm1,iss1,lm2,iss2)
+                    end do
                   end do
                 end do
               end do
             end do
           end do
         end do
-      end do
 
-      if( ie_s == nenerg_s ) then
-        delta_E = Energ_s(ie_s) - Energ_s(ie_s-1)
-      elseif( ie_s == 1 ) then
-        delta_E = Energ_s(ie_s+1) - Energ_s(ie_s)
-      elseif(  Energ_s(ie_s+1) > E_cut_optic ) then
-        delta_E = E_cut_optic - 0.5_db * ( Energ_s(ie_s) + Energ_s(ie_s-1) )
-      else
-        delta_E = 0.5_db * ( Energ_s(ie_s+1) - Energ_s(ie_s-1) )
-      endif
+        if( ie_s == nenerg_s ) then
+          delta_E = Energ_s(ie_s) - Energ_s(ie_s-1)
+        elseif( ie_s == 1 ) then
+          delta_E = Energ_s(ie_s+1) - Energ_s(ie_s)
+        elseif(  Energ_s(ie_s+1) > E_cut_optic ) then
+          delta_E = E_cut_optic - 0.5_db * ( Energ_s(ie_s) + Energ_s(ie_s-1) )
+        else
+          delta_E = 0.5_db * ( Energ_s(ie_s+1) - Energ_s(ie_s-1) )
+        endif
 ! La racine du pas en energie est mise eu carre dans tenseur_car
-      Taull_abs(:,:,:,:,:,:,:) = sqrt( Delta_E ) * Taull_abs(:,:,:,:,:,:,:) 
+        Taull_abs(:,:,:,:,:,:,:) = sqrt( Delta_E ) * Taull_abs(:,:,:,:,:,:,:) 
  
-      nenerg_tddft = 0
-      allocate( rof0(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil) )
+        nenerg_tddft = 0
+        allocate( rof0(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil) )
 
-      call tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
+        call tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
                 Eimag(ie),Energ(ie),Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
                 Hubb_d,icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
@@ -270,30 +273,30 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
                 secdd_t,secdd_m_t,secdo_t,secdo_m_t,secdq_t,secdq_m_t,secmd_t,secmd_m_t,secmm_t,secmm_m_t,secoo_t,secoo_m_t, &
                 secqq_t,secqq_m_t,Solsing,Solsing_only,Spinorbite,Taull_abs,Tddft,V_hubb,V_intmax,V0bdc,Vrato,Ylm_comp)
 
-      deallocate( rof0 )
+        deallocate( rof0 )
 
-      if( E1E1 ) secdd(:,:,:,:,mpirank) = secdd(:,:,:,:,mpirank) + secdd_t(:,:,:,:,mpirank)
-      if( E1E1 ) secdd_m(:,:,:,:,mpirank) = secdd_m(:,:,:,:,mpirank) + secdd_m_t(:,:,:,:,mpirank)
-      if( M1M1 ) secmm(:,:,:,mpirank) = secmm(:,:,:,mpirank) + secmm_t(:,:,:,mpirank)
-      if( M1M1 ) secmm_m(:,:,:,mpirank) = secmm_m(:,:,:,mpirank) + secmm_m_t(:,:,:,mpirank)
-      if( E1M1 ) secmd(:,:,:,mpirank) = secmd(:,:,:,mpirank) + secmd_t(:,:,:,mpirank)
-      if( E1M1 ) secmd_m(:,:,:,mpirank) = secmd_m(:,:,:,mpirank) + secmd_m_t(:,:,:,mpirank)
-      if( E1E2 ) secdq(:,:,:,:,mpirank) = secdq(:,:,:,:,mpirank) + secdq_t(:,:,:,:,mpirank)
-      if( E1E2 ) secdq_m(:,:,:,:,mpirank) = secdq_m(:,:,:,:,mpirank) + secdq_m_t(:,:,:,:,mpirank)
-      if( E2E2 ) secqq(:,:,:,:,:,mpirank) = secqq(:,:,:,:,:,mpirank) + secqq_t(:,:,:,:,:,mpirank)
-      if( E2E2 ) secqq_m(:,:,:,:,:,mpirank) = secqq_m(:,:,:,:,:,mpirank) + secqq_m_t(:,:,:,:,:,mpirank)
-      if( E1E3 ) secdo(:,:,:,:,:,mpirank) = secdo(:,:,:,:,:,mpirank) + secdo_t(:,:,:,:,:,mpirank)
-      if( E1E3 ) secdo_m(:,:,:,:,:,mpirank) = secdo_m(:,:,:,:,:,mpirank) + secdo_m_t(:,:,:,:,:,mpirank)
-      if( E3E3 ) secoo(:,:,:,:,:,mpirank) = secoo(:,:,:,:,:,mpirank) + secoo_t(:,:,:,:,:,mpirank)
-      if( E3E3 ) secoo_m(:,:,:,:,:,mpirank) = secoo_m(:,:,:,:,:,mpirank) + secoo_m_t(:,:,:,:,:,mpirank)
+        if( E1E1 ) secdd(:,:,:,:,mpirank) = secdd(:,:,:,:,mpirank) + secdd_t(:,:,:,:,mpirank)
+        if( E1E1 ) secdd_m(:,:,:,:,mpirank) = secdd_m(:,:,:,:,mpirank) + secdd_m_t(:,:,:,:,mpirank)
+        if( M1M1 ) secmm(:,:,:,mpirank) = secmm(:,:,:,mpirank) + secmm_t(:,:,:,mpirank)
+        if( M1M1 ) secmm_m(:,:,:,mpirank) = secmm_m(:,:,:,mpirank) + secmm_m_t(:,:,:,mpirank)
+        if( E1M1 ) secmd(:,:,:,mpirank) = secmd(:,:,:,mpirank) + secmd_t(:,:,:,mpirank)
+        if( E1M1 ) secmd_m(:,:,:,mpirank) = secmd_m(:,:,:,mpirank) + secmd_m_t(:,:,:,mpirank)
+        if( E1E2 ) secdq(:,:,:,:,mpirank) = secdq(:,:,:,:,mpirank) + secdq_t(:,:,:,:,mpirank)
+        if( E1E2 ) secdq_m(:,:,:,:,mpirank) = secdq_m(:,:,:,:,mpirank) + secdq_m_t(:,:,:,:,mpirank)
+        if( E2E2 ) secqq(:,:,:,:,:,mpirank) = secqq(:,:,:,:,:,mpirank) + secqq_t(:,:,:,:,:,mpirank)
+        if( E2E2 ) secqq_m(:,:,:,:,:,mpirank) = secqq_m(:,:,:,:,:,mpirank) + secqq_m_t(:,:,:,:,:,mpirank)
+        if( E1E3 ) secdo(:,:,:,:,:,mpirank) = secdo(:,:,:,:,:,mpirank) + secdo_t(:,:,:,:,:,mpirank)
+        if( E1E3 ) secdo_m(:,:,:,:,:,mpirank) = secdo_m(:,:,:,:,:,mpirank) + secdo_m_t(:,:,:,:,:,mpirank)
+        if( E3E3 ) secoo(:,:,:,:,:,mpirank) = secoo(:,:,:,:,:,mpirank) + secoo_t(:,:,:,:,:,mpirank)
+        if( E3E3 ) secoo_m(:,:,:,:,:,mpirank) = secoo_m(:,:,:,:,:,mpirank) + secoo_m_t(:,:,:,:,:,mpirank)
 
-      if( mpirank0 == 0 ) then
-        call CPU_TIME(time)
-        tp(2) = real(time,db)
-        Time_rout(11) = Time_rout(11) + tp(2) - tp(1)
-      endif
+        if( mpirank0 == 0 ) then
+          call CPU_TIME(time)
+          tp(2) = real(time,db)
+          Time_rout(11) = Time_rout(11) + tp(2) - tp(1)
+        endif
 
-    end do ! fin boucle sur energie des electrons
+      end do ! fin boucle sur energie des electrons
 
     endif  ! arrive ie > nenerg
 
@@ -307,6 +310,8 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
     endif
 
     if( mpirank0 /= 0 ) cycle
+    call CPU_TIME(time)
+    tp(2) = real(time,db)
 
     icheck_s = max( icheck(29), icheck(21) )
 
@@ -316,10 +321,11 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
 
       if( ie > nenerg ) exit
 
-      call write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+      call write_coabs(Allsite,angxyz,axyz,Base_spin,Block,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             Densite_atom,E_cut_optic,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
-            f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck_s,ie,ie_computer, &
-            Int_tens,isigpi,isymeq,jseuil,ltypcal,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
+            f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck_s,ie,ie_computer,Int_tens, &
+            isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodes,Multipole,n_block,n_multi_run,n_oo,n_rel,n_tens_max, &
+            natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
             nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
             phdt,pol,poldafse,poldafss,Rot_int,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
@@ -328,11 +334,9 @@ subroutine main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Core_resolv
 
     end do
 
-    if( mpirank0 == 0 ) then
-      call CPU_TIME(time)
-      tp(3) = real(time,db)
-      Time_rout(13) = Time_rout(13) + tp(3) - tp(2)
-    endif
+    call CPU_TIME(time)
+    tp(3) = real(time,db)
+    Time_rout(13) = Time_rout(13) + tp(3) - tp(2)
 
   end do boucle_energ
 

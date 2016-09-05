@@ -449,6 +449,11 @@ subroutine tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic, &
                                 ip0,irang,is_g,isping,ispinf,jrang,le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2, &
                                 ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
                                 Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
+                              if( numat == 1) then
+                           ! For hydrogen there is only 1 core state
+                                Ten(:) = Ten(:) / 2
+                                Ten_m(:) = Ten_m(:) / 2
+                              endif
                             endif
 
                             Tens_lm(lme,lms,ispfg,:) = Ten(:)
