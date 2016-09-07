@@ -3069,6 +3069,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
             do iapr = n1,n_atom_ind
 
+              if( Second_run ) exit
+
               if( Full_atom ) then
                 ipr = iaprotoi( iapr )
               else
