@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 6 September 2016, 20 Fructidor, An 224.
+! FDMNES II program, Yves Joly, Oana Bunau, 7 September 2016, 21 Fructidor, An 224.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -46,7 +46,7 @@ module declarations
 
   character(len=50):: com_date, com_time
 
-  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 6th of September 2016'
+  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 7th of September 2016'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -277,7 +277,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
     Convolution_cal, Dafs_bio, E_Fermi_man, Fdmnes_cal, Fit_cal, Gamma_hole_imp, Gamma_tddft, Metric_cal, &
     Minim_fdm_ok, minimok, Mult_cal, Scan_a, Selec_cal, &
     Use_FDMX, FDMX_only, cm2g, nobg, nohole, nodw, noimfp, imfp_inp, elf_inp, dwfactor_inp, tdebye_inp, tmeas_inp, &
-    Energphot, expntl, victoreen
+    expntl, victoreen
 
   logical, dimension(:), allocatable:: block_sum
 
@@ -1394,11 +1394,12 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
     if( Fdmnes_cal .and. ifdm == 1 ) then
       if( ical > 1 ) Close(3)
 
-    if( .NOT. FDMX_only ) &
-      call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal, &
+    call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal, &
           Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
           itape1,itape4,MPI_host_num_for_mumps,mpinodes0,mpirank,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-          nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file,Energphot,Use_FDMX)
+          nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file,Use_FDMX,FDMX_only, &
+          fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
+          tdebye,tmeas_inp,tmeas,expntl,expntlA,expntlB,victoreen,victA,victB,mermrank)
 
       if( sum(icheck(1:27)) > 0 ) then
         bav_open = .true.
@@ -1413,15 +1414,6 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
         convolution_out,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max, &
         ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,length_line, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav, npar,nparm,param,Scan_a,typepar,ncal,xsect_file)
-
-!*** JDB
-    if( Use_FDMX .OR. FDMX_only ) then
-      write(*,*) 'CALLING FDMX'
-      call fdmx(fdmnes_inp,nomfich,cm2g,nobg,nohole,nodw,noimfp,Gamma_hole,Gamma_hole_imp,E_cut_imp*rydb,E_Fermi_man, &
-        imfp_inp, imfp_infile, elf_inp, elf_infile, dwfactor_inp, dwfactor, tdebye_inp, tdebye, tmeas_inp, tmeas, Energphot, &
-        expntl, expntlA, expntlB, victoreen, victA, victB, mermrank)
-    end if
-!*** JDB
 
     if( Metric_cal ) then
 
@@ -1527,7 +1519,9 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
       call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
         itape1,itape4,MPI_host_num_for_mumps,mpinodes0,mpirank,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-        nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file,Energphot,Use_FDMX)
+        nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file,Use_FDMX,FDMX_only, &
+        fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
+        tdebye,tmeas_inp,tmeas,expntl,expntlA,expntlB,victoreen,victA,victB,mermrank)
 
       if( sum(icheck(1:27)) > 0 ) then
         bav_open = .true.

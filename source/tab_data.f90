@@ -1147,30 +1147,38 @@ end
 
 ! FDMX and subroutines are written by J. Bourke and Ch. Chantler, University of Melbourne, Australia
 
+! Some modifications by YJ to avoid NAN in Impf output (2016/09/06)
+
 subroutine fdmx(fdmnes_inp,nomfich,cm2g,nobg,nohole,nodwfact,noimfp,Gamma_hole,Gamma_hole_imp,E_cut_imp,E_Fermi_man, &
     imfp_inp, imfp_infile, elf_inp, elf_infile, dwfactor_inp, dwfactor, tdebye_inp, debyetemp, tmeas_inp, tmeas, Energphot, &
-    expntl, expntlA, expntlB, victoreen, victA, victB, mermrank)
+    expntl, expntlA, expntlB, victoreen, victA, victB, mermrank, ngroup, posn, itype, ntype, numat)
 
-real ( kind = 8 ) x1, x2, x3, x4, x5, x6, x7, E_cut_imp, dwfactor, tmeas, debyetemp, expntlA, expntlB, &
-  victA, victB
-real ( kind = 8 ), dimension(10):: Gamma_hole
-real E(8000), mu0(8000), atom(8000), spline(8000), mu(8000), mult(-8000:8000), &
+real(kind = 8):: x1, x6, x7, E_cut_imp, dwfactor, tmeas, debyetemp, expntlA, expntlB, victA, victB
+!real(kind = 8):: x2, x3, x4, x5
+real(kind = 8), dimension(10):: Gamma_hole
+!real:: lite
+real:: E(8000), mu0(8000), atom(8000), spline(8000), mu(8000), mult(-8000:8000), &
   Einit(8000), mu0init(8000), smalldist, disttemp, spacing, a, pi, eu, sigmaparam, &
-  BG(8000), mu1(8000), lite, Econv(8000), convval(8000), convvalue, xpostemp, &
+  BG(8000), mu1(8000), Econv(8000), convval(8000), convvalue, xpostemp, &
   ypostemp, zpostemp, xpostemp1, ypostemp1, zpostemp1, Efermi, hwidth, xpos, ypos, &
   zpos, avec, bvec, cvec, alphang, betang, gamang, xabspos, yabspos, zabspos, &
   masstotal, imfpvalue, tdeb, tmeasured, atommass, imfpval(8000), Nv, rho, masstot, &
   egap, nvpart, Navag, imfpvaltab, cm2gtombarn(1:92), edgepos, ffastbg, masstotaltemp, &
   Nvtemp, voltemp, rscratch, mbarntocm2g, background(8000), imfpm, imfpb, &
   Aint, Bint, Cint, Dint, ddone, ddtwo, bgpart
-real ( kind = 8 ) scelfimfp(1024,2)
-integer atomtypes(1:92,1:2), mermrank, scelfimfpdim, lines, linesconv, econvmin, &
-  absorbeur, imark, Z, maxpoint, ninputs, linetype, natoms, intscratch, Znn, Ztemp, natomstot
-character(len=1024) scratch, fnames(100), inpname, outname
-character(len=132) fdmnes_inp, nomfich, imfp_infile, elf_infile
+real(kind = 8):: scelfimfp(1024,2)
+integer:: atomtypes(1:92,1:2), mermrank, scelfimfpdim, lines, linesconv, econvmin, &
+  absorbeur, imark, Z, maxpoint, ninputs, natoms, Znn, Ztemp, &
+  natomstot, ngroup, ntype
+character(len=1024):: scratch, fnames(100), inpname, outname
+character(len=132):: fdmnes_inp, nomfich, imfp_infile, elf_infile
 logical nodwfact, noimfp, Energphot, expntl, victoreen, bgedges, inckedge, cm2g, &
   nobg, nohole, Gamma_hole_imp, E_Fermi_man, imfp_inp, elf_inp, dwfactor_inp, &
   tdebye_inp, tmeas_inp, imfpdone, molinp, elfinexists
+
+integer, dimension(ngroup):: itype
+integer, dimension(0:ntype):: numat
+real( kind= 8 ), dimension(3,ngroup):: posn
 
 Navag = 6.022141E+23
 pi = 3.14159
@@ -1222,7 +1230,6 @@ do ij=1,ninputs
  
    open(unit=203,file=trim(fnames(ij)))
 
-! --- Yves: change for more general format reading ---------------
    do jk = 1,1000
      read(203,*) scratch
      if( .not. ( trim(scratch) .EQ. "Crystal" .OR. trim(scratch) .EQ. "crystal" .or. &
@@ -1246,149 +1253,80 @@ do ij=1,ninputs
    end do
    
    close(203)
-! end Yves change
 
    if (Z .LT. 21) then
       STOP "Z for absorbing atom is too low (required Z>=21)"
    end if
+
+   do jj=1,ngroup
+      itype(jj) = numat(abs(itype(jj)))
+   end do
+
+   natoms = 0
+   masstotal = 0
+   natomstot = ngroup
+   Nv = 0
+   cm2gtombarn(1:92) = 0.0
+   atomtypes(1:92,1:2) = 0
+   do jk=1,ngroup
+      if (itype(jk) .EQ. Z) then
+        natoms = natoms + 1
+      endif
+      call amasses(itype(jk),atommass)
+      masstotal = masstotal + atommass
+      call amasses(itype(jk)+118,nvpart)
+      Nv = Nv + nvpart
+
+      do iii=1,92
+         if (atomtypes(iii,2) .EQ. 0) then
+            atomtypes(iii,2) = itype(jk)
+            atomtypes(iii,1) = 1
+            cm2gtombarn(iii) = (atommass/Navag)*1.0E+18
+            EXIT
+         elseif (atomtypes(iii,2) .EQ. itype(jk)) then
+            atomtypes(iii,1) = atomtypes(iii,1) + 1
+            cm2gtombarn(iii) = cm2gtombarn(iii) + (atommass/Navag)*1.0E+18
+            EXIT
+         end if
+      end do
+   end do
+
    open(unit=203,file=trim(fnames(ij)))
    do jk=1,1000
       read(203,*) scratch
       if (trim(scratch) .EQ. "Crystal" .OR. trim(scratch) .EQ. "crystal") then
-! --- Yves: change for more general format reading ---------------
-         n = nnombre(203,132)
-         if( n == 0 ) read(203,*)
-! end Yves change
-         read(203,*) scratch
-         natoms = 0
-         natomstot = 0
-         masstotal = 0
-         Nv = 0
-         cm2gtombarn(1:92) = 0.0
-         atomtypes(1:92,1:2) = 0
-         do kij=1,100
-            n = nnombre(203,132)
- ! --- Yves: change for more general format reading ---------------
-           if( n == 0 ) then
-              read(203,*) scratch
-              scratch = adjustl(scratch)
-              if( scratch(1:1) /= '!' ) exit
-              cycle
-            endif
-! --- end Yves change ---------------
-            read(203,*,iostat=linetype) intscratch
-            if (linetype .EQ. 0) then
-               if (intscratch .EQ. Z) then
-                  natoms = natoms + 1
-               end if
-               natomstot = natomstot + 1
-               call amasses(intscratch,atommass)
-               masstotal = masstotal + atommass
-               do iii=1,92
-                  if (atomtypes(iii,2) .EQ. 0) then
-                     atomtypes(iii,2) = intscratch
-                     atomtypes(iii,1) = 1
-                     cm2gtombarn(iii) = (atommass/Navag)*1.0E+18
-                     EXIT
-                  elseif (atomtypes(iii,2) .EQ. intscratch) then
-                     atomtypes(iii,1) = atomtypes(iii,1) + 1
-                     cm2gtombarn(iii) = cm2gtombarn(iii) + (atommass/Navag)*1.0E+18
-                     EXIT
-                  end if
-               end do
-               call amasses(intscratch+118,nvpart)
-               Nv = Nv + nvpart
-            else
-               exit
-            end if
-         end do
-         exit
-      end if
-      if (trim(scratch) .EQ. "Molecule" .OR. trim(scratch) .EQ. "molecule") then
-         n = nnombre(203,132)
-         if( n == 0 ) read(203,*)
-         read(203,*) scratch
-         natoms = 0
-         natomstot = 0
-         masstotal = 0
-         Nv = 0
-         cm2gtombarn(1:92) = 0.0
-         atomtypes(1:92,1:2) = 0
-         do kij=1,100
-! --- Yves: change for more general format reading ---------------
-            n = nnombre(203,132)
-            if( n == 0 ) then
-              read(203,*) scratch
-              scratch = adjustl(scratch)
-              if( scratch(1:1) /= '!' ) exit
-              cycle
-            endif
-! end Yves change ---------------
-            read(203,*,iostat=linetype) intscratch
-            if (linetype .EQ. 0) then
-               if (intscratch .EQ. Z) then
-                  natoms = natoms + 1
-               end if
-               natomstot = natomstot + 1
-               call amasses(intscratch,atommass)
-               masstotal = masstotal + atommass
-               do iii=1,92
-                  if (atomtypes(iii,2) .EQ. 0) then
-                     atomtypes(iii,2) = intscratch
-                     atomtypes(iii,1) = 1
-                     cm2gtombarn(iii) = (atommass/Navag)*1.0E+18
-                     EXIT
-                  elseif (atomtypes(iii,2) .EQ. intscratch) then
-                     atomtypes(iii,1) = atomtypes(iii,1) + 1
-                     cm2gtombarn(iii) = cm2gtombarn(iii) + (atommass/Navag)*1.0E+18
-                     EXIT
-                  end if
-               end do
-               call amasses(intscratch+118,nvpart)
-               Nv = Nv + nvpart
-            else
-               exit
-            end if
-         end do
-         exit
-      end if
-   end do
-   close(203)
-   open(unit=203,file=trim(fnames(ij)))
-   smalldist = 10000.0
-   do jk=1,1000
-      read(203,*) scratch
-      if (trim(scratch) .EQ. "Crystal" .OR. trim(scratch) .EQ. "molecule") then
          read(203,*) avec, bvec, cvec, alphang, betang, gamang, scratch
-         do kji=1,natomstot
-! --- Yves: change for more general format reading ---------------
-            do
-              n = nnombre(203,132)
-              if( n == 0 ) read(203,*)
-            end do
-! end Yves change
-            read(203,*) Ztemp, xpostemp, ypostemp, zpostemp
-            xpostemp1 = (xpostemp - xabspos) * avec
-            ypostemp1 = (ypostemp - yabspos) * bvec
-            zpostemp1 = (zpostemp - zabspos) * cvec
-            xpostemp = xpostemp1*SIN(gamang*pi/180)
-            xpostemp = xpostemp + ypostemp1*COS(alphang*pi/180)*SIN(betang*pi/180)
-            xpostemp = xpostemp + zpostemp1*COS(betang*pi/180)
-            ypostemp = xpostemp1*COS(gamang*pi/180) + ypostemp1*SIN(alphang*pi/180)
-            zpostemp = ypostemp1*COS(alphang*pi/180)*SIN(betang*pi/180) + zpostemp1*SIN(betang*pi/180)
-            disttemp = (xpostemp**2 + ypostemp**2 + zpostemp**2)**0.5
-            if (disttemp .LT. smalldist .AND. disttemp .GT. 0.0001) then
-               smalldist = disttemp
-               xpos = xpostemp
-               ypos = ypostemp - yabspos
-               zpos = zpostemp - zabspos
-               Znn = Ztemp
-            end if
-         end do
-         exit
+         EXIT
+      elseif (trim(scratch) .EQ. "Molecule" .OR. trim(scratch) .EQ. "molecule") then
+         read(203,*) avec, bvec, cvec, alphang, betang, gamang, scratch
+         EXIT
       end if
    end do
    close(203)
+
+   smalldist = 10000.0
+   do kji=1,ngroup
+      Ztemp = itype(kji)
+      xpostemp = posn(1,kji)
+      ypostemp = posn(2,kji)
+      zpostemp = posn(3,kji)
+      xpostemp1 = (xpostemp - xabspos) * avec
+      ypostemp1 = (ypostemp - yabspos) * bvec
+      zpostemp1 = (zpostemp - zabspos) * cvec
+      xpostemp = xpostemp1*SIN(gamang*pi/180)
+      xpostemp = xpostemp + ypostemp1*COS(alphang*pi/180)*SIN(betang*pi/180)
+      xpostemp = xpostemp + zpostemp1*COS(betang*pi/180)
+      ypostemp = xpostemp1*COS(gamang*pi/180) + ypostemp1*SIN(alphang*pi/180)
+      zpostemp = ypostemp1*COS(alphang*pi/180)*SIN(betang*pi/180) + zpostemp1*SIN(betang*pi/180)
+      disttemp = (xpostemp**2 + ypostemp**2 + zpostemp**2)**0.5
+      if (disttemp .LT. smalldist .AND. disttemp .GT. 0.0001) then
+         smalldist = disttemp
+         xpos = xpostemp
+         ypos = ypostemp - yabspos
+         zpos = zpostemp - zabspos
+         Znn = Ztemp
+      end if
+   end do
 
 ! LIFETIME BROADENING
    if (hwidth .EQ. -1.0) then
@@ -1400,7 +1338,11 @@ do ij=1,ninputs
    end if
 
 !  INPUTS FOR THERMAL PARAMETER
-   vol = (avec*bvec*cvec**SIN(betang*pi/180)*SIN(gamang*pi/180)*1.0E-30)/natomstot
+   vol = 1 + 2*COS(alphang*pi/180)*COS(betang*pi/180)*COS(gamang*pi/180)
+   vol = vol - (COS(alphang*pi/180)**2) - (COS(betang*pi/180)**2) - (COS(gamang*pi/180)**2)
+   vol = vol**0.5
+   vol = vol*avec*bvec*cvec*1.0E-30
+   vol = vol/natomstot
    if (.NOT. dwfactor_inp .AND. .NOT. nodwfact) then
       am = masstotal/natomstot
       if (.NOT. tdebye_inp) then
@@ -1581,6 +1523,10 @@ do ij=1,ninputs
 
 ! Convolve mu by width due to IMFP
 
+! YJ  Not initialized
+  scelfimfpdim = 1
+! YJ  
+  
 ! Find IMFP if ELFin is used
    if (elf_inp .AND. .NOT. noimfp) then
       INQUIRE(file=trim(adjustl(elf_infile)),exist=elfinexists)
@@ -1612,19 +1558,21 @@ do ij=1,ninputs
 ! Main IMFPconv
    do i=1, maxpoint
 
+! YJ line commented because fittype not given
 ! Power fit
-      if (fittype .EQ. 1) then
-         a = x1/2 + (x2*E(i) + x3*E(i)**2 + x4*E(i)**3 + x5*E(i)**4)/2
-      end if
+!      if (fittype .EQ. 1) then
+!          a = x1/2 + (x2*E(i) + x3*E(i)**2 + x4*E(i)**3 + x5*E(i)**4)/2
+!      end if
 ! Arctan fit
-      if (fittype .EQ. 2) then
-         lite = E(i)/x3
-         a = x1/2 + x2*(0.5 + (1/pi)*atan((pi/3)*(x2/x4)*(lite - (lite**(-2.0)))))/2
-      end if
+!      if (fittype .EQ. 2) then
+!         lite = E(i)/x3
+!         a = x1/2 + x2*(0.5 + (1/pi)*atan((pi/3)*(x2/x4)*(lite - (lite**(-2.0)))))/2
+!      end if
 ! Special fit
-      if (fittype .EQ. 3) then
-         a = ((E(i) + E(i)**2 + E(i)**3)/((1/x2) + (1/x3)*E(i) + (1/x4)*E(i)**2 + (1/x5)*E(i)**3))/2
-      end if
+!      if (fittype .EQ. 3) then
+!         a = ((E(i) + E(i)**2 + E(i)**3)/((1/x2) + (1/x3)*E(i) + (1/x4)*E(i)**2 + (1/x5)*E(i)**3))/2
+!      end if
+! YJ
 
 ! NOT FITTED
 ! CHECK TABULATION
@@ -1735,11 +1683,15 @@ do ij=1,ninputs
          end if
          a = convvalue/2.0
       end if
-      if (E(i) .LT. 0.0) then
+ ! YJ : not defined when E <= 0
+      if (E(i) < 0.000001) then
          a = 0.0
          convvalue = 0.0
+         imfpvalue = 0.0
+      else
+         imfpvalue = (1.05457E-34/(convvalue*1E-10))*(((2*E(i)*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
       end if
-      imfpvalue = (1.05457E-34/(convvalue*1E-10))*(((2*E(i)*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
+ ! YJ
 
 ! Once width is settled.. do convolution
       mu(i) = 0

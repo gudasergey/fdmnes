@@ -1344,10 +1344,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk,axyz_cap,Base_spin, &
     basereel,Bormann,Bulk,Bulk_lay,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free, &
     Clementi,com,comt,Core_resolved,Coupelapw,Cubmat,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density,Density_comp, &
-    Dip_rel,Dipmag,Doping, &
-    dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Eneg_i,Eneg_n_i,Energphot, &
-    Extract,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e, &
-    Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs, &
+    Dip_rel,Dipmag,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
+    Eimagent,Eneg_i,Eneg_n_i,Energphot,Extract,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift,Film_thickness, &
+    Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
+    Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs, &
     hkl_film,Hubb,Hubbard,Hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,iscratch,isigpi,itdil,its_lapw,iord,itape4,itype, &
     itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,l_selec_max,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmaxfree,lmaxso0, &
     lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Matper,MPI_host_num_for_mumps,mpinodes,mpinodes0,mpirank0, &
@@ -1433,7 +1433,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Base_spin, Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Cif, Clementi, &
     Core_resolved, Core_resolved_e, Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, Dip_rel,&
     Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Film, &
-    exc_imp, Extract, FDM_comp, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, &
+    exc_imp, Extract, FDM_comp, FDMX_only, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, &
+    Full_self_abs, &
     Gamma_hole_imp, Gamma_tddft, Green_s, Green_self, Green_int, Hedin, hkl_film, Hubbard, korigimp, lmaxfree, lmoins1, lplus1, &
     M1M1, M1M2, M2M2, Magnetic, matper, muffintin, noncentre, nonexc, nonexc_imp, normaltau, no_core_resolved, no_dipquad, &
     no_e1e3, no_e2e2, no_e3e3, No_solsing, Octupole, Old_zero, One_run, Optic, Overad, Pas_SCF_imp, Pdb, Perdew, &
@@ -3284,7 +3285,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
     i = sum( icheck(1:28) )
     if( i > 0 ) then
-      open(3, file = nomfichbav, status='unknown',iostat=istat)
+      if (FDMX_only) then !*** JDB Sept. 2016 no .bav overwrite for fdmx_proc
+        open(3,status='scratch')
+      else
+        open(3, file = nomfichbav, status='unknown',iostat=istat)
+      endif
       if( istat /= 0 ) call write_open_error(nomfichbav,istat,1)
     endif
 
