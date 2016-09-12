@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 7 September 2016, 21 Fructidor, An 224.
+! FDMNES II program, Yves Joly, Oana Bunau, 9 September 2016, 23 Fructidor, An 224.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -46,7 +46,7 @@ module declarations
 
   character(len=50):: com_date, com_time
 
-  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 7th of September 2016'
+  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 9th of September 2016'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )

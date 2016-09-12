@@ -4949,8 +4949,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     poldafssm(:,:) = cmplx( poldafss(:,:), poldafssi(:,:), db )
   endif
 
-  if( Centre_auto ) call Auto_center(axyz,Centre, Centre_auto_abs,cubmat,icheck(1),itype, &
-                     ngroup,ntype,numat,numat_abs,posn,struct)
+  if( Centre_auto ) call Auto_center(axyz,Centre,Centre_auto_abs,cubmat,icheck(1),itype, &
+                     ngroup,ntype,numat,numat_abs,posn,Rsorte_s(1),struct)
 
   do igr = 1,ngroup
     posn(:,igr) = posn(:,igr) - Centre(:)
@@ -5568,12 +5568,12 @@ end
 
 ! Calcul du centre de l'agregat.
 
-subroutine Auto_center(axyz,Centre,Centre_auto_abs, cubmat,icheck,itype,ngroup,ntype, numat,numat_abs,posn,struct)
+subroutine Auto_center(axyz,Centre,Centre_auto_abs,cubmat,icheck,itype,ngroup,ntype,numat,numat_abs,posn,Rsorte_s,struct)
 
   use declarations
   implicit none
 
-  integer:: ia1, ia2, ia3, ia4, icheck, igr, jgr, ngr, ngroup, ntype, numat_abs, Z
+  integer:: ia1, ia2, ia3, ia4, icheck, igr, ipr, jgr, ngr, ngroup, ntype, numat_abs, Z
   integer, dimension(0:ntype):: numat
   integer, dimension(ngroup):: itype
 
@@ -5582,7 +5582,7 @@ subroutine Auto_center(axyz,Centre,Centre_auto_abs, cubmat,icheck,itype,ngroup,n
 
   logical:: Centre_auto_abs
 
-  real(kind=db):: dist, dist_max, Radius
+  real(kind=db):: dist, dist_max, Radius, Rsorte_s
   real(kind=db), dimension(3):: axyz, b, Centre, p, q, v
   real(kind=db), dimension(3,3):: Cubmat, Mat, Mati
   real(kind=db), dimension(3,ngroup):: posn, pos
@@ -5701,10 +5701,20 @@ subroutine Auto_center(axyz,Centre,Centre_auto_abs, cubmat,icheck,itype,ngroup,n
     endif
   endif
 
+  if( Centre_auto_abs .and. Radius > Rsorte_s ) then
+    call write_error
+    do ipr = 3,9,3
+      write(ipr,140) Radius*bohr, Rsorte_s*bohr
+    end do
+    stop
+  endif
+
   return
   110 format(/' Center set at  =',3f9.5,'  (cell unit)')
   120 format(' Farest ',a2,' atom at =',f9.5,' A')
   130 format(' Farest atom at =',f7.3,' A')
+  140 format(//' The farest absorbing atom is at R =',f7.3,' A  > Cluster radius =',f7.3,' A',// &
+               ' Increase the cluster radius !',/)
 end
 
 

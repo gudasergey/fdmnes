@@ -3559,7 +3559,10 @@ subroutine Data_one_run(iabsm,iaprotoi,icheck,igreq,index_e,igroupi,ipr0,lmax_pr
     end do
 
     if( .not. Found ) then
-      write(6,100) mu
+      call write_error
+      do ipr = 3,9,3
+        write(ipr,100) mu
+      end do
       stop
     endif
 
@@ -3611,7 +3614,8 @@ subroutine Data_one_run(iabsm,iaprotoi,icheck,igreq,index_e,igroupi,ipr0,lmax_pr
   endif
 
   return
-  100 format(/' Prototypical atom number ',i3,' not in the sphere of calculation !'/)
+  100 format(//' Prototypical atom number ',i3,' not in the sphere of calculation !'//&
+               ' Increase the cluster radius !'/)
   110 format(/' ---- Data_One_Run ',100('-'))
   120 format(/' Multiple scattering amplitude, Taull:')
   210 format('( l, m, s)',50(7x,3i3,6x))
