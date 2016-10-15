@@ -15,19 +15,19 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   integer, parameter:: n_rout = 22
   integer, parameter:: nslapw_max = 48  ! Max number of symmetry matrix for the FLAPW data
 
-  integer:: block, i, ia, ib, igr, igr_dop, iord, ipr, ipr_dop, ir, is, iscratch, istat, it, itape1, itape4, itph, itpm, itps, &
+  integer:: i, igr, igr_dop, iord, ipr, ipr_dop, ir, is, iscratch, istat, it, itape1, itape4, itph, itpm, itps, &
     itype_dop, j, jseuil, l, l_selec_max, lamstdens, lecrantage, lin_gam, lmax_nrixs, lmax_pot, lmaxat0, lmaxso0, &
     lseuil, m_hubb_e, mermrank, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank, &
-    mpirank0, mpirank_in_mumps_group, multi_run, multrmax, n_atom_bulk, &
-    n_atom_cap, n_atom_proto, n_atom_proto_p, n_block, n_devide, n_file_dafs_exp, n_multi_run, n_multi_run_1, &
+    mpirank0, mpirank_in_mumps_group, multi_run, multrmax, n, n_atom_bulk, n_atom_cap, &
+    n_atom_proto, n_atom_proto_bulk, n_atom_proto_p, n_atom_proto_uc, n_atom_uc, n_devide, n_file_dafs_exp, n_multi_run, &
     n_multi_run_e, natomsym_max, n_adimp, n_radius, n_range, nb_atom_conf_m, nbseuil, nchemin, ncolm, &
     necrantage, neimagent, nenerg_s, neqm, ngamh, ngamme, &
     ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_neq, ngroup_nonsph, ngroup_par, ngroup_pdb, &
     ngroup_taux, ngroup_temp, nhybm, nklapw, nlatm, nlmlapwm, nmatsym, nnotskip, nnotskipm, norbdil, normrmt, &
-    nparm, nphim, npldafs, npldafs_bulk, nple, nplrm, nq_nrixs, nrato_dirac, nrm, nself, nseuil, nslapwm, &
-    nspin, nspino, nspinp, ntype, ntype_conf, numat_abs, Trace_k, Wien_save, Z_nospinorbite
+    nparm, nphim, npldafs, nple, nplrm, nq_nrixs, nrato_dirac, nrm, nself, nseuil, nslapwm, &
+    nspin, nspino, nspinp, ntype, ntype_bulk, ntype_conf, numat_abs, Trace_k, Wien_save, Z_nospinorbite
 
-  character(len=5):: Solver, Struct
+  character(len=5):: Solver
   character(len=8):: PointGroup
   character(len=9):: keyword
   character(len=132):: comt, identmot, mot, nomfich, nom_fich_extract, nomfichbav, &
@@ -38,11 +38,9 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   character(len=132), dimension(9):: Wien_file
 
   character(len=35), dimension(:), allocatable:: com
-  character(len=132), dimension(:), allocatable:: nomfich_cal_conv, nomfich_cal_conv_t, nomfich_cal_tddft_conv, &
-                                                  nomfich_cal_tddft_conv_t
+  character(len=132), dimension(:), allocatable:: nomfich_cal_conv, nomfich_cal_tddft_conv
 
-  complex(kind=db), dimension(:), allocatable:: Troncature
-  complex(kind=db), dimension(:,:), allocatable:: phdf0t, poldafsem, poldafssm
+  complex(kind=db), dimension(:,:), allocatable:: poldafsem, poldafssm
   complex(kind=db), dimension(:,:,:), allocatable:: hybrid
 
   integer, dimension(3):: hkl_borm
@@ -61,8 +59,8 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   integer, dimension(:,:,:), allocatable:: Wien_matsym
 
   logical:: Absauto, All_nrixs, Allsite, ATA, Atom_nonsph, Atom_occ_hubb, Atomic_scr, &
-     Axe_loc, Basereel, Base_ortho, Base_spin, Bormann, Bulk, Bulk_step, Clementi, Cap_layer, &
-     Cartesian_tensor, Charge_free, Core_resolved, Convolution_cal, Coupelapw, Dafs, Dafs_bio, Density, Density_comp, &
+     Axe_loc, Basereel, Base_ortho, Base_spin, Bormann, Bulk, Clementi, Cap_layer, Cartesian_tensor, Charge_free, &
+     Classic_irreg, Core_resolved, Convolution_cal, Coupelapw, Dafs, Dafs_bio, Density, Density_comp, &
      Dip_rel, Dipmag, Doping, Dyn_eg, Dyn_g, E_Fermi_man, Eneg_i, Eneg_n_i, Energphot, Extract, FDM_comp, FDMX_only, &
      Film, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, &
      Gamma_tddft, Green_int, Green_s, Green_self, hkl_film, Hubbard, key_calc, korigimp, lmaxfree, &
@@ -70,14 +68,14 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
      Old_zero, One_run, Optic, Overad, Pdb, PointGroup_Auto, Polarise, Quadmag, Quadrupole, &
      Readfast, Recup_optic, Recup_tddft_data, Relativiste, RPALF, Rydberg, Save_optic, Save_tddft_data, Scan_a, Self_abs, &
      Solsing_s, Solsing_only, Spherical_signal, Spherical_tensor, Spinorbite, State_all, &
-     State_all_out, Supermuf, Symauto, Symmol, Taux, Tddft, &
+     State_all_out, Supermuf, Sym_2D, Symauto, Symmol, Taux, Tddft, &
      Temperature, Trace_format_wien, Use_FDMX, Xan_atom, Ylm_comp_inp, &
      cm2g, nobg, nohole, nodw, noimfp, imfp_inp, elf_inp, dwfactor_inp, tdebye_inp, tmeas_inp, expntl, victoreen
 
   logical, dimension(5):: SCF_log
   logical, dimension(10):: Multipole
 
-  logical, dimension(:), allocatable:: Atom_with_axe, Atom_nsph_e, Hubb, Run_done, Run_done_t, Skip, Skip_run, Skip_run_t
+  logical, dimension(:), allocatable:: Atom_with_axe, Atom_nsph_e, Hubb, Run_done, Skip, Skip_run
 
   real(kind=db):: alfpot, Ang_borm, Bulk_lay, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, &
      D_max_pot, Delta_edge, Delta_En_conv, Delta_Epsii, E_cut_imp, Ecent, Eclie, Eclie_out, Elarg, &
@@ -86,12 +84,12 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
      dwfactor, tdebye, tmeas, expntlA, expntlB, victA, victB
 
   real(kind=db), dimension(2):: f_no_res
-  real(kind=db), dimension(3):: Ang_rotsup, angxyz, angxyz_bulk, angxyz_cap, axyz, axyz_bulk, axyz_cap, dpos, p, Vec_orig
+  real(kind=db), dimension(3):: Ang_rotsup, angxyz, angxyz_bulk, angxyz_cap, axyz, axyz_bulk, axyz_cap, dpos, Vec_orig
   real(kind=db), dimension(5):: Film_shift
   real(kind=db), dimension(6):: Trace_p
   real(kind=db), dimension(7):: Time_loc
   real(kind=db), dimension(10):: Gamma_hole
-  real(kind=db), dimension(3,3):: Cubmat, Mat_or
+  real(kind=db), dimension(3,3):: Mat_or
   real(kind=db), dimension(n_rout):: Time_rout
   real(kind=db), dimension(ngroup_par,nparm):: param
 
@@ -121,10 +119,10 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   mpinodes = mpinodes0 / MPI_host_num_for_mumps
 
   call lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_layer,Doping,Extract,Film,Flapw,Full_self_abs, &
-    Hubbard,itape4,Magnetic,Memory_save,mpinodes0,mpirank0,n_atom_bulk,n_atom_cap,n_file_dafs_exp,n_multi_run_e,nb_atom_conf_m, &
-    ncolm,neimagent,nenerg_s, &
+    Hubbard,itape4,Magnetic,Memory_save,mpinodes0,mpirank0,n_atom_bulk,n_atom_cap,n_atom_uc,n_file_dafs_exp,n_multi_run_e, &
+    nb_atom_conf_m,ncolm,neimagent,nenerg_s, &
     ngamme,ngroup,ngroup_neq,nhybm,nklapw,nlatm,nlmlapwm,nmatsym,norbdil,npldafs,nple,nplrm,n_adimp,n_radius,n_range,nq_nrixs, &
-    NRIXS,nspin,nspino,nspinp,ntype,ntype_conf,Pdb,Readfast,Self_abs,Space_file,Taux,Temperature,Use_FDMX,Xan_atom)
+    NRIXS,nspin,nspino,nspinp,ntype,ntype_bulk,ntype_conf,Pdb,Readfast,Self_abs,Space_file,Taux,Temperature,Use_FDMX,Xan_atom)
 
   if( Atom_nonsph ) then
     ngroup_nonsph = ngroup
@@ -214,7 +212,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   allocate( pop_nonsph(nhybm,ngroup_nonsph) )
   allocate( popats(ngroup,nlatm,nspin) )
   allocate( popval(0:ntype,nlatm,nspin) )
-  allocate( posn(3,ngroup) )
+  allocate( posn(3,n_atom_uc) )
   allocate( posn_bulk(3,n_atom_bulk) )
   allocate( posn_cap(3,n_atom_cap) )
   allocate( q_nrixs(nq_nrixs) )
@@ -244,29 +242,29 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   call lecture(Absauto,adimp_e,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk,axyz_cap,Base_spin, &
     Basereel,Bormann,Bulk,Bulk_lay,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free, &
-    Clementi,com,comt,Core_resolved,Coupelapw,Cubmat,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density,Density_comp, &
-    Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
+    Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density, &
+    Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
     Eimagent,Eneg_i,Eneg_n_i,Energphot,Extract,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift,Film_thickness, &
     Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
     Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs, &
     hkl_film,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,iscratch,isigpi,itdil,its_lapw,iord,itape4,itype, &
     itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,l_selec_max,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmaxfree,lmaxso0, &
     lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Matper,MPI_host_num_for_mumps,mpinodes,mpinodes0,mpirank0, &
-    Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto,n_devide,n_file_dafs_exp,n_multi_run_e,n_radius, &
-    n_range,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg_s,ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw,ngroup_m, &
-    ngroup_neq,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
+    Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_uc,n_devide,n_file_dafs_exp,n_multi_run_e, &
+    n_radius,n_range,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg_s,ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw, &
+    ngroup_m,ngroup_neq,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
     ngroup_temp,nhybm,nlat,nlatm,No_solsing,nom_fich_extract, &
     nomfich,nomfich_optic_data,nomfich_tddft_data,nomfichbav,Noncentre, &
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
     nphim,npldafs,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
-    nself,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_conf,numat,numat_abs, &
+    nself,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_bulk,ntype_conf,numat,numat_abs, &
     nvval,occ_hubb_e,Octupole,Old_zero,One_run,Optic,Overad,Overlap,p_self_max,p_self0, &
     param,Pas_SCF,pdpolar,PointGroup,PointGroup_Auto,Polar,Polarise,poldafsem,poldafssm, &
     pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadmag,Quadrupole,R_rydb, &
     r0_lapw,rchimp,Readfast,Recup_optic,Recup_tddft_data,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,Rydberg,Rsorte_s,Save_optic,Save_tddft_data,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Solver,Space_file,Spherical_signal,Spherical_tensor, &
-    Spinorbite,State_all,State_all_out,Struct,Supermuf,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef, &
+    Spinorbite,State_all,State_all_out,Supermuf,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef, &
     Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_hubbard,V_intmax,Vec_orig, &
     Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
 
@@ -276,6 +274,10 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
       write(*,*) 'ERROR: FDMX is currently only compatible with K-edge spectra'
     else
       write(*,*) 'CALLING FDMX'
+      if( n_atom_uc /= ngroup ) then
+        write(*,*) ' n_atom_uc /= ngroup,   contact Yves !'
+        stop
+      endif
       call fdmx(fdmnes_inp,nomfich,cm2g,nobg,nohole,nodw,noimfp,Gamma_hole,Gamma_hole_imp,E_cut_imp*rydb,E_Fermi_man, &
         imfp_inp, imfp_infile, elf_inp, elf_infile, dwfactor_inp, dwfactor, tdebye_inp, tdebye, tmeas_inp, tmeas, Energphot, &
         expntl, expntlA, expntlB, victoreen, victA, victB, mermrank, ngroup, posn, itype, ntype, numat)
@@ -310,400 +312,226 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
     Time_rout(1) = Time_loc(2) - Time_loc(1)
   endif
 
-! Check if absorbing atoms are in the Bulk
-  n_block = 1
-  if( Bulk ) then
-    do ia = 1,n_atom_bulk
-      if( Z_bulk(ia) /= numat_abs ) cycle
-      n_block = 2
-      exit
-    end do
-  endif
+  n_atom_proto = 0
+  neqm = 0
 
-  if( n_block == 2 ) then
-    npldafs_bulk = npldafs
-  else
-    npldafs_bulk = 0
-  endif
-  allocate( Troncature(npldafs_bulk) )
-  allocate( phdf0t(npldafs,nphim) )
+  allocate( Atom_with_axe(0:ngroup_m) )
+  allocate( igr_i(ngroup) )
+  allocate( igr_is(ngroup) )
+  allocate( igr_proto(ngroup) )
 
-  Bulk_step = .false.
-
-  do block = 1,n_block
-
-    if( block == 2 ) then
-      Bulk_step = .true.
-      ngroup = n_atom_bulk
-      if( Magnetic ) then
-        ngroup_m = n_atom_bulk
-      else
-        ngroup_m = 0
-      endif
-      Atom_nonsph = .false.
-      Flapw = .false.
-      Doping = .false.
-      Absauto = .true.
-
-      allocate( Atom_nsph_e(ngroup) )
-      Atom_nsph_e(:) = .false.
-
-      deallocate( itype ); allocate( itype(ngroup) )
-      itype(:) = 0
-      ntype = 1
-      do ia = 1,n_atom_bulk
-        if( Z_bulk(ia) == numat_abs ) cycle
-        do ib = 1,ia-1
-          if( Z_bulk(ia) == Z_bulk(ib) ) exit
-        end do
-        if( ib == ia ) ntype = ntype + 1
-      end do
-      deallocate( numat ); allocate( numat( 0:ntype ) )
-      numat(0:1) = numat_abs
-      it = 1
-      do ia = 1,n_atom_bulk
-        if( Z_bulk(ia) == numat_abs ) then
-          itype(ia) = 1
-        else
-          do ib = 1,ia-1
-            if( Z_bulk(ia) == Z_bulk(ib) ) then
-              itype(ia) = itype(ib)
-              exit
-            endif
-          end do
-          if( ib == ia ) then
-            it = it + 1
-            itype( ia ) = it
-            numat(it) = Z_bulk(ia)
-          endif
-        endif
-      end do
-
-      deallocate( Axe_atom_gr ); allocate( Axe_atom_gr(3,ngroup_m) )
-      Axe_atom_gr(1:2,:) = 0._db
-      Axe_atom_gr(3,:) = 1._db
-
-      nlatm = 0
-      deallocate(popats); allocate( popats(ngroup,nlatm,nspin) )
-      deallocate(popval); allocate( popval(0:ntype,nlatm,nspin) )
-      deallocate(nvval); allocate( nvval(0:ntype,nlatm) )
-      deallocate(lvval); allocate( lvval(0:ntype,nlatm) )
-      nlat(:) = 0
-
-      deallocate(Com); allocate( Com(0:ntype) )
-      Com(:) = ' Dirac'
-      deallocate(icom); allocate( icom(0:ntype) )
-      icom(:) = 1
-      deallocate(Hubb); allocate( Hubb(0:ntype) )
-      Hubb(:) = .false.
-      deallocate(nrato); allocate( nrato(0:ntype) )
-      nrato(:) = 0
-      deallocate(nrato_lapw); allocate( nrato_lapw(0:ntype) )
-      nrato_lapw(:) = 0
-      deallocate(r0_lapw); allocate( r0_lapw(0:ntype) )
-      r0_lapw(:) = 0._db
-      deallocate(rchimp); allocate( rchimp(0:ntype) )
-      rchimp(:) = 0._db
-      deallocate(rlapw); allocate( rlapw(0:ntype) )
-      rlapw(:) = 0._db
-      deallocate(rmt); allocate( rmt(0:ntype) )
-      Rmt(:) =  0._db
-      call Rmt_fix(icheck(1),ntype,numat,Rmt)
-      deallocate(rmtimp); allocate( rmtimp(0:ntype) )
-      rmtimp(:) = 0._db
-      deallocate(V_hubbard); allocate( V_hubbard(0:ntype) )
-      V_hubbard(:) = 0._db
-
-      Atom_occ_hubb = .false.
-      ngroup_hubb = 0
-      m_hubb_e = 0
-      deallocate(occ_hubb_e); allocate( occ_hubb_e(-m_hubb_e:m_hubb_e,-m_hubb_e:m_hubb_e,nspin,ngroup_hubb) )
-
-      norbdil = 0
-      deallocate(itdil); allocate( itdil(norbdil) )
-      deallocate(ldil); allocate( ldil(norbdil) )
-
-      ngroup_nonsph = 0; nhybm = 0
-      deallocate(hybrid); allocate( hybrid(nhybm,16,ngroup_nonsph) )
-
-      ngroup_pdb = 0
-      deallocate(Kgroup);  allocate( Kgroup(ngroup_pdb) )
-
-      n_multi_run_e  = 0
-      deallocate(iabsm); allocate( iabsm(n_multi_run_e) )
-      deallocate(iabsorig) ; allocate( iabsorig(n_multi_run_e) )
-      deallocate(nposextract); allocate( nposextract(n_multi_run_e) )
-      deallocate(nsymextract); allocate( nsymextract(n_multi_run_e) )
-
-      if( Taux ) then
-        Taux = .false.
-        ngroup_taux = 0
-        deallocate( Taux_oc ); allocate( Taux_oc(ngroup_taux) )
-      endif
-
-! axyz and angxyz will contain the bulk values : for prepdafs
-      p(:) = angxyz(:)
-      angxyz(:) = angxyz_bulk(:)
-      angxyz_bulk(:) = p(:)
-      p(:) = axyz(:)
-      axyz(:) = axyz_bulk(:)
-      axyz_bulk(:) = p(:)
-
-      deallocate( posn );  allocate( posn(3,ngroup) )
-      posn(:,:) = posn_bulk(:,:)
-
-      Film = .false.
-      Cap_layer = .false.
-
-      call cal_cubmat(angxyz,cubmat,struct)
-
- ! Contain symsite last step data
-      close(iscratch)
-
-    endif
-
-    allocate( Atom_with_axe(0:ngroup_m) )
-    allocate( igr_i(ngroup) )
-    allocate( igr_is(ngroup) )
-    allocate( igr_proto(ngroup) )
+  Sym_2D = Film .and. ( Film_thickness < - 100._db )
 
 ! Evaluation of the symmetries of the (magnetic) space group
-    call symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom_gr,axyz,Base_ortho,Cubmat, &
+  call Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom_gr,axyz,Base_ortho,.false., &
         Doping,Extract,Flapw,iabsm,icheck(3),igr_i,igr_is,igr_proto,itype, &
-        Magnetic,Matper,Memory_save,n_atom_proto,n_multi_run_e,neqm, &
-        ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,numat_abs,popats,posn,Struct)
+        Magnetic,Matper,Memory_save,n_atom_proto,n_atom_uc,n_multi_run_e,neqm, &
+        ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,numat_abs,popats,posn,Sym_2D)
 
-    deallocate( Atom_nsph_e )
+  n_atom_proto_uc = n_atom_proto
+  if( Doping ) n_atom_proto = n_atom_proto + 1
+  n = n_atom_proto
 
-    if( Doping ) n_atom_proto = n_atom_proto + 1
+  if( Bulk ) then
+    Sym_2D = .false.
+    call Symsite(Absauto,angxyz_bulk,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom_gr,axyz_bulk,Base_ortho,Bulk, &
+        .false.,Extract,Flapw,iabsm,icheck(3),igr_i,igr_is,igr_proto,itype, &
+        Magnetic,Matper,Memory_save,n_atom_proto,n_atom_bulk,n_multi_run_e,neqm, &
+        ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,numat_abs,popats,posn_bulk,Sym_2D)
+  endif
 
-    allocate( igreq(0:n_atom_proto,neqm) )
-    allocate( ngreq(0:n_atom_proto) )
+  deallocate( Atom_nsph_e )
 
-    ngreq(:) = 0
-    igreq(:,:) = 0
+  n_atom_proto_bulk = n_atom_proto - n
 
-    do igr = 1,ngroup
-      if( Doping .and. igr == ngroup ) exit
+  allocate( igreq(0:n_atom_proto,neqm) )
+  allocate( ngreq(0:n_atom_proto) )
+
+  ngreq(:) = 0
+  igreq(:,:) = 0
+
+  do igr = 1,ngroup
+    if( Doping .and. igr == n_atom_uc + 1 ) then
+      igreq(n,1) = n_atom_uc + 1
+      ngreq(n) = 1
+    else
       ipr = igr_proto(igr)
       ngreq(ipr) = ngreq(ipr) + 1
       i = igr_i(igr)
       igreq(ipr,i) = igr
+    endif
+  end do
+
+  if( Absauto ) then
+    multi_run = 0
+    do ipr = 1,n_atom_proto
+      it = abs( itype(igreq(ipr,1)) )
+      if( numat( it ) /= numat_abs ) cycle
+      multi_run = multi_run + 1
     end do
+    n_multi_run = multi_run
+  else
+    n_multi_run = n_multi_run_e
+  endif
+
+  if( n_multi_run > 1 .and. One_run .and. .not. nonexc .and. mpirank0 == 0 ) then
+    call write_error
+    do ipr = 3,9,3
+      write(ipr,125)
+    end do
+    stop
+  endif
+
+  if( Absauto ) then
+    deallocate( iabsm, iabsorig )
+    deallocate( nsymextract, nposextract )
+    allocate( iabsm(n_multi_run) )
+    allocate( iabsorig(n_multi_run) )
+    allocate( nsymextract(n_multi_run) )
+    allocate( nposextract(n_multi_run) )
+    nsymextract(:) = 1
+    do multi_run = 1,n_multi_run
+      nposextract(multi_run) = multi_run
+    end do
+    multi_run = 0
+    do ipr = 1,n_atom_proto
+      it = abs( itype(igreq(ipr,1)) )
+      if( numat( it ) /= numat_abs ) cycle
+      multi_run = multi_run + 1
+      iabsm(multi_run) = igreq(ipr,1)
+      iabsorig(multi_run) = ipr
+    end do
+  endif
+
+  natomsym_max = 0
+  do igr = 1,ngroup
+    if( Doping ) then
+      if( numat( abs( itype(igr) ) ) /= numat( abs( itype(igr_dop) ) ) ) cycle
+    else
+      if( numat( abs( itype(igr) ) ) /= numat_abs ) cycle
+    endif
+    natomsym_max = max( igr_i(igr), natomsym_max )
+  end do
+
+  allocate( isymqa(0:n_atom_proto,natomsym_max) )
+  allocate( posq(3,n_atom_proto,natomsym_max) )
+  isymqa(:,:) = 0
+  posq(:,:,:) = 0._db
+
+  ipr_dop = 0
+
+  do igr = 1,ngroup
 
     if( Doping ) then
-      igreq(n_atom_proto,1) = ngroup
-      ngreq(n_atom_proto) = 1
-    endif
-
-    if( Absauto ) then
-      multi_run = 0
-      do ipr = 1,n_atom_proto
-        it = abs( itype(igreq(ipr,1)) )
-        if( numat( it ) /= numat_abs ) cycle
-        multi_run = multi_run + 1
-      end do
-      n_multi_run = multi_run
+      if( numat( abs( itype(igr) ) ) /= numat( abs( itype(igr_dop) ) ) ) cycle
     else
-      n_multi_run = n_multi_run_e
+      if( numat( abs( itype(igr) ) ) /= numat_abs ) cycle
     endif
 
-    if( n_multi_run > 1 .and. One_run .and. .not. nonexc .and. mpirank0 == 0 ) then
-      call write_error
-      do ipr = 3,9,3
-        write(ipr,125)
-      end do
-      stop
-    endif
+    if( igr == igr_dop ) ipr_dop = igr_proto(igr)
 
-    if( Absauto ) then
-      deallocate( iabsm, iabsorig )
-      deallocate( nsymextract, nposextract )
-      allocate( iabsm(n_multi_run) )
-      allocate( iabsorig(n_multi_run) )
-      allocate( nsymextract(n_multi_run) )
-      allocate( nposextract(n_multi_run) )
-      nsymextract(:) = 1
-      do multi_run = 1,n_multi_run
-        nposextract(multi_run) = multi_run
-      end do
-      multi_run = 0
-      do ipr = 1,n_atom_proto
-        it = abs( itype(igreq(ipr,1)) )
-        if( numat( it ) /= numat_abs ) cycle
-        multi_run = multi_run + 1
-        iabsm(multi_run) = igreq(ipr,1)
-        iabsorig(multi_run) = ipr
-      end do
-    endif
-
-    natomsym_max = 0
-    do igr = 1,ngroup
-      if( Doping ) then
-        if( numat( abs( itype(igr) ) ) /= numat( abs( itype(igr_dop) ) ) ) cycle
-      else
-        if( numat( abs( itype(igr) ) ) /= numat_abs ) cycle
-      endif
-      natomsym_max = max( igr_i(igr), natomsym_max )
-    end do
-
-    allocate( isymqa(0:n_atom_proto,natomsym_max) )
-    allocate( posq(3,n_atom_proto,natomsym_max) )
-    isymqa(:,:) = 0
-    posq(:,:,:) = 0._db
-
-    ipr_dop = 0
-
-    do igr = 1,ngroup
-
-      if( Doping .and. igr == ngroup ) then
-        posq(:,n_atom_proto,:) = posq(:,ipr_dop,:)
-        isymqa(n_atom_proto,:) = isymqa(ipr_dop,:)
-        exit
-      endif
-      if( Doping ) then
-        if( numat( abs( itype(igr) ) ) /= numat( abs( itype(igr_dop) ) ) ) cycle
-      else
-        if( numat( abs( itype(igr) ) ) /= numat_abs ) cycle
-      endif
-
-      if( igr == igr_dop ) ipr_dop = igr_proto(igr)
-
-      ipr = igr_proto(igr)
-      i = igr_i(igr)
+    ipr = igr_proto(igr)
+    i = igr_i(igr)
+    if( igr <= n_atom_uc ) then
       posq(:,ipr,i) = posn(:,igr)
-      isymqa(ipr,i) = igr_is(igr)
+    elseif( Doping .and. igr == n_atom_uc + 1 ) then
+      posq(:,n_atom_proto-n_atom_proto_bulk,i) = posn_bulk(:,igr_dop)
+    else
+      posq(:,ipr,i) = posn_bulk(:,igr-ngroup+n_atom_bulk)
+    endif
 
+    if( Doping .and. igr == n_atom_uc + 1 ) then
+      isymqa(n_atom_proto_uc+1,:) = isymqa(ipr_dop,:)
+    else
+      isymqa(ipr,i) = igr_is(igr)
+    endif
+
+  end do
+
+  deallocate( igr_i, igr_is, igr_proto )
+
+  allocate( ngreqm(n_multi_run) )
+
+  allocate( nomfich_cal_conv(n_multi_run) )
+  allocate( nomfich_cal_tddft_conv(n_multi_run) )
+  allocate( Run_done(n_multi_run) )
+  allocate( Skip_run(n_multi_run) )
+  allocate( Skip(n_multi_run) )
+  Run_done(:) = .false.
+  Skip_run(:) = .false.
+  Skip(:) = .false.
+
+  boucle_m: do multi_run = 1,n_multi_run
+
+    boucle_ipr: do ipr = 1,n_atom_proto
+      do i = 1,ngreq(ipr)
+        if( igreq(ipr,i) == iabsm(multi_run) ) exit boucle_ipr
+      end do
+    end do boucle_ipr
+
+    ngreqm(multi_run) = ngreq(ipr)
+
+    do j = 1,multi_run - 1
+      do i = 1,ngreq(ipr)
+        if( iabsm(j) /= igreq(ipr,i) ) cycle
+        run_done(multi_run) = .true.
+        cycle boucle_m
+      end do
     end do
 
-    deallocate( igr_i, igr_is, igr_proto )
+  end do boucle_m
 
-    allocate( ngreqm(n_multi_run) )
-
-    if( block == 1 ) then
-      if( n_block == 1 ) then
-        allocate( Run_done_t(n_multi_run) )
-        allocate( Skip_run_t(n_multi_run) )
-        allocate( nomfich_cal_conv_t(n_multi_run) )
-        allocate( nomfich_cal_tddft_conv_t(n_multi_run) )
-        n_multi_run_1 = 0
-      else
-        n_multi_run_1 = n_multi_run
-      endif
-    else
-      allocate( Run_done_t( n_multi_run_1 + n_multi_run ) )
-      allocate( Skip_run_t( n_multi_run_1 + n_multi_run ) )
-      allocate( nomfich_cal_conv_t( n_multi_run_1 + n_multi_run ) )
-      allocate( nomfich_cal_tddft_conv_t( n_multi_run_1 + n_multi_run ) )
-      Run_done_t(1:n_multi_run_1) = Run_done(1:n_multi_run_1)
-      Skip_run_t(1:n_multi_run_1) = Skip_run(1:n_multi_run_1)
-      nomfich_cal_conv_t(1:n_multi_run_1) =  nomfich_cal_conv(1:n_multi_run_1)
-      nomfich_cal_tddft_conv_t(1:n_multi_run_1) = nomfich_cal_tddft_conv(1:n_multi_run_1)
-      deallocate( nomfich_cal_conv, nomfich_cal_tddft_conv, Run_done, Skip_run )
-    endif
-
-    allocate( nomfich_cal_conv(n_multi_run) )
-    allocate( nomfich_cal_tddft_conv(n_multi_run) )
-    allocate( Run_done(n_multi_run) )
-    allocate( Skip_run(n_multi_run) )
-    allocate( Skip(n_multi_run) )
-    Run_done(:) = .false.
-    Skip_run(:) = .false.
-    Skip(:) = .false.
-
-    boucle_m: do multi_run = 1,n_multi_run
-
-      boucle_ipr: do ipr = 1,n_atom_proto
-        do i = 1,ngreq(ipr)
-          if( igreq(ipr,i) == iabsm(multi_run) ) exit boucle_ipr
-        end do
-      end do boucle_ipr
-
-      ngreqm(multi_run) = ngreq(ipr)
-
-      do j = 1,multi_run - 1
-        do i = 1,ngreq(ipr)
-          if( iabsm(j) /= igreq(ipr,i) ) cycle
-          run_done(multi_run) = .true.
-          cycle boucle_m
-        end do
+  if( nnotskip > 0 .and. Extract .and. n_atom_proto_p == n_atom_proto ) then
+    do multi_run = 1,n_multi_run
+      Skip_run(multi_run) = .true.
+      do i = 1,nnotskip
+        if( ifile_notskip(i) == iabsorig(multi_run) ) Skip_run(multi_run) = .false.
       end do
+    end do
+  endif
 
-    end do boucle_m
+  n_atom_proto_p = n_atom_proto
 
-    if( nnotskip > 0 .and. Extract .and. n_atom_proto_p == n_atom_proto ) then
-      do multi_run = 1,n_multi_run
-        Skip_run(multi_run) = .true.
-        do i = 1,nnotskip
-          if( ifile_notskip(i) == iabsorig(multi_run) ) Skip_run(multi_run) = .false.
-        end do
-      end do
-    endif
-
-    n_atom_proto_p = n_atom_proto
-
-    if( mpirank0 == 0 ) write(6,130) n_multi_run
+  if( mpirank0 == 0 ) write(6,130) n_multi_run
 
 ! ------- Calculation of all the non equivalent atoms signal ----------------------------------------
 
-    skip(:) = Run_done(:) .or. Skip_run(:)
+  skip(:) = Run_done(:) .or. Skip_run(:)
 
-    if( mpirank0 == 0 ) then
-      call CPU_TIME(time)
-      Time_loc(3) = real(time,db)
-      Time_rout(2) = Time_loc(3) - Time_loc(2)
-    endif
+  if( mpirank0 == 0 ) then
+    call CPU_TIME(time)
+    Time_loc(3) = real(time,db)
+    Time_rout(2) = Time_loc(3) - Time_loc(2)
+  endif
 
-    call Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
+  call Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
       Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_with_axe,Atomic_scr,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Base_ortho,Base_spin, &
-      Basereel,Block,Bormann,Bulk,Bulk_lay,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness, &
-      Cartesian_tensor, &
-      cdil,Charge_free,Clementi,Com,Core_resolved,Coupelapw,Cubmat,D_max_pot,Dafs,Dafs_bio,Delta_edge,Delta_En_conv,Delta_Epsii, &
-      Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_Fermi_man,E_radius,E_max_range,Ecent, &
-      Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Estart, &
+      Basereel,Bormann,Bulk,Bulk_lay,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil, &
+      Charge_free,Classic_irreg,Clementi,Com,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_edge,Delta_En_conv, &
+      Delta_Epsii,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_Fermi_man,E_radius, &
+      E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Estart, &
       Extract,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Flapw,Flapw_new,Force_ecr,Full_atom_e, &
       Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_dafs, &
       hkl_film,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,igreq,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype, &
       itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmaxfree,lmaxso0, &
       lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Matper,MPI_host_num_for_mumps,mpinodes,mpinodes0,mpirank, &
-      mpirank_in_mumps_group,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto,n_block, &
-      n_devide,n_multi_run,n_radius,n_range,n_rout,natomeq_s,natomsym_max,nbseuil,nchemin, &
+      mpirank_in_mumps_group,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk, &
+      n_atom_proto_uc,n_atom_uc,n_devide,n_multi_run,n_radius,n_range,n_rout,natomeq_s,natomsym_max,nbseuil,nchemin, &
       ncolm,necrantage,neimagent,nenerg_s,neqm,ngamh,ngamme,ngreq,ngroup,ngroup_hubb,ngroup_lapw, &
       ngroup_m,ngroup_nonsph,ngroup_pdb,ngroup_taux,ngroup_temp,nhybm,nklapw,nlmlapwm,nlat,nlatm,nmatsym,No_solsing, &
       nom_fich_extract,nomfich,nomfich_cal_conv,nomfich_cal_tddft_conv,nomfich_optic_data,nomfich_tddft_data,Noncentre, &
       Nonexc,norbdil,norbv,Normaltau,normrmt, &
-      nphi_dafs,nphim,npldafs,npldafs_bulk,nple,nplrm,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,NRIXS,nrm, &
+      nphi_dafs,nphim,npldafs,nple,nplrm,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,NRIXS,nrm, &
       nself,nseuil,nslapwm,nspin,nspino,nspinp,nsymextract,ntype,numat,numat_abs, &
       nvval,occ_hubb_e,Octupole,Old_zero,One_run,Optic,Overad,Overlap,p_self_max,p_self0, &
-      Pas_SCF,pdpolar,phdf0t,PointGroup,PointGroup_Auto,Polar,Polarise,poldafsem,poldafssm, &
+      Pas_SCF,pdpolar,PointGroup,PointGroup_Auto,Polar,Polarise,poldafsem,poldafssm, &
       pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,posq,q_nrixs,Quadrupole,R_rydb, &
       r0_lapw,rchimp,Recup_optic,Recup_tddft_data,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
       roverad,RPALF,rpotmax,Rydberg,Rsorte_s,Save_optic,Save_tddft_data,Scan_a,SCF_log,Self_abs,Skip, &
-      Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spinorbite,State_all,State_all_out,Struct,Supermuf,Symmol, &
+      Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spinorbite,State_all,State_all_out,Supermuf,Symmol, &
       Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef,Temperature,Tensor_imp,Test_dist_min,Time_rout,Trace_format_wien, &
-      Trace_k,Trace_p,Troncature,V_hubbard,V_intmax,Vec_orig,Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym, &
+      Trace_k,Trace_p,V_hubbard,V_intmax,Vec_orig,Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym, &
       Wien_save,Wien_taulap,Xan_atom,xsect_file,Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
-
-! desallocation des tableaux attribues avant Site calculation
-
-    deallocate( Atom_with_axe, igreq, isymqa )
-    deallocate( ngreq, ngreqm, posq, Skip )
-
-    if( block == 1 .and. n_block == 1 ) then
-      Run_done_t(1:n_multi_run) = Run_done(1:n_multi_run)
-      Skip_run_t(1:n_multi_run) = Skip_run(1:n_multi_run)
-      nomfich_cal_conv_t(1:n_multi_run) = nomfich_cal_conv(1:n_multi_run)
-      nomfich_cal_tddft_conv_t(1:n_multi_run) = nomfich_cal_tddft_conv(1:n_multi_run)
-    elseif( block == 2 ) then
-      Run_done_t(n_multi_run_1+1:n_multi_run_1+n_multi_run) = Run_done(1:n_multi_run)
-      Skip_run_t(n_multi_run_1+1:n_multi_run_1+n_multi_run) = Skip_run(1:n_multi_run)
-      nomfich_cal_conv_t(n_multi_run_1+1:n_multi_run_1+n_multi_run) = nomfich_cal_conv(1:n_multi_run)
-      nomfich_cal_tddft_conv_t(n_multi_run_1+1:n_multi_run_1+n_multi_run) = nomfich_cal_tddft_conv(1:n_multi_run)
-    endif
-
-  end do  ! block loop end
-
-  deallocate( phdf0t, Troncature )
 
 ! -------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -729,8 +557,8 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
 
     if( key_calc ) then
       write(itape1,'(A)') ' Run_done '
-      do i = 1,n_multi_run + n_multi_run_1
-        if( Skip_run_t(i) ) then
+      do i = 1,n_multi_run
+        if( Skip_run(i) ) then
           is = 0
         else
           is = 1
@@ -744,22 +572,21 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
       end do
     else
       write(itape1,'(A)') ' calculation'
-      do multi_run = 1,n_multi_run + n_multi_run_1
-        if( Run_done_t(multi_run) ) cycle
-        write(itape1,'(A)') nomfich_cal_conv_t(multi_run)
+      do multi_run = 1,n_multi_run
+        if( Run_done(multi_run) ) cycle
+        write(itape1,'(A)') nomfich_cal_conv(multi_run)
       end do
       if( Tddft .and. .not. Extract .and. ( .not. Gamma_tddft .or. Dafs  .or. n_multi_run > 1 ) ) then
       write(itape1,'(A)') ' cal_tddft'
-      do multi_run = 1,n_multi_run + n_multi_run_1
-        if( Run_done_t(multi_run) ) cycle
-        write(itape1,'(A)') nomfich_cal_tddft_conv_t(multi_run)
+      do multi_run = 1,n_multi_run
+        if( Run_done(multi_run) ) cycle
+        write(itape1,'(A)') nomfich_cal_tddft_conv(multi_run)
       end do
       endif
     endif
   endif
 
   deallocate( nomfich_cal_conv, nomfich_cal_tddft_conv, Run_done, Skip_run )
-  deallocate( nomfich_cal_conv_t, nomfich_cal_tddft_conv_t, Run_done_t, Skip_run_t )
 
   if( icheck(1) > 0 .and. mpirank0 == 0 ) then
     call CPU_TIME(time)
@@ -797,6 +624,10 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
       write(*,*) 'ERROR: FDMX is currently only compatible with K-edge spectra'
     else
       write(*,*) 'CALLING FDMX'
+      if( n_atom_uc /= ngroup ) then
+        write(*,*) ' n_atom_uc /= ngroup, contact Yves !'
+        stop
+      endif
       call fdmx(fdmnes_inp,nomfich,cm2g,nobg,nohole,nodw,noimfp,Gamma_hole,Gamma_hole_imp,E_cut_imp*rydb,E_Fermi_man, &
         imfp_inp, imfp_infile, elf_inp, elf_infile, dwfactor_inp, dwfactor, tdebye_inp, tdebye, tmeas_inp, tmeas, Energphot, &
         expntl, expntlA, expntlB, victoreen, victA, victB, mermrank, ngroup, posn, itype, ntype, numat)
@@ -840,32 +671,31 @@ end
 
 subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
       Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_with_axe,Atomic_scr,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Base_ortho,Base_spin, &
-      Basereel,Block,Bormann,Bulk,Bulk_lay,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness, &
-      Cartesian_tensor, &
-      cdil,Charge_free,Clementi,Com,Core_resolved,Coupelapw,Cubmat,D_max_pot,Dafs,Dafs_bio,Delta_edge,Delta_En_conv,Delta_Epsii, &
-      Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_Fermi_man,E_radius,E_max_range,Ecent, &
-      Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Estart, &
+      Basereel,Bormann,Bulk,Bulk_lay,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil, &
+      Charge_free,Classic_irreg,Clementi,Com,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_edge,Delta_En_conv, &
+      Delta_Epsii,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_Fermi_man,E_radius, &
+      E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Estart, &
       Extract,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Flapw,Flapw_new,Force_ecr,Full_atom_e, &
       Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_dafs, &
       hkl_film,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,igreq,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype, &
       itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmaxfree,lmaxso0, &
       lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Matper,MPI_host_num_for_mumps,mpinodes,mpinodes0,mpirank, &
-      mpirank_in_mumps_group,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto,n_block, &
-      n_devide,n_multi_run,n_radius,n_range,n_rout,natomeq_s,natomsym_max,nbseuil,nchemin, &
+      mpirank_in_mumps_group,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk, &
+      n_atom_proto_uc,n_atom_uc,n_devide,n_multi_run,n_radius,n_range,n_rout,natomeq_s,natomsym_max,nbseuil,nchemin, &
       ncolm,necrantage,neimagent,nenerg_s,neqm,ngamh,ngamme,ngreq,ngroup,ngroup_hubb,ngroup_lapw, &
       ngroup_m,ngroup_nonsph,ngroup_pdb,ngroup_taux,ngroup_temp,nhybm,nklapw,nlmlapwm,nlat,nlatm,nmatsym,No_solsing, &
       nom_fich_extract,nomfich,nomfich_cal_conv,nomfich_cal_tddft_conv,nomfich_optic_data,nomfich_tddft_data,Noncentre, &
       Nonexc,norbdil,norbv,Normaltau,normrmt, &
-      nphi_dafs,nphim,npldafs,npldafs_bulk,nple,nplrm,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,NRIXS,nrm, &
+      nphi_dafs,nphim,npldafs,nple,nplrm,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,NRIXS,nrm, &
       nself,nseuil,nslapwm,nspin,nspino,nspinp,nsymextract,ntype,numat,numat_abs, &
       nvval,occ_hubb_e,Octupole,Old_zero,One_run,Optic,Overad,Overlap,p_self_max,p_self0, &
-      Pas_SCF,pdpolar,phdf0t,PointGroup,PointGroup_Auto,Polar,Polarise,poldafsem,poldafssm, &
+      Pas_SCF,pdpolar,PointGroup,PointGroup_Auto,Polar,Polarise,poldafsem,poldafssm, &
       pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,posq,q_nrixs,Quadrupole,R_rydb, &
       r0_lapw,rchimp,Recup_optic,Recup_tddft_data,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
       roverad,RPALF,rpotmax,Rydberg,Rsorte_s,Save_optic,Save_tddft_data,Scan_a,SCF_log,Self_abs,Skip, &
-      Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spinorbite,State_all,State_all_out,Struct,Supermuf,Symmol, &
+      Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spinorbite,State_all,State_all_out,Supermuf,Symmol, &
       Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef,Temperature,Tensor_imp,Test_dist_min,Time_rout,Trace_format_wien, &
-      Trace_k,Trace_p,Troncature,V_hubbard,V_intmax,Vec_orig,Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym, &
+      Trace_k,Trace_p,V_hubbard,V_intmax,Vec_orig,Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym, &
       Wien_save,Wien_taulap,Xan_atom,xsect_file,Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
 
   use declarations
@@ -879,15 +709,15 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
   integer, parameter:: n_tens_qq = 25
   integer, parameter:: n_tens_dm = 9
 
-  integer:: Block, extract_nenerg, i, i_adimp, i_radius, i_range, i_self, ia, iaabs, iaabsfirst, iabsfirst, iaabsi, iabsorbeur, &
+  integer:: extract_nenerg, i, i_adimp, i_radius, i_range, i_self, ia, iaabs, iaabsfirst, iabsfirst, iaabsi, iabsorbeur, &
     iapr, ip0, ip00, ipr, iaprabs, ich, ie, ie_computer, ie0, igr_dop, igrph, igrpt_nomag, igrpt0, index_e, initl, &
     iord, ip_max, ipr1, ipr_dop, iprabs, iprabs_nonexc, ir, iscratch, iso1, iso2, isp1, isp2, ispin, iss1, &
     iss2, it, itab, itabs, itabs_nonexc, itype_dop, j, je, jseuil, l, l_hubbard, &
-    l0_nrixs, lamstdens, lecrantage, lh, lin_gam, lla_state, lla2_state, lm1, lm2, lmax, lmax_nrixs, lmax_pot, &
+    l0_nrixs, l1, l2, lamstdens, lecrantage, lh, lin_gam, lla_state, lla2_state, lm1, lm2, lmax, lmax_nrixs, lmax_pot, &
     lmaxabs, lmaxabs_t, lmax_tddft, lmaxabsa, lmaxat0, lmaxg, lmaxmax, lmaxso, lmaxso_max, lmax_probe, lmaxso0, &
-    lms1, lms2, lseuil, m, m_hubb, m_hubb_e, m2, MPI_host_num_for_mumps, mpierr, mpinodee, mpinodes, mpinodes0, mpirank, &
+    lms1, lms2, lseuil, m, m_hubb, m_hubb_e, m1, m2, MPI_host_num_for_mumps, mpierr, mpinodee, mpinodes, mpinodes0, mpirank, &
     mpirank0, mpirank_in_mumps_group, multi_imp, multi_run, multrmax, n, n_adimp, n_atom_0, n_atom_0_self, n_atom_bulk, &
-    n_atom_cap ,n_atom_ind, n_atom_ind_self, n_atom_proto, n_block, n_devide, n_multi_run, &
+    n_atom_cap ,n_atom_ind, n_atom_ind_self, n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, n_atom_uc, n_devide, n_multi_run, &
     n_oo, n_orbexc, n_rout, n_vr_0, n_vr_ind, n_tens_max, n1, natome, natome_cal, natome_self, natomsym_max, &
     natomeq, natomeq_coh, natomeq_self, natomp, natomsym, n_radius, n_range, &
     n_Ec, n_orb_rel, n_rel, n_V, nb_rep, nb_sym_op, nbbseuil, nbm, nbseuil, nbtm, nbtm_fdm, nchemin, ncolm, ncolr, ncolt, &
@@ -914,7 +744,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
   character(len=Length_word), dimension(:), allocatable:: nomabs
 
   complex(kind=db):: f_avantseuil, f_cal
-  complex(kind=db), dimension(npldafs_bulk):: Troncature
+  complex(kind=db), dimension(npldafs):: Troncature
   complex(kind=db), dimension(npldafs,nphim):: phdf0t
   complex(kind=db), dimension(3,npldafs):: poldafsem, poldafssm
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph):: hybrid
@@ -968,7 +798,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
   logical:: Absorbeur, All_nrixs, Allsite, ATA, Atom_comp_cal, Atom_nonsph, Atom_nonsph_loc, Atom_occ_hubb, Atomic_scr, &
      Basereel, Base_hexa, Base_ortho, Base_spin, Bormann, Bulk, Bulk_step, Clementi, Cal_xanes, Cap_layer, &
-     Cartesian_tensor, Charge_free, Convergence, Core_resolved, Coupelapw, Dafs, Dafs_bio, Density, &
+     Cartesian_tensor, Charge_free, Classic_irreg, Convergence, Core_resolved, Coupelapw, Dafs, Dafs_bio, Density, &
      Density_comp, Devide_Ei, Dip_rel, Dipmag, Doping, Dyn_eg, Dyn_g, E_comp, E1E1, E1E2, E1E2e, E1E3, E1M1, E2E2, E3E3, &
      E_Fermi_man, &
      Eneg, Eneg_i, Eneg_n_i, Energphot, Extract, Extract_Green, FDM_comp, FDM_comp_m, Fermi, Fermi_first, Film, Final_optic, &
@@ -981,7 +811,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
      Rydberg, Save_optic, Save_tddft_data, Scan_a, SCF, SCF_elecabs, SCF_mag_fix, &
      SCF_mag_free, Second_run, Self_abs, Self_cons, Self_nonexc, &
      Solsing, Solsing_s, Solsing_o, Solsing_only, Spherical_signal, Spherical_tensor, Spino, Spinorbite, State_all, &
-     State_all_out, Supermuf, Sym_4, Sym_cubic, Symmol, Tau_nondiag, Taux, Tddft, &
+     State_all_out, Supermuf, Sym_2D, Sym_4, Sym_cubic, Symmol, Tau_nondiag, Taux, Tddft, &
      Tddft_xanes, TdOpt_Xanes, Temperature, Trace_format_wien, Xan_atom, Ylm_comp, Ylm_comp_inp
 
   logical, dimension(5):: SCF_log
@@ -1033,7 +863,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
   real(kind=db), dimension(ngroup,nlatm,nspin):: popats
   real(kind=db), dimension(0:ntype,nlatm):: popatv
   real(kind=db), dimension(0:ntype,nlatm,nspin):: popval
-  real(kind=db), dimension(3,ngroup):: posn
+  real(kind=db), dimension(3,n_atom_uc):: posn
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
   real(kind=db), dimension(3,n_atom_cap):: posn_cap
   real(kind=db), dimension(nq_nrixs):: q_nrixs
@@ -1093,19 +923,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
     ip_max = 2
   else
     ip_max = 1
-  endif
-
-  if( Flapw ) then
-    E_Fermi = 0._db
-  else
-    E_Fermi = -5._db / Rydb
-  endif
-  E_Open_val = E_Fermi
-  E_Open_val_exc = E_Fermi
-  if( Old_zero ) then
-    E_cut = E_Fermi
-  else
-    E_cut = 0._db
   endif
 
 ! lmax pour la densite d'etat
@@ -1236,6 +1053,9 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
       nnlm = max( nnlm, n )
     end do
 
+    Sym_2D = Film .and. ( Film_thickness < - 100._db ) .and. iabsorbeur <= ngroup - n_atom_bulk
+    Bulk_step = Bulk .and.  iabsorbeur > ngroup - n_atom_bulk
+
     call init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Flapw,Force_ecr,Hubb,iabsorbeur, &
       iabsorig(multi_run),icheck(4),icom,igreq,iprabs,iprabs_nonexc,itabs,itype,itype_dop,itypepr,jseuil,lcoeur,lecrantage, &
       lseuil,lvval,mpinodee,mpirank0,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage,neqm,ngreq,ngroup,nlat,nlatm, &
@@ -1304,12 +1124,20 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
       allocate( V_hubb_abs(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp) )
     end if
 
+    if( Bulk_step ) then
+      call Cal_Cubmat(angxyz_bulk,Cubmat,Struct)
+    else
+      call Cal_Cubmat(angxyz,Cubmat,Struct)
+    endif
+
     if( ( .not. One_run ) .or. multi_run == 1 ) then
-      d_ecrant = 1 - sum( ecrantage(:) )
-      call natomp_cal(angxyz,ATA,axyz,Base_ortho,Chargat,d_ecrant,dcosxyz,deccent,Doping,dpos,Flapw,iabsorbeur,iabsfirst, &
-        icheck(5),igr_dop,igreq,itabs,itype,Kgroup,Matper,mpirank0,multrmax,n_atom_proto,n_radius,natomeq_s,natomeq_coh, &
-        natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux,Noncentre,posn,Proto_all,r_self,Rsorte_s,Rmax,Rpotmax, &
-        Self_cons,Taux,Taux_oc,Test_dist_min)
+      d_ecrant = 1 - sum( Ecrantage(:) )
+      call natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step,Chargat,Cubmat,d_ecrant,dcosxyz,deccent, &
+        Doping,dpos, &
+        Film_shift,Flapw,iabsorbeur,iabsfirst,icheck(5),igr_dop,igreq,itabs,itype,Kgroup,Matper,mpirank,multi_run,multrmax, &
+        n_atom_bulk,n_atom_proto,n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
+        Noncentre,ntype,numat,posn,posn_bulk,One_run,Proto_all,r_self,rsorte_s,rmax,rpotmax,Self_cons,Sym_2D,Taux_oc, &
+        Z_bulk)
     endif
 
     allocate( Axe_atom_clu(3,natomp) )
@@ -1325,14 +1153,26 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 ! Le groupe ponctuel de l'agregat est calcule avec l'absorbeur eventuellement excite meme pour le calcul SCF non excite.
 ! L'abaissement de symmetrie n'est effectif que si l'absorbeur est non centre
 ! De meme "Atom_nonsph" n'est utile que pour le Xanes
-    call agregat(angxyz,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn,axyz,Base_hexa,Base_ortho, &
-          chargat,Cubmat,dcosxyz,deccent,dista,Doping,dpos,iaabs,iaabsfirst,iabsorbeur,iaproto,iapot, &
-          ich,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,iopsymc,iopsymr,itabs,itype,itypep,karact,Kgroup,Magnetic,Matper, &
-          mpirank0,multi_run,n_atom_proto,natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat, &
-          nlatm,Noncentre,nspin,ntype,numat,One_run,Orthmat,Orthmati,PointGroup,PointGroup_Auto, &
-          popats,pos,posn,rmax,Rot_int,Self_nonexc,Spinorbite,Rot_Atom_gr,Sym_4,Struct,Sym_cubic,Symmol,Taux,Taux_oc)
+    call agregat(angxyz,angxyz_bulk,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn,axyz,axyz_bulk, &
+          Base_hexa,Base_ortho,Bulk,Bulk_step,Chargat,Cubmat,dcosxyz,deccent,dista,Doping,dpos,Film_shift,iaabs,iaabsfirst, &
+          iabsorbeur,iaproto,iapot,ich,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,iopsymc,iopsymr,itabs,itype,itypep,karact,Kgroup, &
+          Magnetic,Matper,mpirank,multi_run,n_atom_bulk,n_atom_proto,n_atom_uc,natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m, &
+          ngroup_pdb,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat,One_run,Orthmat,Orthmati,PointGroup,PointGroup_Auto, &
+          popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc,Spinorbite,Rot_Atom_gr,Struct,Sym_2D,Sym_4,Sym_cubic,Symmol, &
+          Taux,Taux_oc,Test_dist_min,Z_bulk)
+
+    if( Ylm_comp_inp .and. .not. ( Atom_comp_cal(igrpt0) .or. igrpt0 <= 5 ) ) then
+      if( mpirank0 == 0 ) then
+        call write_error
+        do ipr = 6,9,3
+          write(ipr,'(//A//)') ' Complex spherical harmonics not compatible with the point group !'
+        end do
+      endif
+      stop
+    endif
 
     Ylm_comp = Ylm_comp_inp .or. Atom_comp_cal(igrpt0)
+
 
     if( .not. One_run .or. ( One_run .and. multi_run == 1 ) ) iaabsfirst = iaabs
 
@@ -1632,7 +1472,9 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
         if( icheck(4) > 0 ) write(3,150) i_self
 
         E_Fermi = -5._db / Rydb
-        E_cut = -5._db / Rydb
+        E_cut = E_Fermi
+        E_Open_val = E_Fermi
+        E_Open_val_exc = E_Fermi
         Fermi = .false.
         Level_val_abs = .false.
         Level_val_exc = .false.
@@ -2087,7 +1929,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
                   ich = min(icheck(19), icheck(27))
 
                   if( Green ) then
-                    call msm(Axe_Atom_grn,Base_ortho,Cal_xanes,dcosxyz,Ecinetic,Eimag(ie),Full_atom,ia_eq,ia_rep, &
+                    call msm(Axe_Atom_grn,Base_ortho,Cal_xanes,Classic_irreg,dcosxyz,Ecinetic,Eimag(ie),Full_atom,ia_eq,ia_rep, &
                       iaabsi,iaprotoi,iato,ich,igreq,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato, &
                       n_atom_0,n_atom_ind,n_atom_proto,natome,natomp,nb_eq,nb_rpr,nb_rep_t,nb_sym_op,nchemin,neqm,ngroup, &
                       ngrph,nlmagm,nlmsa,nlmsam,nlmsamax,Normaltau,nspin,nspino,nspinp,pos,posi,Recop,Repres_comp(igrph), &
@@ -2098,8 +1940,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
                     lval(1:n) = lso(1:n,igrph)
                     call cnlmmax(lmaxso,lval,n,nlmso)
                     deallocate( lval )
-                    call mat(Adimp,Atom_axe,Axe_Atom_grn,Base_hexa,Base_ortho,Basereel,Cal_xanes,cgrad, &
-                    clapl,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,FDM_comp_m,Full_atom, &
+                    call mat(Adimp,Atom_axe,Axe_Atom_grn,Base_hexa,Base_ortho,Basereel,Cal_xanes,cgrad,clapl, &
+                    Classic_irreg,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,FDM_comp_m,Full_atom, &
                     gradvr,iaabsi,iaprotoi,iato,ibord,ich,ie,igreq,igroupi,igrph,irep_util,isbord,iso,ispin,isrt,ivois,isvois, &
                     karact,lato,lmaxa,lmaxso,lso,mato,MPI_host_num_for_mumps,mpirank0,mso, &
                     natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup,ngrph,nim,nicm, &
@@ -2134,8 +1976,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
               Time_rout(11) = Time_rout(11) + Time_loc(5) - Time_loc(4)
             endif
 
-            call cal_dens(Cal_xanes,Density_comp,drho_self,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom,Full_potential, &
-              Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,ich,itypei,itypepr,lla2_state,lmax_pot,lmaxat,m_hubb, &
+            call cal_dens(Cal_xanes,Classic_irreg,Density_comp,drho_self,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
+              Full_potential,Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,ich,itypei,itypepr,lla2_state,lmax_pot,lmaxat,m_hubb, &
               mpinodes,mpirank,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nlmagm,nlm_pot, &
               nrato,nrm,nrm_self,nspin,nspino,nspinp,ntype,numat,rato,Relativiste,Rmtg,Rmtsd,Solsing,Solsing_o,Spinorbite, &
               State_all_out,Statedens,Statedens_i,Taull,V_hubb,V_hubb_abs,V_intmax,V0bdc,Vrato,Ylm_comp)
@@ -2278,6 +2120,15 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
         Time_rout(18) = Time_rout(18) + tp_SCF_2 - tp_SCF_1
       endif
 
+    else
+
+      if( Flapw ) then
+        E_Fermi = 0._db
+      else
+        E_Fermi = -5._db / Rydb
+      endif
+      E_cut = E_Fermi
+
     endif
 
 !------ XANES----------------------------------------------------------------------------------------------------------------------------------
@@ -2285,11 +2136,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
     if( mpirank0 == 0 ) then
       call CPU_TIME(time)
       tp_XANES_1 = real(time,db)
-    endif
-
-    if( mpirank0 == 0 ) then
-      call CPU_TIME(time)
-      Time_loc(1) = real(time,db)
+      Time_loc(1) = tp_XANES_1
     endif
 
     Cal_xanes = .true.
@@ -2380,11 +2227,12 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
     deallocate( Taux_ipr )
 
     if( Dafs ) then
-      call prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Base_spin,Bormann, &
+      call Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Base_spin,Bormann, &
           Bulk,Bulk_lay,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_no_res,Film, &
           Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck(6),igreq,iprabs_nonexc,isigpi,itabs,itypepr,lvval, &
-          Magnetic,Mat_or,mpirank0,n_atom_bulk,n_atom_cap,n_atom_proto,natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m, &
-          ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs,nphim,npldafs,npldafs_bulk,nrato,nrm,nspin,ntype,numat,Orthmat,Orthmati, &
+          Magnetic,Mat_or,mpirank0,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_uc,natomsym,nbseuil, &
+          neqm,ngreq,ngrm,ngroup,ngroup_m, &
+          ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmat,Orthmati, &
           phdafs,phdf0t,phdt,poldafse,poldafsem,poldafss,poldafssm,popatm,posn,posn_bulk,posn_cap,psival,rato,Rot_int,Taux, &
           Taux_cap,Taux_oc,Temp,Temp_coef,Temperature,Troncature,Vec_orig,Vecdafse,Vecdafsem,Vecdafss,Vecdafssm,xsect_file, &
           Z_bulk,Z_cap)
@@ -2434,10 +2282,10 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
         ninitlr = nbseuil
       endif
 
-      call extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Block,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+      call extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
         Densite_atom,E_cut,Energ_s,Energphot,Epsii,Eseuil,Final_tddft, &
         f_avantseuil,Full_self_abs,hkl_dafs,iabsorig(multi_run),icheck(21),Int_tens,isigpi,isymeq, &
-        nsymextract(multi_run),jseuil,ltypcal,Matper,Moyenne,mpinodee,multi_imp,Multipole,n_block,n_multi_run,n_oo,n_rel, &
+        nsymextract(multi_run),jseuil,ltypcal,Matper,Moyenne,mpinodee,multi_imp,Multipole,n_multi_run,n_oo,n_rel, &
         n_tens_max,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv(multi_run), &
         nomfich_cal_convt,nom_fich_extract,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp, &
         phdafs,phdf0t,phdt,pol,poldafse,poldafss,Rot_int,Self_abs,Spherical_signal,Spherical_tensor,Spinorbite, &
@@ -2460,8 +2308,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
 ! Calcul des representations utiles
       if( .not. ( Density .or. Optic .or. NRIXS ) ) then
-        call etafin(Ylm_comp,icheck(8),iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,lplus1,lqua,lseuil, &
-                mpirank0,nb_rep,nbseuil,ngrph,nspino,Spinorbite,State_all,Sym_cubic)
+        call Etafin(E1M1,icheck(8),iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,lplus1,lqua,lseuil, &
+                    M1M1,mpirank0,nb_rep,nbseuil,ngrph,nspino,Spinorbite,State_all,Sym_cubic,Ylm_comp)
         if( ( Sym_cubic .or. Sym_4 ) .and. .not. State_all ) Recop = .true.
       else
         if( icheck(27) > 1 ) then
@@ -3215,7 +3063,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
                   ich = icheck(19)
 
                   if( Green ) then
-                    call msm(Axe_Atom_grn,Base_ortho,Cal_xanes,dcosxyz,Ecinetic,Eimag(ie),Full_atom,ia_eq,ia_rep, &
+                    call msm(Axe_Atom_grn,Base_ortho,Cal_xanes,Classic_irreg,dcosxyz,Ecinetic,Eimag(ie),Full_atom,ia_eq,ia_rep, &
                       iaabsi,iaprotoi,iato,ich,igreq,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato, &
                       n_atom_0,n_atom_ind,n_atom_proto,natome,natomp,nb_eq,nb_rpr,nb_rep_t,nb_sym_op,nchemin,neqm,ngroup, &
                       ngrph,nlmagm,nlmsa,nlmsam,nlmsamax,Normaltau,nspin,nspino,nspinp,pos,posi,Recop,Repres_comp(igrph), &
@@ -3226,8 +3074,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
                     lval(1:n) = lso(1:n,igrph)
                     call cnlmmax(lmaxso,lval,n,nlmso)
                     deallocate( lval )
-                    call mat(Adimp,Atom_axe,Axe_Atom_grn,Base_hexa,Base_ortho,Basereel,Cal_xanes,cgrad, &
-                    clapl,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,FDM_comp_m,Full_atom, &
+                    call mat(Adimp,Atom_axe,Axe_Atom_grn,Base_hexa,Base_ortho,Basereel,Cal_xanes,cgrad,clapl, &
+                    Classic_irreg,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,FDM_comp_m,Full_atom, &
                     gradvr,iaabsi,iaprotoi,iato,ibord,ich,ie,igreq,igroupi,igrph,irep_util,isbord,iso,ispin,isrt,ivois,isvois, &
                     karact,lato,lmaxa,lmaxso,lso,mato,MPI_host_num_for_mumps,mpirank0,mso, &
                     natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup,ngrph,nim,nicm, &
@@ -3249,12 +3097,21 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
             if( Optic_xanes .or. Tddft_xanes ) then
   ! Peut etre fait comme ca, car Eimag = 0 en tddft et optic
-              do lm1 = 1,min(nlmamax,nlmagm)
-                do lm2 = 1,min(nlmamax,nlmagm)
-                  do isp1 = 1,nspinp
-                    do isp2 = 1,nspinp
-                      Taull_tdd(ie,lm1,isp1,lm2,isp2) = 0.5_db * ( Taull(lm1,isp1,lm2,isp2,iaabsi) &
-                                                          - conjg( Taull(lm2,isp2,lm1,isp1,iaabsi) ) )
+              lm1 = 0
+              do l1 = 0,min(lmaxa(iaabsi),lmax_tddft)
+                do m1 = -l1,l1
+                  lm1 = lm1 + 1
+                  lm2 = 0
+                  do l2 = 0,min(lmaxa(iaabsi),lmax_tddft)
+                    do m2 = -l2,l2
+                      lm2 = lm2 + 1
+                      do isp1 = 1,nspinp
+                        do isp2 = 1,nspinp
+     ! In FDM, next line does not change nothing
+                          Taull_tdd(ie,lm1,isp1,lm2,isp2) = 0.5_db * ( Taull(lm1,isp1,lm2,isp2,iaabsi) &
+                                                              - conjg( Taull(lm2,isp2,lm1,isp1,iaabsi) ) )
+                        end do
+                      end do
                     end do
                   end do
                 end do
@@ -3320,7 +3177,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
                             endif
 
                             if( i == 1 ) then
-                              taull_abs(lms1,lms2,1,1,isp1,isp2,1) = Tau_ato(lm1,iss1,lm2,iss2,iapr)
+                              taull_abs(lms1,lms2,1,1,isp1,isp2,1) = 0.5_db * &
+                                                  ( Tau_ato(lm1,iss1,lm2,iss2,iapr) -  conjg( Tau_ato(lm2,iss2,lm1,iss1,iapr) ) )
                             else
                               taull_abs(lms1,lms2,1,1,isp1,isp2,1) = taull(lm1,iss1,lm2,iss2,iaabsi)
                             endif
@@ -3358,7 +3216,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
                 Enervide_t(1) = Enervide
                 if( mpirank_in_mumps_group == 0 ) then
                   if( NRIXS ) &
-                    call S_nrixs_cal(coef_g,Core_resolved,Ecinetic, &
+                    call S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                       Eimag(ie),Energ(ie),Enervide_t,Eseuil,FDM_comp,Final_tddft,Full_potential,Green,Green_i,Hubb_a,Hubb_d, &
                       icheck(20),l0_nrixs,lmax_nrixs,is_g,lmax_probe,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
                       mpinodes,mpirank, &
@@ -3367,7 +3225,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
                       Rmtsd(iprabs),S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Taull_abs, &
                       V_hubb_abs,V_intmax,V0bdc,Vra,Ylm_comp)
 
-                  call tenseur_car(Base_spin,coef_g,Core_resolved,Ecinetic,Eimag(ie), &
+                  call tenseur_car(Base_spin,Classic_irreg,coef_g,Core_resolved,Ecinetic,Eimag(ie), &
                       Energ(ie),Enervide_t,Eseuil,FDM_comp_m,Final_optic,Final_tddft,Full_potential,Green,Green_i,Hubb_a, &
                       Hubb_d,icheck(20),ie,ip_max,ip00,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                       mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi, &
@@ -3410,8 +3268,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
             Solsing_o = Solsing_only
 
             if( Density ) &
-              call cal_dens(Cal_xanes,Density_comp,drho_self,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom,Full_potential, &
-              Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,ich,itypei,itypepr,lla2_state,lmax_pot,lmaxat,m_hubb, &
+              call cal_dens(Cal_xanes,Classic_irreg,Density_comp,drho_self,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
+              Full_potential,Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,ich,itypei,itypepr,lla2_state,lmax_pot,lmaxat,m_hubb, &
               mpinodes,mpirank,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nlmagm,nlm_pot, &
               nrato,nrm,nrm_self,nspin,nspino,nspinp,ntype,numat,rato,Relativiste,Rmtg,Rmtsd,Solsing,Solsing_o,Spinorbite, &
               State_all_out,Statedens,Statedens_i,Taull,V_hubb,V_hubb_abs,V_intmax,V0bdc,Vrato,Ylm_comp)
@@ -3456,10 +3314,10 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
               if( .not. Optic ) then
 
-                call write_coabs(Allsite,angxyz,axyz,Base_spin,Block,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+                call write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
                   Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
                   f_avantseuil,Full_self_abs,Green_i,hkl_dafs,iabsorig(multi_run),icheck(21),ie,ie_computer,Int_tens, &
-                  isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_block,n_multi_run,n_oo,n_rel,n_tens_max, &
+                  isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
                   natomsym,nbseuil, &
                   ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
                   nphim,nplr,nplrm,nseuil,nspinp,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss,Rot_int, &
@@ -3615,13 +3473,13 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
                Rmtg(iprabs), Rmtsd_abs, rsato_t, rsbdc, Taull_tdd, V_hubb_abs, V0muf, Vcato_t, Vhbdc, Vxcato_t, VxcbdcF)
         endif
 
-        call main_optic(angxyz,Allsite,axyz,Base_spin,Block,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+        call main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Classic_irreg,Core_resolved,Dafs,Dafs_bio, &
           Densite_atom,dV0bdcF,E_cut,E_cut_imp,E_Fermi_man,Eclie,Eneg,Energ_s, &
           Extract,Eseuil,Full_potential,Full_self_abs,Green,hkl_dafs,Hubb_a,Hubb_d,icheck, &
           iabsorig(multi_run),ip_max,ip0,isigpi,isymeq, &
           jseuil,ldip,lmax_pot,lmax_probe,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua, &
           lseuil,ltypcal,m_hubb,Matper,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
-          msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_block,n_multi_run, &
+          msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_multi_run, &
           n_oo,n_rel,n_rout,n_tens_max,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitl,ninitlr,nlm_pot, &
           nlm_probe,nlmamax,nomabs,nomfich,nomfich_cal_conv(multi_run),nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm, &
           nr,nrm,nseuil,nspin,nspino,nspinp, &
@@ -3642,7 +3500,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
           ninitl_out = 1
         endif
 
-        if( Tddft ) call main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,Block,coef_g, &
+        if( Tddft ) call main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,Classic_irreg,coef_g, &
           Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Densite_atom,Dipmag, &
           dV0bdcF,E_cut,E_cut_imp,E_Fermi_man,Eclie,Eneg, &
           Energ_s,Energphot,Extract,Eseuil,f_avantseuil,Full_potential,Full_self_abs, &
@@ -3650,7 +3508,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
           jseuil,Kern_fac,ldip,lmax_pot,lmaxabs_t,lmoins1,loct,lplus1,lqua,lseuil, &
           ltypcal,m_g,m_hubb,Magnetic,Matper,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi, &
           msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_run,Multipole, &
-          n_block,n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
+          n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
           natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ninit1,ninitl,ninitl_out,ninitlr,nlm_pot,nlmamax, &
           nomabs,nomfich,nomfich_cal_tddft_conv(multi_run),nomfich_s,nomfich_tddft_data, &
           nphi_dafs,nphim,npldafs,nplr,nplrm,nr,nrm,nseuil,nspin,nspino,nspinp, &
@@ -3676,7 +3534,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
         ninitl_out = 1
 
-        call main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,Block,coef_g, &
+        call main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,Classic_irreg,coef_g, &
           Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Delta_edge,Delta_Eseuil,Densite_atom,Dipmag, &
           dV0bdcF,Dyn_eg,Dyn_g,E_cut,E_cut_imp,E_Fermi,E_Fermi_man,Ecent,Eclie,Elarg,Eneg, &
           Energ_s,Energphot,Epsii,Extract,Epsii_moy,Eseuil,Estart,f_avantseuil,Full_potential,Full_self_abs, &
@@ -3685,7 +3543,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
           jseuil,Kern_fac,l0_nrixs,ldip,lmax_pot,lmax_nrixs,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua,lseuil, &
           ltypcal,m_g,m_hubb,Magnetic,Matper,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi, &
           msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_run,Multipole, &
-          n_block,n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
+          n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
           natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ngamh,ninit1,ninitl,ninitl_out,ninitlr,nlm_pot,nlmamax, &
           nomabs,nomfich,nomfich_cal_tddft_conv(multi_run),nomfich_s,nomfich_tddft_data, &
           nphi_dafs,nphim,npldafs,nplr,nplrm,nq_nrixs,nr,NRIXS,nrm,nseuil,nspin,nspino,nspinp, &
@@ -3766,10 +3624,10 @@ end
 
 !*************************************************************************************************************************
 
-subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Block,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
          Densite_atom,E_cut,Energ_s,Energphot,Epsii,Eseuil,Final_tddft, &
          f_avantseuil,Full_self_abs,hkl_dafs,iabsorig,icheck,Int_tens,isigpi,isymeq, &
-         isymext,jseuil,ltypcal,Matper,Moyenne,mpinodee,multi_run,Multipole,n_block,n_multi_run,n_oo,n_rel,n_tens_max, &
+         isymext,jseuil,ltypcal,Matper,Moyenne,mpinodee,multi_run,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
          natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv, &
          nomfich_cal_convt,nom_fich_extract,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp, &
          phdafs,phdf0t,phdt,pol,poldafse,poldafss,Rot_int,Self_abs,Spherical_signal,Spherical_tensor,Spinorbite, &
@@ -3778,8 +3636,8 @@ subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Block,Ca
   use declarations
   implicit none
 
-  integer:: Block, iabsorig, icheck, ie, ie_computer, isymext, jseuil, &
-    mpinodee, multi_run, n_block, n_multi_run, n_oo, n_rel, n_tens_max, natomsym, nbseuil, ncolm, &
+  integer:: iabsorig, icheck, ie, ie_computer, isymext, jseuil, &
+    mpinodee, multi_run, n_multi_run, n_oo, n_rel, n_tens_max, natomsym, nbseuil, ncolm, &
     ncolr, ncolt, ninit1, ninitlr, nenerg_s, nseuil, nspin, nphim, npldafs, nplr, nplrm, numat_abs, nxanout
 
   integer, dimension(npldafs,2):: isigpi
@@ -3828,10 +3686,10 @@ subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Block,Ca
     call extract_coabs(Ang_rotsup,Core_resolved,Green_int,icheck,ie,isymext,multi_run,Multipole, &
             n_oo,n_rel,nenerg_s,ninit1,ninitlr,nom_fich_extract,Rotsup,secdd,secdd_m,secdo,secdo_m,secdq, &
             secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Tensor_rot,Tddft)
-    call write_coabs(Allsite,angxyz,axyz,Base_spin,Block,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+    call write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             Densite_atom,E_cut,Energ_s,Energphot,.true.,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer,Int_tens, &
-            isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_block,n_multi_run,n_oo,n_rel,n_tens_max, &
+            isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
             natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
             nphim,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss,Rot_int, &

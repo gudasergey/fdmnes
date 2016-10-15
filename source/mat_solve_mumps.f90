@@ -8,7 +8,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
         new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmomax, nlmsa, nlmso, nlmso_i, &
         nphiato1, nphiato7, npoint, npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
         numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, smi, smr, Spinorbite, Time_fill, Time_tria, &
-        Vr, Ylmato, Ylmso)
+        Vr, Ylm_comp, Ylmato, Ylmso)
 
   use declarations
   implicit none
@@ -94,7 +94,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
   complex(kind=db), dimension(nsort_c,0:lmaxso,nspinr):: Bessel, Neuman
 
-  logical:: Base_hexa, Basereel, Cal_comp, E_comp, Relativiste, Repres_comp, Spinorbite
+  logical:: Base_hexa, Basereel, Cal_comp, E_comp, Relativiste, Repres_comp, Spinorbite, Ylm_comp
 
   real(kind=sg):: time
 
@@ -167,7 +167,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     nligneso, nlmagm, nlmmax, nlmomax, nlmsa, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, npsom, nsm, nso1, &
     nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
     numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, Spinorbite,  &
-    smi, smr, Vr, Ylmato, Ylmso )
+    smi, smr, Vr, Ylm_comp, Ylmato, Ylmso )
     
 ! expand arrays            
     oldSize = size(rowIndexes)

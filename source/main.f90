@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 9 September 2016, 23 Fructidor, An 224.
+! FDMNES II program, Yves Joly, Oana Bunau, 14 October 2016, 23 Vendemiaire, An 225.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -42,11 +42,10 @@ module declarations
   integer, parameter:: nassm = 103   ! Number of chemical elements in the Mendeleiev table
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
-!  integer, parameter:: nopsm = 72    ! Number of symmetry operation
 
   character(len=50):: com_date, com_time
 
-  character(len=50), parameter:: Revision = '   FDMNES II program, Revision 9th of September 2016'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 14th of October 2016'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -81,7 +80,7 @@ program fdmnes
   implicit none
   include 'mpif.h'
 
-  integer:: i, ipr, istat, j, k, mpirank_in_mumps_group, MPI_host_num_for_mumps, mpierr, mpinodes0, mpirank, mpirank0, n, &
+  integer:: i, ipr, istat, j, k, l, mpirank_in_mumps_group, MPI_host_num_for_mumps, mpierr, mpinodes0, mpirank, mpirank0, n, &
             ncalcul, nnombre
 
   character(len=1):: mot1
@@ -146,6 +145,16 @@ program fdmnes
         exit
       end do
       Open(2,file=mot,status='old',iostat=istat)
+      if( istat /= 0 ) then
+        l = len_trim(mot)
+        if( l > 4 ) then
+          if( mot(l-3:l-3) /= '.') then
+            mot(l+1:l+4) = '.txt'
+            Open(2,file=mot,status='old',iostat=istat)
+            if( istat /= 0 ) mot(l+1:l+4) = '    '
+          endif
+        endif
+      endif
       if( istat /= 0 ) then
         call write_open_error(mot,istat,0)
         close(9)
@@ -229,8 +238,8 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   implicit none
   include 'mpif.h'
 
-  integer, parameter:: nkw_all = 36
-  integer, parameter:: nkw_fdm = 188
+  integer, parameter:: nkw_all = 37
+  integer, parameter:: nkw_fdm = 191
   integer, parameter:: nkw_conv = 30
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
@@ -292,7 +301,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   real(kind=sg) time
 
   data kw_all /  'bormann  ','check    ','check_all','check_coa', &
-     'check_con','check_pot','check_mat','check_sph','comment  ', &
+     'check_con','check_pot','check_mat','check_sph','check_ten','comment  ', &
      'delta_edg','ecent    ','efermi   ','elarg    ','estart   ', &
      'filout   ','folder_da','fprime_at','gamma_hol','gamma_max','length_li','no_check ', &
      'imfpin   ','elfin    ','dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
@@ -306,12 +315,12 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   data kw_fdm/  &
      'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_conf','ang_spin ','atomic_sc','axe_spin ', &
      'base_comp','base_reel','base_spin','bond     ','bulk     ','bulk_laye','cap_disor','cap_rough','cap_layer','cap_shift', &
-     'cap_thick','cartesian','center   ','center_ab','chlib    ','cif_file ','clementi ','core_reso','crystal  ','crystal_c', &
-     'crystal_t','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_','dip_rel  ', &
+     'cap_thick','cartesian','center   ','center_ab','chlib    ','cif_file ','classic_i','clementi ','core_reso','crystal  ', &
+     'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_','dip_rel  ', &
      'e1e1     ','delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ', &
      'dyn_eg   ','edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ', &
-     'energphot','etatlie  ','excited  ','extract  ','extractpo','extractsy','fdm_comp ','film     ','film     ','film_roug', &
-     'film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ','flapw_s  ', &
+     'energphot','etatlie  ','excited  ','extract  ','extractpo','extractsy','fdm_comp ','film     ','film_cif_','film_pdb_', &
+     'film_t   ','film_roug','film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ','flapw_s  ', &
      'flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','hkl_film ','hubbard  ', &
      'iord     ','kern_fac ','lmax     ','lmax_nrix','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ', &
      'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','molecule ','molecule_', &
@@ -576,6 +585,9 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
         case('check_mat')
           icheck(19) = 3
+
+        case('check_ten')
+          icheck(20) = 3
 
         case('check_coa')
           icheck(21) = 3

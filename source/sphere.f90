@@ -1467,10 +1467,10 @@ end
 
 !**********************************************************************
 
-! Calcul des integrales radiales et de la solution singuliere
-! Appele par tenseur_car
+! Calculation of radial integrals and irregular solution
+! Called by tenseur_car
 
-subroutine radial(Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft,Full_potential,Hubb_a,Hubb_d,icheck, &
+subroutine radial(Classic_irreg,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft,Full_potential,Hubb_a,Hubb_d,icheck, &
          initlv,ip_max,ip0,lmax,lmax_pot,m_hubb,nbseuil,ninit1,ninitlv,nlm_pot,nlma,nlma2,nr,NRIXS,nrm,nspin,nspino, &
          nspinp,numat,psii,r,r_or_bess,Relativiste,Rmtg,Rmtsd,rof,Singul,Solsing,Spinorbite,V_hubb,V_intmax,V0bd,Vrato, &
          Ylm_comp)
@@ -1491,7 +1491,7 @@ subroutine radial(Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft,Full_potentia
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
   complex(kind=db), dimension(:,:,:,:), allocatable:: Tau
 
-  logical Ecomp, Final_tddft, Full_potential, Hubb_a, &
+  logical:: Classic_irreg, Ecomp, Final_tddft, Full_potential, Hubb_a, &
     Hubb_d, Hubb_m, NRIXS, Radial_comp, Relativiste, Renorm, Solsing, Spinorbite, Ylm_comp
 
   real(kind=db):: Eimag, Energ, Enervide, Ephoton, Rmtg, Rmtsd, V_intmax
@@ -1518,7 +1518,7 @@ subroutine radial(Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft,Full_potentia
       else
         iseuil = 2
       endif
-    else ! non utilise en DFT
+    else ! not used in DFT (only for TDDFT)
       iseuil = initlv
     endif
   else
@@ -1548,9 +1548,9 @@ subroutine radial(Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft,Full_potentia
       Ephoton = Energ + Eseuil(i)
     endif
     Ephoton = max( 0.001_db, Ephoton ) ! Optic case
-! Terme multiplicatif pour les transitions quadrupolaires
-! En S.I. vecond = k = E*alfa_sf*4*pi*epsilon0 / (e*e)
-! En ua et rydb : k = 0.5 * alfa_sf * E
+! Multiplicative term for quadrupolar transitions
+! In S.I. vecond = k = E*alfa_sf*4*pi*epsilon0 / (e*e)
+! In a.u. and Rydberg : k = 0.5 * alfa_sf * E
     Vecond(i) = 0.5 * alfa_sf * Ephoton
   end do
 
@@ -1606,19 +1606,19 @@ subroutine radial(Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft,Full_potentia
          l,lmax,m_hubb,nlm,nlm1,nlm2,nr,nrmtg,nspin,nspino,nspinp,numat,r,Radial_comp,Relativiste,Renorm,Rmtg,Spinorbite,Tau,ui, &
          ur,V,V_hubb)
 
-! Integrale radiale pour la regle d'or de Fermi
+! Radial integral for the golden rule
     call radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,l,nlm1,nlm2,nbseuil, &
            ninitlv,nlma,nlma2,nr,NRIXS,nrm,nrmtsd,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)
 
-! Calcul de la solution singuliere
-    if( Solsing ) call Cal_Solsing(Ecomp,Eimag,f2,Final_tddft,Full_potential,g0,gmi,gp,gso,Hubb_a,Hubb_d, &
+! Calculation of irregular solution
+    if( Solsing ) call Cal_Solsing(Classic_irreg,Ecomp,Eimag,f2,Final_tddft,Full_potential,g0,gmi,gp,gso,Hubb_a,Hubb_d, &
          icheck,initlv,ip_max,ip0,iseuil,konde,l,lmax,m_hubb,nlm, &
          nlm1,nlm2,nbseuil,ninitlv,nlma,nr,NRIXS,nrm,nrmtsd,nspin,nspino,nspinp, &
          numat,psii,r,r_or_bess,Radial_comp,Rmtsd,Singul,Spinorbite,Tau,ui,ur,V,V_hubb,Vecond)
 
     deallocate( Tau, ui, ur )
 
-  end do   ! fin de la boucle sur l
+  end do   ! end of loop over l
 
   if( icheck > 1 ) then
     mot = ' '
@@ -1872,8 +1872,7 @@ end
 ! Calcul de l'integrale radiale de la regle d'or de Fermi.
 ! ui et ur sont les fonctions d'onde fois r.
 
-subroutine radial_matrix_optic(ip_max,ip0,ne,nlm1g,nlm_fp,nr,nrmtsd,nspinp, &
-           nspino,r,Radial_comp,Rmtsd,roff_rr,ui,ur,Vecond)
+subroutine radial_matrix_optic(ip_max,ip0,ne,nlm1g,nlm_fp,nr,nrmtsd,nspinp,nspino,r,Radial_comp,Rmtsd,roff_rr,ui,ur,Vecond)
 
   use declarations
   implicit none
@@ -1887,7 +1886,6 @@ subroutine radial_matrix_optic(ip_max,ip0,ne,nlm1g,nlm_fp,nr,nrmtsd,nspinp, &
   real(kind=db), dimension(nr):: r, rp, fct
   real(kind=db), dimension(nr,nlm1g,nlm_fp,nspinp,nspino,ne):: ui, ur
   real(kind=db), dimension(nlm1g,nlm1g,nlm_fp,nlm_fp,nspinp**2,nspino**2,ip0:ip_max):: roff_ii, roff_ir, roff_ri, roff_rr
-
 
   do ip = ip0,ip_max
 
@@ -1963,7 +1961,7 @@ end
 ! Calcul de la solution singuliere pour l'absorption
 ! Appele par Radial
 
-Subroutine Cal_Solsing(Ecomp,Eimag,f2,Final_tddft,Full_potential,g0,gm,gp,gso,Hubb_a,Hubb_d, &
+Subroutine Cal_Solsing(Classic_irreg,Ecomp,Eimag,f2,Final_tddft,Full_potential,g0,gm,gp,gso,Hubb_a,Hubb_d, &
          icheck,initlv,ip_max,ip0,iseuil,konde,ll,lmax,m_hubb,nlm, &
          nlm1,nlm2,nbseuil,ninitlv,nlma,nr,NRIXS,nrm,nrmtsd,nspin,nspino,nspinp, &
          numat,psii,r,r_or_bess,Radial_comp,Rmtsd,Singul,Spinorbite,Tau,ui,ur,V,V_hubb,Vecond)
@@ -1981,7 +1979,7 @@ Subroutine Cal_Solsing(Ecomp,Eimag,f2,Final_tddft,Full_potential,g0,gm,gp,gso,Hu
   complex(kind=db), dimension(nlm1,nspinp,nlm1,nspinp):: Tau
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
 
-  logical:: Ecomp, Final_tddft, Full_potential, Hubb_a, Hubb_d, NRIXS, Radial_comp, Spinorbite
+  logical:: Classic_irreg, Ecomp, Final_tddft, Full_potential, Hubb_a, Hubb_d, NRIXS, Radial_comp, Spinorbite
 
   real(kind=db):: Eimag, fac1, fac2, Rmtsd
   real(kind=db), dimension(nbseuil):: Vecond
@@ -2011,7 +2009,7 @@ Subroutine Cal_Solsing(Ecomp,Eimag,f2,Final_tddft,Full_potential,g0,gm,gp,gso,Hu
   allocate( usr(nrmtsd+1,nlm1,nlm2,nspinp,nspino) )
 
 ! gm et gp inverse dans le sousprogramme
-  call Sch_radial_solsing(Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a,Hubb_d,icheck,konde, &
+  call Sch_radial_solsing(Classic_irreg,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a,Hubb_d,icheck,konde, &
        ll,lmax,m_hubb,nlm,nlm1,nlm2,nr,nrmtsd,nspin,nspino,nspinp,numat,r,Radial_comp,Rmtsd,Spinorbite,Tau,usi,usr,V,V_hubb)
 
   do is = ns1,ns2
@@ -2123,7 +2121,7 @@ end
 
 ! Recopie de Sch_radial: gm et gp sont inverses dans l'appel
 
-subroutine Sch_radial_solsing(Ecomp,Eimag,f2,Full_potential,g0,gp,gm,gso,Hubb_a,Hubb_d,icheck,konde, &
+subroutine Sch_radial_solsing(Classic_irreg,Ecomp,Eimag,f2,Full_potential,g0,gp,gm,gso,Hubb_a,Hubb_d,icheck,konde, &
        ll,lmax,m_hubb,nlm,nlm1,nlm2,nr,nrmtsd,nspin,nspino,nspinp,numat,r,Radial_comp,Rmtsd,Spinorbite,Tau,usi,usr,V,V_hubb)
 
   use declarations
@@ -2132,13 +2130,13 @@ subroutine Sch_radial_solsing(Ecomp,Eimag,f2,Full_potential,g0,gp,gm,gso,Hubb_a,
   integer:: icheck, im, ip, ir, isol, isp, ispp, isq, isr, l, l_hubbard, l2, li, ll, lf, lmax, lp, m, m_hubb, mp, ms, n, &
     nlm, nlm1, nlm2, np, nr, nrmtsd, ns, nspin, nspino, nspinp, numat
 
-  logical:: Ecomp, Full_potential, Hubb_a, Hubb_d, Hubb_m, Hubb_nd, Radial_comp, Spinorbite
+  logical:: Classic_irreg, Ecomp, Full_potential, Hubb_a, Hubb_d, Hubb_m, Hubb_nd, Radial_comp, Spinorbite
 
   complex(kind=db):: fnormc, V_h, z
   complex(kind=db), dimension(nspin):: konde
   complex(kind=db), dimension(0:lmax):: bess, neum
   complex(kind=db), dimension(nlm1,nspinp,nlm1,nspinp):: Tau
-  complex(kind=db), dimension(nrmtsd:nrmtsd+1,0:lmax,nspin):: Hankel
+  complex(kind=db), dimension(nrmtsd:nrmtsd+1,0:lmax,nspin):: Bessel, Hankel
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
   complex(kind=db), dimension(:,:,:,:,:), allocatable:: us
 
@@ -2158,22 +2156,31 @@ subroutine Sch_radial_solsing(Ecomp,Eimag,f2,Full_potential,g0,gp,gm,gso,Hubb_a,
   us(:,:,:,:,:) = ( 0._db, 0._db )
 
 ! Hankel est en fait -i.hankel+
-  do ir = nrmtsd,nrmtsd+1
-    do isp = 1,nspin
-      if( Ecomp ) then
-        fnormc = sqrt( konde(isp) / pi )
-        z = konde(isp) * r(ir)
-        call cbessneu(fnormc,z,lmax,lmax,bess,neum)
-        Hankel(ir,0:lmax,isp) = neum(0:lmax) - img * bess(0:lmax)
-      else
-        konder = Real( konde(isp), db )
-        fnorm = sqrt( konder / pi )
-        zr = konder * r(ir)
-        call cbessneur(fnorm,zr,lmax,lmax,bessr,neumr)
-        Hankel(ir,0:lmax,isp) = neumr(0:lmax) - img * bessr(0:lmax)
-      endif
+    do ir = nrmtsd,nrmtsd+1
+      do isp = 1,nspin
+        if( Ecomp ) then
+          fnormc = sqrt( konde(isp) / pi )
+          z = konde(isp) * r(ir)
+          call cbessneu(fnormc,z,lmax,lmax,bess,neum)
+          if( Classic_irreg ) then
+            Hankel(ir,0:lmax,isp) = neum(0:lmax) - img * bess(0:lmax)
+          else
+ !  The minus is to change the sign of the irregular solution corresponding to the atomic solution
+            Bessel(ir,0:lmax,isp) = - bess(0:lmax)
+          endif
+        else
+          konder = Real( konde(isp), db )
+          fnorm = sqrt( konder / pi )
+          zr = konder * r(ir)
+          call cbessneur(fnorm,zr,lmax,lmax,bessr,neumr)
+          if( Classic_irreg ) then
+            Hankel(ir,0:lmax,isp) = neumr(0:lmax) - img * bessr(0:lmax)
+          else
+            Bessel(ir,0:lmax,isp) = - cmplx( bessr(0:lmax), 0._db, db )
+          endif
+        endif
+      end do
     end do
-  end do
 
   if( Full_potential ) then
     li = 0
@@ -2212,7 +2219,11 @@ subroutine Sch_radial_solsing(Ecomp,Eimag,f2,Full_potential,g0,gp,gm,gso,Hubb_a,
               endif
 
               do ir = nrmtsd,nrmtsd+1
-                us(ir,n,np,isp,isol) = Tau(ns,isq,n,isp) * r(ir) * Hankel(ir,l,isr)
+                if( Classic_irreg ) then
+                  us(ir,n,np,isp,isol) = Tau(ns,isq,n,isp) * r(ir) * Hankel(ir,l,isr)
+                else
+                  us(ir,n,np,isp,isol) = r(ir) * Bessel(ir,l,isr)
+                endif
               end do
             end do
           end do
@@ -2335,7 +2346,7 @@ end
 ! Calcul des integrales radiales dans le cas optique
 ! Appele par tenseur_car
 
-subroutine radial_optic(Ecinetic_t,Eimag_t,Energ,Enervide,Full_potential,Hubb_a,Hubb_d,icheck,ief,ip_max,ip0, &
+subroutine radial_optic(Classic_irreg,Ecinetic_t,Eimag_t,Energ,Enervide,Full_potential,Hubb_a,Hubb_d,icheck,ief,ip_max,ip0, &
          lmax,lmax_pot,m_depend,m_hubb,n_ph,n_Ec,n_V,nlm_pot,nlm1g,nlm_fp,No_diag,nr,nr_zet,nspin,nspino,nspinp,numat,r, &
          Relativiste,Rmtg,Rmtsd,roff_rr,roff0,Solsing,Spinorbite,V_hubb,V_intmax,V0bd_t,Vrato_t,Ylm_comp,zet)
 
@@ -2354,7 +2365,7 @@ subroutine radial_optic(Ecinetic_t,Eimag_t,Energ,Enervide,Full_potential,Hubb_a,
   complex(kind=db), dimension(:,:,:,:,:), allocatable:: us
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: us_t
 
-  logical:: Ecomp, Diag, Full_potential, Hubb_a, Hubb_d, Hubb_m, m_depend, No_diag, Radial_comp, Relativiste, &
+  logical:: Classic_irreg, Ecomp, Diag, Full_potential, Hubb_a, Hubb_d, Hubb_m, m_depend, No_diag, Radial_comp, Relativiste, &
     Renorm, Solsing, Spinorbite, Ylm_comp
 
   real(kind=db):: Eimag, Rmtg, Rmtsd, V_intmax, Vecond
@@ -2472,7 +2483,7 @@ subroutine radial_optic(Ecinetic_t,Eimag_t,Energ,Enervide,Full_potential,Hubb_a,
 ! gm et gp inverse dans le sousprogramme
       if( Solsing ) then
         gmi(:,:) =  1 / gm(:,:)
-        call Sch_radial_solsing(Ecomp,Eimag,f2,Full_potential,g0,gmi,gp,gso,Hubb_a,Hubb_d,icheck,konde, &
+        call Sch_radial_solsing(Classic_irreg,Ecomp,Eimag,f2,Full_potential,g0,gmi,gp,gso,Hubb_a,Hubb_d,icheck,konde, &
            l,lmax,m_hubb,nlm,nlm1,nlm2,nr,nrmtsd,nspin,nspino,nspinp,numat,r,Radial_comp,Rmtsd,Spinorbite,Tau,usi,usr,V,V_hubb)
       endif
 
@@ -2557,8 +2568,7 @@ subroutine radial_optic(Ecinetic_t,Eimag_t,Energ,Enervide,Full_potential,Hubb_a,
       ur1(:,:,:,:,:,2) = ur_t(:,:,:,:,:,ie2)
       ui1(:,:,:,:,:,2) = ui_t(:,:,:,:,:,ie2)
      
-      call radial_matrix_optic(ip_max,ip0,n_Ec,nlm1g,nlm_fp,nr,nrmtsd,nspinp, &
-           nspino,r,Radial_comp,Rmtsd,roff_rr,ui1,ur1,Vecond)
+      call radial_matrix_optic(ip_max,ip0,n_Ec,nlm1g,nlm_fp,nr,nrmtsd,nspinp,nspino,r,Radial_comp,Rmtsd,roff_rr,ui1,ur1,Vecond)
 
       if( ief > 1 .and. ip0 == 0 ) then
         i = 0
@@ -2613,9 +2623,7 @@ subroutine radial_optic(Ecinetic_t,Eimag_t,Energ,Enervide,Full_potential,Hubb_a,
         end do
       end do
     endif
-
-  elseif( icheck > 1 ) then
-
+    
     mot = ' '
     if( Ecomp .and. nspino == 2 ) then
       mot(11:17) = 'up sol1'
@@ -2642,9 +2650,9 @@ subroutine radial_optic(Ecinetic_t,Eimag_t,Energ,Enervide,Full_potential,Hubb_a,
           write(3,160) '  octupole'
       end select
       if( Full_potential .or. Hubb_a ) then
-        write(3,170) '  l  m lp mp', mot
+        write(3,170) ' l1 m1 lp mp l2 m2 lp mp', mot
       else
-        write(3,175) '  l  m', mot
+        write(3,175) ' l1 m1 l2 m2', mot
       endif
 
       do l = 0,lmax
@@ -2680,7 +2688,7 @@ subroutine radial_optic(Ecinetic_t,Eimag_t,Energ,Enervide,Full_potential,Hubb_a,
                       if( Full_potential .or. Hubb_a ) then
                         write(3,180) l, m, lp, mp, lf, mf, lpf, mpf, (roff_rr(lm,lmf,lmp,lmpf,isp,:,ip), isp = 1,nspinp**2)
                       else
-                        write(3,180) l, m, lf, mf, (roff_rr(lm,lmf,lmp,lmpf,isp,:,ip), isp = 1,nspinp**2)
+                        write(3,185) l, m, lf, mf, (roff_rr(lm,lmf,lmp,lmpf,isp,:,ip), isp = 1,nspinp**2)
                       endif
                     end do
                   end do
@@ -2700,10 +2708,11 @@ subroutine radial_optic(Ecinetic_t,Eimag_t,Energ,Enervide,Full_potential,Hubb_a,
   130 format(/' Roff0',/'   Enervide_1   Enervide_2', 1000(4x,i3,3i2) ) 
   140 format(2f13.5,1p,1000e13.5)
   145 format(/' Roff0',/'   Enervide_1   Enervide_2', 1000(3x,2i3,4i1) ) 
-  160 format(/' Radial matrix, ',a10,1x,'term:')
-  170 format(a12,a104)
-  175 format(a6,a104)
-  180 format(4i3,1p,16e13.5)
+  160 format(/' Radial matrix (Roff_rr), ',a10,1x,'term:')
+  170 format(a24,a104)
+  175 format(a12,a104)
+  180 format(8i3,1p,16e13.5)
+  185 format(4i3,1p,16e13.5)
 end
 
 !***********************************************************************
@@ -2890,8 +2899,8 @@ end
 
 ! Calcul de l'incrementation de la densite d'etat
 
-subroutine cal_dens(Cal_xanes,Density_comp,drho_self,Ecinetic,Eimag,Energ,Enervide,Full_atom,Full_potential, &
-            Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,icheck,itypei,itypepr,lla2_state,lmax_pot,lmaxat,m_hubb, &
+subroutine cal_dens(Cal_xanes,Classic_irreg,Density_comp,drho_self,Ecinetic,Eimag,Energ,Enervide,Full_atom, &
+            Full_potential,Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,icheck,itypei,itypepr,lla2_state,lmax_pot,lmaxat,m_hubb, &
             mpinodes,mpirank,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nlmagm,nlm_pot, &
             nrato,nrm,nrm_self,nspin,nspino,nspinp,ntype,numat,rato,Relativiste,Rmtg,Rmtsd,Solsing,Solsing_only,Spinorbite, &
             State_all,Statedens,Statedens_i,Taull,V_hubb,V_hubb_abs,V_intmax,V0bd,Vrato,Ylm_comp)
@@ -2903,7 +2912,7 @@ subroutine cal_dens(Cal_xanes,Density_comp,drho_self,Ecinetic,Eimag,Energ,Enervi
     m_hubb, mpinodes, mpirank, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, &
     n_atom_proto, natome, nlm_pot, nlma, nlma2, nlmagm, nr, nrs, nrm, nrm_self, nspin, nspino, nspinp, ntype, Z
 
-  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: taull
+  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: Taull
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb_abs
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb
   complex(kind=db), dimension(:,:,:,:), allocatable:: V_hubb_t
@@ -2913,8 +2922,8 @@ subroutine cal_dens(Cal_xanes,Density_comp,drho_self,Ecinetic,Eimag,Energ,Enervi
   integer, dimension(0:n_atom_proto):: itypepr, lmaxat
   integer, dimension(natome):: iaprotoi, itypei
 
-  logical:: Absorbeur, Cal_xanes, Density_comp, Full_atom, Full_potential, Hubb_a, Hubb_d, Relativiste, Self, Solsing, &
-    Solsing_only, Spinorbite, State_all, Ylm_comp, Ylm_mod
+  logical:: Absorbeur, Cal_xanes, Classic_irreg, Density_comp, Full_atom, Full_potential, Hubb_a, Hubb_d, Relativiste, Self, &
+    Solsing, Solsing_only, Spinorbite, State_all, Ylm_comp, Ylm_mod
   logical, dimension(0:ntype):: Hubb
   logical, dimension(n_atom_0:n_atom_ind):: iapr_done
   logical, dimension(n_atom_0_self:n_atom_ind_self):: Hubb_diag
@@ -3022,7 +3031,7 @@ subroutine cal_dens(Cal_xanes,Density_comp,drho_self,Ecinetic,Eimag,Energ,Enervi
       end do
     end do
 
-    call radial_sd(drho,Ecinetic,Eimag,Energ,Enervide,Full_potential,Hubb_a,Hubb_d,ia,icheck,lmax, &
+    call radial_sd(Classic_irreg,drho,Ecinetic,Eimag,Energ,Enervide,Full_potential,Hubb_a,Hubb_d,ia,icheck,lmax, &
          lmax_pot,m_hubb,nlm_pot,nlma,nlma2,nr,nrs,nspin,nspino,nspinp,Z,r,Relativiste,Rmtg(ipr), &
          Rmtsd(ipr),Self,Solsing,Solsing_only,Spinorbite,State,State_i,Taulla,V_hubb_t,V_intmax,V0bd,Vrato_t,Ylm_comp,Ylm_mod)
 
@@ -3060,7 +3069,7 @@ end
 ! Ylm_mod = .true. correspond au calcul en harmo complexe qu'on projete sur des harmo reelles
 ! Appele par cal_dens
 
-subroutine radial_sd(drho,Ecinetic,Eimag,Energ,Enervide,Full_potential,Hubb_a,Hubb_d,ia,icheck,lmax, &
+subroutine radial_sd(Classic_irreg,drho,Ecinetic,Eimag,Energ,Enervide,Full_potential,Hubb_a,Hubb_d,ia,icheck,lmax, &
          lmax_pot,m_hubb,nlm_pot,nlma,nlma2,nr,nrs,nspin,nspino,nspinp,numat,r,Relativiste,Rmtg, &
          Rmtsd,Self,Solsing,Solsing_only,Spinorbite,State,State_i,Taull,V_hubb,V_intmax,V0bd,Vrato,Ylm_comp,Ylm_mod)
 
@@ -3075,7 +3084,7 @@ subroutine radial_sd(drho,Ecinetic,Eimag,Energ,Enervide,Full_potential,Hubb_a,Hu
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
   complex(kind=db), dimension(:,:,:,:), allocatable:: Tau
 
-  logical:: Diagonale, Ecomp, Full_potential, Hubb_a, Hubb_d, Hubb_m, Radial_comp, Relativiste, Renorm, &
+  logical:: Classic_irreg, Diagonale, Ecomp, Full_potential, Hubb_a, Hubb_d, Hubb_m, Radial_comp, Relativiste, Renorm, &
     Self, Solsing, Solsing_only, Spinorbite, Ylm_comp, Ylm_mod
 
   real(kind=db):: Eimag, Energ, Enervide, Rmtg, Rmtsd, V_intmax
@@ -3168,8 +3177,8 @@ subroutine radial_sd(drho,Ecinetic,Eimag,Energ,Enervide,Full_potential,Hubb_a,Hu
            Taull,ui,ur,Ylm_mod)
 
 ! Calcul de la solution singuliere
-    if( Solsing ) call Cal_Solsing_sd(drho,Ecomp,Eimag,f2,Full_potential,g0,gmi,gp,gso,Hubb_a,Hubb_d,icheck,konde,l, &
-          lmax,m_hubb,nlm,nlm_pot,nlm1,nlm2,nlma,nr,nrmtsd,nrs,nspin,nspino,nspinp,numat,r,Radial_comp,Rmtsd,Self, &
+    if( Solsing ) call Cal_Solsing_sd(Classic_irreg,drho,Ecomp,Eimag,f2,Full_potential,g0,gmi,gp,gso,Hubb_a,Hubb_d,icheck,konde, &
+          l,lmax,m_hubb,nlm,nlm_pot,nlm1,nlm2,nlma,nr,nrmtsd,nrs,nspin,nspino,nspinp,numat,r,Radial_comp,Rmtsd,Self, &
           Spinorbite,State,Tau,ui,ur,V,V_hubb,Ylm_mod)
 
     deallocate( Tau )
@@ -3578,7 +3587,7 @@ end
 
 ! Calcul de la solution singuliere pour la densite d'etat
 
-Subroutine Cal_Solsing_sd(drho,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a,Hubb_d,icheck,konde,ll, &
+Subroutine Cal_Solsing_sd(Classic_irreg,drho,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a,Hubb_d,icheck,konde,ll, &
           lmax,m_hubb,nlm,nlm_pot,nlm1,nlm2,nlma,nr,nrmtsd,nrs,nspin,nspino,nspinp,numat,r,Radial_comp,Rmtsd,Self, &
           Spinorbite,State,Tau,ui,ur,V,V_hubb,Ylm_mod)
 
@@ -3592,7 +3601,7 @@ Subroutine Cal_Solsing_sd(drho,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a
   complex(kind=db), dimension(nlm1,nspinp,nlm1,nspinp):: Tau
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
 
-  logical:: Ecomp, Full_potential, Hubb_a, Hubb_d, Radial_comp, Self, Spinorbite, Ylm_mod
+  logical:: Classic_irreg, Ecomp, Full_potential, Hubb_a, Hubb_d, Radial_comp, Self, Spinorbite, Ylm_mod
 
   real(kind=db):: c_harm, Eimag, f_integr3, Rmtsd, Sing
   real(kind=db), dimension(nr):: f2, r
@@ -3612,7 +3621,7 @@ Subroutine Cal_Solsing_sd(drho,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a
   allocate( usr(nrmtsd+1,nlm1,nlm2,nspinp,nspino) )
 
 ! gm et gp inverse dans le sousprogramme
-  call Sch_radial_solsing(Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a,Hubb_d,icheck,konde, &
+  call Sch_radial_solsing(Classic_irreg,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a,Hubb_d,icheck,konde, &
        ll,lmax,m_hubb,nlm,nlm1,nlm2,nr,nrmtsd,nspin,nspino,nspinp,numat,r,Radial_comp,Rmtsd,Spinorbite,Tau,usi,usr,V,V_hubb)
 
   if( icheck == 2 ) write(3,110)

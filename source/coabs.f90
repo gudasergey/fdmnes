@@ -2,10 +2,10 @@
 
 ! Calculate the absorption cross sections and the RXS amplitudes
 
-subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Block,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer,Int_tens, &
-            isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_block,n_multi_run,n_oo,n_rel,n_tens_max, &
+            isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
             natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
             nphim,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss,Rot_int, &
@@ -19,10 +19,10 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Block,Cartesian_tensor,Core
 
   real(kind=db), parameter:: quatre_mc2 = 4 * 2 / alfa_sf**2  ! en Rydberg
   
-  integer:: Block, he, hs, i, ia, iabsorig, ib, ic1, ic2, icheck, icn1, icn2, id, ie, &
+  integer:: he, hs, i, ia, iabsorig, ib, ic1, ic2, icheck, icn1, icn2, id, ie, &
     ie_computer, ig, ii, ind_mu, initlr, ip, ipl, ipldafs, iseuil, ispfg, &
     isym, ixandafs, j, j1, je, jhe, jhs, jpl, js, jseuil, ke, ks, l, &
-    ll, long, mpinodee, n_block, n_dim, n_tens_max, n_multi_run, n_oo, n_rel, n_tens, n1, n2, na, &
+    ll, long, mpinodee, n_dim, n_tens_max, n_multi_run, n_oo, n_rel, n_tens, n1, n2, na, &
     natomsym, nb, nbseuil, nc, nccm, ncolm, ncolr, ncolt, nenerg, ninit1, ninitlr, nl, np, npldafs, &
     nphim, nplt, nplr, nplrm, nseuil, nspin, numat_abs, nxanout, nw
 
@@ -786,10 +786,11 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Block,Cartesian_tensor,Core
               do ke = 1,3
                 if( Green_int_mag ) then
                   write(3,150) secmmia(ke,:,initlr,ia), secmmia_m(ke,:,initlr,ia)
-                elseif( tens_comp ) then
-                  write(3,150) secmmia(ke,:,initlr,ia)
+ !               elseif( tens_comp ) then
+ !                 write(3,150) secmmia(ke,:,initlr,ia)
                 else
-                  write(3,150) real( secmmia(ke,:,initlr,ia) )
+ !                 write(3,150) real( secmmia(ke,:,initlr,ia) )
+                  write(3,150) secmmia(ke,:,initlr,ia)
                 endif
               end do
             endif
@@ -1373,7 +1374,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Block,Cartesian_tensor,Core
     if( Dip_rel ) write(3,'(/1x,a7,1p,e12.5)') 'Omega =', Omega
     do ia = 0,na
       if( ia == 0 ) then
-        if( nseuil /= 0 .or. Matper ) then
+        if( .not. ( nseuil == 0 .and. Matper ) ) then
           write(3,283) ct_nelec(:) * pi
         else
           write(3,284) c_milli
@@ -1490,14 +1491,6 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Block,Cartesian_tensor,Core
 
     nomficht = nomfich
     nomfichdafst = nomfich
-
-    if( n_block > 1 ) then
-      long = len_trim(nomficht)
-      nomficht(long+1:long+2) = '_b'
-      call ad_number(Block,nomficht,132)
-      nomfichdafst(long+1:long+5) = '_b'
-      call ad_number(Block,nomfichdafst,132)
-    endif
 
     if( ia > 0 ) then
       long = len_trim(nomficht)
@@ -1817,13 +1810,13 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Block,Cartesian_tensor,Core
   297 format(/'   Contribution for valence state l =',i3)
   300 format(/4x,'Energy',320a13)
   310 format(f10.3,1p,320e13.5)
-  320 format('     E1-E1',1p,320e13.5)
-  330 format('     E1-E2',1p,320e13.5)
-  340 format('     E2-E2',1p,320e13.5)
-  350 format('     E1-E3',1p,320e13.5)
-  351 format('     E3-E3',1p,320e13.5)
-  352 format('     M1-M1',1p,320e13.5)
-  354 format('     M1-E1',1p,320e13.5)
+  320 format(6x,'E1E1',1p,320e13.5)
+  330 format(6x,'E1E2',1p,320e13.5)
+  340 format(6x,'E2E2',1p,320e13.5)
+  350 format(6x,'E1E3',1p,320e13.5)
+  351 format(6x,'E3E3',1p,320e13.5)
+  352 format(6x,'M1M1',1p,320e13.5)
+  354 format(6x,'E1M1',1p,320e13.5)
   360 format(/10x,1p,320a13)
   370 format('  Ampldafs',1p,320e13.5)
   392 format(' Number of Energies =',i5)
@@ -1875,7 +1868,7 @@ subroutine write_nrixs(All_nrixs,Allsite,Core_resolved, &
   real(kind=db), dimension(nq_nrixs):: q_nrixs
   real(kind=db), dimension(:), allocatable:: Tens
 
-  if( icheck > 0 ) write(3,110)
+  if( icheck > 1 ) write(3,110)
   
   npldafs = 0
 

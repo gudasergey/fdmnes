@@ -3,7 +3,7 @@
 ! Remplissage de la matrice FDM et resolution du systeme d'equations lineaires.
 
 subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xanes,cgrad, &
-                    clapl,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide,FDM_comp,Full_atom, &
+                    clapl,Classic_irreg,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide,FDM_comp,Full_atom, &
                     gradvr,iaabsi,iaprotoi,iato,ibord,icheck,ie,igreq,igroupi,igrph,irep_util,isbord,iso,ispinin,isrt,ivois, &
                     isvois,karact,lato,lmaxa,lmaxso,lso,mato,MPI_host_num_for_mumps,mpirank0,mso, &
                     natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup_m,ngrph,nim,nicm, &
@@ -44,8 +44,8 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   complex(kind=db), dimension(:,:,:), allocatable :: Bessel, Neuman
   complex(kind=db), dimension(:,:,:,:), allocatable :: taull_tem
 
-  logical:: Base_hexa, Base_ortho, Basereel, Basereelt, Cal_xanes, Cal_comp, E_comp, Eneg, FDM_comp, Full_atom, recop, &
-    Relativiste, Repres_comp, Rydberg, Spinorbite, Solsing, State_all_r, Stop_job, Sym_cubic, Ylm_comp
+  logical:: Base_hexa, Base_ortho, Basereel, Basereelt, Cal_xanes, Cal_comp, Classic_irreg, E_comp, Eneg, FDM_comp, Full_atom, &
+    recop, Relativiste, Repres_comp, Rydberg, Spinorbite, Solsing, State_all_r, Stop_job, Sym_cubic, Ylm_comp
   logical, dimension(natome):: Atom_axe
 
   real(kind=db):: adimp, Eclie_out, Eimag, Enervide, R_rydb, Rsort, Time_fill, Time_tria 
@@ -77,7 +77,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
 ! Il n'y a pas de couplage up-down dans le cas suivant
     if( irep == 0 ) irep = abs( irep_util(igrph,3-isp) )
     Kar(:,isp) = real( karact(:,irep), db )
-    if( Ylm_comp ) then
+    if( Repres_comp ) then
       if( irep_util(igrph,isp) > 0 ) then
         Kari(:,isp) = aimag( karact(:,irep) )
       else
@@ -155,7 +155,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
         new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmomax, nlmsa, nlmso, nlmso_i, &
         nphiato1, nphiato7, npoint, npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
         numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, smi, smr, Spinorbite, Time_fill, Time_tria, Vr, &
-        Ylmato, Ylmso)
+        Ylm_comp, Ylmato, Ylmso)
 
   deallocate( Bessel, Besselr, Neuman, Neumanr )
 
@@ -274,11 +274,13 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
 
         if( Repres_comp .and. .not. Spinorbite .and. .not. Atom_axe(ia) ) cfac = cfac + Conjg(cfac)
 
-! On multiplie par -img pour que ce soit -aimag(taull) qui soit le XANES
-        cfac = - img * cfac
-
+! One multiplies by -img in order -aimag(taull) is the density of state
+!        cfac = - img * cfac
+! Conjugate to get the real part same sign that Green
+        cfac = - img * conjg( cfac )
+ 
         taull(lm01,is1,lm02,is2,ia) = taull(lm01,is1,lm02,is2,ia) + cfac
-
+ 
       end do
     end do
 
@@ -311,18 +313,6 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
       end do
     end do
 
-  endif
-
-! Si State_all, recop est false.
-  if( recop .and. igrph == ngrph .and. ( Spinorbite .or. ispinin == nspin ) ) then
-    allocate( taull_tem(nlmagm,nspinp,nlmagm,nspinp) )
-    do ia = 1,natome
-      if( ia /= iaabsi .and. .not. Atom_axe(ia) ) Cycle
-      taull_tem(:,:,:,:) = taull(:,:,:,:,ia)
-      call recop_taull(nlmagm,nspinp,Sym_cubic,Taull_tem,Ylm_comp)
-      taull(:,:,:,:,ia) = taull_tem(:,:,:,:)
-    end do
-    deallocate( taull_tem )
   endif
 
   if( icheck > 1 ) then
@@ -418,7 +408,70 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   deallocate( lb1 ); deallocate( lb2 )
   deallocate( newinv )
 
-  if( Solsing .and. igrph == ngrph ) call soustract_tl(Axe_Atom_grn,Cal_xanes,Full_atom, &
+! Modification to be equivalent by symmetry with conventionnal 0.5(Tau - Tau^t*) given by multiple scattering theory
+! With real harmonics, real part is zero
+! with complex harmonics and no spin-orbit Tau(m,m') = -1^(m+m') Tau(-m',-m)
+! With spinorbit and no magnetism Tau(m,s,m',s') = -1^(m+s-m'-s') Tau(-m',-s',-m,-s)
+  do ia = 1,natome
+
+    if( Spinorbite .and. nspin == 2 ) exit
+    
+    if( ia /= iaabsi .and. .not. State_all_r .and. Cal_xanes ) cycle
+
+    do lm1 = 1,nlmsa(ia)
+      l1 = lato(lm1,ia,igrph)
+      m1 = mato(lm1,ia,igrph)
+      lm01 = l1**2 + l1 + 1 + m1
+      if( Spinorbite ) then
+        is1 = iato(lm1,ia,igrph)
+      else
+        is1 = ispinin
+      endif
+
+      do lm2 = 1,nlmsa(ia)
+
+        jj = ianew(ia) + lm2
+
+        l2 = lato(lm2,ia,igrph)
+        m2 = mato(lm2,ia,igrph)
+        lm02 = l2**2 + l2 + 1 + m2
+        if( nspino == 2 ) then
+          is2 = iato(lm2,ia,igrph)
+        else
+          is2 = ispinin
+        endif
+
+        if( Spinorbite ) then
+          isg = (-1)**(m1-m2-is1+is2)
+          cfac = 0.5_db * ( taull(lm01,is1,lm02,is2,ia) + isg * taull(lm02-2*m2,3-is2,lm01-2*m1,3-is1,ia) )
+          taull(lm01,is1,lm02,is2,ia) = cfac
+          taull(lm02-2*m2,3-is2,lm01-2*m1,3-is1,ia) = isg * cfac
+         elseif( Ylm_comp ) then
+          isg = (-1)**(m1+m2)
+          cfac = 0.5_db * ( taull(lm01,is1,lm02,is2,ia) + isg * taull(lm02-2*m2,is2,lm01-2*m1,is1,ia) )
+          taull(lm01,is1,lm02,is2,ia) = cfac
+          taull(lm02-2*m2,is2,lm01-2*m1,is1,ia) = isg * cfac
+        else
+          taull(lm01,is1,lm02,is2,ia) = cmplx( 0._db, aimag(taull(lm01,is1,lm02,is2,ia)), db )
+        endif
+
+      end do
+    end do
+  end do
+
+! When State_all, recop is false.
+  if( Recop .and. igrph == ngrph .and. ( Spinorbite .or. ispinin == nspin ) ) then
+    allocate( taull_tem(nlmagm,nspinp,nlmagm,nspinp) )
+    do ia = 1,natome
+      if( ia /= iaabsi .and. .not. Atom_axe(ia) ) Cycle
+      taull_tem(:,:,:,:) = taull(:,:,:,:,ia)
+      call recop_taull(nlmagm,nspinp,Sym_cubic,Taull_tem,Ylm_comp)
+      taull(:,:,:,:,ia) = taull_tem(:,:,:,:)
+    end do
+    deallocate( taull_tem )
+  endif
+
+  if( Solsing .and. igrph == ngrph .and. Classic_irreg ) call soustract_tl(Axe_Atom_grn,Cal_xanes,Full_atom, &
                 iaabsi,iaprotoi,igreq,igroupi,ispinin,lmaxa,n_atom_0,n_atom_ind,n_atom_proto,natome,neqm,ngroup_m,nlmagm, &
                 nspin,nspino,nspinp,Spinorbite,State_all_r,Tau_ato,Taull)
 
@@ -453,16 +506,14 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   if( icheck > 0 .and. igrph == ngrph .and. ( Spinorbite .or. ispinin == nspin ) .and. Cal_xanes ) then
     if( icheck == 1 ) write(3,110)
     ia = iaabsi
-    ! si lmaxa > 10 il faut changer le format d'ecriture
-    lmw = min( 10, lmaxa(ia) )
-    nlmw = min( nlmagm, (lmw+1)**2 )
-    write(3,260)
+    nlmw = ( lmaxa(ia) + 1 )**2
+    write(3,210)
     if( nspinp == 1 ) then
-      write(3,270) lmw, nspinp
-      write(3,280) (( l, m, m = -l,l ), l = 0,lmw )
+      write(3,270) lmaxa(ia), nspinp
+      write(3,280) (( l, m, m = -l,l ), l = 0,lmaxa(ia) )
     else
-      write(3,290) lmw, nspinp
-      write(3,300) ((( l, m, i, m = -l,l ), l = 0,lmw ), i = 1,2)
+      write(3,290) lmaxa(ia), nspinp
+      write(3,300) ((( l, m, i, m = -l,l ), l = 0,lmaxa(ia) ), i = 1,2)
     endif
     do is1 = 1,nspinp
       do lm1 = 1,nlmw
@@ -482,17 +533,16 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   180 format(4x,a1,2x,18(2x,2i3,3x))
   190 format(f7.3,1p,18(1x,2e11.3))
   200 format(f7.3,1p,36e11.3)
-  210 format(/' Multiple scattering amplitude, Taull:')
-  220 format(/' Scattering amplitude of the atom ia =',i3,' (Taull):')
+  210 format(/' Multiple scattering amplitude')
+  220 format(/' Atom ia =',i3,', multiple scattering amplitude')
   230 format('( l, m, s)',18(7x,3i3,6x))
   240 format('( l, m, s)',18(10x,2i3,7x))
   250 format(3i3,2x,1p,18(1x,2e11.3))
-  260 format(/' Taull, Multiple scattering amplitude')
   270 format(2i4,' = lmax, nspinp / ( l, m)')
-  280 format(242(14x,2i3,11x))
+  280 format(2420(14x,2i3,11x))
   290 format(2i4,' = lmax, nspinp / ( l, m, s)')
-  300 format(242(12x,3i3,10x))
-  310 format(1p,242(1x,2e15.7))
+  300 format(2420(12x,3i3,10x))
+  310 format(1p,2420(1x,2e15.7))
 
 end
 
@@ -797,7 +847,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
     nligneso, nlmagm, nlmmax, nlmomax, nlmsa, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, npsom, nsm, nso1, &
     nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
     numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, Spinorbite,  &
-    smi, smr, Vr, Ylmato, Ylmso )
+    smi, smr, Vr, Ylm_comp, Ylmato, Ylmso )
 
   use declarations
   implicit none
@@ -827,11 +877,11 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   character(len=2):: mlet(nletm**2)
   character(len=2), dimension(nligne):: mletl
 
-  complex(kind=db) cfac, cfad, charmc, yc, ycomp
+  complex(kind=db) cfac, cfad, charmc, Yc, Ycomp
   complex(kind=db), dimension(nspino):: cfv_comp
   complex(kind=db), dimension(nsort_c,0:lmaxso,nspino):: Bessel, Neuman
 
-  logical:: Base_hexa, Basereel, Cal_comp, E_comp, Relativiste, Repres_comp, Spinorbite
+  logical:: Base_hexa, Basereel, Cal_comp, E_comp, Relativiste, Repres_comp, Spinorbite, Ylm_comp
 
   real(kind=db):: a2s4, bder, charmr, charmi, crelat, Enervide, Eimag, f, fac, fad, fr, vme
   
@@ -879,7 +929,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
     ii1 = ii - ( ianew(ia) + nlmsa(ia) )
     ispin = 2 - mod(ii1,2)
   endif 
-  
+
 ! Points du reseau de base
   if( i > 0 ) then
 
@@ -903,6 +953,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       j = ivois(i,iv)
       ia = numia(j)
       cfvs_r(isp) = - clapl(iv)
+      if( Cal_comp ) cfvs_i(isp) = 0._db 
 
       Charac_r(1:nspino) = Kar( abs( isvois(i,iv) ), 1:nspino )
       Charac_i(1:nspino) = Kari( abs( isvois(i,iv) ), 1:nspino )
@@ -953,12 +1004,12 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
           cfvs_r(:) = Charac_r(:) * cfvs_r(:)
         endif
       else
-        if( Repres_comp ) cfvs_i(isp) = Charac_i(isp)*cfvs_r(isp)
+        if( Repres_comp ) cfvs_i(isp) = Charac_i(isp) * cfvs_r(isp)
         cfvs_r(isp) = Charac_r(isp) * cfvs_r(isp)
       endif
 
       cfvs_r(1:nspino) = cfvs_r(1:nspino) * rvol(i)
-      if( Spinorbite .or. Repres_comp ) cfvs_i(1:nspino) = cfvs_i(1:nspino) * rvol(i)
+      if( Cal_comp ) cfvs_i(1:nspino) = cfvs_i(1:nspino) * rvol(i)
 
 ! Le voisin est dans le reseau de base :
       if( ia == 0 ) then
@@ -967,7 +1018,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
         do ispo = 1,nspino
           jj1 = jj + ispo - isp
           abvr( jj1 ) = abvr( jj1 ) + cfvs_r(ispo) / rvol(j)
-          if( Repres_comp .or. Spinorbite ) abvi( jj1 ) = abvi( jj1 ) + cfvs_i(ispo) / rvol(j)
+          if( Cal_comp ) abvi( jj1 ) = abvi( jj1 ) + cfvs_i(ispo) / rvol(j)
         end do
 
       elseif( ia > 0 ) then
@@ -983,7 +1034,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
               cfac = cmplx( Kar(isym,ispo), Kari(isym,ispo), db ) * cmplx( cfvs_r(ispo), cfvs_i(ispo), db )
               cfvs_r(ispo) = real( cfac, db)
               cfvs_i(ispo) = aimag( cfac )
-            elseif( Spinorbite ) then
+            elseif( Cal_comp ) then
               cfvs_r(ispo) = Kar(isym,ispo) * cfvs_r(ispo)
               cfvs_i(ispo) = Kar(isym,ispo) * cfvs_i(ispo)
             else
@@ -992,6 +1043,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
           end do
         endif
 
+! Phiato contains Ylmato
         do lm = 1,nlmsa(ia)
           jjj = ianew(ia) + lm
           l = lato(lm,ia,igrph)
@@ -1010,6 +1062,9 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
                             phiato(ib,lm0,ispp,isol,ia,2), db )
               abvr( jjj ) = abvr( jjj ) + Real( cfac, db )
               abvi( jjj ) = abvi( jjj ) + aimag( cfac )
+            elseif( Cal_comp ) then
+              abvr( jjj ) = abvr( jjj ) + cfvs_r(isp) * phiato(ib,lm0,ispp,isol,ia,1)
+              abvi( jjj ) = abvi( jjj ) + cfvs_i(isp) * phiato(ib,lm0,ispp,isol,ia,1)
             else
               abvr( jjj ) = abvr( jjj ) + cfvs_r(isp) * phiato(ib,lm0,ispp,isol,ia,1)
             endif
@@ -1032,25 +1087,25 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
           jjj = nligneso + lm
 
           if( Cal_comp ) then
-            if( Repres_comp ) then
-              ycomp = yc(m,Ylmso(ib,lm0),Ylmso(ib,lm0-2*m))
+            if( Ylm_comp .and. m /= 0 ) then
+              Ycomp = Yc(m,Ylmso(ib,lm0),Ylmso(ib,lm0-2*m))
             else
-              ycomp = cmplx( Ylmso(ib,lm0), 0._db, db )
+              Ycomp = cmplx( Ylmso(ib,lm0), 0._db, db )
             endif
             if( Basereel ) then
               if( E_comp ) then
                 cfac = Neuman(ib,l,ispq)
               else
-                cfac = Neumanr(ib,l,ispq)
+                cfac = cmplx( Neumanr(ib,l,ispq), 0._db, db ) 
               endif
             else
               if( E_comp ) then
-                cfac = Bessel(ib,l,ispq) + img*Neuman(ib,l,ispq)
+                cfac = Bessel(ib,l,ispq) + img * Neuman(ib,l,ispq)
               else
                 cfac = cmplx( Besselr(ib,l,ispq), Neumanr(ib,l,ispq), db )
               endif
             endif
-            cfv_comp(1:nspino) = cfac * ycomp * cmplx( cfvs_r(1:nspino), cfvs_i(1:nspino),db)
+            cfv_comp(1:nspino) = cfac * Ycomp * cmplx( cfvs_r(1:nspino), cfvs_i(1:nspino), db )
             if( isp == iso(lm,igrph) ) then
               abvr( jjj ) = abvr( jjj ) + real( cfv_comp(isp), db)
               abvi( jjj ) = abvi( jjj ) + aimag( cfv_comp(isp) )
@@ -1073,8 +1128,8 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
           ispq = min( iso(lm,igrph), nspinr )
 
           if( Cal_comp ) then
-            if( Repres_comp ) then
-              Ycomp = yc(m,Ylmso(ib,lm0),Ylmso(ib,lm0-2*m))
+            if( Ylm_comp .and. m /= 0 ) then
+              Ycomp = Yc(m,Ylmso(ib,lm0),Ylmso(ib,lm0-2*m))
             else
               Ycomp = cmplx( Ylmso(ib,lm0), 0._db, db )
             endif
@@ -1098,7 +1153,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 
       endif
 
-    end do ! fin de la boucle sur les voisins
+    end do ! end of the loop on the neighbor points
 
 ! Developpement en sortie
   elseif( i == 0 ) then
@@ -1108,7 +1163,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
     lm0 = lso(lm,igrph)**2 + lso(lm,igrph) + 1 + m
     isp = iso(lm,igrph)
 
-    do lmp = 1,nlmso
+    do lmp = 1,nlmso 
 
       if( iso(lmp,igrph) /= isp ) cycle
       l = lso(lmp,igrph)
@@ -1124,12 +1179,17 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 
       do ib = 1,nsortf
         if( Cal_comp ) then
-          if( Repres_comp ) then
-            cfac = conjg( yc(m,Ylmso(ib,lm0),Ylmso(ib,lm0-2*m)) ) * yc(mp,Ylmso(ib,lmp0), Ylmso(ib,lmp0-2*mp) )
+          if( Ylm_comp .and.  m /= 0 .and. mp /= 0 ) then
+            cfac = conjg( Yc(m,Ylmso(ib,lm0),Ylmso(ib,lm0-2*m)) ) * Yc(mp,Ylmso(ib,lmp0), Ylmso(ib,lmp0-2*mp) )
+          elseif( Ylm_comp .and.  m /= 0 ) then
+            cfac = conjg( Yc(m,Ylmso(ib,lm0),Ylmso(ib,lm0-2*m)) ) * Ylmso(ib,lmp0)
+          elseif( Ylm_comp .and.  mp /= 0 ) then
+            cfac = Ylmso(ib,lm0) * Yc(mp,Ylmso(ib,lmp0), Ylmso(ib,lmp0-2*mp) )
           else
             cfac = cmplx(Ylmso(ib,lm0) * Ylmso(ib,lmp0), 0._db, db)
           endif
           cfac = poidso(ib) * cfac
+ 
           if( Basereel ) then
             if( E_comp ) then
               charmc = charmc + cfac * Neuman(ib,l,ispq)
@@ -1148,6 +1208,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
           charmr = charmr + fac * Neumanr(ib,l,ispq)
         endif
       end do
+
       if( Cal_comp ) then
         abvr(ljj) = abvr(ljj) + real( charmc, db )
         abvi(ljj) = abvi(ljj) + aimag( charmc )
@@ -1162,12 +1223,13 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       j = isrt(ib)
       jj = new(j) - nspino + isp
 
-      if( Repres_comp ) then
-        cfac = poidso(ib) * conjg( yc(m,Ylmso(ib,lm0),Ylmso(ib,lm0-2*m)) )
+      if( Ylm_comp .and. m /= 0 ) then
+        cfac = poidso(ib) * conjg( Yc(m,Ylmso(ib,lm0),Ylmso(ib,lm0-2*m)) )
         abvr( jj ) = abvr( jj ) - real( cfac, db ) / rvol(j)
         abvi( jj ) = abvi( jj ) - aimag( cfac ) / rvol(j)
       else
         fac = poidso(ib) * Ylmso(ib,lm0)
+        if( Cal_comp ) cfac = cmplx( fac, 0._db, db )
         abvr( jj ) = abvr( jj ) - fac / rvol(j)
       endif
 
@@ -1178,10 +1240,10 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
         mf = mso(lmf,igrph)
         lmf0 = l**2 + l + 1 + mf
         if( Cal_comp ) then
-          if( Repres_comp ) then
+          if( Ylm_comp .and. mf /= 0 ) then
             cfad = cfac * Yc(mf,Ylmso(ib,lmf0),Ylmso(ib,lmf0-2*mf))
           else
-            cfad = fac * cmplx(Ylmso(ib,lmf0),0._db,db)
+            cfad = cfac * cmplx( Ylmso(ib,lmf0), 0._db, db )
           endif
           if( E_comp ) then
             cfad = cfad * Bessel(ib,l,ispq)
@@ -1213,15 +1275,15 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       isym = abs( isbord(ib,ia) )
       jj = new(j) - nspino + ispt
       if( Cal_comp ) then
-        if( m /= 0 ) then
-          ycomp = yc(m,Ylmato(ib,lm0,ia),Ylmato(ib,lm0-2*m,ia))
-          if( abs( Kari(isym,ispt) ) < eps10 ) then
-            cfac = poidsa(ib,ia) * conjg( ycomp ) * Kar(isym,ispt) / rvol(j)
-          else
-            cfac = poidsa(ib,ia) * conjg( ycomp ) * cmplx( Kar(isym,ispt), -Kari(isym,ispt),db) / rvol(j)
-          endif
+        if( Ylm_comp .and. m /= 0 ) then
+          Ycomp = Yc(m,Ylmato(ib,lm0,ia),Ylmato(ib,lm0-2*m,ia))
         else
-          cfac = poidsa(ib,ia) * Ylmato(ib,lm0,ia) * cmplx( Kar(isym,ispt), -Kari(isym,ispt),db) / rvol(j)
+          Ycomp = cmplx( Ylmato(ib,lm0,ia), 0._db, db )
+        endif
+        if( abs( Kari(isym,ispt) ) < eps10 ) then
+          cfac = poidsa(ib,ia) * conjg( Ycomp ) * Kar(isym,ispt) / rvol(j)
+        else
+          cfac = poidsa(ib,ia) * conjg( Ycomp ) * cmplx( Kar(isym,ispt), -Kari(isym,ispt),db) / rvol(j)
         endif
         abvr( jj ) = abvr( jj ) - real( cfac, db )
         abvi( jj ) = abvi( jj ) - aimag( cfac )
@@ -1246,14 +1308,22 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       else
         ispint = min( ispin, nspinp )
       endif
+! Phiato contains Ylmato
       do ib = 1,nbordf(ia)
-        if( nphiato7 == 2 ) then
-          cfac = conjg( Yc(m,Ylmato(ib,lm0,ia),Ylmato(ib,lm0-2*m,ia)) ) * cmplx( phiato(ib,lmp0,ispint,isol,ia,1), &
-                        phiato(ib,lmp0,ispint,isol,ia,2), db )
-          charmi = charmi + poidsa(ib,ia) * aimag( cfac )
+        if( Cal_comp ) then
+          if( nphiato7 == 2 ) then
+            cfac = cmplx( phiato(ib,lmp0,ispint,isol,ia,1), phiato(ib,lmp0,ispint,isol,ia,2), db )
+          else
+            cfac = cmplx( phiato(ib,lmp0,ispint,isol,ia,1), 0._db, db )
+          endif
+          if( Ylm_comp .and. m /= 0 ) then
+            cfac = cfac * conjg( Yc(m,Ylmato(ib,lm0,ia),Ylmato(ib,lm0-2*m,ia)) )
+          else
+            cfac = cfac * Ylmato(ib,lm0,ia)
+          endif 
           charmr = charmr + poidsa(ib,ia) * real( cfac, db )
+          charmi = charmi + poidsa(ib,ia) * aimag( cfac )
         else
-          fr = poidsa(ib,ia) * Ylmato(ib,lm0,ia)
           charmr = charmr + poidsa(ib,ia) * Ylmato(ib,lm0,ia) * phiato(ib,lmp0,ispint,isol,ia,1)
         endif
       end do
@@ -1772,7 +1842,7 @@ end
 
 ! Calcul des amplitudes de diffusions selon la theorie de la diffusion multiple.
 
-subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_atom,ia_eq,ia_rep,iaabsi,iaprotoi, &
+subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,Classic_irreg,dcosxyz,ecinetic,Eimag,Full_atom,ia_eq,ia_rep,iaabsi,iaprotoi, &
                     iato,icheck,igreq,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato,n_atom_0, &
                     n_atom_ind,n_atom_proto,natome,natomp,nb_eq,nb_rpr,nb_rep_t,nb_sym_op,nchemin,neqm,ngroup_m, &
                     ngrph,nlmagm,nlmsa,nlmsam,nlmsamax,Normaltau,nspin,nspino,nspinp,pos,posi,recop,Repres_comp, &
@@ -1807,7 +1877,7 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
   integer, dimension(0:n_atom_proto,neqm):: igreq
   integer, dimension(nlmsam,natome,ngrph):: lato, mato, iato
 
-  logical:: Base_ortho, Brouder, Cal_xanes, Ereel, Full_atom, Normaltau, Solsing, &
+  logical:: Base_ortho, Brouder, Cal_xanes, Classic_irreg, Ereel, Full_atom, Normaltau, Solsing, &
     Recop, Repres_comp, Spinorbite, State_all_r, Stop_job, Sym_cubic, Tau_nondiag, Ylm_comp
 
   real(kind=db):: tp1, tp2, tp3, Time_fill, Time_tria
@@ -2474,7 +2544,7 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
   endif
 
 ! Soustraction de l'amplitude de diffusion atomique
-  if( Solsing .and. igrph == ngrph ) then
+  if( Solsing .and. igrph == ngrph .and. Classic_irreg ) then
     if( icheck > 2 ) then
       nlmw = min(nlmagm,9)
       write(3,161)
@@ -2592,16 +2662,14 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
   if( icheck > 0 .and. igrph == ngrph .and. ( Spinorbite .or. ispin == nspin ) .and. Cal_xanes ) then
     if( icheck == 1 ) write(3,110)
     ia = iaabsi
-    ! si lmaxa > 10 il faut changer le format d'ecriture
-    lmw = min( 10, lmaxa(ia) )
-    nlmw = min( nlmagm, (lmw+1)**2 )
+    nlmw = ( lmaxa(ia) + 1 )**2
     write(3,260)
     if( nspinp == 1 ) then
-      write(3,270) lmw, nspinp
-      write(3,280) (( l, m, m = -l,l ), l = 0,lmw )
+      write(3,270) lmaxa(ia), nspinp
+      write(3,280) (( l, m, m = -l,l ), l = 0,lmaxa(ia) )
     else
-      write(3,290) lmw, nspinp
-      write(3,300) ((( l, m, i, m = -l,l ), l = 0,lmw ), i = 1,2)
+      write(3,290) lmaxa(ia), nspinp
+      write(3,300) ((( l, m, i, m = -l,l ), l = 0,lmaxa(ia) ), i = 1,2)
     endif
     do is1 = 1,nspinp
       do lm1 = 1,nlmw
@@ -2635,12 +2703,12 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,dcosxyz,ecinetic,Eimag,Full_ato
   230 format(3x,2i3,2x,102a3)
   240 format(3i3,2x,102a3)
   250 format(1p,5(1x,a3,' = ',2e15.7))    
-  260 format(/' Taull, Multiple scattering amplitude')
+  260 format(/' Multiple scattering amplitude')
   270 format(2i4,' = lmax, nspinp / ( l, m)')
-  280 format(242(13x,2i3,12x))
+  280 format(2420(13x,2i3,12x))
   290 format(2i4,' = lmax, nspinp / ( l, m, s)')
-  300 format(242(12x,3i3,10x))
-  310 format(1p,242(1x,2e15.7))
+  300 format(2420(12x,3i3,10x))
+  310 format(1p,2420(1x,2e15.7))
 
 end
 
