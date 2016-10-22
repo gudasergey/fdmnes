@@ -2,13 +2,13 @@
 
 ! Calculate the absorption cross sections and the RXS amplitudes
 
-subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer,Int_tens, &
             isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
             natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
-            nphim,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss,Rot_int, &
+            nphim,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
             sec_atom,secdd_a,secdd_m_a,secdq_a,secdq_m_a,secdo_a,secdo_m_a, &
             secmd_a,secmd_m_a,secmm_a,secmm_m_a,secoo_a,secoo_m_a,secqq_a,secqq_m_a, &
             Self_abs,Spherical_signal, &
@@ -64,7 +64,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   integer, dimension(npldafs):: nphi_dafs
   integer, dimension(npldafs,2):: isigpi
 
-  logical Allsite, Base_spin, Cartesian_tensor, Cor_abs, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, E_vec, &
+  logical Allsite, Cartesian_tensor, Cor_abs, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, E_vec, &
     Dafs, Dafs_bio, Final_tddft, Energphot, Extract, Full_self_abs, Green_int, Green_int_mag, idafs, M1M1, Magn_sens, &
     Matper, Moyenne, mu_cal, Self_abs, Spherical_signal, Spherical_tensor, Spinorbite_p, Tens_comp, Tensor_eval, Xan_atom
 
@@ -77,7 +77,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
   real(kind=db), dimension(ninitlr) :: ct_nelec, Epsii
   real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(3):: angxyz, axyz, voae, voas
-  real(kind=db), dimension(3,3):: matopsym, Rot_int
+  real(kind=db), dimension(3,3):: matopsym
   real(kind=db), dimension(nenerg) :: Energ
   real(kind=db), dimension(ninitlr) :: sec_atom
   real(kind=db), dimension(3,nplrm) :: vec
@@ -206,10 +206,6 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
 
       isym = abs( isymeq(ia) )
       call opsym(isym,matopsym)
-      if( base_spin ) then
-        matopsym = matmul( matopsym, rot_int )
-        matopsym = matmul( transpose(rot_int), matopsym )
-      endif
 
       if( E1E1 ) then
         do ispfg = 1,n_rel
@@ -329,12 +325,18 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
       if( E1M1 ) then
         secmd(:,:) = secmd_a(:,:,initlr,ie_computer)
         if( isym /= 1 ) call rot_tensor_2( secmd, matopsym )
+   ! Plane and inverse symmetries change the sign
+        if( ( isym >= 25 .and. isym <= 48 ) .or. ( isym >= 53 .and. isym <= 57 ) .or. isym == 59  .or. isym == 61 &
+                          .or. isym == 63 ) secmd(:,:) = - secmd(:,:)
+   
    ! C'est la partie reelle qui porte le magnetisme
         if( isymeq(ia) < 0 .and. .not. Green_int ) secmd(:,:) = - conjg( secmd(:,:) )
         secmdia(:,:,initlr,ia) = secmd(:,:)
         if( Green_int_mag ) then
           secmd(:,:) = secmd_m_a(:,:,initlr,ie_computer)
           if( isym /= 1 ) call rot_tensor_2( secmd, matopsym )
+          if( ( isym >= 25 .and. isym <= 48 ) .or. ( isym >= 53 .and. isym <= 57 ) .or. isym == 59  .or. isym == 61 &
+                          .or. isym == 63 ) secmd(:,:) = - secmd(:,:)
           if( isymeq(ia) < 0 ) secmd(:,:) = - secmd(:,:)
           secmdia_m(:,:,initlr,ia) = secmd(:,:)
         endif
@@ -786,11 +788,10 @@ subroutine write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resol
               do ke = 1,3
                 if( Green_int_mag ) then
                   write(3,150) secmmia(ke,:,initlr,ia), secmmia_m(ke,:,initlr,ia)
- !               elseif( tens_comp ) then
- !                 write(3,150) secmmia(ke,:,initlr,ia)
-                else
- !                 write(3,150) real( secmmia(ke,:,initlr,ia) )
+                elseif( Tens_comp ) then
                   write(3,150) secmmia(ke,:,initlr,ia)
+                else
+                  write(3,150) real( secmmia(ke,:,initlr,ia) )
                 endif
               end do
             endif

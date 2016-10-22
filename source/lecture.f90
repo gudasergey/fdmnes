@@ -443,12 +443,14 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             read(itape4,*) nb
             nb_atom_conf_m = max( nb, nb_atom_conf_m )
             backspace(itape4)
-            read(itape4,*) ( nl, i = 1,nb+2 )
+            read(itape4,*,iostat=ier) ( nl, i = 1,nb+2 )
+            if( ier > 0 ) call write_err_form(itape4,grdat)
             nlatm = max( nlatm, nl )
             if( n == nb + 2 + 4*nl .and. nl > 0 .and. nspin == 1 ) then
               backspace(itape4)
               allocate( pop(nl,2) )
-              read(itape4,*) ( i, l = 1,nb+1 ), nl, ( i, i, pop(l,:), l = 1,nl )
+              read(itape4,*,iostat=ier) ( i, l = 1,nb+1 ), nl, ( i, i, pop(l,:), l = 1,nl )
+              if( ier > 0 ) call write_err_form(itape4,grdat)
               do l = 1,nl
                 if( abs( pop(l,1) - pop(l,2) ) < eps10 ) cycle
                 nspin = 2
@@ -513,7 +515,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             read(itape4,*)
           endif
 
-          if( Readfast .or. Taux ) then
+          if( Readfast .or. Taux .or. Temperature ) then
             do igr = 1,100000
               read(itape4,*,iostat=ier) i, p(:)
               if( ier /= 0 ) exit
@@ -1365,7 +1367,7 @@ end
 ! Elles sont converties, pour tout le programme, en unites atomiques et Rydberg dans ce sous-programme.
 
 subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
-    Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk,axyz_cap,Base_spin, &
+    Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk,axyz_cap, &
     basereel,Bormann,Bulk,Bulk_lay,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free, &
     Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density, &
     Density_comp,Dip_rel,Dipmag,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
@@ -1454,7 +1456,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph):: Hybrid
 
   logical:: Absauto, adimpin, All_nrixs, Allsite, ATA, Atom, Atom_conf, Atom_nonsph, Atom_occ_hubb, Atomic_scr, Axe_loc, &
-    Base_spin, Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Cif, Classic_irreg, &
+    Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Cif, Classic_irreg, &
     Clementi, Core_resolved, Core_resolved_e, Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
     Dip_rel, Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Film, &
     exc_imp, Extract, FDM_comp, FDMX_only, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, &
@@ -1540,7 +1542,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Atomic_scr = .false.
   Ang_spin(:) = 0._db
   Axe_spin(1) = 0._db; Axe_spin(2) = 0._db; Axe_spin(3) = 1._db
-  Base_spin = .false.
   Basereel = .true.
   Bulk_lay = 1._db
   Cap_roughness = 0._db
@@ -1553,7 +1554,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Centre_auto = .false.
   Centre_auto_abs = .false.
  ! The irregular solution is taken by continuity with bessel if false.
-  Classic_irreg = .false.
+  Classic_irreg = .true.
   Clementi = .false.
   Cif = .false.
   com(:) = ' Dirac'
@@ -1774,7 +1775,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           endif
           if( ier > 0 ) call write_err_form(itape4,grdat)
           do igr = 1,n_atom_bulk
-            read(itape4,*) Z_bulk(igr), posn_bulk(:,igr)
+            n = nnombre(itape4,132)
+            if( Temperature .and. n > 4 ) then
+              read(itape4,*) Z_bulk(igr), posn_bulk(:,igr), Temp_coef(ngroup-n_atom_bulk+igr)
+            else
+              read(itape4,*) Z_bulk(igr), posn_bulk(:,igr)
+            endif
           end do
 
         case('bulk_laye')
@@ -1815,7 +1821,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           if( ier > 0 ) call write_err_form(itape4,grdat)
 
         case('classic_i')
-          Classic_irreg = .true.
+          Classic_irreg = .false.
 
         case('doping')
           read(itape4,*,iostat=ier) itype_dop, igr_dop
@@ -1983,9 +1989,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('base_comp')
           basereel = .false.
-
-        case('base_spin')
-          base_spin = .true.
 
         case('spinorbit')
           Spinorbite = .true.
@@ -3840,6 +3843,18 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       end do
     endif
 
+    if( Film .and. Bulk ) then
+      do ipl = 1,npldafs
+        if( abs( nint( hkl_dafs(3,ipl) ) - hkl_dafs(3,ipl) ) < 0.00499_db ) then
+          if( hkl_dafs(3,ipl) > nint( hkl_dafs(3,ipl) ) - eps10 ) then
+            hkl_dafs(3,ipl) =  nint( hkl_dafs(3,ipl) ) + 0.005_db
+          else
+            hkl_dafs(3,ipl) =  nint( hkl_dafs(3,ipl) ) - 0.005_db
+          endif
+        endif
+      end do
+    endif
+
 ! Check on the inputs
 
     if( seuil /= 'K1' .and. seuil /= 'L1' .and. seuil /= 'L2' .and. &
@@ -4134,9 +4149,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           write(3,'(A)') ' TDDFT calculation'
         endif
         if( Gamma_tddft ) then
-          write(3,'(A)') '    Broadening in the Chi_0 calculation'
+          write(3,'(A)') '   Broadening in the Chi_0 calculation'
         else
-          write(3,'(A)') '    No broadening in the Chi_0 calculation'
+          write(3,'(A)') '   No broadening in the Chi_0 calculation'
         endif
       endif
       if( Core_resolved ) write(3,'(A)') ' Core resolved in outputs'
@@ -4174,7 +4189,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         if( Z_nospinorbite /= 0 ) write(3,400) Z_nospinorbite
         if( lmoins1 ) write(3,'(A)') ' Approximation l-1'
         if( lplus1 ) write(3,'(A)') ' Approximation l+1'
-        if( basereel ) then
+        if( Basereel ) then
           write(3,'(A)') ' Real bases'
         else
           write(3,'(A)') ' Complex bases'
@@ -4187,21 +4202,21 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           if( normaltau ) write(3,'(A)') '    Tau normalization'
           select case(normrmt)
             case(1)
-              write(3,'(A)') '    Optimized type muffin-tin radius'
+              write(3,'(A)') '   Optimized type muffin-tin radius'
             case(2)
-              write(3,'(A)') '    Norman type muffin-tin radius'
+              write(3,'(A)') '   Norman type muffin-tin radius'
             case(3)
-              write(3,'(A)') '    Half interatomic distance type muffin-tin radius'
+              write(3,'(A)') '   Half interatomic distance type muffin-tin radius'
             case(4)
               write(3,420) rmtimp(1:ntype)
             case(5)
-              write(3,'(A)') '    Potential imposed type muffin-tin radius'
+              write(3,'(A)') '   Potential imposed type muffin-tin radius'
           end select
           if( abs(overlap) > eps6 ) write(3,430) overlap
           if( lmaxfree ) then
-            write(3,'(A)') '    No limitation on the maximum value of l'
+            write(3,'(A)') '   No limitation on the maximum value of l'
           else
-            write(3,'(A)') '    Limitation on the maximum value of l'
+            write(3,'(A)') '   Limitation on the maximum value of l'
           endif
         else
           write(3,'(A)') ' Finite difference method calculation'
@@ -4211,9 +4226,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             write(3,445) iord, adimp(1), ( E_adimp(i-1), adimp(i), i = 2,n_adimp )
           endif
           write(3,450) lmaxso0
-          if( muffintin ) write(3,'(A)') '    Muffin-tin potential'
-          if( rydberg ) write(3,460) R_rydb
-          if( noncentre ) write(3,'(A)') '    Non centered absorbing atom'
+          if( Muffintin ) write(3,'(A)') '   Muffin-tin potential'
+          if( Rydberg ) write(3,460) R_rydb
+          if( Noncentre ) write(3,'(A)') '   Non centered absorbing atom'
           if( sum( abs(Centre(:)) ) > epspos ) write(3,470) Centre(:)
           if( .not. Eneg_i ) write(3,480) Eclie, Eclie_out
           if( v_intmax < 100000._db ) write(3,490) V_intmax
@@ -4288,6 +4303,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           else
             if( Film ) then
               if( ipl == 1 ) write(3,'(/A)') ' DAFS : (    h,     k,     l)  Polarization   Angle_i   Angle_o  Azimuth'
+              if( npldafs > 20 .and. mod(ipl,10) /= 0 ) cycle
               if( angpoldafs(3,ipl) < -9999._db ) then
                 write(3,515) hkl_dafs(:,ipl), motpol, angpoldafs(1:2,ipl)
               elseif( isigpi(ipl,1) == 10 ) then
@@ -4365,11 +4381,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         elseif( Pdb ) then
           write(3,560) 'Kgroup'
         elseif( Taux .and. Temperature ) then
-          write(3,560) ' Occupancy  Temp_cf'
+          write(3,560) ' Occupancy  Temp_coef'
         elseif( Taux ) then
           write(3,560) ' Occupancy'
         elseif( Temperature ) then
-          write(3,560) ' Temp_cf'
+          write(3,560) ' Temp_coef'
         elseif( Atom_nonsph ) then
           write(3,560) 'norbv   popats'
         else
@@ -4377,7 +4393,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         endif
         do jgr = 1,ngroup - n_atom_bulk
           if( Doping .and. igr == ngroup - n_atom_bulk ) then
-            write(3,'(/A)') '  Doping element :'
+            write(3,'(/A)') '   Doping element :'
             igr = igr_dop
           else
             igr = jgr
@@ -4432,9 +4448,17 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         endif
         if( Bulk ) then
           write(3,620) ' Bulk', axyz_bulk(:), Angxyz_bulk(:)
-          write(3,'(A)') '     Z       P_x            P_y            P_z'
+          if ( Temperature ) then
+            write(3,'(A)') '     Z       P_x            P_y            P_z          Temp_coef'
+          else
+            write(3,'(A)') '     Z       P_x            P_y            P_z'
+          endif
           do igr = 1,n_atom_bulk
-            write(3,630) Z_bulk(igr), posn_bulk(:,igr)
+            if( Temperature ) then
+              write(3,630) Z_bulk(igr), posn_bulk(:,igr), Temp_coef(ngroup-n_atom_bulk+igr)
+            else
+              write(3,630) Z_bulk(igr), posn_bulk(:,igr)
+            endif
           end do
         endif
         if( Cap_layer ) then
@@ -4555,7 +4579,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Axe_spin,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(axyz,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Basereel,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Base_spin,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(cartesian_tensor,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
     if( norbdil > 0 ) call MPI_Bcast(cdil,norbdil,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Centre,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -5115,16 +5138,16 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   340 format(' Linear range :')
   350 format(' Range =',20f8.3,5(/8x,20f8.3))
   400 format(' Spin-orbit not taken into account for the atomic number', i3)
-  410 format('    Path expansion, n =',i3)
-  420 format('    Imposed type muffin-tin radius, Rmtimp =',10f6.3,/9x,10f6.3)
-  430 format('    Overlap of the muffin-tin radius  =',f6.2)
-  440 format('    iord =',i2,', adimp =',f6.2)
-  445 format('    iord =',i2,', adimp, E_adimp =',100( f6.2, f6.1) )
-  450 format('    lmaxso0 =',i3)
-  460 format('    R_rydb =',f7.3,' A')
-  470 format('      Center =',3f7.3)
-  480 format('    Eclie, Eclie_out =',2f7.3,' eV')
-  490 format('    V_intmax =',f7.3,' eV')
+  410 format('   Path expansion, n =',i3)
+  420 format('   Imposed type muffin-tin radius, Rmtimp =',10f6.3,/9x,10f6.3)
+  430 format('   Overlap of the muffin-tin radius  =',f6.2)
+  440 format('   iord =',i2,', adimp =',f6.2)
+  445 format('   iord =',i2,', adimp, E_adimp =',100( f6.2, f6.1) )
+  450 format('   lmaxso0 =',i3)
+  460 format('   R_rydb =',f7.3,' A')
+  470 format('   Center =',3f7.3)
+  480 format('   Eclie, Eclie_out =',2f7.3,' eV')
+  490 format('   V_intmax =',f7.3,' eV')
   500 format(/' Temperature =',f6.1,' K')
   510 format(6x,3f7.3,3x,3f7.3,3x,f7.3,4x,f7.3)
   511 format(/' Bormann',/ '  (h, k, l) = (',i3,',',i3,',',i3,')   Azimuth =',f7.2)
@@ -5140,7 +5163,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   542 format('   ngroup =',i5,', ntype =',i2)
   543 format(1x,2i4,10(i4,i3,f7.3))
   544 format(1x,2i4,10(i4,i3,2f7.3))
-  545 format('    dpos =',3f7.3)
+  545 format('   dpos =',3f7.3)
   548 format(' Orbital dilatation :',/'   it    l   cdil')
   549 format(2i5,f7.3)
   552 format('   Point Group = ',a8)
@@ -5148,10 +5171,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   555 format('   a, b, c =',3f12.7)
   556 format('   alfa, beta, gamma =',3f9.3)
   560 format('    Z  Typ       posx           posy           posz    ',A)
-  565 format(i5,i4,3f15.10,i6,f10.5,f11.2)
-  570 format(i5,i4,3f15.10,i6,f10.2)
-  571 format(i5,i4,3f15.10,f10.5,f11.2)
-  572 format(i5,i4,3f15.10,f10.2)
+  565 format(i5,i4,3f15.10,i6,2f10.5)
+  570 format(i5,i4,3f15.10,i6,f10.5)
+  571 format(i5,i4,3f15.10,2f10.5)
+  572 format(i5,i4,3f15.10,f10.5)
   580 format(i5,i4,3f15.10,i5,2x,12f8.4)
   600 format(4x,17(1x,2f7.3),1x,'= hybrid, pop_nonsph(',i1,')')
   610 format('    Occ. matrix :', 14f5.2)
@@ -5160,7 +5183,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   640 format(' Cap ',a9,' = ',f10.5,' A')
   660 format(/' Xalfa potential , Xalfa =',f8.5)
   670 format(' Full potential inside the atomic spheres with lmax =',i2)
-  680 format(' E_imag =',f9.3,' eV')
+  680 format('   E_imag =',f9.3,' eV')
   690 format(2f9.3)
   702 format('   multrmax =',i2)
   703 format('   Rpotmax =',f7.3,' A')

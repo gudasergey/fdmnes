@@ -59,7 +59,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   integer, dimension(:,:,:), allocatable:: Wien_matsym
 
   logical:: Absauto, All_nrixs, Allsite, ATA, Atom_nonsph, Atom_occ_hubb, Atomic_scr, &
-     Axe_loc, Basereel, Base_ortho, Base_spin, Bormann, Bulk, Clementi, Cap_layer, Cartesian_tensor, Charge_free, &
+     Axe_loc, Basereel, Base_ortho, Bormann, Bulk, Clementi, Cap_layer, Cartesian_tensor, Charge_free, &
      Classic_irreg, Core_resolved, Convolution_cal, Coupelapw, Dafs, Dafs_bio, Density, Density_comp, &
      Dip_rel, Dipmag, Doping, Dyn_eg, Dyn_g, E_Fermi_man, Eneg_i, Eneg_n_i, Energphot, Extract, FDM_comp, FDMX_only, &
      Film, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, &
@@ -240,7 +240,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   if( mpinodes0 > 1 ) call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
 
   call lecture(Absauto,adimp_e,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
-    Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk,axyz_cap,Base_spin, &
+    Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk,axyz_cap, &
     Basereel,Bormann,Bulk,Bulk_lay,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free, &
     Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density, &
     Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
@@ -505,7 +505,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   endif
 
   call Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
-      Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_with_axe,Atomic_scr,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Base_ortho,Base_spin, &
+      Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_with_axe,Atomic_scr,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Base_ortho, &
       Basereel,Bormann,Bulk,Bulk_lay,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil, &
       Charge_free,Classic_irreg,Clementi,Com,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_edge,Delta_En_conv, &
       Delta_Epsii,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_Fermi_man,E_radius, &
@@ -670,7 +670,7 @@ end
 ! Calculation of all the non equivalent atoms signal
 
 subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
-      Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_with_axe,Atomic_scr,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Base_ortho,Base_spin, &
+      Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_with_axe,Atomic_scr,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Base_ortho, &
       Basereel,Bormann,Bulk,Bulk_lay,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil, &
       Charge_free,Classic_irreg,Clementi,Com,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_edge,Delta_En_conv, &
       Delta_Epsii,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_Fermi_man,E_radius, &
@@ -726,7 +726,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
     ngroup_taux, ngroup_temp, ngrph, nhybm, nicm, nim, ninit1, ninitl, ninitl_out, ninitlr, &
     ninitlv, nklapw, nlatm, nlm_pot, nlm_probe, nlm_p_fp, nlmagm, nlmamax, &
     nlmlapwm, nlmmax, nlmomax, nlms_pr, nlmsam, nlmsamax, nlmso, nmatsym, nnlm, norbdil, normrmt, &
-    nphiato1, nphiato7, nphim, npldafs, npldafs_bulk, nple, nplr, nplrm, npoint, npoint_ns, npr, &
+    nphiato1, nphiato7, nphim, npldafs, nple, nplr, nplrm, npoint, npoint_ns, npr, &
     npso, npsom, nptmoy, nptmoy_out, nq_nrixs, nr, nrato_dirac, nrm, nrm_self, ns_dipmag, nself, nseuil, nslapwm, &
     nso1, nsort, nsortf, nsm, nspin, nspino, nspinp, nspinorb, nstm, ntype, numat_abs, nvois, nx, &
     nxanout, Trace_k, Wien_save, Z, Z_nospinorbite
@@ -797,7 +797,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
   integer, dimension(:,:,:,:), allocatable:: msymoo, msymooi
 
   logical:: Absorbeur, All_nrixs, Allsite, ATA, Atom_comp_cal, Atom_nonsph, Atom_nonsph_loc, Atom_occ_hubb, Atomic_scr, &
-     Basereel, Base_hexa, Base_ortho, Base_spin, Bormann, Bulk, Bulk_step, Clementi, Cal_xanes, Cap_layer, &
+     Basereel, Base_hexa, Base_ortho, Bormann, Bulk, Bulk_step, Clementi, Cal_xanes, Cap_layer, &
      Cartesian_tensor, Charge_free, Classic_irreg, Convergence, Core_resolved, Coupelapw, Dafs, Dafs_bio, Density, &
      Density_comp, Devide_Ei, Dip_rel, Dipmag, Doping, Dyn_eg, Dyn_g, E_comp, E1E1, E1E2, E1E2e, E1E3, E1M1, E2E2, E3E3, &
      E_Fermi_man, &
@@ -839,7 +839,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
   real(kind=db), dimension(6):: Trace_p
   real(kind=db), dimension(7):: Time_loc
   real(kind=db), dimension(10):: Gamma_hole
-  real(kind=db), dimension(3,3):: Cubmat, Orthmat, Mat_or, Orthmati, Rot_atom_abs, Rot_int
+  real(kind=db), dimension(3,3):: Cubmat, Mat_or, Orthmat, Orthmati, Orthmatt, Rot_atom_abs, Rot_int
   real(kind=db), dimension(n_rout):: Time_rout
 
   real(kind=db), dimension(n_adimp):: Adimp_e
@@ -1155,11 +1155,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 ! De meme "Atom_nonsph" n'est utile que pour le Xanes
     call agregat(angxyz,angxyz_bulk,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn,axyz,axyz_bulk, &
           Base_hexa,Base_ortho,Bulk,Bulk_step,Chargat,Cubmat,dcosxyz,deccent,dista,Doping,dpos,Film_shift,iaabs,iaabsfirst, &
-          iabsorbeur,iaproto,iapot,ich,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,iopsymc,iopsymr,itabs,itype,itypep,karact,Kgroup, &
-          Magnetic,Matper,mpirank,multi_run,n_atom_bulk,n_atom_proto,n_atom_uc,natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m, &
-          ngroup_pdb,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat,One_run,Orthmat,Orthmati,PointGroup,PointGroup_Auto, &
-          popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc,Spinorbite,Rot_Atom_gr,Struct,Sym_2D,Sym_4,Sym_cubic,Symmol, &
-          Taux,Taux_oc,Test_dist_min,Z_bulk)
+          iabsorbeur,iaproto,iapot,ich,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,iopsymc,iopsymr,itabs,itype,itypep,karact, &
+          Kgroup,Magnetic,Matper,mpirank,multi_run,n_atom_bulk,n_atom_proto,n_atom_uc,natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup, &
+          ngroup_m,ngroup_pdb,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat,One_run,Orthmat,Orthmati,Orthmatt,PointGroup, &
+          PointGroup_Auto,popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc,Spinorbite,Rot_Atom_gr,Struct,Sym_2D,Sym_4,Sym_cubic, &
+          Symmol,Taux,Taux_oc,Test_dist_min,Z_bulk)
 
     if( Ylm_comp_inp .and. .not. ( Atom_comp_cal(igrpt0) .or. igrpt0 <= 5 ) ) then
       if( mpirank0 == 0 ) then
@@ -1272,7 +1272,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 !------ SCF ----------------------------------------------------------------------------------------------------------------------------------
 
 ! Self_cons = nself > 0
-    if( Self_cons .and. ( .not. second_run ) .and. ( .not. Extract ) ) then
+    if( Self_cons .and. ( .not. Second_run ) .and. ( .not. Extract ) ) then
 
       if( mpirank0 == 0 ) then
         call CPU_TIME(time)
@@ -2120,7 +2120,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
         Time_rout(18) = Time_rout(18) + tp_SCF_2 - tp_SCF_1
       endif
 
-    else
+    elseif( .not. ( Extract .or. Second_run ) ) then
 
       if( Flapw ) then
         E_Fermi = 0._db
@@ -2208,9 +2208,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
     allocate( pdp(nplrm,2) )
 
 ! Evaluation des polarisations et vecteurs d'onde.
-    call polond(axyz,Base_spin,Dipmag,icheck(6),ltypcal,Moyenne,mpirank0,msymdd, &
-        msymqq,ncolm,ncolr,nomabs,nple,nplr,nplrm,nxanout,Octupole,Orthmat,Orthmati,pdp, &
-        pdpolar,pol,polar,Polarise,Quadrupole,Rot_int,veconde,vec,Xan_atom)
+    call polond(axyz,Dipmag,icheck(6),ltypcal,Moyenne,mpirank0,msymdd,msymqq,ncolm,ncolr,nomabs,nple,nplr, &
+        nplrm,nxanout,Octupole,Orthmatt,pdp,pdpolar,pol,polar,Polarise,Quadrupole,Veconde,Vec,Xan_atom)
 
     ncolt = ncolr
 
@@ -2227,13 +2226,13 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
     deallocate( Taux_ipr )
 
     if( Dafs ) then
-      call Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Base_spin,Bormann, &
+      call Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Bormann, &
           Bulk,Bulk_lay,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_no_res,Film, &
           Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck(6),igreq,iprabs_nonexc,isigpi,itabs,itypepr,lvval, &
           Magnetic,Mat_or,mpirank0,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_uc,natomsym,nbseuil, &
           neqm,ngreq,ngrm,ngroup,ngroup_m, &
-          ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmat,Orthmati, &
-          phdafs,phdf0t,phdt,poldafse,poldafsem,poldafss,poldafssm,popatm,posn,posn_bulk,posn_cap,psival,rato,Rot_int,Taux, &
+          ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmatt, &
+          phdafs,phdf0t,phdt,poldafse,poldafsem,poldafss,poldafssm,popatm,posn,posn_bulk,posn_cap,psival,rato,Taux, &
           Taux_cap,Taux_oc,Temp,Temp_coef,Temperature,Troncature,Vec_orig,Vecdafse,Vecdafsem,Vecdafss,Vecdafssm,xsect_file, &
           Z_bulk,Z_cap)
 
@@ -2282,13 +2281,13 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
         ninitlr = nbseuil
       endif
 
-      call extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+      call extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
         Densite_atom,E_cut,Energ_s,Energphot,Epsii,Eseuil,Final_tddft, &
         f_avantseuil,Full_self_abs,hkl_dafs,iabsorig(multi_run),icheck(21),Int_tens,isigpi,isymeq, &
         nsymextract(multi_run),jseuil,ltypcal,Matper,Moyenne,mpinodee,multi_imp,Multipole,n_multi_run,n_oo,n_rel, &
         n_tens_max,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv(multi_run), &
         nomfich_cal_convt,nom_fich_extract,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp, &
-        phdafs,phdf0t,phdt,pol,poldafse,poldafss,Rot_int,Self_abs,Spherical_signal,Spherical_tensor,Spinorbite, &
+        phdafs,phdf0t,phdt,pol,poldafse,poldafss,Self_abs,Spherical_signal,Spherical_tensor,Spinorbite, &
         Taux_eq,Tddft,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)
 
       deallocate( Energ_s, Eimag_s )
@@ -2999,8 +2998,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
               Vrato_e(1:nr,:,:) = Vrato(1:nr,:,:,iapr)
 
               call Sphere(Axe_atom_grn,Base_ortho,dcosxyz,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
-              Full_potential,Green,Hubb_a,Hubb_d,iaabsi,iapr,iaprotoi,ibord,ich,igreq,igroupi,iopsymr,lmax,lmax_pot,m_hubb, &
-              n_atom_0,n_atom_ind,n_atom_proto,natome,nbord,nbtm,nbtm_fdm,neqm,ngroup_m, &
+              Full_potential,Green,Hubb_a,Hubb_d,iaabsi,iapr,iaprotoi,ibord,icheck(18),igreq,igroupi,iopsymr,lmax,lmax_pot, &
+              m_hubb,n_atom_0,n_atom_ind,n_atom_proto,natome,nbord,nbtm,nbtm_fdm,neqm,ngroup_m, &
               nlm_pot,nlmagm,nlmmax,nphiato1,nphiato7,npsom,nr,nspin,nspino,nspinp,Z,phiato,posi,r,Relativiste,Rmtg(ipr), &
               Rmtsd(ipr),Spino,Tau_ato,V_hubb_t,V_intmax,V0bdc,Vrato_e,xyz,Ylm_comp,Ylmato)
 
@@ -3225,7 +3224,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
                       Rmtsd(iprabs),S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Taull_abs, &
                       V_hubb_abs,V_intmax,V0bdc,Vra,Ylm_comp)
 
-                  call tenseur_car(Base_spin,Classic_irreg,coef_g,Core_resolved,Ecinetic,Eimag(ie), &
+                  call tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic,Eimag(ie), &
                       Energ(ie),Enervide_t,Eseuil,FDM_comp_m,Final_optic,Final_tddft,Full_potential,Green,Green_i,Hubb_a, &
                       Hubb_d,icheck(20),ie,ip_max,ip00,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                       mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi, &
@@ -3314,13 +3313,13 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
               if( .not. Optic ) then
 
-                call write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+                call write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
                   Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
                   f_avantseuil,Full_self_abs,Green_i,hkl_dafs,iabsorig(multi_run),icheck(21),ie,ie_computer,Int_tens, &
                   isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
                   natomsym,nbseuil, &
                   ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
-                  nphim,nplr,nplrm,nseuil,nspinp,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss,Rot_int, &
+                  nphim,nplr,nplrm,nseuil,nspinp,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
                   sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
                   secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m, &
                   Self_abs,Spherical_signal, &
@@ -3473,7 +3472,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
                Rmtg(iprabs), Rmtsd_abs, rsato_t, rsbdc, Taull_tdd, V_hubb_abs, V0muf, Vcato_t, Vhbdc, Vxcato_t, VxcbdcF)
         endif
 
-        call main_optic(angxyz,Allsite,axyz,Base_spin,Cartesian_tensor,Classic_irreg,Core_resolved,Dafs,Dafs_bio, &
+        call main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_resolved,Dafs,Dafs_bio, &
           Densite_atom,dV0bdcF,E_cut,E_cut_imp,E_Fermi_man,Eclie,Eneg,Energ_s, &
           Extract,Eseuil,Full_potential,Full_self_abs,Green,hkl_dafs,Hubb_a,Hubb_d,icheck, &
           iabsorig(multi_run),ip_max,ip0,isigpi,isymeq, &
@@ -3500,7 +3499,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
           ninitl_out = 1
         endif
 
-        if( Tddft ) call main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Base_spin,Classic_irreg,coef_g, &
+        if( Tddft ) call main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,coef_g, &
           Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Densite_atom,Dipmag, &
           dV0bdcF,E_cut,E_cut_imp,E_Fermi_man,Eclie,Eneg, &
           Energ_s,Energphot,Extract,Eseuil,f_avantseuil,Full_potential,Full_self_abs, &
@@ -3534,7 +3533,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
         ninitl_out = 1
 
-        call main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Base_spin,Classic_irreg,coef_g, &
+        call main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,coef_g, &
           Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Delta_edge,Delta_Eseuil,Densite_atom,Dipmag, &
           dV0bdcF,Dyn_eg,Dyn_g,E_cut,E_cut_imp,E_Fermi,E_Fermi_man,Ecent,Eclie,Elarg,Eneg, &
           Energ_s,Energphot,Epsii,Extract,Epsii_moy,Eseuil,Estart,f_avantseuil,Full_potential,Full_self_abs, &
@@ -3624,13 +3623,13 @@ end
 
 !*************************************************************************************************************************
 
-subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
          Densite_atom,E_cut,Energ_s,Energphot,Epsii,Eseuil,Final_tddft, &
          f_avantseuil,Full_self_abs,hkl_dafs,iabsorig,icheck,Int_tens,isigpi,isymeq, &
          isymext,jseuil,ltypcal,Matper,Moyenne,mpinodee,multi_run,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
          natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv, &
          nomfich_cal_convt,nom_fich_extract,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp, &
-         phdafs,phdf0t,phdt,pol,poldafse,poldafss,Rot_int,Self_abs,Spherical_signal,Spherical_tensor,Spinorbite, &
+         phdafs,phdf0t,phdt,pol,poldafse,poldafss,Self_abs,Spherical_signal,Spherical_tensor,Spinorbite, &
          Taux_eq,Tddft,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)
 
   use declarations
@@ -3659,7 +3658,7 @@ subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Cartesia
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:0):: secdo, secdo_m, secqq, secqq_m
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:0):: secoo, secoo_m
 
-  logical:: Allsite, Base_spin, Cartesian_tensor, Core_resolved, Dafs, Dafs_bio, &
+  logical:: Allsite, Cartesian_tensor, Core_resolved, Dafs, Dafs_bio, &
      Energphot, Final_tddft, Full_self_abs, Green_int, Matper, Moyenne, Self_abs, Spherical_signal, &
      Spherical_tensor, Spinorbite, Tddft, Tensor_rot, Xan_atom
 
@@ -3671,7 +3670,7 @@ subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Cartesia
   real(kind=db), dimension(ninitlr):: Epsii, Sec_atom
   real(kind=db), dimension(nenerg_s):: Energ_s
   real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens
-  real(kind=db), dimension(3,3):: Rot_int, Rotsup
+  real(kind=db), dimension(3,3):: Rotsup
   real(kind=db), dimension(nplrm,2):: pdp
   real(kind=db), dimension(natomsym):: Taux_eq
   real(kind=db), dimension(3,nplrm):: vec
@@ -3686,13 +3685,13 @@ subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Base_spin,Cartesia
     call extract_coabs(Ang_rotsup,Core_resolved,Green_int,icheck,ie,isymext,multi_run,Multipole, &
             n_oo,n_rel,nenerg_s,ninit1,ninitlr,nom_fich_extract,Rotsup,secdd,secdd_m,secdo,secdo_m,secdq, &
             secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Tensor_rot,Tddft)
-    call write_coabs(Allsite,angxyz,axyz,Base_spin,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+    call write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             Densite_atom,E_cut,Energ_s,Energphot,.true.,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer,Int_tens, &
             isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
             natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
-            nphim,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss,Rot_int, &
+            nphim,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
             sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
             secmd,secmd_m,secmm,secmm_m,secoo,secoo_m, &
             secqq,secqq_m,Self_abs,Spherical_signal, &

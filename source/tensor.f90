@@ -12,7 +12,7 @@
 !     = nbseuil si TDDFT sans core_recolved mais pas Optic
 !     = 1 en DFT ou optic
 
-subroutine tenseur_car(Base_spin,Classic_irreg,coef_g,Core_resolved,Ecinetic, &
+subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                 Eimag,Energ,Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a,Hubb_d, &
                 icheck,ie,ip_max,ip0,is_g,lmax,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
@@ -58,7 +58,7 @@ subroutine tenseur_car(Base_spin,Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   integer, dimension(3,3,3,3):: msymdo, msymdoi, msymqq, msymqqi
   integer, dimension(3,n_oo,3,n_oo):: msymoo, msymooi
 
-  logical:: Base_spin, Classic_irreg, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, FDM_comp, Final_optic, &
+  logical:: Classic_irreg, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, FDM_comp, Final_optic, &
     Final_tddft, Full_potential, Green, Green_int, Hubb_a, Hubb_d, lmoins1, lplus1, M_depend, M1M1, No_diag, NRIXS, Relativiste, &
     Solsing, Solsing_only, Spinorbite, Tddft, Ylm_comp
 
@@ -782,8 +782,6 @@ subroutine tenseur_car(Base_spin,Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
 ! Rotation pour avoir les tenseurs dans la base R1
 
-  if( .not. Base_spin ) then
-
     rot_tem = matmul( rot_int, transpose(rot_atom_abs) )
 
     do initlr = 1,ninitlr
@@ -927,8 +925,6 @@ subroutine tenseur_car(Base_spin,Classic_irreg,coef_g,Core_resolved,Ecinetic, &
       endif
 
     end do
-
-  endif
 
   if( Final_optic ) then
     deallocate( roff_rr )
