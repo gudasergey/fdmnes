@@ -412,147 +412,99 @@ subroutine findop(line,matrix)
         Matrix(i,1) = -1._db
         Matrix(i,2) = 1._db
 
-      case('1/2+x')
+      case('1/2+x','x+1/2')
         Matrix(i,1) = 1._db
         Matrix(i,4) = 0.5_db
 
-      case('x+1/2')
+      case('x-1/2','-1/2+x')
         Matrix(i,1) = 1._db
-        Matrix(i,4) = 0.5_db
+        Matrix(i,4) = -0.5_db
 
-      case('1/2-x')
+      case('1/2-x','-x+1/2')
         Matrix(i,1) = -1._db
         Matrix(i,4) = 0.5_db
 
-      case('-x+1/2')
+      case('-1/2-x','-x-1/2')
         Matrix(i,1) = -1._db
-        Matrix(i,4) = 0.5_db
+        Matrix(i,4) = -0.5_db
 
-      case('1/2+y')
+      case('1/2+y','y+1/2')
         Matrix(i,2) = 1._db
         Matrix(i,4) = 0.5_db
 
-      case('y+1/2')
-        Matrix(i,2) = 1._db
-        Matrix(i,4) = 0.5_db
-
-      case('1/2-y')
+      case('1/2-y','-y+1/2')
         Matrix(i,2) = -1._db
         Matrix(i,4) = 0.5_db
 
-      case('-y+1/2')
+      case('-1/2+y','y-1/2')
+        Matrix(i,2) =  1._db
+        Matrix(i,4) = -0.5_db
+
+      case('-y-1/2','-1/2-y')
         Matrix(i,2) = -1._db
-        Matrix(i,4) = 0.5_db
+        Matrix(i,4) = -0.5_db
 
-      case('1/2+z')
+      case('z+1/2','1/2+z')
         Matrix(i,3) = 1._db
         Matrix(i,4) = 0.5_db
 
-      case('z+1/2')
-        Matrix(i,3) = 1._db
-        Matrix(i,4) = 0.5_db
-
-      case('1/2-z')
+      case('1/2-z','-z+1/2')
         Matrix(i,3) = -1._db
         Matrix(i,4) = 0.5_db
 
-      case('-z+1/2')
-        Matrix(i,3) = -1._db
-        Matrix(i,4) = 0.5_db
+      case('-1/2+z','z-1/2')
+        Matrix(i,3) = 1._db
+        Matrix(i,4) = -0.5_db
 
-      case('1/4+x')
+      case('-z-1/2','-1/2-z')
+        Matrix(i,3) = -1._db
+        Matrix(i,4) = -0.5_db
+
+      case('1/4+x','x+1/4')
         Matrix(i,1) = 1._db
         Matrix(i,4) = 0.25_db
 
-      case('x+1/4')
-        Matrix(i,1) = 1._db
-        Matrix(i,4) = 0.25_db
-
-      case('1/4-x')
+      case('1/4-x','-x+1/4')
         Matrix(i,1) = -1._db
         Matrix(i,4) = 0.25_db
 
-      case('-x+1/4')
-        Matrix(i,1) = -1._db
-        Matrix(i,4) = 0.25_db
-
-      case('1/4+y')
+      case('1/4+y','y+1/4')
         Matrix(i,2) = 1._db
         Matrix(i,4) = 0.25_db
 
-      case('y+1/4')
-        Matrix(i,2) = 1._db
-        Matrix(i,4) = 0.25_db
-
-      case('1/4-y')
+      case('1/4-y','-y+1/4')
         Matrix(i,2) = -1._db
         Matrix(i,4) = 0.25_db
 
-      case('-y+1/4')
-        Matrix(i,2) = -1._db
-        Matrix(i,4) = 0.25_db
-
-      case('1/4+z')
+      case('1/4+z','z+1/4')
         Matrix(i,3) = 1._db
         Matrix(i,4) = 0.25_db
 
-      case('z+1/4')
-        Matrix(i,3) = 1._db
-        Matrix(i,4) = 0.25_db
-
-      case('1/4-z')
+      case('1/4-z','-z+1/4')
         Matrix(i,3) = -1._db
         Matrix(i,4) = 0.25_db
 
-      case('-z+1/4')
-        Matrix(i,3) = -1._db
-        Matrix(i,4) = 0.25_db
-
-      case('3/4+x')
+      case('3/4+x','x+3/4')
         Matrix(i,1) = 1._db
         Matrix(i,4) = 0.75_db
 
-      case('x+3/4')
-        Matrix(i,1) = 1._db
-        Matrix(i,4) = 0.75_db
-
-      case('3/4-x')
+      case('3/4-x','-x+3/4')
         Matrix(i,1) = -1._db
         Matrix(i,4) = 0.75_db
 
-      case('-x+3/4')
-        Matrix(i,1) = -1._db
-        Matrix(i,4) = 0.75_db
-
-      case('3/4+y')
+      case('3/4+y','y+3/4')
         Matrix(i,2) = 1._db
         Matrix(i,4) = 0.75_db
 
-      case('y+3/4')
-        Matrix(i,2) = 1._db
-        Matrix(i,4) = 0.75_db
-
-      case('3/4-y')
+      case('3/4-y','-y+3/4')
         Matrix(i,2) = -1._db
         Matrix(i,4) = 0.75_db
 
-      case('-y+3/4')
-        Matrix(i,2) = -1._db
-        Matrix(i,4) = 0.75_db
-
-      case('3/4+z')
+      case('3/4+z','z+3/4')
         Matrix(i,3) = 1._db
         Matrix(i,4) = 0.75_db
 
-      case('z+3/4')
-        Matrix(i,3) = 1._db
-        Matrix(i,4) = 0.75_db
-
-      case('3/4-z')
-        Matrix(i,3) = -1._db
-        Matrix(i,4) = 0.75_db
-
-      case('-z+3/4')
+      case('3/4-z','-z+3/4')
         Matrix(i,3) = -1._db
         Matrix(i,4) = 0.75_db
 

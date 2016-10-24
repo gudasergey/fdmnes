@@ -3651,15 +3651,15 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
   use declarations
   implicit none
   
-  integer:: i, i_col, i_cor, i_hk, i1, i2, ie, index, index_hk, index_max, ipas, ipr, j, l, l2, l3, le, n_col, n_cor, &
-            n_hk_tr, n_energ_tr, n_signal, nes, npldafs
-  integer, dimension(:), allocatable:: n_index_hk
+  integer:: i, i_col, i_cor, i_hk, i1, i2, ie, index, index_hk, index_max, ipas, ipr, j, l, l2, l3, le, length_hk, ll, n_col, &
+            n_cor, n_hk_tr, n_energ_tr, n_signal, nes, npldafs
+  integer, dimension(:), allocatable:: hk_length, n_index_hk
   integer, dimension(n_energ_tr):: index_ie
 
   logical:: Cor_abs, Double_cor
   
-  character(len=4):: mot4, mot4_b
-  character(len=4), dimension(:), allocatable:: hk
+  character(len=6):: mot6, mot6_b
+  character(len=6), dimension(:), allocatable:: hk
   character(len=15):: mot15, mot15_b, mot15_c, mot15_d
   character(len=15), dimension(n_col):: nom_col
   character(len=15), dimension(:,:,:), allocatable:: E_string, l_value
@@ -3711,30 +3711,44 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
   
     i_hk = 0
     index_hk = 0
-    mot4_b = ' '
+    mot6_b = ' '
     do i_col = i1,n_col,ipas
       mot15 = ' '
       mot15 = nom_col(i_col)
       do i = 1,15
         if( mot15(i:i) /= '(' ) cycle
-        mot4 = ' '
+        mot6 = ' '
         if( mot15(i+1:i+1) == '-' .and. mot15(i+3:i+3) == '-' ) then
-          mot4(1:4) = mot15(i+1:i+4)
+          mot6(1:4) = mot15(i+1:i+4)
         elseif( mot15(i+1:i+1) == '-' .or. mot15(i+2:i+2) == '-' ) then
-          mot4(1:3) = mot15(i+1:i+3)
+          mot6(1:3) = mot15(i+1:i+3)
         else
-          mot4(1:2) = mot15(i+1:i+2)  
+          mot6(1:2) = mot15(i+1:i+2)  
         endif
+        length_hk = len_trim( mot6 )
         exit
       end do
-      if( mot4 == mot4_b ) then    
+
+      do i = 1,14
+        if( mot15(i:i) /= ')' ) cycle
+        ll = len_trim( mot6 )
+        if( mot15(i+1:i+1) /= ' ' ) mot6(ll+1:ll+1) = mot15(i+1:i+1)
+        if( i >= 14 ) exit
+        if( mot15(i+2:i+2) /= ' ' ) mot6(ll+2:ll+2) = mot15(i+2:i+2)
+        exit
+      end do
+
+      if( mot6 == mot6_b ) then    
         index_hk = index_hk + 1
         if( j == 2 ) n_index_hk(i_hk) = index_hk 
       else  
         i_hk = i_hk + 1
         index_hk = 1
-        if( j == 2 ) hk(i_hk) = mot4
-        mot4_b = mot4 
+        if( j == 2 ) then
+          hk(i_hk) = mot6
+          hk_length(i_hk) = length_hk
+        endif
+        mot6_b = mot6 
       endif
     end do
     
@@ -3743,6 +3757,7 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
       allocate( n_index_hk(n_hk_tr) )
       n_index_hk(:) = 1
       allocate( hk(n_hk_tr) )
+      allocate( hk_length(n_hk_tr) )
     endif
     
   end do
@@ -3770,7 +3785,7 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
     i2 = 16
     do i = 1,15
       if( mot15(i:i) == '(' ) then
-        i1 = i + len_trim( hk(i_hk) ) + 1
+        i1 = i + hk_length(i_hk) + 1
       elseif( mot15(i:i) == ')' ) then
         i2 = i-1
         exit
@@ -3809,10 +3824,10 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
     endif
     do i_hk = 1,n_hk_tr
       mot15_d = mot15_b
-      mot4 = hk(i_hk)
-      le = len_trim( mot4 ) 
+      mot6 = hk(i_hk)
+      le = len_trim( mot6 ) 
       mot15_d(l+1:l+1) = '_'
-      mot15_d(l+2:l+1+le) = mot4(1:le) 
+      mot15_d(l+2:l+1+le) = mot6(1:le) 
       l2 = len_trim(mot15_d) + 1
       mot15_d(l2:l2) = '('
       do i = 1,n_energ_tr
@@ -3827,6 +3842,7 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
         E_string(i,i_cor,i_hk) = mot15
       end do
     end do
+
   end do
   
   write(ipr,110) (( '         l_'//hk(i_hk), E_string(:,i_cor,i_hk), i_cor = 1,n_cor ), i_hk = 1,n_hk_tr )
@@ -3837,7 +3853,7 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
   
   Close(ipr)
   
-  deallocate( E_string, hk, l_value, n_index_hk, Signal_out )
+  deallocate( E_string, hk, hk_length, l_value, n_index_hk, Signal_out )
 
   110 format(10000a15)
 end

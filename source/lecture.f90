@@ -1375,11 +1375,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
     Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs, &
     hkl_film,Hubb,Hubbard,Hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,iscratch,isigpi,itdil,its_lapw,iord,itape4,itype, &
-    itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,l_selec_max,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmaxfree,lmaxso0, &
-    lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Matper,MPI_host_num_for_mumps,mpinodes,mpinodes0,mpirank0, &
-    Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_uc,n_devide,n_file_dafs_exp,n_multi_run_e, &
-    n_radius,n_range,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg,ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw, &
-    ngroup_m,ngroup_neq,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
+    itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,l_selec_max,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmax_tddft_inp, &
+    lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Matper,MPI_host_num_for_mumps,mpinodes, &
+    mpinodes0,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_uc,n_devide, &
+    n_file_dafs_exp,n_multi_run_e,n_radius,n_range,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg,ngamh,ngamme, &
+    ngroup,ngroup_hubb,ngroup_lapw,ngroup_m,ngroup_neq,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
     ngroup_temp,nhybm,nlat,nlatm,No_solsing,nom_fich_Extract, &
     nomfich,nomfich_optic_data,nomfich_tddft_data,nomfichbav,Noncentre, &
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
@@ -1401,10 +1401,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
   integer:: eof, eoff, i, i_range, ier, ia, ie, igr, igr_dop, igrdat, io, iord, ip, ipar, ipl, ipl0, ipr, ipr0, iscratch, isp, &
     ispin, istat, istop, isymeq, it, itape4, itype_dop, j, jgr, jpl, jseuil, jt, k, kgr, l, l_hubbard, l_level_val, &
-    l_selec_max, l1, l2, lamstdens, lecrantage, lin_gam, lmax_nrixs, lmax_pot, lmax_pot_default, lmaxat0, lmaxso0, long, &
-    lseuil, m, m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank0, multi_run, multrmax, &
-    n, n_adimp, n_atom_bulk, n_atom_cap, n_atom_proto, n_atom_uc, n_devide, n_file_dafs_exp, n_fract_x, n_fract_y, n_fract_z, n_label,  &
-    n_multi_run_e, n_occupancy, n_radius, n_range, n1, n2, natomsym, nb_atom_conf_m, nbseuil, nchemin, &
+    l_selec_max, l1, l2, lamstdens, lecrantage, lin_gam, lmax_nrixs, lmax_pot, lmax_pot_default, lmax_tddft_inp, lmaxat0, &
+    lmaxso0, long, lseuil, m, m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank0, multi_run, multrmax, &
+    n, n_adimp, n_atom_bulk, n_atom_cap, n_atom_proto, n_atom_uc, n_devide, n_file_dafs_exp, n_fract_x, n_fract_y, n_fract_z,  &
+    n_label, n_multi_run_e, n_occupancy, n_radius, n_range, n1, n2, natomsym, nb_atom_conf_m, nbseuil, nchemin, &
     necrantage, neimagent, nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_neq, ngroup_nonsph, &
     ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, nhybm, nlatm, nn, nnombre, non_relat, norb, norbdil, normrmt, &
     nparm, nphim, nphimt, npldafs, nple, nq_nrixs, nrato_dirac, nrm, nscan, nself, nseuil, nslapwm, nspin, ntype, ntype_bulk, &
@@ -1631,6 +1631,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   lquaimp(:,:) = -1
   lin_gam = -1
   lmax_nrixs = 2
+  lmax_tddft_inp = -1
   lmaxso0 = -5
   lmaxat0 = -1
   lmaxfree = .false.
@@ -2307,6 +2308,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('lmax_nrix')
           read(itape4,*,iostat=ier) lmax_nrixs
 
+        case('lmax_tddf')
+          read(itape4,*,iostat=ier) lmax_tddft_inp
+
         case('nrixs')
           n = nnombre(itape4,132)
           if( n == 1 ) then
@@ -2410,6 +2414,13 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
               case(8)
                 if( Film ) then
                   read(itape4,*,iostat=ier) hkl_dafs(1:2,ipl), p(1:3), isigpi(ipl,1:2), angpoldafs(3,ipl)
+                  do i = 1,2
+                    if( isigpi(ipl,i) == 1 ) then
+                      angpoldafs(i,ipl) = 0._db
+                    elseif( isigpi(ipl,i) == 2 ) then
+                      angpoldafs(i,ipl) = 90._db
+                    endif
+                  end do
                   hkl_dafs(3,ipl) = p(1)
                   if( abs( p(2) ) < eps10 ) cycle
                   n = nint( ( p(3) - p(1) ) / p(2) )
@@ -2420,7 +2431,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                     hkl_dafs(3,ipl+i) = hkl_dafs(3,ipl) + i * t
                     hkl_dafs(1:2,ipl+i) = hkl_dafs(1:2,ipl)
                     isigpi(ipl+i,1:2) = isigpi(ipl,1:2)
-                    angpoldafs(3,ipl+i) = angpoldafs(3,ipl)
+                    angpoldafs(1:3,ipl+i) = angpoldafs(1:3,ipl)
                   end do
                   ipl = ipl + n
                 else
@@ -4154,6 +4165,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           write(3,'(A)') '   No broadening in the Chi_0 calculation'
         endif
       endif
+      if( ( Optic .or. Tddft ) .and. lmax_tddft_inp >= 0 ) write(3,325) lmax_tddft_inp
       if( Core_resolved ) write(3,'(A)') ' Core resolved in outputs'
 
       if( Extract ) then
@@ -4669,6 +4681,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(lecrantage,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(lin_gam,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(lmax_nrixs,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(lmax_tddft_inp,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(lmax_pot,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(lmaxat0,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(lmaxfree,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
@@ -5134,6 +5147,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   310 format(' Radius =',f6.2)
   315 format(' Radius, E_radius =',100(f6.2,f6.1))
   320 format('    Roverad =',f6.2)
+  325 format('  In optic and tddft parts, expansion in spherical harmonics limited to lmax =',i2)
   330 format(' icheck =',30i2)
   340 format(' Linear range :')
   350 format(' Range =',20f8.3,5(/8x,20f8.3))
