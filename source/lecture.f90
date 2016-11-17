@@ -13,8 +13,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   implicit none
   include 'mpif.h'
 
-  integer:: eof, eoff, i, ie, ier, igamme, igr, igrdat, io, ipr, ipl, istat, it, itape4, itype_dop, j,&
-    jgr, jpl, k, kgr, l, ligne, lin_gam, mpinodes0, mpirank0, n, n_adimp, n_atom_bulk, n_atom_cap, n_atom_uc, n_radius, &
+  integer:: eof, eoff, i, ie, ier, igamme, igr, igrdat, io, ipr, ipl, istat, it, itape4, itype_dop, j, jgr, &
+    jpl, k, kgr, l, ligne, lin_gam, lmax_nrixs, mpinodes0, mpirank0, n, n_adimp, n_atom_bulk, n_atom_cap, n_atom_uc, n_radius, &
     n_range, n_dic, n_file_dafs_exp, n_fract_x, n_fract_y, n_fract_z, n_label, n_multi_run_e, na, nb, nb_atom_conf_m, ncolm, &
     neimagent, nenerg, ngamme, ngc, ngroup, ngroup_neq, nhybm, nklapw, nl, &
     nlatm, nlmlapwm, nmatsym, nn, nnombre, norbdil, norbv, mpierr, &
@@ -36,8 +36,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
      Extract, Film, Flapw, Full_self_abs, Hubbard, Magnetic, Matper, Memory_save, NRIXS, Pdb, Quadrupole, Readfast, &
      Screening, Self_abs, Spherique, Taux, Temperature, Use_FDMX, Xan_atom
 
-  real(kind=db):: Adimp, Angz, de, def, number_from_text, E, phi, q_nrixs_first, q_nrixs, q_nrixs_step, q_nrixs_last, r, &
-                  Rsorte_s, Theta
+  real(kind=db):: Adimp, Angz, de, def, number_from_text, E, phi, r, Rsorte_s, Theta
   real(kind=db), dimension(3):: p
   real(kind=db), dimension(3,3):: Mat
   real(kind=db), dimension(:), allocatable:: E_adimp, E_radius, Egamme
@@ -59,6 +58,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   Flapw = .false.
   Full_self_abs = .false.
   Hubbard = .false.
+  lmax_nrixs = 2
   Matper = .false.
   Memory_save = .false.
   n_adimp = 1
@@ -167,7 +167,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           n_multi_run_e = 1
 
         case('absorbeur')
-          absauto = .false.
+          Absauto = .false.
           n = nnombre(itape4,132)
           if( n > 0 ) n_multi_run_e = 0
           do i = 1,100000
@@ -186,31 +186,25 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
         case('hubbard')
           Hubbard = .true.
 
+        case('lmax_nrix')
+          read(itape4,*,iostat=ier) lmax_nrixs
+
         case('nrixs')
           NRIXS = .true.
-          n = nnombre(itape4,132)
-          if( n /= 1 .and. n /= 3 ) then
+          nq_nrixs = 0
+          do
+            n = nnombre(itape4,132)
+            nq_nrixs = nq_nrixs + n
+            if( n == 0 ) exit
+            read(itape4,*)
+          end do
+          if( nq_nrixs == 0 ) then
             call write_error
             do ipr = 6,9,3
               write(ipr,110)
-              write(ipr,'(/A/)') ' After keyword "NRIXS" one must have 1 or 3 numbers : q_first, q_step, q_last !'
+              write(ipr,'(/A/)') ' After keyword "NRIXS" the q values'
             end do
             stop
-          endif
-          if( n == 1 ) then
-            read(itape4,*,iostat=ier) q_nrixs_first
-            nq_nrixs = 1
-          else
-            read(itape4,*,iostat=ier) q_nrixs_first, q_nrixs_step, q_nrixs_last
-          endif
-          if( ier > 0 ) call write_err_form(itape4,grdat)
-          if( n == 3 ) then
-            q_nrixs = q_nrixs_first
-            do nq_nrixs = 2,100000
-              q_nrixs = q_nrixs + q_nrixs_step
-              if( q_nrixs > q_nrixs_last + eps10 ) exit
-            end do
-            nq_nrixs = nq_nrixs - 1
           endif
 
         case('spgroup')
@@ -1178,6 +1172,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
   endif
 
+  if( nq_nrixs >= 1 .and. lmax_nrixs > 1 ) Quadrupole = .true.
+
   if( nple == 0 ) then
     if( Quadrupole ) then
       nplm = 6
@@ -1260,8 +1256,9 @@ subroutine write_err_form(irec,keyword)
 
   return
   110 format(//' Format error when reading in the indata file under', ' the keyword:',//,5x,A)
-  120 format(//' Check :',/ '  - How many numbers must be in the line ?',/ '  - Are there spaces between the numbers ?',/ &
-           '  - Are there unwanted characters, extra  points... ?',/ '  - Tabulations are forbidden !'//)
+  120 format(//' Check :',/ '  - How many numbers must be in the line ?',/ &
+                            '  - Are there spaces between the numbers ?',/ &
+                            '  - Are there unwanted characters, extra  points... ?',//)
 end
 
 !***********************************************************************
@@ -1415,10 +1412,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   character(len=3):: Seuil
   character(len=5):: Solver, Struct, Struct_bulk
   character(len=6):: mot6
-  character(len=8):: PointGroup
+  character(len=8):: dat, PointGroup
   character(len=9):: grdat
+  character(len=10):: tim
   character(len=11):: motpol
   character(len=13):: Chemical_Name, mot13, Space_Group, Spgr
+  character(len=50):: com_date, com_time
   character(len=132):: comt, Error_message, Fichier, Fichier_cif, identmot, mot, motsb, nomfich, nomfich_optic_data, &
     nomfich_tddft_data, nom_fich_Extract, nomfichbav, Space_file, word_from_text
   character(len=35), dimension(0:ntype):: com
@@ -1477,7 +1476,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
   real(kind=db):: Alfpot, Ang_borm, Bulk_lay, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, D_max_pot, Delta_En_conv, &
     Delta_Epsii, Eclie, Eclie_out, Film_roughness, Film_thickness, g1, g2, Gamma_max, Kern_fac, number_from_text, Overlap, &
-    p_self_max, p_self0, Pas_SCF, phi, pop_nsph, pp, q, q_nrixs_first, q_nrixs_step, q_nrixs_last, &
+    p_self_max, p_self0, Pas_SCF, phi, pop_nsph, pp, q, &
     r, r_self, R_rydb, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, V_intmax, vv
 
   real(kind=db), dimension(nq_nrixs):: q_nrixs
@@ -2312,18 +2311,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           read(itape4,*,iostat=ier) lmax_tddft_inp
 
         case('nrixs')
-          n = nnombre(itape4,132)
-          if( n == 1 ) then
-            read(itape4,*,iostat=ier) q_nrixs_first
-            q_nrixs_step = 1._db
-            q_nrixs_last = q_nrixs_first
-          else
-            read(itape4,*,iostat=ier) q_nrixs_first, q_nrixs_step, q_nrixs_last
-          endif
-          if( ier > 0 ) call write_err_form(itape4,grdat)
-          q_nrixs(1) = q_nrixs_first
-          do i = 2,nq_nrixs
-            q_nrixs(i) = q_nrixs(i-1) + q_nrixs_step
+          i = 0
+          do
+            n = nnombre(itape4,132)
+            if( n == 0 ) exit
+            read(itape4,*,iostat=ier) q_nrixs(i+1:i+n)
+            i = i + n
           end do
 
         case('step_azim')
@@ -2824,7 +2817,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 elseif( n == 2 + 4*nlat(it) ) then
                   if( nspin == 1 ) then
                     allocate( x(nlat(it)) )
-                    read(itape4,*,iostat=ier) numat(it),nlat(it), ( nvval(it,l), lvval(it,l), popval(it,l,1), x(l), l = 1,nlat(it) )
+                    read(itape4,*,iostat=ier) numat(it),nlat(it), ( nvval(it,l), lvval(it,l), popval(it,l,1), x(l), &
+                                                                    l = 1,nlat(it) )
                     do l = 1,nlat(it)
                       popval(it,l,1) = popval(it,l,1) + x(l)
                     end do
@@ -3331,7 +3325,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     endif
 
     if( icheck(1) > 0 ) then
-      write(3,'(A/A/A)') Revision, com_date, com_time
+      call date_and_time( date = dat, time = tim )
+      com_date = '   Date = ' // dat(7:8) // ' ' // dat(5:6) // ' ' // dat(1:4)
+      com_time = '   Time = ' // tim(1:2)  // ' h ' // tim(3:4) // ' mn ' // tim(5:6) // ' s'
+      write(3,'(1x,A/A/A)') Revision, com_date, com_time
       if( comt /= ' ') write(3,'(/A)') comt
       ipr0 = 3
     else
@@ -4266,7 +4263,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       if( nq_nrixs >= 1 ) then
         write(3,'(/A)') ' NRIXS (X-ray Raman) calculation'
         write(3,'(a15,i2)') '   lmax_nrixs =' ,lmax_nrixs
-        write(3,'(a28,3f8.5,a6,i4)') '   q_first, q_step, q_last =' ,q_nrixs_first, q_nrixs_step, q_nrixs_last, ', nq =',nq_nrixs
+        write(3,'(a6,1000f8.5)') '   q =' , q_nrixs(:)
       endif
 
       if( Dafs_bio ) then
@@ -5146,8 +5143,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   300 format(/' Tensors Extracted from the file :'/,A,/)
   310 format(' Radius =',f6.2)
   315 format(' Radius, E_radius =',100(f6.2,f6.1))
-  320 format('    Roverad =',f6.2)
-  325 format('  In optic and tddft parts, expansion in spherical harmonics limited to lmax =',i2)
+  320 format('   Roverad =',f6.2)
+  325 format('   In optic and tddft parts, expansion in spherical harmonics limited to lmax =',i2)
   330 format(' icheck =',30i2)
   340 format(' Linear range :')
   350 format(' Range =',20f8.3,5(/8x,20f8.3))
@@ -5677,7 +5674,8 @@ end
 
 ! Calcul du centre de l'agregat.
 
-subroutine Auto_center(axyz,Centre,Centre_auto_abs,Cubmat,icheck,itype,n_atom_uc,ngroup,ntype,numat,numat_abs,posn,Rsorte_s,struct)
+subroutine Auto_center(axyz,Centre,Centre_auto_abs,Cubmat,icheck,itype,n_atom_uc,ngroup,ntype,numat,numat_abs,posn,Rsorte_s, &
+                       Struct)
 
   use declarations
   implicit none

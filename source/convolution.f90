@@ -25,11 +25,14 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   integer, parameter:: njp = 500
 
   character(len=1):: rep
+  character(len=8):: dat
   character(len=9):: keyword, mot9
-  character(len=9), dimension(nkw_conv) :: kw_conv
-  character(len=9), dimension(ngroup_par,nparm) :: typepar
+  character(len=10):: tim
+  character(len=50):: com_date, com_time
   character(len=Length_word):: nomab
   character(len=132):: chemin, convolution_out, fichscanout, identmot, mot, mots, nomfich, nomfichbav, xsect_file
+  character(len=9), dimension(nkw_conv) :: kw_conv
+  character(len=9), dimension(ngroup_par,nparm) :: typepar
   character(len=Length_word), dimension(:), allocatable:: nom_col
   character(len=132), dimension(:), allocatable:: fichin, fichscanin
   character(len=10), dimension(:), allocatable:: Stokes_name
@@ -130,7 +133,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Vibration = 0._db
 
   if( bav_open .or. icheck > 1 ) Check_conv = .true.
-
+  
 ! -- Lecture --------------------------------------------
 
   Rewind(itape1)
@@ -688,7 +691,10 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     open(3, file = nomfichbav, status='unknown',iostat=istat)
     if( istat /= 0 ) call write_open_error(nomfichbav,istat,1)
     bav_open = .true.
-    write(3,'(A/A/A)') Revision, com_date, com_time
+    call date_and_time( date = dat, time = tim )
+    com_date = '   Date = ' // dat(7:8) // ' ' // dat(5:6) // ' ' // dat(1:4)
+    com_time = '   Time = ' // tim(1:2)  // ' h ' // tim(3:4) // ' mn ' // tim(5:6) // ' s'
+    write(3,'(1x,A/A/A)') Revision, com_date, com_time
   endif
 
   if( Check_conv .and. .not. Deuxieme ) write(3,115)
@@ -1587,13 +1593,13 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           endif
         endif
         if( nfich == 1 .and. ninitl(ifich) == 1 ) then
-          Write(ipr,170) Gamma_h*rydb, Efermi*rydb
+          Write(ipr,170) Gamma_h*rydb, Efermi_orig*rydb, decal_initl(initl,ifich)*rydb
         elseif( nfich == 1 ) then
-          Write(ipr,172) Gamma_h*rydb, Efermi*rydb, initl
+          Write(ipr,172) Gamma_h*rydb, Efermi_orig*rydb, decal_initl(initl,ifich)*rydb, initl
         elseif( ninitl(ifich) == 1 ) then
-          Write(ipr,174) Gamma_h*rydb, Efermi*rydb, ifich
+          Write(ipr,174) Gamma_h*rydb, Efermi_orig*rydb, decal_initl(initl,ifich)*rydb, ifich
         else
-          Write(ipr,176) Gamma_h*rydb, Efermi*rydb, ifich, initl
+          Write(ipr,176) Gamma_h*rydb, Efermi_orig*rydb, decal_initl(initl,ifich)*rydb, ifich, initl
         endif
       end do
 
@@ -1944,8 +1950,6 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   end do ! fin boucle fichier
   
-!As(:,:,:) = (0._db,0._db)
-
   deallocate( run_done )
   if( .not. ( seah .or. Arc ) ) then
     deallocate( Elor )
@@ -2401,10 +2405,10 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
                 ' No summation and convolution are possible !' //)
   150 format('    Gamma_max  =',f7.2,',  Aseah =',f7.2)
   160 format('    Gamma_max  =',f7.2,',  Ecent =',f7.2,', Elarg =',f7.2)
-  170 format('    Gamma_hole =',f7.2,', Efermi =',f7.2,' eV')
-  172 format('    Gamma_hole =',f7.2,', Efermi + Shift =',f7.2,', initl =',i3)
-  174 format('    Gamma_hole =',f7.2,', Efermi + Shift =',f7.2,', site', i3)
-  176 format('    Gamma_hole =',f7.2,', Efermi + Shift =',f7.2,', site', i3,', initl =',i3)
+  170 format('    Gamma_hole =',f7.2,', Efermi =',f8.3,', Shift =',f8.3,' eV')
+  172 format('    Gamma_hole =',f7.2,', Efermi =',f8.3,', Shift =',f8.3,' eV,  initl =',i3)
+  174 format('    Gamma_hole =',f7.2,', Efermi =',f8.3,', Shift =',f8.3,' eV,  site', i3)
+  176 format('    Gamma_hole =',f7.2,', Efermi =',f8.3,', Shift =',f8.3,' eV,  site', i3,', initl =',i3)
   178 format(/'      E_(eV)    Width_(eV) lambda_(A)')
   180 format(3f12.3)
   185 format(2f12.3,1p,e12.4)

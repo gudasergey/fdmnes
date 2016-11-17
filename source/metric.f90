@@ -21,7 +21,10 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
     index_Rxg, ipar, ipr, iscratchconv, istat, itape_minim, itape2, j, j0, jpas, k, kk, l, length_line, n, nb_datafile, &
     ncal, ncolm, ndem, ndm, ng, ngroup_par, nmetric, nmetricm, nnombre, nparm, npm, npp
 
+  character(len=8):: dat
+  character(len=10):: tim
   character(len=9):: keyword
+  character(len=50):: com_date, com_time
   character(len=132):: comt, convolution_out, fdmfit_out, identmot, mot
   character(len=length_line):: motl
   character(len=2), dimension(nmetricm) :: Nom_Met
@@ -621,7 +624,10 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
   if( ical == 1 ) then
 
     open(4, file = fdmfit_out )
-    write(4,'(A/A/A)') Revision, com_date, com_time
+    call date_and_time( date = dat, time = tim )
+    com_date = '   Date = ' // dat(7:8) // ' ' // dat(5:6) // ' ' // dat(1:4)
+    com_time = '   Time = ' // tim(1:2)  // ' h ' // tim(3:4) // ' mn ' // tim(5:6) // ' s'
+    write(4,'(1x,A/A/A)') Revision, com_date, com_time
     if( comt /= ' ') write(4,'(A)') comt
 
     write(4,130)

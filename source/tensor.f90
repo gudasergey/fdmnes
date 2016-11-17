@@ -318,7 +318,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   endif
 ! Boucles sur le rang des tenseurs
 
-  if( icheck > 2 .and. .not. Final_optic ) write(3,120) lseuil
+  if( icheck > 1 .and. .not. Final_optic ) write(3,120) lseuil
 
   do irang = irang1,nrang
     do jrang = irang,nrang
@@ -933,8 +933,8 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   endif
   
   return
-  100 format(/' ---- Radial ---------',100('-'))
-  110 format(/' ---- Tens_ab --------',100('-'))
+  100 format(/' ---- Tenseur_car Radial ---------',100('-'))
+  110 format(/' ---- Tenseur_car Tens_ab --------',100('-'))
   120 format(/' lseuil =',i2)
   130 format(/' -- irang =',i2,', jrang =',i2,' --')
   140 format(/' ke, je, he =',3i3,',  ks, js, hs =',3i3,',  ispfg =',i2)
@@ -1098,7 +1098,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
 
 ! Il n'y a que pour le dipole magnetique qu'on peut avoir du spin-flip (ou pour le terme dipolaire relativiste)
                 if( ispinf1 /= isping1 .and. ( NRIXS .or. irang > 1 .or. ( irang == 1 .and. &
-                                                                           ( .not. Dip_rel .or. jrang /= 1 ) ) ) ) cycle 
+                                                                           ( .not. Dip_rel .or. jrang /= 1 ) ) ) ) cycle
 
 ! Boucle sur les harmoniques de l'etat final en sortie
                 do l2 = 0,lmax
@@ -1204,7 +1204,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
                       cfe = cfe + dfe
                       cfs = cfs + dfs
 
-                      if( icheck > 2 .and. abs( dfe ) > eps15 ) then
+                      if( icheck > 1 .and. abs( dfe ) > eps15 ) then
                         if( Titre ) then
                           Titre = .false.
                           write(3,120)
@@ -1248,7 +1248,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
                         Ten(initlr) = Ten(initlr) + Cg * Tau_rad
                       endif
 
-                      if( icheck > 2 .and.  abs( Tau_rad ) > eps15 ) write(3,140) Ten(initlr), Tau_rad, Cg, &
+                      if( icheck > 1 .and.  abs( Tau_rad ) > eps15 ) write(3,140) Ten(initlr), Tau_rad, Cg, &
                                  Singul(lm_f1,ispf1,irang,jrang,is_r1)
 
                     end do ! fin boucle ispinf2, spin etat final sortie
@@ -1397,7 +1397,7 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
     end do
   end do
 
-  if( icheck > 2 ) then
+  if( icheck > 1 ) then
     if( nlm_p_fp == 1 .and. Spinorbite ) then
       write(3,110)
     elseif( nlm_p_fp == 1 ) then
@@ -1513,7 +1513,7 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
             end do
           endif
 
-          if( icheck < 3  .or. abs( cf ) < 1.e-15_db ) cycle
+          if( icheck < 2  .or. abs( cf ) < 1.e-15_db ) cycle
           if( nlm_p_fp == 1 .and. Spinorbite ) then
             write(3,150) l_g1, m_g1, isp_g1, iso_g1, l_f1, m_f1, isp_f1, iso_f1, &
                 l_f2, m_f2, isp_f2, iso_f2, l_g2, m_g2, isp_g2, iso_g2, &
@@ -2912,8 +2912,6 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   real(kind=db), dimension(nq_nrixs,ninitlr,0:mpinodes-1):: S_nrixs, S_nrixs_m
   real(kind=db), dimension(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:mpinodes-1):: S_nrixs_l, S_nrixs_l_m
 
-  if( icheck > 1 ) write(3,100)
-  
   NRIXS = .true.
 
   allocate( Singul(nlm_probe,nspinp,l0_nrixs:lmax_nrixs,l0_nrixs:lmax_nrixs,ninitlv) )
@@ -2924,7 +2922,9 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   S_nrixs_l_m(:,:,:,mpirank) = 0._db
 
   do iq = 1,nq_nrixs
-  
+
+    if( icheck > 1 ) write(3,100) iq, q_nrixs / bohr
+    
     rof(:,:,:,:,:,:) = (0._db, 0._db)
     Singul(:,:,:,:,:) = (0._db, 0._db)
 
@@ -2953,6 +2953,8 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
     end do
 
+    if( icheck > 1 ) write(3,110) iq
+    
     lme = 0
     do le = l0_nrixs,lmax_nrixs
       do me = -le,le
@@ -2960,6 +2962,8 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
         lms = 0
         do ls = l0_nrixs,lmax_nrixs
+
+          if( le /= ls ) cycle
 
           l = mod(le + ls,4)
           select case(l)
@@ -2978,7 +2982,7 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
           do ms = -ls,ls
             lms = lms + 1
     
-            if( icheck > 1 ) write(3,110) le, me, ls, ms
+            if( icheck > 1 ) write(3,120) le, me, ls, ms
 
             call tens_ab(coef_g,Core_resolved,.false.,FDM_comp,Final_tddft,Green,Green_int,icheck,lmax_nrixs, &
                                 l0_nrixs,le,is_g,1,1,ls,le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2, &
@@ -3002,8 +3006,9 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   deallocate( rof, Singul )
   
   return
-  100 format(/' ---- S_nrixs_cal ---------',100('-'))
-  110 format(/' le, me =',2i3,',  ls, ms =',2i3)
+  100 format(/' ---- S_nrixs_cal Radial ---------',100('-'),//'  iq =',i3,', q =',f6.3)
+  110 format(/' ---- S_nrixs_cal Tens_ab --------',100('-'),//'  iq =',i3,', q =',f6.3)
+  120 format(/' le, me =',2i3,',  ls, ms =',2i3)
 
 end
 

@@ -446,7 +446,8 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
 
   return
   110 format(/' ---- Symsite ------',100('-'))
-  120 format(/3x,'ipr =',i3,', Z =',i3,', natomsym =',i6,'      - Bulk -',//, '  igr      posx     posy     posz          sym    code')
+  120 format(/3x,'ipr =',i3,', Z =',i3,', natomsym =',i6,'      - Bulk -',//, &
+             '  igr      posx     posy     posz          sym    code')
   130 format(/3x,'ipr =',i3,', Z =',i3,', natomsym =',i6//, '  igr      posx     posy     posz          sym    code')
   140 format(i5,2x,3f9.5,2x,a11,3x,129i3)
   150 format(/3x,'ipr =',i3,', Z =',i3,', natomsym =',i6,'      - Bulk -',//,'  igr...')
@@ -1833,7 +1834,7 @@ end
 
 !***********************************************************************
 
-subroutine extract_Epsii(Core_resolved,Delta_Epsii,Delta_Eseuil, Epsii,Epsii_moy,icheck,nbseuil,ninit1,ninitl,ninitlr)
+subroutine extract_Epsii(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,icheck,nbseuil,ninit1,ninitl,ninitlr)
 
   use declarations
   implicit none
@@ -2312,8 +2313,8 @@ subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk
 
 ! Determination of Film-bulk spacing
 
-subroutine Film_Bulk_Sp(angxyz,angxyz_bulk,axyz,axyz_bulk,Cubmat,deccent,Film_shift,itype,Mat,n_atom_bulk,n_atom_uc,ngroup,ntype, &
-                        numat,Shift_bulk,posn,posn_bulk,Z_bulk)
+subroutine Film_Bulk_Sp(angxyz,angxyz_bulk,axyz,axyz_bulk,Cubmat,deccent,Film_shift,itype,Mat,n_atom_bulk,n_atom_uc,ngroup, &
+                        ntype,numat,Shift_bulk,posn,posn_bulk,Z_bulk)
 
   use declarations
   implicit none
@@ -2731,15 +2732,15 @@ subroutine agregat(angxyz,angxyz_bulk,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu
           iabsorbeur,iaproto,iapot,icheck,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,iopsymc,iopsymr,itabs,itype,itypep,karact, &
           Kgroup,Magnetic,Matper,mpirank,multi_run,n_atom_bulk,n_atom_proto,n_atom_uc,natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup, &
           ngroup_m,ngroup_pdb,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat,One_run,Orthmat,Orthmati,Orthmatt,PointGroup, &
-          PointGroup_Auto,popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc,Spinorbite,Rot_Atom_gr,Struct,Sym_2D,Sym_4,Sym_cubic, &
-          Symmol,Taux,Taux_oc,Test_dist_min,Z_bulk)
+          PointGroup_Auto,popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc,Spinorbite,Rot_Atom_gr,Struct,Sym_2D,Sym_4, &
+          Sym_cubic,Symmol,Taux,Taux_oc,Test_dist_min,Z_bulk)
 
   use declarations
   implicit none
 
   integer:: i, ia, iaabs, iaabsfirst, iabsorbeur, ib, icheck, igr, igr_dop, igrpt, igrpt_nomag, igrpt_sg, igrpt_sg_cmp, &
-    igrpt_sg_cal, igrpt_sg_so, igrpt0, igrptn, ipr, ired, istop, it, itabs, k, mpirank, multi_run, n_atom_bulk, n_atom_proto, n_atom_uc, &
-    natomp, nb_rep, nb_sym_op, neqm, ngroup, ngroup_m, ngroup_pdb, ngroup_taux, nlatm, npr1, nspin, ntype, Za, Zb
+    igrpt_sg_cal, igrpt_sg_so, igrpt0, igrptn, ipr, ired, istop, it, itabs, k, mpirank, multi_run, n_atom_bulk, n_atom_proto, &
+    n_atom_uc, natomp, nb_rep, nb_sym_op, neqm, ngroup, ngroup_m, ngroup_pdb, ngroup_taux, nlatm, npr1, nspin, ntype, Za, Zb
 
   integer, dimension(natomp):: iaproto, igroup, itypep
   integer, dimension(nopsm):: iopsymc, iopsymr
@@ -2762,7 +2763,8 @@ subroutine agregat(angxyz,angxyz_bulk,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu
 
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, Axe_spin, Axe_spin_0, axyz, axyz_bulk, dcosxyz, deccent, dpos, pa, pb, v
   real(kind=db), dimension(5):: Film_shift
-  real(kind=db), dimension(3,3):: Cubmat, Cubmat_bulk, Orthmat, Orthmati, Orthmatt, Rot_un, Rotmat, Rot_int, Rot_so, Rot_tem, Rotspin
+  real(kind=db), dimension(3,3):: Cubmat, Cubmat_bulk, Orthmat, Orthmati, Orthmatt, Rot_un, Rotmat, Rot_int, Rot_so, Rot_tem, &
+                                  Rotspin
   real(kind=db), dimension(natomp):: dista
   real(kind=db), dimension(3,natomp):: Axe_atom_clu, pos
   real(kind=db), dimension(3,n_atom_uc):: posn
@@ -2832,15 +2834,15 @@ subroutine agregat(angxyz,angxyz_bulk,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu
       pos(1:3,ia) = v(1:3)
     end do
     if( Magnetic .or. Atom_nonsph ) then
-      do ia = 1,ngroup
-        if( ( .not. Bulk_step .and. igroup(ia) > ngroup - n_atom_bulk ) .or. Bulk_step ) then
-          v(:) = Axe_atom_gr(:,ia) * axyz_bulk(:)
+      do igr = 1,ngroup
+        if( ( .not. Bulk_step .and. igr > ngroup - n_atom_bulk ) .or. Bulk_step ) then
+          v(:) = Axe_atom_gr(:,igr) * axyz_bulk(:)
           v = Matmul( Cubmat_bulk, v )
         else
-          v(:) = Axe_atom_gr(:,ia) * axyz(:)
+          v(:) = Axe_atom_gr(:,igr) * axyz(:)
           v = Matmul( Cubmat, v )
         endif
-        Axe_atom_grn(1:3,ia) = v(1:3)
+        Axe_atom_grn(1:3,igr) = v(1:3)
       end do
       do ia = 1,natomp
         v(:) = Axe_atom_clu(:,ia)
@@ -5958,8 +5960,8 @@ end
 subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Bormann, &
             Bulk,Bulk_lay,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_no_res,Film, &
             Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck,igreq,iprabs,isigpi,itabs,itypepr,lvval, &
-            Magnetic,Mat_or,mpirank,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_uc,natomsym,nbseuil, &
-            neqm,ngreq,ngrm,ngroup,ngroup_m, &
+            Magnetic,Mat_or,mpirank,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_uc,natomsym, &
+            nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m, &
             ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmatt, &
             phdafs,phdf0t,phdt,poldafse,poldafsem,poldafss,poldafssm,popatm,posn,posn_bulk,posn_cap,psival,rato,Taux, &
             Taux_cap,Taux_oc,Temp,Temp_coef,Temperature,Troncature,Vec_orig,vecdafse,vecdafsem,vecdafss,vecdafssm,xsect_file, &
@@ -5968,8 +5970,8 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
   use declarations
   implicit none
 
-  integer:: i, icheck, igr, ip, ipl, ipr, iprabs, it, itabs, iwrite, j, jgr, kgr, mpirank, n_atom_bulk, n_atom_cap, n_atom_proto, &
-    n_atom_proto_bulk, n_atom_proto_uc, n_atom_uc, natomsym, nbseuil, neqm, ngrm, ngroup, ngroup_m, ngroup_taux, &
+  integer:: i, icheck, igr, ip, ipl, ipr, iprabs, it, itabs, iwrite, j, jgr, kgr, mpirank, n_atom_bulk, n_atom_cap, &
+    n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, n_atom_uc, natomsym, nbseuil, neqm, ngrm, ngroup, ngroup_m, ngroup_taux, &
     ngroup_temp, nlatm, nphim, npldafs, nrm, nspin, ntype, Z, Z_abs
 
   integer, dimension(2):: Mult_bulk, Mult_film
@@ -6534,8 +6536,8 @@ end
 
 ! Polarization calculation for DAFS and f0, f_ms, f_mo calculations
 
-subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Bormann,Bulk,Bulk_step,Dafs_bio,deltak,Eseuil,f_ms,f_mo, &
-            f_no_res,f0,Film,hkl_dafs,hkl_film,icheck,isigpi,itypepr,lvval,Magnetic,Mat_or,mpirank,n_atom_proto,nbseuil,&
+subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Bormann,Bulk,Bulk_step,Dafs_bio,deltak,Eseuil,f_ms, &
+            f_mo,f_no_res,f0,Film,hkl_dafs,hkl_film,icheck,isigpi,itypepr,lvval,Magnetic,Mat_or,mpirank,n_atom_proto,nbseuil,&
             nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmatt,Orthmati, &
             poldafse,poldafsem,poldafss,poldafssm,popatm,psival,rato,Vec_orig,vecdafse,vecdafsem,vecdafss,vecdafssm)
 
@@ -7119,7 +7121,8 @@ end
   real(kind=db), dimension(3):: angxyz_bulk, axyz, axyz_bulk
   real(kind=db), dimension(5):: Film_shift
 
-  Diagonal = abs( angxyz_bulk(3) - 90 ) < 1._db .and. ( abs( Film_shift(4) - 45 ) <  1._db .or. abs( Film_shift(4) + 45 ) < 1._db )
+  Diagonal = abs( angxyz_bulk(3) - 90 ) < 1._db .and. &
+            ( abs( Film_shift(4) - 45 ) <  1._db .or. abs( Film_shift(4) + 45 ) < 1._db )
 
   if( Diagonal ) diag_bulk = sqrt( axyz_bulk(1)**2 + axyz_bulk(2)**2 )
 
@@ -9504,8 +9507,8 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
 
   character(len=8):: ptgrname_int
 
-  integer:: i, i_self, ia, ia1, ia2, iaabs, iaabsi, iabsorbeur, iapr, ib, icheck, ie, ig, iga, igr, igrpt_nomag, igrpt0, ind_rep, &
-     iord, ipr, ipr0, is, isp, isym, it, it1, it2, j, js, l, l_hubbard, m, m_hubb, mp, m_hubb_e, mpirank, &
+  integer:: i, i_self, ia, ia1, ia2, iaabs, iaabsi, iabsorbeur, iapr, ib, icheck, ie, ig, iga, igr, igrpt_nomag, igrpt0, &
+     ind_rep, iord, ipr, ipr0, is, isp, isym, it, it1, it2, j, js, l, l_hubbard, m, m_hubb, mp, m_hubb_e, mpirank, &
      n_atom_0_self, n_atom_ind_self, n_atom_proto, na_ligne, na1, na2, natome, natomeq, natomp, &
      nb_sym_op, neqm, ngroup, ngroup_hubb, ngroup_m, nlatm, nspin, nspinp, ntype, nx
 
@@ -11747,8 +11750,6 @@ subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,it
 
 ! Recherche de la representation a laquelle appartient l'orbitale
           boucle_irep: do igrph = 1,ngrph
-!!!!!!!!!!!!!!!!!!!!!!!!!!
-!      if( ia == 2 .and. (igrph == 3 .or. igrph == 5 ) .and. l == 4 .and. abs(m) == 4 ) cycle
             irep = abs( irep_util(igrph,ispin) )
             if( irep == 0 ) cycle
             do is = 1,nopsm
@@ -12440,31 +12441,78 @@ end
 
 !***********************************************************************
 
-! Calcul de la fonction de Bessel (divisee par z )
+! Calculation of Bessel function ( Riccati-Bessel / z )
+! When Bessel < 10^(-7), one takes the origin limit: j_l = z^l / (2*l+1)!!
+! because of unstability of the recursive formula.
 
 subroutine cbessel(bess,ip0,lmax,nr,q,r)
 
   use declarations
   implicit none
 
-  integer:: ip0, l, l1, lmax, nr
+  integer:: i, ip0, j, k, l, l1, lmax, nr
 
-  real(kind=db):: q
+  real(kind=db):: dr, fac, q, z_lim, z_max
   real(kind=db), dimension(nr):: r, z
   real(kind=db), dimension(nr,0:lmax):: bessel
   real(kind=db), dimension(nr,ip0:lmax):: bess
 
   z(:) = q * r(:)
-  bessel(:,0) = sin( z(:) ) / z(:)
-  if( lmax > 0 ) bessel(:,1) = ( bessel(:,0) - cos( z(:) ) ) / z(:)
 
-  do l = 2,lmax
-    l1 = 2*l - 1
-    bessel(:,l) = l1 * bessel(:,l-1) / z(:) - bessel(:,l-2)
+  do l = 0,lmax
+
+    select case(l)
+
+      case(0)
+
+        do i = 1,nr
+          if( z(i) < 1.e-7_db ) then
+            bessel(i,l) = 1._db - z(i)**2 / 6._db
+          else
+            bessel(i,l) = sin( z(i) ) / z(i)
+          endif
+        end do
+
+      case(1)
+
+        fac = 1._db / 3
+        z_lim = 3.e-7_db  ! = ( 1.e-7_db / fac )**( 1._db / l )
+        do i = 1,nr
+          if( z(i) < z_lim ) then
+            bessel(i,l) = fac * z(i)
+          else
+            bessel(i,l) = ( bessel(i,0) - cos( z(i) ) ) / z(i)
+          endif
+        end do
+
+      case default
+
+        k = 1
+        do j = 3,2*l+1,2
+          k = k * j
+        end do
+        fac = 1._db / k
+        z_lim = ( 1.e-7_db / fac )**( 1._db / l )
+        l1 = 2*l - 1
+ ! l = 2, fac = 1/15, z_lim = 0.00122
+ ! l = 3, fac = 1/105, z_lim = 0.0219
+ ! l = 4, fac = 1/945, z_lim = 0.0986
+ ! l = 5, fac = 1/10395, z_lim = 0.253
+
+        do i = 1,nr
+          if( z(i) < z_lim ) then
+            bessel(i,l) = fac * z(i)**l
+          else
+            bessel(i,l) = l1 * bessel(i,l-1) / z(i) - bessel(i,l-2)
+          endif
+        end do
+
+    end select
+
   end do
 
   do l = ip0,lmax
-     bess(:,l) = bessel(:,l)
+    bess(:,l) = bessel(:,l)
   end do
 
   return

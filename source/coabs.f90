@@ -1966,13 +1966,25 @@ subroutine write_nrixs(All_nrixs,Allsite,Core_resolved, &
         do iq = 1, nq_nrixs 
           i = i + 1
           nomab = 'q='
-          q = q_nrixs(iq) / bohr + eps10
-          n = int( q )   
+          q = q_nrixs(iq) / bohr
+          n = int( q + eps10 )   
           call ad_number(n,nomab,length_word)
           long = len_trim( nomab )
           long = long + 1
           nomab(long:long) = '.'
-          if( n < 10 ) then
+          if( q < 0.001_db ) then
+            n = nint( 10000 * q )
+            call ad_number(0,nomab,length_word)
+            call ad_number(0,nomab,length_word)
+            call ad_number(0,nomab,length_word)
+          elseif( q < 0.01_db ) then
+            n = nint( 1000 * q )
+            call ad_number(0,nomab,length_word)
+            call ad_number(0,nomab,length_word)
+          elseif( q < 0.1_db ) then
+            n = nint( 100 * q )
+            call ad_number(0,nomab,length_word)
+          elseif( n < 10 ) then
             n = int( 1000 * ( q - n ) )
           elseif( n < 100 ) then
             n = int( 100 * ( q - n ) )
@@ -3590,7 +3602,7 @@ subroutine Write_Spherical_tensor(Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M
   real(kind=db), dimension(n_tens_qq,0:natomsym,ninitlr):: Sph_tensor_ia_qq
   real(kind=db), dimension(n_tens_dm,0:natomsym,ninitlr):: Sph_tensor_ia_dm, Sph_tensor_ia_dm_m
 
-  data Tens_name_D/ '  D(00) ','  lz_dd ','  lx_dd ','  ly_dd ','  D_z2  ','   D_xy ','  D_yx  ','  D_yz  ',' D_x2-y2'/
+  data Tens_name_D/ '  D(00) ','  lz_dd ','  lx_dd ','  ly_dd ','  D_z2  ','   D_xz ','  D_yz  ','  D_xy  ',' D_x2-y2'/
   data Tens_name_I/ '   I_z  ','   I_x  ','    I_y ','  I(20) ',' I(21)  ',' I(2-1) ','  I(22) ',' I(2-2) ', &
                     '  I(30) ',' I(31)  ',' I(3-1) ',' I(32)  ',' I(3-2) ','  I(33) ',' I(3-3) '/
   data Tens_name_I_m/ '  I_z_m ',' I_x_m  ','  I_y_m ',' I(20)_m',' I(21)_m','I(2-1)_m',' I(22)_m','I(2-2)_m', &
@@ -4474,7 +4486,7 @@ subroutine Fill_line( Core_resolved, index, Dafs, i, initlr, j, jseuil, n_tens, 
   real(kind=db), dimension(n_tens):: Tens
   
   data Tens_name_tot/ ' Sum_tot'/
-  data Tens_name_D/ ' Sum_dd ','  D(00) ','  lz_dd ','  lx_dd ','  ly_dd ','  D_z2  ','   D_xy ','  D_yx  ','  D_yz  ',' D_x2-y2'/
+  data Tens_name_D/ ' Sum_dd ','  D(00) ','  lz_dd ','  lx_dd ','  ly_dd ','  D_z2  ','   D_xz ','  D_yz  ','  D_xy  ',' D_x2-y2'/
   data Tens_name_I/ ' Sum_dq ','   I_z  ','   I_x  ','    I_y ','  I(20) ',' I(21)  ',' I(2-1) ','  I(22) ',' I(2-2) ', &
                     '  I(30) ',' I(31)  ',' I(3-1) ',' I(32)  ',' I(3-2) ','  I(33) ',' I(3-3) '/
   data Tens_name_I_m/ 'Sum_dq_m','  I_z_m ',' I_x_m  ','  I_y_m ',' I(20)_m',' I(21)_m','I(2-1)_m',' I(22)_m','I(2-2)_m', &

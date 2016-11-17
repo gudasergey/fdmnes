@@ -1468,7 +1468,7 @@ end
 !**********************************************************************
 
 ! Calculation of radial integrals and irregular solution
-! Called by tenseur_car
+! Called by Tenseur_car and S_nrixs_cal
 
 subroutine radial(Classic_irreg,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft,Full_potential,Hubb_a,Hubb_d,icheck, &
          initlv,ip_max,ip0,lmax,lmax_pot,m_hubb,nbseuil,ninit1,ninitlv,nlm_pot,nlma,nlma2,nr,NRIXS,nrm,nspin,nspino, &
@@ -1762,8 +1762,8 @@ end
 
 !**********************************************************************
 
-! Calcul de l'integrale radiale de la regle d'or dite de Fermi.
-! psii, u et ur sont les fonctions d'onde fois r.
+! Calculatim of the radial integral in the (Fermi) Golden rule.
+! psii, u and ur are wave functions time r.
 
 subroutine radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,l,nlm1,nlm2,nbseuil, &
            ninitlv,nlma,nlma2,nr,NRIXS,nrm,nrmtsd,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)

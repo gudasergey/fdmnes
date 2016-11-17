@@ -1190,7 +1190,7 @@ subroutine grille_tddft(Energ,Energ_s,Delta_Eseuil,Estart,icheck, nbseuil,nenerg
 
   if( nbseuil == 1 ) then
 
-    Energ(n+1:nenerg_s) = Energ_s(1:nenerg_s)
+    Energ(n+1:n+nenerg_s) = Energ_s(1:nenerg_s)
 
   else
 

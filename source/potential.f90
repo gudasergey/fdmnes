@@ -734,7 +734,7 @@ subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,ia
   use declarations
   implicit none
 
-  integer:: i_range, i_self, ia, iapr, iaprb, ib, icheck, ipr, ipr1, ipra, iprabs, iprb, ir, ira, irb, it, ita, itab, itb, jpr, &
+  integer:: i_range, i_self, ia, iapr, iaprb, ib, icheck, ipr, ipr1, ipra, iprabs, iprb, ir, ira, irb, it, ita, itab, itb, &
     mpirank, n_atom_0, n_atom_ind, n_atom_proto, natome, natomeq, natomp, nlm_pot, normrmt, nr, nra, nrb, nrm, nspin, ntype, Z
 
   integer, dimension(natomp):: iaproto, itypep
@@ -842,11 +842,11 @@ subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,ia
           endif
         end do
         ib = iaproxp(ipr)
-        if( rnorm(ipr) > eps10 .and. ib <= natomeq ) then
-          iprb = iaproto(ib)
-          rn(ipr) = dab(ipr) / ( 1 + rnorm(iprb) / rnorm(ipr) )
+        iprb = iaproto(ib)
+        if( rnorm(ipr) > eps10 .and. rnorm( iprb ) > eps10 ) then
+          rn(ipr) = min( 0.75_db * dab(ipr), dab(ipr) / ( 1 + rnorm(iprb) / rnorm(ipr) ) )
         else
-          rn(ipr) = min( 1.2_db * dab(ipr), rnorm(ipr) )
+          rn(ipr) = min( 0.75_db * dab(ipr), rnorm(ipr) )
         endif
       endif
     endif
@@ -1077,16 +1077,22 @@ subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,ia
       ia = iaproxp(ipr)
       if( ia > natomp ) cycle
       Z = numat( itypep(ia) )
-      if( Z == 1 ) then
-        if( rayop(ipr) > 0.99*rdem(ipr) .and. rayop(ipr) < 1.75*rdem(ipr) ) cycle
+      if( ( Z == 1 .and. ( rayop(ipr) > 0.99*rdem(ipr) .and. rayop(ipr) < 1.75*rdem(ipr) ) ) &
+          .or. ( Z /= 1 .and. ( rayop(ipr) > 0.25*rdem(ipr) .and. rayop(ipr) < 1.5*rdem(ipr) ) ) ) then
+        cycle
+      elseif( ( Z == 1 .and. ( rn(ipr) > 0.99*rdem(ipr) .and. rn(ipr) < 1.75*rdem(ipr) ) ) &
+          .or. ( Z /= 1 .and. ( rn(ipr) > 0.25*rdem(ipr) .and. rn(ipr) < 1.5*rdem(ipr) ) ) ) then
+        if( iapot(ipr) <= natomeq ) then
+          rmtg0(:) = rn(:)
+          rmtg(:) = (1 + overlap) * rmtg0(:)
+        else
+          rmtg0(ipr) = rn(ipr)
+          rmtg(ipr) = (1 + overlap) * rmtg0(ipr)
+        endif
       else
-        if( rayop(ipr) > 0.25*rdem(ipr) .and. rayop(ipr) < 1.5*rdem(ipr) ) cycle
+        rmtg0(ipr) = rdem(ipr)
+        rmtg(ipr) = (1 + overlap) * rmtg0(ipr)
       endif
-      do jpr = ipr1,n_atom_proto
-        if( iapot(jpr) == 0 .or. rn(jpr) < eps10 ) cycle
-        rmtg0(jpr) = rn(jpr)
-        rmtg(jpr) = (1 + overlap) * rmtg0(jpr)
-      end do
     end do
   endif
 
@@ -1104,8 +1110,8 @@ subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,ia
     do ipr = ipr1,n_atom_proto
       if( iapot(ipr) == 0 .or. rmtg0(ipr) < eps10 ) cycle
       Z = numat( itypepr(ipr) )
-      write(3,170) ipr, Z, rn(ipr)*bohr, rnorm(ipr)*bohr, dab(ipr)*bohr, rdem(ipr)*bohr, rayop(ipr)*bohr, &
-              rv0(ipr)*bohr, rmtsd(ipr)*bohr, rmtg(ipr)*bohr
+      write(3,170) ipr, iapot(ipr), Z, rn(ipr)*bohr, rnorm(ipr)*bohr, dab(ipr)*bohr, rdem(ipr)*bohr, iaproxp(ipr), &
+              rayop(ipr)*bohr, rv0(ipr)*bohr, rmtsd(ipr)*bohr, rmtg(ipr)*bohr
     end do
   endif
 
@@ -1153,8 +1159,8 @@ subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,ia
   140 format(/' Vrop = ',f10.3,' eV',/)
   150 format(' Rmtg : muffin-tin radius',/ &
              ' Rmtsd : Radius for the density of state calculation'/)
-  160 format('  ipr  Z     Rn     Rnorm     Dab     Rdem     Rayop     Rv0     Rmtsd     Rmtg')
-  170 format(i4,i4,8f9.5)
+  160 format('  ipr ia   Z     Rn     Rnorm     Dab     Rdem  iaprox  Rayop     Rv0     Rmtsd     Rmtg')
+  170 format(3i4,4f9.5,i5,4f9.5)
 end
 
 !***********************************************************************

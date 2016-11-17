@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 23 October 2016, 2 Brumaire, An 225.
+! FDMNES II program, Yves Joly, Oana Bunau, 14th of November 2016, 24 Brumaire, An 225.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,9 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50):: com_date, com_time
-
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 23th of October 2016'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 14th of November 2016'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -88,6 +86,7 @@ program fdmnes
   character(len=8):: dat
   character(len=10):: tim
   character(len=11):: fdmfile
+  character(len=50):: com_date, com_time
   character(len=132):: identmot, mot
   character(len=132), dimension(:), allocatable:: fdmnes_inp
 
@@ -99,10 +98,6 @@ program fdmnes
 
   fdmfile = 'fdmfile.txt'
 
-  call date_and_time( date = dat, time = tim )
-  com_date = '   Date = ' // dat(7:8) // ' ' // dat(5:6) // ' ' // dat(1:4)
-  com_time = '   Time = ' // tim(1:2)  // ' h ' // tim(3:4) // ' mn ' // tim(5:6) // ' s'
-
   call getSolverParams(MPI_host_num_for_mumps,mpinodes0,Solver)
 
   mpirank = mpirank0 / MPI_host_num_for_mumps
@@ -112,7 +107,11 @@ program fdmnes
 
   if( mpirank0 == 0 ) then
 
-    write(6,'(A/A/A)') Revision, com_date, com_time
+    call date_and_time( date = dat, time = tim )
+    com_date = '   Date = ' // dat(7:8) // ' ' // dat(5:6) // ' ' // dat(1:4)
+    com_time = '   Time = ' // tim(1:2)  // ' h ' // tim(3:4) // ' mn ' // tim(5:6) // ' s'
+
+    write(6,'(1x,A/A/A)') Revision, com_date, com_time
 
     open(1, file = fdmfile, status='old', iostat=istat)
     if( istat /= 0 ) call write_open_error(fdmfile,istat,1)
@@ -200,8 +199,16 @@ subroutine write_error
   use declarations
   implicit none
 
+  character(len=8):: dat
+  character(len=10):: tim
+  character(len=50):: com_date, com_time
+
+  call date_and_time( date = dat, time = tim )
+  com_date = '   Date = ' // dat(7:8) // ' ' // dat(5:6) // ' ' // dat(1:4)
+  com_time = '   Time = ' // tim(1:2)  // ' h ' // tim(3:4) // ' mn ' // tim(5:6) // ' s'
+
   open(9, file = fdmnes_error)
-  write(9,'(A/A/A)') Revision, com_date, com_time
+  write(9,'(1x,A/A/A)') Revision, com_date, com_time
 
   return
 end
@@ -238,7 +245,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   implicit none
   include 'mpif.h'
 
-  integer, parameter:: nkw_all = 37
+  integer, parameter:: nkw_all = 38
   integer, parameter:: nkw_fdm = 191
   integer, parameter:: nkw_conv = 30
   integer, parameter:: nkw_fit = 1
@@ -301,7 +308,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   real(kind=sg) time
 
   data kw_all /  'bormann  ','check    ','check_all','check_coa', &
-     'check_con','check_pot','check_mat','check_sph','check_ten','comment  ', &
+     'check_con','check_pot','check_mat','check_sph','check_tdd','check_ten','comment  ', &
      'delta_edg','ecent    ','efermi   ','elarg    ','estart   ', &
      'filout   ','folder_da','fprime_at','gamma_hol','gamma_max','length_li','no_check ', &
      'imfpin   ','elfin    ','dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
@@ -577,34 +584,90 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
           end do
 
         case('check_pot')
-          icheck(10:13) = 3
-          icheck(16) = 3
+          n = nnombre(1,132)
+          if( n == 0 ) then
+            n = 3
+          else
+           read(1,*) n
+         endif
+         icheck(10:13) = n; icheck(16) = n
 
         case('check_sph')
-          icheck(18) = 3
+          n = nnombre(1,132)
+          if( n == 0 ) then
+            n = 3
+          else
+           read(1,*) n
+          endif
+          icheck(18) = n
 
         case('check_mat')
-          icheck(19) = 3
+          n = nnombre(1,132)
+          if( n == 0 ) then
+            n = 3
+          else
+           read(1,*) n
+          endif
+          icheck(19) = n
+
+        case('check_tdd')
+          n = nnombre(1,132)
+          if( n == 0 ) then
+            n = 3
+          else
+           read(1,*) n
+          endif
+          icheck(22:25) = n
 
         case('check_ten')
-          icheck(20) = 3
+          n = nnombre(1,132)
+          if( n == 0 ) then
+            n = 3
+          else
+           read(1,*) n
+          endif
+          icheck(20) = n
 
         case('check_coa')
-          icheck(21) = 3
+          n = nnombre(1,132)
+          if( n == 0 ) then
+            n = 3
+          else
+           read(1,*) n
+          endif
+          icheck(21) = n
 
         case('check_con')
-          icheck(30) = 2
+          n = nnombre(1,132)
+          if( n == 0 ) then
+            n = 3
+          else
+           read(1,*) n
+          endif
+          icheck(30) = n
 
         case('fprime_at')
-          icheck(30) = 3
-
-        case('no_check')
-          icheck(:) = 0
+          n = nnombre(1,132)
+          if( n == 0 ) then
+            n = 3
+          else
+           read(1,*) n
+          endif
+          icheck(30) = n
 
         case('check_all')
-          icheck(:) = 3
+          n = nnombre(1,132)
+          if( n == 0 ) then
+            n = 3
+          else
+           read(1,*) n
+          endif
+          icheck(:) = n
 
-        case('efermi')
+         case('no_check')
+          icheck(:) = 0
+
+       case('efermi')
           read(1,*) E_cut_imp
           E_cut_imp = E_cut_imp /rydb
           E_Fermi_man = .true.
@@ -1611,7 +1674,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
                 ' Check your indata file under the keyword parameter !'//)
   130 format(/' ',121('-'),//' Total time =',f10.1,' sCPU')
   140 format('            =',i4,' h,',i3,' min,',i3,' sCPU')
-  150 format('            =',i4,' d',i3,' h,',i3,' min,',i3,' sCPU')
+  150 format('            =',i4,' d,',i3,' h,',i3,' min,',i3,' sCPU')
   160 format(/'    Have a beautiful day !')
 
 end
