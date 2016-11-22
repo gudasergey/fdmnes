@@ -362,16 +362,17 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
   igreq(:,:) = 0
 
   do igr = 1,ngroup
-    if( Doping .and. igr == n_atom_uc + 1 ) then
-      igreq(n,1) = n_atom_uc + 1
-      ngreq(n) = 1
-    else
-      ipr = igr_proto(igr)
-      ngreq(ipr) = ngreq(ipr) + 1
-      i = igr_i(igr)
-      igreq(ipr,i) = igr
-    endif
+    if( Doping .and. igr == n_atom_uc + 1 ) cycle
+    ipr = igr_proto(igr)
+    ngreq(ipr) = ngreq(ipr) + 1
+    i = igr_i(igr)
+    igreq(ipr,i) = igr
   end do
+
+  if( Doping ) then
+    igreq(n,1) = n_atom_uc + 1
+    ngreq(n) = 1
+  endif
 
   if( Absauto ) then
     multi_run = 0
@@ -522,8 +523,8 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Ferm
       Delta_Epsii,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_Fermi_man,E_radius, &
       E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Estart, &
       Extract,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Flapw,Flapw_new,Force_ecr,Full_atom_e, &
-      Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_dafs, &
-      hkl_film,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,igreq,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype, &
+      Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_dafs,hkl_film, &
+      Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,igreq,ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype, &
       itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmax_tddft_inp,lmaxfree, &
       lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Matper,MPI_host_num_for_mumps,mpinodes,mpinodes0, &
       mpirank,mpirank_in_mumps_group,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto, &
@@ -687,8 +688,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
       Delta_Epsii,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_Fermi_man,E_radius, &
       E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Estart, &
       Extract,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Flapw,Flapw_new,Force_ecr,Full_atom_e, &
-      Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_dafs, &
-      hkl_film,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,igreq,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype, &
+      Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_dafs,hkl_film, &
+      Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,igreq,ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype, &
       itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmax_tddft_inp,lmaxfree, &
       lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Matper,MPI_host_num_for_mumps,mpinodes,mpinodes0, &
       mpirank,mpirank_in_mumps_group,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto, &
@@ -1083,8 +1084,14 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
     allocate( isymeq(natomsym) )
     allocate( Taux_eq(natomsym) )
 
-    poseq(:,1:natomsym) = posq(:,iprabs_nonexc,1:natomsym)
-    isymeq(1:natomsym) = isymqa(iprabs_nonexc,1:natomsym)
+    if( Doping ) then
+      poseq(:,1:natomsym) = posq(:,ipr_dop,1:natomsym)
+      isymeq(1:natomsym) = isymqa(ipr_dop,1:natomsym)
+    else
+      poseq(:,1:natomsym) = posq(:,iprabs_nonexc,1:natomsym)
+      isymeq(1:natomsym) = isymqa(iprabs_nonexc,1:natomsym)
+    endif
+
     if( Taux ) then
       Taux_eq(1:natomsym) = Taux_oc( abs( igreq(iprabs_nonexc,1:natomsym) ) )
     else
@@ -1115,7 +1122,10 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
       call extract_energ(Energ_s,Eseuil,multi_imp,nbbseuil,nbseuil,nenerg_s,nom_fich_extract,Tddft)
     endif
 
-    if( One_run ) then
+    if( Doping ) then
+! Used just for the atom position
+      iabsfirst = igr_dop
+    elseif( One_run ) then
       iabsfirst = iabsm(1)
     else
       iabsfirst = iabsorbeur

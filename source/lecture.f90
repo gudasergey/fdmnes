@@ -3769,11 +3769,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         do it = 1,jt
           if( numat(it) /= n ) cycle
           itype(igr) = it
-          if( Doping .and. igr == ngroup - n_atom_uc ) itype_dop = jt
+          if( Doping .and. igr == ngroup - n_atom_bulk ) itype_dop = jt
           cycle boucle_1
         end do
         jt = jt + 1
-        if( Doping .and. igr == ngroup - n_atom_uc ) itype_dop = jt
+        if( Doping .and. igr == ngroup - n_atom_bulk ) itype_dop = jt
         itype(igr) = jt
         numat(jt) = n
       end do boucle_1
@@ -4400,8 +4400,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         else
           write(3,560)
         endif
-        do jgr = 1,ngroup - n_atom_bulk
-          if( Doping .and. igr == ngroup - n_atom_bulk ) then
+        do jgr = 1,ngroup
+          if( Doping .and. jgr == ngroup - n_atom_bulk ) then
             write(3,'(/A)') '   Doping element :'
             igr = igr_dop
           else

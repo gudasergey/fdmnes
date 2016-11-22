@@ -438,9 +438,7 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
 
   endif
 
-  if( Doping ) then
-    igr_proto(ngroup-n_atom_uc) = n_atom_proto + 1
-  endif
+  if( Doping )  igr_proto(n_atom_uc+1) = n_atom_proto + 1
 
   deallocate( iabsmm )
 
@@ -2176,8 +2174,13 @@ subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk
           if( ngroup_pdb > 0 ) then
             if( Kgroup(iabsorbeur) /= Kgroup(igr) .and. Kgroup(iabsorbeur) /= 0 .and. Kgroup(igr) /= 0 ) cycle
           endif
-          if( ( ix == 0 .and. iy == 0 .and. iz == 0 ) .and. itype(igr) /= itype(iabsorbeur) &
-              .and. sum( abs(posg(:,igr) - posg(:,iabsorbeur)) ) < eps6 ) cycle
+          if( ix == 0 .and. iy == 0 .and. iz == 0 .and. itype(igr) /= itype(iabsorbeur) ) then
+            if( Doping ) then
+              if( igr /= igr_dop .and. sum( abs(posg(:,igr) - posg(:,igr_dop)) ) < eps6 ) cycle
+            else
+              if( sum( abs(posg(:,igr) - posg(:,iabsorbeur)) ) < eps6 ) cycle
+            endif
+          endif
           ps(1:3) = posg(1:3,igr) + v(1:3)
           if( .not. ATA .and. .not. ( ix == 0 .and. iy == 0 .and. iz == 0 .and. igr == iabsorbeur ) ) then
             do jgr = igr0,igr-1
@@ -2523,7 +2526,7 @@ subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step
   integer, dimension(ngroup_pdb):: Kgroup
   integer, dimension(n_atom_bulk):: Z_bulk
 
-  logical:: ATA, Base_ortho, Base_ortho_bulk, Bulk, Bulk_step, Doping, Matper, Noncentre, One_run, Sym_2D
+  logical:: Abs_case, ATA, Base_ortho, Base_ortho_bulk, Bulk, Bulk_step, Doping, Matper, Noncentre, One_run, Sym_2D
 
   real(kind=db):: dist, dist12, Rmax, Vnorme
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, axyz_g, dcosxyz, dcosxyz_bulk, deccent, dpos, ps, &
@@ -2583,10 +2586,18 @@ subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step
           if( ngroup_pdb > 0 ) then
             if( Kgroup(iabsorbeur) /= Kgroup(igr) .and. Kgroup(iabsorbeur) /= 0 .and. Kgroup(igr) /= 0 ) cycle
           endif
-          if( ( ix == 0 .and. iy == 0 .and. iz == 0 ) .and. itype(igr) /= itype(iabsorbeur) &
-              .and. sum( abs(posg(:,igr) - posg(:,iabsorbeur)) ) < eps6 ) cycle
+
+          Abs_case = ix == 0 .and. iy == 0 .and. iz == 0 .and. ( ( Doping .and. igr == igr_dop ) .or. igr == iabsorbeur )
+
+          if( ix == 0 .and. iy == 0 .and. iz == 0 .and. itype(igr) /= itype(iabsorbeur) ) then
+            if( Doping ) then
+              if( igr /= igr_dop .and. sum( abs(posg(:,igr) - posg(:,igr_dop)) ) < eps6 ) cycle
+            else
+              if( sum( abs(posg(:,igr) - posg(:,iabsorbeur)) ) < eps6 ) cycle
+            endif
+          endif
           ps(1:3) = posg(1:3,igr) + v(1:3)
-          if( .not. ATA .and. .not. ( ix == 0 .and. iy == 0 .and. iz == 0 .and. igr == iabsorbeur ) ) then
+          if( .not. ATA .and. .not. Abs_case ) then
             do ib = 1,ia
               if( sum( abs( pos(:,ib) - ps(:) ) ) < eps6 ) then
                 if( ngroup_taux == 0 ) then
@@ -2605,12 +2616,12 @@ subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step
           if( dist > Rmax + eps10 ) cycle
           ia = ia + 1
           pos(1:3,ia) = ps(1:3)
-          if( Doping .and. ix == 0 .and. iy == 0 .and. iz == 0 .and. igr == igr_dop ) then
+          if( Doping .and. igr == igr_dop .and. ix == 0 .and. iy == 0 .and. iz == 0 ) then
             igroup(ia) = n_atom_uc + 1
           else
             igroup(ia) = igr
           endif
-          if( igr == iabsorbeur .and. ix == 0 .and. iy == 0 .and. iz == 0 ) then
+          if( Abs_case ) then
             itypep(ia) = itabs
             iaabs = ia
           else
@@ -12452,7 +12463,7 @@ subroutine cbessel(bess,ip0,lmax,nr,q,r)
 
   integer:: i, ip0, j, k, l, l1, lmax, nr
 
-  real(kind=db):: dr, fac, q, z_lim, z_max
+  real(kind=db):: fac, q, z_lim
   real(kind=db), dimension(nr):: r, z
   real(kind=db), dimension(nr,0:lmax):: bessel
   real(kind=db), dimension(nr,ip0:lmax):: bess
