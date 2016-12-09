@@ -12,9 +12,9 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
   use declarations
   implicit none
 
-  integer:: i, ia, ib, icheck, igr, igra, igrb, io, irev, is, isp, it, ita, itb, jgr, js, long, n_atom_proto, n_atom_uc, &
-     n_multi_run_e, na, nabs, nb, nla, nlb, neq, neqm, ngroup, ngroup_m, nlatm, nspin, ntype, numat_abs, numat_it, &
-     numat_jgr
+  integer:: i, ia, ia_b, ib, ib_b, icheck, igr, igr_1, igr_2, igr_b, igra, igrb, io, irev, is, isp, it, ita, itb, jgr, jgr_b, &
+     js, long, n_atom_proto, n_atom_uc, n_multi_run_e, na, nabs, nb, nla, nlb, neq, neqm, ngroup, ngroup_m, nlatm, nspin, &
+     ntype, numat_abs, numat_it, numat_jgr
 
   character(len=5):: struct
   character(len=9):: nomsym
@@ -51,6 +51,15 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
     Base_ortho = .false.
   endif
 
+  if( Bulk ) then
+! In this case, n_atom_uc is in fact n_atom_bulk
+    igr_1 = ngroup - n_atom_uc + 1
+    igr_2 = ngroup
+  else
+    igr_1 = 1
+    igr_2 = n_atom_uc
+  endif
+
   ok(:) = .false.
 
   do it = 1,ntype
@@ -60,10 +69,11 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
   do ita = 1,ntype
     na = numat(ita)
     nla = nlat(ita)
-    do igra = 1,n_atom_uc
+    do igra = igr_1,igr_2
       if( abs(itype(igra)) == ita ) exit
     end do
-    if( igra > n_atom_uc ) cycle
+    if( igra > igr_2 ) cycle
+
     do itb = ita+1,ntype
 !!
       if( itequ(itb) /= itb ) cycle
@@ -73,10 +83,10 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
       if( nb /= na ) cycle
       nlb = nlat(itb)
       if( nlb /= nla ) cycle
-      do igrb = 1,n_atom_uc
+      do igrb = igr_1,igr_2
         if( abs(itype(igrb)) == itb ) exit
       end do
-      if( igrb > n_atom_uc ) cycle
+      if( igrb > igr_2 ) cycle
 
       dpop = 0._db
       do io = 1,nlb
@@ -100,7 +110,12 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
   end do
 
   do igr = 1,n_atom_uc
-    it = abs( itype(igr) )
+    if( Bulk ) then
+      jgr = ngroup - n_atom_uc + igr
+      it = abs( itype(jgr) )
+    else
+      it = abs( itype(igr) )
+    endif
     itypegen(igr) = itequ(it)
   end do
 
@@ -109,7 +124,7 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
     if( Flapw ) then
       Atom_with_axe(:) = .true.
     else
-      do igr = 1,n_atom_uc
+      do igr = igr_1,igr_2
         it = abs( itype(igr) )
         if( nlat(it) > 0 ) then
           dpop = sum( abs( popats(igr,1:nlat(it),nspin) - popats(igr,1:nlat(it),1) ) )
@@ -122,12 +137,12 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
 ! Liste des atomes absorbeurs
   if( Absauto ) then
     nabs = 0
-    do igr = 1,n_atom_uc
+    do igr = igr_1,igr_2
       if( numat( abs( itype(igr) ) ) == numat_abs ) nabs = nabs+1
     end do
     allocate( iabsmm(nabs) )
     ia = 0
-    do igr = 1,n_atom_uc
+    do igr = igr_1,igr_2
       if( numat( abs( itype(igr) ) ) /= numat_abs ) cycle
       ia = ia + 1
       iabsmm(ia) = igr
@@ -146,8 +161,13 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
     distm_neq = 1.0_db / bohr
 
     do igr = 1,n_atom_uc
+      if( Bulk ) then
+        jgr = ngroup - n_atom_uc + igr
+      else
+        jgr = igr
+      endif
 
-      Far_atom(igr) = .true.
+      Far_atom(jgr) = .true.
       do ia = 1,nabs
         ps(:) = posn(:,iabsmm(ia)) - posn(:,igr)
         if( Sym_2D ) then
@@ -179,9 +199,15 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
 
   boucle_jgr: do jgr = 1,n_atom_uc
 
+    if( Bulk ) then
+      jgr_b = ngroup - n_atom_uc + jgr
+    else
+      jgr_b = jgr
+    endif
+
     if( ok(jgr) .or. Far_atom(jgr) ) cycle
 
-    numat_jgr = numat( abs( itype(jgr) ) )
+    numat_jgr = numat( abs( itype(jgr_b) ) )
 
     n_atom_proto = n_atom_proto + 1
 
@@ -194,11 +220,7 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
 
     neq = 1
     isymq(1) = 1
-    if( Bulk ) then
-      igreq(1) = ngroup - n_atom_uc + jgr
-    else
-      igreq(1) = jgr
-    endif
+    igreq(1) = jgr_b
     ok(jgr) = .true.
 
     boucle_igr: do igr = 1,n_atom_uc
@@ -235,7 +257,13 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
         if( Magnetic .or. Atom_nonsph ) then
           call opsym(is,matopsym)
           do ia = 1,n_atom_uc
-            Axe_atom_c(:) = axyz(:) * Axe_atom_gr(:,ia)
+            if( Bulk ) then
+              ia_b = ngroup - n_atom_uc + ia
+            else
+              ia_b = ia
+            endif
+
+            Axe_atom_c(:) = axyz(:) * Axe_atom_gr(:,ia_b)
             Axe_atom_c =  matmul( cubmat, Axe_atom_c )
             if( abs(Axe_atom_c(1)) < eps6 ) then
               wspin(1) = 1._db;  wspin(2:3) = 0._db
@@ -252,7 +280,7 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
             spini =  matmul( cubmati, spini )
             spini(:) = spini(:) / axyz(:)
 
-            Axe_atom_s(:,ia) = spini(:)
+            Axe_atom_s(:,ia_b) = spini(:)
 
          end do
         endif
@@ -260,8 +288,18 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
         boucle_irev: do irev = 1,nspin    ! 1 identite,
 ! 2 renversement du temps
           boucle_ia: do ia = 1,n_atom_uc
+            if( Bulk ) then
+              ia_b = ngroup - n_atom_uc + ia
+            else
+              ia_b = ia
+            endif
 
             boucle_ib: do ib = 1,n_atom_uc
+              if( Bulk ) then
+                ib_b = ngroup - n_atom_uc + ib
+              else
+                ib_b = ib
+              endif
 
               if( abs( pos(1,ia) - poss(1,ib) ) > epspos .or. abs( pos(2,ia) - poss(2,ib) ) > epspos .or. &
                   abs( pos(3,ia) - poss(3,ib) ) > epspos ) cycle boucle_ib
@@ -270,28 +308,28 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
 
               if( .not. ( Magnetic .or. Atom_nonsph ) ) cycle boucle_ia
 
-              if( .not. ( Atom_with_axe(ia) .or. Atom_with_axe(ib))) cycle boucle_ia
+              if( .not. ( Atom_with_axe(ia_b) .or. Atom_with_axe(ib_b))) cycle boucle_ia
 
-              if( ( Atom_with_axe(ia) .and. .not. Atom_with_axe(ib)) .or. &
-                ( .not. Atom_with_axe(ia) .and. Atom_with_axe(ib) )) cycle boucle_is
+              if( ( Atom_with_axe(ia_b) .and. .not. Atom_with_axe(ib_b)) .or. &
+                ( .not. Atom_with_axe(ia_b) .and. Atom_with_axe(ib_b) )) cycle boucle_is
 
               mspinor = itypegen(ia) == itypegen(ib)
-              if( Atom_with_axe(ia) ) then
+              if( Atom_with_axe(ia_b) ) then
 
                 if( ( irev == 1 .and. mspinor ) .or. ( irev == 2 .and. .not. mspinor ) ) then
-                  if(     abs( Axe_atom_gr(1,ia) - Axe_atom_s(1,ib) ) > epspos  &
-                     .or. abs( Axe_atom_gr(2,ia) - Axe_atom_s(2,ib) ) > epspos  &
-                     .or. abs( Axe_atom_gr(3,ia) - Axe_atom_s(3,ib) ) > epspos ) cycle boucle_irev
+                  if(     abs( Axe_atom_gr(1,ia_b) - Axe_atom_s(1,ib_b) ) > epspos  &
+                     .or. abs( Axe_atom_gr(2,ia_b) - Axe_atom_s(2,ib_b) ) > epspos  &
+                     .or. abs( Axe_atom_gr(3,ia_b) - Axe_atom_s(3,ib_b) ) > epspos ) cycle boucle_irev
                 else
-                  if(     abs( Axe_atom_gr(1,ia) + Axe_atom_s(1,ib) ) > epspos  &
-                     .or. abs( Axe_atom_gr(2,ia) + Axe_atom_s(2,ib) ) > epspos  &
-                     .or. abs( Axe_atom_gr(3,ia) + Axe_atom_s(3,ib) ) > epspos ) cycle boucle_irev
+                  if(     abs( Axe_atom_gr(1,ia_b) + Axe_atom_s(1,ib_b) ) > epspos  &
+                     .or. abs( Axe_atom_gr(2,ia_b) + Axe_atom_s(2,ib_b) ) > epspos  &
+                     .or. abs( Axe_atom_gr(3,ia_b) + Axe_atom_s(3,ib_b) ) > epspos ) cycle boucle_irev
                 endif
 
               else
 
-                 pp1 = sum( abs( Axe_atom_gr(:,ia) - Axe_atom_s(:,ib) ) )
-                 pp2 = sum( abs( Axe_atom_gr(:,ia) + Axe_atom_s(:,ib) ) )
+                 pp1 = sum( abs( Axe_atom_gr(:,ia_b) - Axe_atom_s(:,ib_b) ) )
+                 pp2 = sum( abs( Axe_atom_gr(:,ia_b) + Axe_atom_s(:,ib_b) ) )
                  if( pp1 > epspos .and. pp2 > epspos ) cycle boucle_irev
               endif
 
@@ -400,27 +438,38 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
 
     do jgr = 1,n_atom_uc
 
+      if( Bulk ) then
+        jgr_b = ngroup - n_atom_uc + jgr
+      else
+        jgr_b = jgr
+      endif
+
       if( ok(jgr) ) cycle
 
       ok(jgr) = .true.
       n_atom_proto = n_atom_proto + 1
       neq = 1
 
-      igr_proto(jgr) = n_atom_proto
-      igreq(1) = jgr
-      igr_i(jgr) = neq
-      igr_is(jgr) = 1
+      igr_proto(jgr_b) = n_atom_proto
+      igreq(1) = jgr_b
+      igr_i(jgr_b) = neq
+      igr_is(jgr_b) = 1
 
-      do igr = jgr+1,n_atom_uc
+      do igr = 1,n_atom_uc
         if( ok(igr ) .or. itypegen(igr) /= itypegen(jgr) ) cycle
+        if( Bulk ) then
+          igr_b = ngroup - n_atom_uc + igr
+        else
+          igr_b = igr
+        endif
 
         ok(igr) = .true.
         neq = neq + 1
 
-        igreq(neq) = igr
-        igr_proto(igr) = n_atom_proto
-        igr_i(igr) = neq
-        igr_is(igr) = 1
+        igreq(neq) = igr_b
+        igr_proto(igr_b) = n_atom_proto
+        igr_i(igr_b) = neq
+        igr_is(igr_b) = 1
       end do
       neqm = max(neqm,neq)
 
@@ -1959,12 +2008,20 @@ function extract_nenerg(multi_run,nom_fich_extract,Tddft)
 
   i = 0
   do
-    read(1,'(A)' ) mot
+    read(1,'(A)',iostat=istat) mot
+    if( istat /= 0 ) then
+      call write_error
+      do ipr = 6,9,3
+        write(ipr,'(//A//)') ' "Absorbing atom" words not found in the file to extract data !'
+      end do
+      stop
+    endif
     if( mot(2:15) /= 'Absorbing atom' ) cycle
     i = i + 1
     if( i == multi_run ) exit
   end do
 
+  eof = 0
   if( tddft ) then
     do while(eof==0)
       read(1,'(A)',iostat=eof) mot
@@ -1996,7 +2053,7 @@ function extract_nenerg(multi_run,nom_fich_extract,Tddft)
   extract_nenerg = nenerg
 
   return
-  110 format(//' Error in the the indata file:',// ' An exctraction of tensors calculated using TDDFT is asked.', &
+  110 format(//' Error in the the indata file:',// ' An extraction of tensors calculated using TDDFT is asked.', &
            /' The corresponding file does not contain TDDFT outputs !!')
 end
 
@@ -2437,6 +2494,14 @@ subroutine reduc_natomp(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bu
         if( igroup(ia) == igreq(ipr,igr) ) exit boucle_i
       end do
     end do boucle_i
+    if( ipr > n_atom_proto ) then
+      call write_error
+      do ipr = 6,9,3
+        write(ipr,'(//A)') '  Error in reduc_natomp'
+        write(ipr,'(/a38,i4/)') '  Prototypical atom not found for atom', ia
+      end do
+      stop
+    endif
     iaproto(ia) = ipr
   end do
 
@@ -2604,8 +2669,9 @@ subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step
                   call write_error
                   do iprint = 3,9,3
                     write(iprint,120)
-                    write(iprint,130) ib, pos(1:3,ib), igr, posg(1:3,igr)
+                    write(iprint,130) igroup(ib), posn(1:3,igroup(ib)), igr, posn(1:3,igr)
                   end do
+                  stop
                 endif
                 if( Taux_oc( igroup(ib) ) <= Taux_oc( igr ) - eps10 ) itypep(ib) = abs( itype(igr) )
                 cycle boucle_igr
@@ -2730,7 +2796,7 @@ subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step
 
   return
   110 format(/' There is no absorbing atom in the calculation sphere !')
-  120 format(//' Error in the indata file, two atoms are at the same position:',/)
+  120 format(//' Error in the indata file, two atoms are at the same position, possibly after a unit cell shift:',/)
   130 format(' Atoms',i5,' at p =',3f11.7,/'   and',i5,' at p =',3f11.7)
 end
 
@@ -6640,7 +6706,7 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
         if( i > 0 ) mat(:,i) = hklred(:)
         det(i) = detmat(mat)
       end do
-! Distance interplan
+! Inter-reticular distance
       dhkl = sqrt( det(0) / sum( hklred(1:3) * det(1:3) ) )
       fac = abs( pi / ( konde * dhkl ) )
 
@@ -6662,7 +6728,7 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
 
     endif
 
-! Quand angpoldafs(3,ipl) = 10000, polarisation et veconde sont imposes
+! When angpoldafs(3,ipl) = 10000, polarization and wave vector are imposed
     if( angpoldafs(3,ipl) > 9999._db ) then
 
       poldafse(:,ipl,1) = poldafsem(:,ipl)
@@ -6670,7 +6736,7 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
       vecdafse(:,ipl,1) = vecdafsem(:,ipl)
       vecdafss(:,ipl,1) = vecdafssm(:,ipl)
 
-! On passe en base interne (orthonormee)
+! One goes to the internal orthogonal basis
       v(:) = real( poldafse(:,ipl,1), db )
       if( sum( v(:)**2 )  > eps6 ) then
         call trvec(mpirank,Orthmatt,v,w)
@@ -6732,12 +6798,12 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
       sinb = sin( thetabragg )
       cosb = cos( thetabragg )
 
-! Vecteur diffraction dans la base orthogonale interne
+! Diffraction vector in the internal orthogonal basis
       vx(:) = orthmatt(:,1)
       vy(:) = orthmatt(:,2)
       vz(:) = orthmatt(:,3)
 
-! wx, wy, wz : base du reseau reciproque
+! wx, wy, wz : reciprocal cell basis
       call prodvec(wx,vy,vz)
 
       vol = sum( wx(:) * vx(:) )
@@ -6752,11 +6818,11 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
       if( abs(qkn) > eps10 ) then
         qk(:) = qk(:) / qkn
       else
-! Cas speculaire
+! Specular case
         qk(1:2) = 0._db; qk(3) = 1._db
       endif
-! On prend l'origine de l'azimut selon le plan (Q,Vec_orig)
-! si pas possible, on prend selon (Q,Ox) ou (Q,Oz).
+! The origin of azimuth is along the plane (Q,Vec_orig)
+! when not possible, one takes along (Q,Ox) or (Q,Oz).
       do i = 1,3
         select case(i)
           case(1)
@@ -6786,13 +6852,14 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
       endif
 
       if( Dafs_bio ) then
-
+! 4 polarizations are calculated : for Q and - Q and both with out sigma and pi.
+! In Convolution routine, intensity is calculated for I(Q)_sigma + I(Q)_pi - ( I(-Q)_sigma + I(-Q)_pi )
         if( ipl == 1 ) then
           call invermat(Mat_or,Mat_ori)
           Mat_ori = bohr * Transpose( Mat_ori )
         endif
 
-! Matrice de rotation inverse
+! Inverse of rotation matrix
         Angle = Angle_or(ipl) * pi / 180
         Mat(1,1) = 1._db; Mat(1,2:3) = 0._db
         Mat(2,1) = 0._db; Mat(2,2) = cos( Angle ); Mat(2,3) = sin( Angle )
@@ -6800,9 +6867,9 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
 
         Mat = Matmul( Mat_ori, Mat )
         Mat = Matmul( Orthmatt, Mat )
-! La polarisation est selon Ox
+! Polarization is along Ox
         v(:) = Mat(:,1)
-! Le vecteur d'onde est selon Oz
+! Wave vector is along Oz
         we(:) =  Mat(:,3)
 
         ws(:) = qk(:) - we(:)
@@ -6825,7 +6892,7 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
         poldafss(:,ipl,2) = cmplx( vpis(:), 0._db )
         vecdafss(:,ipl,2) = ws(:)
 
-! Reflection (-Q)
+! Reflexion (-Q)
         poldafse(:,ipl,3) = cmplx( v(:), 0._db )
         vecdafse(:,ipl,3) = - we(:)
         poldafss(:,ipl,3) = cmplx( vsig(:), 0._db )
@@ -6882,8 +6949,7 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
           vpe(:) = cos_pe * vsig(:) + sin_pe * vpie(:)
           vps(:) = cos_ps * vsig(:) + sin_ps * vpis(:)
 
-! En diffraction tout est defini avec le complexe conjuge
-! donc les polarisations circulaires aussi
+! In diffraction all is defined with the complex conjugate, it is the same for circular polarizations
           select case( isigpi(ipl,1) )
             case(3)
               poldafse(:,ipl,ip) = cmplx( vsig(:),-vpie(:), db) / sqrt(2._db)
@@ -6943,9 +7009,9 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
 
     endif
 
-! Facteur de structure atomique
+! Atomis structure factor
     x = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
-    s = x / bohr                 ! on le veut en angstroem - 1
+    s = x / bohr                 ! one needs it in angstroem^(-1)
 
     do ipr = 1,n_atom_proto
 
@@ -6954,8 +7020,8 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
       elemv(1:2) = Chemical_Symbol(numat(it))
       f0(ipr,ipl) = getf0(elemv,s)
 
-! Diffusion magnetique non resonante
-! Le moment orbital est pris parralele a l'axe de spin...
+! Non-resonant scattering amplitude
+! orbital moment is taken parralel to spin axis...
       if( Magnetic ) then
         call get_fmag(deltak(ipl),fmo,fms,ipr,it,lvval,n_atom_proto,nlat(it),nlatm,nrato(it),nrm,nspin,ntype, &
               popatm,psival,rato)
@@ -6965,7 +7031,7 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
         if( f_no_res(2) < -99._db ) then
           f_mo(ipr,ipl) = - ( eseuil(nbseuil) / Emc2 ) * f_no_res(1) * fmo
         else
-! Facteur 2 car f_ms correspond a S et non a 2S.
+! Factor 2 because f_ms corresponds to S et not to 2S.
           f_mo(ipr,ipl) = 2 * f_no_res(2) * f_ms(ipr,ipl)
         endif
       endif
@@ -7005,7 +7071,7 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
       endif
     endif
 
-  end do  ! fin boucle ipl
+  end do  ! End of loop over ipl
 
   if( istop == 1 ) stop
 
@@ -10949,7 +11015,7 @@ subroutine bordure(Base_ortho,dcosxyz,Green,icheck,iopsymr,iord,iscratch,ivois,m
         if( j == 0 .and. mpirank == 0 ) then
           call write_error
           do ipr = 3,9,3
-            write(ipr,110) i, ia, iv
+            write(ipr,110) i, ia, iv, xyz(:,i)
           end do
           stop
         endif
@@ -11030,7 +11096,7 @@ subroutine bordure(Base_ortho,dcosxyz,Green,icheck,iopsymr,iord,iscratch,ivois,m
         if( j == 0 .and. mpirank == 0 ) then
           call write_error
           do ipr = 3,9,3
-            write(ipr,110) i, ia, iv
+            write(ipr,110) i, ia, iv, xyz(:,i)
           end do
           stop
         endif
@@ -11120,7 +11186,7 @@ subroutine bordure(Base_ortho,dcosxyz,Green,icheck,iopsymr,iord,iscratch,ivois,m
   deallocate( poidso )
 
   return
-  110 format(//' Erreur dans bordure pour i, ia, iv =',3i6/)
+  110 format(//' Erreur dans bordure pour mpirank, i, ia, iv =',4i6/,'   xyz =',1p,4e13.5/)
   120 format(/' ---- Bordure ------',100('-')/)
   130 format('     Atome',i3,', nbordf =',i5,', nbord =',i5)
   140 format('  ibord  isbord   poidsa')

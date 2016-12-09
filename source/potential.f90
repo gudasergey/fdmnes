@@ -4,22 +4,22 @@
 
 subroutine potsup(alfpot,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,chargat,chargat_init, &
             chargat_self,dcosxyz,drho_ex_nex,dv_ex_nex,dvc_ex_nex,excato,Full_atom,Hybrid,i_self, &
-            ia_eq_inv,ia_eq_inv_self,iaabs,iaproto,iaprotoi,iapot,icheck,igreq,igroup,iprabs,iprabs_reel,ipr1,itab,itdil, &
+            ia_eq_inv,ia_eq_inv_self,iaabs,iaproto,iaprotoi,iapot,icheck,igreq,igroup,iprabs,ipr1,itab,itdil, &
             itypei,itypep,itypepr,ldil,lmax_pot,lvval,Magnetic,mpirank,n_atom_0,n_atom_0_self,n_atom_ind, &
             n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,neqm,ngreq,ngroup_m,ngroup_nonsph, &
-            nhybm,nlat,nlatm,nlm_pot,Nonexc,Nonsph,norbdil,norbv,normrmt,npoint,npoint_ns,npsom,nr_abs,nrato,nrm,nrm_self,nspin, &
+            nhybm,nlat,nlatm,nlm_pot,Nonexc,Nonsph,norbdil,norbv,normrmt,npoint,npoint_ns,npsom,nrato,nrm,nrm_self,nspin, &
             ntype,numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self, psival,rato,rchimp,rho,rho_chg, &
-            rho_self,rhoato_abs,rhoato_init,rhoit,rhons,rmtg,rmtimp,rmtg0,rmtsd,Rot_Atom_gr,Rot_int,rs,rsato, &
-            rsort,SCF,self_nonexc,TdOpt_xanes,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp,xyz, &
+            rho_self,rhoato,rhoato_init,rhoit,rhons,rmtg,rmtimp,rmtg0,rmtsd,Rot_Atom_gr,Rot_int,rs,rsato, &
+            rsort,SCF,self_nonexc,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp,xyz, &
             i_range)
 
   use declarations
   implicit none
 
-  integer:: i_range, i_self, ia, iaabs, iapr, iapr0, iaprabs, iprabs, iaprex, ipr, ipr1, iprabs_reel, ir, ispin, it, itab, &
+  integer:: i_range, i_self, ia, iaabs, iapr, iapr0, iaprabs, iprabs, iaprex, ipr, ipr1, ir, ispin, it, itab, &
     japr, lmax_pot, mpirank, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, n_atom_proto, n_iapr, natome,natome_self, &
     natomeq, natomeq_self, natomp, neqm, ngroup_m, ngroup_nonsph, nhybm, nlatm, nlm_pot, norbdil, normrmt, npoint, npoint_ns, &
-    npsom, nr, nr_abs, nrm, nrm_self, nspin, ntype
+    npsom, nr, nrm, nrm_self, nspin, ntype
 
   integer, dimension(30):: icheck
   integer, dimension(natomp):: iaproto, igroup, itypep
@@ -35,7 +35,7 @@ subroutine potsup(alfpot,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,chargat,chargat_i
 
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph) :: hybrid
 
-  logical:: Base_ortho, Cal_xanes, Full_atom, Magnetic, Nonexc, Nonsph, SCF, Self_nonexc, TdOpt_xanes
+  logical:: Base_ortho, Cal_xanes, Full_atom, Magnetic, Nonexc, Nonsph, SCF, Self_nonexc
 
   real(kind=db):: alfpot, f_integr3, overlap, rayint, rsort, V_intmax, v0bdcFimp, Vsphere
   real(kind=db), dimension(3):: dcosxyz
@@ -53,7 +53,6 @@ subroutine potsup(alfpot,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,chargat,chargat_i
   real(kind=db), dimension(0:nrm_self,nspin,n_atom_0_self:n_atom_ind_self):: rho_chg, rhoato_init
   real(kind=db), dimension(nrm):: dvc_ex_nex, dv_ex_nex
   real(kind=db), dimension(nrm,nspin):: drho_ex_nex
-  real(kind=db), dimension(nr_abs,nspin):: rhoato_abs
   real(kind=db), dimension(0:nrm_self, n_atom_0_self:n_atom_ind_self):: Vcato_init
   real(kind=db), dimension(npoint,nspin):: Vxc, rho
   real(kind=db), dimension(nrm):: exc
@@ -180,11 +179,6 @@ subroutine potsup(alfpot,Axe_atom_gr,Base_ortho,Cal_xanes,cdil,chargat,chargat_i
       dvcato(:,iapr) = dvcato_e(:)
       drhoato(:,iapr) = drhoato_e(:)
     endif
-
-    if( TdOpt_xanes ) then
-      if( ( Full_atom .and. iapr == iaabs ) .or. ( .not. Full_atom .and. ipr == iprabs_reel ) ) &
-        rhoato_abs(1:nr,1:nspin) = rhoato_e(1:nr,1:nspin)
-    end if
 
     if( i_self == 1 .and. iapr >= n_atom_0_self .and. .not. cal_xanes ) then
       Vcato_init(:,iapr) = Vcato_e(:,1)
@@ -1432,8 +1426,7 @@ subroutine orbval(Base_ortho,dcosxyz,Hybrid,iaproto,iapot,icheck,igreq,igroup,it
 
       end do
 
-! On fait la meme chose pour les atomes pour calculer leur eventuel
-! shift en energie
+! On fait la meme chose pour les atomes pour calculer leur eventuel shift en energie
 
       i = 1
       do iprb = 0,n_atom_proto
@@ -2475,7 +2468,7 @@ subroutine potlapw(axyz,Base_ortho,chargat,Coupelapw,dcosxyz,deccent,Flapw_new,F
             iaproto,iaprotoi,icheck,igroup,iprabs,ipr1,itabs,its_lapw,itypei,itypep,itypepr,Magnetic,mpinodes0, &
             mpirank,n_atom_0,n_atom_ind,n_atom_proto,natome,natomeq,natomp,ngreq,ngroup,ngroup_lapw,nklapw,nlm_pot, &
             nlmlapwm,nmatsym,normrmt,npoint,npsom,nrato,nrato_lapw,nrm,nslapwm,nspin,ntype, &
-            numat,Orthmat,overlap,pos,rato,rchimp,rho,rlapw,rmtg,rmtg0,rmtimp,rmtsd,Rot_int,rotloc_lapw,rs,rsato,Rsort, &
+            numat,Orthmat,overlap,pos,rato,rchimp,rho,rhoato,rlapw,rmtg,rmtg0,rmtimp,rmtsd,Rot_int,rotloc_lapw,rs,rsato,Rsort, &
             Trace_format_wien,Trace_k,Trace_p,V_intmax,V0bdcFimp,Vcato,Vh,Vxc,Vxcato,Wien_file,Wien_matsym, &
             Wien_save,Wien_taulap,xyz,i_range)
 
@@ -4265,7 +4258,7 @@ end
 ! Calcul du potentiel dans l'etat excite.
 ! Amene une modification de Vr.
 
-subroutine potex(Nonsph,axyz,alfpot,Cal_xanes,dv0bdcF,Energ,Enervide,Full_atom, &
+subroutine potex(Nonsph,axyz,alfpot,dv0bdcF,Energ,Enervide,Full_atom, &
           iaabsi,iapot,iaprotoi,icheck,iprabs,iprabs_reel,itab,itypepr,Magnetic, &
           n_atom_0,n_atom_ind,n_atom_proto,n_vr_0,n_vr_ind,natome,nlm_pot,Nonexc_g,npoint,npoint_ns,npsom,nptmoy, &
           nptmoy_out,nrato,nrm,nspin,ntype,Optic,rato,rho,rhons,Rmtg,rs,rsato,rsbdc,rsbdc_out,Trace_k,Trace_p, &
@@ -4281,7 +4274,7 @@ subroutine potex(Nonsph,axyz,alfpot,Cal_xanes,dv0bdcF,Energ,Enervide,Full_atom, 
   integer, dimension(natome):: iaprotoi
   integer, dimension(0:n_atom_proto):: iapot, itypepr
 
-  logical:: Cal_xanes, Optic, Full_atom, magnetic, nonexc_g, Nonsph
+  logical:: Optic, Full_atom, magnetic, nonexc_g, Nonsph
 
   real(kind=db):: alfpot, Energ, Enervide, p, p1, rsbdc, rsbdc_out, V_intmax, Vhbdc, Vhbdc_out
   real(kind=db), dimension(3):: axyz
@@ -4299,7 +4292,7 @@ subroutine potex(Nonsph,axyz,alfpot,Cal_xanes,dv0bdcF,Energ,Enervide,Full_atom, 
   real(kind=db), dimension(0:nrm,0:ntype):: rato
   real(kind=db), dimension(:), allocatable:: rst, Vct, Vrt, Vxct
 
-  if( (icheck > 0 .and. Cal_xanes) .or. (.not. Cal_xanes .and. icheck > 1) ) then
+  if( icheck > 1 ) then
     write(3,100)
     write(3,110) Energ * rydb
   endif
@@ -4469,16 +4462,14 @@ subroutine potex(Nonsph,axyz,alfpot,Cal_xanes,dv0bdcF,Energ,Enervide,Full_atom, 
 
   Vr(:,:) = Vr_td(:,:)
 
-  if( (icheck > 0 .and. cal_xanes) .or. (.not. cal_xanes .and. icheck > 1) ) then
+  if( icheck > 1 ) then
     if( nspin == 1 ) then
       write(3,120) V0bdc(1) * rydb, Vmftabs(1:nspin) * rydb
     else
       write(3,125) V0bdc(1) * rydb, Vmftabs(1:nspin) * rydb
     endif
     if( nptmoy_out > 0 ) write(3,127) V0bdc_out(1) * rydb
-  endif
 
-  if( icheck > 1 ) then
     if( npoint > 0 ) then
       do ispin = 1,nspin
         write(3,130) ispin
@@ -4506,7 +4497,7 @@ subroutine potex(Nonsph,axyz,alfpot,Cal_xanes,dv0bdcF,Energ,Enervide,Full_atom, 
     end do
   endif
 
-  if( Trace_k /= 0 ) then
+  if( Trace_k /= 0 .and. icheck > 1 ) then
     do ispin = 1,nspin
       call trace(Nonsph,axyz,npoint,npoint_ns,ispin,npsom,xyz,rhons,Trace_k,Trace_p,Vhns,nspin,Vr,rho)
     end do
@@ -4524,6 +4515,63 @@ subroutine potex(Nonsph,axyz,alfpot,Cal_xanes,dv0bdcF,Energ,Enervide,Full_atom, 
   150 format('  ipr =',i3,/'     rato_(A)    Vrato_(eV)')
   155 format('  ipr =',i3,/'     rato_(A)   Vrato(up)_(eV) Vrato(dn)_(eV)')
   160 format(f15.6,1p,2e15.5)
+end
+
+!***********************************************************************
+
+! Calcul du potentiel excite
+
+subroutine Potex_abs(alfpot,dV0bdcF,Enervide,nlm_pot,nrato_abs,nspin,Optic,rsato_abs,rsbdc,V_intmax,V0bdc,Vcato, &
+                     Vhbdc,Vrato,Vxcato,VxcbdcF)
+
+  use declarations
+  implicit none
+
+  integer:: isp, lm, nrato_abs, nlm_pot, nspin
+
+  logical:: Optic
+
+  real(kind=db):: alfpot, rsbdc, Enervide, V_intmax, Vhbdc
+  real(kind=db), dimension(1):: rs, Vc, Vr, Vxc
+  real(kind=db), dimension(nspin):: dV0bdcF,  V0bdc, VxcbdcF
+  real(kind=db), dimension(nrato_abs):: rsato_abs, Vct, Vrt, Vxct
+  real(kind=db), dimension(nrato_abs,nlm_pot):: Vcato
+  real(kind=db), dimension(nrato_abs,nlm_pot,nspin):: Vrato, Vxcato
+
+  if( alfpot < eps6 .and. .not. Optic )  then
+
+    Vct(:) = Vcato(:,1)
+    do isp = 1,nspin
+      Vxct(:) = Vxcato(:,1,isp)
+      call subpotex(nrato_abs,Vrt,Vct,Vxct,rsato_abs,Enervide)
+      Vrato(:,1,isp) = Vrt(:)
+      do lm = 2,nlm_pot
+        Vrato(:,lm,isp) = Vcato(:,lm) + ( ( Vrt(:) - Vcato(:,1) ) / Vxct(:) ) * Vxcato(:,lm,isp)
+      end do
+    end do
+
+    rs(1) = rsbdc
+    Vc(1) = Vhbdc
+    do isp = 1,nspin
+      Vxc(1) = VxcbdcF(isp)
+      call subpotex(1,Vr,Vc,Vxc,rs,Enervide)
+      V0bdc(isp) = Vr(1) + dV0bdcF(isp)
+    end do
+
+  else
+
+    do isp = 1,nspin
+      do lm = 2,nlm_pot
+        Vrato(:,lm,isp) = Vcato(:,lm) + Vxcato(:,lm,isp)
+      end do
+      V0bdc(isp) = Vhbdc + VxcbdcF(isp) + dV0bdcF(isp)
+    end do
+
+  endif
+
+  if( V_intmax < 1000._db ) V0bdc(:) = min( V0bdc(:), V_intmax )
+
+  return
 end
 
 !***********************************************************************
@@ -4943,4 +4991,78 @@ subroutine gradpot(Base_hexa,cgrad,gradvr,icheck,iord,ispin,ivois,nicm,npoint,np
   140 format(i5,3f10.5)
 end
 
+!***********************************************************************
+
+subroutine Potential_writing(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsii, &
+                             Epsii_moy,Hubb_abs,Hubb_diag_abs,lmax_abs,m_hubb,ninitlr,nlm_pot,nrato_abs,nspin,nspinp, &
+                             rato_abs,rhoato_abs,Rmtg_abs,Rmtsd_abs,rsato_abs,rsbdc,V_hubb_abs,V0muf,Vcato_abs,Vhbdc,Vxcato_abs, &
+                             VxcbdcF)
+
+  use declarations
+  implicit none
+
+  integer:: i, ir, isp, jsp, lmax_abs, m, m_hubb, ninitlr, nlm_pot, nrato_abs, nspin, nspinp
+
+  complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb_abs
+
+  logical:: Hubb_abs, Hubb_diag_abs
+
+  real(kind=db):: Delta_Eseuil, E_cut, E_Fermi, Ecineticmax, Epsii_moy, Rmtg_abs, Rmtsd_abs, rsbdc, V0muf, Vhbdc
+  real(kind=db), dimension(nspin):: dV0bdcf, VxcbdcF
+  real(kind=db), dimension(ninitlr):: Epsii
+  real(kind=db), dimension(nrato_abs):: rato_abs, rsato_abs
+  real(kind=db), dimension(nrato_abs,nspin):: rhoato_abs
+  real(kind=db), dimension(nrato_abs,nlm_pot):: Vcato_abs
+  real(kind=db), dimension(nrato_abs,nlm_pot,nspin):: Vxcato_abs
+
+  write(3,110)
+  write(3,'(/A)') '   nspin nspinp nrato_abs nlm_pot m_hubb lmax_abs ninitlr'
+  write(3,'(2i7,i9,4i7)') nspin, nspinp, nrato_abs, nlm_pot, m_hubb, lmax_abs, ninitlr
+
+  if( nspin == 2 ) then
+    write(3,120)
+  else
+    write(3,130)
+  endif
+  write(3,'(1p,8e19.11)') E_cut*Rydb, E_Fermi*Rydb, V0muf*Rydb, Vhbdc*Rydb, VxcbdcF(:)*Rydb, dV0bdcf(:)*Rydb, rsbdc, &
+                         Ecineticmax*Rydb
+
+  write(3,'(/A)') '  Hubb_abs  Hubb_abs_diag'
+  write(3,*) Hubb_abs, Hubb_diag_abs
+  if( Hubb_abs ) then
+    write(3,'(/A)') '  V_Hubb_abs'
+    do isp = 1,nspinp
+      do jsp = 1,nspinp
+        do m = -m_hubb,m_hubb
+          write(3,'(1p,28e19.11)') V_hubb_abs(-m_hubb:m_hubb,m,isp,jsp)*Rydb
+        end do
+      end do
+    end do
+  endif
+
+  write(3,'(/A)') '       Rmtg_abs          Rmtsd_abs'
+  write(3,'(1p,5e19.11)') Rmtg_abs*bohr, Rmtsd_abs*bohr
+
+  write(3,140) ( 'Epsii_', i, i = 1,min(ninitlr,9) ), ( 'Epsii_', i, i = 10,ninitlr )
+  write(3,'(1p,8e19.11)') Epsii_moy*Rydb, Delta_Eseuil*Rydb, Epsii(:)*Rydb
+
+  if( nspin == 2 ) then
+    write(3,'(/7x,A)') &
+    'Radius             Vcato            Vxcato_up          Vxcato_dn            rhoato_up          rhoato_dn            Rsato'
+  else
+    write(3,'(/A)') '       Radius             Vcato              Vxcato              rhoato             Rsato'
+  endif
+
+  do ir = 1,nrato_abs
+    write(3,'(1p,250e19.11)') rato_abs(ir)*bohr, Vcato_abs(ir,:)*Rydb,  Vxcato_abs(ir,:,:)*Rydb, rhoato_abs(ir,:)*Rydb, rsato_abs(ir)
+  end do
+
+  return
+  110 format(/' ---- Potential data --',100('-'))
+  120 format(/'        E_cut             E_Fermi            V0muf              Vhbdc            VxbdcF_up          VxcbdcF_dn', &
+              '         dV0bdcF_up        dV0bdcF_dn         rsbdc        Ecinematicmax')
+  130 format(/'        E_cut             E_Fermi            V0muf              Vhbdc             VxcbdcF             dV0bdcF', &
+              '             rsbdc          Ecinematicmax')
+  140 format(/6x,'Epsii_moy',9x,'Delta_Eseuil',3x,9(6x,a6,i1,6x),20(5x,a6,i2,6x))
+end
 

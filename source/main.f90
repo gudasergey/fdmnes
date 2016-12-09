@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 21th of November 2016, 1 Frimaire, An 225.
+! FDMNES II program, Yves Joly, Oana Bunau, 7th of December 2016, 17 Frimaire, An 225.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 21th of November 2016'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 7th of December 2016'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -167,8 +167,6 @@ program fdmnes
     ncalcul = j
   endif
 
-  Open( 98, status='SCRATCH' ) ! Erreur MPI
-
   if( mpinodes0 > 1 ) then
     call MPI_Bcast(ncalcul,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
@@ -181,8 +179,6 @@ program fdmnes
   end do
 
   deallocate( fdmnes_inp )
-
-  Close(98) ! Erreur MPI
 
   if( mpinodes0 > 1 ) call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
   call MPI_FINALIZE(mpierr)
@@ -246,8 +242,8 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 191
-  integer, parameter:: nkw_conv = 30
+  integer, parameter:: nkw_fdm = 190
+  integer, parameter:: nkw_conv = 31
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
   integer, parameter:: nkw_mult = 3
@@ -290,7 +286,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   integer, dimension(:,:), allocatable:: indice_par
 
   logical:: bav_open, Bormann, Case_fdm, Check_file, Conv_done, &
-    Convolution_cal, Dafs_bio, E_Fermi_man, Fdmnes_cal, Fit_cal, Gamma_hole_imp, Gamma_tddft, Metric_cal, &
+    Convolution_cal, Dafs_bio, E_cut_man, Fdmnes_cal, Fit_cal, Gamma_hole_imp, Gamma_tddft, Metric_cal, &
     Minim_fdm_ok, minimok, Mult_cal, Scan_a, Selec_cal, &
     Use_FDMX, FDMX_only, cm2g, nobg, nohole, nodw, noimfp, imfp_inp, elf_inp, dwfactor_inp, tdebye_inp, tmeas_inp, &
     expntl, victoreen
@@ -307,36 +303,37 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
   real(kind=sg) time
 
+! Keywords of the indata file
   data kw_all /  'bormann  ','check    ','check_all','check_coa', &
      'check_con','check_pot','check_mat','check_sph','check_tdd','check_ten','comment  ', &
-     'delta_edg','ecent    ','efermi   ','elarg    ','estart   ', &
+     'delta_edg','ecent    ','e_cut    ','elarg    ','estart   ', &
      'filout   ','folder_da','fprime_at','gamma_hol','gamma_max','length_li','no_check ', &
      'imfpin   ','elfin    ','dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
      'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/
 
-  data kw_conv / 'cal_tddft','calculati','circular ', 'conv_out ','convoluti','dead_laye','dec      ','directory', &
-     'double_co','eintmax  ','epsii    ','forbidden','fprime   ', &
+  data kw_conv / 'cal_tddft','calculati','circular ', 'conv_out ','convoluti','dafs_exp_','dead_laye','dec      ', &
+     'directory','double_co','eintmax  ','epsii    ','forbidden','fprime   ', &
      'gamma_fix','gamma_var','gaussian ','no_extrap','nxan_lib ', 'photo_emi','s0_2     ','selec_cor','scan     ', &
      'scan_conv','scan_file','seah     ','stokes   ','stokes_na', 'surface  ','table    ','thomson  '/
 
   data kw_fdm/  &
-     'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_conf','ang_spin ','atomic_sc','axe_spin ', &
-     'base_comp','base_reel','bond     ','bulk     ','bulk_laye','cap_disor','cap_rough','cap_layer','cap_shift', &
+     'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_conf','atom_nsph','ang_spin ','atomic_sc', &
+     'axe_spin ','base_comp','base_reel','bond     ','bulk     ','bulk_laye','cap_disor','cap_rough','cap_layer','cap_shift', &
      'cap_thick','cartesian','center   ','center_ab','chlib    ','cif_file ','classic_i','clementi ','core_reso','crystal  ', &
-     'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_','dip_rel  ', &
-     'e1e1     ','delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ', &
-     'dyn_eg   ','edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ', &
-     'energphot','etatlie  ','excited  ','extract  ','extractpo','extractsy','fdm_comp ','film     ','film_cif_','film_pdb_', &
+     'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_','dip_rel  ','e1e1     ', &
+     'delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ', &
+     'edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot', &
+     'etatlie  ','excited  ','extract  ','extract_t','extractpo','extractsy','fdm_comp ','film     ','film_cif_','film_pdb_', &
      'film_t   ','film_roug','film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ','flapw_s  ', &
      'flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','hkl_film ','hubbard  ', &
      'iord     ','kern_fac ','lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ', &
      'lplus1   ','memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','molecule ','molecule_', &
      'muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_e1e1  ','no_e1e2  ','no_e1e3  ', &
      'no_e2e2  ','no_e3e3  ','no_fermi ','no_res_ma','no_res_mo','no_solsin','normaltau','norman   ','noncentre','non_relat', &
-     'nonexc   ','not_eneg ','nrato    ','nrixs    ','octupole ','old_zero ','one_run  ','optic    ','optic_dat', &
+     'nonexc   ','not_eneg ','nrato    ','nrixs    ','octupole ','old_zero ','one_run  ','optic    ', &
      'over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ','pointgrou','polarized', &
      'quadmag  ','quadrupol','radius   ','range    ','rangel   ','raydem   ','rchimp   ','readfast ','relativis', &
-     'rmt      ','rmtg     ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ','save_opti','save_tddf', &
+     'rmt      ','rmtg     ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ', &
      'self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
      'screening','solsing  ','spgroup  ','sphere_al','spherical','spinorbit','step_azim','supermuf ', 'symmol   ', &
      'symsite  ','tddft    ','tddft_dat','temperatu','test_dist','trace    ','vmax     ','v0imp    ','xalpha   ', &
@@ -351,9 +348,9 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
   data kw_mult / 'mult_cell','unit_cell','atomic_nu'/
 
-! D'abord les parametres de la convolution, puis ceux de fdmnes
+! First the convolution parameter, then the others
   data param_conv / &
-     'ecent    ','efermi   ','elarg    ','gamma_hol','gamma_max','gaussian ','shift    ','aseah    ','bseah    ','vibr     ', &
+     'ecent    ','e_cut    ','elarg    ','gamma_hol','gamma_max','gaussian ','shift    ','aseah    ','bseah    ','vibr     ', &
      'weight   ', &
      'a        ','abc      ','anga     ','angb     ','angc     ','b        ','c        ','dposx    ','dposy    ','dposz    ', &
      'occup    ','phi      ','poporb   ','posx     ','posy     ','posz     ','theta    '/
@@ -420,7 +417,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   Delta_edge = 0._db
   Fdmnes_cal = .false.
   E_cut_imp = -5._db / rydb
-  E_Fermi_man = .false.
+  E_cut_man = .false.
   Fit_cal = .false.
   Metric_cal = .false.
   Mult_cal = .false.
@@ -667,10 +664,10 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
          case('no_check')
           icheck(:) = 0
 
-       case('efermi')
+       case('e_cut','efermi')
           read(1,*) E_cut_imp
           E_cut_imp = E_cut_imp /rydb
-          E_Fermi_man = .true.
+          E_cut_man = .true.
 
         case('length_li')
           n = nnombre(1,132)
@@ -687,7 +684,9 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
           read(1,'(A)') mot
           nomfich = adjustl( mot )
           l = len_trim(nomfich)
-          if( nomfich(l-3:l) == '.txt') nomfich(l-3:l) = '    '
+          if( l > 3 ) then
+            if( nomfich(l-3:l) == '.txt') nomfich(l-3:l) = '    '
+          endif
 
         case('ecent')
           n = nnombre(1,132)
@@ -799,8 +798,6 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
           nodw = .true.
         case('noimfp')
           noimfp = .true.
-
-!*** JDB
 
       end select
       cycle
@@ -1058,7 +1055,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
                 igr = igr + 1
                 if( i1 == 1 ) then
                   npar(igr) = 2
-                  i1 = 2     ! pour eviter d'ajouter 2 fois dans lectur
+                  i1 = 2     ! to avoid a double addition in subroutine "Lecture"
                 else
                   npar(igr) = 1
                 endif
@@ -1104,7 +1101,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
     call MPI_Bcast(Ang_borm,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Bormann,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(E_cut_imp,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(E_Fermi_man,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
+    call MPI_Bcast(E_cut_man,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(nblock,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ngroup_par,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Length_line,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -1277,7 +1274,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
   endif
 
-! Mise en ordre des parametres : d'abord shift, puis conv, puis fdm.
+! Parameter ordering : first shift, then conv, then fdm.
   boucle_igr: do igr = 2,ngroup_par
     do ipar = 1,npar(igr)
       do i = 1,nparam_conv
@@ -1287,7 +1284,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
     end do
     Case_fdm = .true.
     if( i <= nparam_conv ) then
-! On teste si pur shift ou gaus
+! Test if only shift or gaus
       do ipar = 1,npar(igr)
         if( typepar(igr,ipar) /= 'shift' .and. typepar(igr,ipar) /= 'weight' .and. typepar(igr,ipar) /= 'gaussian' ) exit
       end do
@@ -1469,7 +1466,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
     if( Fdmnes_cal .and. ifdm == 1 ) then
       if( ical > 1 ) Close(3)
 
-    call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal, &
+      call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
           Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
           itape1,itape4,MPI_host_num_for_mumps,mpinodes0,mpirank,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
           nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file,Use_FDMX,FDMX_only, &
@@ -1486,7 +1483,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
     if( mpirank0 /= 0 ) cycle
 
     if( Convolution_cal ) call convolution(bav_open,Bormann,Conv_done, &
-        convolution_out,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max, &
+        convolution_out,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max, &
         ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,length_line, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav, npar,nparm,param,Scan_a,typepar,ncal,xsect_file)
 
@@ -1591,7 +1588,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
     if( Fdmnes_cal .and. Minim_fdm_ok .and. ncal /= ncal_nonfdm ) then
       Close(3)
-      call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart,Fit_cal, &
+      call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
         itape1,itape4,MPI_host_num_for_mumps,mpinodes0,mpirank,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
         nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file,Use_FDMX,FDMX_only, &
@@ -1607,7 +1604,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
     if( mpirank0 == 0 ) then
       if( Convolution_cal ) call convolution(bav_open,Bormann, .false., &
-        convolution_out,Delta_edge,E_cut_imp,E_Fermi_man,Ecent, Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max, &
+        convolution_out,Delta_edge,E_cut_imp,E_cut_man,Ecent, Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max, &
         ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,length_line, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,ncal,xsect_file)
 
@@ -1713,7 +1710,7 @@ function identmot(mot,longueur)
   ifin = i-1
   identmot = mot(idebut:ifin)
 
-! Convertion de majuscule en minuscule
+! Convertion from capital to lower case letter
   do i = 1,longueur
     do l = 27,52
       if( identmot(i:i) == let(l) ) then
@@ -2025,8 +2022,8 @@ function traduction(grdat)
       traduction = 'selec_out'
 
 ! General
-    case('e_cut','ecut','e_cut_imp','ecut_imp','ecutimp','e_cutimp', 'e_fermi')
-      traduction = 'efermi'
+    case('ecut','e_cut_imp','ecut_imp','ecutimp','e_cutimp','e_fermi','efermi')
+      traduction = 'e_cut'
     case('e_start')
       traduction = 'estart'
 
@@ -2038,8 +2035,8 @@ end
 
 !***********************************************************************
 
-! Fonction donnant le nombre de chiffres dans la prochaine ligne non vide et se place devant cette ligne.
-! Si character, nnombre = 0
+! Fonction giving the number of number in the next non empty line et setting at the biginning of this line.
+! With line starting with a character, nnombre = 0
 
 function nnombre(irec,length_line)
 

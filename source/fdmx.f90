@@ -3,7 +3,7 @@
 ! They are included in the FDMNES package from 2015  
 ! Some modifications by YJ to avoid NAN in Impf output (2016/09/06)
 
-subroutine fdmx(fdmnes_inp,nomfich,cm2g,nobg,nohole,nodwfact,noimfp,Gamma_hole,Gamma_hole_imp,E_cut_imp,E_Fermi_man, &
+subroutine fdmx(fdmnes_inp,nomfich,cm2g,nobg,nohole,nodwfact,noimfp,Gamma_hole,Gamma_hole_imp,E_cut_imp,E_cut_man, &
     imfp_inp, imfp_infile, elf_inp, elf_infile, dwfactor_inp, dwfactor, tdebye_inp, debyetemp, tmeas_inp, tmeas, Energphot, &
     expntl, expntlA, expntlB, victoreen, victA, victB, mermrank, ngroup, posn, itype, ntype, numat)
 
@@ -27,7 +27,7 @@ integer:: atomtypes(1:92,1:2), mermrank, scelfimfpdim, lines, linesconv, econvmi
 character(len=1024):: scratch, fnames(100), inpname, outname
 character(len=132):: fdmnes_inp, nomfich, imfp_infile, elf_infile
 logical nodwfact, noimfp, Energphot, expntl, victoreen, bgedges, inckedge, cm2g, &
-  nobg, nohole, Gamma_hole_imp, E_Fermi_man, imfp_inp, elf_inp, dwfactor_inp, &
+  nobg, nohole, Gamma_hole_imp, E_cut_man, imfp_inp, elf_inp, dwfactor_inp, &
   tdebye_inp, tmeas_inp, imfpdone, molinp, elfinexists
 
 integer, dimension(ngroup):: itype
@@ -49,7 +49,7 @@ if (nobg) then
    bgedges = .false.
 end if
 Efermi = 2.0
-if (E_Fermi_man) then
+if (E_cut_man) then
    Efermi = E_cut_imp
 end if
 if (dwfactor_inp) then
@@ -438,6 +438,12 @@ do ij=1,ninputs
    imfpdone = .false.
 
 ! FOR ELF INFILE
+
+! YJ
+         a = 0.0
+         convvalue = 0.0
+         imfpvalue = 0.0
+
       if (noimfp) then
          a = 0.0
          imfpdone = .true.
@@ -537,20 +543,19 @@ do ij=1,ninputs
          end if
          a = convvalue/2.0
       end if
- ! YJ : not defined when E <= 0
-      if (E(i) < 0.000001) then
-         a = 0.0
-         convvalue = 0.0
-         imfpvalue = 0.0
-      else
+
+! YJ : not defined when E <= 0
+      if( abs( convvalue ) > 1.e-20_8 ) &
          imfpvalue = (1.05457E-34/(convvalue*1E-10))*(((2*E(i)*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
-      end if
- ! YJ
 
 ! Once width is settled.. do convolution
       mu(i) = 0
       do k=-800, 800
-         mult(k) = (atan(((2*(k)+1)*spacing/2)/a)-atan(((2*(k)-1)*spacing/2)/a))/pi
+         if( abs(a) > 1.e-20_8 ) then 
+           mult(k) = (atan(((2*(k)+1)*spacing/2)/a)-atan(((2*(k)-1)*spacing/2)/a))/pi
+         else
+           mult(k) = 0._8
+         endif
          if (i+k .GT. 1 .AND. i+k .LT. maxpoint) then
             mu(i) = mu(i) + mu1(i+k)*mult(k)
          else if (i+k .EQ. 1) then
@@ -558,7 +563,7 @@ do ij=1,ninputs
          else if (i+k .EQ. maxpoint) then
             mu(i) = mu(i) + mu1(i+k)*(pi/2 - atan(((2*(k)-1)*spacing/2)/a))/pi
          end if
-      end do
+     end do
 
 ! Remove old atomic BG
       mu(i) = (mu(i)-atom(i))/atom(i)
@@ -570,6 +575,7 @@ do ij=1,ninputs
 
 ! Insert new atomic BG with spline
       mu(i) = (1+mu(i))*spline(i)
+write(3,'(a7,i51p,10e13.5)') ' q mu =',i,mu(i)
 
 ! Add background from other edges (FFAST)
       background(i) = 0

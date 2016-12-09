@@ -3,7 +3,7 @@
 ! Calculate the absorption cross sections and the RXS amplitudes
 
 subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
-            Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
+            Densite_atom,E_cut,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer,Int_tens, &
             isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
             natomsym,nbseuil, &
@@ -65,7 +65,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
   integer, dimension(npldafs,2):: isigpi
 
   logical Allsite, Cartesian_tensor, Cor_abs, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, E_vec, &
-    Dafs, Dafs_bio, Final_tddft, Energphot, Extract, Full_self_abs, Green_int, Green_int_mag, idafs, M1M1, Magn_sens, &
+    Dafs, Dafs_bio, Final_tddft, Energphot, Extract_ten, Full_self_abs, Green_int, Green_int_mag, idafs, M1M1, Magn_sens, &
     Matper, Moyenne, mu_cal, Self_abs, Spherical_signal, Spherical_tensor, Spinorbite_p, Tens_comp, Tensor_eval, Xan_atom
 
   logical, dimension(10):: Multipole
@@ -182,7 +182,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
     cst = eph2 / ct_nelec(initlr)
 
 ! Les tenseurs sont convertis en megabarn
-    if( .not. Extract ) then
+    if( .not. Extract_ten ) then
       if( xan_atom ) sec_atom(initlr) = sec_atom(initlr) * cst
       if( E1E1 ) secdd_a(:,:,:,initlr,ie_computer) = secdd_a(:,:,:,initlr,ie_computer) * cst
       if( E1E2 ) secdq_a(:,:,:,initlr,ie_computer) = secdq_a(:,:,:,initlr,ie_computer) * cst
@@ -1502,7 +1502,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
     endif
     long = len_trim(nomficht)
 
-    if( Final_tddft .and. .not. Extract ) then
+    if( Final_tddft .and. .not. Extract_ten ) then
       nomficht(long+1:long+6) = '_tddft'
       nomfichdafst(long+1:long+11) = '_tddft_scan'
     else
@@ -1832,7 +1832,7 @@ end
 !***********************************************************************
 
 subroutine write_nrixs(All_nrixs,Allsite,Core_resolved, &
-                  Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
+                  Densite_atom,E_cut,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft, &
                   f_avantseuil,Green_int,iabsorig,icheck,ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
                   jseuil,mpinodee,n_multi_run,natomsym,nbseuil,nenerg,ninit1,ninitlr,nomfich,nomfich_cal_convt, &
                   nq_nrixs,nseuil,nspinp,numat_abs,q_nrixs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Spinorbite,Taux_eq,V0muf)
@@ -1853,7 +1853,7 @@ subroutine write_nrixs(All_nrixs,Allsite,Core_resolved, &
 
   integer, dimension(natomsym):: isymeq
 
-  logical:: All_nrixs, Allsite, Core_resolved, Final_tddft, Energphot, Extract, Green_int, Green_int_mag, Magn_sens, Spinorbite
+  logical:: All_nrixs, Allsite, Core_resolved, Final_tddft, Energphot, Extract_ten, Green_int, Green_int_mag, Magn_sens, Spinorbite
 
   real(kind=db):: Densite_atom, E_cut, Ephoton, Ephseuil, q, V0muf
 
@@ -1943,7 +1943,7 @@ subroutine write_nrixs(All_nrixs,Allsite,Core_resolved, &
     endif
     long = len_trim(nomficht)
 
-    if( Final_tddft .and. .not. Extract ) nomficht(long+1:long+6) = '_tddft'
+    if( Final_tddft .and. .not. Extract_ten ) nomficht(long+1:long+6) = '_tddft'
 
     if( n_multi_run > 1 ) then
       long = len_trim(nomficht)
@@ -2336,7 +2336,7 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
       endif
       if( Green_int ) icor = - icor
       
-      mot1 = ' = E_edge, Z, n_edge, j_edge, Abs_before_edge, VO_interstitial, E_Fermi, ninitl, ninit1, Epsii'
+      mot1 = ' = E_edge, Z, n_edge, j_edge, Abs_before_edge, VO_interstitial, E_cut, ninitl, ninit1, Epsii'
       mot2 = ', Atom_density, f0_forward'
 
       Gnuplot = .false.

@@ -779,7 +779,6 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
     end do
   endif
 
-
 ! Rotation pour avoir les tenseurs dans la base R1
 
     rot_tem = matmul( rot_int, transpose(rot_atom_abs) )

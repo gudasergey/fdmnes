@@ -6,7 +6,7 @@
 !              L(x) = (1/(pi*b)) * 1 / ( 1 + ( (x-a)/b )**2 )
 !    Integration over energy for Dafs.
 
-subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_cut_imp,E_Fermi_man,Ecent,Elarg,Estart, &
+subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart, &
         Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max,ical, &
         icheck,indice_par,iscratchconv,itape1,kw_conv,length_line, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,ncal,xsect_file)
@@ -14,7 +14,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   use declarations
   implicit none
 
-  integer:: eof, i, ical, icheck, ie, ie1, ie2, ifich, ifichref, igr, ii, initl, initlref, ip, ipar, &
+  integer:: Dafs_exp_type, eof, i, ical, icheck, ie, ie1, ie2, ifich, ifichref, igr, ii, initl, initlref, ip, ipar, &
     ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, j0, je, jfich, jfichref, jpl, js, jseuil, &
     k, l, Length_line, long, longf, mfich, n, n_col, n_energ_tr, n_selec_core, n_signal, n_Stokes, n1, n2, n3, n4, natomsym, &
     ncal, ne2, nef, nelor, nemax, nen2, nenerg, nenerge, nes, nfich, &
@@ -52,7 +52,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   integer, dimension(:,:), allocatable:: hkl_dafs, nsup, ne_initl
 
   logical:: Another_one, Arc, bav_open, Bormann, Dafs, Dafs_bio, Check_conv, chem, Circular, Conv_done, Cor_abs, decferm, &
-    Deuxieme, Double_cor, E_Fermi_man, Energphot, Epsii_ref_man, Extrap, Fermip, Fit_cal, Forbidden, fprim, fprime_atom, &
+    Deuxieme, Double_cor, E_cut_man, Energphot, Epsii_ref_man, Extrap, Fermip, Fit_cal, Forbidden, fprim, fprime_atom, &
     Full_self_abs, Gamma, Gamma_hole_imp, Gamma_var, Gaussian_default, Green_int, Magn, new_format, no_extrap, &
     nxan_lib, Photo_emission, Scan_a, scan_true, Seah, Self_abs, &
     Shift_auto, Signal_Sph, Stokes, Sup_sufix, Tenseur, Tenseur_car, Thomson, Transpose_file, vnew_format
@@ -60,7 +60,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   real(kind=db):: a, a1, a2, a3, a4, alambda, Asea, b, b1, b2, b3, b4, bba, bbb, c, Cal_Volume_maille, conv_mbarn_nelec, &
     ct_epsilon, ct_nelec, d, d_dead, de_obj, de1, de2, decal_min, Delta_edge, Deltar, Densite_atom, &
-    E, E_cut_imp, E_obj, e1m, Ecent, Efermi, EFermi_orig, Eintmax, Emax, Emin, Elarg, Eph, Epsii_moy, Epsii_ref, Esmin, &
+    E, E_cut_imp, E_obj, e1m, Ecent, E_cut, E_cut_orig, Eintmax, Emax, Emin, Elarg, Eph, Epsii_moy, Epsii_ref, Esmin, &
     Estart, Estart_l, f0_forward, fac, fpp_avantseuil, fpp0, &
     Gamm, Gamma_h, Gamma_max, Im_pi, Im_sig, Ip_pi, Ip_sig, p1, p2, pasdeb, Pdt, S0_2, Tab_width, V0muf, Vibration, Volume_maille
 
@@ -86,12 +86,13 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   convolution_out = ' '
   d_dead = 0._db
   Dafs = .false.
+  Dafs_exp_type = 4
   decferm = .false.
   Deltar = 0._db
   Densite_atom = 0._db
   Deuxieme = .false.
   Double_cor = .false.
-  Efermi = E_cut_imp * rydb
+  E_cut = E_cut_imp * rydb
   Epsii_ref_man = .false.
   eintmax = 1000000._db
   f0_forward = 0._db
@@ -339,6 +340,11 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         read(itape1,'(A)') convolution_out
         convolution_out = adjustl( convolution_out )
 
+      case('dafs_exp_')
+
+        n = nnombre(itape1,132)
+        read(itape1,*) Dafs_exp_type
+
       case('gaussian')
 
         n = nnombre(itape1,132)
@@ -404,11 +410,11 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
             Gamma_max = Gamma_max / rydb
             Gamma_hole_imp = .true.
           case default
-            read(itape1,*) asea, Gamma_max, Gamma_hole(1), Efermi
+            read(itape1,*) asea, Gamma_max, Gamma_hole(1), E_cut
             Gamma_hole(1) = Gamma_hole(1) / rydb
             Gamma_max = Gamma_max / rydb
             Gamma_hole_imp = .true.
-            E_Fermi_man = .true.
+            E_cut_man = .true.
         end select
 
       case('convoluti')
@@ -439,13 +445,13 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
             Gamma_max = Gamma_max / rydb
             Gamma_hole_imp = .true.
           case default
-            read(itape1,*) Ecent, Elarg, Gamma_max, Gamma_hole(1), Efermi
+            read(itape1,*) Ecent, Elarg, Gamma_max, Gamma_hole(1), E_cut
             Ecent = Ecent / rydb
             Elarg = Elarg / rydb
             Gamma_hole(1) = Gamma_hole(1) / rydb
             Gamma_max = Gamma_max / rydb
             Gamma_hole_imp = .true.
-            E_Fermi_man = .true.
+            E_cut_man = .true.
         end select
 
       case('table')
@@ -468,8 +474,8 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         end do
         n = nnombre(itape1,132)
         if( n == 1 ) then
-          read(itape1,*) Efermi
-          E_Fermi_man = .true.
+          read(itape1,*) E_cut
+          E_cut_man = .true.
         endif
         allocate( Elor(nelor) )
         allocate( betalor(nelor) )
@@ -734,7 +740,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     close(2)
   endif
 
-  if( scan_true .and. fichscanout == ' ' .and. .not. Dafs_bio ) then
+  if( Scan_true .and. fichscanout == ' ' .and. .not. Dafs_bio ) then
     mot = convolution_out
     l = len_trim(mot)
     mot(l-7:l+5) = 'scan_conv.txt'
@@ -956,9 +962,9 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
             Gamma_hole(1) = param(igr,ipar)
             Gamma_hole(1) = Gamma_hole(1) / rydb
             Gamma_hole_imp = .true.
-          case('efermi')
-            Efermi = param(igr,ipar)
-            E_Fermi_man = .true.
+          case('E_cut','EFermi')
+            E_cut = param(igr,ipar)
+            E_cut_man = .true.
           case('shift')
             if( .not. run_done( indice_par(igr,ipar) ) ) then
               ifich = i_done( indice_par(igr,ipar) )
@@ -1069,7 +1075,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   endif
 
-  if( E_Fermi_man ) En_Fermi(:) = Efermi
+  if( E_cut_man ) En_Fermi(:) = E_cut
 
   if( Gaussian_default ) deltar = max( Eseuil(1) / 10000, 0.0001_db )
 
@@ -1292,9 +1298,9 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     ifich = ifich + 1
 
     if( Fermip ) then
-      EFermi_orig = Efermip(ifich)
+      E_cut_orig = Efermip(ifich)
     else
-      EFermi_orig = En_fermi(ifich)
+      E_cut_orig = En_fermi(ifich)
     endif
 
     do initl = 1,ninitl(ifich)
@@ -1306,10 +1312,10 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         if( i > n_selec_core ) cycle
       endif
 
-      if( decferm ) then
-        EFermi = EFermi_orig ! Fermi ne suit pas le decalage de la gamme
+      if( Decferm ) then
+        E_cut = E_cut_orig ! Fermi ne suit pas le decalage de la gamme
       else
-        EFermi = EFermi_orig + decal_initl(initl,ifich)
+        E_cut = E_cut_orig + decal_initl(initl,ifich)
       endif
       nenerg = ne_initl(initl,ifich)
 
@@ -1553,9 +1559,9 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       if( Photo_emission .or. Green_int ) then
         betalor(:) = 0._db
       elseif( seah ) then
-        call seahdench(asea,Efermi,Gamma_max,nelor,Elor,betalor)
+        call seahdench(asea,E_cut,Gamma_max,nelor,Elor,betalor)
       elseif( Arc ) then
-        call gammarc(Ecent,Elarg,Gamma_max,Efermi,nelor,Elor, betalor)
+        call gammarc(Ecent,Elarg,Gamma_max,E_cut,nelor,Elor,betalor)
       endif
 
       if( .not. Gamma_hole_imp ) then
@@ -1593,13 +1599,13 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           endif
         endif
         if( nfich == 1 .and. ninitl(ifich) == 1 ) then
-          Write(ipr,170) Gamma_h*rydb, Efermi_orig*rydb, decal_initl(initl,ifich)*rydb
+          Write(ipr,170) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb
         elseif( nfich == 1 ) then
-          Write(ipr,172) Gamma_h*rydb, Efermi_orig*rydb, decal_initl(initl,ifich)*rydb, initl
+          Write(ipr,172) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, initl
         elseif( ninitl(ifich) == 1 ) then
-          Write(ipr,174) Gamma_h*rydb, Efermi_orig*rydb, decal_initl(initl,ifich)*rydb, ifich
+          Write(ipr,174) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, ifich
         else
-          Write(ipr,176) Gamma_h*rydb, Efermi_orig*rydb, decal_initl(initl,ifich)*rydb, ifich, initl
+          Write(ipr,176) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, ifich, initl
         endif
       end do
 
@@ -1645,7 +1651,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       allocate( lorix(nenerge) )
       if( Dafs ) allocate( lorr(nenerge) )
 
-      call cflor(bb,betalor,Efermi,Ephoton,Elor,Energ,ie1,ie2,nef, nelor,nenerg,nenerge,Photo_emission)
+      call cflor(bb,betalor,E_cut,Ephoton,Elor,Energ,ie1,ie2,nef, nelor,nenerg,nenerge,Photo_emission)
       Ephoton(:) = Ephoton(:) + Eseuil(ifich)
 
       Extrap = .false.
@@ -1701,7 +1707,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           if( Photo_emission ) then
             e1(ie) = 1.5 * Ephoton(1) - 0.5 * Ephoton(2)
           else
-            e1(ie) = Efermi + Eseuil(ifich)
+            e1(ie) = E_cut + Eseuil(ifich)
             if( ie == 1 ) then
               e1m = 1.5 * Ephoton(1) - 0.5 * Ephoton(2)
               e1(ie) = max( e1(ie), e1m )
@@ -1757,7 +1763,6 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
           do ipl = 1,nxan
             Xanes(ie,ipl) = - sum( lorix(ie1:ne2) * Xa(ie1:ne2,ipl) ) / pi
-            write(98,*) Xanes(ie,ipl)
           end do
 
           if( .not. Green_int ) then
@@ -2008,24 +2013,24 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
     do ipl = 1,nxan
       Yr(:) = Xs(:,ipl)
-      call gaussi(deltar,Efermi,Es,nes,vibration,Yr)
+      call gaussi(deltar,E_cut,Es,nes,vibration,Yr)
       Xs(:,ipl) = Yr(:)
     end do
 
     do ipl = 1,npldafs
       do ip = 1,nphi(ipl)
         Yr(:) = real( As(:,ip,ipl), db )
-        call gaussi(deltar,Efermi,Es,nes,vibration,Yr)
+        call gaussi(deltar,E_cut,Es,nes,vibration,Yr)
         Yi(:) = aimag( As(:,ip,ipl) )
-        call gaussi(deltar,Efermi,Es,nes,vibration,Yi)
+        call gaussi(deltar,E_cut,Es,nes,vibration,Yi)
         As(:,ip,ipl) = cmplx( Yr(:), Yi(:),db )
 
         if( Cor_abs ) then
           do i = 1,2
             Yr(:) = real( mus(:,ip,ipl,i), db )
-            call gaussi(deltar,Efermi,Es,nes,vibration,Yr)
+            call gaussi(deltar,E_cut,Es,nes,vibration,Yr)
             Yi(:) = aimag( mus(:,ip,ipl,i) )
-            call gaussi(deltar,Efermi,Es,nes,vibration,Yi)
+            call gaussi(deltar,E_cut,Es,nes,vibration,Yi)
             mus(:,ip,ipl,i) = cmplx( Yr(:), Yi(:),db )
           end do
         endif
@@ -2150,7 +2155,8 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     jpl = nxan
 
     if( Dafs_bio ) then
-
+! There are 4 polarization states corresponding to Q and -Q, both with sigma out and pi out.
+! The intensity is the difference between I(Q) = I(Q)_sigma + I(Q)_pi, and I(-Q)
       do ipl = 1,npldafs
         Ip_sig = real(As(ie,1,ipl),db)**2 + aimag(As(ie,1,ipl))**2
         Ip_pi = real(As(ie,2,ipl),db)**2 + aimag(As(ie,2,ipl))**2
@@ -2160,7 +2166,16 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           jpl = jpl + 1
           select case(i)
             case(1)
-              Tens(jpl) = sqrt( Ip_sig + Ip_pi ) - sqrt( Im_sig + Im_pi )
+              select case( Dafs_exp_type )
+                case(1)
+                  Tens(jpl) = Ip_sig + Ip_pi
+                case(2)
+                  Tens(jpl) = sqrt( Ip_sig + Ip_pi )
+                case(3)
+                  Tens(jpl) = Ip_sig + Ip_pi - ( Im_sig + Im_pi )
+                case default
+                  Tens(jpl) = sqrt( Ip_sig + Ip_pi ) - sqrt( Im_sig + Im_pi )
+              end select
             case(2)
               Tens(jpl) = Ip_sig
             case(3)
@@ -2235,7 +2250,7 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     endif
     allocate( Ep(1) )
     Ep(:) = 0._db
-    call write_out(rdum,rdum,Densite_atom,zero_c,Efermi,Es(ie),Ep,0._db,.false.,rdum,ie, &
+    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Es(ie),Ep,0._db,.false.,rdum,ie, &
                    0,n_col,jpl,0,1,Convolution_out,nom_col,1,0,0,0,0,n,cdum,cdum,Tens,v0muf,.false.,0)
     deallocate( Ep )
   end do
@@ -2405,10 +2420,10 @@ subroutine convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
                 ' No summation and convolution are possible !' //)
   150 format('    Gamma_max  =',f7.2,',  Aseah =',f7.2)
   160 format('    Gamma_max  =',f7.2,',  Ecent =',f7.2,', Elarg =',f7.2)
-  170 format('    Gamma_hole =',f7.2,', Efermi =',f8.3,', Shift =',f8.3,' eV')
-  172 format('    Gamma_hole =',f7.2,', Efermi =',f8.3,', Shift =',f8.3,' eV,  initl =',i3)
-  174 format('    Gamma_hole =',f7.2,', Efermi =',f8.3,', Shift =',f8.3,' eV,  site', i3)
-  176 format('    Gamma_hole =',f7.2,', Efermi =',f8.3,', Shift =',f8.3,' eV,  site', i3,', initl =',i3)
+  170 format('    Gamma_hole =',f7.2,', E_cut =',f8.3,', Shift =',f8.3,' eV')
+  172 format('    Gamma_hole =',f7.2,', E_cut =',f8.3,', Shift =',f8.3,' eV,  initl =',i3)
+  174 format('    Gamma_hole =',f7.2,', E_cut =',f8.3,', Shift =',f8.3,' eV,  site', i3)
+  176 format('    Gamma_hole =',f7.2,', E_cut =',f8.3,', Shift =',f8.3,' eV,  site', i3,', initl =',i3)
   178 format(/'      E_(eV)    Width_(eV) lambda_(A)')
   180 format(3f12.3)
   185 format(2f12.3,1p,e12.4)
@@ -2848,7 +2863,7 @@ end
 
 !***********************************************************************
 
-subroutine seahdench(A,Efermi,Gamma_max,nelor,Elor,betalor)
+subroutine seahdench(A,E_cut,Gamma_max,nelor,Elor,betalor)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -2856,7 +2871,7 @@ subroutine seahdench(A,Efermi,Gamma_max,nelor,Elor,betalor)
   real(kind=db):: Elor(nelor), betalor(nelor), lambda
 
   do ie = 1,nelor
-    E = Elor(ie) - Efermi
+    E = Elor(ie) - E_cut
     Ep = E
     if( E > 0._db .and. Ep > 0._db .and. ( A > 0._db .or. Gamma_max > 0._db ) ) then
       lambda = 0._db
@@ -2873,14 +2888,14 @@ end
 
 !***********************************************************************
 
-subroutine gammarc(Ecent,Elarg,Gamma_max,Efermi,nelor, Elor,betalor)
+subroutine gammarc(Ecent,Elarg,Gamma_max,E_cut,nelor, Elor,betalor)
 
   use declarations
   implicit none
 
   integer ie, nelor
 
-  real(kind=db):: E, Ec, Ecent, Efermi, El, Elarg, Gamma_max, p
+  real(kind=db):: E, Ec, Ecent, E_cut, El, Elarg, Gamma_max, p
   real(kind=db), dimension(nelor):: Elor, betalor
 
   Ec = max( Ecent, 1.E-10_db )
@@ -2888,7 +2903,7 @@ subroutine gammarc(Ecent,Elarg,Gamma_max,Efermi,nelor, Elor,betalor)
   p = ( pi / 3 ) * Gamma_max / El
 
   do ie = 1,nelor
-    E = Elor(ie) - Efermi
+    E = Elor(ie) - E_cut
     if ( E <= 0._db ) then
       betalor(ie) = 0._db
     else
@@ -2903,7 +2918,7 @@ end
 
 ! Convolution par une gaussienne
 
-subroutine gaussi(deltar,Efermi,Energ,nenerg,vibration,Y)
+subroutine gaussi(deltar,E_cut,Energ,nenerg,vibration,Y)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -2938,7 +2953,7 @@ subroutine gaussi(deltar,Efermi,Energ,nenerg,vibration,Y)
 
   do ie = 1,nenerg
 
-    vib = 2 * vibration * ( Ef(ie) - Efermi + 0.5_db )
+    vib = 2 * vibration * ( Ef(ie) - E_cut + 0.5_db )
     vib = max( 0._db, vib )
     b = deltar + vib
     if( abs(b) < 1.e-10_db ) then
@@ -2985,7 +3000,7 @@ end
 
 ! Calcul des coefficients de la lorentzienne
 
-subroutine cflor(bb,betalor,Efermi,Eph,Elor,Energ,ie1,ie2,nef, nelor,nenerg,nenerge,Photo_emission)
+subroutine cflor(bb,betalor,E_cut,Eph,Elor,Energ,ie1,ie2,nef, nelor,nenerg,nenerge,Photo_emission)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -3005,7 +3020,7 @@ subroutine cflor(bb,betalor,Efermi,Eph,Elor,Energ,ie1,ie2,nef, nelor,nenerg,nene
 
 ! Les etats en dessous de Fermi sont occupes
   do ie = 1,nenerg - 1
-    if( Eph(ie) > Efermi - 1.e-10_db ) exit
+    if( Eph(ie) > E_cut - 1.e-10_db ) exit
   end do
   nef = ie
 

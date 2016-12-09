@@ -827,13 +827,13 @@ subroutine write_ur(Full_potential,li,lf,nlm1,nlm2,nr,nspinp,nspinpo,numat,r,Rad
           do ir = 1,nr
             write(3,200) r(ir)*bohr, ( ( ( ur(ir,n,np,isp,isol), ui(ir,n,np,isp,isol), isp = 1,nspinp), np = 1,nlm2), &
                                              isol = 1,nspinpo )
-            if( r(ir) > Rmtg ) exit
+            if( r(ir) > Rmtg + eps10 ) exit
           end do
         else
           write(3,190) ( Label(k), k = 1,kmax )
           do ir = 1,nr
             write(3,200) r(ir)*bohr, ( ( ( ur(ir,n,np,isp,isol), isp = 1,nspinp), np = 1,nlm2), isol = 1,nspinpo )
-            if( r(ir) > Rmtg ) exit
+            if( r(ir) > Rmtg + eps10 ) exit
           end do
         endif
       end do
@@ -862,13 +862,13 @@ subroutine write_ur(Full_potential,li,lf,nlm1,nlm2,nr,nspinp,nspinpo,numat,r,Rad
             write(3,190) ( Label(k), Labeli(k), k = 1,kmax )
             do ir = 1,nr
               write(3,200) r(ir)*bohr, ( ( ur(ir,n,np,isp,isol), ui(ir,n,np,isp,isol), isp = 1,nspinp), n = 1,nlm1 )
-              if( r(ir) > Rmtg ) exit
+              if( r(ir) > Rmtg + eps10 ) exit
             end do
           else
             write(3,190) ( Label(k), k = 1,kmax )
             do ir = 1,nr
               write(3,200) r(ir)*bohr, ( ( ur(ir,n,np,isp,isol), isp = 1,nspinp), n = 1,nlm1 )
-              if( r(ir) > Rmtg ) exit
+              if( r(ir) > Rmtg + eps10 ) exit
             end do
           endif
         end do
@@ -1778,7 +1778,7 @@ subroutine radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,l,nlm1,nlm2,nbseui
 
   logical:: Final_tddft, NRIXS, Radial_comp
 
-  real(kind=db):: f_integr3, fac, radlr, radli, rmtsd
+  real(kind=db):: f_integr3, fac, radlr, radli, Rmtsd
   real(kind=db), dimension(nbseuil):: Vecond
   real(kind=db), dimension(nr):: r, fct
   real(kind=db), dimension(nrm,nbseuil):: psii
@@ -3963,7 +3963,7 @@ end
 
 !***********************************************************************
 
-! Calcul l'integrale de 0 a r (is=1) ou r a rmtsd (is=-1) de fct
+! Calcul l'integrale de 0 a r (is=1) ou r a Rmtsd (is=-1) de fct
 ! Cas complexe
 
 subroutine ffintegr2(fint,fct,r,n,is,Rmtsd)
@@ -4023,7 +4023,7 @@ subroutine ffintegr2(fint,fct,r,n,is,Rmtsd)
         fint(i) = fint(i-1) + dintegr(2)
         cycle
       else
-        x0 = rmtsd
+        x0 = Rmtsd
       endif
     endif
     if( is == - 1 .and. r0 > Rmtsd ) then
@@ -4066,9 +4066,9 @@ end
 
 !***********************************************************************
 
-! Calcul l'integrale de 0 a r (is=1) ou r a rmtsd (is=-1) de fct
+! Calcul l'integrale de 0 a r (is=1) ou r a Rmtsd (is=-1) de fct
 
-subroutine ffintegr2_r(fint,fct,r,n,is,rmtsd)
+subroutine ffintegr2_r(fint,fct,r,n,is,Rmtsd)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -4113,22 +4113,22 @@ subroutine ffintegr2_r(fint,fct,r,n,is,rmtsd)
       xp = 0.5 * ( r0 + rp )
     endif
 
-    if( is == 1 .and. r0 > rmtsd ) then
-      if( r(i-1) > rmtsd ) then
+    if( is == 1 .and. r0 > Rmtsd ) then
+      if( r(i-1) > Rmtsd ) then
         fint(i) = fint(i-1)
         cycle
-      elseif( rm > rmtsd ) then
+      elseif( rm > Rmtsd ) then
         fint(i) = fint(i-1) + dintegr(2)
         cycle
       else
-        x0 = rmtsd
+        x0 = Rmtsd
       endif
     endif
-    if( is == - 1 .and. r0 > rmtsd ) then
+    if( is == - 1 .and. r0 > Rmtsd ) then
       fint(i) = 0._db
       cycle
     endif
-    if( xp > rmtsd ) xp = rmtsd
+    if( xp > Rmtsd ) xp = Rmtsd
 
     a = ( fm * ( rp - r0 ) - f0 * ( rp - rm ) + fp * ( r0 - rm ) ) / ( ( r0 - rm ) * ( rp - r0 ) * ( rp - rm ) )
     b = ( f0 - fm ) / ( r0 - rm ) - a * ( r0 + rm )
@@ -4302,3 +4302,182 @@ subroutine Cal_Trans_l(lh,Trans)
 
   return
 end
+
+!***********************************************************************
+
+! Calculation and writing of the atomic electron density
+
+! Similar to the first part of Cal_state
+
+subroutine Cal_Density(Energ,Full_atom,iaabsi,iaprotoi,icheck,ie,ie_computer,Int_statedens,itypei,itypepr,lamstdens, &
+                lla_state,lla2_state,lmaxat,mpinodes,n_atom_0,n_atom_ind,n_atom_proto,natome,nenerg,nomfich_s,nonexc_g,nrato, &
+                nrm,nspinp,ntype,numat,Rato,Rmtsd,State_all,Statedens)
+
+  use declarations
+  implicit none
+
+  integer:: i_self, ia, iaabsi, iapr, icheck, ie, ie_computer, ipr, iprabs, ir, isp, it, l, &
+    la, lamstdens, ll, lla_state, lla2_state, lm,lm1, lm2, lma, m, mpinodes, &
+    n_atom_0, n_atom_ind, n_atom_proto, natome, nenerg, nr, nrm, nspinp, ntype, Z
+
+  character(len=132) nomfich_s
+
+  integer, dimension(0:ntype):: nrato, numat
+  integer, dimension(0:n_atom_proto):: itypepr, la_ipr, ll_ipr, lmaxat
+  integer, dimension(natome):: iaprotoi, itypei
+
+  logical:: Abs_exc, Full_atom, nonexc_g, Open_file, State_all
+  logical, dimension(0:n_atom_proto):: proto_done
+
+  real(kind=db):: de
+
+  real(kind=db), dimension(nenerg):: Energ
+  real(kind=db), dimension(0:n_atom_proto):: Rmtsd
+  real(kind=db), dimension(lla2_state,nspinp,n_atom_0:n_atom_ind):: Int_Statedens
+  real(kind=db), dimension(lla2_state,nspinp,lla2_state,nspinp,n_atom_0:n_atom_ind,0:mpinodes-1):: Statedens
+  real(kind=db), dimension(0:lla_state,nspinp,n_atom_0:n_atom_ind):: Int_Statedens_l
+  real(kind=db), dimension(0:lla_state,nspinp):: Statedens_l
+  real(kind=db), dimension(nspinp,n_atom_0:n_atom_ind):: Int_Statedens_t
+  real(kind=db), dimension(0:nrm,0:ntype):: rato
+
+  if( icheck > 2 )  then
+    write(3,110)
+    write(3,120) Energ(ie)*rydb
+  endif
+
+  proto_done(:) = .false.
+
+  if( nenerg == 1 ) then
+    de = 1._db
+  elseif( ie == 1 ) then
+    de = Energ(2) - Energ(1)
+  elseif( ie == nenerg ) then
+    de = Energ(ie) - Energ(ie-1)
+  else
+    de = 0.5_db * ( Energ(ie+1) -  Energ(ie-1) )
+  endif
+
+  do ipr = 0,n_atom_proto
+    if( lamstdens > -1 ) then
+      la = min(lamstdens,lmaxat(ipr))
+    else
+      Z = numat( itypepr(ipr) )
+      if( Z < 19 ) then
+        la = min(1,lmaxat(ipr))
+        ll = min(2,lmaxat(ipr))
+      elseif( Z > 18 .and. Z < 55 ) then
+        la = min(2,lmaxat(ipr))
+        ll = min(3,lmaxat(ipr))
+      else
+        la = min(3,lmaxat(ipr))
+        ll = min(4,lmaxat(ipr))
+      endif
+    end if
+    la_ipr(ipr) = la    ! nombre maximal d'harmoniques pour l'ecriture de la densite d'etat
+    ll_ipr(ipr) = ll    ! nombre maximal d'harmoniques pour le calcul  de la densite d'etat
+  end do
+
+  boucle_ia: do ia = 1,natome
+
+    ipr = iaprotoi(ia)
+    la = la_ipr(ipr)
+    ll = ll_ipr(ipr)
+
+    if( ia == iaabsi ) iprabs = ipr
+
+    if( Full_atom ) then
+      iapr = ia
+    else
+      iapr = ipr
+    endif
+
+    it = itypei(ia)
+    Z = numat(it)
+    if( proto_done(ipr) .and. .not. Full_atom ) cycle boucle_ia
+    if( .not. ( ia == iaabsi .or. State_all ) ) cycle
+     
+! Calcul de la densite d'etat integree jusqu'au rayon Rmstd de l'atome
+
+    do ir = 1,nrato(it)
+      if( rato(ir,it) > Rmtsd(ipr) + eps10 ) exit
+    end do
+    nr = ir
+
+    lma = (ll + 1)**2
+
+    Statedens_l(:,:) = 0._db
+    do l = 0,la
+      lm1 = l**2 + 1
+      lm2 = ( l + 1 )**2
+      do isp = 1,nspinp
+        do lm = lm1,lm2
+          Statedens_l(l,isp) = Statedens_l(l,isp) + Statedens(lm,isp,lm,isp,iapr,ie_computer)
+        end do
+      end do
+    end do
+    if( nspinp == 1 ) Statedens_l(0:la,1) = 2 * Statedens_l(0:la,1)
+
+! Integrale de la densite d'etats
+    do isp = 1,nspinp
+      do lm = 1,lma
+        Int_Statedens(lm,isp,iapr) = Int_Statedens(lm,isp,iapr) + de * Statedens(lm,isp,lm,isp,iapr,ie_computer)
+      end do
+    end do
+
+    do l = 0,ll
+      lm1 = l**2 + 1
+      lm2 = ( l + 1 )**2
+      do isp = 1,nspinp
+        Int_Statedens_l(l,isp,iapr) = sum(Int_Statedens(lm1:lm2,isp,iapr))
+      end do
+      if( nspinp == 1 ) Int_Statedens_l(l,1,iapr) = 2 * Int_Statedens_l(l,1,iapr)
+    end do
+
+    Int_statedens_t(:,iapr) = 0._db
+    do isp = 1,nspinp
+      Int_Statedens_t(isp,iapr) = Int_Statedens_t(isp,iapr) + sum( Int_Statedens_l(0:la,isp,iapr) )
+    end do
+
+    if( icheck > 1 ) then
+      write(3,180) iapr
+      lm = 0
+      do l = 0,ll
+        do m = -l,l
+          lm = lm + 1
+          do isp = 1,nspinp
+            write(3,190) l, m, isp, Statedens(lm,isp,lm,isp,iapr,ie_computer), Int_Statedens(lm,isp,iapr)
+          end do
+        end do
+      end do
+      write(3,200)
+      do l = 0,la
+        write(3,210) l, Int_Statedens_l(l,1:nspinp,iapr)
+      end do
+      write(3,220) Int_Statedens_t(1:nspinp,iapr)
+    endif
+
+    Open_file = ie == 1
+    Abs_exc = Full_atom .and. ( ia == iaabsi )  .and. .not. nonexc_g
+
+  ! Writting file common with cal_state in SCF.f90
+    call write_stdens(Abs_exc,.true.,Energ(ie),i_self,iapr,ie_computer,la,Int_Statedens,Int_Statedens_t, &
+           Int_Statedens_l,lla_state,lla2_state,mpinodes,n_atom_0,n_atom_ind,nomfich_s,nspinp,Open_file,Statedens, &
+           Statedens_l)
+
+    proto_done(ipr) = .true.
+
+  end do boucle_ia
+
+  return
+  110 format(/' ---- Cal_density --------',100('-'))
+  120 format(15x,' Energy =',f10.3,' eV')
+  150 format(/'  Before integration:  ia = ',i3,'  charge_self = ', 2f10.5)
+  160 format(/' ia =',i3,', Z =',i3/ '   Radius_(A) 4*pi*r2*Rho_self')
+  170 format(1p,30e13.5)
+  180 format(/'  l  m is  Density of states   Integral    ia =',i3)
+  190 format(3i3,3f15.7)
+  200 format(/'    l   sum_m(Integral)')
+  210 format(i5,2f15.7)
+  220 format(' Total =',f12.7,f15.7)
+end
+

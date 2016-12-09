@@ -1,11 +1,11 @@
 ! FDMNES subroutine
 
-! Sous-ensemble de routines qui servent a la procedure optic.
+! Set of subroutines for procedure optic.
 
 !***********************************************************************
 
 subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_resolved,Dafs,Dafs_bio, &
-          Densite_atom,dv0bdcF,E_cut,E_cut_imp,E_Fermi_man,Eclie,Eneg,Energ_t, &
+          Densite_atom,dv0bdcF,E_cut,E_cut_imp,E_cut_man,Eclie,Eneg,Energ_t, &
           Extract,Eseuil,Full_potential,Full_self_abs,Green,hkl_dafs,Hubb_a,Hubb_d,icheck, &
           iabsorig,ip_max,ip0,isigpi,isymeq, &
           jseuil,ldip,lmax_pot,lmax_probe,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua, &
@@ -63,7 +63,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   complex(kind=db), dimension(:,:,:,:,:), allocatable:: rof0
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Taull_abs
 
-  logical:: Allsite, Cartesian_tensor, Classic_irreg, Core_resolved, Dafs, Dafs_bio, E_Fermi_man, &
+  logical:: Allsite, Cartesian_tensor, Classic_irreg, Core_resolved, Dafs, Dafs_bio, E_cut_man, &
     E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Eneg, Energphot, Extract, FDM_comp, Final_optic, Final_tddft, Full_potential, &
     Full_self_abs, Green, Green_int, Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, M1M1, Matper, &
     Moyenne, Relativiste, Self_abs, Solsing, &
@@ -108,7 +108,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   FDM_comp = .false.
   n_V = 1
   n_Ec = 2
-  ns_dipmag = 2  ! correspond ici aux 2 energies, pas a la transition E1M1
+  ns_dipmag = 2  ! corresponds here at the 2, occupied and non-occupied state, energies, not the spin-flip in the E1M1 transition 
   ndim2 = 1
   
   if( Hubb_a .or. Full_potential ) then
@@ -121,7 +121,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   allocate( En(n_Ec) )
   allocate( V0bdc(nspin,n_V) )
   
-  if( E_Fermi_man ) then
+  if( E_cut_man ) then
     E_cut_optic = E_cut_imp
   else
     E_cut_optic = E_cut
@@ -141,7 +141,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   allocate( Ecinetic(nspin,n_Ec) )
   allocate( Enervide(n_Ec) )
 
-! Elaboration de la grille optic
+! Elaboration of energy grid 
   call dim_grille_optic(E_cut_optic,Energ_s,mpirank0,nenerg,nenerg_s)
 
   allocate( Energ(nenerg) )
@@ -149,7 +149,6 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
 
   call grille_optic(E_cut_optic,Energ,Energ_s,icheck(29),nenerg,nenerg_s)
 
-! On garde l'energie imaginaire nulle
   Eimag(:) = 0._db
   Solsing = .false.
 
@@ -212,7 +211,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
         call clmax(Ecmax,Rmtg,lmaxat0,lmax,numat,lmaxfree)
         lmax = min(lmax,lmaxabs_t)
 
-! Calcul des tenseurs cartesiens
+! Calculation of cartesian tensor
 
         icheck_s = max( icheck(29), icheck(20) )
 
@@ -258,7 +257,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
         else
           delta_E = 0.5_db * ( Energ_s(ie_s+1) - Energ_s(ie_s-1) )
         endif
-! La racine du pas en energie est mise eu carre dans tenseur_car
+! The suare-root of the tep energy is set to the square in subroutine tenseur_car
         Taull_abs(:,:,:,:,:,:,:) = sqrt( Delta_E ) * Taull_abs(:,:,:,:,:,:,:) 
  
         nenerg_tddft = 0
@@ -296,9 +295,9 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
           Time_rout(11) = Time_rout(11) + tp(2) - tp(1)
         endif
 
-      end do ! fin boucle sur energie des electrons
+      end do ! End of loop over electron ene'rgies
 
-    endif  ! arrive ie > nenerg
+    endif  ! arrival when ie > nenerg
 
     if( mpinodes > 1 ) then
       l0_nrixs = 0; lmax_nrixs = 0; nq_nrixs = 0

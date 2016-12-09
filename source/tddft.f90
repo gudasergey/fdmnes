@@ -21,19 +21,19 @@
 
 subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,coef_g, &
         Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Delta_edge,Delta_Eseuil,Densite_atom,Dipmag, &
-        dv0bdcF,Dyn_eg,Dyn_g,E_cut,E_cut_imp,E_Fermi,E_Fermi_man,Ecent,Eclie,Elarg,Eneg, &
-        Energ_t,Energphot,Epsii_a,Extract,Epsii_moy,Eseuil,Estart,f_avantseuil,Full_potential,Full_self_abs, &
+        dv0bdcF,Dyn_eg,Dyn_g,E_cut,E_cut_imp,E_Fermi,E_cut_man,Ecent,Eclie,Elarg,Eneg, &
+        Energ_t,Energphot,Epsii_a,Epsii_moy,Eseuil,Estart,f_avantseuil,Full_potential,Full_self_abs, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_dafs,Hubb_a,Hubb_d,icheck, &
         iabsorig,iopsymc_25,is_g,isigpi,isymeq, &
         jseuil,Kern_fac,l0_nrixs,ldip,lmax_pot,lmax_nrixs,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua,lseuil, &
         ltypcal,m_g,m_hubb,Magnetic,Matper,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi, &
-        msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_run,Multipole, &
+        msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
         n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
         natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ngamh,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlmamax, &
-        nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nomfich_tddft_data, &
+        nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s, &
         nphi_dafs,nphim,npldafs,nplr,nplrm,nq_nrixs,nr,NRIXS,nrm,nseuil,nspin,nspino,nspinp, &
         numat,nxanout,Octupole,Old_zero,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
-        psii,q_nrixs,Quadrupole,r,Recup_tddft_data,Relativiste,rhoato_abs,Rmtg,Rmtsd, &
+        psii,q_nrixs,Quadrupole,r,Relativiste,rhoato_abs,Rmtg,Rmtsd, &
         rof0,rot_atom_abs,Rot_int,RPALF,rsato,rsbdc,Self_abs,Solsing_only, &
         Spherical_signal,Spherical_tensor,Spinorbite,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb,V0muf, &
         Vcato,vec,vecdafse,vecdafss,Vhbdc,Volume_maille,VxcbdcF, &
@@ -45,7 +45,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Classic_ir
 
   integer:: cal_nenerge, iabsorig, icheck_s, ie, ie_computer, ie_e, initl, iopsymc_25, ip_max, ip0, &
     ir, isp, je, jseuil, l, l0_nrixs, lmax, lmax_pot, lmax_probe, lmax_nrixs, lmaxabs_t, &
-    lmaxat0, lseuil,m_hubb, MPI_host_num_for_mumps, mpinodes, mpirank, mpirank0, multi_run, &
+    lmaxat0, lseuil,m_hubb, MPI_host_num_for_mumps, mpinodes, mpirank, mpirank0, &
     n_Ec, n_multi_run, n_oo, n_rel, n_rout, n_tens_max, n_V, natomsym, nbseuil, &
     ncolm, ncolr, ncolt, nd3, nenerg, nenerg_s, nenerg_tddft, nenerge, ngamh, nge, ninit1, ninitl, ninitl_out, &
     ninitlv, nlm, nlm_fp, nlm_pot, nlm_probe, nlm_p_fp, nlmamax, nlms_f, nlms_g, nlmsm_f, &
@@ -64,7 +64,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Classic_ir
   integer, dimension(3,3,3,3)::  msymdo, msymdoi, msymqq, msymqqi
   integer, dimension(3,n_oo,3,n_oo):: msymoo, msymooi
 
-  character(len=132):: nomfich, nomfich_s, nomfich_tddft_data, nomfich_cal_convt, nomfich_cal_tddft_conv, xsect_file
+  character(len=132):: nomfich, nomfich_s, nomfich_cal_convt, nomfich_cal_tddft_conv, xsect_file
   character(len=13), dimension(nplrm):: ltypcal
   character(len=length_word), dimension(ncolm):: nomabs
 
@@ -89,11 +89,11 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Classic_ir
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Chi
 
   logical:: All_nrixs, Allsite, Atomic_scr, Cartesian_tensor, Classic_irreg, Core_resolved, Dafs, Dafs_bio, Dipmag, &
-    Dyn_eg, Dyn_g, E_Fermi_man, Eneg, Energphot, Extract, FDM_comp, Final_optic, Final_tddft, &
+    Dyn_eg, Dyn_g, E_cut_man, Eneg, Energphot, FDM_comp, Final_optic, Final_tddft, &
     Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green, Green_int, &
     Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, Magnetic, Matper, &
     Moyenne, NRIXS, Octupole, Old_zero, Optic, Quadrupole, Radial_comp, &
-    Recup_tddft_data, Relativiste, RPALF, Self_abs, Solsing, Solsing_only, Spherical_signal, &
+    Relativiste, RPALF, Self_abs, Solsing, Solsing_only, Spherical_signal, &
     Spherical_tensor, Spinorbite, Xan_atom, Ylm_comp, Ylm_comp_e
 
   logical, dimension(10):: Multipole
@@ -192,7 +192,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Classic_ir
   allocate( V_hubb_t(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp) )
   V_hubb_t(:,:,:,:) = V_hubb(:,:,:,:)
 
-  if( E_Fermi_man ) then
+  if( E_cut_man ) then
     E_cut_tddft = E_cut_imp
   else
     E_cut_tddft = E_cut
@@ -209,9 +209,6 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Classic_ir
 ! Epsii_moy est la moyenne pour le 2eme seuil (si 2 seuils) par exemple L3
   Decal_initl(:) = Epsii_a(:) - Epsii_moy
   Epsii(1) = Epsii_moy
-
-  if( Recup_tddft_data ) call Read_tddft_data(E_cut,Energ_s,mpirank0,multi_run, &
-                   n_multi_run,nbseuil,nenerg_s,nlmamax,nomfich_tddft_data,nspinp,nspino,rof0,Taull_tdd)
 
 ! Elaboration de la grille etendue pour la Tddft
   call dim_grille_tddft(Energ_s,Delta_Eseuil,Estart,nbseuil,nenerg,nenerg_s)
@@ -501,7 +498,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Classic_ir
       if( ie > nenerg ) exit
 
       call write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
-            Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
+            Densite_atom,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer,Int_tens, &
             isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
             natomsym,nbseuil, &
@@ -512,7 +509,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Classic_ir
             Spherical_tensor,Spinorbite,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)
 
       if( NRIXS ) call write_nrixs(All_nrixs,Allsite,Core_resolved, &
-                  Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
+                  Densite_atom,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft, &
                   f_avantseuil,Green_int,iabsorig,icheck(21),ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
                   jseuil,mpinodes,n_multi_run,natomsym,nbseuil,nenerg,ninit1,ninitl_out,nomfich,nomfich_cal_convt, &
                   nq_nrixs,nseuil,nspinp,numat,q_nrixs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Spinorbite,Taux_eq,V0muf)
@@ -556,19 +553,19 @@ end
 
 subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,coef_g, &
         Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Densite_atom,Dipmag, &
-        dv0bdcF,E_cut,E_cut_imp,E_Fermi_man,Eclie,Eneg, &
-        Energ_t,Energphot,Extract,Eseuil,f_avantseuil,Full_potential,Full_self_abs, &
+        dv0bdcF,E_cut,E_cut_imp,E_cut_man,Eclie,Eneg, &
+        Energ_t,Energphot,Eseuil,f_avantseuil,Full_potential,Full_self_abs, &
         Gamma_tddft,hkl_dafs,Hubb_a,Hubb_d,icheck,iabsorig,iopsymc_25,is_g,isigpi,isymeq, &
         jseuil,Kern_fac,ldip,lmax_pot,lmaxabs_t,lmoins1,loct,lplus1,lqua,lseuil, &
         ltypcal,m_g,m_hubb,Magnetic,Matper,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
-        msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_run,Multipole, &
+        msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
         n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
         natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlmamax, &
-        nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nomfich_tddft_data, &
+        nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s, &
         nphi_dafs,nphim,npldafs,nplr,nplrm,nr,nrm,nseuil,nspin,nspino,nspinp, &
         numat,nxanout,Octupole,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
-        psii,Quadrupole,r,Recup_tddft_data,Relativiste,rhoato_abs,Rmtg,Rmtsd, &
-        rof0,rot_atom_abs,Rot_int,RPALF,rsato,Self_abs,Solsing_only, &
+        psii,Quadrupole,r,Relativiste,rhoato_abs,Rmtg,Rmtsd, &
+        rot_atom_abs,Rot_int,RPALF,rsato,Self_abs,Solsing_only, &
         Spherical_signal,Spherical_tensor,Spinorbite,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb,V0muf, &
         Vcato,vec,vecdafse,vecdafss,Vhbdc,Volume_maille,VxcbdcF, &
         Vxcato,Workf,Ylm_comp_e)
@@ -583,7 +580,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
 
   integer:: i, iabsorig, icheck_s, ie, ie_computer, ie_e, ie_g, ief, iopsymc_25, ip_max, ip0, &
     iso1, iso2, isp, isp1, isp2, j, je, jef, jseuil, l, lm1, lm2, lmax, lmax_pot, &
-    lmax_probe, lmaxabs_t, lseuil, m_hubb, MPI_host_num_for_mumps, mpinodes, mpirank, mpirank0, multi_run, &
+    lmax_probe, lmaxabs_t, lseuil, m_hubb, MPI_host_num_for_mumps, mpinodes, mpirank, mpirank0, &
     n_rel, n_Ec, n_multi_run, n_oo, n_rout, n_tens_max, n_V, natomsym, nbseuil, &
     ncolm, ncolr, ncolt, nd3, nenerg, nenerg_s, nenerg_tddft, nge, ninit1, ninitl, ninitl_out, &
     ninitlv, nlm, nlm_fp, nlm_pot, nlm_probe, nlm_p_fp, nlmamax, nlms, nlms_g, nlms_f, &
@@ -602,7 +599,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
   integer, dimension(3,3,3,3)::  msymdo, msymdoi, msymqq, msymqqi
   integer, dimension(3,n_oo,3,n_oo):: msymoo, msymooi
 
-  character(len=132):: nomfich, nomfich_s, nomfich_tddft_data, nomfich_cal_convt, nomfich_cal_tddft_conv
+  character(len=132):: nomfich, nomfich_s, nomfich_cal_convt, nomfich_cal_tddft_conv
   character(len=13), dimension(nplrm):: ltypcal
   character(len=length_word), dimension(ncolm):: nomabs
 
@@ -611,7 +608,6 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
   complex(kind=db), dimension(natomsym,npldafs):: phdafs
   complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdt
   complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
-  complex(kind=db), dimension(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil):: rof0
   complex(kind=db), dimension(3,3,n_rel,ninitl_out,0:mpinodes-1):: secdd, secdd_m, secdd_t, secdd_m_t
   complex(kind=db), dimension(3,3,ninitl_out,0:mpinodes-1):: secmd, secmd_m, secmm, secmm_m, &
                                                              secmd_t, secmd_m_t, secmm_t, secmm_m_t
@@ -629,11 +625,11 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Chi
 
   logical:: Allsite, Atomic_scr, Cartesian_tensor, Classic_irreg, Core_resolved, Dafs, Dafs_bio, Dipmag, &
-    E_Fermi_man, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Eneg, Energphot, Extract, FDM_comp, Final_optic, Final_tddft, &
+    E_cut_man, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Eneg, Energphot, FDM_comp, Final_optic, Final_tddft, &
     Full_potential, Full_self_abs, Gamma_tddft, Green, Green_int, &
     Hubb_a, Hubb_d, lmoins1, lplus1, M_depend, M1M1, Magnetic, Matper, &
     Moyenne, No_diag, NRIXS, Octupole, Optic, Quadrupole, Radial_comp, &
-    Recup_tddft_data, Relativiste, RPALF, Self_abs, Solsing, Solsing_only, Spherical_signal, &
+    Relativiste, RPALF, Self_abs, Solsing, Solsing_only, Spherical_signal, &
     Spherical_tensor, Spinorbite, Xan_atom, Ylm_comp, Ylm_comp_e
 
   logical, dimension(10):: Multipole
@@ -735,7 +731,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
   allocate( V_hubb_t(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp) )
   V_hubb_t(:,:,:,:) = V_hubb(:,:,:,:)
 
-  if( E_Fermi_man ) then
+  if( E_cut_man ) then
     E_cut_tddft = E_cut_imp
   else
     E_cut_tddft = E_cut
@@ -772,9 +768,6 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
 
   allocate( Ecinetic_e(nspin) )
   allocate( V0bdc(nspin,n_V) )
-
-  if( Recup_tddft_data ) call Read_tddft_data(E_cut,Energ_s,mpirank0,multi_run, &
-                   n_multi_run,nbseuil,nenerg_s,nlmamax,nomfich_tddft_data,nspinp,nspino,rof0,Taull_tdd)
 
 ! Elaboration de la grille etendue pour la Tddft
   call dim_grille_optic(E_cut_tddft,Energ_s,mpirank0,nenerg,nenerg_s)
@@ -1077,7 +1070,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
       if( ie > nenerg ) exit
 
       call write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
-                  Densite_atom,E_cut,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
+                  Densite_atom,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft, &
                   f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer,Int_tens, &
                   isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
                   natomsym,nbseuil, &
@@ -1438,7 +1431,7 @@ end
 ! Calcul de Chi_0
 
 subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ecent,Elarg,Energ,Energ_s, &
-       Eseuil,fppn,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,icheck,je,jseuil,lmax, &
+       Eseuil,fppn,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,icheck,ie,jseuil,lmax, &
        nbseuil,nenerge,nenerg_s,ngamh,ninit1,ninitl,n_Ec,nlm,nlmamax,nlmsm_f,nlms_f,nlms_g,nomfich,ns_dipmag, &
        nseuil,nspino,nspinp,numat,rof_ph,rof0,Spinorbite,Taull_tdd)
 
@@ -1481,13 +1474,13 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
   if( .not. Gamma_tddft )  then
     pasmin = 1.0_db / rydb
 ! le pas minimum
-    do ie = 1,nenerg_s-1
-      pasmin = min( pasmin, Energ_s(ie+1)-Energ_s(ie) )
+    do je = 1,nenerg_s-1
+      pasmin = min( pasmin, Energ_s(je+1)-Energ_s(je) )
     end do
     param = 0.5_db * pasmin
   end if
 
-  if( icheck > 0 ) write(3,100)
+  if( ( icheck > 0 .and. ie == 1 ) .or. icheck > 1 ) write(3,100)
 
   if( nenerg_s > 1 ) then
     def = Energ_s(nenerg_s) - Energ_s(nenerg_s-1)
@@ -1500,10 +1493,10 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
 
   Energe(1:nenerg_s) = Energ_s(1:nenerg_s)
   dde = def
-  do ie = nenerg_s-1,nenerge
-    if( ie > nenerg_s ) then
+  do je = nenerg_s-1,nenerge
+    if( je > nenerg_s ) then
       dde = alfa * dde
-      Energe(ie) = Energe(ie-1) + dde
+      Energe(je) = Energe(je-1) + dde
     endif
   end do
 
@@ -1573,14 +1566,14 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
           Gamma_hole(1) = Tab_width(Eseuil,js,nseuil,numat)
           Gamma(:) = Gamma(:) + Gamma_hole(1)
         end if
-        if( icheck > 0 ) write(3,105) ie_ph, iseuil, Gamma_hole(1) * rydb
+        if( ( icheck > 0 .and. ie == 1 ) .or. icheck > 1 ) write(3,105) ie_ph, iseuil, Gamma_hole(1) * rydb
 
 ! On prend la mi-largeur
         Gamma(:) = Gamma(:) / 2
 
       elseif( ie_ph == 1 ) then
 
-        if( icheck > 0 ) write(3,106 )
+        if( ( icheck > 0 .and. ie == 1 ) .or. icheck > 1 ) write(3,'(/A)' ) ' Gamma = 0'
 
       end if
 
@@ -1593,15 +1586,15 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
         stop
       end if
       ief = 0
-      do ie = 1,nenerg_s-1
-        if( Energe(ie) > EFermi_i  ) exit
+      do je = 1,nenerg_s-1
+        if( Energe(je) > EFermi_i  ) exit
       end do
-      ief = ie
+      ief = je
 
 ! Creation des tableaux bornes des intervales:
-      do ie = 2,nenerge-1
-        e1(ie) =  0.5_db * ( Energe(ie-1) + Energe(ie) )
-        e2(ie) =  0.5_db * ( Energe(ie) + Energe(ie+1) )
+      do je = 2,nenerge-1
+        e1(je) =  0.5_db * ( Energe(je-1) + Energe(je) )
+        e2(je) =  0.5_db * ( Energe(je) + Energe(je+1) )
       end do
 
 ! Bornes de l'intervale:
@@ -1661,15 +1654,15 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
 
                     Chi_0_r = 0._db ; Chi_0_i = 0._db
 
-                    do ie = ief,nenerge
+                    do je = ief,nenerge
 
-                      t1 = Energ - e1(ie)
-                      t2 = Energ - e2(ie)
+                      t1 = Energ - e1(je)
+                      t2 = Energ - e2(je)
 
-                      if( ie > nenerg_s ) then
-                        dch = cmplx( fppn(ie,lms1,lms2,iseuil,iseuil,ispm), 0._db )
+                      if( je > nenerg_s ) then
+                        dch = cmplx( fppn(je,lms1,lms2,iseuil,iseuil,ispm), 0._db )
                       else
-                        dch = Taull_tdd(ie,lm1,iss1,lm2,iss2) * rof0(ie,lmv1,ispm,iso1,iseuil) * rof0(ie,lmv2,ispm,iso2,iseuil)
+                        dch = Taull_tdd(je,lm1,iss1,lm2,iss2) * rof0(je,lmv1,ispm,iso1,iseuil) * rof0(je,lmv2,ispm,iso2,iseuil)
                       endif
                       dch = dch / ( rof_ph(lmv1,ispm,iso1,ie_ph) * rof_ph(lmv2,ispm,iso2,ie_ph) )
                       dch_r = real( dch, db )
@@ -1677,8 +1670,8 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
 
                       if( Gamma_tddft ) then
 
-                        t1 = t1 / Gamma(ie)
-                        t2 = t2 / Gamma(ie)
+                        t1 = t1 / Gamma(je)
+                        t2 = t2 / Gamma(je)
                         d_i = - ( atan(t2) - atan(t1) ) / pi
                         d_r = - 0.5_db * log( (1+t2**2)/(1+t1**2) ) / pi
                         Chi_0_r = Chi_0_r + dch_r * d_r - dch_i * d_i
@@ -1697,24 +1690,24 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
                           Chi_0_i = Chi_0_i - dch_i * log( abs(t2/t1) ) / pi
                         endif
 
-                        if( Energe(ie) < Energ - eps10 .or. Energ < Efermi_i ) cycle
+                        if( Energe(je) < Energ - eps10 .or. Energ < Efermi_i ) cycle
 ! Partie imaginaire, on interpole quand on depasse le point courant
-                        if( abs( Energe(ie) - Energ ) < eps10 .or. ie == 1 ) then
+                        if( abs( Energe(je) - Energ ) < eps10 .or. je == 1 ) then
                           Chi_0_i = Chi_0_i + dch_r
-                        elseif( Energe(ie-1) < Energ ) then
-                          if( ie-1 > nenerg_s ) then
-                            y1_r = fppn(ie-1,lms1,lms2,iseuil,iseuil,ispm)
+                        elseif( Energe(je-1) < Energ ) then
+                          if( je-1 > nenerg_s ) then
+                            y1_r = fppn(je-1,lms1,lms2,iseuil,iseuil,ispm)
                           else
-                            y1_c = Taull_tdd(ie-1,lm1,iss1,lm2,iss2) * rof0(ie-1,lmv1,ispm,iso1,iseuil) &
-                                                                     * rof0(ie-1,lmv2,ispm,iso2,iseuil)
+                            y1_c = Taull_tdd(je-1,lm1,iss1,lm2,iss2) * rof0(je-1,lmv1,ispm,iso1,iseuil) &
+                                                                     * rof0(je-1,lmv2,ispm,iso2,iseuil)
                             y1_r = real( y1_c, db )
                             y1_i = aimag( y1_c )
                           endif
                           x  = Energ
-                          x1 = Energe(ie-1)
-                          x2 = Energe(ie)
+                          x1 = Energe(je-1)
+                          x2 = Energe(je)
                           Chi_0_i = Chi_0_i + f_interp1(x,x1,x2,y1_r,dch_r)
-                          if( ie-1 <= nenerg_s ) Chi_0_r = Chi_0_r + f_interp1(x,x1,x2,y1_i,dch_i)
+                          if( je-1 <= nenerg_s ) Chi_0_r = Chi_0_r + f_interp1(x,x1,x2,y1_i,dch_i)
                         endif
 
                       end if
@@ -1749,13 +1742,13 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
 
   if( icheck > 2 ) then
     write(3,140) ((( l, ch2(m), isp, isp = 1,nspinp),  m = -l,l), l = 0,lmax )
-    do ie = 1,nenerg_s
-      write(3,120) Energ_s(ie)*rydb, (( Taull_tdd(ie,lm,isp,lm,isp), isp = 1,nspinp), lm = 1,(1+lmax)**2 )
+    do je = 1,nenerg_s
+      write(3,120) Energ_s(je)*rydb, (( Taull_tdd(je,lm,isp,lm,isp), isp = 1,nspinp), lm = 1,(1+lmax)**2 )
     end do
 
     write(3,150) (((( l, ch2(m), isp, iseuil, iseuil = 1,nbseuil), isp = 1,nspinp), m = -l,l), l = 0,lmax )
-    do ie = 1,nenerg_s
-      write(3,120) Energ_s(ie)*rydb, (( real( rof0(ie,lm,isp,min(isp,nspino),1:nbseuil)), isp = 1,nspinp), lm = 1,(1+lmax)**2 )
+    do je = 1,nenerg_s
+      write(3,120) Energ_s(je)*rydb, (( real( rof0(je,lm,isp,min(isp,nspino),1:nbseuil)), isp = 1,nspinp), lm = 1,(1+lmax)**2 )
     end do
 
     write(3,160) Energ*rydb, ((( isp ,iso, ie_ph, isp = 1,nspinp), iso = 1,nspino), ie_ph = 1,n_Ec)
@@ -1768,14 +1761,13 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
     end do
   end if
 
-  if( icheck > 1 ) call write_Chi_0(Chi_0,Energ,i_val,je,l_val,m_val,nlms_f,nlms_g,nomfich,ns_dipmag)
+  if( icheck > 1 ) call write_Chi_0(Chi_0,Energ,i_val,ie,l_val,m_val,nlms_f,nlms_g,nomfich,ns_dipmag)
 
   return
   100 format(/' ---- Chi_0_int -------',100('-'))
   102 format('   Chi_0 calculation, state =',i2,' on',i2)
   103 format('   Chi_0 calculation, state =',i2,' on',i2,', computer,', i3)
   105 format(/' ie_ph =',i2,', iseuil =',i2,', Gamma_hole =',f7.3,' eV')
-  106 format(/' Gamma = 0')
   120 format(f9.3,1p,500e11.3)
   130 format(/' Chi_0(lms,lms,lms_g,lms_g,ispf,is_dipmag) for diagonal terms, ie_ph ',i2,/ &
               '   Energy ',250(2x,'(',i2,',',i1,',',i1,',',i1,')',3x,'Im',5x) )

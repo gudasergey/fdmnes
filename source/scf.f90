@@ -796,13 +796,13 @@ end
 ! ch_ia = nombre total d'electrons (y compris de coeur) a
 !         l'iteration courrante, pour l'atome ia
 
-subroutine Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Doping,drho_self,E_cut,E_Open_val, &
+subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_self,E_cut,E_Open_val, &
                 E_Open_val_exc,E_starta,Energ,E_Fermi,Enragr,Energ_self,Fermi,Full_atom,hubb,Hubb_diag,iaabsi,iaprotoi, &
                 i_self,icheck,ie,ie_computer,Int_statedens,ipr_dop,ispin_maj,itypei,itypepr,lamstdens, &
                 Open_val,Open_val_exc,lla_state,lla2_state,lmaxat,m_hubb,mpinodes,n_atom_0,n_atom_0_self, &
-                n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nb_eq,nenerg,ngreq,nlm_pot,nomfich_s,nonexc_g,nrato, &
+                n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nb_eq,nenerg,ngreq,nlm_pot,nomfich_s,nrato, &
                 nrm,nrm_self,nspin,nspinp,ntype,numat,occ_hubb,occ_hubb_i,pop_orb_val,rato,rho_self,rho_self_t,rmtsd,SCF_elecabs, &
-                SCF_mag_fix,Self_nonexc,State_all,Statedens,Statedens_i,V_hubb,V_hubbard)
+                SCF_mag_fix,Self_nonexc,Statedens,Statedens_i,V_hubb,V_hubbard)
 
   use declarations
   implicit none
@@ -822,8 +822,8 @@ subroutine Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Dop
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb
 
   logical, save:: Fermi_gen, Fermi_maj, Fermi_min
-  logical::Abs_exc, Cal_xanes, Density, Doping, Fermi, First_loop, Full_atom, nonexc_g, Open_file, Open_val, Open_val_exc, &
-    SCF_elecabs, SCF_mag_fix, Self_nonexc, State_all
+  logical:: Density, Doping, Fermi, First_loop, Full_atom, Open_file, Open_val, Open_val_exc, &
+    SCF_elecabs, SCF_mag_fix, Self_nonexc
   logical, dimension(0:n_atom_proto):: proto_done
   logical, dimension(0:ntype):: Hubb
   logical, dimension(n_atom_0_self:n_atom_ind_self):: Hubb_diag
@@ -854,38 +854,35 @@ subroutine Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Dop
   real(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: occ_hubb, occ_hubb_i, &
                                                                                                         occ_hubb_i_s, occ_hubb_s
 
-  if( ( icheck > 1 .and. .not. Cal_xanes ) .or. icheck > 2 )  then
+  if( icheck > 1 )  then
     write(3,110)
     write(3,270) Energ(ie)*rydb
   endif
 
-! Stockage des tableaux de l'iteration precedante, utilises pour
-! l'interpolation:
-  if( .not. cal_xanes ) then
-    if( ie == 1 ) then
-      Fermi_gen = .false.
-      Fermi_maj = .false.
-      Fermi_min = .false.
-      E_Fermi_maj = E_Fermi
-      E_Fermi_min = E_Fermi
-      Charge_s = 0._db; Charge_maj_s = 0._db; Charge_min_s = 0._db
-      pop_orb_val(:,:) = 0._db
-      occ_hubb(:,:,:,:,:) = 0._db
-      occ_hubb_i(:,:,:,:,:) = 0._db
-      occ_hubb_i_s(:,:,:,:,:) = 0._db
-      occ_hubb_s(:,:,:,:,:) = 0._db
-    else
-      chargat_self_s(:,:) = chargat_self(:,:)
-      occ_hubb_i_s(:,:,:,:,:) = occ_hubb_i(:,:,:,:,:)
-      occ_hubb_s(:,:,:,:,:) = occ_hubb(:,:,:,:,:)
-    endif
-    ch_ia(:,:) = 0._db
-    ch_ia_t(:) = 0._db
-    rho_self_s(:,:,:,:) = rho_self(:,:,:,:)
-    Enragr_s = Enragr
-    Energ_self_s(:) = Energ_self(:)
-    pop_orb_val_s(:,:) = pop_orb_val(:,:)
+! Stockage des tableaux de l'iteration precedante, utilises pour l'interpolation:
+  if( ie == 1 ) then
+    Fermi_gen = .false.
+    Fermi_maj = .false.
+    Fermi_min = .false.
+    E_Fermi_maj = E_Fermi
+    E_Fermi_min = E_Fermi
+    Charge_s = 0._db; Charge_maj_s = 0._db; Charge_min_s = 0._db
+    pop_orb_val(:,:) = 0._db
+    occ_hubb(:,:,:,:,:) = 0._db
+    occ_hubb_i(:,:,:,:,:) = 0._db
+    occ_hubb_i_s(:,:,:,:,:) = 0._db
+    occ_hubb_s(:,:,:,:,:) = 0._db
+  else
+    chargat_self_s(:,:) = chargat_self(:,:)
+    occ_hubb_i_s(:,:,:,:,:) = occ_hubb_i(:,:,:,:,:)
+    occ_hubb_s(:,:,:,:,:) = occ_hubb(:,:,:,:,:)
   endif
+  ch_ia(:,:) = 0._db
+  ch_ia_t(:) = 0._db
+  rho_self_s(:,:,:,:) = rho_self(:,:,:,:)
+  Enragr_s = Enragr
+  Energ_self_s(:) = Energ_self(:)
+  pop_orb_val_s(:,:) = pop_orb_val(:,:)
 
   proto_done(:) = .false.
 
@@ -937,28 +934,22 @@ subroutine Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Dop
     it = itypei(ia)
     Z = numat(it)
     if( proto_done(ipr) .and. .not. Full_atom ) cycle boucle_ia
-    if( Cal_xanes ) then
-      if( .not. ( ( ia == iaabsi .and. Density ) .or. State_all ) ) cycle
-    else
-      if( Energ(ie) < E_starta(iapr) ) cycle
-    endif
+    if( Energ(ie) < E_starta(iapr) ) cycle
     Open_file = .false.
     if( ie == 1 ) then
       Open_file = .true.
-    elseif( .not. Cal_xanes ) then
+    else
       if( Energ(ie-1) < E_starta(iapr) ) Open_file = .true.
     endif
      
     if( ie == 1 ) then
       First_loop = .true.
-    elseif( .not. Cal_xanes ) then
+    else
       if( Energ(ie-1) < E_starta(iapr) ) then
         First_loop = .true.
       else
         First_loop = .false.
       endif
-    else
-      First_loop = .false.
     endif
 
 ! Calcul de la densite d'etat integree jusqu'au rayon Rmstd de l'atome
@@ -1021,16 +1012,14 @@ subroutine Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Dop
       write(3,220) Int_Statedens_t(1:nspinp,iapr)
     endif
 
-    if(    ( Cal_xanes .and. ( ( ia == iaabsi .and. Density ) .or. state_all ) ) &
-      .or. ( .not. Cal_xanes .and. ia == iaabsi .and. Density .and. icheck > 1 ) ) then
-      Abs_exc = Full_atom .and. ( ia == iaabsi ) .and. Cal_xanes .and. .not. nonexc_g
-      call write_stdens(Abs_exc,Cal_xanes,Energ(ie),i_self,iapr,ie_computer,la,Int_Statedens,Int_Statedens_t, &
+    if( ia == iaabsi .and. Density .and. icheck > 1 ) then
+      call write_stdens(.false.,.false.,Energ(ie),i_self,iapr,ie_computer,la,Int_Statedens,Int_Statedens_t, &
            Int_Statedens_l,lla_state,lla2_state,mpinodes,n_atom_0,n_atom_ind,nomfich_s,nspinp,Open_file,Statedens, &
            Statedens_l)
     endif
 
 ! Matrice d'occupation pour Hubbard
-    if( .not. Cal_xanes .and. hubb(it) ) then
+    if( hubb(it) ) then
       if( nspinp == 1 ) then
         ds = 2 * de
       else
@@ -1052,86 +1041,52 @@ subroutine Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Dop
       end do
     endif
 
-    if( .not. cal_xanes ) then
-
 ! Energie de l'agregat (ou de la cellule elementaire)
-      if( nspinp == 1 ) then
-        ds = 2 * de
+    if( nspinp == 1 ) then
+      ds = 2 * de
+    else
+      ds = de
+    endif
+    do isp = 1,nspinp
+      if( ( isp == ispin_maj(iapr) .and. Fermi_maj ) .or. ( isp /= ispin_maj(iapr) .and. Fermi_min ) ) cycle
+
+      Dens = 0._db
+      do lm = 1,lma
+        Dens = Dens + Statedens(lm,isp,lm,isp,iapr,ie_computer)
+      end do
+      D_Energ = ds * Energ(ie) * Dens
+      Energ_self(iapr) =  Energ_self(iapr) + D_Energ
+      if( Full_atom ) then
+        Enragr = Enragr + nb_eq(iapr) * D_Energ
       else
-        ds = de
+        Enragr = Enragr + ngreq(iapr) * D_Energ
       endif
-      do isp = 1,nspinp
-        if( ( isp == ispin_maj(iapr) .and. Fermi_maj ) .or. ( isp /= ispin_maj(iapr) .and. Fermi_min ) ) cycle
+    end do
 
-        Dens = 0._db
-        do lm = 1,lma
-          Dens = Dens + Statedens(lm,isp,lm,isp,iapr,ie_computer)
-        end do
-        D_Energ = ds * Energ(ie) * Dens
-        Energ_self(iapr) =  Energ_self(iapr) + D_Energ
-        if( Full_atom ) then
-          Enragr = Enragr + nb_eq(iapr) * D_Energ
-        else
-          Enragr = Enragr + ngreq(iapr) * D_Energ
-        endif
-      end do
-
-      l = min( l_level_val(Z), lmaxat(ipr) )
-      do isp = 1,nspin
-        if( SCF_mag_fix .and. ( ( isp == ispin_maj(iapr) .and. Fermi_maj ) .or. &
-            ( isp /= ispin_maj(iapr) .and. Fermi_min ) ) ) cycle
-        if( nspinp /= nspin ) then
-          pop_orb_val(iapr,isp) = sum( Int_statedens_l(l,:,iapr) )
-        else
-          pop_orb_val(iapr,isp) = Int_statedens_l(l,isp,iapr)
-        endif
-      end do
-
-      r(:) = rato(:,it)
-      r2(:) = rato(:,it)**2
-
-      if( First_loop ) then
-        do isp = 1, nspin
-          rh(0:nr) = rho_self(0:nr,1,isp,iapr) * r2(0:nr)
-          chargat_self(iapr,isp) = Real( Z,db ) / nspin - quatre_pi * f_integr3(r,rh,0,nrm,Rmtsd(ipr))
-          chargat_self_s(iapr,isp) = chargat_self(iapr,isp)
-        end do
-
-        if( SCF_mag_fix ) rho_self_t(:,:,:) = rho_self(:,:,1,:) + rho_self(:,:,nspin,:)
-
-        if( icheck > 1 ) write(3,150) iapr, chargat_self(iapr,:)
-        if( icheck > 2 ) then
-          write(3,160) iapr, Z
-          do ir = 1,nr
-            write(3,170) rato(ir,it)*bohr, ( quatre_pi * r2(ir) * rho_self(ir,lm,:,iapr), lm = 1,nlm_pot )
-          end do
-        end if
-      endif
-
-      if( nspinp == 1 ) then
-        ds = 2 * de
+    l = min( l_level_val(Z), lmaxat(ipr) )
+    do isp = 1,nspin
+      if( SCF_mag_fix .and. ( ( isp == ispin_maj(iapr) .and. Fermi_maj ) .or. &
+          ( isp /= ispin_maj(iapr) .and. Fermi_min ) ) ) cycle
+      if( nspinp /= nspin ) then
+        pop_orb_val(iapr,isp) = sum( Int_statedens_l(l,:,iapr) )
       else
-        ds = de
+        pop_orb_val(iapr,isp) = Int_statedens_l(l,isp,iapr)
       endif
-      do isp = 1,nspin
-        if( SCF_mag_fix .and. .not. Fermi_gen ) rho_self_t(1:nr,:,iapr) = rho_self_t(1:nr,:,iapr) &
-                      + ds * drho_self(1:nr,:,isp,iapr,ie_computer)
-        if( ( isp == ispin_maj(iapr) .and. Fermi_maj ) .or. ( isp /= ispin_maj(iapr) .and. Fermi_min ) ) cycle
-        rho_self(1:nr,:,isp,iapr) = rho_self(1:nr,:,isp,iapr) + ds * drho_self(1:nr,:,isp,iapr,ie_computer)
-      end do
+    end do
 
-! Calcul de la charge
-      do isp = 1,nspin
+    r(:) = rato(:,it)
+    r2(:) = rato(:,it)**2
+
+    if( First_loop ) then
+      do isp = 1, nspin
         rh(0:nr) = rho_self(0:nr,1,isp,iapr) * r2(0:nr)
-        ch_ia(iapr,isp) = quatre_pi * f_integr3(r,rh,0,nrm,Rmtsd(ipr))
-        chargat_self(iapr,isp) = Real( Z, db ) / nspin - ch_ia(iapr,isp)
+        chargat_self(iapr,isp) = Real( Z,db ) / nspin - quatre_pi * f_integr3(r,rh,0,nrm,Rmtsd(ipr))
+        chargat_self_s(iapr,isp) = chargat_self(iapr,isp)
       end do
-      if( SCF_mag_fix .and. .not. Fermi_gen ) then
-        rh(0:nr) = rho_self_t(0:nr,1,iapr) * r2(0:nr)
-        ch_ia_t(iapr) = quatre_pi * f_integr3(r,rh,0,nrm,Rmtsd(ipr))
-      endif
 
-      if( icheck > 1 ) write(3,230) iapr, ( isp, chargat_self(iapr,isp), Int_statedens_t(min(isp,nspin),iapr), isp = 1,nspin )
+      if( SCF_mag_fix ) rho_self_t(:,:,:) = rho_self(:,:,1,:) + rho_self(:,:,nspin,:)
+
+      if( icheck > 1 ) write(3,150) iapr, chargat_self(iapr,:)
       if( icheck > 2 ) then
         write(3,160) iapr, Z
         do ir = 1,nr
@@ -1140,11 +1095,40 @@ subroutine Cal_State(chg_cluster,chg_open_val,Cal_xanes,chargat_self,Density,Dop
       end if
     endif
 
+    if( nspinp == 1 ) then
+      ds = 2 * de
+    else
+      ds = de
+    endif
+    do isp = 1,nspin
+      if( SCF_mag_fix .and. .not. Fermi_gen ) rho_self_t(1:nr,:,iapr) = rho_self_t(1:nr,:,iapr) &
+                    + ds * drho_self(1:nr,:,isp,iapr,ie_computer)
+      if( ( isp == ispin_maj(iapr) .and. Fermi_maj ) .or. ( isp /= ispin_maj(iapr) .and. Fermi_min ) ) cycle
+      rho_self(1:nr,:,isp,iapr) = rho_self(1:nr,:,isp,iapr) + ds * drho_self(1:nr,:,isp,iapr,ie_computer)
+    end do
+
+! Calcul de la charge
+    do isp = 1,nspin
+      rh(0:nr) = rho_self(0:nr,1,isp,iapr) * r2(0:nr)
+      ch_ia(iapr,isp) = quatre_pi * f_integr3(r,rh,0,nrm,Rmtsd(ipr))
+      chargat_self(iapr,isp) = Real( Z, db ) / nspin - ch_ia(iapr,isp)
+    end do
+    if( SCF_mag_fix .and. .not. Fermi_gen ) then
+      rh(0:nr) = rho_self_t(0:nr,1,iapr) * r2(0:nr)
+      ch_ia_t(iapr) = quatre_pi * f_integr3(r,rh,0,nrm,Rmtsd(ipr))
+    endif
+
+    if( icheck > 1 ) write(3,230) iapr, ( isp, chargat_self(iapr,isp), Int_statedens_t(min(isp,nspin),iapr), isp = 1,nspin )
+    if( icheck > 2 ) then
+      write(3,160) iapr, Z
+      do ir = 1,nr
+        write(3,170) rato(ir,it)*bohr, ( quatre_pi * r2(ir) * rho_self(ir,lm,:,iapr), lm = 1,nlm_pot )
+      end do
+    end if
+
     proto_done(ipr) = .true.
 
   end do boucle_ia
-
-  if( Cal_xanes ) return
 
 ! Interpolation:
 ! E_f = E_i*(ch_ref - ch_i-1)/(ch_i-ch_i-1) + E_i-1*(ch_i - ch_ref)/(ch_i-ch_i-1)
