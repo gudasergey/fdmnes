@@ -177,7 +177,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
     if( Energphot ) Ephseuil = Ephoton
 
     ct_nelec(initlr) = conv_mbarn_nelec(Ephoton)
-    eph2 = 0.5 * Ephoton**2
+    eph2 = 0.5_db * Ephoton**2
 ! Pour avoir les tenseurs et sections efficace en Megabarn
     cst = eph2 / ct_nelec(initlr)
 
@@ -3813,16 +3813,20 @@ end
 
 !***********************************************************************
 
-subroutine Tensor_pol_dq_cal(ipl,n_tens_dq,nplt,pe,ps,ve,vs, Tensor_pol_dq)
+subroutine Tensor_pol_dq_cal(ipl,n_tens_dq,nplt,pe,ps,ve,vs,Tensor_pol_dq)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
+  integer:: i, ipl, j, n_tens_dq, nplt
+  
   complex(kind=db) Px, Py, Pz, Qx, Qy, Qz
   complex(kind=db), dimension(3):: pe, ps
   complex(kind=db), dimension(2*n_tens_dq):: Tens
   complex(kind=db), dimension(0:nplt,2*n_tens_dq):: Tensor_pol_dq
 
+  real(kind=db):: fac, Vx, Vy, Vz, Wx, Wy, Wz
+  
   real(kind=db), dimension(3):: ve, vs
 
   Px = Pe(1); Qx = conjg( Ps(1) )
@@ -3845,19 +3849,19 @@ subroutine Tensor_pol_dq_cal(ipl,n_tens_dq,nplt,pe,ps,ve,vs, Tensor_pol_dq)
     endif
 
 ! T(10)
-    Tens(j+1) = ( 2*Qz*Pz + 1.5*Qx*Px + 1.5*Qy*Py ) * ( Vz - Wz ) &
-              + ( 1.5*Qx*Pz - Qz*Px ) * Vx - ( 1.5*Qz*Px - Qx*Pz ) * Wx &
-              + ( 1.5*Qy*Pz - Qz*Py ) * Vy - ( 1.5*Qz*Py - Qy*Pz ) * Wy
+    Tens(j+1) = ( 2*Qz*Pz + 1.5_db*Qx*Px + 1.5_db*Qy*Py ) * ( Vz - Wz ) &
+              + ( 1.5_db*Qx*Pz - Qz*Px ) * Vx - ( 1.5_db*Qz*Px - Qx*Pz ) * Wx &
+              + ( 1.5_db*Qy*Pz - Qz*Py ) * Vy - ( 1.5_db*Qz*Py - Qy*Pz ) * Wy
 
 ! (T(11)
-    Tens(j+2) = ( 2*Qx*Px + 1.5*Qy*Py + 1.5*Qz*Pz ) * ( Vx - Wx ) &
-              + ( 1.5*Qy*Px - Qx*Py ) * Vy - ( 1.5*Qx*Py - Qy*Px ) * Wy &
-              + ( 1.5*Qz*Px - Qx*Pz ) * Vz - ( 1.5*Qx*Pz - Qz*Px ) * Wz
+    Tens(j+2) = ( 2*Qx*Px + 1.5_db*Qy*Py + 1.5_db*Qz*Pz ) * ( Vx - Wx ) &
+              + ( 1.5_db*Qy*Px - Qx*Py ) * Vy - ( 1.5_db*Qx*Py - Qy*Px ) * Wy &
+              + ( 1.5_db*Qz*Px - Qx*Pz ) * Vz - ( 1.5_db*Qx*Pz - Qz*Px ) * Wz
 
 ! T(1-1)
-    Tens(j+3) = ( 2*Qy*Py + 1.5*Qx*Px + 1.5*Qz*Pz ) * ( Vy - Wy ) &
-              + ( 1.5*Qx*Py - Qy*Px ) * Vx - ( 1.5*Qy*Px - Qx*Py ) * Wx &
-              + ( 1.5*Qz*Py - Qy*Pz ) * Vz - ( 1.5*Qy*Pz - Qz*Py ) * Wz
+    Tens(j+3) = ( 2*Qy*Py + 1.5_db*Qx*Px + 1.5_db*Qz*Pz ) * ( Vy - Wy ) &
+              + ( 1.5*Qx*Py - Qy*Px ) * Vx - ( 1.5_db*Qy*Px - Qx*Py ) * Wx &
+              + ( 1.5*Qz*Py - Qy*Pz ) * Vz - ( 1.5_db*Qy*Pz - Qz*Py ) * Wz
 
 ! T(20)
     Tens(j+4) = 0.5_db * ( ( Qx*Py - Qy*Px ) * ( Vz + Wz ) - Qy*Pz*Vx + Qz*Py*Wx + Qx*Pz*Vy - Qz*Px*Wy )
@@ -3922,13 +3926,17 @@ end
 subroutine Tensor_pol_qq_cal(ipl,n_tens_qq,nplt,pe,ps,ve,vs, Tensor_pol_qq)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
+  
+  integer:: ipl, n_tens_qq, nplt
 
   complex(kind=db) Px, Py, Pz, Qx, Qy, Qz
   complex(kind=db), dimension(3):: pe, ps
   complex(kind=db), dimension(n_tens_qq):: Tens
   complex(kind=db), dimension(0:nplt,n_tens_qq):: Tensor_pol_qq
 
+  real(kind=db):: fac, Vx, Vy, Vz, Wx, Wy, Wz
+  
   real(kind=db), dimension(3):: ve, vs
 
   Px = Pe(1); Qx = conjg( Ps(1) )
@@ -3967,19 +3975,19 @@ subroutine Tensor_pol_qq_cal(ipl,n_tens_qq,nplt,pe,ps,ve,vs, Tensor_pol_qq)
 
   fac = 1 / ( 3 * sqrt(14._db) )
 
-  Tens(5) = 3 * fac * ( Qx*Wy*Px*Vy + Qx*Wy*Py*Vx + Qy*Wx*Px*Vy + Qy*Wx*Py*Vx ) - 1.5 * fac &
+  Tens(5) = 3 * fac * ( Qx*Wy*Px*Vy + Qx*Wy*Py*Vx + Qy*Wx*Px*Vy + Qy*Wx*Py*Vx ) - 1.5_db * fac &
      * ( Qx*Wz*Px*Vz + Qx*Wz*Pz*Vx + Qz*Wx*Px*Vz + Qz*Wx*Pz*Vx + Qy*Wz*Py*Vz + Qy*Wz*Pz*Vy + Qz*Wy*Py*Vz + Qz*Wy*Pz*Vy ) &
           + 2 * fac * ( Qx*Wx*Px*Vx + Qy*Wy*Py*Vy + Qx*Wx*Pz*Vz + Qz*Wz*Px*Vx + Qy*Wy*Pz*Vz + Qz*Wz*Py*Vy) - 4 * fac &
      * ( Qx*Wx*Py*Vy + Qy*Wy*Px*Vx + Qz*Wz*Pz*Vz )
 
   fac = 1 / sqrt( 42._db )
 
-  Tens(6) = 1.5 * fac * ( Qy*Wz*Px*Vy + Qz*Wy*Px*Vy + Qy*Wz*Py*Vx + Qz*Wy*Py*Vx &
+  Tens(6) = 1.5_db * fac * ( Qy*Wz*Px*Vy + Qz*Wy*Px*Vy + Qy*Wz*Py*Vx + Qz*Wy*Py*Vx &
        + Qx*Wy*Py*Vz + Qx*Wy*Pz*Vy + Qy*Wx*Py*Vz + Qy*Wx*Pz*Vy ) + fac &
      * ( Qz*Wz*Px*Vz + Qz*Wz*Pz*Vx + Qx*Wx*Px*Vz + Qx*Wx*Pz*Vx + Qx*Wz*Pz*Vz + Qz*Wx*Pz*Vz + Qx*Wz*Px*Vx + Qz*Wx*Px*Vx ) &
           - 2 * fac * ( Qy*Wy*Px*Vz + Qy*Wy*Pz*Vx + Qx*Wz*Py*Vy + Qz*Wx*Py*Vy )
 
-  Tens(7) = 1.5 * fac * ( Qx*Wz*Px*Vy + Qx*Wz*Py*Vx + Qz*Wx*Px*Vy + Qz*Wx*Py*Vx &
+  Tens(7) = 1.5_db * fac * ( Qx*Wz*Px*Vy + Qx*Wz*Py*Vx + Qz*Wx*Px*Vy + Qz*Wx*Py*Vx &
        + Qx*Wy*Px*Vz + Qx*Wy*Pz*Vx + Qy*Wx*Px*Vz + Qy*Wx*Pz*Vx ) + fac  &
      * ( Qz*Wz*Py*Vz + Qz*Wz*Pz*Vy + Qy*Wy*Py*Vz + Qy*Wy*Pz*Vy + Qy*Wz*Pz*Vz + Qz*Wy*Pz*Vz + Qy*Wz*Py*Vy + Qz*Wy*Py*Vy ) &
           - 2 * fac * ( Qx*Wx*Py*Vz + Qx*Wx*Pz*Vy + Qy*Wz*Px*Vx + Qz*Wy*Px*Vx )
@@ -3988,17 +3996,17 @@ subroutine Tensor_pol_qq_cal(ipl,n_tens_qq,nplt,pe,ps,ve,vs, Tensor_pol_qq)
 
   Tens(8) = - fac * ( Qx*Wx*Px*Vy + Qx*Wx*Py*Vx + Qy*Wy*Px*Vy + Qy*Wy*Py*Vx &
        + Qx*Wy*Px*Vx + Qy*Wx*Px*Vx + Qx*Wy*Py*Vy + Qy*Wx*Py*Vy ) + 2 * fac &
-     * ( Qz*Wz*Px*Vy + Qz*Wz*Py*Vx + Qx*Wy*Pz*Vz + Qy*Wx*Pz*Vz ) - 1.5 * fac &
+     * ( Qz*Wz*Px*Vy + Qz*Wz*Py*Vx + Qx*Wy*Pz*Vz + Qy*Wx*Pz*Vz ) - 1.5_db * fac &
      * ( Qx*Wz*Py*Vz + Qx*Wz*Pz*Vy + Qz*Wx*Py*Vz + Qz*Wx*Pz*Vy + Qy*Wz*Px*Vz + Qy*Wz*Pz*Vx + Qz*Wy*Px*Vz + Qz*Wy*Pz*Vx )
 
-  Tens(9) = 2 * fac * ( Qz*Wz*Px*Vx - Qz*Wz*Py*Vy + Qx*Wx*Pz*Vz - Qy*Wy*Pz*Vz + Qy*Wy*Py*Vy - Qx*Wx*Px*Vx ) + 1.5 * fac &
+  Tens(9) = 2 * fac * ( Qz*Wz*Px*Vx - Qz*Wz*Py*Vy + Qx*Wx*Pz*Vz - Qy*Wy*Pz*Vz + Qy*Wy*Py*Vy - Qx*Wx*Px*Vx ) + 1.5_db * fac &
      * ( Qy*Wz*Py*Vz + Qy*Wz*Pz*Vy + Qz*Wy*Py*Vz + Qz*Wy*Pz*Vy - Qx*Wz*Px*Vz - Qx*Wz*Pz*Vx - Qz*Wx*Px*Vz - Qz*Wx*Pz*Vx )
 
 ! Octupole magnetique
 
   fac = 1 / sqrt( 10._db )
 
-  Tens(10) = 0.5 * fac * img * ( Qx*Wy*Px*Vx - Qx*Wy*Py*Vy + Qy*Wx*Px*Vx - Qy*Wx*Py*Vy &
+  Tens(10) = 0.5_db * fac * img * ( Qx*Wy*Px*Vx - Qx*Wy*Py*Vy + Qy*Wx*Px*Vx - Qy*Wx*Py*Vy &
        - Qx*Wx*Px*Vy + Qy*Wy*Px*Vy - Qx*Wx*Py*Vx + Qy*Wy*Py*Vx ) + fac * img &
      * ( Qx*Wz*Py*Vz + Qx*Wz*Pz*Vy + Qz*Wx*Py*Vz + Qz*Wx*Pz*Vy - Qy*Wz*Px*Vz - Qz*Wy*Px*Vz - Qy*Wz*Pz*Vx - Qz*Wy*Pz*Vx )
 
@@ -4058,7 +4066,7 @@ subroutine Tensor_pol_qq_cal(ipl,n_tens_qq,nplt,pe,ps,ve,vs, Tensor_pol_qq)
 
   Tens(20) = fac * ( Qz*Wz*Px*Vy + Qz*Wz*Py*Vx + Qx*Wy*Pz*Vz + Qy*Wx*Pz*Vz &
        + Qx*Wz*Py*Vz + Qx*Wz*Pz*Vy + Qz*Wx*Py*Vz + Qz*Wx*Pz*Vy + Qy*Wz*Px*Vz + Qy*Wz*Pz*Vx + Qz*Wy*Px*Vz + Qz*Wy*Pz*Vx ) &
-           - 0.5 * fac * ( Qx*Wx*Px*Vy + Qx*Wx*Py*Vx + Qy*Wy*Px*Vy + Qy*Wy*Py*Vx &
+           - 0.5_db * fac * ( Qx*Wx*Px*Vy + Qx*Wx*Py*Vx + Qy*Wy*Px*Vy + Qy*Wy*Py*Vx &
        + Qx*Wy*Px*Vx + Qy*Wx*Px*Vx + Qx*Wy*Py*Vy + Qy*Wx*Py*Vy )
 
   Tens(21) = fac * ( Qz*Wz*Px*Vx - Qz*Wz*Py*Vy - Qx*Wx*Px*Vx + Qy*Wy*Py*Vy &

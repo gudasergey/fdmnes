@@ -481,16 +481,17 @@ function Workf_val(icheck,numat)
 ! Pour les gaz rares et H, F, N, O, Cl, les seuils sont par rapport au
 ! niveau du vide. On prend donc le travail de sortie a zero.
 
-  data Workfct/ 0.00,  0.00,  2.28,  3.92,  4.50,  4.81,  0.00,  0.00,  0.00,  0.00,  &
-                2.28,  3.68,  4.08,  4.37,  4.00,  4.00,  0.00,  0.00,  2.24,  2.706, &
-                4.00,  3.95,  3.77,  4.37,  3.76,  4.70,  3.90,  5.01,  4.00,  3.08,  &
-                4.00,  4.29,  4.72,  4.62,  4.00,  0.00,  2.09,  2.74,  4.00,  3.73,  &
-                2.29,  4.15,  4.00,  4.00,  4.57,  4.97,  4.73,  4.07,  4.00,  4.38,  &
-                4.01,  4.04,  4.00,  0.00,  4.70,  2.48,  4.00,  2.84,  4.00,  4.00,  &
-                4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  &
-                4.00,  4.00,  4.05,  4.49,  5.00,  4.00,  4.00,  4.09,  4.82,  4.53,  &
-                3.68,  3.97,  4.25,  4.00,  4.00,  0.00,  4.00,  4.00,  4.00,  3.38,  &
-                0.00,  3.63,  4.00,  4.00,  4.00,  0.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00,  4.00/
+  data Workfct/ 0.00_db,  0.00_db,  2.28_db,  3.92_db,  4.50_db,  4.81_db,  0.00_db,  0.00_db,  0.00_db,  0.00_db,  &
+                2.28_db,  3.68_db,  4.08_db,  4.37_db,  4.00_db,  4.00_db,  0.00_db,  0.00_db,  2.24_db,  2.706_db, &
+                4.00_db,  3.95_db,  3.77_db,  4.37_db,  3.76_db,  4.70_db,  3.90_db,  5.01_db,  4.00_db,  3.08_db,  &
+                4.00_db,  4.29_db,  4.72_db,  4.62_db,  4.00_db,  0.00_db,  2.09_db,  2.74_db,  4.00_db,  3.73_db,  &
+                2.29_db,  4.15_db,  4.00_db,  4.00_db,  4.57_db,  4.97_db,  4.73_db,  4.07_db,  4.00_db,  4.38_db,  &
+                4.01_db,  4.04_db,  4.00_db,  0.00_db,  4.70_db,  2.48_db,  4.00_db,  2.84_db,  4.00_db,  4.00_db,  &
+                4.00_db,  4.00_db,  4.00_db,  4.00_db,  4.00_db,  4.00_db,  4.00_db,  4.00_db,  4.00_db,  4.00_db,  &
+                4.00_db,  4.00_db,  4.05_db,  4.49_db,  5.00_db,  4.00_db,  4.00_db,  4.09_db,  4.82_db,  4.53_db,  &
+                3.68_db,  3.97_db,  4.25_db,  4.00_db,  4.00_db,  0.00_db,  4.00_db,  4.00_db,  4.00_db,  3.38_db,  &
+                0.00_db,  3.63_db,  4.00_db,  4.00_db,  4.00_db,  0.00_db,  4.00_db,  4.00_db,  4.00_db,  4.00_db,  &
+                4.00_db,  4.00_db,  4.00_db/
 
   Workf_val = Workfct( numat )
   if( icheck > 0 ) write(3,110) Workf_val
@@ -500,73 +501,6 @@ function Workf_val(icheck,numat)
   return
  110 format(' WorkF     =',f9.2,' eV')
 end
-
-!***********************************************************************
-
-! Reference value for the Kohn-Sham energy of the core state.
-! Contains also a shift to get the edge energy at the reference data value.
-! Used to shift the edge, versus the reference in convolution.f90
-
-!function Epsii_ref(jseuil,nseuil,Z)
-
-!  use declarations
-!  implicit none
-
-!  integer, parameter:: nm1 = 18
-!  integer, parameter:: nm4 = 30
-!  integer, parameter:: nn1 = 36
-!  integer, parameter:: nn4 = 48
-!  integer, parameter:: nn6 = 58
-!  integer, parameter:: no1 = 54
-!  integer, parameter:: no4 = 80
-!  integer, parameter:: np1 = 86
-!  integer, parameter:: np2 = 87
-  
-!  integer:: jseuil, nseuil, Z
-  
-!  real(kind=db):: Epsii_ref
-  
-!  real(kind=db), dimension(nassm):: Epsii_K
-!  real(kind=db), dimension(nassm):: Epsii_K, Epsii_L1, Epsii_L2, Epsii_L3
-!  real(kind=db), dimension(nm1:nassm):: Epsii_m1, Epsii_m2, Epsii_m3
-!  real(kind=db), dimension(nm4:nassm):: Epsii_m4, Epsii_m5
-!  real(kind=db), dimension(nn1:nassm):: Epsii_n1, Epsii_n2, Epsii_n3
-!  real(kind=db), dimension(nn4:nassm):: Epsii_n4, Epsii_n5
-!  real(kind=db), dimension(nn6:nassm):: Epsii_n6, Epsii_n7
-!  real(kind=db), dimension(no1:nassm):: Epsii_o1, Epsii_o2, Epsii_o3
-!  real(kind=db), dimension(no4:nassm):: Epsii_o4, Epsii_o5
-!  real(kind=db), dimension(np1:nassm):: Epsii_p1
-!  real(kind=db), dimension(np2:nassm):: Epsii_p2, Epsii_p3
-
-!  data Epsii_K/  0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-!                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
-!                 0._db,    0._db,    0._db/
-
-!  if( Z > nassm ) then
-!    Epsii_ref = 0._db
-!    return
-!  endif
-   
-!  select case(nseuil)
-
-!    case(1)
-!      Epsii_ref = Epsii_K( Z )
-
-!    case default
-!      Epsii_ref = 0._db
-    
-!  end select
-    
-!  return
-!end
 
 !***********************************************************************
 
@@ -646,7 +580,7 @@ end
 
 !*********************************************************************
 
-! Nom des operations de symetrie
+! Name of symmetry operations
 
 function nomsym(isym)
 
@@ -1105,13 +1039,17 @@ function Atom_radius(Z)
   real(kind=db):: Atom_radius
   real(kind=db), dimension(nassm):: Ray
 
-  data Ray/ 0.38,  0.32,  1.34,  0.90,  0.82,  0.77,  0.75,  0.73,  0.71,  0.69,  1.54,  1.30,  1.18,  1.11,  1.06,  &
-            1.02,  0.99,  0.97,  1.96,  1.74,  1.44,  1.36,  1.25,  1.27,  1.39,  1.25,  1.26,  1.21,  1.38,  1.31,  &
-            1.26,  1.22,  1.19,  1.16,  1.14,  1.10,  2.11,  1.92,  1.62,  1.48,  1.37,  1.45,  1.56,  1.26,  1.35,  &
-            1.31,  1.53,  1.48,  1.44,  1.41,  1.38,  1.35,  1.33,  1.30,  2.25,  1.98,  1.69,  1.818, 1.824, 1.814, &
-            1.834, 1.804, 1.804, 1.804, 1.773, 1.781, 1.762, 1.761, 1.759, 1.76,  1.60,  1.50,  1.38,  1.46,  1.59,  &
-            1.28,  1.37,  1.28,  1.44,  1.49,  1.48,  1.47,  1.46,  1.29,  1.38,  1.33,  1.33,  1.59,  1.40,  1.79,  &
-            1.63,  1.56,  1.55,  1.59,  1.73,  1.74,  1.70,  1.86,  1.86,  1.86,  1.86,  1.86,  1.86/
+  data Ray/ 0.38_db,  0.32_db,  1.34_db,  0.90_db,  0.82_db,  0.77_db,  0.75_db,  0.73_db,  0.71_db,  0.69_db, &
+            1.54_db,  1.30_db,  1.18_db,  1.11_db,  1.06_db,  1.02_db,  0.99_db,  0.97_db,  1.96_db,  1.74_db, &
+            1.44_db,  1.36_db,  1.25_db,  1.27_db,  1.39_db,  1.25_db,  1.26_db,  1.21_db,  1.38_db,  1.31_db, &
+            1.26_db,  1.22_db,  1.19_db,  1.16_db,  1.14_db,  1.10_db,  2.11_db,  1.92_db,  1.62_db,  1.48_db, &
+            1.37_db,  1.45_db,  1.56_db,  1.26_db,  1.35_db,  1.31_db,  1.53_db,  1.48_db,  1.44_db,  1.41_db, &
+            1.38_db,  1.35_db,  1.33_db,  1.30_db,  2.25_db,  1.98_db,  1.69_db,  1.818_db, 1.824_db, 1.814_db,&
+            1.834_db, 1.804_db, 1.804_db, 1.804_db, 1.773_db, 1.781_db, 1.762_db, 1.761_db, 1.759_db, 1.76_db, &
+            1.60_db,  1.50_db,  1.38_db,  1.46_db,  1.59_db,  1.28_db,  1.37_db,  1.28_db,  1.44_db,  1.49_db, &
+            1.48_db,  1.47_db,  1.46_db,  1.29_db,  1.38_db,  1.33_db,  1.33_db,  1.59_db,  1.40_db,  1.79_db, &
+            1.63_db,  1.56_db,  1.55_db,  1.59_db,  1.73_db,  1.74_db,  1.70_db,  1.86_db,  1.86_db,  1.86_db, &
+            1.86_db,  1.86_db,  1.86_db/
 
   Atom_radius = Ray(Z) / bohr
 
@@ -1136,13 +1074,17 @@ function RayIon(Z)
   real(kind=db):: Rayion
   real(kind=db), dimension(nassm):: Ray
 
-  data Ray/ 0.012, 0.49,  0.76,  0.45,  0.27,  0.91,  1.46,  1.40,  1.33,  0.51,  1.02,  0.67,  0.48,  0.40,  0.44,  &
-            1.84,  1.81,  0.88,  1.38,  1.00,  0.745, 0.86,  0.79,  0.80,  0.83,  0.78,  0.74,  0.69,  0.73,  0.74,  &
-            0.62,  0.73,  0.58,  1.98,  1.96,  1.03,  1.52,  1.18,  1.02,  0.72,  0.72,  0.69,  0.64,  0.68,  0.665, &
-            0.86,  1.15,  0.95,  0.80,  0.69,  0.76,  2.21,  2.20,  1.24,  1.67,  1.35,  1.061, 1.034, 1.013, 0.995, &
-            0.979, 0.964, 0.947, 0.938, 0.923, 0.912, 0.901, 0.881, 0.869, 0.858, 0.848, 0.71,  0.64,  0.62,  0.56,  &
-            0.63,  0.625, 0.625, 0.85,  1.02,  1.5,   1.19,  1.03,  2.3,   2.3,   1.34,  1.8,   1.43,  1.119, 0.972, &
-            0.78,  0.52,  0.75,  0.887, 0.982, 0.97,  0.949, 0.934, 0.925, 0.925, 0.925, 1.1,   1.1/
+  data Ray/ 0.012_db, 0.49_db,  0.76_db,  0.45_db,  0.27_db,  0.91_db,  1.46_db,  1.40_db,  1.33_db,  0.51_db, &
+            1.02_db,  0.67_db,  0.48_db,  0.40_db,  0.44_db,  1.84_db,  1.81_db,  0.88_db,  1.38_db,  1.00_db, &
+            0.745_db, 0.86_db,  0.79_db,  0.80_db,  0.83_db,  0.78_db,  0.74_db,  0.69_db,  0.73_db,  0.74_db, &
+            0.62_db,  0.73_db,  0.58_db,  1.98_db,  1.96_db,  1.03_db,  1.52_db,  1.18_db,  1.02_db,  0.72_db, &
+            0.72_db,  0.69_db,  0.64_db,  0.68_db,  0.665_db, 0.86_db,  1.15_db,  0.95_db,  0.80_db,  0.69_db, &
+            0.76_db,  2.21_db,  2.20_db,  1.24_db,  1.67_db,  1.35_db,  1.061_db, 1.034_db, 1.013_db, 0.995_db,&
+            0.979_db, 0.964_db, 0.947_db, 0.938_db, 0.923_db, 0.912_db, 0.901_db, 0.881_db, 0.869_db, 0.858_db,&
+            0.848_db, 0.71_db,  0.64_db,  0.62_db,  0.56_db,  0.63_db,  0.625_db, 0.625_db, 0.85_db,  1.02_db, &
+            1.5_db,   1.19_db,  1.03_db,  2.3_db,   2.3_db,   1.34_db,  1.8_db,   1.43_db,  1.119_db, 0.972_db,&
+            0.78_db,  0.52_db,  0.75_db,  0.887_db, 0.982_db, 0.97_db,  0.949_db, 0.934_db, 0.925_db, 0.925_db,&
+            0.925_db, 1.1_db,   1.1_db/
 
   RayIon = Ray(Z)
 

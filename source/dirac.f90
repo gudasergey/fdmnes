@@ -218,14 +218,14 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
         nqn(n_orb) = nmax + 1
         lqn(n_orb) = 0
         pop(n_orb) = dp
-        if( irel == 1 ) rqn(n_orb) = 0.5
+        if( irel == 1 ) rqn(n_orb) = 0.5_db
       else
         nqn(n_orb) = nmax
         lqn(n_orb) = 1
         if( irel == 0 ) then
           pop(n_orb) = dp
         else
-          rqn(n_orb) = 0.5
+          rqn(n_orb) = 0.5_db
           pop(n_orb) = dp / 3
           n_orb = n_orb + 1
           if( n_orb > nnlm ) then
@@ -397,11 +397,11 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
         if( nqn(jo) == nseuil .and. lqn(jo) == lseuil .and. mseuil == 1 ) pop(jo) = pop(jo) - 1.
         nqn(jo) = nqnexc(io)
         lqn(jo) = lqnexc(io)
-        rqn(jo) = lqn(jo) - 0.5
+        rqn(jo) = lqn(jo) - 0.5_db
         jo = jo + 1
         nqn(jo) = nqnexc(io)
         lqn(jo) = lqnexc(io)
-        rqn(jo) = lqn(jo) + 0.5
+        rqn(jo) = lqn(jo) + 0.5_db
         pop(jo) = ( 1 - p ) * ptot
         if( nqn(jo) == nseuil .and. lqn(jo) == lseuil .and. mseuil == 2 ) pop(jo) = pop(jo) - 1.
       endif
@@ -464,7 +464,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
           nqn(n_orb) = nmax + 1
           lqn(n_orb) = 0
           pop(n_orb) = dp
-          if( irel == 1 ) rqn(n_orb) = 0.5
+          if( irel == 1 ) rqn(n_orb) = 0.5_db
         else
           n_orb = n_orb + 1
           nqn(n_orb) = nmax
@@ -472,7 +472,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
           if( irel == 0 ) then
             pop(n_orb) = dp
           else
-            rqn(n_orb) = 0.5
+            rqn(n_orb) = 0.5_db
             pop(n_orb) = dp / 3
             n_orb = n_orb + 1
             if( n_orb > nnlm ) then
@@ -484,7 +484,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
             endif
             nqn(n_orb) = nmax
             lqn(n_orb) = 1
-            rqn(n_orb) = 1.5
+            rqn(n_orb) = 1.5_db
             pop(n_orb) = 2 * dp / 3
           endif
         endif
@@ -585,7 +585,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
         psival(1:n_ray,io,it) = psi(1:n_ray,j)
       else
         do ir = 1,n_ray
-          psival(ir,io,it) = 0.5 * sum( psi(ir,j:j+1) )
+          psival(ir,io,it) = 0.5_db * sum( psi(ir,j:j+1) )
         end do
       endif
       exit
@@ -814,7 +814,7 @@ subroutine config(Z,irel,n_coeur,n_orb,nnlm,nqn,lqn,rqn,nel)
       jo = jo - 1
       nqn(jo) = nqn(io)
       lqn(jo) = lqn(io)
-      rqn(jo) = lqn(jo) + 0.5     ! mj
+      rqn(jo) = lqn(jo) + 0.5_db     ! mj
       if( lqn(jo) == 0 ) then
         nel(jo) = nel(io)
       elseif( abs( nel(io) - 4 * lqn(io) - 2 ) < eps10 ) then   ! cas d'une couche pleine
@@ -826,7 +826,7 @@ subroutine config(Z,irel,n_coeur,n_orb,nnlm,nqn,lqn,rqn,nel)
       jo = jo - 1
       nqn(jo) = nqn(io)
       lqn(jo) = lqn(io)
-      rqn(jo) = lqn(jo) - 0.5     ! mj
+      rqn(jo) = lqn(jo) - 0.5_db     ! mj
       if( abs( nel(io) - 4 * lqn(io) - 2 ) < eps10 ) then
         nel(jo) = 2._db * lqn(jo)
       else
@@ -871,12 +871,13 @@ end
 ! 1985-11-06. The changes are done in DIPOT.
 ! A. Rosen found that it was some error for spinpolarized calc.
 ! This was corrected by Bengt Lindgren and A. Rosen Dec 1987.
+! Modified by Y Joly 2000-2016
 
 subroutine dirac(h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn, pop,psi,ray,ray_max,rho,rqn,Z)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
-  parameter( ahz = 1.e-10)
+  parameter( ahz = 1.e-10_db )
 
   integer:: Z
   integer, dimension(nnlm):: lqn, nqn
@@ -1521,7 +1522,7 @@ subroutine xc(alfa, rho, spn, vxc1, vxc2, epsilon_xc)
   implicit real(kind=db) (a-h,o-z)
 
   third = 1 / 3._db
-  pi75 = 0.75 / pi
+  pi75 = 0.75_db / pi
   a = ( 4 / ( 9 * pi ) )**third
   pia = pi * a
   aa = 0.5_db**third
@@ -1549,7 +1550,7 @@ subroutine xc(alfa, rho, spn, vxc1, vxc2, epsilon_xc)
   vxc2 = vxc1
 
 ! * * * B. FERROMAGNETIC
-  epsilon_xc = 0.75 * vxc1
+  epsilon_xc = 0.75_db * vxc1
 
   if( abs( s )  > eps10 ) then
     s = max( s, -1._db )
@@ -1654,9 +1655,9 @@ subroutine ucor(rs, s, uc1, uc2, ec)
   xfx = x * x + bf * x + cf
   s4 = s**4 - 1
   fs = ((((1 + s)**fothi) + ((1 - s)**fothi)) - 2) / (2._db**fothi - 2)
-  beta = 1._db / ( 2.74208 + 3.182*x + 0.09873*x**2 + 0.18268*x**3)
+  beta = 1._db / ( 2.74208_db + 3.182_db*x + 0.09873_db*x**2 + 0.18268_db*x**3)
   dfs = (fothi * (((1 + s)**third) - ((1 - s)**third))) / (2._db**fothi - 2)
-  dbeta = - ((.27402 * x + .09873 + 1.591 / x) * beta**2 )
+  dbeta = - ((.27402_db * x + .09873_db + 1.591_db / x) * beta**2 )
   atnp = datan(qp / (2 * x + bp))
   atnf = datan(qf / (2 * x + bf))
   ecp = ap * ((log((x * x) / xpx) + (cp1 * atnp)) - (cp3 * (log(((x - xp0)**2) / xpx) + cp2 * atnp)))

@@ -1980,8 +1980,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
                       Time_fill,Time_tria,V0bdc_out,Vr,xyz,Ylm_comp,Ylmato,Ylmso)
                   endif
 
-                end do  ! fin de la boucle sur les representations
-              end do  ! fin de la boucle sur le spin
+                end do  ! end of loop over representations
+              end do  ! end of loop over spin
 
             endif
 
@@ -2024,7 +2024,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
           if( mpinodes > 1 ) then
             call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
             call MPI_RECV_statedens(MPI_host_num_for_mumps,lla2_state,lmaxat,mpinodes,mpirank,mpirank0,n_atom_0, &
-                                      n_atom_ind,n_atom_proto,nspin,Statedens,Statedens_i)
+                                      n_atom_ind,n_atom_proto,nspinp,Statedens,Statedens_i)
             call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
             call MPI_RECV_self(drho_self,MPI_host_num_for_mumps,nlm_pot,mpinodes,mpirank,mpirank0,n_atom_0_self, &
                                  n_atom_ind_self,nrm_self,nspin)
@@ -2065,7 +2065,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
               call MPI_Bcast(Fermi,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
               call MPI_Bcast(E_cut,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
               call MPI_Bcast(E_Fermi,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
-! Si on a atteint le niveau de Fermi on sort de la boucle
+
+! When reaching Fermi one exits the loop
             if( Fermi ) exit boucle_energ
 
           end do
@@ -2090,7 +2091,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
         end if
 
-! Echange des grandeurs liees a l'auto-coherence
+! Exchange of tables for SCF
         if( mpinodes0 > 1 ) then
           m = n_atom_ind_self - n_atom_0_self + 1
           m2 = nspin * m
@@ -2102,7 +2103,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
             call MPI_Bcast(En_cluster,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
         endif
 
-! Preparation de l'iteration suivante pour la self-consistence
+! Preparation of next iteration for self-consistence
         if( Fermi_first .and. (TDDFT .or. Optic) ) then
           Delta_E_conv = 2 * Delta_En_conv
         else
@@ -2118,12 +2119,12 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
         if( Convergence ) exit
 
-      end do boucle_coh  ! fin de la boucle coherente
+      end do boucle_coh  ! End of loop over iteration to converge in SCF
 
       deallocate( ch_coeur, chargat_self_s, clapl, cgrad, drho_self )
       deallocate( iato, ibord, imoy, imoy_out, isbord, ispin_maj, isrt, Int_statedens, iso, ivois, isvois )
       deallocate( lato, lmaxa, lso )
-      deallocate( E_coeur, E_coeur_s, E_starta,  Energ_self, Energ_self_s, Excato )
+      deallocate( E_coeur, E_coeur_s, E_starta, Energ_self, Energ_self_s, Excato )
       deallocate( mato, mso )
       deallocate( nbord, nbordf, nlmsa, nlmsa0, nlmso0, numia )
       deallocate( Occ_hubb, Occ_hubb_i, poidsa, poidso, poidsov, poidsov_out, pop_orb_val )
@@ -2222,7 +2223,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
     Vsphere = Vsphere_cal(Chargat,Chargm,dista(natomp),Flapw,iaproto,icheck(5),Matper,n_atom_proto,natomp)
 
-! Evaluation de la forme des tenseurs cartesiens
+! Evaluation of the tensor shape of the cartesian tensors
     call Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz,Dipmag, &
            E1E2e,Green,iaabs,icheck(6),igroup,igrpt0,iopsymc,iopsymr,itype,itypep,ldip,loct,lqua,lseuil,Magnetic, &
            msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_oo,natomp,ngroup, &
@@ -2250,7 +2251,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
     allocate( vec(3,nplrm) )
     allocate( pdp(nplrm,2) )
 
-! Evaluation des polarisations et vecteurs d'onde.
+! Evaluation of xanes polarisazions and wave vectors
     call polond(axyz,Dipmag,icheck(6),ltypcal,Moyenne,mpirank0,msymdd,msymqq,ncolm,ncolr,nomabs,nple,nplr, &
         nplrm,nxanout,Octupole,Orthmatt,pdp,pdpolar,pol,polar,Polarise,Quadrupole,Veconde,Vec,Xan_atom)
 
@@ -2294,6 +2295,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
     endif
     if( mpirank0 == 0 ) allocate( Int_tens(n_tens_max*ninitlr,0:natomsym) )
 
+! When true, only the cartesian tensors are extracted
     if( Extract_ten ) then
 
       deallocate( karact )
@@ -2306,7 +2308,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
         Epsii(1) = Epsii_moy
       elseif( Core_resolved ) then
         if( Optic ) then
-       ! En optique il y a une sortie par "l" plus le total
+       ! In optic, the is one output per "l" plus the total
           if( numat_abs <= 4 ) then
             ninitlr = 1
           elseif( numat_abs > 4 .and. numat_abs <= 20 ) then
@@ -2461,7 +2463,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
       if( .not. ( second_run .or. Extract ) ) then
 
 ! Calculation of the table dimensions for the FDM grid of points
-
         call nbpoint(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabsfirst,igrpt_nomag,iopsymr,iord,Moy_loc, &
                    mpirank0,natomp,npoint,npso,nvois,nx,pos,rsort)
 
@@ -2524,7 +2525,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
       allocate( Vr(npoint,nspin) )
       allocate( Vrato(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind) )
 
-      if( .not. ( Green .or. Second_run .or. Extract) ) &
+      if( .not. ( Green .or. Second_run .or. Extract ) ) &
         call recup_bordure(ibord,isbord,iscratch,isrt,mpinodes0,mpirank0,natome,nbord, &
                            nbordf,nbm,nbtm,nsm,nsort,nsortf,nstm,poidsa,poidso)
 
@@ -2629,7 +2630,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
           end do
         endif
 
-! Calculation of the core level energy (Epsii)
+! Calculation of the core level (Kohn-Sham) energy (Epsii)
         if( i_range == 1 ) then
           if( Optic ) then
             Epsii(:) = 0._db; Epsii_moy = 0._db
@@ -3075,9 +3076,9 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
             Time_rout(7) = Time_rout(7) + Time_loc(3) - Time_loc(2)
           endif
 
-! nspinorb = 2 if magnetic without Spinorbite
-! nspinorb = 1 if non-magnetic or Spinorbite
-! nspino = 2 if Spinorbite
+! nspinorb = 2 if magnetic without Spin-orbit
+! nspinorb = 1 if non-magnetic or Spin-orbit
+! nspino = 2 if Spin-orbit
 
 ! igrph: loop over representations
 
@@ -3170,7 +3171,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
               end do
             end do
             if( Optic_Xanes ) then
-              if( ie == 1 ) write(ipr,'(/A)') '   Energy   -Tau_i(l,m=0,l,m=0) l = 0,lmax_probe'
+              if( ie == 1 ) write(6,'(/A)') '   Energy   -Tau_i(l,m=0,l,m=0) l = 0,lmax_probe'
               write(6,'(f10.3,1p,6e13.5)') Energ(ie)*rydb, ( - aimag( Taull_tdd(ie,l**2+l+1,1,l**2+l+1,1) ), &
                    l = 0,lmax_probe )
             endif
@@ -3184,7 +3185,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
             Time_rout(10) = Time_rout(10) + Time_tria ! Triang
           endif
 
-! Calcul des tenseurs cartesiens
+! Calculation of cartesian tensors
           if( .not. Optic ) then
 
             ns_dipmag = 1
@@ -3342,7 +3343,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
           if( Density ) &
             call MPI_RECV_statedens(MPI_host_num_for_mumps,lla2_state,lmaxat,mpinodes,mpirank,mpirank0,n_atom_0, &
-                                      n_atom_ind,n_atom_proto,nspin,Statedens,Statedens_i)
+                                      n_atom_ind,n_atom_proto,nspinp,Statedens,Statedens_i)
 
           if( .not. Optic ) &
             call MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodee,mpirank,mpirank0,Multipole,n_oo,n_rel, &
@@ -3415,7 +3416,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
         end do
 
-      end do boucle_energ_xanes   ! Fin de la boucle sur l'energie.
+      end do boucle_energ_xanes   ! End of loop over energy
 
       deallocate( Atom_axe, distai, ia_eq, ia_eq_inv, ia_rep, iaprotoi, igroupi, iopsym_atom, is_eq, itypei, nb_eq )
       deallocate( nb_rpr, nb_rep_t, posi, rot_atom )
@@ -3593,7 +3594,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
     deallocate( rato_abs, rhoato_abs, rsato_abs, Vcato_abs, Vxcato_abs )
 
-  end do boucle_multi ! Fin boucle sur sites non equivalents
+  end do boucle_multi ! End of loop over non-equivalent atoms
 
   deallocate( coef_g, is_g, m_g )
   deallocate( Epsii )
@@ -3666,7 +3667,7 @@ subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Cartesian_tensor,C
   real(kind=db), dimension(3,npldafs):: hkl_dafs
   real(kind=db), dimension(3,npldafs,nphim):: Vecdafse, Vecdafss
 
-! Sec_atom n'est pas extrait du fichier bav.
+! Sec_atom is not extracted from the bav file
   Sec_atom(:) = 0._db
 
   ie_computer = 0
@@ -3779,8 +3780,8 @@ subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpir
   idim5 = nq_nrixs * ninitlr
   idim6 = idim5 * ( lmax_nrixs - l0_nrixs + 1 )
 
-! Recopies afin de stoquer les parties reelle et imaginaire; l'indice sur
-! les processeurs est en dernier
+! Copies to store the real and imaginary part
+! The processor index is the last index
 
   if( E1E1 )  then
     secdd_er(:,:,:,:,mpirank) = real( secdd(:,:,:,:,mpirank),db )
@@ -3905,7 +3906,7 @@ subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpir
 
   call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
 
-! On reconstruit les secXX; maintenant le processus central voit les resultats de tous les autres
+! One rebuilds the secXX; Now the central processor has the results from all the others
   if( mpirank0 == 0 ) then
     do rang = 1,mpinodes-1
       if( E1E1 ) secdd(:,:,:,:,rang) = cmplx( secdd_er(:,:,:,:,rang), secdd_ei(:,:,:,:,rang),db )
@@ -3924,7 +3925,7 @@ end
 !***********************************************************************
 
 subroutine MPI_RECV_statedens(MPI_host_num_for_mumps,lla2_state,lmaxat,mpinodes,mpirank,mpirank0,n_atom_0, &
-                              n_atom_ind,n_atom_proto,nspin,Statedens,Statedens_i)
+                              n_atom_ind,n_atom_proto,nspinp,Statedens,Statedens_i)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -3934,7 +3935,7 @@ subroutine MPI_RECV_statedens(MPI_host_num_for_mumps,lla2_state,lmaxat,mpinodes,
   integer, dimension(0:n_atom_proto):: lmaxat
   integer, dimension(0:n_atom_proto,0:mpinodes-1):: lmaxat_e
 
-  real(kind=db), dimension(lla2_state,nspin,lla2_state,nspin,n_atom_0:n_atom_ind,0:mpinodes-1):: Statedens, Statedens_i
+  real(kind=db), dimension(lla2_state,nspinp,lla2_state,nspinp,n_atom_0:n_atom_ind,0:mpinodes-1):: Statedens, Statedens_i
 
   lmaxat_e(:,mpirank) = lmaxat(:)
   idim = n_atom_proto + 1
@@ -3947,11 +3948,11 @@ subroutine MPI_RECV_statedens(MPI_host_num_for_mumps,lla2_state,lmaxat,mpinodes,
     call MPI_GATHER(lmaxat_e(0,mpirank),idim,MPI_INTEGER,lmaxat_e,idim,MPI_INTEGER,0,MPI_COMM_GATHER,mpierr)
   end if
 
-! Ceux sont les lmax correspondant a l'energie la plus grande qui sont les plus grands.
+! It is the lmax corresponding to the highest energy, which are the biggest
 
   if( mpirank0 == 0 ) lmaxat(:) = lmaxat_e(:,mpinodes-1)
 
-  idim = ( n_atom_ind - n_atom_0 + 1 ) * (lla2_state * nspin)**2
+  idim = ( n_atom_ind - n_atom_0 + 1 ) * (lla2_state * nspinp)**2
 
   if( mpirank0 == 0 ) then
     call MPI_GATHER(MPI_IN_PLACE,idim,MPI_REAL8,Statedens,idim,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
@@ -4002,8 +4003,8 @@ subroutine MPI_RECV_self(drho_self,MPI_host_num_for_mumps,nlm_pot,mpinodes,mpira
 
       drho_self_e(:,:,mpirank) = drho_self(:,lm,:,ia,mpirank)
 
-! Ici la barriere est tres importante: si on l'ommet on risque d'utiliser le
-!    meme buffer rhov_self_eX par deux processus differents aux iapr differents
+! Barrier is here very important: without it, it can be that we use the same
+!    buffer rhov_self_eX by 2 different process with different iapr
 
       call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
 
@@ -4021,8 +4022,8 @@ subroutine MPI_RECV_self(drho_self,MPI_host_num_for_mumps,nlm_pot,mpinodes,mpira
         end do
       end if
 
-! Cette barriere est importante, car drho_self_e est utilise en tant que
-! buffer et ne devrait pas etre remplie pour deux ia differents
+! This barrier is important, because drho_self_e eis used as
+! buffer and must not be filled by 2 different atom ia
       call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
 
     end do
@@ -4134,6 +4135,8 @@ subroutine MPI_Bcast_tddft(je,mpinodes,mpirank,nbseuil,nenerg,nenerg_tddft,nlmam
 end
 
 !************************************************************************************************************
+
+! When extract is used, reading of the potential and other data in the bav file
 
 subroutine Potential_reading(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsii,Epsii_moy,Hubb_abs,Hubb_diag_abs, &
                              m_hubb,mpinodes,mpirank0,multi_run,ninitlr,nlm_pot,nom_fich_extract,nrato_abs,nspin,nspinp, &

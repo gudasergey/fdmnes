@@ -98,7 +98,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
   real(kind=sg):: time
 
-  real(kind=db):: Enervide, Eimag, p2, tp1, tp2, tp3, Time_fill, Time_tria
+  real(kind=db):: Enervide, Eimag, p2, Precision, tp1, tp2, tp3, Time_fill, Time_tria
   
   real(kind=db), dimension(nopsm,nspino):: Kar, Kari
   real(kind=db), dimension(nvois):: cgrad
@@ -180,14 +180,21 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
         call expandArrayREAL(A, oldSize, inz+lb2r-lb1r+1)
       endif
     endif
-    
+
+    Precision = 1.e-20_db
+        
 ! Fill matrises
     do j = lb1(ii), lb2(ii)
       if( Cal_comp ) then
-        if( abvr(j) == 0 .and. abvi(j) == 0 ) cycle
+        if( abs( abvr(j) ) < Precision .and. abs( abvi(j) ) < Precision ) cycle
       else
-        if( abvr(j) == 0 ) cycle
+        if( abs( abvr(j) ) < Precision ) cycle
       endif
+!      if( Cal_comp ) then
+!        if( abvr(j) == 0 .and. abvi(j) == 0 ) cycle
+!      else
+!        if( abvr(j) == 0 ) cycle
+!      endif
 
       inz = inz+1
       rowIndexes(inz) = ii

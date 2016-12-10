@@ -330,7 +330,7 @@ subroutine coef_sch_rad(Enervide,f2,g0,gm,gp,gso,nlm,nr,nspin,nspino,numat,r,Rel
       rm = r(ir-1)
     endif
     r0 = r(ir)
-    dr = 0.5 * ( rp - rm )
+    dr = 0.5_db * ( rp - rm )
     claplm(ir) = 1 / ( ( r0 - rm ) * dr )
     claplp(ir) = 1 / ( ( rp - r0 ) * dr )
     clapl0(ir) = - claplm(ir) - claplp(ir)
@@ -1550,8 +1550,8 @@ subroutine radial(Classic_irreg,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft
     Ephoton = max( 0.001_db, Ephoton ) ! Optic case
 ! Multiplicative term for quadrupolar transitions
 ! In S.I. vecond = k = E*alfa_sf*4*pi*epsilon0 / (e*e)
-! In a.u. and Rydberg : k = 0.5 * alfa_sf * E
-    Vecond(i) = 0.5 * alfa_sf * Ephoton
+! In a.u. and Rydberg : k = 0.5_db * alfa_sf * E
+    Vecond(i) = 0.5_db * alfa_sf * Ephoton
   end do
 
   call mod_V(icheck,lmax,lmax_pot,nlm,nlm_pot,nr,nrmtg,nrmtsd,nspin,r,Rmtg,Rmtsd,V,V_intmax,V0bd,Vrato,Ylm_comp)
@@ -2392,8 +2392,8 @@ subroutine radial_optic(Classic_irreg,Ecinetic_t,Eimag_t,Energ,Enervide,Full_pot
 
 ! Terme multiplicatif pour les transitions quadrupolaires
 ! En S.I. vecond = k = E*alfa_sf*4*pi*epsilon0 / (e*e)
-! En ua et rydb : k = 0.5 * alfa_sf * E
-  Vecond = 0.5 * alfa_sf * Energ(1)
+! En ua et rydb : k = 0.5_db * alfa_sf * E
+  Vecond = 0.5_db * alfa_sf * Energ(1)
 
   if( Full_potential ) then
     nlm = ( lmax + 1 )**2
@@ -3998,7 +3998,7 @@ subroutine ffintegr2(fint,fct,r,n,is,Rmtsd)
       fp = fct(i+2)
       xm = 0._db
       x0 = rm
-      xp = 0.5 * ( rm + r0 )
+      xp = 0.5_db * ( rm + r0 )
     else
       rm = r(i-1)
       r0 = r(i)
@@ -4006,9 +4006,9 @@ subroutine ffintegr2(fint,fct,r,n,is,Rmtsd)
       fm = fct(i-1)
       f0 = fct(i)
       fp = fct(i+1)
-      xm = 0.5 * ( rm + r0 )
+      xm = 0.5_db * ( rm + r0 )
       x0 = r0
-      xp = 0.5 * ( r0 + rp )
+      xp = 0.5_db * ( r0 + rp )
       if( r(i) > Rmtsd ) then
         rm = r(i-2); r0 = r(i-1); rp = r(i)
         fm = fct(i-2); f0 = fct(i-1); fp = fct(i)
@@ -4100,7 +4100,7 @@ subroutine ffintegr2_r(fint,fct,r,n,is,Rmtsd)
       fp = fct(i+2)
       xm = 0._db
       x0 = rm
-      xp = 0.5 * ( rm + r0 )
+      xp = 0.5_db * ( rm + r0 )
     else
       rm = r(i-1)
       r0 = r(i)
@@ -4108,9 +4108,9 @@ subroutine ffintegr2_r(fint,fct,r,n,is,Rmtsd)
       fm = fct(i-1)
       f0 = fct(i)
       fp = fct(i+1)
-      xm = 0.5 * ( rm + r0 )
+      xm = 0.5_db * ( rm + r0 )
       x0 = r0
-      xp = 0.5 * ( r0 + rp )
+      xp = 0.5_db * ( r0 + rp )
     endif
 
     if( is == 1 .and. r0 > Rmtsd ) then

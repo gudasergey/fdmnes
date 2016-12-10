@@ -591,14 +591,14 @@ subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic_out,Ecl
     if( ee < eps10 ) then
       Rmax = - 2 / ee + R_rydb
     else
-      Rmax = 100. / bohr
+      Rmax = 100._db / bohr
     endif
 
   endif
 
   if( Rydberg .and. Rmax >= Rsort ) then
     deltar = rmax - rsort + adimp + eps10
-    dr = 0.05 / bohr
+    dr = 0.05_db / bohr
     nr = nint( deltar / dr ) + 1
 
     allocate( r(0:nr) )
@@ -1816,7 +1816,7 @@ end
 
 !***********************************************************************
 
-! Calcul des amplitudes de diffusions selon la theorie de la diffusion multiple.
+! Calculation of multiple scattering amplitude using the multiple scattering theory
 
 subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,Classic_irreg,dcosxyz,ecinetic,Eimag,Full_atom,ia_eq,ia_rep,iaabsi,iaprotoi, &
                     iato,icheck,igreq,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato,n_atom_0, &
@@ -1827,7 +1827,7 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,Classic_irreg,dcosxyz,ecinetic,
   use declarations
   implicit real(kind=db) (a-h,o-z)
 
-  parameter(nletm=52)
+  integer, parameter:: nletm = 52
 
   character(len=1) let(0:nletm)
   character(len=3), dimension(:), allocatable:: motval

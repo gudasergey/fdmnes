@@ -440,12 +440,20 @@ do ij=1,ninputs
 ! FOR ELF INFILE
 
 ! YJ
-         a = 0.0
-         convvalue = 0.0
-         imfpvalue = 0.0
+!      hbar = 1.05457E-34
+!      me = 9.109E-31
+!      e = 1.6022E-19
+      hbar_yj = 1.054571726_8
+      m_yj = 9.10938291_8
+      e_yj = 1.602176565_8
+      hme_yj = hbar_yj / sqrt( e_yj * m_yj )  
+
+         a = 0.0_8
+         convvalue = 0.0_8
+         imfpvalue = 0.0_8
 
       if (noimfp) then
-         a = 0.0
+         a = 0.0_8
          imfpdone = .true.
       elseif (elf_inp .AND. E(i) .LE. scelfimfp(scelfimfpdim,1)) then
          do k=1,scelfimfpdim
@@ -453,7 +461,8 @@ do ij=1,ninputs
             imfpval(k) = scelfimfp(k,2)
          end do
          do k=1,scelfimfpdim
-            convval(k) = (1.05457E-34/(imfpval(k)*1E-10))*(((2*Econv(k)*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
+!            convval(k) = (1.05457E-34/(imfpval(k)*1E-10))*(((2*Econv(k)*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
+            convval(k) = 10 * hme_yj * sqrt( 2 * Econv(k) ) / imfpval(k)
          end do
          econvmin = 0
          do k=1,scelfimfpdim
@@ -484,7 +493,8 @@ do ij=1,ninputs
          end do
          50 close(152)
          do k=1,linesconv
-            convval(k) = (1.05457E-34/(imfpval(k)*1E-10))*(((2*Econv(k)*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
+ !           convval(k) = (1.05457E-34/(imfpval(k)*1E-10))*(((2*Econv(k)*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
+            convval(k) = 10 * hme_yj * sqrt( 2 * Econv(k) ) / imfpval(k)
          end do
          econvmin = 0
          do k=1,linesconv
@@ -516,7 +526,8 @@ do ij=1,ninputs
       end if
 ! For no input IMFP and tabulated
       if (imfpvaltab .GT. 0.0 .AND. .NOT. imfpdone) then
-         convvalue = (1.05457E-34/(imfpvaltab*1E-10))*(((2*E(i)*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
+!         convvalue = (1.05457E-34/(imfpvaltab*1E-10))*(((2*E(i)*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
+            convvalue = 10 * hme_yj * sqrt( 2 * E(i) ) / imfpvaltab
          a = convvalue/2.0
 ! For no input IMFP and non-tabulated
       elseif (.NOT. imfpdone) then
@@ -532,21 +543,24 @@ do ij=1,ninputs
          end if
          if (E(i) .GE. 50.0) then
             imfpvalue = tpp2m(E(i), Nvtemp, rho, masstot, egap)
-            convvalue = (1.05457E-34/(imfpvalue*1E-10))*(((2*E(i)*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
+!            convvalue = (1.05457E-34/(imfpvalue*1E-10))*(((2*E(i)*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
+            convvalue = 10 * hme_yj * sqrt( 2 * E(i) ) / imfpvalue
          elseif (E(i) .GT. 0.0) then
             rscratch = 50.0
             imfpvalue = tpp2m(rscratch, Nvtemp, rho, masstot, egap)
-            convvalue = (1.05457E-34/(imfpvalue*1E-10))*(((2*rscratch*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
-            convvalue = convvalue*(E(i)/rscratch)
+ !           convvalue = (1.05457E-34/(imfpvalue*1E-10))*(((2*rscratch*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
+            convvalue = 10 * hme_yj * sqrt( 2 * rscratch ) / imfpvalue
+            convvalue = convvalue * E(i) / rscratch
          else
-            convvalue = 0.0
+            convvalue = 0.0_8
          end if
-         a = convvalue/2.0
+         a = convvalue / 2
       end if
 
 ! YJ : not defined when E <= 0
       if( abs( convvalue ) > 1.e-20_8 ) &
-         imfpvalue = (1.05457E-34/(convvalue*1E-10))*(((2*E(i)*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
+!         imfpvalue = (1.05457E-34/(convvalue*1E-10))*(((2*E(i)*1.60218E-19)/9.10938E-31)**0.5)/1.60218E-19
+            imfpvalue = 10 * hme_yj * sqrt( 2 * E(i) ) / convvalue
 
 ! Once width is settled.. do convolution
       mu(i) = 0
@@ -558,9 +572,9 @@ do ij=1,ninputs
          endif
          if (i+k .GT. 1 .AND. i+k .LT. maxpoint) then
             mu(i) = mu(i) + mu1(i+k)*mult(k)
-         else if (i+k .EQ. 1) then
+         else if (i+k == 1) then
             mu(i) = mu(i) + mu1(i+k)*(atan(((2*(k)+1)*spacing/2)/a) + pi/2)/pi
-         else if (i+k .EQ. maxpoint) then
+         else if (i+k == maxpoint) then
             mu(i) = mu(i) + mu1(i+k)*(pi/2 - atan(((2*(k)-1)*spacing/2)/a))/pi
          end if
      end do
@@ -570,12 +584,12 @@ do ij=1,ninputs
 
 ! Dampen oscillations
       if (E(i) .GT. 0) then
-         mu(i) = mu(i)*eu**(-2*(sigmaparam**2)*((2*pi/6.626E-34)*1E-5*(2*9.109E-31*E(i)*1E10*1.602E-19)**0.5)**2)
+!         mu(i) = mu(i)*eu**(-2*(sigmaparam**2)*((2*pi/6.626E-34)*1E-5*(2*9.109E-31*E(i)*1E10*1.602E-19)**0.5)**2)
+         mu(i) = mu(i) * exp( -2.E+09_8 * ( sigmaparam * sqrt( 2 * E(i) ) / hme_yj )**2 )
       end if
 
 ! Insert new atomic BG with spline
       mu(i) = (1+mu(i))*spline(i)
-write(3,'(a7,i51p,10e13.5)') ' q mu =',i,mu(i)
 
 ! Add background from other edges (FFAST)
       background(i) = 0

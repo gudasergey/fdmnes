@@ -3594,13 +3594,13 @@ subroutine cluster_rot(iopsym,rotmat)
     elseif( i2 == 23 .or. is == 41 )then
       v(1) = 0._db; v(2) =  1._db; v(3) = 0._db
     elseif( i2 == 58 .or. is == 61 ) then
-      v(1) = 0.866025403784439_db; v(2) = 0.5_db; v(3) = 0._db
+      v(1) = sqrt3s2; v(2) = 0.5_db; v(3) = 0._db
     elseif( i2 == 60 .or. is == 63 ) then
-      v(1) = 0.5_db; v(2) = 0.866025403784439_db; v(3) = 0._db
+      v(1) = 0.5_db; v(2) = sqrt3s2; v(3) = 0._db
     elseif( i2 == 62 .or. is == 57 ) then
-      v(1) = -0.5_db; v(2) = 0.866025403784439_db; v(3) = 0._db
+      v(1) = -0.5_db; v(2) = sqrt3s2; v(3) = 0._db
     elseif( i2 == 64 .or. is == 59 ) then
-      v(1) = -0.866025403784439_db; v(2) = 0.5_db; v(3) = 0._db
+      v(1) = -sqrt3s2; v(2) = 0.5_db; v(3) = 0._db
     endif
 
 ! Axes 4 horizontaux
@@ -4053,41 +4053,32 @@ subroutine opsym(is,matopsym)
 !      52 : rot 10*pi/6 autour de 0z
 !      53 : rot 2*pi/3 autour de 0z, axe negatif
 !      54 : rot 4*pi/3 autour de 0z, axe negatif
-  data matsym9/ -0.5_db,               -0.866025403784439_db, 0.0_db, 0.866025403784439_db, -0.5_db,               0.0_db, &
-      0.0_db,                0.0_db,               1.0_db,-0.5_db,                0.866025403784439_db, 0.0_db, &
-     -0.866025403784439_db, -0.5_db,               0.0_db, 0.0_db,                0.0_db,               1.0_db, &
-      0.5_db,               -0.866025403784439_db, 0.0_db, 0.866025403784439_db,  0.5_db,               0.0_db, &
-      0.0_db,                0.0_db,               1.0_db, 0.5_db,                0.866025403784439_db, 0.0_db, &
-     -0.866025403784439_db,  0.5_db,               0.0_db, 0.0_db,                0.0_db,               1.0_db, &
-     -0.5_db,               -0.866025403784439_db, 0.0_db, 0.866025403784439_db, -0.5_db,               0.0_db, &
-      0.0_db,                0.0_db,              -1.0_db,-0.5_db,                0.866025403784439_db, 0.0_db, &
-     -0.866025403784439_db, -0.5_db,               0.0_db, 0.0_db,                0.0_db,              -1.0_db/
+  data matsym9/ -0.5_db,-sqrt3s2,  0.0_db, sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
+                -0.5_db, sqrt3s2,  0.0_db,-sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
+                 0.5_db,-sqrt3s2,  0.0_db, sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
+                 0.5_db, sqrt3s2,  0.0_db,-sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
+                -0.5_db,-sqrt3s2,  0.0_db, sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db, &
+                -0.5_db, sqrt3s2,  0.0_db,-sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db/
 !      55 : rot 2*pi/6 autour de 0z, axe negatif
 !      56 : rot 10*pi/6 autour de 0z, axe negatif
 !      57 : plan de sym contenant Oz, a phi = 30 degres
 !      58 : Axe 2 perpendiculaire a Oz, a phi = 30 degres
 !      59 : plan de sym contenant Oz, a phi = 60 degres
 !      60 : Axe 2 perpendiculaire a Oz, a phi = 60 degres
-  data matsym10/ 0.5_db,               -0.866025403784439_db, 0.0_db, 0.866025403784439_db,  0.5_db,               0.0_db, &
-      0.0_db,                0.0_db,              -1.0_db, 0.5_db,                0.866025403784439_db, 0.0_db, &
-     -0.866025403784439_db,  0.5_db,               0.0_db, 0.0_db,                0.0_db,              -1.0_db, &
-      0.5_db,                0.866025403784439_db, 0.0_db, 0.866025403784439_db, -0.5_db,               0.0_db, &
-      0.0_db,                0.0_db,               1.0_db, 0.5_db,                0.866025403784439_db, 0.0_db, &
-      0.866025403784439_db, -0.5_db,               0.0_db, 0.0_db,                0.0_db,              -1.0_db, &
-     -0.5_db,                0.866025403784439_db, 0.0_db, 0.866025403784439_db,  0.5_db,               0.0_db, &
-      0.0_db,                0.0_db,               1.0_db,-0.5_db,                0.866025403784439_db, 0.0_db, &
-      0.866025403784439_db,  0.5_db,               0.0_db, 0.0_db,                0.0_db,              -1.0_db/
+  data matsym10/ 0.5_db,-sqrt3s2,  0.0_db, sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db, &
+                 0.5_db, sqrt3s2,  0.0_db,-sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db, &
+                 0.5_db, sqrt3s2,  0.0_db, sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
+                 0.5_db, sqrt3s2,  0.0_db, sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db, &
+                -0.5_db, sqrt3s2,  0.0_db, sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
+                -0.5_db, sqrt3s2,  0.0_db, sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db/
 !      61 : plan de sym contenant Oz, a phi = 120 degres
 !      62 : Axe 2 perpendiculaire a Oz, a phi = 120 degres
 !      63 : plan de sym contenant Oz, a phi = 150 degres
 !      64 : Axe 2 perpendiculaire a Oz, a phi = 150 degres
-  data matsym11/ -0.5_db,               -0.866025403784439_db, 0.0_db, &
-     -0.866025403784439_db,  0.5_db,               0.0_db, 0.0_db,                0.0_db,               1.0_db, &
-     -0.5_db,               -0.866025403784439_db, 0.0_db,-0.866025403784439_db,  0.5_db,               0.0_db, &
-      0.0_db,                0.0_db,              -1.0_db, 0.5_db,               -0.866025403784439_db, 0.0_db, &
-     -0.866025403784439_db, -0.5_db,               0.0_db, 0.0_db,                0.0_db,               1.0_db, &
-      0.5_db,               -0.866025403784439_db, 0.0_db,-0.866025403784439_db, -0.5_db,               0.0_db, &
-      0.0_db,                0.0_db,              -1.0_db/
+  data matsym11/-0.5_db,-sqrt3s2,  0.0_db,-sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
+                -0.5_db,-sqrt3s2,  0.0_db,-sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db, &
+                 0.5_db,-sqrt3s2,  0.0_db,-sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
+                 0.5_db,-sqrt3s2,  0.0_db,-sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db/
 
   if( is <= 6 ) then
     matopsym(:,:) = matsym1(:,:,is)
@@ -8194,11 +8185,17 @@ function DW(q,Z,temp)
 ! free element
 ! Unknown Debye temperatures are taken as 1
 
-  data TD /  110,  26, 400,1000,1250,1860,  79,  46,   1,  63, 150, 318, 394, 625,   1,   1,   1,  85, 100, 230, &
-             359, 380, 390, 460, 400, 420, 385, 375, 315, 234, 240, 360, 285, 150,   1,  73,  56, 147, 256, 250, &
-             275, 380,   1, 382, 350, 275, 215, 120, 129, 170, 200, 139,   1,  55,  40, 110, 132, 139, 152, 157, &
-               1, 160, 107, 176, 188, 186, 191, 196, 200, 118, 207,   1, 225, 310, 416, 400, 430, 230, 170, 100, &
-              96,  88, 120,   1,   1,   1,   1,   1,   1, 100, 1, 210, 188, 150,   1,   1,   1,   1,   1,   1, 1,   1,   1/
+  data TD /  110._db,  26._db, 400._db,1000._db,1250._db,1860._db,  79._db,  46._db,   1._db,  63._db, &
+             150._db, 318._db, 394._db, 625._db,   1._db,   1._db,   1._db,  85._db, 100._db, 230._db, &
+             359._db, 380._db, 390._db, 460._db, 400._db, 420._db, 385._db, 375._db, 315._db, 234._db, &
+             240._db, 360._db, 285._db, 150._db,   1._db,  73._db,  56._db, 147._db, 256._db, 250._db, &
+             275._db, 380._db,   1._db, 382._db, 350._db, 275._db, 215._db, 120._db, 129._db, 170._db, &
+             200._db, 139._db,   1._db,  55._db,  40._db, 110._db, 132._db, 139._db, 152._db, 157._db, &
+               1._db, 160._db, 107._db, 176._db, 188._db, 186._db, 191._db, 196._db, 200._db, 118._db, &
+             207._db,   1._db, 225._db, 310._db, 416._db, 400._db, 430._db, 230._db, 170._db, 100._db, &
+              96._db,  88._db, 120._db,   1._db,   1._db,   1._db,   1._db,   1._db,   1._db, 100._db, &
+               1._db, 210._db, 188._db, 150._db,   1._db,   1._db,   1._db,   1._db,   1._db,   1._db, &
+               1._db,   1._db,   1._db/
 
 ! fonction de Debye, facteur de Debye Waller
   real(kind=db) Debye_function, DW, FD, Mass_atom
@@ -8209,7 +8206,7 @@ function DW(q,Z,temp)
   FD = Debye_function(temp,TD(Z))
 
 ! 1 uam = 1.660538921*10**(-27)kg
-  x = - 300 * (q*hbar)**2 * FD / ( Mass_atom(Z) * 1.660538921 * k_Boltzmann * TD(Z) )
+  x = - 300 * (q*hbar)**2 * FD / ( Mass_atom(Z) * 1.660538921_db * k_Boltzmann * TD(Z) )
 
   DW = exp(x)
 
@@ -8235,7 +8232,7 @@ function Debye_function(m,n)
   dx = 0.0001_db
   imax = Nint(a/dx)
   dx = a/imax
-  x = dx/2
+  x = dx / 2
 
   do i = 1,imax
    x = x + dx

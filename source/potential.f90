@@ -824,7 +824,7 @@ subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,ia
         rdem(ipr) = rdem(0)
         rn(ipr) = rn(0)
       else
-        dab(ipr) = 100000.
+        dab(ipr) = 100000._db
         do ib = 1,natomp
           if( numat(itypep(ib)) == 0 ) cycle
           ps(1:3) = pos(1:3,ia) - pos(1:3,ib)
@@ -985,7 +985,7 @@ subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,ia
     if( iapot(ipr) == 0 .or. rn(ipr) < eps10 ) cycle
     Z = numat( itypepr(ipr)  )
     if( Z /= 1 ) cycle
-    if( rayop(ipr) > 0.45*rdem(ipr) .and. rayop(ipr) < 1.75*rdem(ipr) ) cycle
+    if( rayop(ipr) > 0.45_db*rdem(ipr) .and. rayop(ipr) < 1.75_db*rdem(ipr) ) cycle
     rayop(ipr) = min( (1 + overlap) * rdem(ipr), 0.8_db / bohr )
   end do
 
@@ -1071,11 +1071,11 @@ subroutine raymuf(Base_ortho,Cal_xanes,chargat,dcosxyz,Full_atom,i_self,iapot,ia
       ia = iaproxp(ipr)
       if( ia > natomp ) cycle
       Z = numat( itypep(ia) )
-      if( ( Z == 1 .and. ( rayop(ipr) > 0.99*rdem(ipr) .and. rayop(ipr) < 1.75*rdem(ipr) ) ) &
-          .or. ( Z /= 1 .and. ( rayop(ipr) > 0.25*rdem(ipr) .and. rayop(ipr) < 1.5*rdem(ipr) ) ) ) then
+      if( ( Z == 1 .and. ( rayop(ipr) > 0.99_db*rdem(ipr) .and. rayop(ipr) < 1.75_db*rdem(ipr) ) ) &
+          .or. ( Z /= 1 .and. ( rayop(ipr) > 0.25_db*rdem(ipr) .and. rayop(ipr) < 1.5_db*rdem(ipr) ) ) ) then
         cycle
-      elseif( ( Z == 1 .and. ( rn(ipr) > 0.99*rdem(ipr) .and. rn(ipr) < 1.75*rdem(ipr) ) ) &
-          .or. ( Z /= 1 .and. ( rn(ipr) > 0.25*rdem(ipr) .and. rn(ipr) < 1.5*rdem(ipr) ) ) ) then
+      elseif( ( Z == 1 .and. ( rn(ipr) > 0.99_db*rdem(ipr) .and. rn(ipr) < 1.75_db*rdem(ipr) ) ) &
+          .or. ( Z /= 1 .and. ( rn(ipr) > 0.25_db*rdem(ipr) .and. rn(ipr) < 1.5_db*rdem(ipr) ) ) ) then
         if( iapot(ipr) <= natomeq ) then
           rmtg0(:) = rn(:)
           rmtg(:) = (1 + overlap) * rmtg0(:)
@@ -1551,7 +1551,7 @@ subroutine pot0(alfpot,Nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoato,dvc
 
   Vh(:) = 0._db
   Vxc(:,:) = 0._db
-  rs(:) = 1.0e+05
+  rs(:) = 1.0e+05_db
   rho(:,:) = 0._db
   iok(:) = .false.
 
@@ -1672,7 +1672,7 @@ subroutine pot0(alfpot,Nonsph,Axe_Atom_gr,Base_ortho,chargat,dcosxyz,drhoato,dvc
 
 ! Calcul du rayon de Fermi, rs et du potentiel d'echange-correlation
 ! dans l'etat fondamental, Vxc.
-  f = 0.75 / pi
+  f = 0.75_db / pi
   do isp = 1,nspin
     do i = 1,npoint
       rho(i,isp) = max( rho(i,isp), eps10 )
@@ -1880,7 +1880,7 @@ subroutine cor_perdew(Rs,dzeta,Vcup,Vcdn)
   implicit real(kind=db) (a-h,o-z)
 
   data gamma, fs0 / 0.5198421_db, 1.709921_db /
-  data Tiers, QTiers / 0.333333333333_db, 1.333333333333_db /
+  data Tiers, QTiers / 0.333333333333333_db, 1.333333333333333_db /
 
   f = ( (1 + dzeta)**QTiers + (1 - dzeta)**QTiers - 2 ) / gamma
 
@@ -2569,7 +2569,7 @@ subroutine potlapw(axyz,Base_ortho,chargat,Coupelapw,dcosxyz,deccent,Flapw_new,F
 
     vh(:) = 0._db
     Vxc(:,:) = 0._db
-    rs(:) = 100000.
+    rs(:) = 100000._db
     rho(:,:) = 0._db
     ns = 1 + 2 * (nspin - 1 )
 
@@ -3568,7 +3568,7 @@ subroutine stern(nslapwm,nst,iord,imat,kzz,Wien_taulap,kkk,taupp)
 !         start loop over all symmetry operations
 
   boucle_ext: do i = 1, iord
-     tk = 0.0d+0
+     tk = 0._db
      do j = 1, 3
        tk = tk + Wien_taulap(j,i)*g(j)*tpi
        k = 0
@@ -3762,7 +3762,7 @@ subroutine ptmoy(Base_ortho,dcosxyz,distai,green,iaabs,iaproto,icheck,imoy,imoy_
   if( .not. ( nptmoy == 0 .or. ( nptmoy_out == 0 .and. .not. green ) ) ) exit
 
 ! On repart on debut de la routine
-    ray(:) = 0.9 * ray(:)
+    ray(:) = 0.9_db * ray(:)
 
   end do
 
@@ -4601,29 +4601,45 @@ subroutine subpotex(np,Vrt,Vct,Vxct,rst,Enervide)
   real(kind=db), dimension(np):: Vct, Vxct, Vrt, rst
 
 ! Tableau Von Barth (Hedin et Lundqvist) normalise a la valeur du niveau de Fermi.
-  data pkf/ 0.00, 0.20, 0.40, 0.60, 0.80, 1.00, 1.20, 1.40, 1.60, 1.80, 2.00, 2.20, 2.40, 2.60, 2.80, 3.00/
+  data pkf/ 0.00_db, 0.20_db, 0.40_db, 0.60_db, 0.80_db, 1.00_db, 1.20_db, 1.40_db, 1.60_db, 1.80_db, &
+            2.00_db, 2.20_db, 2.40_db, 2.60_db, 2.80_db, 3.00_db/
 
-  data ray/ &
-   0.00,  0.01,  0.02,  0.05,  0.10,  0.20,  0.30,  0.40,  0.50,  0.70,  1.00,  1.50,  2.00,  3.00,  4.00,  5.00,  6.00/
+  data ray/ 0.00_db, 0.01_db, 0.02_db, 0.05_db, 0.10_db, 0.20_db, 0.30_db, 0.40_db, 0.50_db, 0.70_db, &
+            1.00_db, 1.50_db, 2.00_db, 3.00_db, 4.00_db, 5.00_db, 6.00_db/
 
-  data vhl1/ &
-   2.0000,1.8564,1.7983,1.7124,1.5881,1.4398,1.3486,1.2939,1.2501,1.1624,1.0528,1.0134,0.9716,0.9541,0.9227,0.9525,0.9545, &
-   1.9732,1.8353,1.7687,1.6943,1.5704,1.4241,1.3333,1.2814,1.2379,1.1508,1.0555,1.0066,0.9767,0.9595,0.9552,0.9569,0.9581, &
-   1.8897,1.7545,1.7012,1.6225,1.5058,1.3668,1.2836,1.2371,1.1993,1.1237,1.0528,1.0100,0.9839,0.9689,0.9666,0.9654,0.9687, &
-   1.7395,1.6139,1.5625,1.4909,1.3851,1.2679,1.2020,1.1697,1.1427,1.0888,1.0422,1.0134,0.9939,0.9814,0.9777,0.9785,0.9790, &
-   1.4944,1.3774,1.3341,1.2754,1.2057,1.1376,1.1026,1.0884,1.0757,1.0504,1.0262,1.0118,1.0000,0.9922,0.9889,0.9915,0.9896, &
-   1.0000,1.0000,1.0000,1.0000,1.0000,1.0000,1.0000,1.0000,1.0000,1.0000,1.0000,1.0000,1.0000,1.0000,1.0000,1.0000,1.0000, &
-   0.5604,0.6617,0.7030,0.7904,0.8324,0.8697,0.8940,0.9207,0.9304,0.9499,0.9762,0.9913,0.9987,1.0069,1.0055,1.0132,1.0106, &
-   0.3856,0.4730,0.5088,0.5868,0.6645,0.7708,0.8497,0.8982,0.9142,0.9460,0.9735,0.9948,1.0084,1.0208,1.0168,1.0261,1.0279/
-  data vhl2/ &
-   0.2852,0.3624,0.3926,0.4731,0.5294,0.6219,0.6911,0.7629,0.8086,0.8998,1.0262,1.0236,1.0294,1.0272,1.0446,1.0478,1.0419, &
-   0.2204,0.2876,0.3165,0.3772,0.4352,0.5172,0.5813,0.6407,0.6807,0.7607,0.8945,1.0168,1.0516,1.0699,1.0669,1.0651,1.0595, &
-   0.1761,0.2365,0.2628,0.3174,0.3677,0.4412,0.4986,0.5514,0.5877,0.6602,0.7730,0.9239,1.0110,1.1157,1.0949,1.0953,1.0804, &
-   0.1441,0.2007,0.2224,0.2694,0.3175,0.3839,0.4356,0.4835,0.5167,0.5830,0.6675,0.7988,0.8967,1.0356,1.1340,1.1689,1.1190, &
-   0.1200,0.1707,0.1924,0.2334,0.2794,0.3394,0.3859,0.4287,0.4582,0.5174,0.6015,0.7230,0.8133,0.9524,1.0557,1.1343,1.1749, &
-   0.1016,0.1466,0.1684,0.2033,0.2496,0.3031,0.3448,0.3840,0.4103,0.4629,0.5460,0.6608,0.7438,0.8899,0.9824,1.0713,1.1073, &
-   0.0874,0.1286,0.1492,0.1795,0.2231,0.2731,0.3121,0.3474,0.3718,0.4206,0.5011,0.6068,0.6860,0.8269,0.9099,0.9935,1.0376, &
-   0.0757,0.1139,0.1343,0.1614,0.2024,0.2487,0.2851,0.3172,0.3388,0.3818,0.4643,0.5627,0.6356,0.7732,0.8373,0.9199,0.9784/
+  data vhl1/ 2.0000_db,1.8564_db,1.7983_db,1.7124_db,1.5881_db,1.4398_db,1.3486_db,1.2939_db,1.2501_db,1.1624_db, &
+             1.0528_db,1.0134_db,0.9716_db,0.9541_db,0.9227_db,0.9525_db,0.9545_db, &
+             1.9732_db,1.8353_db,1.7687_db,1.6943_db,1.5704_db,1.4241_db,1.3333_db,1.2814_db,1.2379_db,1.1508_db, &
+             1.0555_db,1.0066_db,0.9767_db,0.9595_db,0.9552_db,0.9569_db,0.9581_db, &
+             1.8897_db,1.7545_db,1.7012_db,1.6225_db,1.5058_db,1.3668_db,1.2836_db,1.2371_db,1.1993_db,1.1237_db, &
+             1.0528_db,1.0100_db,0.9839_db,0.9689_db,0.9666_db,0.9654_db,0.9687_db, &
+             1.7395_db,1.6139_db,1.5625_db,1.4909_db,1.3851_db,1.2679_db,1.2020_db,1.1697_db,1.1427_db,1.0888_db, &
+             1.0422_db,1.0134_db,0.9939_db,0.9814_db,0.9777_db,0.9785_db,0.9790_db, &
+             1.4944_db,1.3774_db,1.3341_db,1.2754_db,1.2057_db,1.1376_db,1.1026_db,1.0884_db,1.0757_db,1.0504_db, &
+             1.0262_db,1.0118_db,1.0000_db,0.9922_db,0.9889_db,0.9915_db,0.9896_db, &
+             1.0000_db,1.0000_db,1.0000_db,1.0000_db,1.0000_db,1.0000_db,1.0000_db,1.0000_db,1.0000_db,1.0000_db, &
+             1.0000_db,1.0000_db,1.0000_db,1.0000_db,1.0000_db,1.0000_db,1.0000_db, &
+             0.5604_db,0.6617_db,0.7030_db,0.7904_db,0.8324_db,0.8697_db,0.8940_db,0.9207_db,0.9304_db,0.9499_db, &
+             0.9762_db,0.9913_db,0.9987_db,1.0069_db,1.0055_db,1.0132_db,1.0106_db, &
+             0.3856_db,0.4730_db,0.5088_db,0.5868_db,0.6645_db,0.7708_db,0.8497_db,0.8982_db,0.9142_db,0.9460_db, &
+             0.9735_db,0.9948_db,1.0084_db,1.0208_db,1.0168_db,1.0261_db,1.0279_db/
+
+  data vhl2/ 0.2852_db,0.3624_db,0.3926_db,0.4731_db,0.5294_db,0.6219_db,0.6911_db,0.7629_db,0.8086_db,0.8998_db, &
+             1.0262_db,1.0236_db,1.0294_db,1.0272_db,1.0446_db,1.0478_db,1.0419_db, &
+             0.2204_db,0.2876_db,0.3165_db,0.3772_db,0.4352_db,0.5172_db,0.5813_db,0.6407_db,0.6807_db,0.7607_db, &
+             0.8945_db,1.0168_db,1.0516_db,1.0699_db,1.0669_db,1.0651_db,1.0595_db, &
+             0.1761_db,0.2365_db,0.2628_db,0.3174_db,0.3677_db,0.4412_db,0.4986_db,0.5514_db,0.5877_db,0.6602_db, &
+             0.7730_db,0.9239_db,1.0110_db,1.1157_db,1.0949_db,1.0953_db,1.0804_db, &
+             0.1441_db,0.2007_db,0.2224_db,0.2694_db,0.3175_db,0.3839_db,0.4356_db,0.4835_db,0.5167_db,0.5830_db, &
+             0.6675_db,0.7988_db,0.8967_db,1.0356_db,1.1340_db,1.1689_db,1.1190_db, &
+             0.1200_db,0.1707_db,0.1924_db,0.2334_db,0.2794_db,0.3394_db,0.3859_db,0.4287_db,0.4582_db,0.5174_db, &
+             0.6015_db,0.7230_db,0.8133_db,0.9524_db,1.0557_db,1.1343_db,1.1749_db, &
+             0.1016_db,0.1466_db,0.1684_db,0.2033_db,0.2496_db,0.3031_db,0.3448_db,0.3840_db,0.4103_db,0.4629_db, &
+             0.5460_db,0.6608_db,0.7438_db,0.8899_db,0.9824_db,1.0713_db,1.1073_db, &
+             0.0874_db,0.1286_db,0.1492_db,0.1795_db,0.2231_db,0.2731_db,0.3121_db,0.3474_db,0.3718_db,0.4206_db, &
+             0.5011_db,0.6068_db,0.6860_db,0.8269_db,0.9099_db,0.9935_db,1.0376_db, &
+             0.0757_db,0.1139_db,0.1343_db,0.1614_db,0.2024_db,0.2487_db,0.2851_db,0.3172_db,0.3388_db,0.3818_db, &
+             0.4643_db,0.5627_db,0.6356_db,0.7732_db,0.8373_db,0.9199_db,0.9784_db/
 
   do i = 1,npkfm/2
     vhl(:,i) = vhl1(:,i)
@@ -4899,7 +4915,7 @@ subroutine modmuf(Full_atom,iaprotoi,itypepr,icheck, ispin,n_atom_0,n_atom_ind,n
       ipr = iapr
     endif
     it = itypepr(ipr)
-    rm = 0.9 * rmtg(ipr)
+    rm = 0.9_db * rmtg(ipr)
     do ir = 1,nrato(it)
       if( rato(ir,it) < rm ) cycle
       if( rato(ir,it) > rmtg(ipr) ) then

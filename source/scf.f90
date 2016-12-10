@@ -837,7 +837,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
   real(kind=db), dimension(nspin):: chg_cluster, chg_ref
   real(kind=db), dimension(nenerg):: Energ
   real(kind=db), dimension(0:ntype):: V_hubbard
-  real(kind=db), dimension(0:n_atom_proto):: rmtsd
+  real(kind=db), dimension(0:n_atom_proto):: Rmtsd
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: E_starta
   real(kind=db), dimension(nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self,0:mpinodes-1):: drho_self
   real(kind=db), dimension(lla2_state,nspinp,n_atom_0:n_atom_ind):: Int_Statedens
