@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 9th of December 2016, 19 Frimaire, An 225.
+! FDMNES II program, Yves Joly, Oana Bunau, 20th of December 2016, 30 Frimaire, An 225.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 9th of December 2016'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 20th of December 2016'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -243,8 +243,8 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 190
-  integer, parameter:: nkw_conv = 31
+  integer, parameter:: nkw_fdm = 189
+  integer, parameter:: nkw_conv = 33
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
   integer, parameter:: nkw_mult = 3
@@ -312,14 +312,14 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'imfpin   ','elfin    ','dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
      'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/
 
-  data kw_conv / 'cal_tddft','calculati','circular ', 'conv_out ','convoluti','dafs_exp_','dead_laye','dec      ', &
-     'directory','double_co','eintmax  ','epsii    ','forbidden','fprime   ', &
+  data kw_conv / 'abs_befor','all_conv ','cal_tddft','calculati','circular ', 'conv_out ','convoluti','dafs_exp_','dead_laye', &
+     'dec      ','directory','double_co','eintmax  ','epsii    ','forbidden','fprime   ', &
      'gamma_fix','gamma_var','gaussian ','no_extrap','nxan_lib ', 'photo_emi','s0_2     ','selec_cor','scan     ', &
      'scan_conv','scan_file','seah     ','stokes   ','stokes_na', 'surface  ','table    ','thomson  '/
 
   data kw_fdm/  &
      'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_conf','atom_nsph','ang_spin ','atomic_sc', &
-     'axe_spin ','base_comp','base_reel','bond     ','bulk     ','bulk_laye','cap_disor','cap_rough','cap_layer','cap_shift', &
+     'axe_spin ','base_comp','base_reel','bond     ','bulk     ','cap_disor','cap_rough','cap_layer','cap_shift', &
      'cap_thick','cartesian','center   ','center_ab','chlib    ','cif_file ','classic_i','clementi ','core_reso','crystal  ', &
      'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_','dip_rel  ','e1e1     ', &
      'delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ', &

@@ -44,7 +44,7 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
   call Cal_Cubmat(angxyz,Cubmat,Struct)
   call invermat(Cubmat,Cubmati)
 
-  dcosxyz(:) = 2 * cos( angxyz(:) * radian )
+  dcosxyz(:) = 2 * cos( angxyz(:) )
   if( abs( dcosxyz(1) ) < eps10 .and. abs( dcosxyz(2) ) < eps10 .and. abs( dcosxyz(3) ) < eps10 ) then
     Base_ortho = .true.
   else
@@ -2120,8 +2120,7 @@ end
 
 !*********************************************************************
 
-! Elaboration de l'agregat (celui qui sert au calcul du potentiel)
-! Evaluation de la dimension des tableaux qu'on va utiliser dans le sousprogramme agregat
+! Calculation of the number of atoms in the clusters used for potential calculation and xanes calculation
 
 subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step,Chargat,Cubmat,d_ecrant,dcosxyz,deccent, &
         Doping,dpos, &
@@ -2162,12 +2161,12 @@ subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk
   real(kind=db), dimension(:,:), allocatable:: posg
 
   if( Bulk_step ) then
-    dcosxyz(:) = 2 * cos( angxyz_bulk(:) * radian )
+    dcosxyz(:) = 2 * cos( angxyz_bulk(:) )
     igr0 = ngroup - n_atom_bulk + 1
     n_igr = ngroup
     axyz_g(:) = axyz_bulk(:)
  else
-    dcosxyz(:) = 2 * cos( angxyz(:) * radian )
+    dcosxyz(:) = 2 * cos( angxyz(:) )
     igr0 = 1
     n_igr = n_atom_uc
     axyz_g(:) = axyz(:)
@@ -2273,7 +2272,7 @@ subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk
       posg_bulk(1:3,igr) = posn_bulk(1:3,igr) * axyz_bulk(1:3) + Shift_bulk(1:3)
     end do
 
-    dcosxyz_bulk(:) = 2 * cos( angxyz_bulk(:) * radian )
+    dcosxyz_bulk(:) = 2 * cos( angxyz_bulk(:) )
     if( abs( dcosxyz_bulk(1) ) < eps10 .and. abs( dcosxyz_bulk(2) ) < eps10 .and. abs( dcosxyz_bulk(3) ) < eps10 ) then
       Base_ortho_bulk = .true.
     else
@@ -2393,14 +2392,11 @@ subroutine Film_Bulk_Sp(angxyz,angxyz_bulk,axyz,axyz_bulk,Cubmat,deccent,Film_sh
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
   real(kind=db), dimension(3,n_atom_uc):: posn
 
-  cos_z = sqrt( sin( radian * angxyz(2) )**2 &
-        - ( ( cos( radian * angxyz(1) ) - cos( radian * angxyz(3) ) * cos( radian * angxyz(2) ) ) &
-        / sin( radian * angxyz(3) ) )**2 )
+  cos_z = sqrt( sin( angxyz(2) )**2  - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) / sin( angxyz(3) ) )**2 )
   c_cos_z = axyz(3) * cos_z
 
-  cos_z_b = sqrt( sin( radian * angxyz_bulk(2) )**2 &
-          - ( ( cos( radian * angxyz_bulk(1) ) - cos( radian * angxyz_bulk(3) ) * cos( radian * angxyz_bulk(2) ) ) &
-          / sin( radian * angxyz_bulk(3) ) )**2 )
+  cos_z_b = sqrt( sin( angxyz_bulk(2) )**2  - ( ( cos( angxyz_bulk(1) ) - cos( angxyz_bulk(3) ) * cos( angxyz_bulk(2) ) ) &
+          / sin( angxyz_bulk(3) ) )**2 )
   c_cos_z_b = axyz_bulk(3) * cos_z_b
 
   z_min_film = 1000000._db
@@ -2436,8 +2432,8 @@ subroutine Film_Bulk_Sp(angxyz,angxyz_bulk,axyz,axyz_bulk,Cubmat,deccent,Film_sh
   Rot(:,:) = 0._db
   Rot(1,1) = 1._db; Rot(2,2) = 1._db; Rot(3,3) = 1._db
   if( abs( Film_shift(4) ) > eps10 ) then
-    Angle = radian * Film_shift(4)
-    Rot(1,1) = cos( Angle );Rot(1,2) = sin( Angle )
+    Angle = Film_shift(4)
+    Rot(1,1) = cos( Angle ); Rot(1,2) = sin( Angle )
     Rot(2,1) = - Rot(1,2);   Mat(2,2) = Rot(1,1)
   endif
 
@@ -2450,7 +2446,7 @@ end
 
 !*********************************************************************
 
-subroutine reduc_natomp(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step,Cubmat,chargat,d_ecrant,dcosxyz,deccent, &
+subroutine Reduc_natomp(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step,Cubmat,chargat,d_ecrant,dcosxyz,deccent, &
             Doping,dpos,Film_shift,iabsorbeur,icheck,igr_dop,igreq,itabs,itype,Kgroup,matper,mpirank,multi_run,n_atom_bulk, &
             n_atom_proto,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb,ngroup_taux,noncentre,ntype,numat,One_run,posn, &
             posn_bulk,Rmax,Rsortm,Sym_2D,Taux_oc,Z_bulk)
@@ -2707,7 +2703,7 @@ subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step
       posg_bulk(1:3,igr) = posn_bulk(1:3,igr) * axyz_bulk(1:3) + Shift_bulk(1:3)
     end do
 
-    dcosxyz_bulk(:) = 2 * cos( angxyz_bulk(:) * radian )
+    dcosxyz_bulk(:) = 2 * cos( angxyz_bulk(:) )
     if( abs( dcosxyz_bulk(1) ) < eps10 .and. abs( dcosxyz_bulk(2) ) < eps10 .and. abs( dcosxyz_bulk(3) ) < eps10 ) then
       Base_ortho_bulk = .true.
     else
@@ -2861,9 +2857,9 @@ subroutine agregat(angxyz,angxyz_bulk,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu
   if( icheck > 0 ) write(3,110)
 
   if( Bulk_step ) then
-    dcosxyz(:) = 2 * cos( angxyz_bulk(:) * radian )
+    dcosxyz(:) = 2 * cos( angxyz_bulk(:) )
   else
-    dcosxyz(:) = 2 * cos( angxyz(:) * radian )
+    dcosxyz(:) = 2 * cos( angxyz(:) )
   endif
 
   if( abs( dcosxyz(1) ) < eps10 .and. abs( dcosxyz(2) ) < eps10 .and. abs( dcosxyz(3) ) < eps10 ) then
@@ -4163,7 +4159,7 @@ subroutine numgrpt(iopsym,igrpt,igrpt_nomag,mpirank,Sgrp)
     iopsym(18:21:3) = 0
     iopsym(28:31:3) = 0
     iopsym(45:48:3) = 0
-    iopsym(65:72) = 0
+!    iopsym(65:72) = 0
   endif
 !  if( iopsym(65) /= 0 .or. iopsym(69) /= 0 ) then
 !    iopsym(2:41) = 0
@@ -5937,10 +5933,10 @@ end
 
 !*********************************************************************
 
-! Calcul de l'absorption avant seuil
+! Calculation of f' and f" = absorption before the edge (in micrometer^-1)
 
-  complex(kind=db) function f_cal(Doping,Eseuil,Full_self_abs,icheck, itypepr,n_atom_proto,nbseuil,ngreq,ntype,numat,Z_abs, &
-          self_abs,Taux_ipr,Volume_maille,xsect_file)
+  complex(kind=db) function f_cal(Bulk_step,Doping,Eseuil,icheck,itypepr,n_atom_proto,n_atom_proto_uc,nbseuil, &
+                        ngreq,ntype,numat,Z_abs,Taux_ipr,Volume_maille,xsect_file)
 
   use declarations
   implicit none
@@ -5949,15 +5945,15 @@ end
   character(len=2):: Chemical_symbol
   character(len=132):: xsect_file
 
-  integer icheck, ipr, n_atom_proto, nbseuil, ntype, Z, Z_abs
+  integer:: icheck, ipr, n_atom_proto, n_atom_proto_uc, nbseuil, ntype, Z, Z_abs
   integer, dimension(0:ntype):: numat
   integer, dimension(0:n_atom_proto):: itypepr, ngreq
 
-  logical:: Doping, Full_self_abs, self_abs
+  logical:: Bulk_step, Doping
 
   real(kind=sg):: getf0
 
-  real(kind=db):: Conv_mbarn_nelec, Ea, fp_avantseuil, fpp_avantseuil, fpp_avantseuil_Mbarn, Volume_maille
+  real(kind=db):: Conv_mbarn_nelec, Ea, fp_avantseuil, fp_avantseuil_m, fpp_avantseuil, fpp_avantseuil_m, Volume_maille
   real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(n_atom_proto):: f0, fpa, fppa, Taux_ipr
 
@@ -5969,7 +5965,9 @@ end
   if( Eseuil(nbseuil) > eps10 ) then ! Not optic case
 
     do ipr = 1,n_atom_proto
-      if( Doping .and. ipr == n_atom_proto ) cycle
+      if( .not. Bulk_step .and. ipr > n_atom_proto_uc ) exit
+      if( Bulk_step .and. ipr <= n_atom_proto_uc ) cycle
+      if( Doping .and. ipr == n_atom_proto_uc + 1 ) cycle
       Z = numat( itypepr( ipr ) )
       if( Z == 0 ) cycle
       Ea = Eseuil(nbseuil) - 1._db
@@ -5987,31 +5985,27 @@ end
 
 ! Conversion en Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
     fpp_avantseuil = fpp_avantseuil / ( conv_mbarn_nelec(Ea) * pi )
-    fpp_avantseuil_Mbarn = fpp_avantseuil
     fp_avantseuil = fp_avantseuil / ( conv_mbarn_nelec(Ea) * pi )
+
 ! Conversion en coefficient d'absorption lineaire en micrometre^-1
-    fpp_avantseuil = 100 * fpp_avantseuil /(Volume_maille * bohr**3)
-    fp_avantseuil = 100 * fp_avantseuil /(Volume_maille * bohr**3)
+    fpp_avantseuil_m = 100 * fpp_avantseuil /( Volume_maille * bohr**3 )
+    fp_avantseuil_m = 100 * fp_avantseuil /( Volume_maille * bohr**3 )
 
     if( icheck > 0 ) then
       write(3,310)
       do ipr = 1,n_atom_proto
-        if( Doping .and. ipr == n_atom_proto ) cycle
+        if( .not. Bulk_step .and. ipr > n_atom_proto_uc ) exit
+        if( Bulk_step .and. ipr <= n_atom_proto_uc ) cycle
+        if( Doping .and. ipr == n_atom_proto_uc + 1 ) cycle
         write(3,320) ipr, numat( itypepr(ipr) ), f0(ipr), fpa(ipr), fppa(ipr)
       end do
-      write(3,330) fpp_avantseuil, fp_avantseuil
-      write(3,340) fpp_avantseuil_Mbarn
+      if( Volume_maille > eps10 ) write(3,330) fpp_avantseuil_m, fp_avantseuil_m
+      write(3,340) fpp_avantseuil
     endif
 
   endif
 
-  if( Self_abs ) then
-    f_cal = cmplx( fp_avantseuil, fpp_avantseuil )
-  elseif( Full_self_abs ) then
-    f_cal = cmplx( fp_avantseuil, - fpp_avantseuil )
-  else
-    f_cal = (0._db, 0._db)
-  endif
+  f_cal = cmplx( fp_avantseuil, fpp_avantseuil )
 
   return
   310 format(/' Absorption before the edge :',/ &
@@ -6023,24 +6017,24 @@ end
 
 !*********************************************************************
 
-! Sousprogramme effectuant certaines preparations pour le DAFS
+! Calculation of polarizations, Bragg factors and non resonant scattering amplitudes for DAFS
 
-subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Bormann, &
-            Bulk,Bulk_lay,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_no_res,Film, &
+subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Bormann, &
+            Bulk,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_no_res,Film, &
             Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck,igreq,iprabs,isigpi,itabs,itypepr,lvval, &
             Magnetic,Mat_or,mpirank,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_uc,natomsym, &
             nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m, &
             ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmatt, &
             phdafs,phdf0t,phdt,poldafse,poldafsem,poldafss,poldafssm,popatm,posn,posn_bulk,posn_cap,psival,rato,Taux, &
-            Taux_cap,Taux_oc,Temp,Temp_coef,Temperature,Troncature,Vec_orig,vecdafse,vecdafsem,vecdafss,vecdafssm,xsect_file, &
+            Taux_cap,Taux_oc,Temp,Temp_coef,Temperature,Vec_orig,vecdafse,vecdafsem,vecdafss,vecdafssm,xsect_file, &
             Z_bulk,Z_cap)
 
   use declarations
   implicit none
 
   integer:: i, icheck, igr, ip, ipl, ipr, iprabs, it, itabs, iwrite, j, jgr, kgr, mpirank, n_atom_bulk, n_atom_cap, &
-    n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, n_atom_uc, natomsym, nbseuil, neqm, ngrm, ngroup, ngroup_m, ngroup_taux, &
-    ngroup_temp, nlatm, nphim, npldafs, nrm, nspin, ntype, Z, Z_abs
+    n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, n_atom_uc, n1_proto, n2_proto, natomsym, nbseuil, neqm, ngrm, ngroup, &
+    ngroup_m, ngroup_taux, ngroup_temp, nlatm, nphim, npldafs, nrm, nspin, ntype, Z, Z_abs
 
   integer, dimension(2):: Mult_bulk, Mult_film
 
@@ -6050,13 +6044,13 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
   complex(kind=db):: cfac, ph, ph_cjg
   complex(kind=db), dimension(3):: vec_a, vec_b, pe, ps
   complex(kind=db), dimension(npldafs):: phdabs, v_vec_a, v_vec_b
-  complex(kind=db), dimension(npldafs):: Troncature
+  complex(kind=db), dimension(npldafs):: Truncation
   complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdt
   complex(kind=db), dimension(natomsym,npldafs):: phdafs
   complex(kind=db), dimension(n_atom_proto,npldafs):: phd, phd_f0, phd_f0_cjg, phd_fan_cjg, phd_fan, phd_fmag
   complex(kind=db), dimension(3,npldafs):: poldafsem, poldafssm
   complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
-  complex(kind=db), dimension(:), allocatable:: phd_f_bulk, phd_f_cap
+  complex(kind=db), dimension(:), allocatable:: phd_f_bulk, phd_f_cap, Phase_bulk
   complex(kind=db), dimension(:,:), allocatable:: Bragg
   complex(kind=db), dimension(:,:,:), allocatable:: phd_fmo,phd_fms
 
@@ -6070,10 +6064,11 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
   integer, dimension(0:n_atom_proto,neqm):: igreq
   integer, dimension(neqm):: igr_tem
 
-  logical:: Bulk, Bulk_step, Bormann, Cap_layer, Dafs_bio, Debye, Film, Film_periodical, hkl_film, Magnetic, Taux, Temperature
+  logical:: Abs_in_bulk, Bulk, Bulk_step, Bormann, Cap_layer, Dafs_bio, Debye, Film, Film_periodical, hkl_film, Magnetic, Taux, &
+            Temperature
 
-  real(kind=db):: abs_cap, arg, Bulk_lay, c_cos_z, c_cos_z_b, Cap_disorder, Cap_roughness, &
-    Cap_thickness, Cap_thickness_used, Cap_shift, cos_z_b, Deb, Delta_2, Deltak_A, Delta_roughness_film, &
+  real(kind=db):: abs_cap, arg, c_cos_z, c_cos_z_b, Cal_Delta_bulk, Cap_disorder, Cap_roughness, &
+    Cap_thickness, Cap_thickness_used, Cap_shift, cos_z_b, Deb, Delta_2, Delta_bulk, Deltak_A, Delta_roughness_film, &
     delta_z_bottom_cap, delta_z_bottom_film, delta_z_top_cap, delta_z_top_film, dpdeg, &
     DW, Film_roughness, Film_thickness, Film_thickness_used, &
     fpp_cap_tot, konde, R_bottom_film, R_top_bulk, R_top_film, rap_lsur2s, Taux_r, &
@@ -6112,6 +6107,14 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
 
   Film_periodical = Film .and. .not. ( Film_thickness < - 100._db )
 
+  if( Bulk_step ) then
+    n1_proto = n_atom_proto - n_atom_proto_bulk + 1
+    n2_proto = n_atom_proto
+  else
+    n1_proto = 1
+    n2_proto = n_atom_proto_uc
+  endif
+
 ! lambda = 2 * pi / k = 2 * d * sintheta
 ! En S.I. vecond = k = E*alfa*4*pi*epsilon0 / (e*e)
 ! En ua et rydb : k = 0.5 * alfa * E
@@ -6121,13 +6124,6 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
             f_no_res,f0,Film,hkl_dafs,hkl_film,icheck,isigpi,itypepr,lvval,Magnetic,Mat_or,mpirank,n_atom_proto,nbseuil,&
             nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmatt,Orthmati, &
             poldafse,poldafsem,poldafss,poldafssm,popatm,psival,rato,Vec_orig,vecdafse,vecdafsem,vecdafss,vecdafssm)
-
-  if( Magnetic ) then
-    allocate( phd_fmo(n_atom_proto,ngrm,npldafs) )
-    allocate( phd_fms(n_atom_proto,ngrm,npldafs) )
-    phd_fms(:,:,:) = (0._db,0._db)
-    phd_fmo(:,:,:) = (0._db,0._db)
-  endif
 
   if( Temp > 0.00001_db ) then
     Debye = .true.
@@ -6146,27 +6142,24 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
     call bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_bulk,Mult_bulk,Mult_film)
     if( hkl_film .and. .not. Bulk_step ) call invermat( Mat_bulk, Mat_bulk_i )
 
-    if( .not. Bulk_step ) then
-      cos_z_b = sqrt( sin( radian * angxyz_bulk(2) )**2 &
-                - ( ( cos( radian * angxyz_bulk(1) ) - cos( radian * angxyz_bulk(3) ) * cos( radian * angxyz_bulk(2) ) ) &
-                    / sin( radian * angxyz_bulk(3) ) )**2 )
-      c_cos_z_b = axyz_bulk(3) * cos_z_b
-    endif
-
-  else
-
-    Film_shift(1:4) = 0._db
+    cos_z_b = sqrt( sin( angxyz_bulk(2) )**2 - ( ( cos( angxyz_bulk(1) ) - cos( angxyz_bulk(3) ) * cos( angxyz_bulk(2) ) ) &
+            / sin( angxyz_bulk(3) ) )**2 )
+    c_cos_z_b = axyz_bulk(3) * cos_z_b
 
   endif
 
-
   if( icheck > 1 .and. ( Temperature .or. Debye ) ) write(3,'(/A)') ' ( h, k, l)   Z   Debye-Waller Attenuation'
 
-  do ipr = 1,n_atom_proto
+  if( Magnetic ) then
+    allocate( phd_fmo(n1_proto:n2_proto,ngrm,npldafs) )
+    allocate( phd_fms(n1_proto:n2_proto,ngrm,npldafs) )
+    phd_fms(:,:,:) = (0._db,0._db)
+    phd_fmo(:,:,:) = (0._db,0._db)
+  endif
 
-    if( ( Bulk_step .and. ipr <= n_atom_proto - n_atom_proto_bulk ) .or. ( .not. Bulk_step .and. ipr > n_atom_proto_uc ) ) cycle
+  do ipr = n1_proto,n2_proto
 
-! Calcul des termes de Bragg
+! Bragg term calculation
     it = itypepr( ipr )
     if( numat( it ) == 0 ) cycle
     igr_tem(:) = igreq(ipr,:)
@@ -6180,15 +6173,12 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
 ! When Bulk_step, Mat_bulk is transformation from film to bulk
       if( ( Bulk .and. .not. Bulk_step .and. .not. hkl_film ) .or. ( Bulk_step .and. hkl_film ) ) hkl = matmul( Mat_bulk, hkl )
 
-! To avoid multiplication between zero and infinity
-      if( Bulk_step .and. abs( nint( hkl(3) ) - hkl(3) ) < eps10 ) hkl(3) = hkl(3) + 0.0004_db
-
       if( Debye ) then
         deltak_A = deltak(ipl) / bohr   ! on le veut en angstroem - 1
         Deb = DW(deltak_A,numat(it),tempt)
       elseif( Temperature ) then
 ! Delta_2 = ( Sin(Theta_Bragg)/Lambda )^2
-! Temp_coef = 8*pi^2 * <u>^2 est en Angtroem^2
+! Temp_coef = 8*pi^2 * <u>^2 is in Angtroem^2
         Delta_2 = ( deltak(ipl) / ( quatre_pi * bohr ) )**2
       endif
 
@@ -6249,8 +6239,7 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
 
     Z = numat( itypepr( ipr ) )
     if( Z == 0 ) cycle
-! On ne tient pas compte de l'anomale de l'atome absorbeur puisqu'il est
-! calcule dans le programme !
+! We do not consider here the anomalous part of the absorbing atom because it is calculated further in the code !
     if( Z /= Z_abs ) then
       call fprime(Z,Eseuil(nbseuil),fpp(ipr),fp(ipr),xsect_file)
     else
@@ -6273,9 +6262,9 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
           kgr = igreq(ipr,1)
           do igr = 1,ngreq(ipr)
             jgr = igreq(ipr,igr)
-! Les signes moins sont pour transformer vers la convention cristallo (Green moins), les formules de Gibbs.
-! Ces donnees sont utilisees dans la routine convolution a un endroit ou on est en Green -.
-! Bragg est deja en Green -.
+! Sign minus are to transform to crystallographic convention.
+! This is conform to what is done in routine convolution.f90.
+! Bragg is already with this convention.
             phd_fms(ipr,igr,ipl) = - img * Bragg(igr,ipl) * f_ms(ipr,ipl)
             phd_fmo(ipr,igr,ipl) = - img * Bragg(igr,ipl) * f_mo(ipr,ipl)
           end do
@@ -6287,11 +6276,11 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
 
     deallocate( Bragg )
 
-  end do  ! fin boucle ipr
+  end do  ! End of loop over prototypical atoms ipr
 
   if( icheck > 1 .and. Magnetic ) then
     write(3,'(/A)') ' ipr ipl      f_ms         f_mo      phd_fms(ipr,ipl,1..ngr)'
-    do ipr = 1,n_atom_proto
+    do ipr = n1_proto,n2_proto
       if( ( Bulk_step .and. ipr <= n_atom_proto - n_atom_proto_bulk ) .or. ( .not. Bulk_step .and. ipr > n_atom_proto_uc ) ) cycle
       do ipl = 1,npldafs
         if( abs(f_ms(ipr,ipl)) < eps10 ) cycle
@@ -6303,58 +6292,78 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
   if( Film ) then
     allocate( phd_f_bulk(npldafs) )
     phd_f_bulk(:) = ( 0._db, 0._db )
+    if( Bulk ) allocate( Phase_bulk(npldafs) )
   endif
 
-  if( Bulk .and. .not. Bulk_step ) call Bulk_scat(angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_lay,c_cos_z,c_cos_z_b,deltak, &
-        Eseuil,Film_shift,hkl_dafs,hkl_film,icheck,Mat_bulk_i,Mult_bulk,n_atom_bulk,nbseuil,ngroup_temp, &
-        npldafs,phd_f_bulk,posn_bulk,R_bottom_film,R_top_bulk,Temp_coef,Temperature,Troncature,xsect_file,Z_abs, &
-        Z_bulk,z_min_film)
+  if( Bulk ) then
+
+    Delta_bulk = Cal_Delta_bulk(c_cos_z_b,Film_shift,icheck,n_atom_bulk,posn_bulk,R_bottom_film,R_top_bulk,Z_bulk,z_min_film)
+
+    call Cal_Phase_Bulk(angxyz,angxyz_bulk,axyz,axyz_bulk,c_cos_z,c_cos_z_b,Delta_bulk,Film_shift,hkl_dafs,hkl_film, &
+                          Mult_bulk,Mat_bulk_i,npldafs,Phase_bulk)
+
+    if( .not. Abs_in_bulk ) then
+      call Bulk_scat(angxyz_bulk,axyz_bulk,c_cos_z_b, &
+        deltak,Eseuil,hkl_dafs,hkl_film,icheck,Mat_bulk_i,Mult_bulk,n_atom_bulk,nbseuil,ngroup_temp, &
+        npldafs,phd_f_bulk,posn_bulk,Temp_coef,Temperature,Truncation,xsect_file,Z_abs,Z_bulk)
+
+      phd_f_bulk(:) = Phase_bulk(:) * phd_f_bulk(:)
+      Truncation(:) = Phase_bulk(:) * Truncation(:)
+    endif
+
+  endif
 
   if( Film ) then
     allocate( phd_f_cap(npldafs) )
     phd_f_cap(:) = ( 0._db, 0._db )
   endif
 
-  if( Cap_layer ) call Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,Cap_disorder,Cap_roughness, &
+  if( Cap_layer .and. .not. Bulk_step ) &
+    call Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,Cap_disorder,Cap_roughness, &
               Cap_thickness,Cap_thickness_used,Cap_shift,c_cos_z,c_cos_z_b,Delta_roughness_film,delta_z_bottom_cap, &
               delta_z_top_cap,deltak,Eseuil,Film_roughness,Film_thickness,fpp_cap_tot,hkl_dafs,hkl_film, &
               icheck,Mult_bulk,Mult_film,n_atom_cap,nbseuil,npldafs,phd_f_cap,posn_cap,R_top_bulk,R_top_film,Taux_cap, &
               xsect_file,Z_cap,z_max_film)
 
-! Multplication par epsilon_e * espilon_s
   do ipl = npldafs,1,-1
-    if( .not. Bulk_step ) ph = sum( phd_f0(1:n_atom_proto_uc,ipl) ) + sum( phd_fan(1:n_atom_proto_uc,ipl) )
-    if( Bulk .and. .not. Bulk_step ) ph = ph + phd_f_bulk(ipl)
 
-    if( Cap_layer ) then
-      x = deltak(ipl) / konde      ! = 2 * sin(theta)
-      abs_cap = exp( - fpp_cap_tot * x )
-      if( ipl == 1 .and. icheck == 1 )  write(3,'(a29,1p,e13.5)') ' Absorption through the cap =', 1._db - Abs_cap
-      ph = abs_cap * ph
-      phdafs(1:natomsym,ipl) = abs_cap * phdafs(1:natomsym,ipl)
-      ph = ph + phd_f_cap(ipl)
-    endif
+    ph = sum( phd_f0(n1_proto:n2_proto,ipl) ) + sum( phd_fan(n1_proto:n2_proto,ipl) )
 
-    if( Dafs_bio ) ph_cjg = sum( phd_f0_cjg(1:n_atom_proto_uc,ipl) ) + sum( phd_fan_cjg(1:n_atom_proto_uc,ipl) )
+    if( .not. Bulk_step ) then
+      if( Bulk ) ph = ph + phd_f_bulk(ipl)
 
-    do ip = nphi_dafs(ipl),1,-1
+ ! Absorption through the cap. Well, it is extremely small...
+      if( Cap_layer ) then
+        x = deltak(ipl) / konde      ! = 2 * sin(theta)
+        abs_cap = exp( - fpp_cap_tot * x )
+        if( ipl == 1 .and. icheck == 1 )  write(3,'(a29,1p,e13.5)') ' Absorption through the cap =', 1._db - Abs_cap
+        ph = abs_cap * ph
+        phdafs(1:natomsym,ipl) = abs_cap * phdafs(1:natomsym,ipl)
+        ph = ph + phd_f_cap(ipl)
+      endif
+
+      if( Dafs_bio ) ph_cjg = sum( phd_f0_cjg(1:n_atom_proto_uc,ipl) ) + sum( phd_fan_cjg(1:n_atom_proto_uc,ipl) )
+   endif
+
+! Multplication by epsilon_e * espilon_s
+   do ip = nphi_dafs(ipl),1,-1
       pe(:) = poldafse(:,ipl,ip)
       ps(:) = poldafss(:,ipl,ip)
       cfac = sum( conjg( ps(:) ) * pe(:) )
       if( Dafs_bio .and. ip > 2 ) then
-        if( .not. Bulk_step ) phdf0t(ipl,ip) = cfac * ph_cjg
+        phdf0t(ipl,ip) = cfac * ph_cjg
         phdt(ipl,ip) = cfac * conjg( phdabs(ipl) )
       else
-        if( .not. Bulk_step ) phdf0t(ipl,ip) = cfac * ph
+        phdf0t(ipl,ip) = cfac * ph
         phdt(ipl,ip) = cfac * phdabs(ipl)
       endif
     end do
-    phd_f0(1:n_atom_proto_uc,ipl) = cfac * phd_f0(1:n_atom_proto_uc,ipl)
-    phd_fan(1:n_atom_proto_uc,ipl) = cfac * phd_fan(1:n_atom_proto_uc,ipl)
+    phd_f0(n1_proto:n2_proto,ipl) = cfac * phd_f0(n1_proto:n2_proto,ipl)
+    phd_fan(n1_proto:n2_proto,ipl) = cfac * phd_fan(n1_proto:n2_proto,ipl)
   end do
 
-! Voir M. Blume and Doon Gibbs, PRB, 37, 1779 (1988)
-! Formule modifiee pour vect A'' car erreur trouve dans l'article
+! See M. Blume and Doon Gibbs, PRB, 37, 1779 (1988)
+! Formula modified for vect A'' because error in the paper.
   phd_fmag(:,:) = (0._db,0._db)
   if( Magnetic ) then
     Axe_atom_g = matmul( orthmatt, Axe_atom_gr )
@@ -6364,11 +6373,11 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
         ps(:) = poldafss(:,ipl,ip)
         we(:) = vecdafse(:,ipl,ip)
         ws(:) = vecdafss(:,ipl,ip)
-! Approximation pour le moment orbital pris oriente parallelement a lui.
-! Voir aussi appendix de G. T. Trammell, PR 92, 1387 (1953)
+! Approximation for orbital moment taken has parralel.
+! See also appendix by G. T. Trammell, PR 92, 1387 (1953)
         call get_vec_b(pe,ps,vec_b,we,ws)
         call get_vec_a(pe,ps,vec_a,we,ws)
-        do ipr = 1,n_atom_proto_uc
+        do ipr = n1_proto,n2_proto
 
           do igr = 1,ngreq(ipr)
             jgr = igreq(ipr,igr)
@@ -6386,8 +6395,7 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
             if( ip == 1 ) &
               phd_fmag(ipr,ipl) = phd_fmag(ipr,ipl) + v_vec_a(ipl) * phd_fmo(ipr,igr,ipl) + v_vec_b(ipl) * phd_fms(ipr,igr,ipl)
 
-            if( .not. Bulk_step ) phdf0t(ipl,ip) = phdf0t(ipl,ip) + v_vec_a(ipl) * phd_fmo(ipr,igr,ipl) &
-                                                                  + v_vec_b(ipl) * phd_fms(ipr,igr,ipl)
+            phdf0t(ipl,ip) = phdf0t(ipl,ip) + v_vec_a(ipl) * phd_fmo(ipr,igr,ipl) + v_vec_b(ipl) * phd_fms(ipr,igr,ipl)
 
           end do
         end do
@@ -6397,18 +6405,17 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
 
   endif
 
-  if( Magnetic ) then
-    deallocate( phd_fmo )
-    deallocate( phd_fms )
-  endif
-
-! Case of bulk, one multiplies by troncature
   if( Bulk_step ) then
-    do ipl = 1,npldafs  ! npldafs_bulk
-      phdt(ipl,:) = phdt(ipl,:) * Troncature(ipl)
-      phdafs(:,ipl) = phdafs(:,ipl) * Troncature(ipl)
+    do ipl = 1,npldafs
+      do ip = 1,nphi_dafs(ipl)
+        phdf0t(ipl,ip) = Phase_bulk(ipl) * phdf0t(ipl,ip)
+        phdt(ipl,ip) = Phase_bulk(ipl) * phdt(ipl,ip)
+      end do
+      phdafs(1:natomsym,ipl) = Phase_bulk(ipl) * phdafs(1:natomsym,ipl)
     end do
   endif
+
+!----- Writing --------------------------------------------------------
 
   if( icheck > 1 ) then
     do ipl = 1,npldafs
@@ -6472,8 +6479,8 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
 
     if( Magnetic ) then
       write(3,245) f_no_res(1)
-      ipl = 1  ! le rapport ne depend pas de la reflexion.
-      do ipr = 1,n_atom_proto_uc
+      ipl = 1  ! The ratio does not depend on the reflexion.
+      do ipr = n1_proto,n2_proto
         if( abs( f_ms(ipr,ipl) ) > eps10 ) then
           rap_lsur2s = 0.5_db * f_mo(ipr,ipl) / f_ms(ipr,ipl)
         else
@@ -6484,7 +6491,7 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
     endif
 
     write(3,250)
-    do ipr = 1,n_atom_proto_uc
+    do ipr = n1_proto,n2_proto
       if( nspin == 1 ) then
         if( Film .or. Bulk_step ) then
           write(3,260) ipr, numat( itypepr(ipr) )
@@ -6518,16 +6525,28 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
       endif
     end do
 
-    if( Film .or. Bulk_step ) then
+    if( Film .and. .not. Abs_in_bulk .and. Cap_layer ) then
+      write(3,296)
+    elseif( Film .and. .not. Abs_in_bulk ) then
       write(3,297)
+    elseif( Film .and. .not. Bulk_step .and. Cap_layer ) then
+      write(3,298)
     else
       write(3,'(/A)') '  (h,k,l)   Total Structure factor'
     endif
 
     do ipl = 1,npldafs
-      if( Film ) then
+      if( Film .and. .not. Abs_in_bulk .and. Cap_layer ) then
         if( mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
-        write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1), phd_f_bulk(ipl), phd_f_cap(ipl), Troncature(ipl)
+        write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1), phd_f_bulk(ipl), phd_f_cap(ipl), Truncation(ipl), Phase_bulk(ipl)
+      elseif( Film .and. .not. Abs_in_bulk ) then
+        if( mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
+        write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1), phd_f_bulk(ipl), Truncation(ipl), Phase_bulk(ipl)
+      elseif( Film .and. .not. Bulk_step .and. Cap_layer ) then
+        if( mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
+        write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1), phd_f_cap(ipl)
+      elseif( Film ) then
+        write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1)
       else
         write(3,275) nint( hkl_dafs(:,ipl) ), phdf0t(ipl,1)
       endif
@@ -6555,7 +6574,13 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
 
   if( Film ) then
     deallocate( phd_f_bulk, phd_f_cap )
+    if( Bulk ) deallocate( Phase_bulk )
     posn(:,:) = posn_t(:,:)
+  endif
+
+  if( Magnetic ) then
+    deallocate( phd_fmo )
+    deallocate( phd_fms )
   endif
 
   return
@@ -6577,22 +6602,24 @@ subroutine Prepdafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_g
         '      Orbital : Site    L/2S     (f_orb = (L/S)*f_spin)')
   246 format(10x,i9,f9.3)
   250 format(/' Value of the structure factors per atom site :')
-  260 format(/' Site =',i3,', Z =',i3,//, '  (     h,     k,     l)',6x,'f0',14x,'fp',10x,'fpp',10x,'Ph = Sum(exp(iQR))', &
+  260 format(/' Site =',i3,', Z =',i3,//, '  (     h,     k,      l)',6x,'f0',14x,'fp',10x,'fpp',10x,'Ph = Sum(exp(iQR))', &
         10x,'Ph*f0*(eps_e.eps_s)     Ph*(fp+i*fpp)*(eps_e.eps_s)')
   265 format(/' Site =',i3,', Z =',i3,//, '  (h,k,l)',6x,'f0',14x,'fp',10x,'fpp',10x,'Ph = Sum(exp(iQR))', &
         10x,'Ph*f0*(eps_e.eps_s)     Ph*(fp+i*fpp)*(eps_e.eps_s)')
-  270 format(3f8.3,1p,e13.5,2x,2e13.5,5(2x,2e13.5))
+  270 format(2f8.3,f9.4,1p,e13.5,2x,2e13.5,5(2x,2e13.5))
   275 format(3i3,1p,e13.5,2x,2e13.5,5(2x,2e13.5))
-  280 format(/' Site =',i3,', Z =',i3,//, '  (     h,     k,     l)',6x,'f0',14x,'fp',10x,'fpp',11x,'f_spin',9x, &
+  280 format(/' Site =',i3,', Z =',i3,//, '  (     h,     k,      l)',6x,'f0',14x,'fp',10x,'fpp',11x,'f_spin',9x, &
         'f_orb',10x,'Ph = Sum(exp(iQR))',10x,'Ph*f0*(eps_e.eps_s)    Ph*(fp+i*fpp)*(eps_e.eps_s)', &
         ' i*Ph_m*fma*(f_spin*vs+f_orb*vo)   vs = spin.vec_b',13x, 'vo = spin.vec_a')
   285 format(/' Site =',i3,', Z =',i3,//, '  (h,k,l)',6x,'f0',14x,'fp',10x,'fpp',11x,'f_spin',9x, &
         'f_orb',10x,'Ph = Sum(exp(iQR))',10x,'Ph*f0*(eps_e.eps_s)    Ph*(fp+i*fpp)*(eps_e.eps_s)', &
         ' i*Ph_m*fma*(f_spin*vs+f_orb*vo)   vs = spin.vec_b',13x, 'vo = spin.vec_a')
-  290 format(3f8.3,1p,e13.5,2x,2e13.5,2(2x,e13.5),6(2x,2e13.5))
+  290 format(2f8.3,f9.4,1p,e13.5,2x,2e13.5,2(2x,e13.5),6(2x,2e13.5))
   295 format(3i3,1p,e13.5,2x,2e13.5,2(2x,e13.5),6(2x,2e13.5))
-  297 format(/'  (   h,      k,      l)     Total Structure factor',15x,'Bulk',21x,'Cover cap',19x,'Troncature')
-  300 format(3f8.3,1p,4(2x,2e13.5))
+  296 format(/'  (   h,      k,       l)     Total Structure factor',15x,'Bulk',21x,'Cover cap',19x,'Truncation',18x,'Phase_Bulk')
+  297 format(/'  (   h,      k,       l)     Total Structure factor',15x,'Bulk',21x,'Truncation',18x,'Phase_Bulk')
+  298 format(/'  (   h,      k,       l)     Total Structure factor',15x,'Cover cap')
+  300 format(2f8.3,f9.4,1p,5(2x,2e13.5))
   375 format(/'  Polarization and wave vectors in the internal basis R1 ( orthogonal basis, z along c crystal )',// &
               '         pol            vec           pls',12x,'vos')
   376 format(/' ipl = ',i5)
@@ -6651,16 +6678,16 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
   real(kind=db), dimension(0:n_atom_proto,nlatm,nspin):: popatm
 
 ! lambda = 2 * pi / k = 2 * d * sintheta
-! En S.I. vecond = k = E*alfa*4*pi*epsilon0 / (e*e)
-! En ua et rydb : k = 0.5 * alfa * E
+! In S.I. vecond = k = E*alfa*4*pi*epsilon0 / (e*e)
+! In ua and rydb : k = 0.5 * alfa * E
   konde = 0.5_db * alfa_sf * Eseuil(nbseuil)   ! exact que pour nbseuil = 1
 
   istop = 0
   if( ( Bulk .and. .not. hkl_film ) .or. ( Bulk_step .and. hkl_film ) ) then
  ! When bulk_step angxyz_bulk contains film data ! ( See fdm )
-    cosdir(:) = cos( angxyz_bulk(:) * radian )
+    cosdir(:) = cos( angxyz_bulk(:) )
   else
-    cosdir(:) = cos( angxyz(:) * radian )
+    cosdir(:) = cos( angxyz(:) )
   endif
 
   if( Bormann ) then
@@ -7000,7 +7027,7 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
 
     endif
 
-! Atomis structure factor
+! Atomic structure factor
     x = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
     s = x / bohr                 ! one needs it in angstroem^(-1)
 
@@ -7085,9 +7112,9 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
 
 !***********************************************************************
 
-! Changement de base RR Bulk --> RR film.
+! Basis change RR Bulk --> RR film.
 
-subroutine bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_bulk,Mult_bulk,Mult_film)
+subroutine Bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_bulk,Mult_bulk,Mult_film)
 
   use declarations
   implicit none
@@ -7102,8 +7129,8 @@ subroutine bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_
 
 ! Bulk
 
-  cos_a(:) = cos( radian * angxyz_bulk(:) )
-  sin_g = sin( radian * angxyz_bulk(3) )
+  cos_a(:) = cos( angxyz_bulk(:) )
+  sin_g = sin( angxyz_bulk(3) )
 
   Vec_a(1) = axyz_bulk(1); Vec_a(2:3) = 0._db
   Vec_b(1) = axyz_bulk(2) * cos_a(3); Vec_b(2) = axyz_bulk(2) * sin_g; Vec_b(3) = 0._db
@@ -7121,8 +7148,8 @@ subroutine bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_
   Mat_bulk(:,3) = V(:) / Vol
 
   if( abs( Film_shift(4) ) > eps10 ) then
-    cos_g = cos( radian * Film_shift(4) )
-    sin_g = sin( radian * Film_shift(4) )
+    cos_g = cos( Film_shift(4) )
+    sin_g = sin( Film_shift(4) )
     Mat(1,1) = cos_g; Mat(1,2) = - sin_g; Mat(1,3) = 0._db
     Mat(2,1) = sin_g; Mat(2,2) = cos_g;   Mat(2,3) = 0._db
     Mat(3,1) = 0._db; Mat(3,2) = 0._db;   Mat(3,3) = 1._db
@@ -7131,8 +7158,8 @@ subroutine bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_
 
 ! Film
 
-  cos_a(:) = cos( radian * angxyz(:) )
-  sin_g = sin( radian * angxyz(3) )
+  cos_a(:) = cos( angxyz(:) )
+  sin_g = sin( angxyz(3) )
 
   Vec_a(1) = axyz(1); Vec_a(2:3) = 0._db
   Vec_b(1) = axyz(2) * cos_a(3); Vec_b(2) = axyz(2) * sin_g; Vec_b(3) = 0._db
@@ -7141,7 +7168,7 @@ subroutine bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_
 
   Vol = Cal_Volume_maille(axyz,angxyz)
 
-! Matrice RR --> base orthonorme
+! Matrix RR --> Orthonormal basis
   call prodvec(V,Vec_b,Vec_c)
   Mat_film(:,1) = V(:) / Vol
   call prodvec(V,Vec_c,Vec_a)
@@ -7189,8 +7216,8 @@ end
   real(kind=db), dimension(3):: angxyz_bulk, axyz, axyz_bulk
   real(kind=db), dimension(5):: Film_shift
 
-  Diagonal = abs( angxyz_bulk(3) - 90 ) < 1._db .and. &
-            ( abs( Film_shift(4) - 45 ) <  1._db .or. abs( Film_shift(4) + 45 ) < 1._db )
+  Diagonal = abs( angxyz_bulk(3) - pi / 2 ) < eps10 .and. &
+            ( abs( Film_shift(4) - pi / 4 ) <  eps10 .or. abs( Film_shift(4) + pi / 4 ) < eps10 )
 
   if( Diagonal ) diag_bulk = sqrt( axyz_bulk(1)**2 + axyz_bulk(2)**2 )
 
@@ -7246,13 +7273,12 @@ subroutine Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_fil
   real(kind=db), dimension(5):: Film_shift
   real(kind=db), dimension(3,n_atom_uc):: posn, posn_t
 
-  cos_z = sqrt( sin( radian * angxyz(2) )**2 &
-        - ( ( cos( radian * angxyz(1) ) - cos( radian * angxyz(3) ) * cos( radian * angxyz(2) ) ) &
-        / sin( radian * angxyz(3) ) )**2 )
+  cos_z = sqrt( sin( angxyz(2) )**2 - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) &
+        / sin( angxyz(3) ) )**2 )
 
   c_cos_z = axyz(3) * cos_z
 
-! Stockage if modification
+! Storage if modification
   posn_t(:,:) = posn(:,:)
 
   if( Film_shift(5) > - eps10 ) then
@@ -7388,49 +7414,21 @@ end
 
 !*********************************************************************************************************
 
-subroutine Bulk_scat(angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_lay,c_cos_z,c_cos_z_b,deltak, &
-        Eseuil,Film_shift,hkl_dafs,hkl_film,icheck,Mat_bulk_i,Mult_bulk,n_atom_bulk,nbseuil,ngroup_temp, &
-        npldafs,phd_f_bulk,posn_bulk,R_bottom_film,R_top_bulk,Temp_coef,Temperature,Troncature,xsect_file,Z_abs, &
-        Z_bulk,z_min_film)
+! Determination of Film-bulk spacing
+
+  function Cal_Delta_bulk(c_cos_z_b,Film_shift,icheck,n_atom_bulk,posn_bulk,R_bottom_film,R_top_bulk,Z_bulk,z_min_film)
 
   use declarations
   implicit none
 
-  integer:: i, icheck, igr, ipl, j, jgr, n_atom_bulk, na, nbseuil, ngroup_temp, npldafs, Z, Z_abs, Z_top_bulk
-
-  integer, dimension(2):: Mult_bulk
+  integer:: icheck, igr, n_atom_bulk, Z_top_bulk
   integer, dimension(n_atom_bulk):: Z_bulk
-  integer, dimension(:), allocatable:: index
 
-  character(len=4):: elemv
-  character(len=2):: Chemical_symbol
-  character(len=132):: xsect_file
-
-  logical:: Bulk_layer, hkl_film, Temperature
-
-  complex(kind=db):: Bragg_bulk, cfac, phd_f_bulk_layer, Troncat
-  complex(kind=db), dimension(npldafs):: phd_f_bulk, Troncature
-
-  real(kind=sg):: getf0, s
-
-  real(kind=db):: abs_mesh, arg, Atom_radius, Bulk_lay, Cal_Volume_maille, conv_mbarn_nelec, c_cos_z, c_cos_z_b, Deb, &
-    Delta_2, Delta_bulk, delta_z, delta_z_top_bulk, Dist_layer, f0_bulk, fpp_bulk_tot, R_bottom_film, &
-    R_top_bulk, Volume_maille, x, z_max_bulk, z_min, z_min_film, z_pos
-
-  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, hkl, p
-  real(kind=db), dimension(3,3):: Mat_bulk_i
+  real(kind=db):: Atom_radius, c_cos_z_b, Cal_Delta_bulk, Delta_bulk, delta_z, delta_z_top_bulk, R_bottom_film, R_top_bulk, &
+                  z_max_bulk, z_min_film, z_pos
   real(kind=db), dimension(5):: Film_shift
-  real(kind=db), dimension(nbseuil):: Eseuil
-  real(kind=db), dimension(n_atom_bulk):: fp_bulk, fpp_bulk
-  real(kind=db), dimension(ngroup_temp):: Temp_coef
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
-  real(kind=db), dimension(npldafs):: deltak
-  real(kind=db), dimension(3,npldafs):: hkl_dafs
 
-  Bulk_layer = abs( Bulk_lay - 1._db ) > eps10
-  Dist_layer = Bulk_lay * axyz_bulk(3) / 2
-
-! Determination of Film-bulk spacing
   z_max_bulk = -100000._db
   do igr = 1,n_atom_bulk
     if( posn_bulk(3,igr) < z_max_bulk ) cycle
@@ -7449,53 +7447,97 @@ subroutine Bulk_scat(angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_lay,c_cos_z,c_cos_z_
 
   R_top_bulk = Atom_radius( Z_top_bulk )
 
-! demi distance interplan
+! half inter-reticular distance
   delta_z = 0.5_db * ( z_pos - z_max_bulk )
   delta_z_top_bulk = min( delta_z, R_top_bulk )
 
   Delta_bulk = z_min_film - z_max_bulk
-  if( Film_shift(3) < - 100._db ) Film_shift(3) = R_top_bulk + R_bottom_film
-  Delta_bulk = Delta_bulk - Film_shift(3)
+  if( Film_shift(3) < - 100._db ) then
+    Delta_bulk = Delta_bulk - ( R_top_bulk + R_bottom_film )
+  else
+    Delta_bulk = Delta_bulk - Film_shift(3)
+  endif
 
+  Cal_Delta_bulk = Delta_Bulk
+
+  if( icheck > 0 ) then
+    if( Film_shift(3) < - 100._db ) then
+      write(3,110) 'Film_shift    ', ( R_top_bulk + R_bottom_film ) * bohr
+    else
+      write(3,110) 'Film_shift    ', Film_shift(3) * bohr
+    endif
+    write(3,*)
+    write(3,120) 'top_bulk   ', Z_top_bulk, 'top_bulk   ', R_top_bulk * bohr, 'top_bulk   ', delta_z_top_bulk * bohr
+    write(3,130) z_max_bulk * bohr
+    write(3,140) 'bulk', Delta_bulk * bohr
+  endif
+
+  return
+  110 format( 1x,a14,' =',f7.3,' A')
+  120 format( ' Z_',a11,'  =',i3,'        R_',a11,' =',f7.3,'  delta_z_',a11,' =',f7.3,' A')
+  130 format( ' z_max_bulk     =',f7.3,' A')
+  140 format( ' Delta_',a4,'     =',f7.3,' A')
+  return
+end
+
+!*********************************************************************************************************
+
+! Calculation of bulk non resonant scattering amplitude
+
+subroutine Bulk_scat(angxyz_bulk,axyz_bulk,c_cos_z_b, &
+        deltak,Eseuil,hkl_dafs,hkl_film,icheck,Mat_bulk_i,Mult_bulk,n_atom_bulk,nbseuil,ngroup_temp, &
+        npldafs,phd_f_bulk,posn_bulk,Temp_coef,Temperature,Truncation,xsect_file,Z_abs,Z_bulk)
+
+  use declarations
+  implicit none
+
+  integer:: icheck, igr, ipl, jgr, n_atom_bulk, nbseuil, ngroup_temp, npldafs, Z, Z_abs
+
+  integer, dimension(2):: Mult_bulk
+  integer, dimension(n_atom_bulk):: Z_bulk
+
+  character(len=4):: elemv
+  character(len=2):: Chemical_symbol
+  character(len=132):: xsect_file
+
+  logical:: hkl_film, Temperature
+
+  complex(kind=db):: Bragg_bulk
+  complex(kind=db), dimension(npldafs):: phd_f_bulk, Truncation
+
+  real(kind=sg):: getf0, s
+
+  real(kind=db):: arg, Cal_Volume_maille, conv_mbarn_nelec, c_cos_z_b, c_cos_z_b_m, Deb, &
+    Delta_2, f0_bulk, fpp_bulk_tot, Volume_maille, x
+
+  real(kind=db), dimension(3):: angxyz_bulk, axyz_bulk, hkl
+  real(kind=db), dimension(3,3):: Mat_bulk_i
+  real(kind=db), dimension(nbseuil):: Eseuil
+  real(kind=db), dimension(n_atom_bulk):: fp_bulk, fpp_bulk
+  real(kind=db), dimension(ngroup_temp):: Temp_coef
+  real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
+  real(kind=db), dimension(npldafs):: abs_mesh, deltak, Length_abs
+  real(kind=db), dimension(3,npldafs):: hkl_dafs
+
+  fp_bulk(:) = 0._db
+  fpp_bulk(:) = 0._db
   fpp_bulk_tot = 0._db
   do igr = 1,n_atom_bulk
     Z = Z_bulk(igr)
+    if( Z == Z_abs ) cycle
     call fprime(Z,Eseuil(nbseuil),fpp_bulk(igr),fp_bulk(igr),xsect_file)
     fpp_bulk_tot = fpp_bulk_tot + fpp_bulk(igr)
-    if( Z_bulk(igr) /= Z_abs ) cycle
-    fp_bulk(igr) = 0._db
-    fpp_bulk(igr) = 0._db
   end do
-! Conversion en Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
+! Conversion in Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
   fpp_bulk_tot = fpp_bulk_tot / ( conv_mbarn_nelec(Eseuil(nbseuil)) * pi )
-! Conversion en coefficient d'absorption lineaire en micrometre^-1
+! Conversion in linear absorption coefficient in micrometer^-1
   Volume_maille = Cal_Volume_maille(axyz_bulk,angxyz_bulk)
   fpp_bulk_tot = 100 * fpp_bulk_tot / ( Volume_maille * bohr**3 )
-! Valeur pour une maille (facteur pour maille en micrometre)
-  fpp_bulk_tot = 0.0001_db * bohr * fpp_bulk_tot * c_cos_z_b
+! Value for one unit cell (in micrometer)
+  c_cos_z_b_m = 0.0001_db * bohr * c_cos_z_b
 
-  ! Ajout d'un plan
-  na = 0
-  if( Bulk_layer ) then
-    z_min = 1000._db
-    do igr = 1,n_atom_bulk
-      z_min = min( z_min, posn_bulk(3,igr) )
-    end do
-    do igr = 1,n_atom_bulk
-      if( abs( z_min - posn_bulk(3,igr) ) < eps10 ) na = na + 1
-    end do
-    allocate( index(na) )
-    jgr = 0
-    do igr = 1,n_atom_bulk
-      if( abs( z_min - posn_bulk(3,igr) ) > eps10 ) cycle
-      jgr = jgr + 1
-      index(jgr) = igr
-    end do
-
-    p(3) = ( Dist_layer + z_max_bulk ) / c_cos_z_b
-
-    Delta_bulk = Delta_bulk - Dist_layer
-  endif
+  Truncation(:) = ( 0._db, 0._db )
+  phd_f_bulk(:) = ( 0._db, 0._db )
 
   do ipl = 1,npldafs
 
@@ -7506,14 +7548,12 @@ subroutine Bulk_scat(angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_lay,c_cos_z,c_cos_z_
 
     if( hkl_film ) hkl = Matmul( Mat_bulk_i, hkl )
 
-! To avoid multiplication between zero and infinity
-    if( abs( nint( hkl(3) - hkl(3) ) ) < eps10 ) hkl(3) = hkl(3) + 0.0004_db
-
+! Case of irrationnal unit cells
     if( ( abs( hkl(1) ) > eps10 .and. Mult_bulk(1) == 0 ) .or. ( abs( hkl(2) ) > eps10 .and. Mult_bulk(2) == 0 ) ) cycle
 
-    phd_f_bulk_layer = (0._db, 0._db )
+    if( Temperature ) Delta_2 = ( deltak(ipl) / ( quatre_pi * bohr ) )**2
 
-    do igr = 1,n_atom_bulk + na
+    do igr = 1,n_atom_bulk
 
       elemv = ' '
       if( igr > n_atom_bulk ) then
@@ -7523,100 +7563,111 @@ subroutine Bulk_scat(angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_lay,c_cos_z,c_cos_z_
         elemv(1:2) = Chemical_Symbol( Z_bulk(igr) )
       endif
       f0_bulk = getf0(elemv,s)
-      if( igr > n_atom_bulk ) then
-        p(1:2) = posn_bulk(1:2,index(jgr))
-        arg = deux_pi * sum( p(:) * hkl(:) )
-      else
-        arg = deux_pi * sum( posn_bulk(:,igr) * hkl(:) )
-      endif
+      arg = deux_pi * sum( posn_bulk(:,igr) * hkl(:) )
       Bragg_bulk = cmplx( cos(arg), sin(arg), db )
 
       if( Temperature ) then
-        Delta_2 = ( deltak(ipl) / ( quatre_pi * bohr ) )**2
         Deb = exp( - Temp_coef(ngroup_temp-n_atom_bulk+igr) * Delta_2 )
         Bragg_bulk = Bragg_bulk * Deb
       endif
 
-      if( igr > n_atom_bulk ) then
-        phd_f_bulk_layer = phd_f_bulk_layer + Bragg_bulk * cmplx( f0_bulk + fp_bulk(jgr), fpp_bulk(jgr), db )
-      else
-        phd_f_bulk(ipl) = phd_f_bulk(ipl) + Bragg_bulk * cmplx( f0_bulk + fp_bulk(igr), fpp_bulk(igr), db )
-      endif
+      phd_f_bulk(ipl) = phd_f_bulk(ipl) + Bragg_bulk * cmplx( f0_bulk + fp_bulk(igr), fpp_bulk(igr), db )
 
     end do
 
-    cfac = ( 0._db, 0._db )
+    x = deltak(ipl) / ( 2 * alfa_sf * Eseuil(nbseuil) )  ! = sin(theta) / 2
+    x = max( eps10, x )
+
+    Length_abs(ipl) = c_cos_z_b_m / x
+    abs_mesh(ipl) = exp( - fpp_bulk_tot * Length_abs(ipl) )
+
+    Truncation(ipl) = 1._db / ( 1._db - abs_mesh(ipl) * exp( - img * deux_pi * hkl(3) ) )
+
+    phd_f_bulk(ipl) = phd_f_bulk(ipl) * Truncation(ipl)
+
+  end do
+
+  if( icheck > 0 ) then
+    write(3,100) ' mu_0_bulk      =', fpp_bulk_tot
+    write(3,110) '   Length_abs(1,11...) =', ( Length_abs(ipl), ipl = 1,min(npldafs,201), 10 )
+    write(3,110) ' 1 - abs_mesh(1,11...) =', ( 1._db - abs_mesh(ipl), ipl = 1,min(npldafs,201), 10 )
+  endif
+
+  return
+  100 format(a17,1p,e13.5,' micrometer^-1')
+  110 format(a24,1p,120e13.5)
+end
+
+!***********************************************************************************************************
+
+! Phase between bulk and film.
+! Contain also the ratio between the unit cell surfaces
+
+  subroutine Cal_Phase_Bulk(angxyz,angxyz_bulk,axyz,axyz_bulk,c_cos_z,c_cos_z_b,Delta_bulk,Film_shift,hkl_dafs,hkl_film, &
+                          Mult_bulk,Mat_bulk_i,npldafs,Phase_bulk)
+
+  use declarations
+  implicit none
+
+  integer:: i, ipl, j, npldafs
+
+  integer, dimension(2):: Mult_bulk
+
+  complex(kind=db), dimension(npldafs):: Phase_Bulk
+
+  logical:: hkl_film
+
+  real(kind=db):: arg, c_cos_z, c_cos_z_b, Delta_bulk, Rap
+  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, hkl
+  real(kind=db), dimension(5):: Film_shift
+  real(kind=db), dimension(3,3):: Mat_bulk_i
+  real(kind=db), dimension(3,npldafs):: hkl_dafs
+
+  Phase_Bulk(:) = ( 0._db, 0._db )
+
+  do ipl = 1,npldafs
+
+    hkl(:) = hkl_dafs(:,ipl)
+
+    if( hkl_film ) hkl = Matmul( Mat_bulk_i, hkl )
+
+! Mult_bulk = 0 is for non rationnal ratio between bulk and film
     do i = 0,Max( Mult_bulk(1)-1, 0 )
       do j = 0,Max( Mult_bulk(2)-1, 0 )
         arg = deux_pi * ( i * hkl(1) + j * hkl(2) )
-        cfac = cfac + cmplx( cos(arg), sin(arg), db )
+        Phase_Bulk(ipl) = Phase_Bulk(ipl) + cmplx( cos(arg), sin(arg), db )
       end do
     end do
-    if( abs( cfac ) < eps10 )  cfac = ( 0._db, 0._db )
+    if( abs( Phase_Bulk(ipl) ) < eps10 ) Phase_Bulk(ipl) = ( 0._db, 0._db )
 
     if( hkl_film ) then
       arg = deux_pi * hkl(3) * Delta_bulk / c_cos_z
     else
       arg = deux_pi * hkl(3) * Delta_bulk / c_cos_z_b
     endif
-    cfac = cfac * cmplx( cos(arg), sin(arg), db )
+    Phase_Bulk(ipl) = Phase_Bulk(ipl) * cmplx( cos(arg), sin(arg), db )
 
 ! Case of non rationnal ratio between bulk and film, or R45 (sqrt(2), sqrt(2))
+    Rap = 1._db
     if( Mult_bulk(1) == 0 .and. Mult_bulk(2) == 0 ) then
-      x = axyz(1) * axyz(2) * sin( radian * angxyz(3) ) / ( axyz_bulk(1) * axyz_bulk(2) * sin( radian * angxyz_bulk(3) ) )
-      cfac = x * cfac
+      Rap = axyz(1) * axyz(2) * sin( angxyz(3) ) / ( axyz_bulk(1) * axyz_bulk(2) * sin( angxyz_bulk(3) ) )
     else
       do i = 1,2
-        if( ( abs( hkl(i) ) < eps10 .and. Mult_bulk(i) == 0 ) .or. abs( Film_shift(4) - 45 ) < 1._db ) then
-          x = axyz(i) / axyz_bulk(i)
-          cfac = x * cfac
-        endif
+        if( ( abs( hkl(i) ) < eps10 .and. Mult_bulk(i) == 0 ) .or. abs( Film_shift(4) - pi / 4 ) < eps10 ) &
+          Rap = Rap * axyz(i) / axyz_bulk(i)
       end do
     endif
 
-    x = deltak(ipl) / ( alfa_sf * Eseuil(nbseuil) )  ! = sin(theta)
-    x = max( eps10, x )
-
-    abs_mesh = exp( - fpp_bulk_tot / x )
-
-    Troncat = 1._db / ( 1._db - abs_mesh * exp( - img * deux_pi * hkl(3) ) )
-    Troncat = cfac * Troncat
-
-    phd_f_bulk(ipl) = phd_f_bulk(ipl) * Troncat
-
-    if( Bulk_layer ) then
-      phd_f_bulk_layer = cfac * phd_f_bulk_layer
-      phd_f_bulk(ipl) = phd_f_bulk(ipl) + phd_f_bulk_layer
-    endif
-
-! Stockage for next block
-!    if( npldafs_bulk == npldafs ) Troncature(ipl) = Troncat
-    Troncature(ipl) = Troncat
+    Phase_Bulk(ipl) = Rap * Phase_Bulk(ipl)
 
   end do
 
-  if( Bulk_layer ) deallocate( index )
-
-  if( icheck > 0 ) then
-    write(3,223) 'Film_shift    ', Film_shift(3) * bohr
-    write(3,*)
-    write(3,224) 'top_bulk   ', Z_top_bulk, 'top_bulk   ', R_top_bulk * bohr, 'top_bulk   ', delta_z_top_bulk * bohr
-    write(3,232) z_max_bulk * bohr
-    write(3,230) 'bulk', Delta_bulk * bohr
-    write(3,233) 1._db - abs_mesh
-    if( Bulk_layer ) write(3,235) Dist_layer * bohr, p(3)
-  endif
-
   return
-  223 format( 1x,a14,' =',f7.3,' A')
-  224 format( ' Z_',a11,'  =',i3,'        R_',a11,' =',f7.3,'  delta_z_',a11,' =',f7.3,' A')
-  230 format( ' Delta_',a4,'     =',f7.3,' A')
-  232 format( ' z_max_bulk     =',f7.3,' A')
-  233 format( ' 1 - abs_mesh   =',1p,e13.5)
-  235 format( ' Dist_layer     =',f7.3,' A,    p(3) =',f8.5)
 end
 
 !***********************************************************************************************************
+
+! Calculation of the scattering amplitude from the cap layer
 
 subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,Cap_disorder,Cap_roughness, &
               Cap_thickness,Cap_thickness_used,Cap_shift,c_cos_z,c_cos_z_b,Delta_roughness_film,delta_z_bottom_cap, &
@@ -7657,9 +7708,8 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
   real(kind=db), dimension(3,n_atom_cap):: posn_cap
   real(kind=db), dimension(3,npldafs):: hkl_dafs
 
-  cos_z_c = sqrt( sin( radian * angxyz_cap(2) )**2 &
-                - ( ( cos( radian * angxyz_cap(1) ) - cos( radian * angxyz_cap(3) ) * cos( radian * angxyz_cap(2) ) ) &
-                    / sin( radian * angxyz_cap(3) ) )**2 )
+  cos_z_c = sqrt( sin( angxyz_cap(2) )**2 - ( ( cos( angxyz_cap(1) ) - cos( angxyz_cap(3) ) * cos( angxyz_cap(2) ) ) &
+          / sin( angxyz_cap(3) ) )**2 )
 
   c_cos_z_c = cos_z_c * axyz_cap(3)
 
@@ -7749,13 +7799,13 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
     fpp_cap_tot = fpp_cap_tot + Taux_cap(igr) * fpp_cap(igr)
   end do
 
-! Absorption a travers la couche
-! Conversion en Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
+! Absorption through the layer
+! Conversion in Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
   fpp_cap_tot = fpp_cap_tot / ( conv_mbarn_nelec(Eseuil(nbseuil)) * pi )
-! Conversion en coefficient d'absorption lineaire en micrometre^-1
+! Conversion in linear absorption coefficient in micrometre^-1
   Volume_maille = Cal_Volume_maille(axyz_cap,angxyz_cap)
   fpp_cap_tot = 100 * fpp_cap_tot / ( Volume_maille * bohr**3 )
-! Valeur l' epaisseur traversee aller-retour (a multiplier par 2/sin(theta_bragg) )
+! Thickness to cross (go and return) (to multiply by 2/sin(theta_bragg) )
   fpp_cap_tot = 0.00001_db * bohr * fpp_cap_tot * Cap_thickness_used
 
   do ipl = 1,npldafs
@@ -7765,7 +7815,7 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
     if( abs( hkl(1) ) > eps10 .or. abs( hkl(2) ) > eps10 ) cycle
 
     x = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
-    s = x / bohr                      ! on le veut en angstroem - 1
+    s = x / bohr                      ! one want it in angstroem - 1
 
 ! Delta_2 = ( Sin(Theta_Bragg)/Lambda )^2
     if( Cap_disorder > eps10 ) then
@@ -7828,11 +7878,11 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
 
     if( hkl_film ) then
       n = max( 1, Mult_film(1) * Mult_film(2) )
-      x = n * axyz(1) * axyz(2) * sin( radian * angxyz(3) ) / ( axyz_cap(1) *  axyz_cap(2) * sin( radian * angxyz_cap(3) ) )
+      x = n * axyz(1) * axyz(2) * sin( angxyz(3) ) / ( axyz_cap(1) *  axyz_cap(2) * sin( angxyz_cap(3) ) )
     else
       n = max( 1, Mult_bulk(1) * Mult_bulk(2) )
-      x = n * axyz_bulk(1) * axyz_bulk(2) * sin( radian * angxyz_bulk(3) ) &
-                                                           / ( axyz_cap(1) *  axyz_cap(2) * sin( radian * angxyz_cap(3) ) )
+      x = n * axyz_bulk(1) * axyz_bulk(2) * sin( angxyz_bulk(3) ) &
+        / ( axyz_cap(1) *  axyz_cap(2) * sin( angxyz_cap(3) ) )
     endif
     phd_f_cap(ipl) = x * phd_f_cap(ipl)
 
@@ -7858,7 +7908,7 @@ end
 
 !***********************************************************************
 
-subroutine col_dafs_name(angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpirank,ncolm,ncolr,ncolt, &
+subroutine Col_dafs_name(Angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpirank,ncolm,ncolr,ncolt, &
          nomabs,npldafs,Self_abs)
 
   use declarations
@@ -7870,7 +7920,7 @@ subroutine col_dafs_name(angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpiran
   character(len=Length_word) nomab
   character(len=Length_word), dimension(ncolm):: nomabs
 
-  Logical:: Bormann, Full_self_abs, Self_abs
+  logical:: Bormann, Full_self_abs, Self_abs
 
   real(kind=db):: a
   real(kind=db), dimension(3):: hkl
@@ -8027,7 +8077,7 @@ end
 
 !***********************************************************************
 
-  real(kind=db) function detmat(mat)
+  real(kind=db) function Detmat(mat)
 
   use declarations
   implicit none
@@ -8082,7 +8132,7 @@ subroutine get_fmag(deltak,fmo,fms,ipr,it,lvval,n_atom_proto,nl,nlatm,nr,nrm,nsp
     if( popt < 2 * l + 1 ) hund_mo = - hund_mo
 
     f = 0._db
-! psival est en fait sqrt(4*pi)*r*psi
+! psival is in fact sqrt(4*pi)*r*psi
     do ir = 2,nr-1
       dr = rato(ir+1,it) - rato(ir-1,it)
       f = f + ( psival(ir,io,it)**2 / rato(ir,it) ) * sin( deltak * rato(ir,it) ) * dr
@@ -8094,7 +8144,7 @@ subroutine get_fmag(deltak,fmo,fms,ipr,it,lvval,n_atom_proto,nl,nlatm,nr,nrm,nsp
 
   end do
 
-! Facteur empirique
+! Empirical factor
   fmo = 0.2_db * fmo
 
   return
@@ -8126,8 +8176,8 @@ end
 
 !*********************************************************************
 
-! Calcul de A" dans la formule de Blume et Gibbs, PRB 37,1779 (1988).
-! en fait modifie a cause erreur
+! Calculation of A" in Blume and Gibbs, PRB 37,1779 (1988).
+! Mofied because of the error in this paper.
 
 subroutine get_vec_a(pe,ps,vec_a,we,ws)
 
@@ -8136,7 +8186,6 @@ subroutine get_vec_a(pe,ps,vec_a,we,ws)
 
   complex(kind=db):: vv
   complex(kind=db), dimension(3):: vec_a, p, pe, ps, ve, ves, vs
-!      complex(kind=db), dimension(3):: kve, kvs
 
   real(kind=db), dimension(3):: we, ws
 
@@ -8145,8 +8194,6 @@ subroutine get_vec_a(pe,ps,vec_a,we,ws)
 
   vv = dot_product(ve,vs)
 
-!      call prodvec_cp( kve, ve, pe )
-!      call prodvec_cp( kvs, vs, ps )
   call prodvec_cp( p, ps, pe )
 
 ! Formule Blume
@@ -8160,7 +8207,6 @@ subroutine get_vec_a(pe,ps,vec_a,we,ws)
 !     &         * ( p(:) + ( dot_product(kve,ps) + dot_product(kvs,pe) )
 !     &                  * ( ve(:) - vs(:) ) )
 
-! Remodifie grace a Stephane
   ves(:) = ve(:) - vs(:)
 
   vec_a(:) = - 2 * ( 1 - vv ) * p(:) - dot_product( ves, p ) * ves(:)
@@ -8170,7 +8216,7 @@ end
 
 !*********************************************************************
 
-! Oana Bunau 15 avril 2007
+! Oana Bunau 15 april 2007
 
 function DW(q,Z,temp)
 
@@ -12960,7 +13006,7 @@ end
 
 !**********************************************************************
 
-! Calcul du volume de la maille elementaire
+! Calculation of the unit cell volume
 
 function Cal_Volume_maille(axyz,angxyz)
 
@@ -12970,10 +13016,10 @@ function Cal_Volume_maille(axyz,angxyz)
   real(kind=db):: Cal_Volume_maille, cosa, cosb, cosc
   real(kind=db), dimension(3):: angxyz, axyz
 
-  cosa = cos( pi * angxyz(1) / 180 )
-  cosb = cos( pi * angxyz(2) / 180 )
-  cosc = cos( pi * angxyz(3) / 180 )
-  Cal_Volume_maille = axyz(1)*axyz(2)*axyz(3) * sqrt( 1 - cosa**2 - cosb**2 - cosc**2 + 2*cosa*cosb*cosc )
+  cosa = cos( angxyz(1) )
+  cosb = cos( angxyz(2) )
+  cosc = cos( angxyz(3) )
+  Cal_Volume_maille = axyz(1) * axyz(2) * axyz(3) * sqrt( 1 - cosa**2 - cosb**2 - cosc**2 + 2*cosa*cosb*cosc )
 
   return
 end

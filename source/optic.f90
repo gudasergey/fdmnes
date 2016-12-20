@@ -5,7 +5,7 @@
 !***********************************************************************
 
 subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_resolved,Dafs,Dafs_bio, &
-          Densite_atom,dv0bdcF,E_cut,E_cut_imp,E_cut_man,Eclie,Eneg,Energ_t, &
+          dv0bdcF,E_cut,E_cut_imp,E_cut_man,Eclie,Eneg,Energ_t, &
           Extract,Eseuil,Full_potential,Full_self_abs,Green,hkl_dafs,Hubb_a,Hubb_d,icheck, &
           iabsorig,ip_max,ip0,isigpi,isymeq, &
           jseuil,ldip,lmax_pot,lmax_probe,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua, &
@@ -73,7 +73,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
 
   real(kind=sg):: time
 
-  real(kind=db):: delta_E, Densite_atom, E_cut, E_cut_imp, E_cut_optic, Eclie, Ecmax, &
+  real(kind=db):: delta_E, E_cut, E_cut_imp, E_cut_optic, Eclie, Ecmax, &
     p, Rmtg, Rmtsd, V_intmax, V0muf, Vhbdc, Volume_maille, Workf
 
   real(kind=db), dimension(3):: angxyz, axyz
@@ -320,8 +320,9 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
 
       if( ie > nenerg ) exit
 
-      call write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
-            Densite_atom,E_cut_optic,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
+! one write "angxyz,angxyz,axyz,axyz", because bulk is not used in optics.
+      call Write_coabs(Allsite,angxyz,angxyz,axyz,axyz,.false.,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+            E_cut_optic,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck_s,ie,ie_computer,Int_tens, &
             isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
             natomsym,nbseuil, &

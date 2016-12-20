@@ -1393,7 +1393,7 @@ end
 
 subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk,axyz_cap, &
-    basereel,Bormann,Bulk,Bulk_lay,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free, &
+    basereel,Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free, &
     Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density, &
     Density_comp,Dip_rel,Dipmag,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
     Eimagent,Eneg_i,Eneg_n_i,Energphot,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift, &
@@ -1502,7 +1502,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   logical, dimension(ngroup):: Atom_nsph_e
   logical, dimension(0:ntype):: Hubb
 
-  real(kind=db):: Alfpot, Ang_borm, Bulk_lay, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, D_max_pot, Delta_En_conv, &
+  real(kind=db):: Alfpot, Ang_borm, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, D_max_pot, Delta_En_conv, &
     Delta_Epsii, Eclie, Eclie_out, Film_roughness, Film_thickness, g1, g2, Gamma_max, Kern_fac, number_from_text, Overlap, &
     p_self_max, p_self0, Pas_SCF, phi, pop_nsph, pp, q, &
     r, r_self, R_rydb, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, V_intmax, vv
@@ -1570,7 +1570,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Ang_spin(:) = 0._db
   Axe_spin(1) = 0._db; Axe_spin(2) = 0._db; Axe_spin(3) = 1._db
   Basereel = .true.
-  Bulk_lay = 1._db
   Cap_roughness = 0._db
   Cap_disorder = 0._db
   Cap_thickness = -1000._db
@@ -1807,9 +1806,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
               read(itape4,*) Z_bulk(igr), posn_bulk(:,igr)
             endif
           end do
-
-        case('bulk_laye')
-          read(itape4,*) Bulk_lay
 
         case('cap_layer')
           n = nnombre(itape4,132)
@@ -3686,6 +3682,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       Bulk = .false.
       Cap_layer = .false.
     endif
+    if( .not. Bulk ) Film_shift(1:4) = 0._db
 
     if( Extract_ten ) Density = .false.
 
@@ -3882,13 +3879,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       end do
     endif
 
+! To avoid singularities
     if( Film .and. Bulk ) then
       do ipl = 1,npldafs
-        if( abs( nint( hkl_dafs(3,ipl) ) - hkl_dafs(3,ipl) ) < 0.00499_db ) then
+        if( abs( nint( hkl_dafs(3,ipl) ) - hkl_dafs(3,ipl) ) < 0.00000999_db ) then
           if( hkl_dafs(3,ipl) > nint( hkl_dafs(3,ipl) ) - eps10 ) then
-            hkl_dafs(3,ipl) =  nint( hkl_dafs(3,ipl) ) + 0.005_db
+            hkl_dafs(3,ipl) =  nint( hkl_dafs(3,ipl) ) + 0.00001_db
           else
-            hkl_dafs(3,ipl) =  nint( hkl_dafs(3,ipl) ) - 0.005_db
+            hkl_dafs(3,ipl) =  nint( hkl_dafs(3,ipl) ) - 0.00001_db
           endif
         endif
       end do
@@ -4020,7 +4018,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
       if( Film .and. Bulk ) then
 
+        angxyz_bulk(:) = angxyz_bulk(:) * radian
+        Film_shift(4) = Film_shift(4) * radian
         call mult_film_bulk(angxyz_bulk,axyz,axyz_bulk,Film_shift,Mult_bulk,Mult_film)
+        angxyz_bulk(:) = angxyz_bulk(:) / radian
+        Film_shift(4) = Film_shift(4) / radian
 
         Diagonal = abs( angxyz_bulk(3) - 90 ) < 1._db .and. &
                   ( abs( Film_shift(4) - 45 ) <  1._db .or. abs( Film_shift(4) + 45 ) < 1._db )
@@ -4751,7 +4753,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     if( Bulk ) then
     call MPI_Bcast(axyz_bulk,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(angxyz_bulk,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Bulk_lay,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(posn_bulk,3*n_atom_bulk,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Z_bulk,n_atom_bulk,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     endif
@@ -4887,15 +4888,18 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     if( istop == 1 ) stop
   endif
 
-! Conversion en unites atomiques.
-
-  adimp(:) = adimp(:) / bohr
-
+! Conversion in radian
+  angxyz(:) = angxyz(:) * radian
+  angxyz_cap(:) = angxyz_cap(:) * radian
+  angxyz_bulk(:) = angxyz_bulk(:) * radian
   where( abs(angpoldafs) < 9999._db ) angpoldafs = angpoldafs * radian
+  Film_shift(4) = Film_shift(4) * radian
+
+! Conversion in atomic units (bohr and Rydberg)
+  adimp(:) = adimp(:) / bohr
   axyz(1:3) = axyz(1:3) / bohr
   if( Bulk ) axyz_bulk(1:3) = axyz_bulk(1:3) / bohr
   if( Cap_layer ) axyz_cap(1:3) = axyz_cap(1:3) / bohr
-
   Cap_disorder = Cap_disorder / bohr
   Cap_roughness = Cap_roughness / bohr
   Cap_thickness = Cap_thickness / bohr
@@ -5601,7 +5605,7 @@ subroutine cal_cubmat(angxyz,Cubmat,Struct)
   real(kind=db), dimension(3,3):: cubmat
 
 ! Matrice de changement de repere cristallo, cubique
-  ang(:) = abs( angxyz(:) - 90._db ) < eps4
+  ang(:) = abs( angxyz(:) - pi / 2 ) < eps4
   ange(1) = abs( angxyz(2) - angxyz(3) ) < eps4
   ange(2) = abs( angxyz(3) - angxyz(1) ) < eps4
   ange(3) = abs( angxyz(1) - angxyz(2) ) < eps4
@@ -5611,7 +5615,7 @@ subroutine cal_cubmat(angxyz,Cubmat,Struct)
     else
       struct = 'trigo'
     endif
-  elseif( ( abs( angxyz(3) - 120. ) < eps4 ) .and. ang(1) .and. ang(2) ) then
+  elseif( ( abs( angxyz(3) - 2 * pi / 3 ) < eps4 ) .and. ang(1) .and. ang(2) ) then
     struct = 'hexag'
   else
     struct = 'autre'
@@ -5620,7 +5624,7 @@ subroutine cal_cubmat(angxyz,Cubmat,Struct)
   if( struct /= 'cubic' ) then
 
     if( struct == 'trigo' ) then
-      alfa = angxyz(1) * radian
+      alfa = angxyz(1)
       cosa = sqrt( ( 1._db + 2 * cos( alfa ) ) / 3._db )
       sina = sqrt( 1._db - cosa**2 )
       cubmat(1,1) = sina;  cubmat(1,2:3) = -0.5_db * sina
@@ -5628,9 +5632,9 @@ subroutine cal_cubmat(angxyz,Cubmat,Struct)
       cubmat(2,3) = - cubmat(2,2)
       cubmat(3,1:3) = cosa
     else
-      alfa = angxyz(1) * radian
-      beta = angxyz(2) * radian
-      gamma = angxyz(3) * radian
+      alfa = angxyz(1)
+      beta = angxyz(2)
+      gamma = angxyz(3)
       sina = sin( alfa )
       cosa = cos( alfa )
       sinb = sin( beta )

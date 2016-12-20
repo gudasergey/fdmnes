@@ -555,7 +555,7 @@ do ij=1,ninputs
             convvalue = 0.0_8
          end if
          a = convvalue / 2
-      end if
+     end if
 
 ! YJ : not defined when E <= 0
       if( abs( convvalue ) > 1.e-20_8 ) &
@@ -565,7 +565,7 @@ do ij=1,ninputs
 ! Once width is settled.. do convolution
       mu(i) = 0
       do k=-800, 800
-         if( abs(a) > 1.e-20_8 ) then 
+         if( abs(a) > 1.e-100_8 ) then 
            mult(k) = (atan(((2*(k)+1)*spacing/2)/a)-atan(((2*(k)-1)*spacing/2)/a))/pi
          else
            mult(k) = 0._8

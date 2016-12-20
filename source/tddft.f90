@@ -19,8 +19,8 @@
 !       = ninitlv en TDDFT
 !       = 2 en TDDFT + Optic
 
-subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,coef_g, &
-        Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Delta_edge,Delta_Eseuil,Densite_atom,Dipmag, &
+subroutine main_tddft(alfpot,All_nrixs,angxyz,angxyz_bulk,Allsite,Atomic_scr,axyz,axyz_bulk,Bulk_step,Classic_irreg, &
+        coef_g,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Delta_edge,Delta_Eseuil,Dipmag, &
         dv0bdcF,Dyn_eg,Dyn_g,E_cut,E_cut_imp,E_Fermi,E_cut_man,Ecent,Eclie,Elarg,Eneg, &
         Energ_t,Energphot,Epsii_a,Epsii_moy,Eseuil,Estart,f_avantseuil,Full_potential,Full_self_abs, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_dafs,Hubb_a,Hubb_d,icheck, &
@@ -88,7 +88,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Classic_ir
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: Chi_0
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Chi
 
-  logical:: All_nrixs, Allsite, Atomic_scr, Cartesian_tensor, Classic_irreg, Core_resolved, Dafs, Dafs_bio, Dipmag, &
+  logical:: All_nrixs, Allsite, Atomic_scr, Bulk_step, Cartesian_tensor, Classic_irreg, Core_resolved, Dafs, Dafs_bio, Dipmag, &
     Dyn_eg, Dyn_g, E_cut_man, Eneg, Energphot, FDM_comp, Final_optic, Final_tddft, &
     Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green, Green_int, &
     Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, Magnetic, Matper, &
@@ -100,11 +100,11 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Classic_ir
 
   real(kind=sg) time
 
-  real(kind=db):: alfpot, Delta_edge, Delta_Eseuil, Densite_atom, E_cut, E_cut_imp, E_cut_tddft, E_fermi, Eclie, &
+  real(kind=db):: alfpot, Delta_edge, Delta_Eseuil, E_cut, E_cut_imp, E_cut_tddft, E_fermi, Eclie, &
      Ecent, Ecmax, EFermi_min, Elarg, Energ_tt, Enervide_t, Epsii_moy, Estart, &
      Gamma_max, Kern_fac, p, Rmtg, Rmtsd, rsbdc, V_intmax, V0muf, Vhbdc, Volume_maille, Workf
 
-  real(kind=db), dimension(3):: angxyz, axyz
+  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk
   real(kind=db), dimension(8):: Time_loc
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(n_rout):: Time_rout
@@ -497,8 +497,8 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Classic_ir
 
       if( ie > nenerg ) exit
 
-      call write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
-            Densite_atom,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft, &
+      call write_coabs(Allsite,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_step,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+            E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer,Int_tens, &
             isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
             natomsym,nbseuil, &
@@ -508,8 +508,8 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Classic_ir
             secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
             Spherical_tensor,Spinorbite,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)
 
-      if( NRIXS ) call write_nrixs(All_nrixs,Allsite,Core_resolved, &
-                  Densite_atom,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft, &
+      if( NRIXS ) call write_nrixs(All_nrixs,Allsite,Core_resolved,Volume_maille, &
+                  E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft, &
                   f_avantseuil,Green_int,iabsorig,icheck(21),ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
                   jseuil,mpinodes,n_multi_run,natomsym,nbseuil,nenerg,ninit1,ninitl_out,nomfich,nomfich_cal_convt, &
                   nq_nrixs,nseuil,nspinp,numat,q_nrixs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Spinorbite,Taux_eq,V0muf)
@@ -552,7 +552,7 @@ end
 !***********************************************************************
 
 subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,coef_g, &
-        Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Densite_atom,Dipmag, &
+        Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Dipmag, &
         dv0bdcF,E_cut,E_cut_imp,E_cut_man,Eclie,Eneg, &
         Energ_t,Energphot,Eseuil,f_avantseuil,Full_potential,Full_self_abs, &
         Gamma_tddft,hkl_dafs,Hubb_a,Hubb_d,icheck,iabsorig,iopsymc_25,is_g,isigpi,isymeq, &
@@ -636,7 +636,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
 
   real(kind=sg) time
 
-  real(kind=db):: alfpot, Delta_E, Densite_atom, E_cut, E_cut_imp, E_cut_tddft, Eclie, &
+  real(kind=db):: alfpot, Delta_E, E_cut, E_cut_imp, E_cut_tddft, Eclie, &
      Kern_fac, Rmtg, Rmtsd, V_intmax, V0muf, Vhbdc, Volume_maille, Workf
 
   real(kind=db), dimension(1):: Energ_u
@@ -1069,8 +1069,9 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
 
       if( ie > nenerg ) exit
 
-      call write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
-                  Densite_atom,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft, &
+! one write "angxyz,angxyz,axyz,axyz", because bulk is not used in optics.
+      call write_coabs(Allsite,angxyz,angxyz,axyz,axyz,.false.,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+                  E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft, &
                   f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer,Int_tens, &
                   isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
                   natomsym,nbseuil, &

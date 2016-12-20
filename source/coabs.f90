@@ -1,9 +1,9 @@
 ! FDMNES subroutine
 
-! Calculate the absorption cross sections and the RXS amplitudes
+! Calculate the absorption cross sections and the DAFS amplitudes
 
-subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
-            Densite_atom,E_cut,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft, &
+subroutine Write_coabs(Allsite,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_step,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+            E_cut,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer,Int_tens, &
             isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
             natomsym,nbseuil, &
@@ -44,6 +44,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
   complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secmdia, secmdia_m, secmmia, secmmia_m
   complex(kind=db), dimension(3,3,3,ninitlr,0:natomsym):: secdqia, secdqia_m
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:natomsym):: secdoia, secdoia_m, secqqia, secqqia_m
+  complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:natomsym):: secooia, secooia_m
   complex(kind=db), dimension(3,3,n_rel,ninitlr,0:mpinodee-1):: secdd_a, secdd_m_a
   complex(kind=db), dimension(3,3,ninitlr,0:mpinodee-1):: secmd_a, secmd_m_a, secmm_a, secmm_m_a
   complex(kind=db), dimension(3,3,3,ninitlr,0:mpinodee-1):: secdq_a, secdq_m_a
@@ -58,37 +59,38 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
   complex(kind=db), dimension(:,:,:,:), allocatable :: ampldafs, ampldafsdd, ampldafsdo, ampldafsdq, ampldafsmd, &
     ampldafsmm, ampldafsoo, ampldafsqq
   complex(kind=db), dimension(:,:,:,:,:), allocatable :: mu, mudd, mudo, mudq, mumd, mumm, muoo, muqq
-  complex(kind=db), dimension(:,:,:,:,:,:), allocatable :: secooia, secooia_m
 
   integer, dimension(natomsym):: isymeq
   integer, dimension(npldafs):: nphi_dafs
   integer, dimension(npldafs,2):: isigpi
 
-  logical Allsite, Cartesian_tensor, Cor_abs, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, E_vec, &
+  logical:: Allsite, Bulk_step, Cartesian_tensor, Cor_abs, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, E_vec, &
     Dafs, Dafs_bio, Final_tddft, Energphot, Extract_ten, Full_self_abs, Green_int, Green_int_mag, idafs, M1M1, Magn_sens, &
     Matper, Moyenne, mu_cal, Self_abs, Spherical_signal, Spherical_tensor, Spinorbite_p, Tens_comp, Tensor_eval, Xan_atom
 
   logical, dimension(10):: Multipole
 
-  real(kind=db):: ang, c_micro, c_milli, cst, conv_mbarn_nelec, dang, Densite_atom, E_cut, &
+  real(kind=db):: ang, c_micro, c_milli, cst, conv_mbarn_nelec, dang, E_cut, &
     eph2, Ephoton, Ephseuil, Omega, V0muf, Volume_maille
 
   real(kind=db), dimension(0):: rdum
   real(kind=db), dimension(ninitlr) :: ct_nelec, Epsii
   real(kind=db), dimension(nbseuil):: Eseuil
-  real(kind=db), dimension(3):: angxyz, axyz, voae, voas
+  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, voae, voas
   real(kind=db), dimension(3,3):: matopsym
   real(kind=db), dimension(nenerg) :: Energ
   real(kind=db), dimension(ninitlr) :: sec_atom
   real(kind=db), dimension(3,nplrm) :: vec
   real(kind=db), dimension(nplrm,2) :: pdp
   real(kind=db), dimension(3,npldafs):: hkl_dafs
+  real(kind=db), dimension(npldafs):: Length_Abs
   real(kind=db), dimension(ncolm*ninitlr) :: tens
   real(kind=db), dimension(natomsym) :: Taux_eq
   real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens
   real(kind=db), dimension(ncolr,ninitlr,0:natomsym):: secabs, secabsdd, secabsdq, secabsdo, secabsmd, secabsmm, secabsoo, &
         secabsqq
   real(kind=db), dimension(3,npldafs,nphim):: vecdafse, vecdafss
+  real(kind=db), dimension(:,:), allocatable:: hkl_dafs_fake
 
   if( icheck > 0 ) write(3,110)
 
@@ -98,11 +100,6 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
 
   Dip_rel = n_rel == 4
   
-  if( E3E3 ) then
-    allocate( secooia(3,n_oo,3,n_oo,ninitlr,0:natomsym) )
-    allocate( secooia_m(3,n_oo,3,n_oo,ninitlr,0:natomsym) )
-  endif
-
   if( E1E1 ) secabsdd(:,:,:) = ( 0._db, 0._db )
   if( E2E2 ) secabsqq(:,:,:) = ( 0._db, 0._db )
   if( E1E3 ) secabsdo(:,:,:) = ( 0._db, 0._db )
@@ -364,7 +361,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
     phdf0t1(:) = phdf0t(:,1)
   endif
 
-  if( Spherical_tensor ) call Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2, &
+  if( Spherical_tensor ) call Spherical_tensor_cal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2, &
             Energ,Ephseuil,Epsii,Eseuil(nbseuil),icheck,ie,Int_tens,jseuil,Magn_sens,Moyenne,n_rel,n_tens_max, &
             natomsym,nenerg,ninit1,ninitlr,nomfich_s,nphim,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdafs,phdf0t1, &
             phdt1,pol,Poldafse,Poldafss,secddia,secdqia,secmdia,secqqia,Spherical_signal,Taux_eq,V0muf,Vec,Vecdafse,Vecdafss)
@@ -501,7 +498,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
               ia = ib
             endif
             if( ia /= 0 .and. ( ipl > 1 .and. .not. idafs ) ) cycle
-            call write_cartesian_tensor(Densite_atom,E_cut,E1E2,E2E2,Ephseuil,Epsii,Eseuil(nbseuil),ia,ie,ipldafs,jseuil, &
+            call write_cartesian_tensor(Volume_maille,E_cut,E1E2,E2E2,Ephseuil,Epsii,Eseuil(nbseuil),ia,ie,ipldafs,jseuil, &
                M1M1,Magn_sens,n_rel,natomsym,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,secddia,secdqia, &
                secdqia_m,secqqia,secmdia,Tens_comp,V0muf,Core_resolved)
           end do
@@ -509,342 +506,11 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
 
       endif
 
-      if( ( icheck > 0 .and. ipl == 1 ) .or. ( icheck > 1 .and. idafs ) ) then
-
-        do initlr = 1,ninitlr
-
-          if( Core_resolved .and. .not. Final_tddft ) then
-            if( initlr <= ninit1 ) then
-              iseuil = 1
-            else
-              iseuil = min(2, nbseuil)
-            endif
-          elseif( Final_tddft ) then
-            iseuil = min(2, nbseuil)
-          else
-            iseuil = initlr
-          endif
-
-          if( Final_tddft ) then
-            if( nbseuil == 2 ) then
-              write(3,120) achar(nseuil+74) // achar(jseuil+iseuil+46) // achar(jseuil+iseuil+47)
-            else
-              write(3,120) achar(nseuil+74) // achar(jseuil+iseuil+46)
-            endif
-          elseif( nseuil == 0 ) then  ! optic
-            if( Core_resolved ) then
-              if( initlr == 1 ) then
-                write(3,123) ninitlr
-              else
-                write(3,125) initlr-2, ninitlr
-              endif
-            else
-              write(3,120) 'Opt'
-            endif
-          else
-            if( Core_resolved ) then
-              write(3,130) initlr, ninitlr
-            elseif( ninitlr > 1 ) then
-              write(3,135) initlr, ninitlr
-            endif
-          endif
-
-          do ib = 0,nb
-            if( natomsym == 1 .and. ib > 0 ) cycle
-            if( ib == 0 ) then
-              ia = 1
-            elseif( ib == 1 ) then
-              ia = 0
-            else
-              ia = ib
-            endif
-            if( ia /= 0 .and. ipl > 1 ) cycle
-            if( ipl > 1 .and. .not. idafs ) cycle
-            if( idafs .and. icheck < 2 ) cycle
-            if( ipl > 1 ) write(3,140) ipldafs
-            if( E1E1 ) then
-              if( ia == 1 ) then
-                if( Green_int_mag ) then
-                  write(3,141)
-                elseif( Green_int ) then
-                  write(3,142)
-                else
-                  write(3,143)
-                endif
-              elseif( ia == 0 ) then
-                if( Green_int_mag ) then
-                  write(3,144)
-                elseif( Green_int ) then
-                  write(3,145)
-                else
-                  write(3,146)
-                endif
-              else
-                if( Green_int_mag ) then
-                  write(3,147) ia
-                elseif( Green_int ) then
-                  write(3,148) ia
-                else
-                  write(3,149) ia
-                endif
-              endif
-              do ispfg = 1,n_rel
-                if( ispfg > 1 ) write(3,*)
-                do ke = 1,3
-                  if( Green_int_mag ) then
-                    write(3,150) secddia(ke,:,ispfg,initlr,ia), secddia_m(ke,:,ispfg,initlr,ia)
-                  elseif( Tens_comp ) then
-                    write(3,150) secddia(ke,:,ispfg,initlr,ia)
-                  else
-                    write(3,150) real( secddia(ke,:,ispfg,initlr,ia) )
-                  endif
-                end do
-              end do
-            endif
-            if( E1E2 ) then
-              do ke = 1,3
-                if( ia == 1 ) then
-                  if( Green_int_mag ) then
-                    write(3,160) ke
-                  elseif( Green_int ) then
-                    write(3,161) ke
-                  else
-                    write(3,162) ke
-                  endif
-                elseif( ia == 0 ) then
-                  if( Green_int_mag ) then
-                    write(3,163) ke
-                  elseif( Green_int ) then
-                    write(3,164) ke
-                  elseif( Magn_sens ) then
-                    write(3,165) ke
-                  else
-                    write(3,166) ke
-                  endif
-                else
-                  if( Green_int_mag ) then
-                    write(3,167) ia, ke
-                  elseif( Green_int ) then
-                    write(3,168) ia, ke
-                  else
-                    write(3,169) ia, ke
-                  endif
-                endif
-                do ks = 1,3
-                  if( ( Magn_sens .and. ia == 0 ) .or. Green_int_mag ) then
-                    write(3,150) secdqia(ke,ks,:,initlr,ia), secdqia_m(ke,ks,:,initlr,ia)
-                  elseif( Tens_comp ) then
-                    write(3,150) secdqia(ke,ks,:,initlr,ia)
-                  else
-                    write(3,150) real(secdqia(ke,ks,:,initlr,ia),db)
-                  endif
-                end do
-              end do
-            endif
-            if( E2E2 ) then
-              do js = 1,3
-                do ks = 1,3
-                  if( ia == 1 ) then
-                    if( Green_int_mag ) then
-                      write(3,171) ks, js
-                    elseif( Green_int ) then
-                      write(3,172) ks, js
-                    else
-                      write(3,173) ks, js
-                    endif
-                  elseif( ia == 0 ) then
-                    if( Green_int_mag ) then
-                      write(3,174) ks, js
-                    elseif( Green_int ) then
-                      write(3,175) ks, js
-                    else
-                      write(3,176) ks, js
-                    endif
-                  else
-                    if( Green_int_mag ) then
-                      write(3,177) ia, ks, js
-                    elseif( Green_int ) then
-                      write(3,178) ia, ks, js
-                    else
-                      write(3,179) ia, ks, js
-                    endif
-                  endif
-                  do ke = 1,3
-                    if( Green_int_mag ) then
-                      write(3,150) secqqia(ke,1:3,ks,js,initlr,ia), secqqia_m(ke,1:3,ks,js,initlr,ia)
-                    elseif( Tens_comp ) then
-                      write(3,150) secqqia(ke,1:3,ks,js,initlr,ia)
-                    else
-                      write(3,150) real( secqqia(ke,1:3,ks,js,initlr,ia) )
-                    endif
-                  end do
-                end do
-              end do
-            endif
-            if( E1E3 ) then
-              do ke = 1,3
-                do ks = 1,3
-                  if( ia == 1 ) then
-                    if( Green_int_mag ) then
-                      write(3,181) ke, ks
-                    elseif( Green_int ) then
-                      write(3,182) ke, ks
-                    else
-                      write(3,183) ke, ks
-                    endif
-                  elseif( ia == 0 ) then
-                    if( Green_int_mag ) then
-                      write(3,184) ke, ks
-                    elseif( Green_int ) then
-                      write(3,185) ke, ks
-                    else
-                      write(3,186) ke, ks
-                    endif
-                  else
-                    if( Green_int_mag ) then
-                      write(3,187) ia, ks, js
-                    elseif( Green_int ) then
-                      write(3,188) ia, ke, ks
-                    else
-                      write(3,189) ia, ke, ks
-                    endif
-                  endif
-                  do j1 = 1,3
-                    if( Green_int_mag ) then
-                      write(3,150) secdoia(ke,ks,j1,:,initlr,ia), secdoia_m(ke,ks,j1,:,initlr,ia)
-                    elseif( Tens_comp ) then
-                      write(3,150) secdoia(ke,ks,j1,:,initlr,ia)
-                    else
-                      write(3,150) real( secdoia(ke,ks,j1,:,initlr,ia) )
-                    endif
-                  end do
-                end do
-              end do
-            endif
-            if( E1M1 ) then
-              if( ia == 1 ) then
-                if( Green_int_mag ) then
-                  write(3,190)
-                elseif( Green_int ) then
-                  write(3,191)
-                else
-                  write(3,192)
-                endif
-              elseif( ia == 0 ) then
-                if( Green_int_mag ) then
-                  write(3,193)
-                elseif( Green_int ) then
-                  write(3,194)
-                elseif( Magn_sens ) then
-                  write(3,195)
-                else
-                  write(3,196)
-                endif
-              else
-                if( Green_int_mag ) then
-                  write(3,197) ia
-                elseif( Green_int ) then
-                  write(3,198) ia
-                else
-                  write(3,199) ia
-                endif
-              endif
-              do ke = 1,3
-                if( ( Magn_sens .and. ia == 0 ) .or. Green_int_mag ) then
-                  write(3,150) secmdia(ke,:,initlr,ia), secmdia_m(ke,:,initlr,ia)
-                elseif( Tens_comp ) then
-                  write(3,150) secmdia(ke,:,initlr,ia)
-                else
-                  write(3,150) aimag( secmdia(ke,:,initlr,ia) )
-                endif
-              end do
-            endif
-            if( M1M1 ) then
-              if( ia == 1 ) then
-                if( Green_int_mag ) then
-                  write(3,201)
-                elseif( Green_int ) then
-                  write(3,202)
-                else
-                  write(3,203)
-                endif
-              elseif( ia == 0 ) then
-                if( Green_int_mag ) then
-                  write(3,204)
-                elseif( Green_int ) then
-                  write(3,205)
-                else
-                  write(3,206)
-                endif
-              else
-                if( Green_int_mag ) then
-                  write(3,207) ia
-                elseif( Green_int ) then
-                  write(3,208) ia
-                else
-                  write(3,209) ia
-                endif
-              endif
-              do ke = 1,3
-                if( Green_int_mag ) then
-                  write(3,150) secmmia(ke,:,initlr,ia), secmmia_m(ke,:,initlr,ia)
-                elseif( Tens_comp ) then
-                  write(3,150) secmmia(ke,:,initlr,ia)
-                else
-                  write(3,150) real( secmmia(ke,:,initlr,ia) )
-                endif
-              end do
-            endif
-
-            if( E3E3 ) then
-              do hs = 1,3
-                do js = 1,3
-                  jhs = 3 * ( js - 1 ) + hs
-                  if( ia == 1 ) then
-                    if( Green_int_mag ) then
-                      write(3,211) (ks, js, hs, ks = 1,3)
-                    elseif( Green_int ) then
-                      write(3,212) (ks, js, hs, ks = 1,3)
-                    else
-                      write(3,213) (ks, js, hs, ks = 1,3)
-                    endif
-                  elseif( ia == 0 ) then
-                    if( Green_int_mag ) then
-                      write(3,214) (ks, js, hs, ks = 1,3)
-                    elseif( Green_int ) then
-                      write(3,215) (ks, js, hs, ks = 1,3)
-                    else
-                      write(3,216) (ks, js, hs, ks = 1,3)
-                    endif
-                  else
-                    if( Green_int_mag ) then
-                      write(3,217) ia, (ks, js, hs, ks = 1,3)
-                    elseif( Green_int ) then
-                      write(3,218) ia, (ks, js, hs, ks = 1,3)
-                    else
-                      write(3,219) ia, (ks, js, hs, ks = 1,3)
-                    endif
-                  endif
-                  do he = 1,3
-                    do je = 1,3
-                      jhe = 3 * ( je - 1 ) + he
-                      if( Green_int_mag ) then
-                        write(3,150) ( secooia(1:3,jhe,ks,jhs,initlr,ia), secooia_m(1:3,jhe,ks,jhs,initlr,ia), ks = 1,3 )
-                      elseif( tens_comp ) then
-                        write(3,150) ( secooia(1:3,jhe,ks,jhs,initlr,ia), ks = 1,3 )
-                      else
-                        write(3,150) ( real( secooia(1:3,jhe,ks,jhs,initlr,ia) ), ks = 1,3 )
-                      endif
-                    end do
-                  end do
-                end do
-              end do
-            endif
-
-          end do
-        end do
-
-      endif
+      if( ( icheck > 0 .and. ipl == 1 ) .or. ( icheck > 1 .and. idafs ) ) &
+        call write_ten_bav(Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Final_tddft, Green_int, Green_int_mag, icheck, &
+                         idafs, ipl, ipldafs, jseuil, M1M1, Magn_sens, n_oo, n_rel, natomsym, nb, nbseuil, ninit1, ninitlr, &
+                         nseuil, secddia, secddia_m, secdoia, secdoia_m, secdqia, secdqia_m, secmdia, secmdia_m, secmmia, &
+                         secmmia_m, secooia, secooia_m, secqqia, secqqia_m, Tens_comp)
 
       if( idafs .or. mu_cal ) then
         np = nphi_dafs(ipldafs)
@@ -1086,8 +752,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
 
               endif
               
-! Il manque un facteur pi qui a deja ete pris en compte dans le calcul
-! du tenseur dans la routine Tens_ab.
+! A factor pi is missing, it has aleady been taken into account in routine Tens_ab.
               if( idafs ) then
                 if( Green_int ) sec = pi * img * conjg( sec )
                 ampldafsdd(ipldafs,ip,initlr,ia) = sec
@@ -1199,15 +864,14 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
             endif
 
             if( M1M1 ) then
-              sec = (0._db,0._db)
+              sec = ( 0._db, 0._db )
               
               do ke = 1,3
                 sec = sec + uae(ke) * sum( conjg(uas(:)) * secmmia(:,ke,initlr,ia) )
                if( .not. Green_int_mag ) cycle
                 sec = sec + uae(ke) * sum( conjg(uas(:))*secmmia_m(:,ke,initlr,ia) )
               end do
-! Il manque un facteur pi qui a deja ete pris en compte dans le calcul
-! du tenseur dans la routine Tens_ab.
+! A factor pi is missing, it has aleady been taken into account in routine Tens_ab.
               if( idafs ) then
                 if( Green_int ) sec = pi * img * conjg( sec )
                 ampldafsmm(ipldafs,ip,initlr,ia)=sec
@@ -1235,7 +899,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
                endif 
               end do
 
-! Il manque un facteur pi qui a deja ete pris en compte dans le calcul du tenseur dans la routine Tens_ab.
+! A factor pi is missing, it has aleady been taken into account in routine Tens_ab.
               if( idafs ) then
                 if( Green_int ) sec = pi * img * conjg( sec )
                 ampldafsmd(ipldafs,ip,initlr,ia) = sec
@@ -1246,15 +910,15 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
               endif
             endif
 
-          end do   ! Fin de la boucle sur initlr
-        end do   ! Fin de la boucle sur les atomes
+          end do   ! End of loop over core states (initlr)
+        end do   ! End of loop over atoms
 
         if( ipl > nplr ) cycle
         if( ltypcal(ipl) == 'xanes circ d' ) jpl = jpl + 1
 
       end do
 
-    end do   ! Fin de la boucle sur les polarisation
+    end do   ! End of loop over polarizations
   end do
 
   if( Moyenne ) then
@@ -1371,6 +1035,10 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
     if( E1M1 ) secabsmd(:,:,:) = c_milli * secabsmd(:,:,:)
   endif
 
+  if( Bulk_step .and. ie == 1 ) call Cal_Length_Abs(angxyz_bulk,axyz_bulk,hkl_dafs,npldafs,Eseuil(nbseuil),Length_Abs)
+  
+! Writing ----------------------------------------------------------------------------------------------------
+
   if( icheck > 0 ) then
     if( Dip_rel ) write(3,'(/1x,a7,1p,e12.5)') 'Omega =', Omega
     do ia = 0,na
@@ -1389,7 +1057,7 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
         call center_word(nomab,Length_word)
         nomabs(ipl) = nomab
       end do
-      nccm = 36
+      nccm = 360
       nl = 1 + ( ncolr - 1 ) / nccm
 
       do initlr = 1,ninitlr
@@ -1597,17 +1265,27 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
 
 ! Ecriture dans le fichier
     if( Full_self_abs .or. Self_abs ) then
-      call write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut, Ephseuil, &
+      call write_out(angxyz,axyz,Volume_maille,f_avantseuil,E_cut,Ephseuil, &
             Epsii,Eseuil(nbseuil),Green_int,hkl_dafs,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title, &
             npldafs,npldafs,3,npldafs,nseuil,numat_abs,phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym)
+    elseif( Bulk_step .and. ie == 1 ) then
+      allocate( hkl_dafs_fake(3,npldafs) )
+      hkl_dafs_fake(1,:) = Length_abs(:) 
+      hkl_dafs_fake(2,:) = 1.e+10_db   ! fake value used in write_out, signature of truncation 
+      hkl_dafs_fake(3,:) = hkl_dafs(3,:) 
+      call write_out(rdum,rdum,Volume_maille,f_avantseuil,E_cut,Ephseuil, &
+            Epsii,Eseuil(nbseuil),Green_int,hkl_dafs_fake,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title, &
+            npldafs,npldafs,0,npldafs,nseuil,numat_abs,phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym)
+      deallocate( hkl_dafs_fake )
     else
-      call write_out(rdum,rdum,Densite_atom,f_avantseuil,E_cut, Ephseuil, &
+      call write_out(rdum,rdum,Volume_maille,f_avantseuil,E_cut,Ephseuil, &
             Epsii,Eseuil(nbseuil),Green_int,rdum,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title, &
             npldafs,npldafs,0,0,nseuil,numat_abs,phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym)
+
     endif
 
 ! Ecriture a l'ecran
-    if( ia == 0 ) call write_out(rdum,rdum,Densite_atom,f_avantseuil,E_cut, Ephseuil, &
+    if( ia == 0 ) call write_out(rdum,rdum,Volume_maille,f_avantseuil,E_cut, Ephseuil, &
             Epsii,Eseuil(nbseuil),Green_int,rdum,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title, &
             npldafs,npldafs,0,0,nseuil,-1,phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym)
 
@@ -1704,8 +1382,6 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
 
   end do  ! fin boucle sur atomes
 
-  if( E3E3 ) deallocate( secooia, secooia_m ) 
-
   if( dafs ) then
     deallocate( ampldafs )
     if( E1E1 ) deallocate( ampldafsdd )
@@ -1729,6 +1405,391 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
 
   return
   110 format(/' ---- Coabs --------',100('-'))
+  283 format(/' Conversion factor (numb. of electron/Mbarn) =',10f10.5)
+  284 format(/' Output in mm^(-1), conversion factor =',f13.5,' mm^(-1)/Mbarn' )
+  285 format(/'   Total signal')
+  290 format(/'   Signal atom',i3)
+  295 format(/'   Core state or edge',i3)
+  297 format(/'   Contribution for valence state l =',i3)
+  300 format(/4x,'Energy',3200a13)
+  310 format(f10.3,1p,3200e13.5)
+  320 format(6x,'E1E1',1p,3200e13.5)
+  330 format(6x,'E1E2',1p,3200e13.5)
+  340 format(6x,'E2E2',1p,3200e13.5)
+  350 format(6x,'E1E3',1p,3200e13.5)
+  351 format(6x,'E3E3',1p,3200e13.5)
+  352 format(6x,'M1M1',1p,3200e13.5)
+  354 format(6x,'E1M1',1p,3200e13.5)
+  360 format(/10x,1p,3200a13)
+  370 format('  Ampldafs',1p,3200e13.5)
+  392 format(' Number of Energies =',i5)
+  400 format(i5,4x,' = Number of angles')
+  405 format(f10.3,A)
+  407 format(3i5,' = (h,k,l)')
+  410 format(' (h,k,l) = ',3i3,', sigpi =',2i3)
+  420 format(7x,1p,3200e13.5)
+  430 format(f7.1,1p,3200e13.5)
+end
+
+!***********************************************************************
+
+! Writing of the cartesian tensors in the bav file
+
+subroutine Write_ten_bav(Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Final_tddft, Green_int, Green_int_mag, icheck, &
+                         idafs, ipl, ipldafs, jseuil, M1M1, Magn_sens, n_oo, n_rel, natomsym, nb, nbseuil, ninit1, ninitlr, &
+                         nseuil, secddia, secddia_m, secdoia, secdoia_m, secdqia, secdqia_m, secmdia, secmdia_m, secmmia, &
+                         secmmia_m, secooia, secooia_m, secqqia, secqqia_m, Tens_comp) 
+
+  use declarations
+  implicit none
+
+  integer:: he, hs, ia, ib, icheck, initlr, ipl, ipldafs, iseuil, ispfg, j1, je, jhe, jhs, js, jseuil, ke, ks, n_oo, n_rel, &
+            natomsym, nb, nbseuil, ninit1, ninitlr, nseuil
+
+  complex(kind=db), dimension(3,3,n_rel,ninitlr,0:natomsym):: secddia, secddia_m
+  complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secmdia, secmdia_m, secmmia, secmmia_m
+  complex(kind=db), dimension(3,3,3,ninitlr,0:natomsym):: secdqia, secdqia_m
+  complex(kind=db), dimension(3,3,3,3,ninitlr,0:natomsym):: secdoia, secdoia_m, secqqia, secqqia_m
+  complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:natomsym):: secooia, secooia_m
+
+  logical:: Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Final_tddft, Green_int, Green_int_mag, idafs, M1M1, Magn_sens, &
+            Tens_comp
+  
+  do initlr = 1,ninitlr
+
+    if( Core_resolved .and. .not. Final_tddft ) then
+      if( initlr <= ninit1 ) then
+        iseuil = 1
+      else
+        iseuil = min(2, nbseuil)
+      endif
+    elseif( Final_tddft ) then
+      iseuil = min(2, nbseuil)
+    else
+      iseuil = initlr
+    endif
+
+    if( Final_tddft ) then
+      if( nbseuil == 2 ) then
+        write(3,120) achar(nseuil+74) // achar(jseuil+iseuil+46) // achar(jseuil+iseuil+47)
+      else
+        write(3,120) achar(nseuil+74) // achar(jseuil+iseuil+46)
+      endif
+    elseif( nseuil == 0 ) then  ! optic
+      if( Core_resolved ) then
+        if( initlr == 1 ) then
+          write(3,123) ninitlr
+        else
+          write(3,125) initlr-2, ninitlr
+        endif
+      else
+        write(3,120) 'Opt'
+      endif
+    else
+      if( Core_resolved ) then
+        write(3,130) initlr, ninitlr
+      elseif( ninitlr > 1 ) then
+        write(3,135) initlr, ninitlr
+      endif
+    endif
+
+    do ib = 0,nb
+      if( natomsym == 1 .and. ib > 0 ) cycle
+      if( ib == 0 ) then
+        ia = 1
+      elseif( ib == 1 ) then
+        ia = 0
+      else
+        ia = ib
+      endif
+      if( ia /= 0 .and. ipl > 1 ) cycle
+      if( ipl > 1 .and. .not. idafs ) cycle
+      if( idafs .and. icheck < 2 ) cycle
+      if( ipl > 1 ) write(3,140) ipldafs
+      if( E1E1 ) then
+        if( ia == 1 ) then
+          if( Green_int_mag ) then
+            write(3,141)
+          elseif( Green_int ) then
+            write(3,142)
+          else
+            write(3,143)
+          endif
+        elseif( ia == 0 ) then
+          if( Green_int_mag ) then
+            write(3,144)
+          elseif( Green_int ) then
+            write(3,145)
+          else
+            write(3,146)
+          endif
+        else
+          if( Green_int_mag ) then
+            write(3,147) ia
+          elseif( Green_int ) then
+            write(3,148) ia
+          else
+            write(3,149) ia
+          endif
+        endif
+        do ispfg = 1,n_rel
+          if( ispfg > 1 ) write(3,*)
+          do ke = 1,3
+            if( Green_int_mag ) then
+              write(3,150) secddia(ke,:,ispfg,initlr,ia), secddia_m(ke,:,ispfg,initlr,ia)
+            elseif( Tens_comp ) then
+              write(3,150) secddia(ke,:,ispfg,initlr,ia)
+            else
+              write(3,150) real( secddia(ke,:,ispfg,initlr,ia) )
+            endif
+          end do
+        end do
+      endif
+      if( E1E2 ) then
+        do ke = 1,3
+          if( ia == 1 ) then
+            if( Green_int_mag ) then
+              write(3,160) ke
+            elseif( Green_int ) then
+              write(3,161) ke
+            else
+              write(3,162) ke
+            endif
+          elseif( ia == 0 ) then
+            if( Green_int_mag ) then
+              write(3,163) ke
+            elseif( Green_int ) then
+              write(3,164) ke
+            elseif( Magn_sens ) then
+              write(3,165) ke
+            else
+              write(3,166) ke
+            endif
+          else
+            if( Green_int_mag ) then
+              write(3,167) ia, ke
+            elseif( Green_int ) then
+              write(3,168) ia, ke
+            else
+              write(3,169) ia, ke
+            endif
+          endif
+          do ks = 1,3
+            if( ( Magn_sens .and. ia == 0 ) .or. Green_int_mag ) then
+              write(3,150) secdqia(ke,ks,:,initlr,ia), secdqia_m(ke,ks,:,initlr,ia)
+            elseif( Tens_comp ) then
+              write(3,150) secdqia(ke,ks,:,initlr,ia)
+            else
+              write(3,150) real( secdqia(ke,ks,:,initlr,ia), db )
+            endif
+          end do
+        end do
+      endif
+      if( E2E2 ) then
+        do js = 1,3
+          do ks = 1,3
+            if( ia == 1 ) then
+              if( Green_int_mag ) then
+                write(3,171) ks, js
+              elseif( Green_int ) then
+                write(3,172) ks, js
+              else
+                write(3,173) ks, js
+              endif
+            elseif( ia == 0 ) then
+              if( Green_int_mag ) then
+                write(3,174) ks, js
+              elseif( Green_int ) then
+                write(3,175) ks, js
+              else
+                write(3,176) ks, js
+              endif
+            else
+              if( Green_int_mag ) then
+                write(3,177) ia, ks, js
+              elseif( Green_int ) then
+                write(3,178) ia, ks, js
+              else
+                write(3,179) ia, ks, js
+              endif
+            endif
+            do ke = 1,3
+              if( Green_int_mag ) then
+                write(3,150) secqqia(ke,1:3,ks,js,initlr,ia), secqqia_m(ke,1:3,ks,js,initlr,ia)
+              elseif( Tens_comp ) then
+                write(3,150) secqqia(ke,1:3,ks,js,initlr,ia)
+              else
+                write(3,150) real( secqqia(ke,1:3,ks,js,initlr,ia), db )
+              endif
+            end do
+          end do
+        end do
+      endif
+      if( E1E3 ) then
+        do ke = 1,3
+          do ks = 1,3
+            if( ia == 1 ) then
+              if( Green_int_mag ) then
+                write(3,181) ke, ks
+              elseif( Green_int ) then
+                write(3,182) ke, ks
+              else
+                write(3,183) ke, ks
+              endif
+            elseif( ia == 0 ) then
+              if( Green_int_mag ) then
+                write(3,184) ke, ks
+              elseif( Green_int ) then
+                write(3,185) ke, ks
+              else
+                write(3,186) ke, ks
+              endif
+            else
+              if( Green_int_mag ) then
+                write(3,187) ia, ks, js
+              elseif( Green_int ) then
+                write(3,188) ia, ke, ks
+              else
+                write(3,189) ia, ke, ks
+              endif
+            endif
+            do j1 = 1,3
+              if( Green_int_mag ) then
+                write(3,150) secdoia(ke,ks,j1,:,initlr,ia), secdoia_m(ke,ks,j1,:,initlr,ia)
+              elseif( Tens_comp ) then
+                write(3,150) secdoia(ke,ks,j1,:,initlr,ia)
+              else
+                write(3,150) real( secdoia(ke,ks,j1,:,initlr,ia) )
+              endif
+            end do
+          end do
+        end do
+      endif
+      if( E1M1 ) then
+        if( ia == 1 ) then
+          if( Green_int_mag ) then
+            write(3,190)
+          elseif( Green_int ) then
+            write(3,191)
+          else
+            write(3,192)
+          endif
+        elseif( ia == 0 ) then
+          if( Green_int_mag ) then
+            write(3,193)
+          elseif( Green_int ) then
+            write(3,194)
+          elseif( Magn_sens ) then
+            write(3,195)
+          else
+            write(3,196)
+          endif
+        else
+          if( Green_int_mag ) then
+            write(3,197) ia
+          elseif( Green_int ) then
+            write(3,198) ia
+          else
+            write(3,199) ia
+          endif
+        endif
+        do ke = 1,3
+          if( ( Magn_sens .and. ia == 0 ) .or. Green_int_mag ) then
+            write(3,150) secmdia(ke,:,initlr,ia), secmdia_m(ke,:,initlr,ia)
+          elseif( Tens_comp ) then
+            write(3,150) secmdia(ke,:,initlr,ia)
+          else
+            write(3,150) aimag( secmdia(ke,:,initlr,ia) )
+          endif
+        end do
+      endif
+      if( M1M1 ) then
+        if( ia == 1 ) then
+          if( Green_int_mag ) then
+            write(3,201)
+          elseif( Green_int ) then
+            write(3,202)
+          else
+            write(3,203)
+          endif
+        elseif( ia == 0 ) then
+          if( Green_int_mag ) then
+            write(3,204)
+          elseif( Green_int ) then
+            write(3,205)
+          else
+            write(3,206)
+          endif
+        else
+          if( Green_int_mag ) then
+            write(3,207) ia
+          elseif( Green_int ) then
+            write(3,208) ia
+          else
+            write(3,209) ia
+          endif
+        endif
+        do ke = 1,3
+          if( Green_int_mag ) then
+            write(3,150) secmmia(ke,:,initlr,ia), secmmia_m(ke,:,initlr,ia)
+          elseif( Tens_comp ) then
+            write(3,150) secmmia(ke,:,initlr,ia)
+          else
+            write(3,150) real( secmmia(ke,:,initlr,ia) )
+          endif
+        end do
+      endif
+
+      if( E3E3 ) then
+        do hs = 1,3
+          do js = 1,3
+            jhs = 3 * ( js - 1 ) + hs
+            if( ia == 1 ) then
+              if( Green_int_mag ) then
+                write(3,211) (ks, js, hs, ks = 1,3)
+              elseif( Green_int ) then
+                write(3,212) (ks, js, hs, ks = 1,3)
+              else
+                write(3,213) (ks, js, hs, ks = 1,3)
+              endif
+            elseif( ia == 0 ) then
+              if( Green_int_mag ) then
+                write(3,214) (ks, js, hs, ks = 1,3)
+              elseif( Green_int ) then
+                write(3,215) (ks, js, hs, ks = 1,3)
+              else
+                write(3,216) (ks, js, hs, ks = 1,3)
+              endif
+            else
+              if( Green_int_mag ) then
+                write(3,217) ia, (ks, js, hs, ks = 1,3)
+              elseif( Green_int ) then
+                write(3,218) ia, (ks, js, hs, ks = 1,3)
+              else
+                write(3,219) ia, (ks, js, hs, ks = 1,3)
+              endif
+            endif
+            do he = 1,3
+              do je = 1,3
+                jhe = 3 * ( je - 1 ) + he
+                if( Green_int_mag ) then
+                  write(3,150) ( secooia(1:3,jhe,ks,jhs,initlr,ia), secooia_m(1:3,jhe,ks,jhs,initlr,ia), ks = 1,3 )
+                elseif( tens_comp ) then
+                  write(3,150) ( secooia(1:3,jhe,ks,jhs,initlr,ia), ks = 1,3 )
+                else
+                  write(3,150) ( real( secooia(1:3,jhe,ks,jhs,initlr,ia) ), ks = 1,3 )
+                endif
+              end do
+            end do
+          end do
+        end do
+      endif
+
+    end do
+
+  end do
+
+  return
   120 format(/' Threshold ',a3)
   123 format(/'   Valence state, all on',i3)
   125 format(/'   Valence state l =',i3,' on',i3)
@@ -1803,36 +1864,57 @@ subroutine write_coabs(Allsite,angxyz,axyz,Cartesian_tensor,Core_resolved,Dafs,D
           ' Green integral, Non magnetic part',80x,'Magnetic part')
   218 format(/' Atom ',i3,3(' Tensor_oo(ke,je,he',3(',',i1),')',36x), ' Green integral')
   219 format(/' Atom ',i3,3(' Tensor_oo(ke,je,he',3(',',i1),')',36x))
-  283 format(/' Conversion factor (numb. of electron/Mbarn) =',10f10.5)
-  284 format(/' Output in mm^(-1), conversion factor =',f13.5,' mm^(-1)/Mbarn' )
-  285 format(/'   Total signal')
-  290 format(/'   Signal atom',i3)
-  295 format(/'   Core state or edge',i3)
-  297 format(/'   Contribution for valence state l =',i3)
-  300 format(/4x,'Energy',320a13)
-  310 format(f10.3,1p,320e13.5)
-  320 format(6x,'E1E1',1p,320e13.5)
-  330 format(6x,'E1E2',1p,320e13.5)
-  340 format(6x,'E2E2',1p,320e13.5)
-  350 format(6x,'E1E3',1p,320e13.5)
-  351 format(6x,'E3E3',1p,320e13.5)
-  352 format(6x,'M1M1',1p,320e13.5)
-  354 format(6x,'E1M1',1p,320e13.5)
-  360 format(/10x,1p,320a13)
-  370 format('  Ampldafs',1p,320e13.5)
-  392 format(' Number of Energies =',i5)
-  400 format(i5,4x,' = Number of angles')
-  405 format(f10.3,A)
-  407 format(3i5,' = (h,k,l)')
-  410 format(' (h,k,l) = ',3i3,', sigpi =',2i3)
-  420 format(7x,1p,320e13.5)
-  430 format(f7.1,1p,320e13.5)
+end
+      
+!******************************************************************************************************************************
+
+subroutine Cal_Length_Abs(angxyz,axyz,hkl_dafs,npldafs,Energy,Length_Abs)
+
+  use declarations
+  implicit none
+
+  integer:: ipl, npldafs
+  
+  real(kind=db):: cos_z, c_cos_z, dhkl, Energy, konde, Numerateur, SinThetaBragg
+  real(kind=db), dimension(3):: angxyz, Ar, axyz, Br, cosdir
+  real(kind=db), dimension(npldafs):: Length_Abs
+  real(kind=db), dimension(3,npldafs):: hkl_dafs
+
+! Energy is the photon energy in Rydberg, konde is in atomic unit
+  konde = 0.5_db * alfa_sf * Energy 
+  cosdir(:) = cos( angxyz(:) )
+
+  Numerateur =  1 - sum( cosdir(:)**2 ) + 2 * cosdir(1) * cosdir(2) * cosdir(3) 
+  Ar(:) = sin( angxyz(:) ) / axyz(:)
+  Br(1) = 2 * ( cosdir(1) - cosdir(2) * cosdir(3) ) / ( axyz(2) * axyz(3) ) 
+  Br(2) = 2 * ( cosdir(2) - cosdir(3) * cosdir(1) ) / ( axyz(3) * axyz(1) ) 
+  Br(3) = 2 * ( cosdir(3) - cosdir(1) * cosdir(2) ) / ( axyz(1) * axyz(2) ) 
+
+  cos_z = sqrt( sin( angxyz(2) )**2 - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) &
+        / sin( angxyz(3) ) )**2 )
+  c_cos_z = axyz(3) * cos_z
+
+  do ipl = 1,npldafs
+   
+    if( sum( abs( hkl_dafs(:,ipl) ) ) < eps10 ) then
+      Length_Abs(ipl) = 1.e+10_db
+    else
+! Inter-reticular distance
+      dhkl = sqrt( Numerateur / ( sum( ( hkl_dafs(:,ipl) * Ar(:) )**2 ) - hkl_dafs(2,ipl) * hkl_dafs(3,ipl) * Br(1) &
+                                   - hkl_dafs(3,ipl) * hkl_dafs(1,ipl) * Br(2) - hkl_dafs(1,ipl) * hkl_dafs(2,ipl) * Br(3) ) )
+      SinThetaBragg = pi / ( konde * dhkl )
+      Length_Abs(ipl) = 2 * c_cos_z / SinThetaBragg
+    endif
+    
+  end do
+
+  return
 end
 
-!***********************************************************************
+!******************************************************************************************************************************
 
 subroutine write_nrixs(All_nrixs,Allsite,Core_resolved, &
-                  Densite_atom,E_cut,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft, &
+                  Volume_maille,E_cut,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft, &
                   f_avantseuil,Green_int,iabsorig,icheck,ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
                   jseuil,mpinodee,n_multi_run,natomsym,nbseuil,nenerg,ninit1,ninitlr,nomfich,nomfich_cal_convt, &
                   nq_nrixs,nseuil,nspinp,numat_abs,q_nrixs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Spinorbite,Taux_eq,V0muf)
@@ -1855,7 +1937,7 @@ subroutine write_nrixs(All_nrixs,Allsite,Core_resolved, &
 
   logical:: All_nrixs, Allsite, Core_resolved, Final_tddft, Energphot, Extract_ten, Green_int, Green_int_mag, Magn_sens, Spinorbite
 
-  real(kind=db):: Densite_atom, E_cut, Ephoton, Ephseuil, q, V0muf
+  real(kind=db):: Volume_maille, E_cut, Ephoton, Ephseuil, q, V0muf
 
   real(kind=db), dimension(0):: rdum
   real(kind=db), dimension(ninitlr) :: Epsii
@@ -2030,12 +2112,12 @@ subroutine write_nrixs(All_nrixs,Allsite,Core_resolved, &
     end do
 
 ! Ecriture dans le fichier
-    call write_out(rdum,rdum,Densite_atom,f_avantseuil,E_cut,Ephseuil, &
+    call write_out(rdum,rdum,Volume_maille,f_avantseuil,E_cut,Ephseuil, &
             Epsii,Eseuil(nbseuil),Green_int,rdum,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title, &
             npldafs,npldafs,0,0,nseuil,numat_abs,cdum,cdum,Tens,V0muf,Core_resolved,natomsym)
 
 ! Ecriture a l'ecran
-    if( ia == 0 ) call write_out(rdum,rdum,Densite_atom,f_avantseuil,E_cut,Ephseuil, &
+    if( ia == 0 ) call write_out(rdum,rdum,Volume_maille,f_avantseuil,E_cut,Ephseuil, &
             Epsii,Eseuil(nbseuil),Green_int,rdum,ie,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title, &
             npldafs,npldafs,0,0,nseuil,-1,cdum,cdum,Tens,V0muf,Core_resolved,natomsym)
 
@@ -2075,7 +2157,7 @@ end
 
 !***********************************************************************
 
-subroutine write_cartesian_tensor(Densite_atom,E_cut,E1E2,E2E2,Ephseuil,Epsii,Eseuil,ia,ie,ipldafs,jseuil, &
+subroutine write_cartesian_tensor(Volume_maille,E_cut,E1E2,E2E2,Ephseuil,Epsii,Eseuil,ia,ie,ipldafs,jseuil, &
                  M1M1,magn_sens,n_rel,natomsym,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,secddia,secdqia,secdqia_m, &
                  secqqia,secmdia,tens_comp,v0muf,Core_resolved)
 
@@ -2255,7 +2337,7 @@ subroutine write_cartesian_tensor(Densite_atom,E_cut,E1E2,E2E2,Ephseuil,Epsii,Es
 
   zero_c = (0._db, 0._db)
 
-  call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
+  call write_out(rdum,rdum,Volume_maille,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,nomtens,1,0,0,0,nseuil,numat_abs,cdum, &
            cdum,tens,v0muf,Core_resolved,0) 
 
@@ -2264,7 +2346,7 @@ end
 
 !***********************************************************************
 
-subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil,Green_int,hkl_dafs,ie, &
+subroutine write_out(angxyz,axyz,Volume_maille,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil,Green_int,hkl_dafs,ie, &
             jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,np,npp,nppa,npps,nseuil,numat,ph1, &
             ph2,tens,V0muf,Core_resolved,natomsym)
 
@@ -2276,8 +2358,8 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
   integer:: i, icor, ie, ipr, jseuil, n, n_dim, n_tens, natomsym, ninit1, ninitlr, np, npp, nppa, npps, nseuil, numat 
   
   character(len=132):: nomficht
-  character(len=95):: mot1
-  character(len=27):: mot2
+  character(len=92):: mot1
+  character(len=29):: mot2
   character(len=Length_word):: mot
   character(len=Length_word), dimension(n_dim):: title
   character(len=10+(n_tens-2*npp)*Length_word):: dummy
@@ -2285,18 +2367,25 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
   complex(kind=db):: f_avantseuil
   complex(kind=db), dimension(np):: ph1, ph2
 
-  logical:: Core_resolved, Gnuplot, Green_int
+  logical:: Core_resolved, Gnuplot, Green_int, Truncature
 
-  real(kind=db):: Densite_atom, E_cut, Ephseuil, Eseuil, f0_forward, fpp_avantseuil, V0muf
+  real(kind=db):: Volume_maille, E_cut, Ephseuil, Eseuil, f0_forward, fpp_avantseuil, V0muf
   
   real(kind=db), dimension(nppa):: angxyz, axyz
   real(kind=db), dimension(ninitlr):: Epsii
   real(kind=db), dimension(n_dim):: Tens
   real(kind=db), dimension(3,npps):: hkl_dafs
 
-
   dummy = ' '
 
+! For 2D resonant diffraction, when an absorbing atom is in the bulk,
+! hkl_dafs(2,1) is a fake number which when high means that hkl_dafs(i,ipl), contains Length_abs.  
+  if( npps > 0 ) then
+    Truncature = hkl_dafs(2,1) > 10000._db
+  else
+    Truncature = .false.
+  endif
+  
   if( numat == -1 ) then
     ipr = 6
   elseif( numat < -1 ) then
@@ -2337,67 +2426,68 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
       if( Green_int ) icor = - icor
       
       mot1 = ' = E_edge, Z, n_edge, j_edge, Abs_before_edge, VO_interstitial, E_cut, ninitl, ninit1, Epsii'
-      mot2 = ', Atom_density, f0_forward'
-
+      mot2 = ', UnitCell_Volume, f0_forward'
+                
       Gnuplot = .false.
 
       if( Gnuplot ) then
         if( nseuil == 0 ) then
           write(ipr,110) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, 1, icor, Epsii(1)*rydb, Densite_atom, f0_forward, mot1, mot2
+            E_cut*rydb, 1, icor, Epsii(1)*rydb, Volume_maille, f0_forward, mot1, mot2
         elseif( ninitlr == 1 ) then
           write(ipr,110) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, mot2
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, mot1, mot2
         elseif( ninitlr == 2 ) then
           write(ipr,111) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, mot1, ninitlr, mot2
         elseif( ninitlr == 4 ) then
           write(ipr,112) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, mot1, ninitlr, mot2
         elseif( ninitlr == 6 ) then
           write(ipr,113) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, mot1, ninitlr, mot2
         elseif( ninitlr == 8 ) then
           write(ipr,114) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, mot1, ninitlr, mot2
         elseif( ninitlr == 10 ) then
           write(ipr,115) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, mot1, ninitlr, mot2
         else     ! 14
           write(ipr,116) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, mot1, ninitlr, mot2
         endif
       else
         if( nseuil == 0 ) then
           write(ipr,120) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, 1, icor, Epsii(1)*rydb, Densite_atom, f0_forward, mot1, mot2
+            E_cut*rydb, 1, icor, Epsii(1)*rydb, Volume_maille, f0_forward, mot1, mot2
         elseif( ninitlr == 1 ) then
           write(ipr,120) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, mot2
-        elseif( ninitlr == 2 ) then
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, mot1, mot2
+        elseif( ninitlr == 2 ) then                   
           write(ipr,121) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, mot1, ninitlr, mot2
         elseif( ninitlr == 4 ) then
           write(ipr,122) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, mot1, ninitlr, mot2
         elseif( ninitlr == 6 ) then
           write(ipr,123) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, mot1, ninitlr, mot2
         elseif( ninitlr == 8 ) then
           write(ipr,124) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, mot1, ninitlr, mot2
         elseif( ninitlr == 10 ) then
           write(ipr,125) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, mot1, ninitlr, mot2
         else     ! 14
           write(ipr,126) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Densite_atom, f0_forward, mot1, ninitlr, mot2
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, mot1, ninitlr, mot2
         endif
       endif
 
     endif
 
     if( npp > 0 .and. numat >= 0 ) then
+
       select case(Length_word)
         case(11)
           write(ipr,141) dummy, ph2(1:npp)
@@ -2427,7 +2517,11 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
           end do
           stop
       end select
-      if( nppa > 0 ) write(ipr,155) natomsym, axyz(:)*bohr, angxyz(:), ( nint( hkl_dafs(:,i) ), i = 1,npp )
+      if( nppa > 0 ) write(ipr,155) natomsym, axyz(:)*bohr, angxyz(:) / radian, ( nint( hkl_dafs(:,i) ), i = 1,npp )
+      if( Truncature) then
+        write(ipr,156) dummy, hkl_dafs(1,:)
+        write(ipr,156) dummy, hkl_dafs(3,:)
+      endif
     endif
     do i = 1,n
       mot = title(i)
@@ -2508,21 +2602,21 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
                ' To change that you must modify the formats 121 up to 157 in this routine,', / &
                ' and increase to the same value the parameter n_tens_max.', / &
                ' Then you compile again.' //)
-  110 format('# ',f10.3,i5,2i3,3f12.5,2i3,2f13.3,f13.9,f12.5,a95,a27)
-  111 format('# ',f10.3,i5,2i3,3f12.5,2i3,2f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
-  112 format('# ',f10.3,i5,2i3,3f12.5,2i3,4f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
-  113 format('# ',f10.3,i5,2i3,3f12.5,2i3,6f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
-  114 format('# ',f10.3,i5,2i3,3f12.5,2i3,8f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
-  115 format('# ',f10.3,i5,2i3,3f12.5,2i3,10f13.3,f13.9,f12.5,a95,'(1..',i2,')',a27)
-  116 format('# ',f10.3,i5,2i3,3f12.5,2i3,14f13.3,f13.9,f12.5,a95,'(1..',i2,')',a27)
+  110 format('# ',f10.3,i5,2i3,1p,3e15.7,2i3,2e15.7,2e15.7,a92,a29)
+  111 format('# ',f10.3,i5,2i3,1p,3e15.7,2i3,2e15.7,2e15.7,a92,'(1..',i1,')',a29)
+  112 format('# ',f10.3,i5,2i3,1p,3e15.7,2i3,4e15.7,2e15.7,a92,'(1..',i1,')',a29)
+  113 format('# ',f10.3,i5,2i3,1p,3e15.7,2i3,6e15.7,2e15.7,a92,'(1..',i1,')',a29)
+  114 format('# ',f10.3,i5,2i3,1p,3e15.7,2i3,8e15.7,2e15.7,a92,'(1..',i1,')',a29)
+  115 format('# ',f10.3,i5,2i3,1p,3e15.7,2i3,10e15.7,2e15.7,a92,'(1..',i2,')',a29)
+  116 format('# ',f10.3,i5,2i3,1p,3e15.7,2i3,14e15.7,2e15.7,a92,'(1..',i2,')',a29)
 
-  120 format(f10.3,i5,2i3,3f12.5,2i3,f13.3,f13.9,f12.5,a95,a27)
-  121 format(f10.3,i5,2i3,3f12.5,2i3,2f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
-  122 format(f10.3,i5,2i3,3f12.5,2i3,4f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
-  123 format(f10.3,i5,2i3,3f12.5,2i3,6f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
-  124 format(f10.3,i5,2i3,3f12.5,2i3,8f13.3,f13.9,f12.5,a95,'(1..',i1,')',a27)
-  125 format(f10.3,i5,2i3,3f12.5,2i3,10f13.3,f13.9,f12.5,a95,'(1..',i2,')',a27)
-  126 format(f10.3,i5,2i3,3f12.5,2i3,14f13.3,f13.9,f12.5,a95,'(1..',i2,')',a27)
+  120 format(f10.3,i5,2i3,1p,3e15.7,2i3,e15.7,2e15.7,a92,a29)
+  121 format(f10.3,i5,2i3,1p,3e15.7,2i3,2e15.7,2e15.7,a92,'(1..',i1,')',a29)
+  122 format(f10.3,i5,2i3,1p,3e15.7,2i3,4e15.7,2e15.7,a92,'(1..',i1,')',a29)
+  123 format(f10.3,i5,2i3,1p,3e15.7,2i3,6e15.7,2e15.7,a92,'(1..',i1,')',a29)
+  124 format(f10.3,i5,2i3,1p,3e15.7,2i3,8e15.7,2e15.7,a92,'(1..',i1,')',a29)
+  125 format(f10.3,i5,2i3,1p,3e15.7,2i3,10e15.7,2e15.7,a92,'(1..',i2,')',a29)
+  126 format(f10.3,i5,2i3,1p,3e15.7,2i3,14e15.7,2e15.7,a92,'(1..',i2,')',a29)
 
   141 format(A,1p,10000e11.3)
   142 format(A,1p,10000e12.4)
@@ -2533,6 +2627,7 @@ subroutine write_out(angxyz,axyz,Densite_atom,f_avantseuil,E_cut,Ephseuil,Epsii,
   147 format(A,1p,10000e17.9)
   150 format(//' Length_word =',i3, ' This parameter must be set between 11 and 17 !'//)
   155 format(i4,3f10.5,3x,3f10.5,10000(14x,3i4))
+  156 format(A,1p,10000(15x,e15.7))
   160 format('    Energy',10000A)
   161 format(f10.5,1p,10000e11.3)
   162 format(f10.5,1p,10000e12.4)
@@ -2699,7 +2794,7 @@ end
 
 !***********************************************************************
 
-subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2, &
+subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2, &
             Energ,Ephseuil,Epsii,Eseuil,icheck,ie,Int_tens,jseuil,Magn_sens,Moyenne,n_rel,n_tens_max, &
             natomsym,nenerg,ninit1,ninitlr,nomfich_s,nphim,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdafs,phdf0t, &
             phdt,pol,Poldafse,Poldafss,secddia,secdqia,secmdia,secqqia,Spherical_signal,Taux_eq,V0muf,Vec,Vecdafse,Vecdafss)
@@ -2738,7 +2833,7 @@ subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E
 
   logical:: Core_resolved, E1E1, E1E2, E1M1, E2E2, Magn_sens, Moyenne, Spherical_signal, Write_bav
 
-  real(kind=db):: Densite_atom, dph, E_cut, Ephseuil, Eseuil, V0muf
+  real(kind=db):: Volume_maille, dph, E_cut, Ephseuil, Eseuil, V0muf
   real(kind=db), dimension(3):: Vo_i, Vo_s
   real(kind=db), dimension(ninitlr):: ct_nelec, Epsii
   real(kind=db), dimension(nenerg):: Energ
@@ -2845,7 +2940,7 @@ subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E
        Magn_sens,n_rel,natomsym,ninitlr,secddia,secdqia,secmdia,secqqia, &
        Sph_tensor_ia_dd,Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_qq,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Taux_eq)
 
-  call Write_Spherical_tensor(Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2,Energ,Ephseuil,Epsii, &
+  call Write_Spherical_tensor(Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2,Energ,Ephseuil,Epsii, &
        Eseuil,icheck,ie,Int_tens,jseuil,Magn_sens,n_tens_dd,n_tens_dm,n_tens_dq,n_tens_max,n_tens_qq, &
        natomsym,nenerg,ninit1,ninitlr,nomfich_s,nseuil,numat_abs, &
        Sph_tensor_ia_dd,Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Sph_tensor_ia_qq,V0muf)
@@ -3043,7 +3138,7 @@ subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E
       endif 
     endif 
 
-    call Write_Signal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2,Ephseuil,Epsii, &
+    call Write_Signal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2,Ephseuil,Epsii, &
       Eseuil,0,ie,ipl,ipldafs,jseuil,Magn_sens,n_tens_dd,n_tens_dq,n_tens_dm, &
       n_tens_qq,ninit1,ninitlr,nomfich_s,npldafs,nplt,nseuil,numat_abs,phdf0t,phdt, &
       Sph_tensor_dd,Sph_tensor_dq,Sph_tensor_dq_m,Sph_tensor_dm,Sph_tensor_dm_m,Sph_tensor_qq, &
@@ -3567,7 +3662,7 @@ end
 
 ! Ecriture des tenseurs spheriques et de leur integrale
 
-subroutine Write_Spherical_tensor(Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2,Energ,Ephseuil,Epsii, &
+subroutine Write_Spherical_tensor(Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2,Energ,Ephseuil,Epsii, &
        Eseuil,icheck,ie,Int_tens,jseuil,Magn_sens,n_tens_dd,n_tens_dm,n_tens_dq,n_tens_max,n_tens_qq, &
        natomsym,nenerg,ninit1,ninitlr,nomfich_s,nseuil,numat_abs, &
        Sph_tensor_ia_dd,Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Sph_tensor_ia_qq,V0muf)
@@ -3591,7 +3686,7 @@ subroutine Write_Spherical_tensor(Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M
 
   logical:: Core_resolved, E1E1, E1E2, E1M1, E2E2, Magn_sens
 
-  real(kind=db):: de, Densite_atom, E_cut, Ephseuil, Eseuil, V0muf
+  real(kind=db):: de, Volume_maille, E_cut, Ephseuil, Eseuil, V0muf
   real(kind=db), dimension(0):: rdum
   real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens
   real(kind=db), dimension(n_tens_max*ninitlr):: Int_tenst, Tens
@@ -3716,7 +3811,7 @@ subroutine Write_Spherical_tensor(Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M
     long = len_trim(nomficht)
     nomficht(long+1:long+4) = '.txt'
 
-    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
+    call write_out(rdum,rdum,Volume_maille,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
           jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
           cdum,Tens,V0muf,Core_resolved,0)
 
@@ -3760,7 +3855,7 @@ subroutine Write_Spherical_tensor(Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M
     endif
 
     Int_tenst(1:n_tens) = Int_tens(1:n_tens,ia)
-    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
+    call write_out(rdum,rdum,Volume_maille,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
           jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
           cdum,Int_tenst,v0muf,Core_resolved,0)
 
@@ -4165,7 +4260,7 @@ end
 
 ! Ecriture du signal par tenseur
 
-subroutine Write_Signal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1,E2E2,Ephseuil,Epsii, &
+subroutine Write_Signal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2,Ephseuil,Epsii, &
       Eseuil,ia,ie,ipl,ipldafs,jseuil,magn_sens,n_tens_dd,n_tens_dq,n_tens_dm, &
       n_tens_qq,ninit1,ninitlr,nomfich_s,npldafs,nplt,nseuil,numat_abs,phdf0t,phdt, &
       Sph_tensor_dd_ni,Sph_tensor_dq_ni,Sph_tensor_dq_m_ni,Sph_tensor_dm_ni,Sph_tensor_dm_m_ni,Sph_tensor_qq_ni, &
@@ -4200,7 +4295,7 @@ subroutine Write_Signal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1
 
   logical:: Core_resolved, Dafs, E1E1, E1E2, E1M1, E2E2, Magn_sens
   
-  real(kind=db):: Densite_atom, E_cut, Ephseuil, Eseuil, fac, V0muf
+  real(kind=db):: Volume_maille, E_cut, Ephseuil, Eseuil, fac, V0muf
   real(kind=db), dimension(0):: rdum
   real(kind=db), dimension(ninitlr):: ct_nelec, Epsii
   real(kind=db), dimension(:), allocatable:: Tens
@@ -4454,11 +4549,11 @@ subroutine Write_Signal(ct_nelec,Core_resolved,Densite_atom,E_cut,E1E1,E1E2,E1M1
     phtem(:) = cf
     ph0(:) = cg
     n_tens2 = n_tens / ( 2 * ninitlr )
-    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
+    call write_out(rdum,rdum,Volume_maille,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
           jseuil,n_tens,n_tens,ninit1,ninitlr,nomficht,Tens_name,n_tens,n_tens2,0,0,nseuil,numat_abs,phtem, &
           ph0,Tens,v0muf,Core_resolved,0)
   else
-    call write_out(rdum,rdum,Densite_atom,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
+    call write_out(rdum,rdum,Volume_maille,zero_c,E_cut,Ephseuil,Epsii,Eseuil,.false.,rdum,ie, &
           jseuil,n_tens,n_tens,ninit1,ninitlr,nomficht,Tens_name,1,0,0,0,nseuil,numat_abs,cdum,cdum,Tens,v0muf, &
           Core_resolved,0)
   endif
