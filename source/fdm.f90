@@ -942,7 +942,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
   lla2_state = ( lla_state + 1 )**2
 
 ! When Extract there is no parallelization in the energy loop.
-! Parallelization ramains for tddft
+! Parallelization remains for tddft
   if( Extract ) then
     mpinodee = 1
     mpinodee0 = 1
@@ -1437,7 +1437,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
       nsort = 0
       nsm = 0;     nstm = 0
 
-! Calcul des dimensions de tableaux pour le maillage
+! Calculation of the dimensions for the FDM grid of points
       call nbpoint(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabsfirst,igrpt_nomag,iopsymr,iord,Moy_loc, &
                  mpirank0,natomp,npoint,npso,nvois,nx,pos,rsort)
 
@@ -1460,7 +1460,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
       allocate( indice(npsom,3) )
       allocate( mpres(-nx:nx,-nx:nx,-nx:nx) )
 
-! Elaboration du maillage. Meme en Green, on definit des points afin de calculer le potentiel moyen
+! Making of the FDM grid of points. Even with Green, it is used for the calculation of the interstitial potential
       call reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabsfirst,icheck(9), &
            igrpt_nomag,indice,iopsymr,iord,itypei,Moy_loc,mpirank0,mpres,natome,natomp,nim, &
            npoint,npr,npso,npsom,ntype,numia,nx,pos,posi,rmt,rsort,rvol,xyz)
@@ -2193,7 +2193,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
     nlms_pr = nlm_probe * nspino
 
     if( .not. Self_cons ) i_self = 1
-    Nonsph = Atom_nonsph
+    Nonsph = .not. Green .and. Atom_nonsph
 
     if( Old_zero .or. Extract_ten ) then
       WorkF = WorkF_i
@@ -2285,7 +2285,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
     if( Dafs ) then
       call Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Bormann, &
-          Bulk,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_no_res,Film, &
+          Bulk,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_avantseuil,f_no_res,Film, &
           Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck(6),igreq,iprabs_nonexc,isigpi,itabs,itypepr,lvval, &
           Magnetic,Mat_or,mpirank0,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_uc,natomsym, &
           nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m, &
@@ -2463,7 +2463,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_or
 
       if( .not. ( Self_cons .or. Second_run .or. Extract ) .and. i_range == 1 ) then
         allocate( ia_eq_inv_self(natomeq_self) )
-        ia_eq_inv_self(:) = ia_eq_inv(:)
+        ia_eq_inv_self(:) = 0
       endif
 
       nbm = 0;    nbtm = 0

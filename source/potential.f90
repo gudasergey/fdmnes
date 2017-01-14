@@ -1206,7 +1206,7 @@ end
 
 !*********************************************************************
 
-! Calcul de la densite electronique due a la partie non spherique des orbitales de valence.
+! Calculation of the electronic density on the FDM grid of point coming from the non spherical valence orbital
 
 subroutine orbval(Base_ortho,dcosxyz,Hybrid,iaproto,iapot,icheck,igreq,igroup,itypepr,lvval,mpirank,n_atom_proto,natomeq, &
         natomp,neqm,ngroup_m,ngroup_nonsph,nhybm,nlat,nlatm,norbv,npoint,npoint_ns,npsom,nrato,nrm,ntype,pop_nonsph,pos,psival, &
@@ -4890,7 +4890,7 @@ end
 
 !***********************************************************************
 
-! Mofification du potentiel muffintin.
+! Potential modification to make it muffin-tin, even in FDM (for testing).
 
 subroutine modmuf(Full_atom,iaprotoi,itypepr,icheck, ispin,n_atom_0,n_atom_ind,n_atom_proto,natome,nlm_pot, &
             nrato,nrm,nspin,ntype,rato,rmtg,vm,Vrato)
@@ -5070,7 +5070,8 @@ subroutine Potential_writing(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsi
   endif
 
   do ir = 1,nrato_abs
-    write(3,'(1p,250e19.11)') rato_abs(ir)*bohr, Vcato_abs(ir,:)*Rydb,  Vxcato_abs(ir,:,:)*Rydb, rhoato_abs(ir,:)*Rydb, rsato_abs(ir)
+    write(3,'(1p,250e19.11)') rato_abs(ir)*bohr, Vcato_abs(ir,:)*Rydb, Vxcato_abs(ir,:,:)*Rydb, rhoato_abs(ir,:)*Rydb, &
+                              rsato_abs(ir)
   end do
 
   return

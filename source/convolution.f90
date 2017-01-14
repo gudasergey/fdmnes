@@ -842,27 +842,30 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   endif
   allocate( hkl_dafs(3,npldafs_b) )
 
-  if( npldafs > 0 ) then
-    Dafs = .true.
-    allocate( dph(npldafs) )
-    allocate( dpht(npldafs) )
-    dpht(:) = (0._db,0._db)
-    allocate( fr(npldafs) ); allocate( fi(npldafs) )
-    allocate( f0(npldafs) ); allocate( f0_bulk(npldafs) )
-    allocate( nphi(npldafs) )
-    if( Abs_in_bulk ) then
-      allocate( l_dafs(npldafs) )
-      allocate( Length_abs(npldafs) )
-    endif
+  Dafs = npldafs > 0
+   
+  allocate( dph(npldafs) )
+  allocate( dpht(npldafs) )
+  dpht(:) = (0._db,0._db)
+  allocate( fi(npldafs) ); allocate( fr(npldafs) )
+  allocate( f0(npldafs) ) 
+  f0(:) = (0._db, 0._db )
+  allocate( nphi(npldafs) )
+  if( Abs_in_bulk ) then
+    allocate( f0_bulk(npldafs) )
+    f0_bulk(:) = (0._db, 0._db )
+    allocate( l_dafs(npldafs) )
+    allocate( Length_abs(npldafs) )
+  endif
 
 ! Reading of Thomson part
+  if( npldafs > 0 ) then
+
     if( Thomson ) then
       n = min( npldafs, npldafs_th )
       f0(1:n) = f0_th(1:n)
       deallocate( f0_th )
     else
-      f0(:) = (0._db, 0._db )
-      f0_bulk(:) = (0._db, 0._db )
       Pdt = 0._db; Pdt_bulk = 0._db
       do ifich = 1,nfich
         if( Skip_run(ifich) ) cycle
@@ -883,7 +886,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         Close(2)
       end do
       if( abs(Pdt) > 1e-10_db ) f0(:) = f0(:) / Pdt
-      if( abs(Pdt_bulk) > 1e-10_db ) f0_bulk(:) = f0_bulk(:) / Pdt_bulk
+      if( Abs_in_bulk .and. abs(Pdt_bulk) > 1e-10_db ) f0_bulk(:) = f0_bulk(:) / Pdt_bulk
     endif
 
   endif
@@ -1092,7 +1095,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   end do
 
-  deallocate( fichdone )
+  deallocate( Fichdone )
   deallocate( Ef )
 
   if( nes == 0 ) then
@@ -1103,26 +1106,26 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     stop
   endif
 
-  allocate( p1f(nes) )
-  allocate( p2f(nes) )
-  allocate( indf(nes) )
-  allocate( Xs(nes,nxan) )
-  if( Dafs ) allocate( As(nes,nphim,npldafs) )
-  if( Cor_abs ) allocate( mus(nes,nphim,npldafs,2) )
-  if( Abs_in_bulk ) then
-    allocate( Ts(nes) )
-    allocate( As_bulk(nes,nphim,npldafs) )
-    allocate( f0scan_bulk(nphim,npldafs) )
-  endif
   np_stokes = n_stokes * npldafs / 4
   allocate( angle(nphim) )
-  allocate( f0scan(nphim,npldafs) )
-  allocate( phdtscan(nphim,npldafs) )
+  allocate( As(nes,nphim,npldafs) )
   allocate( Icor(nes,nphim,npldafs) )
   allocate( Icirccor(nes,nphim,np_stokes) )
-  allocate( Idcor(nes,nphim,npldafs) )
   allocate( Icircdcor(nes,nphim,np_stokes) )
   allocate( Icirc(nes,nphim,np_stokes) )
+  allocate( Idcor(nes,nphim,npldafs) )
+  allocate( indf(nes) )
+  allocate( f0scan(nphim,npldafs) )
+  allocate( p1f(nes) )
+  allocate( p2f(nes) )
+  allocate( phdtscan(nphim,npldafs) )
+  allocate( Xs(nes,nxan) )
+  if( Abs_in_bulk ) then
+    allocate( As_bulk(nes,nphim,npldafs) )
+    allocate( f0scan_bulk(nphim,npldafs) )
+    allocate( Ts(nes) )
+  endif
+  if( Cor_abs ) allocate( mus(nes,nphim,npldafs,2) )
 
   if( .not. Full_self_abs ) then
     Circular = .false.
@@ -1147,7 +1150,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     Stokes_param(3,i) = -1._db; Stokes_param(4,i) = pi / 2
     Stokes_param(5,i) = pi / 4
   endif
-
 
   if( Tenseur ) then
     n_col = 2*npldafs
@@ -2214,51 +2216,18 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   end do boucle_conv_file
   
-  if( Dafs) deallocate( As )
-  if( Abs_in_bulk ) deallocate( As_bulk ) 
-  deallocate( decal_initl )
-  deallocate( Icirccor, Icircdcor, Icor, Idcor)
-  deallocate( Icirc )
-  deallocate( indf )
-  deallocate( En_fermi )
-  deallocate( Eph1 )
-  deallocate( Epsii )
-  deallocate( Eseuil )
-  deallocate( fichin )
-  deallocate( Es )
-  deallocate( Efermip )
-  deallocate( Convolution_out_all, fichscanin, fichscanout_all )
+  deallocate( angle, As, Convolution_out_all, decal_initl, dph, dpht )
+  deallocate( Efermip, En_fermi, Eph1, Epsii, Es, Eseuil )
+  deallocate( f0, f0scan, fi, Fichin, Fichscanin, Fichscanout_all, fr )
   deallocate( hkl_dafs )
+  deallocate( Icirc, Icirccor, Icircdcor, Icor, Idcor, indf )
+  deallocate( ne, ne_initl, ninitl, nom_col, nphi, nsup )
+  deallocate( p1f, p2f, Pds, phdtscan )
+  deallocate( Run_done, Stokes_name, Stokes_param, Skip_run )
+  deallocate( Trunc, V0muf, Xs )
+  if( Abs_in_bulk ) deallocate( As_bulk, f0_bulk, f0scan_bulk, l_dafs, Length_abs, Ts  )
   if( Cor_abs ) deallocate( mus )
-  deallocate( ne )
-  deallocate( ninitl )
-  deallocate( nom_col )
-  deallocate( nsup )
-  deallocate( ne_initl )
-  deallocate( Pds )
-  deallocate( p1f, p2f )
-  deallocate( run_done )
-  deallocate( Stokes_name, Stokes_param )
-  deallocate( Skip_run )
-  deallocate( Trunc )
-  if( Abs_in_bulk ) deallocate( Ts )
-  deallocate( V0muf )
-  deallocate( Xs )
-  if( Dafs ) then
-    deallocate( dph )
-    deallocate( dpht )
-    deallocate( fr ); deallocate( fi )
-    deallocate( f0 )
-    deallocate( nphi )
 
-    if( scan_true ) then
-      deallocate( angle )
-      deallocate( phdtscan )
-      deallocate( f0scan )
-      if( Abs_in_bulk ) deallocate( f0scan_bulk ) 
-    endif
-  endif
-  if( Abs_in_bulk ) deallocate( l_dafs, Length_abs  )
   if( ncal > 1 .and. ical == ncal+1 ) then
     do jfich = 1,mfich
       iscr = 100 + jfich
@@ -2344,12 +2313,7 @@ end
       endif
 
       l = len_trim( mot) + 1
-        
-      if( Deuxieme ) then
-        mot(l:l+14) = '_tddft_conv.txt'
-      else
-        mot(l:l+8) = '_conv.txt'
-      endif
+      mot(l:l+8) = '_conv.txt'
       
       if( ifich == 0 ) then
         convolution_out = mot

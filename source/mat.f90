@@ -524,7 +524,7 @@ end
 
 !***********************************************************************
 
-! Calcul des fonctions d'onde emergeantes en sortie.
+! Calculation of the Neuman and Bessel functions in the FDM grid of point at the border of the outer-sphere
 
 subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic_out,Eclie_out,Eimag, &
        Eneg,Enervide,icheck,isp,isrt,lmaxso,mpirank0,Neuman,Neumanr,npsom,nsort,nsort_c,nsort_r,nspinr,nstm, &
@@ -892,10 +892,10 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
     letd = 0
   endif
 
-! alfa_sf constante de structure fine.
+! alfa_sf is the fine structure constant
   a2s4 = 0.25_db * alfa_sf**2
 
-! Remplissage de la ligne et des seconds membres.
+! Filling of the line and od second member
   i = newinv(ii)
 
   if( Spinorbite .and. i > 0 ) then
@@ -987,7 +987,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       cfvs_r(1:nspino) = cfvs_r(1:nspino) * rvol(i)
       if( Cal_comp ) cfvs_i(1:nspino) = cfvs_i(1:nspino) * rvol(i)
 
-! Le voisin est dans le reseau de base :
+! Neighbor is in the interstitial FDM grid :
       if( ia == 0 ) then
 
         jj = new(j) - nspino + isp
@@ -999,7 +999,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 
       elseif( ia > 0 ) then
 
-! Le voisin est dans l'atome ia :
+! Neighbor is in atom ia :
         do ib = nbordf(ia)+1,nbord(ia)
           if( j == ibord(ib,ia) ) exit
         end do
@@ -1048,7 +1048,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 
         end do
 
-! Le voisin est a l'exterieur de la sphere :
+! Neighbor is in the outer-sphere :
       elseif( ia == -2 ) then
 
         do ib = nsortf+1,nsort
@@ -1259,7 +1259,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
         if( abs( Kari(isym,ispt) ) < eps10 ) then
           cfac = poidsa(ib,ia) * conjg( Ycomp ) * Kar(isym,ispt) / rvol(j)
         else
-          cfac = poidsa(ib,ia) * conjg( Ycomp ) * cmplx( Kar(isym,ispt), -Kari(isym,ispt),db) / rvol(j)
+          cfac = poidsa(ib,ia) * conjg( Ycomp ) * cmplx( Kar(isym,ispt), -Kari(isym,ispt), db ) / rvol(j)
         endif
         abvr( jj ) = abvr( jj ) - real( cfac, db )
         abvi( jj ) = abvi( jj ) - aimag( cfac )
@@ -1419,12 +1419,12 @@ function Yc(m,Ylm1,Ylm2)
   real(kind=db):: Ylm1, Ylm2
 
   if( m == 0 ) then
-    Yc = cmplx( Ylm1, 0._db,db)
+    Yc = cmplx( Ylm1, 0._db, db)
   else
     if( m < 0 ) then
-      Yc = cmplx( Ylm2,-Ylm1,db) * ( (-1)**m ) / sqrt(2._db)
+      Yc = cmplx( Ylm2,-Ylm1, db ) * ( (-1)**m ) / sqrt(2._db)
     else
-      Yc = cmplx( Ylm1, Ylm2,db) / sqrt(2._db)
+      Yc = cmplx( Ylm1, Ylm2, db ) / sqrt(2._db)
     endif
   endif
 
@@ -3760,7 +3760,7 @@ subroutine Tau_reading(icheck,ie,iaabsi,lmaxa,nenerg,nlmagm,nspinp,Taull)
   do isp = 1,nspinp
     do lm = 1,nlma
       read(1,*) ( ( Taullr(lmp,jsp),  Taulli(lmp,jsp), lmp = 1,nlma ), ( p, p, lmp = nlma+1,nlm ), jsp = 1,nspinp )
-      Taull(lm,isp,1:nlma,:,iaabsi) = cmplx( Taullr(1:nlma,:),  Taulli(1:nlma,:) )
+      Taull(lm,isp,1:nlma,:,iaabsi) = cmplx( Taullr(1:nlma,:),  Taulli(1:nlma,:), db )
     end do
     do lm = nlma+1,nlm
       read(1,*)

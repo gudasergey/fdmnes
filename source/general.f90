@@ -153,11 +153,9 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
     iabsmm(:) = iabsm(:)
   endif
 
-! Parametres servant a limiter le calcul du nombre d'atomes non
-! equivalents
+! When Memory_save is true, the number of non-equivalent (non-absorbing) atoms is reduced
   if( Memory_save ) then
 
-!        distm_neq = 2.6_db / bohr
     distm_neq = 1.0_db / bohr
 
     do igr = 1,n_atom_uc
@@ -234,10 +232,10 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
       end do
       if( Matper ) call inmesh(pos,n_atom_uc,Sym_2D)
 
-! Recherche de la  symetrie qui rend les atomes equivalents.
+! Search of symmeties making the atoms equivalent
       boucle_is: do is = 1,nopsm
 
-! For 2D diffraction, one only keeps 2D symetries
+! For 2D diffraction, one only keeps 2D symmetries
         if( Sym_2D .and. .not. ( is == 18 .or. is == 21 .or. is == 24 .or. is == 40 .or. is == 41 .or. is == 45 &
                                 .or. ( is >= 49 .and. is <= 52 ) .or. ( is >= 57 .and. is <= 64 ) ) ) cycle
 
@@ -285,8 +283,8 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
          end do
         endif
 
-        boucle_irev: do irev = 1,nspin    ! 1 identite,
-! 2 renversement du temps
+        boucle_irev: do irev = 1,nspin    ! 1 identity, 2 time reversal
+
           boucle_ia: do ia = 1,n_atom_uc
             if( Bulk ) then
               ia_b = ngroup - n_atom_uc + ia
@@ -343,7 +341,7 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
 
           end do boucle_ia
 
-! Cette symetrie est la bonne
+! This symmetry is the good one
           if( irev == 2 ) then
             js = - is
           else
@@ -353,7 +351,7 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
           neq = neq + 1
           ok(igr) = .true.
           if( Bulk ) then
- !     Here n_atom_uc is in fact n_atom_bulk
+! Here, n_atom_uc is in fact n_atom_bulk
             igreq(neq) = ngroup - n_atom_uc + igr
           else
             igreq(neq) = igr
@@ -532,9 +530,9 @@ end
 
 !*********************************************************************
 
-! Sousprogramme qui donne la dimension des etats initiaux.
-! ninitl : nombre total d'etats initiaux
-! ninit1 : nombre d'etat initiaux du premier seuil
+! Give the dimmension of the initial (core) states
+! ninitl : total number of inital states
+! ninit1 : number of initial state of the first edge (in double edges such as L23, M45...)
 
 subroutine dim_init(jseuil,lseuil,nbseuil,ninit1,ninitl)
 
@@ -547,11 +545,11 @@ subroutine dim_init(jseuil,lseuil,nbseuil,ninit1,ninitl)
   if( nbseuil == 1 ) then
 
     select case( jseuil )
-      case( 1 )           ! seuil K, L1, M1 ...
+      case( 1 )           ! edges K, L1, M1 ...
         ninit1 = 2
-      case( 2 )           ! seuil L2, M2
+      case( 2 )           ! edges L2, M2
         ninit1 = 2
-      case( 3 )           ! seuil L3, M3
+      case( 3 )           ! edges L3, M3
         ninit1 = 4
       case( 4 )           !       M4, N4
         ninit1 = 4
@@ -567,7 +565,7 @@ subroutine dim_init(jseuil,lseuil,nbseuil,ninit1,ninitl)
   else
 
     select case( lseuil )
-      case( 0 )           ! K ou L1
+      case( 0 )           ! K or L1
         ninit1 = 2
         ninitl = 2
       case( 1 )           ! L23, M23
@@ -664,7 +662,7 @@ end
 
 !*********************************************************************
 
-! Sousprogramme elaborant la grille en energie pour le calcul de XANES
+! Elaboration of the energy grid for the xanes calculation step
 
 subroutine grille_xanes(eeient,eimag,eimagent,egamme,energ,icheck,lin_gam,ngamme,neimagent,nenerg)
 
@@ -3596,7 +3594,7 @@ subroutine cluster_rot(iopsym,rotmat)
     elseif( i2 == 62 .or. is == 57 ) then
       v(1) = -0.5_db; v(2) = sqrt3s2; v(3) = 0._db
     elseif( i2 == 64 .or. is == 59 ) then
-      v(1) = -sqrt3s2; v(2) = 0.5_db; v(3) = 0._db
+      v(1) = msqrt3s2; v(2) = 0.5_db; v(3) = 0._db
     endif
 
 ! Axes 4 horizontaux
@@ -3941,7 +3939,7 @@ end
 
 !*********************************************************************
 
-! Sousprogramme contenant les operations de symetries.
+! Matrices of the symmetry operations
 
 subroutine opsym(is,matopsym)
 
@@ -3955,126 +3953,126 @@ subroutine opsym(is,matopsym)
                  matsym5(3,3,25:30), matsym6(3,3,31:36), matsym7(3,3,37:42), matsym8(3,3,43:48), &
                  matsym9(3,3,49:54), matsym10(3,3,55:60), matsym11(3,3,61:nopsm), matopsym(3,3)
 
-!      1  : identite
-!      2 : rot 2*pi/3 autour de (1,1,1)
-!      3 : rot 4*pi/3 autour de (1,1,1)
-!      4 : rot 2*pi/3 autour de (1,-1,1)
-!      5 : rot 4*pi/3 autour de (1,-1,1)
-!      6 : rot 2*pi/3 autour de (-1,1,1)
+!      1 : identity
+!      2 : rot 2*pi/3 around (1,1,1)
+!      3 : rot 4*pi/3 around (1,1,1)
+!      4 : rot 2*pi/3 around (1,-1,1)
+!      5 : rot 4*pi/3 around (1,-1,1)
+!      6 : rot 2*pi/3 around (-1,1,1)
   data matsym1/ 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 1.0_db, &
                 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, &
                 1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 1.0_db, 0.0_db, 0.0_db, &
                 0.0_db, 0.0_db, 1.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, &
                 0.0_db, 0.0_db, 1.0_db, -1.0_db, 0.0_db, 0.0_db/
-!      7 : rot 4*pi/3 autour de (-1,1,1)
-!      8 : rot 2*pi/3 autour de (1,1,-1)
-!      9 : rot 4*pi/3 autour de (1,1,-1)
-!      10 : rot 2*pi/2 autour de (1,1,0)
-!      11 : rot 2*pi/2 autour de (-1,1,0)
-!      12 : rot 2*pi/2 autour de (1,0,1)
+!      7 : rot 4*pi/3 around (-1,1,1)
+!      8 : rot 2*pi/3 around (1,1,-1)
+!      9 : rot 4*pi/3 around (1,1,-1)
+!      10 : rot 2*pi/2 around (1,1,0)
+!      11 : rot 2*pi/2 around (-1,1,0)
+!      12 : rot 2*pi/2 around (1,0,1)
   data matsym2/ 0.0_db, 0.0_db,-1.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, &
                 0.0_db, 0.0_db,-1.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 1.0_db, 0.0_db, 0.0_db, &
                 0.0_db,-1.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, &
                 0.0_db,-1.0_db, 0.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db, 1.0_db, &
                 0.0_db,-1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db/
-!      13 : rot 2*pi/2 autour de (-1,0,1)
-!      14 : rot 2*pi/2 autour de (0,1,1)
-!      15 : rot 2*pi/2 autour de (0,-1,1)
-!      16 : C4x, rot 2*pi/4 selon 0x
-!      17 : C4y, rot 2*pi/4 selon 0y
-!      18 : C4z, rot 2*pi/4 selon 0z
+!      13 : rot 2*pi/2 around (-1,0,1)
+!      14 : rot 2*pi/2 around (0,1,1)
+!      15 : rot 2*pi/2 around (0,-1,1)
+!      16 : C4x, rot 2*pi/4 around 0x
+!      17 : C4y, rot 2*pi/4 around 0y
+!      18 : C4z, rot 2*pi/4 around 0z
   data matsym3/ 0.0_db, 0.0_db,-1.0_db, 0.0_db,-1.0_db, 0.0_db, -1.0_db, 0.0_db, 0.0_db, -1.0_db, 0.0_db, 0.0_db, &
                 0.0_db, 0.0_db, 1.0_db, 0.0_db, 1.0_db, 0.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, &
                 0.0_db,-1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 1.0_db, 0.0_db, &
                 0.0_db, 0.0_db, 1.0_db, 0.0_db, 1.0_db, 0.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, &
                 1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db/
-!      19 : -C4x, rot -2*pi/4 selon 0x
-!      20 : -C4y, rot -2*pi/4 selon 0y
-!      21 : -C4z, rot -2*pi/4 selon 0z
-!      22 : rot 2*pi/2 selon 0x
-!      23 : rot 2*pi/2 selon 0y
-!      24 : rot 2*pi/2 selon 0z
+!      19 : -C4x, rot -2*pi/4 around 0x
+!      20 : -C4y, rot -2*pi/4 around 0y
+!      21 : -C4z, rot -2*pi/4 around 0z
+!      22 : rot 2*pi/2 around 0x
+!      23 : rot 2*pi/2 around 0y
+!      24 : rot 2*pi/2 around 0z
   data matsym4/ 1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, &
                 0.0_db, 1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, -1.0_db, 0.0_db, 0.0_db, &
                 0.0_db, 0.0_db, 1.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, &
                -1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, -1.0_db, 0.0_db, 0.0_db, &
                 0.0_db,-1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db/
 !      25 : inversion
-!      26 : S4x, rot 2*pi/4 selon 0x et miroir
-!      27 : S4y, rot 2*pi/4 selon 0y et miroir
-!      28 : S4z, rot 2*pi/4 selon 0z et miroir
-!      29 : -S4x, rot -2*pi/4 selon 0x et miroir
-!      30 : -S4y, rot -2*pi/4 selon 0y et miroir
+!      26 : S4x, rot 2*pi/4 around 0x and miror
+!      27 : S4y, rot 2*pi/4 around 0y and miror
+!      28 : S4z, rot 2*pi/4 around 0z and miror
+!      29 : -S4x, rot -2*pi/4 around 0x an dmiror
+!      30 : -S4y, rot -2*pi/4 around 0y an dmiror
   data matsym5/ -1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, -1.0_db, 0.0_db, 0.0_db, &
                  0.0_db, 0.0_db,-1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db,-1.0_db, 0.0_db, &
                 -1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, &
                 -1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, &
                  0.0_db,-1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db/
-!      31 : -S4z, rot -2*pi/4 selon 0z et miroir
-!      32 : rot 2*pi/3 autour de (1,1,1) et inversion
-!      33 : rot 4*pi/3 autour de (1,1,1) et inversion
-!      34 : rot 2*pi/3 autour de (1,-1,1) et inversion
-!      35 : rot 4*pi/3 autour de (1,-1,1) et inversion
-!      36 : rot 2*pi/3 autour de (-1,1,1) et inversion
+!      31 : -S4z, rot -2*pi/4 around 0z and miror
+!      32 : rot 2*pi/3 around (1,1,1) and inversion
+!      33 : rot 4*pi/3 around (1,1,1) and inversion
+!      34 : rot 2*pi/3 around (1,-1,1) and inversion
+!      35 : rot 4*pi/3 around (1,-1,1) and inversion
+!      36 : rot 2*pi/3 around (-1,1,1) and inversion
   data matsym6/ 0.0_db, 1.0_db, 0.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db,-1.0_db, &
                -1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, &
                -1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, -1.0_db, 0.0_db, 0.0_db, &
                 0.0_db, 0.0_db,-1.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, &
                 0.0_db, 0.0_db,-1.0_db, 1.0_db, 0.0_db, 0.0_db/
-!      37 : rot 4*pi/3 autour de (-1,1,1) et inversion
-!      38 : rot 2*pi/3 autour de (1,1,-1) et inversion
-!      39 : rot 4*pi/3 autour de (1,1,-1) et inversion
-!      40 : plan perpendiculaire a 0x
-!      41 : plan perpendiculaire a 0y
-!      42 : plan perpendiculaire a 0z
+!      37 : rot 4*pi/3 around (-1,1,1) and inversion
+!      38 : rot 2*pi/3 around (1,1,-1) and inversion
+!      39 : rot 4*pi/3 around (1,1,-1) and inversion
+!      40 : plane perpendicular to 0x
+!      41 : plane perpendicular to 0y
+!      42 : plane perpendicular to 0z
   data matsym7/ 0.0_db, 0.0_db, 1.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, &
                 0.0_db, 0.0_db, 1.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, -1.0_db, 0.0_db, 0.0_db, &
                 0.0_db, 1.0_db, 0.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, &
                 1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 1.0_db, 0.0_db, 0.0_db, &
                 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db/
-!      43 : plan diagonal y = z contenant 0x
-!      44 : plan diagonal x = z contenant 0y
-!      45 : plan diagonal x = y contenant 0z
-!      46 : plan diagonal y = -z contenant 0x
-!      47 : plan diagonal x = -z contenant 0y
-!      48 : plan diagonal x = -y contenant Oz,
+!      43 : plane diagonal y = z parallel to 0x
+!      44 : plane diagonal x = z parallel to 0y
+!      45 : plane diagonal x = y parallel to 0z
+!      46 : plane diagonal y = -z parallel to 0x
+!      47 : plane diagonal x = -z parallel to 0y
+!      48 : plane diagonal x = -y parallel to Oz,
   data matsym8/ 1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, &
                 0.0_db, 1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, &
                 0.0_db, 0.0_db, 1.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db,-1.0_db, 0.0_db, &
                 0.0_db, 0.0_db,-1.0_db, 0.0_db, 1.0_db, 0.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, &
                -1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db/
-!      49 : rot 2*pi/3 autour de 0z
-!      50 : rot 4*pi/3 autour de 0z
-!      51 : rot 2*pi/6 autour de 0z
-!      52 : rot 10*pi/6 autour de 0z
-!      53 : rot 2*pi/3 autour de 0z, axe negatif
-!      54 : rot 4*pi/3 autour de 0z, axe negatif
-  data matsym9/ -0.5_db,-sqrt3s2,  0.0_db, sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
-                -0.5_db, sqrt3s2,  0.0_db,-sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
-                 0.5_db,-sqrt3s2,  0.0_db, sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
-                 0.5_db, sqrt3s2,  0.0_db,-sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
-                -0.5_db,-sqrt3s2,  0.0_db, sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db, &
-                -0.5_db, sqrt3s2,  0.0_db,-sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db/
-!      55 : rot 2*pi/6 autour de 0z, axe negatif
-!      56 : rot 10*pi/6 autour de 0z, axe negatif
-!      57 : plan de sym contenant Oz, a phi = 30 degres
-!      58 : Axe 2 perpendiculaire a Oz, a phi = 30 degres
-!      59 : plan de sym contenant Oz, a phi = 60 degres
-!      60 : Axe 2 perpendiculaire a Oz, a phi = 60 degres
-  data matsym10/ 0.5_db,-sqrt3s2,  0.0_db, sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db, &
-                 0.5_db, sqrt3s2,  0.0_db,-sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db, &
+!      49 : rot 2*pi/3 around 0z
+!      50 : rot 4*pi/3 around 0z
+!      51 : rot 2*pi/6 around 0z
+!      52 : rot 10*pi/6 around 0z
+!      53 : rot 2*pi/3 around 0z, negative axis
+!      54 : rot 4*pi/3 around 0z, negative axis
+  data matsym9/ -0.5_db,msqrt3s2,  0.0_db, sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
+                -0.5_db, sqrt3s2,  0.0_db,msqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
+                 0.5_db,msqrt3s2,  0.0_db, sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
+                 0.5_db, sqrt3s2,  0.0_db,msqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
+                -0.5_db,msqrt3s2,  0.0_db, sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db, &
+                -0.5_db, sqrt3s2,  0.0_db,msqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db/
+!      55 : rot 2*pi/6 around 0z, negative axis
+!      56 : rot 10*pi/6 around 0z, negative axis
+!      57 : symmetry plane parallel to Oz, at phi = 30 degres
+!      58 : 2-fold axis perpendicular to Oz, at phi = 30 degres
+!      59 : symmetry plane parallel to Oz, at phi = 60 degres
+!      60 : 2-fold axis perpendicular to Oz, at phi = 60 degres
+  data matsym10/ 0.5_db,msqrt3s2,  0.0_db, sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db, &
+                 0.5_db, sqrt3s2,  0.0_db,msqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db, &
                  0.5_db, sqrt3s2,  0.0_db, sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
                  0.5_db, sqrt3s2,  0.0_db, sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db, &
                 -0.5_db, sqrt3s2,  0.0_db, sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
                 -0.5_db, sqrt3s2,  0.0_db, sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db/
-!      61 : plan de sym contenant Oz, a phi = 120 degres
-!      62 : Axe 2 perpendiculaire a Oz, a phi = 120 degres
-!      63 : plan de sym contenant Oz, a phi = 150 degres
-!      64 : Axe 2 perpendiculaire a Oz, a phi = 150 degres
-  data matsym11/-0.5_db,-sqrt3s2,  0.0_db,-sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
-                -0.5_db,-sqrt3s2,  0.0_db,-sqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db, &
-                 0.5_db,-sqrt3s2,  0.0_db,-sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
-                 0.5_db,-sqrt3s2,  0.0_db,-sqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db/
+!      61 : symmetry plane parallel to Oz, at phi = 120 degres
+!      62 : 2-fold axis perpendicular to Oz, at phi = 120 degres
+!      63 : symmetry plane parallel to Oz, at phi = 150 degres
+!      64 : 2-fold axis perpendicular to Oz, at phi = 150 degres
+  data matsym11/-0.5_db,msqrt3s2,  0.0_db,msqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
+                -0.5_db,msqrt3s2,  0.0_db,msqrt3s2,  0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db, &
+                 0.5_db,msqrt3s2,  0.0_db,msqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db,  1.0_db, &
+                 0.5_db,msqrt3s2,  0.0_db,msqrt3s2, -0.5_db,  0.0_db,  0.0_db,  0.0_db, -1.0_db/
 
   if( is <= 6 ) then
     matopsym(:,:) = matsym1(:,:,is)
@@ -4099,6 +4097,7 @@ subroutine opsym(is,matopsym)
   elseif( is <= 64 ) then
     matopsym(:,:) = matsym11(:,:,is)
   else
+! 5-fold axis not yet coded elsewhere
     select case(is)
       case(65,69) ! Axe 5
         Angle = 2 * pi / 5
@@ -4121,7 +4120,7 @@ subroutine opsym(is,matopsym)
     endif
   endif
 
-! Car les data du fortran boucle sur les colonnes a l'interieur des lignes
+! Because data in fortran loop on columns inside lines
   matopsym = transpose( matopsym )
 
   return
@@ -5970,7 +5969,7 @@ end
       if( Doping .and. ipr == n_atom_proto_uc + 1 ) cycle
       Z = numat( itypepr( ipr ) )
       if( Z == 0 ) cycle
-      Ea = Eseuil(nbseuil) - 1._db
+      Ea = Eseuil(nbseuil) - 1
       Ea = max( Ea,  0.5_db )
       call fprime(Z,Ea,fppa(ipr),fpa(ipr),xsect_file)
       fpp_avantseuil = fpp_avantseuil + Taux_ipr(ipr) * ngreq(ipr) * fppa(ipr)
@@ -6020,8 +6019,8 @@ end
 ! Calculation of polarizations, Bragg factors and non resonant scattering amplitudes for DAFS
 
 subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Bormann, &
-            Bulk,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_no_res,Film, &
-            Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck,igreq,iprabs,isigpi,itabs,itypepr,lvval, &
+            Bulk,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_avantseuil,f_no_res, &
+            Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck,igreq,iprabs,isigpi,itabs,itypepr,lvval, &
             Magnetic,Mat_or,mpirank,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_uc,natomsym, &
             nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m, &
             ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmatt, &
@@ -6039,9 +6038,10 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
   integer, dimension(2):: Mult_bulk, Mult_film
 
   character(len=4):: mot4
+  character(len=64):: mot64
   character(len=132):: xsect_file
 
-  complex(kind=db):: cfac, ph, ph_cjg
+  complex(kind=db):: f_avantseuil, cfac, ph, ph_cjg
   complex(kind=db), dimension(3):: vec_a, vec_b, pe, ps
   complex(kind=db), dimension(npldafs):: phdabs, v_vec_a, v_vec_b
   complex(kind=db), dimension(npldafs):: Truncation
@@ -6067,12 +6067,12 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
   logical:: Abs_in_bulk, Bulk, Bulk_step, Bormann, Cap_layer, Dafs_bio, Debye, Film, Film_periodical, hkl_film, Magnetic, Taux, &
             Temperature
 
-  real(kind=db):: abs_cap, arg, c_cos_z, c_cos_z_b, Cal_Delta_bulk, Cap_disorder, Cap_roughness, &
-    Cap_thickness, Cap_thickness_used, Cap_shift, cos_z_b, Deb, Delta_2, Delta_bulk, Deltak_A, Delta_roughness_film, &
-    delta_z_bottom_cap, delta_z_bottom_film, delta_z_top_cap, delta_z_top_film, dpdeg, &
-    DW, Film_roughness, Film_thickness, Film_thickness_used, &
-    fpp_cap_tot, konde, R_bottom_film, R_top_bulk, R_top_film, rap_lsur2s, Taux_r, &
-    Temp, Tempt, x,  z_min_film, z_max_film, z_pos
+  real(kind=db):: abs_cap, arg, c_cos_z, c_cos_z_b, c_cos_z_b_m, Cal_Delta_bulk, Cal_volume_maille, Cap_disorder, Cap_roughness, &
+    Cap_thickness, Cap_thickness_used, Cap_shift, cos_z_b, Deb, Delta_2, Delta_bulk, Deltak_A, &
+    Delta_roughness_film, delta_z_bottom_cap, delta_z_bottom_film, delta_z_top_cap, delta_z_top_film, dpdeg, &
+    DW, Film_roughness, Film_thickness, Film_thickness_used, fpp_bulk_tot, &
+    fpp_cap_tot, konde, Length_abs, R_bottom_film, R_top_bulk, R_top_film, rap_lsur2s, Taux_r, &
+    Temp, Tempt, Volume_maille, x,  z_max_film, z_pos, z_top
 
   real(kind=db), dimension(2):: f_no_res
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_cap, axyz, axyz_bulk, axyz_cap, hkl, &
@@ -6135,7 +6135,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
   if( Film ) call Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_film, &
             delta_z_top_film,Film_periodical,Film_roughness,Film_shift,Film_thickness,Film_thickness_used,icheck,igreq,itypepr, &
             n_atom_proto,n_atom_proto_uc,n_atom_uc,neqm,ngreq,ntype,numat,posn,posn_t,R_bottom_film, &
-            R_top_film,z_max_film,z_min_film)
+            R_top_film,z_max_film)
 
   if( Bulk ) then
 
@@ -6146,6 +6146,22 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
             / sin( angxyz_bulk(3) ) )**2 )
     c_cos_z_b = axyz_bulk(3) * cos_z_b
 
+  endif
+
+  if( Bulk_step ) then
+
+! Conversion in linear absorption coefficient in micrometer^-1 (f_avanseuil is in Mbarn)
+    Volume_maille = Cal_Volume_maille(axyz_bulk,angxyz_bulk)
+    fpp_bulk_tot = 100 * aimag( f_avantseuil ) / ( Volume_maille * bohr**3 )
+
+! Value for one unit cell (in micrometer)
+    c_cos_z_b_m = 0.0001_db * bohr * c_cos_z_b
+
+    z_top = -100000._db
+    do igr = 1,n_atom_bulk
+      z_top = max( posn_bulk(3,igr), z_top )
+    end do
+    if( icheck > 1 ) write(3,'(/a17,1p,e13.5,a14)') ' fpp_bulk_tot   =',fpp_bulk_tot,' micrometer^-1'
   endif
 
   if( icheck > 1 .and. ( Temperature .or. Debye ) ) write(3,'(/A)') ' ( h, k, l)   Z   Debye-Waller Attenuation'
@@ -6182,6 +6198,12 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
         Delta_2 = ( deltak(ipl) / ( quatre_pi * bohr ) )**2
       endif
 
+      if( Bulk_step ) then
+        x = deltak(ipl) / ( 2 * alfa_sf * Eseuil(nbseuil) )  ! = sin(theta) / 2
+        x = max( eps10, x )
+        Length_abs = c_cos_z_b_m / x
+      endif
+
       do igr = 1,ngreq(ipr)
         jgr = igr_tem(igr)
         if( Bulk_step ) then
@@ -6194,7 +6216,6 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
         if( Bulk .and. .not. Bulk_step ) p(1:2) = p(1:2) +  Film_shift(1:2) / axyz(1:2)
 
         do i = 0,1000000
-          if( ( .not. Film .or. Bulk_step .or. ( Film .and. .not. Film_periodical ) ) .and. i > 0 ) exit
           if( Film .and. .not. Bulk_step .and. Film_periodical ) then
             z_pos = p(3) * c_cos_z
             if( z_pos > z_max_film + delta_z_top_film + Delta_roughness_film + eps10 ) exit
@@ -6207,6 +6228,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
           endif
           arg = deux_pi * sum( p(:) * hkl(:) )
           Bragg(igr,ipl) = Bragg(igr,ipl) + Taux_r * cmplx( cos(arg), sin(arg), db )
+          if( ( .not. Film .or. Bulk_step .or. ( Film .and. .not. Film_periodical ) ) .and. i == 0 ) exit
           p(3) = p(3) + 1._db
         end do
 
@@ -6224,6 +6246,9 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
             Bragg(igr,ipl) = cfac * Bragg(igr,ipl)
           endif
         endif
+
+! Fraction of absorption (avoid the singularity when l close to 1). Correct only before the edge.
+        if( Bulk_step ) Bragg(igr,ipl) = Bragg(igr,ipl) * exp( - ( z_top - p(3) ) * fpp_bulk_tot * Length_abs )
 
         if( Taux ) Bragg(igr,ipl) = Bragg(igr,ipl) * Taux_oc(jgr)
         if( Temperature ) Deb = exp( - Temp_coef(igr) * Delta_2 )
@@ -6297,10 +6322,10 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
 
   if( Bulk ) then
 
-    Delta_bulk = Cal_Delta_bulk(c_cos_z_b,Film_shift,icheck,n_atom_bulk,posn_bulk,R_bottom_film,R_top_bulk,Z_bulk,z_min_film)
+    Delta_bulk = Cal_Delta_bulk(c_cos_z_b,Film_shift,icheck,n_atom_bulk,posn_bulk,R_bottom_film,R_top_bulk,Z_bulk)
 
     call Cal_Phase_Bulk(angxyz,angxyz_bulk,axyz,axyz_bulk,c_cos_z,c_cos_z_b,Delta_bulk,Film_shift,hkl_dafs,hkl_film, &
-                          Mult_bulk,Mat_bulk_i,npldafs,Phase_bulk)
+                          Mult_bulk,npldafs,Phase_bulk)
 
     if( .not. Abs_in_bulk ) then
       call Bulk_scat(angxyz_bulk,axyz_bulk,c_cos_z_b, &
@@ -6308,7 +6333,6 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
         npldafs,phd_f_bulk,posn_bulk,Temp_coef,Temperature,Truncation,xsect_file,Z_abs,Z_bulk)
 
       phd_f_bulk(:) = Phase_bulk(:) * phd_f_bulk(:)
-      Truncation(:) = Phase_bulk(:) * Truncation(:)
     endif
 
   endif
@@ -6525,30 +6549,40 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
       endif
     end do
 
-    if( Film .and. .not. Abs_in_bulk .and. Cap_layer ) then
-      write(3,296)
-    elseif( Film .and. .not. Abs_in_bulk ) then
-      write(3,297)
-    elseif( Film .and. .not. Bulk_step .and. Cap_layer ) then
-      write(3,298)
+    if( Film ) then
+      mot64 =  '  (   h,      k,       l)     Total Structure factor          I'
+      if( Bulk .and. .not. Abs_in_bulk ) then
+        if( Cap_layer ) then
+          write(3,'(/a64,18x,a4,3x,3(18x,a10))') mot64, 'Bulk', 'Truncation', 'Phase_Bulk', 'Cover cap '
+        else
+          write(3,'(/a64,18x,a4,3x,2(18x,a10))') mot64, 'Bulk', 'Truncation', 'Phase_Bulk'
+        endif
+      elseif( Cap_layer ) then
+        write(3,'(/a64,18x,a10)') mot64, 'Cover cap '
+      else
+        write(3,'(/a64,18x,a10)') mot64
+      endif
     else
-      write(3,'(/A)') '  (h,k,l)   Total Structure factor'
+      write(3,'(/A)') '  (h,k,l)   Total Structure factor       I'
     endif
 
     do ipl = 1,npldafs
-      if( Film .and. .not. Abs_in_bulk .and. Cap_layer ) then
-        if( mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
-        write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1), phd_f_bulk(ipl), phd_f_cap(ipl), Truncation(ipl), Phase_bulk(ipl)
-      elseif( Film .and. .not. Abs_in_bulk ) then
-        if( mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
-        write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1), phd_f_bulk(ipl), Truncation(ipl), Phase_bulk(ipl)
-      elseif( Film .and. .not. Bulk_step .and. Cap_layer ) then
-        if( mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
-        write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1), phd_f_cap(ipl)
-      elseif( Film ) then
-        write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1)
+      if( Film ) then
+        if(  mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
+        if( Bulk .and. .not. Abs_in_bulk ) then
+          if( Cap_layer ) then
+            write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1), abs( phdf0t(ipl,1) )**2, phd_f_bulk(ipl), Truncation(ipl), &
+                         Phase_bulk(ipl), phd_f_cap(ipl)
+          else
+            write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1), abs( phdf0t(ipl,1) )**2, phd_f_bulk(ipl), Truncation(ipl), Phase_bulk(ipl)
+          endif
+        elseif( Cap_layer ) then
+          write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1), abs( phdf0t(ipl,1) )**2, phd_f_cap(ipl)
+        else
+          write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1), abs( phdf0t(ipl,1) )**2
+        endif
       else
-        write(3,275) nint( hkl_dafs(:,ipl) ), phdf0t(ipl,1)
+        write(3,310) nint( hkl_dafs(:,ipl) ), phdf0t(ipl,1), abs( phdf0t(ipl,1) )**2
       endif
     end do
 
@@ -6596,7 +6630,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
         8x,'real(Poldafse)',13x,'imag(Poldafse)',11x,'real(Poldafss)',12x, 'imag(Poldafse)',15x,'Vecdafse',15x,'Vecdafss')
   215 format(3i4,1x,a4, 6(1x,3f9.5))
   220 format(f6.1, 6(1x,3f9.5))
-  235 format(3f8.3,1p,48(1x,2e13.5))
+  235 format(2f8.3,f8.4,1p,48(1x,2e13.5))
   240 format(3i3,1p,48(1x,2e13.5))
   245 format(/' Attenuation factor for non resonant magnetic structure', ' factor :'/,'      General : fma =',f7.3,/ &
         '      Orbital : Site    L/2S     (f_orb = (L/S)*f_spin)')
@@ -6616,16 +6650,40 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
         ' i*Ph_m*fma*(f_spin*vs+f_orb*vo)   vs = spin.vec_b',13x, 'vo = spin.vec_a')
   290 format(2f8.3,f9.4,1p,e13.5,2x,2e13.5,2(2x,e13.5),6(2x,2e13.5))
   295 format(3i3,1p,e13.5,2x,2e13.5,2(2x,e13.5),6(2x,2e13.5))
-  296 format(/'  (   h,      k,       l)     Total Structure factor',15x,'Bulk',21x,'Cover cap',19x,'Truncation',18x,'Phase_Bulk')
-  297 format(/'  (   h,      k,       l)     Total Structure factor',15x,'Bulk',21x,'Truncation',18x,'Phase_Bulk')
-  298 format(/'  (   h,      k,       l)     Total Structure factor',15x,'Cover cap')
-  300 format(2f8.3,f9.4,1p,5(2x,2e13.5))
+  300 format(2f8.3,f9.4,1p,2x,2e13.5,2x,e13.5,5(2x,2e13.5))
+  310 format(3i3,1p,2x,2e13.5,2x,e13.5,5(2x,2e13.5))
   375 format(/'  Polarization and wave vectors in the internal basis R1 ( orthogonal basis, z along c crystal )',// &
               '         pol            vec           pls',12x,'vos')
   376 format(/' ipl = ',i5)
   380 format(2(2f9.5,1x,f9.5,1x))
 
 end
+
+!*********************************************************************
+
+! 2D diffraction case
+
+!subroutine SRXD(angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bulk_step,hkl_film,icheck)
+
+!  use declarations
+!  implicit none
+
+!  integer:: icheck
+
+!  logical:: beta_in_fix, beta_s_fix, Bulk, Bulk_step, five_circle_mode, four_circle_mode, hkl_film, z_axis_mode
+
+!  real(kind=db):: alfa, chi, delta, gamma, omega, phi, sigma, tau
+!  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk
+!  real(kind=db), dimension(3,3):: Mat_Alpha, Mat_B, Mat_Chi, Mat_Delta, Mat_Gamma, Mat_Omega, Mat_Phi, Mat_Sigma, Mat_Tau
+
+! Cartesian coordinate transformation matrix for hkl
+!  Mat_B(:,:) = 0._db
+
+!  if( hkl_film ) then
+!    Mat_b(1,1) = axyz(1);
+
+!  return
+!end
 
 !*********************************************************************
 
@@ -6859,7 +6917,7 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
       call prodvec(qi,w,qk)
       call prodvec(qj,qk,qi)
 
-      if( icheck > 1 ) then
+      if( icheck > 2 ) then
         if( Film ) then
           write(3,130) hkl_dafs(:,ipl)
         else
@@ -7251,7 +7309,7 @@ end
 subroutine Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_film, &
             delta_z_top_film,Film_periodical,Film_roughness,Film_shift,Film_thickness,Film_thickness_used,icheck,igreq,itypepr, &
             n_atom_proto,n_atom_proto_uc,n_atom_uc,neqm,ngreq,ntype,numat,posn,posn_t,R_bottom_film, &
-            R_top_film,z_max_film,z_min_film)
+            R_top_film,z_max_film)
 
   use declarations
   implicit none
@@ -7289,12 +7347,6 @@ subroutine Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_fil
   endif
 
   z_min_film = 1000000._db
-  if( Film_periodical ) then
-    z_min_2_film = - 1000000._db
-  else
-    z_min_2_film = 1000000._db
-  endif
-
   Z_bottom_film = 0
   Z_top_film = 0
 
@@ -7306,14 +7358,33 @@ subroutine Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_fil
 
     do igr = 1,ngreq(ipr)
       jgr = igr_tem(igr)
-      z_pos = posn(3,jgr) * c_cos_z
-      if( z_pos < z_min_film ) then
-        z_min_film = z_pos
+      if( posn(3,jgr) < z_min_film ) then
+        z_min_film = posn(3,jgr)
         Z_bottom_film = numat(it)
       endif
     end do
 
   end do
+
+! Bottom atom is set at z = 0
+  do ipr = 1,n_atom_proto_uc
+
+    it = itypepr( ipr )
+    if( numat( it ) == 0 ) cycle
+    igr_tem(:) = igreq(ipr,:)
+
+    do igr = 1,ngreq(ipr)
+      jgr = igr_tem(igr)
+      posn(3,jgr) = posn(3,jgr) - z_min_film
+    end do
+
+  end do
+
+  if( Film_periodical ) then
+    z_min_2_film = - 1000000._db
+  else
+    z_min_2_film = 1000000._db
+  endif
 
   do ipr = 1,n_atom_proto_uc
 
@@ -7328,7 +7399,7 @@ subroutine Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_fil
         if( z_pos > z_min_2_film ) z_min_2_film = z_pos
       else
         z_pos = posn(3,jgr) * c_cos_z
-        if( z_pos < z_min_film + eps10 ) cycle
+        if( z_pos < eps10 ) cycle
         if( z_pos < z_min_2_film ) z_min_2_film = z_pos
      endif
     end do
@@ -7344,7 +7415,7 @@ subroutine Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_fil
   if( z_min_2_film >= 100000._db ) then
     delta_z = 0.5_db * c_cos_z
   else
-    delta_z = 0.5_db * abs( z_min_2_film - z_min_film )
+    delta_z = 0.5_db * abs( z_min_2_film )
   endif
   delta_z_bottom_film = min( delta_z, R_bottom_film )
 
@@ -7366,7 +7437,7 @@ subroutine Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_fil
         if( .not. Film_periodical .and. i > 0 ) exit
         z_pos = ( posn(3,jgr) + i ) * axyz(3) * cos_z
         if( Film_periodical ) then
-          Thickness = z_pos - z_min_film
+          Thickness = z_pos
           if( Thickness > Film_thickness - eps10 ) exit
         endif
         if( z_pos > z_max_film ) then
@@ -7385,7 +7456,11 @@ subroutine Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_fil
   endif
   delta_z_top_film = R_top_film
 
-  Film_thickness_used = z_max_film - z_min_film + delta_z_top_film + delta_z_bottom_film
+  if( Film_thickness > eps10 ) then
+    Film_thickness_used = z_max_film
+  else
+    Film_thickness_used = 0._db
+  endif
 
   if( Delta_roughness_film < eps10 ) then
     Delta_roughness_film = 0._db
@@ -7402,21 +7477,19 @@ subroutine Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_fil
     write(3,223) 'Film_roughness', Film_roughness * bohr
     write(3,224) 'bottom_film', Z_bottom_film, 'bottom_film', R_bottom_film * bohr, 'bottom_film', delta_z_bottom_film * bohr
     write(3,224) 'top_film   ', Z_top_film, 'top_film   ', R_top_film * bohr, 'top_film   ', delta_z_top_film * bohr
-    write(3,226) 'film', z_min_film * bohr, 'film', z_max_film * bohr
   endif
 
   return
   222 format(/1x,a14,' =',f7.3,'    ',a19,' =',f7.3,' A')
   223 format( 1x,a14,' =',f7.3,' A')
   224 format( ' Z_',a11,'  =',i3,'        R_',a11,' =',f7.3,'  delta_z_',a11,' =',f7.3,' A')
-  226 format( ' z_min_',a4,'     =',f7.3,'    z_max_',a4,'    =',f7.3,' A')
 end
 
 !*********************************************************************************************************
 
 ! Determination of Film-bulk spacing
 
-  function Cal_Delta_bulk(c_cos_z_b,Film_shift,icheck,n_atom_bulk,posn_bulk,R_bottom_film,R_top_bulk,Z_bulk,z_min_film)
+  function Cal_Delta_bulk(c_cos_z_b,Film_shift,icheck,n_atom_bulk,posn_bulk,R_bottom_film,R_top_bulk,Z_bulk)
 
   use declarations
   implicit none
@@ -7425,7 +7498,7 @@ end
   integer, dimension(n_atom_bulk):: Z_bulk
 
   real(kind=db):: Atom_radius, c_cos_z_b, Cal_Delta_bulk, Delta_bulk, delta_z, delta_z_top_bulk, R_bottom_film, R_top_bulk, &
-                  z_max_bulk, z_min_film, z_pos
+                  z_max_bulk, z_pos
   real(kind=db), dimension(5):: Film_shift
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
 
@@ -7451,7 +7524,7 @@ end
   delta_z = 0.5_db * ( z_pos - z_max_bulk )
   delta_z_top_bulk = min( delta_z, R_top_bulk )
 
-  Delta_bulk = z_min_film - z_max_bulk
+  Delta_bulk = - z_max_bulk
   if( Film_shift(3) < - 100._db ) then
     Delta_bulk = Delta_bulk - ( R_top_bulk + R_bottom_film )
   else
@@ -7508,7 +7581,7 @@ subroutine Bulk_scat(angxyz_bulk,axyz_bulk,c_cos_z_b, &
   real(kind=sg):: getf0, s
 
   real(kind=db):: arg, Cal_Volume_maille, conv_mbarn_nelec, c_cos_z_b, c_cos_z_b_m, Deb, &
-    Delta_2, f0_bulk, fpp_bulk_tot, Volume_maille, x
+    Delta_2, f0_bulk, fpp_bulk_tot, Volume_maille, x, z_top
 
   real(kind=db), dimension(3):: angxyz_bulk, axyz_bulk, hkl
   real(kind=db), dimension(3,3):: Mat_bulk_i
@@ -7539,6 +7612,11 @@ subroutine Bulk_scat(angxyz_bulk,axyz_bulk,c_cos_z_b, &
   Truncation(:) = ( 0._db, 0._db )
   phd_f_bulk(:) = ( 0._db, 0._db )
 
+  z_top = -100000._db
+  do igr = 1,n_atom_bulk
+    z_top = max( posn_bulk(3,igr), z_top )
+  end do
+
   do ipl = 1,npldafs
 
     x = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
@@ -7550,6 +7628,14 @@ subroutine Bulk_scat(angxyz_bulk,axyz_bulk,c_cos_z_b, &
 
 ! Case of irrationnal unit cells
     if( ( abs( hkl(1) ) > eps10 .and. Mult_bulk(1) == 0 ) .or. ( abs( hkl(2) ) > eps10 .and. Mult_bulk(2) == 0 ) ) cycle
+
+    x = deltak(ipl) / ( 2 * alfa_sf * Eseuil(nbseuil) )  ! = sin(theta) / 2
+    x = max( eps10, x )
+
+    Length_abs(ipl) = c_cos_z_b_m / x
+    abs_mesh(ipl) = exp( - fpp_bulk_tot * Length_abs(ipl) )
+
+    Truncation(ipl) = 1._db / ( 1._db - abs_mesh(ipl) * exp( - img * deux_pi * hkl(3) ) )
 
     if( Temperature ) Delta_2 = ( deltak(ipl) / ( quatre_pi * bohr ) )**2
 
@@ -7566,6 +7652,9 @@ subroutine Bulk_scat(angxyz_bulk,axyz_bulk,c_cos_z_b, &
       arg = deux_pi * sum( posn_bulk(:,igr) * hkl(:) )
       Bragg_bulk = cmplx( cos(arg), sin(arg), db )
 
+! Fraction of absorption (avoid the singularity when l close to 1)
+      Bragg_bulk = Bragg_bulk * exp( - ( z_top - posn_bulk(3,igr) ) * fpp_bulk_tot * Length_abs(ipl) )
+
       if( Temperature ) then
         Deb = exp( - Temp_coef(ngroup_temp-n_atom_bulk+igr) * Delta_2 )
         Bragg_bulk = Bragg_bulk * Deb
@@ -7574,14 +7663,6 @@ subroutine Bulk_scat(angxyz_bulk,axyz_bulk,c_cos_z_b, &
       phd_f_bulk(ipl) = phd_f_bulk(ipl) + Bragg_bulk * cmplx( f0_bulk + fp_bulk(igr), fpp_bulk(igr), db )
 
     end do
-
-    x = deltak(ipl) / ( 2 * alfa_sf * Eseuil(nbseuil) )  ! = sin(theta) / 2
-    x = max( eps10, x )
-
-    Length_abs(ipl) = c_cos_z_b_m / x
-    abs_mesh(ipl) = exp( - fpp_bulk_tot * Length_abs(ipl) )
-
-    Truncation(ipl) = 1._db / ( 1._db - abs_mesh(ipl) * exp( - img * deux_pi * hkl(3) ) )
 
     phd_f_bulk(ipl) = phd_f_bulk(ipl) * Truncation(ipl)
 
@@ -7604,7 +7685,7 @@ end
 ! Contain also the ratio between the unit cell surfaces
 
   subroutine Cal_Phase_Bulk(angxyz,angxyz_bulk,axyz,axyz_bulk,c_cos_z,c_cos_z_b,Delta_bulk,Film_shift,hkl_dafs,hkl_film, &
-                          Mult_bulk,Mat_bulk_i,npldafs,Phase_bulk)
+                          Mult_bulk,npldafs,Phase_bulk)
 
   use declarations
   implicit none
@@ -7620,16 +7701,14 @@ end
   real(kind=db):: arg, c_cos_z, c_cos_z_b, Delta_bulk, Rap
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, hkl
   real(kind=db), dimension(5):: Film_shift
-  real(kind=db), dimension(3,3):: Mat_bulk_i
   real(kind=db), dimension(3,npldafs):: hkl_dafs
 
   Phase_Bulk(:) = ( 0._db, 0._db )
 
   do ipl = 1,npldafs
 
+! No need to transform hkl if hkl_film true,because below vision by c_cos_z or c_ cos_z_b
     hkl(:) = hkl_dafs(:,ipl)
-
-    if( hkl_film ) hkl = Matmul( Mat_bulk_i, hkl )
 
 ! Mult_bulk = 0 is for non rationnal ratio between bulk and film
     do i = 0,Max( Mult_bulk(1)-1, 0 )
@@ -7695,11 +7774,11 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
 
   real(kind=sg):: getf0, s
 
-  real(kind=db):: arg, Atom_radius, Conv_mbarn_nelec, c_cos_z, c_cos_z_b, c_cos_z_c, cos_z_c, Cap_disorder, Cap_roughness, &
-    Cap_thickness, Cap_thickness_used, Cap_shift, Cal_Volume_maille, Deb, Delta_cap, Delta_roughness_cap, Delta_roughness_film, &
-    delta_z, delta_z_bottom_cap, delta_z_top_cap, f0_cap, Film_roughness, Film_thickness, fpp_cap_tot, &
-    R_bottom_cap, R_top_bulk, R_top_cap, R_top_film, Taux_r, Taux_r2, Thickness, Volume_maille, x, z_max_cap, z_max_film, &
-    z_min_cap, z_pos
+  real(kind=db):: arg, Atom_radius, Conv_mbarn_nelec, c_cos_z, c_cos_z_b, c_cos_z_c, cos_z_c, Cap_amount, Cap_amount_ref, &
+    Cap_disorder, Cap_roughness, Cap_thickness, Cap_thickness_used, Cap_shift, Cal_Volume_maille, Deb, Delta_cap, &
+    Delta_roughness_cap, Delta_roughness_film, delta_z, delta_z_bottom_cap, delta_z_top_cap, f0_cap, Film_roughness, &
+    Film_thickness, fpp_cap_tot, R_bottom_cap, R_top_bulk, R_top_cap, R_top_film, Taux_r, Taux_r2, Volume_maille, x, &
+    z_max_cap, z_max_film, z_min_cap, z_pos
 
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_cap, axyz, axyz_bulk, axyz_cap, hkl, p
   real(kind=db), dimension(nbseuil):: Eseuil
@@ -7736,16 +7815,15 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
   delta_z = 0.5_db * ( z_min_cap - z_pos )
   delta_z_bottom_cap = min( delta_z, R_bottom_cap )
 
-  Cap_thickness = max( Cap_thickness, 2 * R_bottom_cap )
+  z_max_cap = z_min_cap
+  Z_top_cap = Z_bottom_cap
 
-  delta_z = delta_z_bottom_cap
   do igr = 1,n_atom_cap
     R_top_cap = Atom_radius( Z_cap(igr) )
     do i = 0,1000000
       z_pos = ( posn_cap(3,igr) + i ) * c_cos_z_c
       if( z_pos < z_max_cap ) cycle
-      Thickness = z_pos + delta_z - z_min_cap - delta_z_bottom_cap
-      if( Thickness > Cap_thickness ) exit
+      if( z_pos - z_min_cap > Cap_thickness ) exit
       if( z_pos > z_max_cap ) then
         z_max_cap = z_pos
         Z_top_cap = Z_cap(igr)
@@ -7832,6 +7910,9 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
 
     Z = 0
 
+    Cap_amount = 0._db
+    Cap_amount_ref = 0._db
+
     do igr = 1,n_atom_cap
 
       elemv = ' '
@@ -7848,7 +7929,7 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
 !        if( z_pos > z_max_cap + delta_z_top_cap + Delta_roughness_cap + eps10 ) exit
         if( z_pos > z_max_cap + delta_z_top_cap + 2 * Cap_roughness + eps10 ) exit
         if( Cap_roughness > eps10 ) then
-          x = ( z_max_cap - z_pos ) / Cap_roughness
+          x = ( z_max_cap + delta_z_top_cap - z_pos ) / Cap_roughness
           Taux_r = 1._db - erfc( x ) * 0.5_db
         else
           Taux_r = 1._db
@@ -7859,6 +7940,9 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
           Taux_r2 = 1._db - Taux_r2 * 0.5_db
           Taux_r = Taux_r * Taux_r2
         endif
+        Cap_amount = Cap_amount + Taux_cap(igr) * Taux_r
+        if( z_pos < z_max_cap + delta_z_top_cap + eps10 .and. z_pos > z_min_cap - delta_z_bottom_cap - eps10 ) &
+          Cap_amount_ref = Cap_amount_ref + Taux_cap(igr)
         arg = deux_pi * sum( p(:) * hkl(:) )
         Bragg_cap = Bragg_cap + Deb * Taux_r * cmplx( cos(arg), sin(arg), db )
       end do
@@ -7866,6 +7950,9 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
       phd_f_cap(ipl) = phd_f_cap(ipl) + Taux_cap(igr) * Bragg_cap * cmplx( f0_cap + fp_cap(igr), fpp_cap(igr), db )
 
     end do
+
+! This renormaization is to keep the same amount of cap atoms whatever is the toughness
+    if( Cap_amount > eps10 ) phd_f_cap(ipl) = ( Cap_amount_ref / Cap_amount ) * phd_f_cap(ipl)
 
     if( hkl_film ) then
       arg = deux_pi * hkl(3) * Delta_cap / c_cos_z
@@ -7889,21 +7976,21 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
   end do
 
   if( icheck > 0 ) then
-    write(3,222) 'Cap_thickness ', Cap_thickness * bohr, 'Cap_thickness_used ', Cap_thickness_used * bohr
-    write(3,223) 'Cap_shift     ', Cap_shift * bohr
-    write(3,223) 'Cap_roughness ', Cap_roughness * bohr
-    write(3,224) 'bottom_cap ', Z_bottom_cap, 'bottom_cap ', R_bottom_cap * bohr, 'bottom_cap ', delta_z_bottom_cap * bohr
-    write(3,224) 'top_cap    ', Z_top_cap, 'top_cap    ', R_top_cap * bohr, 'top_cap    ', delta_z_top_cap * bohr
-    write(3,226) 'cap ', z_min_cap * bohr, 'cap ', z_max_cap * bohr
-    write(3,230) 'cap ', Delta_cap * bohr
+    write(3,110) 'Cap_thickness ', Cap_thickness * bohr, 'Cap_thickness_used ', Cap_thickness_used * bohr
+    write(3,120) 'Cap_shift     ', Cap_shift * bohr
+    write(3,120) 'Cap_roughness ', Cap_roughness * bohr
+    write(3,130) 'bottom_cap ', Z_bottom_cap, 'bottom_cap ', R_bottom_cap * bohr, 'bottom_cap ', delta_z_bottom_cap * bohr
+    write(3,130) 'top_cap    ', Z_top_cap, 'top_cap    ', R_top_cap * bohr, 'top_cap    ', delta_z_top_cap * bohr
+    write(3,140) 'cap ', z_min_cap * bohr, 'cap ', z_max_cap * bohr
+    write(3,150) 'cap ', Delta_cap * bohr
   endif
 
   return
-  222 format(/1x,a14,' =',f7.3,'    ',a19,' =',f7.3,' A')
-  223 format( 1x,a14,' =',f7.3,' A')
-  224 format( ' Z_',a11,'  =',i3,'        R_',a11,' =',f7.3,'  delta_z_',a11,' =',f7.3,' A')
-  226 format( ' z_min_',a4,'     =',f7.3,'    z_max_',a4,'    =',f7.3,' A')
-  230 format( ' Delta_',a4,'     =',f7.3,' A')
+  110 format(/1x,a14,' =',f7.3,'    ',a19,' =',f7.3,' A')
+  120 format(1x,a14,' =',f7.3,' A')
+  130 format(' Z_',a11,'  =',i3,'        R_',a11,' =',f7.3,'  delta_z_',a11,' =',f7.3,' A')
+  140 format(' z_min_',a4,'     =',f7.3,'    z_max_',a4,'    =',f7.3,' A')
+  150 format(' Delta_',a4,'     =',f7.3,' A')
 end
 
 !***********************************************************************
@@ -10004,8 +10091,7 @@ end
 
 !***********************************************************************
 
-! Cherche le point equivalent a l'interieur de la zone de calcul
-! compte tenu des symmetries.
+! Cherche le point equivalent a l'interieur de la zone de calcul compte tenu des symmetries.
 
 subroutine posequiv(mpirank,pos,iopsym,isym,igrpt_nomag)
 
@@ -11345,7 +11431,7 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_
 
   r(1:nr) = rato(1:nr,itabs_nonexc)
 
-! Le calcul de l'energie des niveaux initiaux est toujours avec spinorbite
+! The calculation of the core levels is always with spin-orbit
   nm1 = - lseuil - 1
   nm2 = lseuil
 
@@ -11387,9 +11473,9 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_
                nspino,nspinp,numat,V0bd,V_abs,psi,r,Relativiste,Rmtg,Rmtsd,Spinorbite,V_intmax,Ylm_comp)
   end do
 
-! Epsii is versus the Fermi energy
-! E_zero = E_cut if Old_zero; E_zero = 0. in the other case
-! WorkF = WorkF - EFermi when not Old_zero
+! Epsii is versus the Fermi energy, but taken as positive
+! E_zero = E_cut if Old_zero; E_zero = 0. in the other case (default is Old_zero = false).
+! WorkF = - EFermi when not Old_zero
   Epsi(:) = Epsi(:) - WorkF + E_zero
 
   Epsii_m(1) = sum( Epsi(1:ninit1) ) / ninit1
@@ -11491,8 +11577,8 @@ end
 
 !***********************************************************************
 
-! Calcul de l'energie d'un niveau lie par E = <psi|H|psi> / <psi|psi>
-! Dans le cas relativiste, il faut plusieurs cycles car l'Hamiltonien depend de l'energie calculee.
+! Calculation of the Kohhn-Sham energy of a core level by E = <psi|H|psi> / <psi|psi>
+! When relativistic, one needs self-consistency because Hamiltonian depends on the calculated energy
 
 function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
               nspino,nspinp,numat,V0bd,Vrato,psi,r,Relativiste,Rmtg,Rmtsd,Spinorbite,V_intmax,Ylm_comp)
@@ -11531,7 +11617,7 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
 
   Eimag = 0._db
   Ecomp = .false.
-! Pour le calcul de l'energie des orbitales de coeur on neglige l'aspect non spherique
+! For the core level orbital energy calculation, one neglects the  non-spherical aspect
   Full_potential = .false.
   Hubb_a = .false.
   Hubb_d = .true.
@@ -11592,10 +11678,10 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
 
   E = 0._db
 
-! cycle pour calcul de la fonction d'onde
+! loop for the calculation of the wave function
   do ip_cycle = 1,nip_cycle
 
-    do ie_cycle = 1,nie_cycle  ! cycle pour le calcul de l'energie
+    do ie_cycle = 1,nie_cycle  ! loop for the energy calculation
 
       if( ip_cycle == 1 .and. ie_cycle == 1 ) then
         call coef_sch_rad(E,f2,g0,gm,gp,gso,nlm,nr,nspin,nspino,numat,r,.false.,.false.,V)
@@ -11613,7 +11699,7 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
           if( m == l .and. isp == 2 ) cycle
         endif
         do ir = 2,nrmtg
-! Il faut ajouter E car g0 contient V - E
+! one must add E because g0 contains V - E
           td = g0(ir,isp) + l2 * f2(ir) + E
           if( Spinorbite .and. (ip_cycle > 1 .or. ie_cycle >1)) then
             if( isp == 1 ) then
@@ -11650,7 +11736,7 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
 
     do
 
-! Konde ne sert pas, car on ne calcule pas Tau
+! Konde is not useful, because one does not calulate the scattering amplitude Tau
       konde(:) = sqrt( cmplx(E - V0bd(:), Eimag,db) )
 
       allocate( urs(nr,m1,m2,nspin,nspino) )
@@ -11782,7 +11868,7 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
     end do
   endif
 
-  psiHpsi =  E  ! les valeurs sont negatives
+  psiHpsi =  E  ! Values, at this step are negative
 
   deallocate( V )
 
@@ -11798,7 +11884,7 @@ end
 
 !***********************************************************************
 
-! Calcul des (l,m) de chaque representation
+! Calculations of the (l,m) belloging to each representations
 
 subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,itypei,karact,lato, &
              lmaxat,lmaxso,lso,mato,mpirank,mso,n_atom_proto,natome,nbordf,ngrph,nlmsa0,nlmsam,nlmso0, &
@@ -11868,7 +11954,7 @@ subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,it
 
           call symorb(l,m,kopsymo)
 
-! Recherche de la representation a laquelle appartient l'orbitale
+! Search of the representation whom the orbital belongs
           boucle_irep: do igrph = 1,ngrph
             irep = abs( irep_util(igrph,ispin) )
             if( irep == 0 ) cycle
@@ -11975,13 +12061,15 @@ end
 
 !***********************************************************************
 
-! Reduction de la symetrie compte tenu de la position de l'atome
-! Rotation de la base locale tel que Oz inchange et Ox direction radiale.
+! Reduction of the symmetry taking into account the atom position
+! Rotation of the local basis such that Oz is not changed and Ox is the radial direction
 
 subroutine iop_rot(icheck,irotiops,rot_atom)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
+
+  integer:: icheck, is, js
 
   integer, dimension(nopsm):: irotiops
 
@@ -12008,19 +12096,21 @@ end
 
 !***********************************************************************
 
-! Calcul du nombre d'harmoniques pour l'energie courante.
+! Calculation of the number of spherical harmonics at the energy
 
-subroutine clmax(energ,r,lmax0,lmax,Z,lmaxfree)
+subroutine clmax(Energ,r,lmax0,lmax,Z,lmaxfree)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
-  integer Z
+  integer:: lmax, lmax0, Z
 
-  logical lmaxfree
+  logical:: lmaxfree
 
-  if( energ > 0._db .and. r > eps10 ) then
-    rk = sqrt( energ ) * r
+  real(kind=db):: Energ, r, rk, rk2
+
+  if( Energ > 0._db .and. r > eps10 ) then
+    rk = sqrt( Energ ) * r
   else
     rk = 0._db
   endif
@@ -12068,15 +12158,16 @@ end
 
 !***********************************************************************
 
-! Calcul des Ylm et des distances au centre de l'atome de chaque point.
+! Calculation of the Ylm and of the distances from the atom center of each points.
 
-subroutine ylmpt(Base_ortho,dcosxyz,iaprotoi,ibord,icheck, iopsymr,isrt,lmaxat,lmaxso,n_atom_proto,natome, &
-             nbord,nbtm,nlmmax,nlmomax,nsort,nstm,npsom,posi, rot_atom,rot_atom_abs,xyz,ylmato,ylmso)
+subroutine ylmpt(Base_ortho,dcosxyz,iaprotoi,ibord,icheck,iopsymr,isrt,lmaxat,lmaxso,n_atom_proto,natome, &
+             nbord,nbtm,nlmmax,nlmomax,nsort,nstm,npsom,posi,rot_atom,rot_atom_abs,xyz,Ylmato,Ylmso)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
-  complex(kind=db), dimension(:), allocatable :: ylmc
+  integer:: i, ia, ib, icheck, ipr, isym, l, lm, lmax, lmaxso, m, n_atom_proto, natome, nbtm, nlmc, nlmmax, nlmomax, nlmr, np, &
+            nsort, nstm, npsom
 
   integer, dimension(0:n_atom_proto):: lmaxat
   integer, dimension(nopsm):: iopsymr
@@ -12084,16 +12175,19 @@ subroutine ylmpt(Base_ortho,dcosxyz,iaprotoi,ibord,icheck, iopsymr,isrt,lmaxat,l
   integer, dimension(natome):: iaprotoi, nbord
   integer, dimension(nbtm,natome):: ibord
 
+  complex(kind=db), dimension(:), allocatable :: Ylmc
+
   logical:: Base_ortho
 
+  real(kind=db):: r
   real(kind=db), dimension(3):: dcosxyz, p, v, w
   real(kind=db), dimension(3,3):: rot_a, rot_atom_abs
   real(kind=db), dimension(3,3,natome):: rot_atom
   real(kind=db), dimension(3,natome):: posi
   real(kind=db), dimension(4,npsom):: xyz
-  real(kind=db), dimension(nbtm,nlmmax,natome):: ylmato
-  real(kind=db), dimension(nsort,nlmomax):: ylmso
-  real(kind=db), dimension(:), allocatable :: ylmr
+  real(kind=db), dimension(nbtm,nlmmax,natome):: Ylmato
+  real(kind=db), dimension(nsort,nlmomax):: Ylmso
+  real(kind=db), dimension(:), allocatable :: Ylmr
 
   if( icheck > 1 ) write(3,110)
 
@@ -12114,8 +12208,8 @@ subroutine ylmpt(Base_ortho,dcosxyz,iaprotoi,ibord,icheck, iopsymr,isrt,lmaxat,l
     endif
     nlmr = ( lmax + 1 )**2
     nlmc = ( ( lmax + 1 ) * ( lmax + 2 ) ) / 2
-    allocate( ylmc(nlmc) )
-    allocate( ylmr(nlmr) )
+    allocate( Ylmc(nlmc) )
+    allocate( Ylmr(nlmr) )
 
     do ib = 1,np
       if( ia == 0 ) then
@@ -12126,13 +12220,13 @@ subroutine ylmpt(Base_ortho,dcosxyz,iaprotoi,ibord,icheck, iopsymr,isrt,lmaxat,l
       w(1:3) = xyz(1:3,i)
       call posrel(Base_ortho,dcosxyz,iopsymr,w,p,v,r,isym)
       w = matmul( rot_a, v )
-      call cylm(lmax,w,r,ylmc,nlmc)
-! Conversion en Ylm reels
-      call ylmcr(lmax,nlmc,nlmr,ylmc,ylmr)
+      call cYlm(lmax,w,r,Ylmc,nlmc)
+! Conversion in real Ylm
+      call Ylmcr(lmax,nlmc,nlmr,Ylmc,Ylmr)
       if( ia == 0 ) then
-        ylmso(ib,1:nlmr) = ylmr(1:nlmr)
+        Ylmso(ib,1:nlmr) = Ylmr(1:nlmr)
       else
-        ylmato(ib,1:nlmr,ia) = ylmr(1:nlmr)
+        Ylmato(ib,1:nlmr,ia) = Ylmr(1:nlmr)
       endif
     end do
 
@@ -12144,16 +12238,16 @@ subroutine ylmpt(Base_ortho,dcosxyz,iaprotoi,ibord,icheck, iopsymr,isrt,lmaxat,l
           write(3,130) l, m
           lm = lm + 1
           if( ia == 0 ) then
-            write(3,140) ylmso(1:np,lm)
+            write(3,140) Ylmso(1:np,lm)
           else
-            write(3,140) ylmato(1:np,lm,ia)
+            write(3,140) Ylmato(1:np,lm,ia)
           endif
         end do
       end do
     endif
 
-    deallocate( ylmc )
-    deallocate( ylmr )
+    deallocate( Ylmc )
+    deallocate( Ylmr )
 
   end do
 
@@ -12166,7 +12260,7 @@ end
 
 !***********************************************************************
 
-! Calcul des Ylm complexes
+! Calculation of complex Ylm
 
 subroutine cylm(lmax,v,r,ylmc,nlm)
 
@@ -12249,7 +12343,7 @@ end
 
 !***********************************************************************
 
-! Conversion des Ylm complexes en Ylm reels.
+! Convertion from complex Ylm to real Ylm
 
 subroutine ylmcr(lmax,nlmc,nlmr,ylmc,ylmr)
 
@@ -12694,16 +12788,18 @@ end
 
 !***********************************************************************
 
-! Calcul de l'integrale de 0 a Radius de f.
-! L'integrale est calculee avec un polynome d'interpolation d'ordre deux
-! r: contient les valeurs des rayons pour les points qu'on integre
-! nr: nombre de points qu'on integre
+! Calculation of the integral of f(r), from 0 to Radius
+! Integral is calculated using a second order polynomia
+! nr: number of points
 
-  real(kind=db) function f_integr(r,fct,nr,ir0,nrm,Radius)
+  function f_integr(r,fct,nr,ir0,nrm,Radius)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
+  integer:: i, ir0, nr, nrm
+
+  real(kind=db):: a, b, c, d0m, dp0, dpm, f_integr, f0, fm, fp, r0, Radius, rm, rp, tiers, x1, x2
   real(kind=db), dimension(ir0:nrm):: fct, r
 
   tiers = 1._db / 3
