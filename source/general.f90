@@ -5987,8 +5987,10 @@ end
     fp_avantseuil = fp_avantseuil / ( conv_mbarn_nelec(Ea) * pi )
 
 ! Conversion en coefficient d'absorption lineaire en micrometre^-1
-    fpp_avantseuil_m = 100 * fpp_avantseuil /( Volume_maille * bohr**3 )
-    fp_avantseuil_m = 100 * fp_avantseuil /( Volume_maille * bohr**3 )
+    if( Volume_maille > eps10 ) then
+      fpp_avantseuil_m = 100 * fpp_avantseuil /( Volume_maille * bohr**3 )
+      fp_avantseuil_m = 100 * fp_avantseuil /( Volume_maille * bohr**3 )
+    endif
 
     if( icheck > 0 ) then
       write(3,310)
@@ -6018,22 +6020,22 @@ end
 
 ! Calculation of polarizations, Bragg factors and non resonant scattering amplitudes for DAFS
 
-subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap,Bormann, &
-            Bulk,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_avantseuil,f_no_res, &
-            Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck,igreq,iprabs,isigpi,itabs,itypepr,lvval, &
-            Magnetic,Mat_or,mpirank,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_uc,natomsym, &
-            nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m, &
-            ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmatt, &
-            phdafs,phdf0t,phdt,poldafse,poldafsem,poldafss,poldafssm,popatm,posn,posn_bulk,posn_cap,psival,rato,Taux, &
-            Taux_cap,Taux_oc,Temp,Temp_coef,Temperature,Vec_orig,vecdafse,vecdafsem,vecdafss,vecdafssm,xsect_file, &
-            Z_bulk,Z_cap)
+subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap, &
+          Bormann,Bulk,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_avantseuil, &
+          f_no_res,Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck,igreq,iprabs,isigpi,itabs, &
+          itypepr,Length_abs,lvval,Magnetic,Mat_or,mpirank,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk, &
+          n_atom_proto_uc,n_atom_uc,natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs, &
+          nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nrato,nrm,nspin,ntype,numat,Operation_mode,Operation_mode_used, &
+          Orthmatt,phdafs,phdf0t,phdt,phi_0,Poldafse,Poldafsem,Poldafss,Poldafssm,popatm,posn,posn_bulk,posn_cap,psival,rato, &
+          Taux,Taux_cap,Taux_oc,Temp,Temp_coef,Temperature,Vec_orig,Vecdafse,Vecdafsem,Vecdafss,Vecdafssm,xsect_file, &
+          Z_bulk,Z_cap)
 
   use declarations
   implicit none
 
   integer:: i, icheck, igr, ip, ipl, ipr, iprabs, it, itabs, iwrite, j, jgr, kgr, mpirank, n_atom_bulk, n_atom_cap, &
     n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, n_atom_uc, n1_proto, n2_proto, natomsym, nbseuil, neqm, ngrm, ngroup, &
-    ngroup_m, ngroup_taux, ngroup_temp, nlatm, nphim, npldafs, nrm, nspin, ntype, Z, Z_abs
+    ngroup_m, ngroup_taux, ngroup_temp, nlatm, nphim, npldafs, npldafs_2d, npldafs_e, npldafs_f, nrm, nspin, ntype, Z, Z_abs
 
   integer, dimension(2):: Mult_bulk, Mult_film
 
@@ -6048,8 +6050,8 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
   complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdt
   complex(kind=db), dimension(natomsym,npldafs):: phdafs
   complex(kind=db), dimension(n_atom_proto,npldafs):: phd, phd_f0, phd_f0_cjg, phd_fan_cjg, phd_fan, phd_fmag
-  complex(kind=db), dimension(3,npldafs):: poldafsem, poldafssm
-  complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
+  complex(kind=db), dimension(3,npldafs_e):: Poldafsem, Poldafssm
+  complex(kind=db), dimension(3,npldafs,nphim):: Poldafse, Poldafss
   complex(kind=db), dimension(:), allocatable:: phd_f_bulk, phd_f_cap, Phase_bulk
   complex(kind=db), dimension(:,:), allocatable:: Bragg
   complex(kind=db), dimension(:,:,:), allocatable:: phd_fmo,phd_fms
@@ -6059,26 +6061,30 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
   integer, dimension(n_atom_cap):: Z_cap
   integer, dimension(0:ntype,nlatm):: lvval
   integer, dimension(npldafs):: nphi_dafs
-  integer, dimension(npldafs,2):: isigpi
+  integer, dimension(npldafs_2d):: npl_2d
+  integer, dimension(5,npldafs_2d):: Operation_mode
+  integer, dimension(2,npldafs):: isigpi
   integer, dimension(0:n_atom_proto):: itypepr, ngreq
   integer, dimension(0:n_atom_proto,neqm):: igreq
   integer, dimension(neqm):: igr_tem
 
-  logical:: Abs_in_bulk, Bulk, Bulk_step, Bormann, Cap_layer, Dafs_bio, Debye, Film, Film_periodical, hkl_film, Magnetic, Taux, &
-            Temperature
+  logical:: Abs_in_bulk, Bulk, Bulk_step, Bormann, Cap_layer, Dafs_bio, Debye, Film, Film_periodical, hkl_film, Magnetic, &
+            Operation_mode_used, Taux, Temperature
 
-  real(kind=db):: abs_cap, arg, c_cos_z, c_cos_z_b, c_cos_z_b_m, Cal_Delta_bulk, Cal_volume_maille, Cap_disorder, Cap_roughness, &
-    Cap_thickness, Cap_thickness_used, Cap_shift, cos_z_b, Deb, Delta_2, Delta_bulk, Deltak_A, &
+  real(kind=db):: abs_cap, arg, c_cos_z, c_cos_z_b, Cal_Delta_bulk, Cal_volume_maille, Cap_disorder, Cap_roughness, &
+    Cap_thickness, Cap_thickness_used, Cap_shift, cos_z_b, Deb, Delta_2, Delta_bulk, Q_mod_A, &
     Delta_roughness_film, delta_z_bottom_cap, delta_z_bottom_film, delta_z_top_cap, delta_z_top_film, dpdeg, &
-    DW, Film_roughness, Film_thickness, Film_thickness_used, fpp_bulk_tot, &
-    fpp_cap_tot, konde, Length_abs, R_bottom_film, R_top_bulk, R_top_film, rap_lsur2s, Taux_r, &
+    DW, Energy_photon, Film_roughness, Film_thickness, Film_thickness_used, fpp_bulk_tot, &
+    fpp_cap_tot, konde, phi_0, R_bottom_film, R_top_bulk, R_top_film, rap_lsur2s, Taux_r, &
     Temp, Tempt, Volume_maille, x,  z_max_film, z_pos, z_top
 
   real(kind=db), dimension(2):: f_no_res
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_cap, axyz, axyz_bulk, axyz_cap, hkl, &
      p, v, Vec_orig, we, ws
   real(kind=db), dimension(5):: Film_shift
-  real(kind=db), dimension(npldafs):: Angle_or, deltak
+  real(kind=db), dimension(npldafs):: Length_abs, Q_mod
+  real(kind=db), dimension(npldafs_f):: Angle_or
+  real(kind=db), dimension(3,npldafs_2d):: Angle_mode
   real(kind=db), dimension(n_atom_cap):: Taux_cap
   real(kind=db), dimension(ngroup_taux):: Taux_oc
   real(kind=db), dimension(ngroup_temp):: Temp_coef
@@ -6088,8 +6094,9 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
   real(kind=db), dimension(3,n_atom_cap):: posn_cap
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_g, Axe_atom_gr
-  real(kind=db), dimension(3,npldafs):: angpoldafs, hkl_dafs, vecdafsem, vecdafssm
-  real(kind=db), dimension(3,npldafs,nphim):: vecdafse, vecdafss
+  real(kind=db), dimension(3,npldafs):: angpoldafs, hkl_dafs
+  real(kind=db), dimension(3,npldafs_e):: Vecdafsem, Vecdafssm
+  real(kind=db), dimension(3,npldafs,nphim):: Vecdafse, Vecdafss
   real(kind=db), dimension(0:nrm,0:ntype):: rato
   real(kind=db), dimension(0:nrm,nlatm,0:ntype):: psival
   real(kind=db), dimension(n_atom_proto):: fp, fpp
@@ -6116,18 +6123,27 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
   endif
 
 ! lambda = 2 * pi / k = 2 * d * sintheta
-! En S.I. vecond = k = E*alfa*4*pi*epsilon0 / (e*e)
-! En ua et rydb : k = 0.5 * alfa * E
-  konde = 0.5_db * alfa_sf * max( Eseuil(nbseuil), 1._db )   ! exact que pour nbseuil = 1
+! In S.I. vecond = k = E*alfa*4*pi*epsilon0 / (e*e)
+! In ua and rydb : k = 0.5 * alfa * E
+  Energy_photon = Eseuil(nbseuil) ! exact only for single edge, that is nbseuil = 1
+  konde = 0.5_db * alfa_sf * max( Energy_photon, 1._db )
 
-  call Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Bormann,Bulk,Bulk_step,Dafs_bio,deltak,Eseuil,f_ms,f_mo, &
-            f_no_res,f0,Film,hkl_dafs,hkl_film,icheck,isigpi,itypepr,lvval,Magnetic,Mat_or,mpirank,n_atom_proto,nbseuil,&
-            nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmatt,Orthmati, &
-            poldafse,poldafsem,poldafss,poldafssm,popatm,psival,rato,Vec_orig,vecdafse,vecdafsem,vecdafss,vecdafssm)
+  if( Operation_mode_used ) then
+    call SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bulk_step,Energy_photon,hkl_dafs,hkl_film,icheck, &
+                isigpi,Length_abs,nphim,npl_2d,npldafs,npldafs_2d,Operation_mode,Orthmati,phi_0,Poldafse,Poldafss,Q_mod, &
+                Vecdafse,Vecdafss)
+  else
+    call Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Bormann,Bulk,Bulk_step,Dafs_bio,Energy_photon, &
+            Film,hkl_dafs,hkl_film,icheck,isigpi,Length_abs,Mat_or,mpirank,nphi_dafs,nphim,npldafs,npldafs_e,npldafs_f,Orthmatt, &
+            Orthmati,Poldafse,Poldafsem,Poldafss,Poldafssm,Q_mod,Vec_orig,Vecdafse,Vecdafsem,Vecdafss,Vecdafssm)
+  endif
+
+  call Atom_structure_factor(Energy_photon, f_ms, f_mo, f_no_res, f0, itypepr, lvval, Magnetic, n_atom_proto, nlat, nlatm, &
+                                 npldafs, nrato, nrm, nspin, ntype, numat, Q_mod, rato, popatm, psival)
 
   if( Temp > 0.00001_db ) then
     Debye = .true.
-    Tempt = max( 1._db, Temp )      ! le cas defaut: T = 1 K
+    Tempt = max( 1._db, Temp )      ! default case: T = 1 K
   else
     Debye = .false.
   endif
@@ -6153,9 +6169,6 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
 ! Conversion in linear absorption coefficient in micrometer^-1 (f_avanseuil is in Mbarn)
     Volume_maille = Cal_Volume_maille(axyz_bulk,angxyz_bulk)
     fpp_bulk_tot = 100 * aimag( f_avantseuil ) / ( Volume_maille * bohr**3 )
-
-! Value for one unit cell (in micrometer)
-    c_cos_z_b_m = 0.0001_db * bohr * c_cos_z_b
 
     z_top = -100000._db
     do igr = 1,n_atom_bulk
@@ -6190,18 +6203,12 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
       if( ( Bulk .and. .not. Bulk_step .and. .not. hkl_film ) .or. ( Bulk_step .and. hkl_film ) ) hkl = matmul( Mat_bulk, hkl )
 
       if( Debye ) then
-        deltak_A = deltak(ipl) / bohr   ! on le veut en angstroem - 1
-        Deb = DW(deltak_A,numat(it),tempt)
+        Q_mod_A = Q_mod(ipl) / bohr   ! one need it in angstroem^-1
+        Deb = DW(Q_mod_A,numat(it),tempt)
       elseif( Temperature ) then
 ! Delta_2 = ( Sin(Theta_Bragg)/Lambda )^2
 ! Temp_coef = 8*pi^2 * <u>^2 is in Angtroem^2
-        Delta_2 = ( deltak(ipl) / ( quatre_pi * bohr ) )**2
-      endif
-
-      if( Bulk_step ) then
-        x = deltak(ipl) / ( 2 * alfa_sf * Eseuil(nbseuil) )  ! = sin(theta) / 2
-        x = max( eps10, x )
-        Length_abs = c_cos_z_b_m / x
+        Delta_2 = ( Q_mod(ipl) / ( quatre_pi * bohr ) )**2
       endif
 
       do igr = 1,ngreq(ipr)
@@ -6248,7 +6255,8 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
         endif
 
 ! Fraction of absorption (avoid the singularity when l close to 1). Correct only before the edge.
-        if( Bulk_step ) Bragg(igr,ipl) = Bragg(igr,ipl) * exp( - ( z_top - p(3) ) * fpp_bulk_tot * Length_abs )
+
+        if( Bulk_step ) Bragg(igr,ipl) = Bragg(igr,ipl) * exp( - ( z_top - p(3) ) * fpp_bulk_tot * Length_abs(ipl) )
 
         if( Taux ) Bragg(igr,ipl) = Bragg(igr,ipl) * Taux_oc(jgr)
         if( Temperature ) Deb = exp( - Temp_coef(igr) * Delta_2 )
@@ -6266,7 +6274,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
     if( Z == 0 ) cycle
 ! We do not consider here the anomalous part of the absorbing atom because it is calculated further in the code !
     if( Z /= Z_abs ) then
-      call fprime(Z,Eseuil(nbseuil),fpp(ipr),fp(ipr),xsect_file)
+      call fprime(Z,Energy_photon,fpp(ipr),fp(ipr),xsect_file)
     else
       fp(:) = 0._db; fpp(ipr) = 0._db
     endif
@@ -6328,9 +6336,9 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
                           Mult_bulk,npldafs,Phase_bulk)
 
     if( .not. Abs_in_bulk ) then
-      call Bulk_scat(angxyz_bulk,axyz_bulk,c_cos_z_b, &
-        deltak,Eseuil,hkl_dafs,hkl_film,icheck,Mat_bulk_i,Mult_bulk,n_atom_bulk,nbseuil,ngroup_temp, &
-        npldafs,phd_f_bulk,posn_bulk,Temp_coef,Temperature,Truncation,xsect_file,Z_abs,Z_bulk)
+      call Bulk_scat(angxyz_bulk,axyz_bulk,Energy_photon,hkl_dafs,hkl_film,icheck, &
+        Length_abs,Mat_bulk_i,Mult_bulk,n_atom_bulk,ngroup_temp,npldafs,phd_f_bulk,posn_bulk,Q_mod, &
+        Temp_coef,Temperature,Truncation,xsect_file,Z_abs,Z_bulk)
 
       phd_f_bulk(:) = Phase_bulk(:) * phd_f_bulk(:)
     endif
@@ -6345,8 +6353,8 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
   if( Cap_layer .and. .not. Bulk_step ) &
     call Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,Cap_disorder,Cap_roughness, &
               Cap_thickness,Cap_thickness_used,Cap_shift,c_cos_z,c_cos_z_b,Delta_roughness_film,delta_z_bottom_cap, &
-              delta_z_top_cap,deltak,Eseuil,Film_roughness,Film_thickness,fpp_cap_tot,hkl_dafs,hkl_film, &
-              icheck,Mult_bulk,Mult_film,n_atom_cap,nbseuil,npldafs,phd_f_cap,posn_cap,R_top_bulk,R_top_film,Taux_cap, &
+              delta_z_top_cap,Energy_photon,Film_roughness,Film_thickness,fpp_cap_tot,hkl_dafs,hkl_film, &
+              icheck,Mult_bulk,Mult_film,n_atom_cap,npldafs,phd_f_cap,posn_cap,Q_mod,R_top_bulk,R_top_film,Taux_cap, &
               xsect_file,Z_cap,z_max_film)
 
   do ipl = npldafs,1,-1
@@ -6358,7 +6366,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
 
  ! Absorption through the cap. Well, it is extremely small...
       if( Cap_layer ) then
-        x = deltak(ipl) / konde      ! = 2 * sin(theta)
+        x = Q_mod(ipl) / konde      ! = 2 * sin(theta)
         abs_cap = exp( - fpp_cap_tot * x )
         if( ipl == 1 .and. icheck == 1 )  write(3,'(a29,1p,e13.5)') ' Absorption through the cap =', 1._db - Abs_cap
         ph = abs_cap * ph
@@ -6371,8 +6379,8 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
 
 ! Multplication by epsilon_e * espilon_s
    do ip = nphi_dafs(ipl),1,-1
-      pe(:) = poldafse(:,ipl,ip)
-      ps(:) = poldafss(:,ipl,ip)
+      pe(:) = Poldafse(:,ipl,ip)
+      ps(:) = Poldafss(:,ipl,ip)
       cfac = sum( conjg( ps(:) ) * pe(:) )
       if( Dafs_bio .and. ip > 2 ) then
         phdf0t(ipl,ip) = cfac * ph_cjg
@@ -6393,10 +6401,10 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
     Axe_atom_g = matmul( orthmatt, Axe_atom_gr )
     do ipl = 1,npldafs
       do ip = nphi_dafs(ipl),1,-1
-        pe(:) = poldafse(:,ipl,ip)
-        ps(:) = poldafss(:,ipl,ip)
-        we(:) = vecdafse(:,ipl,ip)
-        ws(:) = vecdafss(:,ipl,ip)
+        pe(:) = Poldafse(:,ipl,ip)
+        ps(:) = Poldafss(:,ipl,ip)
+        we(:) = Vecdafse(:,ipl,ip)
+        ws(:) = Vecdafss(:,ipl,ip)
 ! Approximation for orbital moment taken has parralel.
 ! See also appendix by G. T. Trammell, PR 92, 1387 (1953)
         call get_vec_b(pe,ps,vec_b,we,ws)
@@ -6448,15 +6456,15 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
       if( Dafs_bio ) then
         write(3,200)
       elseif( Film .or. Bulk_step ) then
-        write(3,205) hkl_dafs(:,ipl), isigpi(ipl,:)
+        write(3,205) hkl_dafs(:,ipl), isigpi(:,ipl)
       else
-        write(3,210) nint( hkl_dafs(:,ipl) ), isigpi(ipl,:)
+        write(3,210) nint( hkl_dafs(:,ipl) ), isigpi(:,ipl)
       endif
       do ip = 1,nphi_dafs(ipl)
-        pe(:) = poldafse(:,ipl,ip)
-        ps(:) = poldafss(:,ipl,ip)
-        we(:) = vecdafse(:,ipl,ip)
-        ws(:) = vecdafss(:,ipl,ip)
+        pe(:) = Poldafse(:,ipl,ip)
+        ps(:) = Poldafss(:,ipl,ip)
+        we(:) = Vecdafse(:,ipl,ip)
+        ws(:) = Vecdafss(:,ipl,ip)
 
         pe = matmul( orthmati, pe )
         ps = matmul( orthmati, ps )
@@ -6600,7 +6608,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_ca
       do ip = 1,nphi_dafs(ipl)
         write(3,*)
         do i = 1,3
-         write(3,380) poldafse(i,ipl,ip), vecdafse(i,ipl,ip), poldafss(i,ipl,ip), vecdafss(i,ipl,ip)
+         write(3,380) Poldafse(i,ipl,ip), Vecdafse(i,ipl,ip), Poldafss(i,ipl,ip), Vecdafss(i,ipl,ip)
         end do
       end do
     end do
@@ -6661,86 +6669,1403 @@ end
 
 !*********************************************************************
 
-! 2D diffraction case
+! 2D diffraction case with operation mode
 
-!subroutine SRXD(angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bulk_step,hkl_film,icheck)
-
-!  use declarations
-!  implicit none
-
-!  integer:: icheck
-
-!  logical:: beta_in_fix, beta_s_fix, Bulk, Bulk_step, five_circle_mode, four_circle_mode, hkl_film, z_axis_mode
-
-!  real(kind=db):: alfa, chi, delta, gamma, omega, phi, sigma, tau
-!  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk
-!  real(kind=db), dimension(3,3):: Mat_Alpha, Mat_B, Mat_Chi, Mat_Delta, Mat_Gamma, Mat_Omega, Mat_Phi, Mat_Sigma, Mat_Tau
-
-! Cartesian coordinate transformation matrix for hkl
-!  Mat_B(:,:) = 0._db
-
-!  if( hkl_film ) then
-!    Mat_b(1,1) = axyz(1);
-
-!  return
-!end
-
-!*********************************************************************
-
-! Polarization calculation for DAFS and f0, f_ms, f_mo calculations
-
-subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Bormann,Bulk,Bulk_step,Dafs_bio,deltak,Eseuil,f_ms, &
-            f_mo,f_no_res,f0,Film,hkl_dafs,hkl_film,icheck,isigpi,itypepr,lvval,Magnetic,Mat_or,mpirank,n_atom_proto,nbseuil,&
-            nlat,nlatm,nphi_dafs,nphim,npldafs,nrato,nrm,nspin,ntype,numat,Orthmatt,Orthmati, &
-            poldafse,poldafsem,poldafss,poldafssm,popatm,psival,rato,Vec_orig,vecdafse,vecdafsem,vecdafss,vecdafssm)
+subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bulk_step,Energy_photon,hkl_dafs,hkl_film,icheck, &
+                isigpi,Length_abs,nphim,npl_2d,npldafs,npldafs_2d,Operation_mode,Orthmati,phi_0,Poldafse,Poldafss,Q_mod, &
+                Vecdafse,Vecdafss)
 
   use declarations
   implicit none
 
-  integer:: i, icheck, ip, ipl, ipr, istop, it, j, mpirank, n_atom_proto, nbseuil, &
-    nlatm, nphim, npldafs, nrm, nspin, ntype
+  integer:: i, icheck, ipl, ipr, jpl, k, kpl, lpl, npldafs, npldafs_2d, nphim
 
-  character(len=4) elemv
-  character(len=2) Chemical_symbol
+  integer, dimension(npldafs_2d):: npl_2d
+  integer, dimension(5):: Operation_m
+  integer, dimension(2,npldafs):: isigpi
+  integer, dimension(5,npldafs_2d):: Operation_mode
 
-  complex(kind=db), dimension(3):: pe, ps
-  complex(kind=db), dimension(3,npldafs):: poldafsem, poldafssm
-  complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
+  complex(kind=db), dimension(3,npldafs,nphim):: Poldafse, Poldafss
 
-  integer, dimension(0:ntype):: nlat, nrato, numat
-  integer, dimension(0:ntype,nlatm):: lvval
-  integer, dimension(npldafs):: nphi_dafs
-  integer, dimension(npldafs,2):: isigpi
-  integer, dimension(0:n_atom_proto):: itypepr
+  logical:: Alfa_Beta, Alfa_fixed, Beta_fixed, Bulk, Bulk_step, Chi_fixed, Column_reference, Column_detector, Delta_fixed, &
+            Detector_known, Eta_fixed, Eta_half_delta, hkl_film, Mat_unit, Mu_fixed, Mu_half_nu, Naz_fixed, Nu_fixed, &
+            Phi_fixed, Psi_fixed, Specular, Qaz_fixed
 
-  logical:: Bormann, Bulk, Bulk_step, Film, hkl_film, Dafs_bio, Magnetic
-
-  real(kind=sg):: getf0, s
-
-  real(kind=db):: Angle, cos_pe, cos_ps, cosb, cosp, detmat, dhkl, dp, Emc2,  &
-    fac, fmo, fms, konde, pp, psi, qkn, rad_i, sin_pe, sin_ps, sinb, sinp, &
-    Thetabragg, Vol, wn, wsn, x
-
-  real(kind=db), dimension(2):: f_no_res
-  real(kind=db), dimension(3):: ang, angxyz, angxyz_bulk, axyz, axyz_bulk, cosdir, hklred, &
-     qi, qj, qk, v, Vec_orig, vpie, vpe, vps, vpis, vsig, vx, vy, vz, w, we, ws, wx, wy, wz
-  real(kind=db), dimension(npldafs):: Angle_or, deltak
-  real(kind=db), dimension(nbseuil):: Eseuil
-  real(kind=db), dimension(0:3):: det
-  real(kind=db), dimension(3,3):: Mat, Mat_or, Mat_ori, Orthmatt, Orthmati
-  real(kind=db), dimension(3,npldafs):: angpoldafs, hkl_dafs, vecdafsem, vecdafssm
-  real(kind=db), dimension(3,npldafs,nphim):: vecdafse, vecdafss
-  real(kind=db), dimension(0:nrm,0:ntype):: rato
-  real(kind=db), dimension(0:nrm,nlatm,0:ntype):: psival
-  real(kind=db), dimension(n_atom_proto,npldafs):: f_ms, f_mo, f0
-  real(kind=db), dimension(0:n_atom_proto,nlatm,nspin):: popatm
+  real(kind=db):: a, b, alfa, Angfac, beta, c, c_cos_z, c_x, c_y, c_z, chi, cos_c, cos_d, cos_e, cos_k, cos_m, cos_n, cos_p, &
+        cos_t, cos_tau, cos_z, delta, Energy_photon, eta, Konde, ksi,  mu, Naz, nu, phi, phi_0, psi, Qaz, sin_c, sin_e, sin_k, &
+        sin_m, sin_p, sin_t, sin_tau, step, tau, Theta_Bragg, x
+  real(kind=db), dimension(3):: ang, Angle_m, angxyz, angxyz_bulk, abc, axyz, axyz_bulk, cosdir, H_phi, H_phi_n, k_i, k_s, N_L, &
+                                N_phi, p, p_i, p_i_p, p_i_s, p_s_p, p_s_s, Q, Q_L, sindir, Vec, W
+  real(kind=db), dimension(3,3):: Mat_B, Mat_K, Mat_NL, Mat_NN, Mat_Nphi, Mat_p, Mat_U, Mat_UB, Mat, Orthmati
+  real(kind=db), dimension(npldafs):: Length_abs, Q_mod
+  real(kind=db), dimension(3,npldafs):: angpoldafs, hkl_dafs
+  real(kind=db), dimension(3,npldafs_2d):: Angle_mode
+  real(kind=db), dimension(3,npldafs,nphim):: Vecdafse, Vecdafss
 
 ! lambda = 2 * pi / k = 2 * d * sintheta
 ! In S.I. vecond = k = E*alfa*4*pi*epsilon0 / (e*e)
 ! In ua and rydb : k = 0.5 * alfa * E
-  konde = 0.5_db * alfa_sf * Eseuil(nbseuil)   ! exact que pour nbseuil = 1
+  konde = 0.5_db * alfa_sf * Energy_photon
 
-  istop = 0
+  if( ( Bulk .and. .not. hkl_film ) .or. ( Bulk_step .and. hkl_film ) ) then
+ ! When bulk_step angxyz_bulk contains film data ! ( See fdm )
+    abc(:) = axyz_bulk(:)
+    ang(:) = angxyz_bulk(:)
+  else
+    abc(:) = axyz(:)
+    ang(:) = angxyz(:)
+  endif
+
+  if( Bulk_step ) then
+    cos_z = sqrt( sin( angxyz(2) )**2 - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) / sin( angxyz(3) ) )**2 )
+    c_cos_z = axyz(3) * cos_z
+  else
+    cos_z = sqrt( sin( angxyz_bulk(2) )**2 - ( ( cos( angxyz_bulk(1) ) - cos( angxyz_bulk(3) ) * cos( angxyz_bulk(2) ) ) &
+                                           / sin( angxyz_bulk(3) ) )**2 )
+    c_cos_z = axyz_bulk(3) * cos_z
+  endif
+! The factor is to convert Length_abs en micrometer
+  c_cos_z = 0.0001_db * bohr * c_cos_z
+
+  cosdir(:) = cos( ang(:) )
+  sindir(:) = sin( ang(:) )
+
+! Transformation matrix of Q form (h,k,l) to cartesian coordinates (e_x, e_y, e_z)
+! with e_y along b, e_z along c* and e_x = e_y x e_e_z.
+  c_x = ( cosdir(2) - cosdir(1) * cosdir(3) ) / sindir(3)
+  c_y = cosdir(1)
+  c_z = sqrt( 1 - cosdir(1)**2 - c_x**2 )
+
+  Mat_B(1,1) = c_z / abc(1);    Mat_B(1,2) = - cosdir(3) * c_z / abc(2);                      Mat_B(1,3) = 0._db
+  Mat_B(2,1) = 0._db;           Mat_B(2,2) = sindir(3) * c_z / abc(2);                        Mat_B(2,3) = 0._db
+  Mat_B(3,1) = - c_x / abc(1);  Mat_B(3,2) = ( cosdir(3) * c_x - sindir(3) * c_y ) / abc(2);  Mat_B(3,3) = sindir(3) / abc(3)
+
+! Orientation matrix
+  call Rotation_Matrix(-phi_0,3,Mat_U)
+
+  Mat_UB = Matmul( Mat_U, Mat_B )
+
+  call invermat( Mat_UB, Mat )
+  Mat_K = matmul( Orthmati, Mat )
+  Mat(:,:) = Mat_K(:,:)
+  do i = 1,3
+    Mat(i,i) = Mat(i,i) - 1
+  end do
+  x = sum( abs( Mat(:,:) ) )
+  Mat_unit = x < eps10
+
+! Unit cell volume is a.b.c.A
+! Angfac = 2 pi / A
+  Angfac = deux_pi / sqrt( 1 - sum( cosdir(:)**2 ) + 2 * cosdir(1) * cosdir(2) * cosdir(3) )
+
+  Mat_UB(:,:) = Angfac * Mat_UB(:,:)
+
+  N_phi(1:2) = 0._db; N_phi(3) = 1._db
+
+  if( icheck > 1 ) then
+    write(3,'(16x,a5,27x,a5,27x,a5)') 'Mat_B', 'Mat_U', 'Mat_UB'
+    do i = 1,3
+      write(3,110) Mat_B(i,:), Mat_U(i,:), Mat_UB(i,:)
+    end do
+  endif
+
+  ipl = 0
+  do jpl = 1,npldafs_2d
+
+    Operation_m(:) = Operation_mode(:,jpl)
+    Angle_m(:) = Angle_mode(:,jpl)
+
+    Specular = abs( hkl_dafs(1,ipl+1) ) < eps10 .and. abs( hkl_dafs(2,ipl+1) ) < eps10
+    call Operation_mode_eval(alfa,Alfa_beta,Alfa_fixed,Angle_m,beta,Beta_fixed,chi,Chi_fixed,Column_detector, &
+                Column_reference,delta,Delta_fixed,eta,Detector_known,Eta_fixed,Eta_half_delta,icheck,mu,Mu_fixed, &
+                Mu_half_nu,Naz,Naz_fixed,nu,Nu_fixed,Operation_m,phi,Phi_fixed,psi,Psi_fixed,Qaz,Qaz_fixed,Specular)
+
+    do kpl = 1,npl_2d(jpl)
+      ipl = ipl + 1
+      lpl = ipl + npl_2d(jpl)
+      Q(:) = hkl_dafs(:,ipl)
+
+      H_phi = Matmul( Mat_UB, Q )
+
+! Q modulus = mod(k_s - k_i) = 2 * k * sin( Theta_bragg )
+      Q_mod(ipl) = sqrt( sum( H_phi(:)**2 ) )
+      Q_mod(lpl) = Q_mod(ipl)
+      H_phi_n(:) = H_phi(:) / Q_mod(ipl)
+
+! Theta_Bragg determination
+      x = Q_mod(ipl) / ( 2 * konde )
+      if( x > 1._db ) then
+        call write_error
+        do ipr = 3,9,3
+          if( ipr == 3 .and. icheck == 0 ) cycle
+          write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
+          write(ipr,'(/A//)') ' The reflexion does not exist at this energy !'
+        end do
+        stop
+      endif
+
+      Theta_Bragg = asin( x )
+      cos_t = cos( Theta_Bragg )
+      sin_t = sin( Theta_Bragg )
+! Angle between surface normal and Q
+      if( Q_mod(ipl) > eps10 ) then
+        cos_tau = H_phi_n(3)
+      else
+        cos_tau = 1._db
+      endif
+      tau = acos( cos_tau )
+      sin_tau = sin( Tau )
+
+! One term of the column reference is known
+      if( Column_reference ) then
+        if( Alfa_fixed ) beta = asin( 2 * sin_t * cos_tau - sin( alfa ) )
+        if( Beta_fixed ) alfa = asin( 2 * sin_t * cos_tau - sin( beta ) )
+        if( Alfa_Beta ) then
+          alfa = asin( sin_t * cos_tau )
+          beta = alfa
+        endif
+        if( Psi_fixed ) then
+          alfa = asin( cos_tau * sin_t - cos_t * sin_tau * cos( psi ) )
+          beta = asin( cos_tau * sin_t + cos_t * sin_tau * cos( psi ) )
+        elseif( .not. Specular ) then
+          x = ( cos_tau * sin_t - sin( alfa ) ) / ( sin_tau * cos_t )
+          if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'cos(psi)')
+          psi = acos( x )
+        else
+          psi = 0._db
+        endif
+      endif
+
+! One of the detector angle is given
+      if( Delta_fixed ) then
+
+        x = cos( delta )
+        if( abs( x ) > eps10 ) then
+          cos_n = cos( 2 * Theta_Bragg ) / x
+          if( abs( cos_n ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,cos_n,'cos(nu) ')
+        else
+          call write_error
+          do ipr = 3,9,3
+            if( ipr == 3 .and. icheck == 0 ) cycle
+            write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
+            write(ipr,'(/A//)') '   eta cannot be fixed at +/- 90 !'
+          end do
+        endif
+        nu = acos( cos_n )
+
+      elseif( Nu_fixed ) then
+
+        x = cos( nu )
+        if( abs( x ) > eps10 ) then
+          cos_d = cos( 2 * Theta_Bragg ) / x
+          if( abs( cos_d ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,cos_d,'cos(del)')
+        else
+          call write_error
+          do ipr = 3,9,3
+            if( ipr == 3 .and. icheck == 0 ) cycle
+            write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
+            write(ipr,'(/A//)') '    nu cannot be fixed at +/- 90 !'
+          end do
+        endif
+        delta = acos( cos_d )
+
+      elseif( Qaz_fixed ) then
+
+        delta = asin( 2 * sin_t * cos_t * sin( Qaz ) )
+        if( abs( delta ) > eps10 ) then
+          nu = asin( tan( delta ) / tan( Qaz ) )
+        else
+          nu = 2 * Theta_Bragg
+        endif
+
+      endif
+
+      if( Delta_fixed .or. Nu_fixed ) then
+        if( abs( nu ) < eps10 ) then
+          Qaz = pi / 2
+        else
+          Qaz = atan2( sin( delta ), cos( delta ) * sin( nu ) )
+        endif
+      endif
+
+      if( Column_reference .and. ( Delta_fixed .or. nu_fixed .or. Qaz_fixed ) ) then
+
+        x = ( cos_tau - sin( alfa ) * sin_t ) / ( cos( alfa ) * cos_t )
+        if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'cos(Naz)')
+        Naz = Qaz + acos( x )
+
+      elseif( Column_reference .and. Naz_fixed ) then
+
+        x = ( cos_tau - sin( alfa ) * sin_t ) / ( cos( alfa ) * cos_t )
+        if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'cos(Qaz)')
+        Qaz = Naz + acos( x )
+
+        delta = asin( 2 * sin_t * cos_t * sin( Qaz ) )
+        if( abs( delta ) > eps10 ) then
+          nu = asin( tan( delta ) / tan( Qaz ) )
+        else
+          nu = 2 * Theta_Bragg
+        endif
+
+      endif
+
+      if( Specular ) then
+
+        if( Chi_fixed .and. Phi_fixed ) then
+          if( abs( sin( chi ) ) < eps10 ) then
+            mu = alfa
+            eta = 0._db
+          elseif( abs( cos( chi ) ) < eps10 ) then
+            mu = 0.
+            eta = alfa
+          endif
+
+        elseif( Naz_fixed ) then
+          ! ------------------------------- this part is not used ----------------
+       !   if( abs( sin( Naz ) ) < eps10 ) then
+       ! mu = alfa + chi
+       !  elseif( abs( cos( Naz ) ) < eps10 ) then
+       ! sin(mu) * sin(alfa) = cos( chi )
+       !   endif
+          if( Mu_fixed ) then
+            cos_m = cos( mu )
+            if( abs( cos_m ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,cos_m,'cos(mu) ')
+            sin_m = sin( mu )
+
+            cos_c = cos_m * cos( Naz ) * cos_t + sin_m * sin_t
+            if( abs( cos_c ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,cos_c,'cos(chi)')
+            chi = acos( cos_c )
+
+            sin_e = ( sin_t - sin_m * cos_c ) / ( cos_m * sin( chi ) )
+            if( abs( sin_e ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,sin_e,'sin(eta)')
+            eta = asin( sin_e )
+
+          elseif( Chi_fixed ) then
+            if( abs( sin( chi ) ) < eps10 ) then
+              mu = alfa
+              eta = 0._db
+            elseif( abs( cos( chi ) ) < eps10 ) then
+              mu = 0.
+              eta = alfa
+            else
+              c = cos( chi )
+              a = cos( Naz ) * cos_t / c
+              b = sin_t / c
+              step = pi / 20
+              mu = 0._db
+              do k = 1,10
+                do i = 1,10
+                  mu = mu + step
+                  c = a * cos( mu ) + b * sin( mu )
+                  if( a > 1._db ) then
+                    if( c > 1._db ) cycle
+                  else
+                    if( c < 1._db ) cycle
+                  endif
+                  mu = mu - step
+                  step = step / 10
+                  exit
+                end do
+              end do
+              sin_e = ( sin_t - sin( mu ) * cos_c ) / ( cos( mu ) * sin( chi ) )
+              eta = asin( sin_e )
+            endif
+          elseif( Eta_fixed ) then
+            call write_error
+            do ipr = 3,9,3
+            if( ipr == 3 .and. icheck == 0 ) cycle
+              write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
+              write(ipr,'(/A//)') '   Eta fixed not programmed for the specular reflection, sorry !'
+            end do
+          endif
+        endif
+      endif
+
+      if( ( Column_detector .or. Column_reference ) .and. .not. Specular ) then
+! Allways known
+        Mat_Nphi(:,1) = H_phi_n(:)
+        call Prodvec(Vec,H_phi_n,N_phi)
+        x = sqrt( sum( Vec(:)**2 ) )
+        Mat_Nphi(:,3) = Vec(:) / x
+        call Prodvec(W,Vec,H_phi_n)
+        x = sqrt( sum( W(:)**2 ) )
+        Mat_Nphi(:,2) = W(:) / x
+      endif
+
+      if( Column_detector .and. Column_reference .and. .not. Specular ) then
+
+! Q_L is in the laboratory basis after rotation
+        Q_L(1) = cos_t * sin( Qaz )
+        Q_L(2) = - sin_t
+        Q_L(3) = cos_t * cos( Qaz )
+
+        N_L(1) = cos( alfa ) * sin( Naz )
+        N_L(2) = - sin( alfa )
+        N_L(3) = cos( alfa ) * cos( Naz )
+
+! Seems to work with that, I do not understand, correspond à une rotation inverse
+!        if( Eta_fixed ) then
+!          Q_L(1:2) = - Q_L(1:2)
+!          N_L(1:2) = - N_L(1:2)
+!        endif
+
+        Mat_NL(:,1) = Q_L(:)
+        call Prodvec( Vec, Q_L, N_L )
+        x = sqrt( sum( Vec(:)**2 ) )
+        Mat_NL(:,3) = Vec(:) / x
+        call Prodvec( W, Vec, Q_L )
+        x = sqrt( sum( W(:)**2 ) )
+        Mat_NL(:,2) = W(:) / x
+
+        call invermat(Mat_Nphi,Mat )
+        Mat_NN = Matmul( Mat_NL, Mat )
+
+        if( Mu_fixed .or. Mu_half_nu ) then
+
+          if( Mu_half_nu ) mu = nu / 2
+
+          call Rotation_Matrix(-mu,1,Mat)
+          Mat = Matmul( Mat, Mat_NN )
+
+          phi = atan2( Mat(3,2), Mat(3,1) )
+ ! Correction in order it works
+          phi = phi + pi
+          eta = atan2( - Mat(2,3), Mat(1,3) )
+! When chi is between - pi/2 and pi/2
+!          chi = atan2( sqrt( Mat(3,1)**2 + Mat(3,2)**2 ), Mat(3,3) )
+! When chi is between 0 and pi
+          chi = acos( Mat(3,3) )
+
+        elseif( Phi_fixed ) then
+
+          call Rotation_Matrix(phi,3,Mat)
+          Mat = Matmul( Mat_NN, Mat )
+
+          eta = atan2( Mat(1,2), sqrt( Mat(2,2)**2 + Mat(3,2)**2 ) )
+          mu = atan2( Mat(3,2), Mat(2,2) )
+! When chi is between - pi/2 and pi/2
+!          chi = atan2( Mat(1,3), Mat(1,1) )
+! When chi is between 0 and pi
+          chi = acos( Mat(1,1) / cos( eta ) )
+
+        elseif( Eta_fixed .or. Chi_fixed .or. Eta_half_delta ) then
+
+           if( Eta_half_delta ) eta = delta / 2
+
+           Mat(:,:) = Mat_NN(:,:)
+
+           if( Eta_fixed ) then
+
+             cos_e = cos( eta )
+             sin_e = sin( eta )
+             if( abs( cos_e ) < eps10 ) then
+ ! chi and mu play the same role
+               chi = 0._db
+             else
+ ! When chi is between - pi/2 and pi/2
+               sin_c = Mat(1,3) / cos_e
+               if( abs( sin_c ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,sin_c,'sin(chi)')
+               chi = asin( sin_c )
+             endif
+             cos_c = cos( chi )
+             sin_c = sin( chi )
+
+           else
+
+             cos_c = cos( chi )
+             sin_c = sin( chi )
+             if( abs( sin_c ) < eps10 ) then
+  ! eta and phi play the same role
+               eta = 0._db
+             else
+               cos_e = Mat(1,3) / sin_c
+               if( abs( cos_e ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,cos_e,'cos(eta)')
+               eta = acos( cos_e )
+             endif
+             cos_e = cos( eta )
+             sin_e = sin( eta )
+
+           endif
+
+           a = sin_e * sin_c
+           mu  = atan2( a * Mat(3,3) + cos_c * Mat(2,3), - cos_c * Mat(3,3) + a * Mat(2,3) )
+           mu = mu + pi
+
+           a = cos_e * cos_c
+           phi = atan2( a * Mat(1,2) - sin_e * Mat(1,1), sin_e * Mat(1,2) + a * Mat(1,1) )
+
+        endif
+
+      endif
+
+! 1 reference and 2 sample angles ------------------------------------------------------------------------------------------
+
+      if( Column_reference .and. .not. Column_detector .and. .not. Specular ) then
+
+        call Rotation_Matrix(Theta_Bragg,3,Mat)
+
+        call Rotation_Matrix(-psi,1,Mat_p)
+
+        Mat = matmul( Mat_p, Mat )
+
+        Mat = matmul( Mat_Nphi, Mat )
+
+        if( Phi_fixed .and. Chi_fixed ) then
+
+          call Rotation_Matrix(-phi,3,Mat_p)
+
+          Mat = matmul( Mat_p, Mat )
+
+          call Rotation_Matrix(chi,2,Mat_p)
+
+          Mat = matmul( Mat_p, Mat )
+
+          eta = atan2( - Mat(1,2), Mat(2,2) )
+          mu = asin( - Mat(3,2) )
+
+          ksi = atan2( - Mat(3,1), Mat(3,3) )
+
+        elseif( Phi_fixed .and. ( Mu_fixed .or. Eta_fixed ) ) then
+
+          call Rotation_Matrix(-phi,3,Mat_p)
+
+          Mat = matmul( Mat_p, Mat )
+
+          if( Mu_fixed ) then
+            cos_m = cos( mu );   sin_m = sin( mu )
+            if( abs( cos_m ) < eps10 ) then
+              chi = - atan2( Mat(1,2), Mat(3,2) )
+              cos_c = cos( chi )
+              a = acos( Mat(1,1) / cos_c )
+              b = acos( Mat(1,3) / cos_c )
+              eta = ( a - b ) / 2
+              ksi = ( a + b ) / 2
+            else
+              cos_e = Mat(2,2) / cos_m
+              eta = acos( cos_e )
+              sin_e = sin( eta )
+
+              a = - cos_m * sin_e
+              b = sin_m
+              chi = atan2( b * Mat(1,2) + a * Mat(3,2), a * Mat(1,2) - b * Mat(3,2) )
+              sin_c = sin( chi )
+              cos_c = cos( chi )
+
+              a = sin_c * cos_e
+              b = sin_c * sin_e * sin_m - cos_c * cos_m
+              ksi = atan2( a * Mat(3,3) + b * Mat(3,1), a * Mat(3,1) - b * Mat(3,3) )
+
+            endif
+          else
+            cos_e = cos( eta );  sin_e = sin( eta )
+            if( abs( cos_e ) < eps10 ) then
+              ksi = acos( Mat(2,1) / sin_e )
+              a = - asin( Mat(3,2) )
+ ! mu + chi = a when sin( eta ) = 1 and mu - chi = a when sin( eta ) = - 1
+ ! Movement is horizontal, chi and mu have the same role
+              mu = a ! ( = +/- alfa )
+              chi = 0._db
+            else
+              cos_m = Mat(2,2) / cos_e
+              if( abs( cos_m ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,cos_m,'cos(mu) ')
+              mu = acos( cos_m )
+              sin_m = sin( mu )
+
+              a = - cos_m * sin_e
+              b = sin_m
+              chi = atan2( b * Mat(1,2) + a * Mat(3,2), a * Mat(1,2) - b * Mat(3,2) )
+              sin_c = sin( chi )
+              cos_c = cos( chi )
+
+              a = sin_c * cos_e
+              b = sin_c * sin_e * sin_m - cos_c * cos_m
+              ksi = atan2( a * Mat(3,3) + b * Mat(3,1), a * Mat(3,1) - b * Mat(3,3) )
+
+            endif
+          endif
+
+        else   ! phi is not fixed
+
+          if( Eta_fixed .and. Mu_fixed ) then
+
+            cos_e = cos( eta );  sin_e = sin( eta )
+            cos_m = cos( mu );   sin_m = sin( mu )
+
+            a = sin_m**2 + ( sin_e * cos_m )**2
+            b = Mat(3,2) * sin_e * cos_m
+            c = Mat(3,2)**2 - sin_m**2
+            x = b**2 - a*c
+
+            if( x < 0._db ) then
+              call write_error
+              do ipr = 3,9,3
+                if( ipr == 3 .and. icheck == 0 ) cycle
+                write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
+                write(ipr,125) x
+              end do
+              stop
+            endif
+
+            sin_c = ( - b + sqrt( x ) ) / a
+            if( abs(sin_c) > 1._db ) sin_c = ( - b - sqrt( x ) ) / a
+            chi = asin( sin_c )
+            cos_c = cos( chi )
+
+            if( abs( Mat(3,2) + sin_c * sin_e * cos_m + cos_c * sin_m ) > eps10 ) then
+              chi = pi - chi
+              cos_c = - cos_c
+            endif
+
+          elseif( Eta_fixed .and. Chi_fixed ) then
+
+            cos_c = cos( chi );  sin_c = sin( chi )
+            cos_e = cos( eta );  sin_e = sin( eta )
+
+            if( abs( cos_c ) < eps10 .and. abs( sin_e ) < eps10 ) then
+              call write_error
+              do ipr = 3,9,3
+              if( ipr == 3 .and. icheck == 0 ) cycle
+                write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
+                write(ipr,'(/A//)') '   chi = +/- 90 with eta = 0, is not possible !'
+              end do
+            endif
+
+            if( abs( sin_c ) < eps10 .or. abs( sin_e ) < eps10 ) then
+
+              mu = - asin( Mat(3,2) / cos_c )
+
+              if( abs( cos( mu ) ) < eps10 ) then
+                call write_error
+                do ipr = 3,9,3
+                  if( ipr == 3 .and. icheck == 0 ) cycle
+                  write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
+                  write(ipr,'(/A//)') '   One gets, mu = +/- 90 with chi = 0 or eta = 0, what is not possible !'
+                end do
+              endif
+
+            elseif( abs( cos_c ) < eps10 ) then
+
+              cos_m = - Mat(3,1) / ( sin_c * sin_e )
+              if( abs( cos_m ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,cos_m,'cos(mu) ')
+              mu = acos( cos_m )
+
+            else
+
+              a = cos_c**2 + ( sin_c * sin_e )**2
+              b = Mat(3,2) * cos_c
+              c = Mat(3,2)**2 - ( sin_c * sin_e )**2
+              x = b**2 - a*c
+
+              if( x < 0._db ) then
+                call write_error
+                do ipr = 3,9,3
+                  if( ipr == 3 .and. icheck == 0 ) cycle
+                  write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
+                  write(ipr,125) x
+                end do
+                stop
+              endif
+
+              sin_m = ( - b + sqrt( x ) ) / a
+              if( abs(sin_m) > 1._db ) sin_m = ( - b - sqrt( x ) ) / a
+              mu = asin( sin_m )
+              cos_m = cos( mu )
+
+              if( abs( Mat(3,2) + sin_c * sin_e * cos_m + cos_c * sin_m ) > eps10 ) then
+                mu = pi - mu
+                cos_m = - cos_m
+              endif
+
+            endif
+
+          elseif( Mu_fixed .and. Chi_fixed ) then
+
+            cos_c = cos( chi );  sin_c = sin( chi )
+            cos_m = cos( mu );   sin_m = sin( mu )
+
+            if( abs( sin_c ) < eps10 .or. abs( sin_m ) < eps10 .or. abs( cos_c ) < eps10 .or. abs( cos_m ) < eps10 ) then
+              call write_error
+              do ipr = 3,9,3
+              if( ipr == 3 .and. icheck == 0 ) cycle
+                write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
+                write(ipr,'(/A//)') &
+                 '   When the reference is known, chi and mu cannot be both fixed when one of the is 0 or 90 degrees !'
+              end do
+              stop
+            endif
+
+            sin_e = - ( Mat(3,2) + cos_c * sin_m ) / ( sin_c * cos_m )
+            if( abs( sin_e ) > 1._db) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,sin_e,'sin(eta)')
+            eta = asin( sin_e )
+            cos_e = cos( eta )
+
+          endif
+
+          a = sin_c * sin_m - cos_m * cos_c * sin_e
+          b = cos_m * cos_e
+ ! atan2 is better than atan to get value between - pi and pi and avoid problem with denominator zero.
+          phi = atan2( a * Mat(2,2) - b * Mat(1,2), a * Mat(1,2) + b * Mat(2,2) )
+
+          a = sin_c * cos_e
+          b = sin_c * sin_e * sin_m - cos_c * cos_m
+          ksi = atan2( Mat(3,3) * a + Mat(3,1) * b, Mat(3,1) * a - Mat(3,3) * b )
+
+        endif  ! end of cases without phi fixed
+
+        Qaz = ksi + pi / 2
+
+        delta = asin( 2 * sin_t * cos_t * sin( Qaz ) )
+        if( abs( delta ) > eps10 ) then
+          x = tan( delta ) / tan( Qaz )
+          if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(nu) ')
+          nu = asin( x )
+        else
+          nu = 2 * Theta_Bragg
+        endif
+
+      endif
+
+! 1 detector known and 2 sample angles ------------------------------------------------------------------------------------------
+
+      if( Detector_known .and. .not. Column_reference ) then
+
+! Qaz is necessarily known
+        ksi = Qaz - pi / 2
+        cos_k = cos( ksi )
+        sin_k = sin( ksi )
+
+        if( Mu_fixed .and. Eta_fixed ) then
+
+          call Rotation_Matrix(-Theta_Bragg,3,Mat)
+          call Rotation_Matrix(ksi,2,Mat_p)
+
+          Mat = matmul( Mat_p, Mat )
+
+          call Rotation_Matrix(-mu,1,Mat_p)
+
+          Mat = matmul( Mat_p, Mat )
+
+          call Rotation_Matrix(eta,3,Mat_p)
+
+          Mat = matmul( Mat_p, Mat )
+
+          x = - Mat(2,1) / sqrt( Mat_Nphi(1,1)**2 + Mat_Nphi(2,1)**2 )
+          if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(phi)')
+          phi = asin( x ) + atan2( Mat_Nphi(2,1), Mat_Nphi(1,1) )
+
+          a = Mat_Nphi(3,1)
+          b = Mat_Nphi(1,1) * cos( phi ) + Mat_Nphi(2,1) * sin( phi )
+          chi = atan2( a * Mat(1,1) - b * Mat(3,1), a * Mat(3,1) + b * Mat(1,1) )
+
+          a = tan( phi )
+          psi = atan2( Mat_Nphi(1,2) * Mat(2,3) * a - Mat_Nphi(1,3) * Mat(2,2) * a &
+                     + Mat_Nphi(2,3) * Mat(2,2) - Mat_Nphi(2,2) * Mat(2,3), &
+                       Mat(2,3) * ( Mat_Nphi(1,3) * a - Mat_Nphi(2,3) ) + Mat(2,2) * ( Mat_Nphi(1,2) * a + Mat_Nphi(2,2) ) )
+
+        elseif( Phi_fixed .and. Chi_fixed ) then
+
+          call Rotation_Matrix(-phi,3,Mat_p)
+
+          Mat = matmul( Mat_p, Mat_Nphi )
+
+          call Rotation_Matrix(chi,2,Mat_p)
+
+          Mat = matmul( Mat_p, Mat )
+
+! Wrong formula 64 in You's paper
+!          mu = asin( Mat(3,1) / sqrt( ( sin_k * cos_t )**2 + sin_t**2 ) ) + atan( sin_k * cos_t / sin_t )
+
+          a = sin_t**2 + ( sin_k * cos_t )**2
+          b = sin_k * cos_t * Mat(3,1)
+          c = Mat(3,1)**2 - sin_t**2
+          x = b**2 - a * c
+          if( x < 0._db ) then
+            call write_error
+            do ipr = 3,9,3
+              if( ipr == 3 .and. icheck == 0 ) cycle
+              write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
+              write(ipr,125) x
+            end do
+            stop
+          endif
+          cos_m = ( - b + sqrt( x ) ) / a
+          if( abs( cos_m ) > 1._db  ) cos_m = ( - b - sqrt( x ) ) / a
+          if( abs( cos_m ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,cos_m,'cos(mu) ')
+          mu = acos( cos_m )
+
+          sin_m = sin( mu )
+
+          if( abs( Mat(3,1) + cos_m * sin_k * cos_t - sin_m * sin_t ) > eps10 ) then
+            mu = - mu
+            sin_m = - sin_m
+          endif
+
+          a = cos_t * cos_k
+          b = cos_t * sin_m * sin_k  + cos_m * sin_t
+          eta = atan2( a * Mat(2,1) + b * Mat(1,1), a * Mat(1,1) - b * Mat(2,1) )
+
+          a = cos_m * sin_k * sin_t + sin_m * cos_t
+          b = cos_m * cos_k
+          psi = atan2( - a * Mat(3,3) - b * Mat(3,2), a * Mat(3,2) - b * Mat(3,3) )
+
+        endif
+
+        x = cos_tau * sin_t - cos_t * sin_tau * cos( psi )
+        if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(alf)')
+        alfa = asin( x )
+        x = cos_tau * sin_t + cos_t * sin_tau * cos( psi )
+        if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(bet)')
+        beta = asin( x )
+
+      endif
+
+! 3 sample angles known ------------------------------------------------------------------------------------
+
+      if( .not. ( Column_detector .or. Column_reference ) ) then
+
+        if( .not. Eta_fixed ) then
+
+          cos_m = cos( mu );  sin_m = sin( mu )
+          cos_c = cos( chi ); sin_c = sin( chi )
+          cos_p = cos( phi ); sin_p = sin( phi )
+
+          a = cos_m * ( - cos_c * ( cos_p * H_phi_n(1) + sin_p * H_phi_n(2) ) - sin_c * H_phi_n(3) )
+          b = cos_m * ( - sin_p * H_phi_n(1) + cos_p * H_phi_n(2) )
+          c = - sin_t - sin_m * sin_c * ( cos_p * H_phi_n(1) + sin_p * H_phi_n(2) ) + sin_m * cos_c * H_phi_n(3)
+
+          x = c / sqrt( a**2 + b**2 )
+          if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(eta)')
+          eta = asin( x ) - atan2( b, a )
+          cos_e = cos( eta ); sin_e = sin( eta )
+
+        elseif( .not. Mu_fixed ) then
+
+          cos_e = cos( eta ); sin_e = sin( eta )
+          cos_c = cos( chi ); sin_c = sin( chi )
+          cos_p = cos( phi ); sin_p = sin( phi )
+
+          a = sin_c * ( cos_p * H_phi_n(1) + sin_p * H_phi_n(2) ) - cos_c * H_phi_n(3)
+          b = ( - sin_e * cos_c * cos_p - cos_e * sin_p ) * H_phi_n(1) &
+            + ( - sin_e * cos_c * sin_p + cos_e * cos_p ) * H_phi_n(2) &
+            - sin_e * sin_c * H_phi_n(3)
+          c = - sin_t
+
+          x = c / sqrt( a**2 + b**2 )
+          if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(mu)')
+          mu = asin( x ) - atan2( b, a )
+          cos_m = cos( mu ); sin_m = sin( mu )
+
+        elseif( .not. Chi_fixed ) then
+
+          cos_m = cos( mu );  sin_m = sin( mu )
+          cos_e = cos( eta ); sin_e = sin( eta )
+          cos_p = cos( phi ); sin_p = sin( phi )
+
+          a = sin_m * ( cos_p * H_phi_n(1) + sin_p * H_phi_n(2) ) - cos_m * sin_e * H_phi_n(3)
+          b = - cos_m * sin_e * ( cos_p * H_phi_n(1) + sin_p * H_phi_n(2) ) - sin_m * H_phi_n(3)
+          c = - sin_t + cos_m * cos_e * ( sin_p * H_phi_n(1) - cos_p * H_phi_n(2) )
+
+          x = c / sqrt( a**2 + b**2 )
+          if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(chi)')
+          chi = asin( x ) - atan2( b, a )
+          cos_c = cos( chi ); sin_c = sin( chi )
+
+        else
+
+          cos_m = cos( mu );  sin_m = sin( mu )
+          cos_e = cos( eta ); sin_e = sin( eta )
+          cos_c = cos( chi ); sin_c = sin( chi )
+
+          a = - cos_m * cos_e * H_phi_n(1) + ( - cos_m * sin_e * cos_c + sin_m * sin_c ) * H_phi_n(2)
+          b = cos_m * cos_e * H_phi_n(2) + ( - cos_m * sin_e * cos_c + sin_m * sin_c ) * H_phi_n(1)
+          c = - sin_t + ( cos_m * sin_e * sin_c + sin_m * cos_c ) * H_phi_n(3)
+
+          x = c / sqrt( a**2 + b**2 )
+          if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(phi)')
+          phi = asin( x ) - atan2( b, a )
+          cos_p = cos( phi ); sin_p = sin( phi )
+
+        endif
+
+ ! Detector angles
+        a = ( cos_e * cos_c * cos_p - sin_e * sin_p ) * H_phi_n(1) &
+          + ( cos_e * cos_c * sin_p + sin_e * cos_p ) * H_phi_n(2) &
+          + cos_e * sin_c * H_phi_n(3)
+
+        b = ( ( - sin_m * sin_e * cos_c - cos_m * sin_c ) * cos_p - sin_m * cos_e * sin_p ) * H_phi_n(1) &
+          + ( ( - sin_m * sin_e * cos_c - cos_m * sin_c ) * sin_p + sin_m * cos_e * cos_p ) * H_phi_n(2) &
+          + ( - sin_m * sin_e * sin_c + cos_m * cos_c ) * H_phi_n(3)
+
+        Qaz = atan2( a, b )
+
+        delta = asin( 2 * sin_t * cos_t * sin( Qaz ) )
+        if( abs( delta ) > eps10 ) then
+          nu = asin( tan( delta ) / tan( Qaz ) )
+        else
+          nu = 2 * Theta_Bragg
+        endif
+
+      endif
+
+! Final matrix = Z = M H X Ph
+
+      call Rotation_Matrix(-phi,3,Mat)
+      call Rotation_Matrix(chi,2,Mat_p)
+      Mat = matmul( Mat_p, Mat )
+      call Rotation_Matrix(-eta,3,Mat_p)
+      Mat = matmul( Mat_p, Mat )
+      call Rotation_Matrix(mu,1,Mat_p)
+      Mat = matmul( Mat_p, Mat )
+
+      if( .not. ( Naz_fixed .or. ( Column_detector .and. Column_reference ) .or. Specular  ) ) Naz = atan2( Mat(1,3), Mat(3,3) )
+
+! Reference angles
+      if( .not. ( Column_reference .or. Column_detector ) ) then
+        x = - Mat(2,3)
+        if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(alf)')
+        alfa = asin( a )
+        x = Mat(2,3) + 2 * sin_t * cos_tau
+        if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(bet)')
+        beta = asin( x )
+        x = ( cos_tau * sin_t + Mat(2,3) ) / ( sin_tau * cos_t )
+        if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(psi)')
+        psi = acos( x )
+      endif
+
+      if( icheck > 1 ) then
+        if( jpl == 1 .or. icheck > 1 ) write(3,130)
+        if( Specular .and. Naz_fixed ) then
+          write(3,140) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, delta / radian, nu / radian, Qaz / radian, Naz / radian, &
+                     alfa / radian, beta / radian, psi / radian, phi / radian
+        else
+          write(3,150) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, delta / radian, nu / radian, Qaz / radian, Naz / radian, &
+                     alfa / radian, beta / radian, psi / radian, eta / radian, mu / radian, chi / radian, phi / radian
+        endif
+      endif
+
+      call invermat( Mat, Mat_p )
+
+      if( Specular .and. Phi_fixed .and. Naz_fixed ) then
+
+        k_i(1) = 0._db
+        k_i(2) = cos( alfa )
+        k_i(3) = - sin( alfa )
+
+        p_i_s(1) = -1._db
+        p_i_s(2:3) = 0._db
+
+        p_i_p(1) = 0._db
+        p_i_p(2) = sin( alfa )
+        p_i_p(3) = cos( alfa )
+
+        call Rotation_Matrix(phi,3,Mat)
+
+        k_i = matmul( Mat, k_i )
+        p_i_s = matmul( Mat, p_i_s )
+        p_i_p = matmul( Mat, p_i_p )
+
+        p_i(:) = cos( Naz ) * p_i_p(:) + sin( Naz ) * p_i_s(:)
+
+      else
+
+        k_i(:) = Mat_p(:,2)
+        p_i(:) = Mat_p(:,3)
+
+      endif
+
+      k_s(:) = H_phi(:) / konde + k_i(:)
+
+      Vecdafse(:,ipl,1) = k_i(:)
+      Vecdafss(:,ipl,1) = k_s(:)
+      Poldafse(:,ipl,1) = cmplx( p_i(:), 0._db )
+      Vecdafse(:,lpl,1) = k_i(:)
+      Vecdafss(:,lpl,1) = k_s(:)
+      Poldafse(:,lpl,1) = cmplx( p_i(:), 0._db )
+
+      if( Q_mod(ipl) > eps10 ) then
+        call prodvec(p_s_s,H_phi,k_s)
+        a = sqrt( sum( p_s_s(:)**2 ) )
+        p_s_s(:) = p_s_s(:) / a
+      else
+        p_s_s(:) = p_i(:)
+      endif
+
+      call prodvec(p_s_p,k_s,p_s_s)
+
+! The following establishment of isigpi and angpoldafs is for the Col_dafs_name routine
+      if( Q_mod(ipl) > eps10 ) then
+        cos_p = abs( sum( p_i(:) * H_phi(:) ) ) / Q_mod(ipl)
+      else
+        cos_p = 0._db
+      endif
+      if( cos_p < eps10 ) then
+        isigpi(1,ipl) = 1
+        isigpi(1,lpl) = 1
+      elseif( abs( cos_p - cos_t ) < eps10 ) then
+        isigpi(1,ipl) = 2
+        isigpi(1,lpl) = 2
+      else
+        isigpi(1,ipl) = 5
+        isigpi(1,lpl) = 5
+      endif
+
+      if( abs( sum( p_i(:) * p_s_s(:) ) ) > abs( sum( p_i(:) * p_s_p(:) ) ) ) then
+        Poldafss(:,ipl,1) = cmplx( p_s_s(:), 0._db )
+        isigpi(2,ipl) = 1
+        Poldafss(:,lpl,1) = cmplx( p_s_p(:), 0._db )
+        isigpi(2,lpl) = 2
+      else
+        Poldafss(:,ipl,1) = cmplx( p_s_p(:), 0._db )
+        isigpi(2,ipl) = 2
+        Poldafss(:,lpl,1) = cmplx( p_s_s(:), 0._db )
+        isigpi(2,lpl) = 1
+      endif
+
+      if( Phi_fixed ) then
+        angpoldafs(3,ipl) = phi
+        angpoldafs(3,lpl) = phi
+      endif
+
+      if( alfa > eps10 .and. beta > eps10 ) then
+        Length_abs(ipl) = c_cos_z * ( 1 / sin( alfa ) + 1 / sin( beta ) )
+      else
+        Length_abs(ipl) = 1.e+20_db
+      endif
+      Length_abs(lpl) = Length_abs(ipl)
+
+      if( icheck > 1 .and. .not. Mat_unit ) then
+        if( ( icheck == 1 .and. ipl == 1 ) .or. icheck > 1 ) write(3,'(/A)') ' Basis surface'
+        if( ( icheck == 1 .and. ipl == 1 ) .or. icheck > 1 ) write(3,160)
+        write(3,170) hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, Beta / radian, phi / radian, chi / radian, &
+                     eta / radian, mu / radian, Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), Vecdafss(:,ipl,1), &
+                     real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+      endif
+
+      if( .not. Mat_unit ) then
+        do i = ipl,lpl,lpl-ipl
+          p(:) = real( Poldafse(:,i,1), db )
+          p = matmul( Mat_K, p )
+          Poldafse(:,i,1) = cmplx( p(:), 0._db )
+          p(:) = real( Poldafss(:,i,1), db )
+          p = matmul( Mat_K, p )
+          Poldafss(:,i,1) = cmplx( p(:), 0._db )
+          p(:) = Vecdafse(:,i,1)
+          p = matmul( Mat_K, p )
+          Vecdafse(:,i,1) = cmplx( p(:), 0._db )
+          p(:) = Vecdafss(:,i,1)
+          p = matmul( Mat_K, p )
+          Vecdafss(:,i,1) = cmplx( p(:), 0._db )
+        end do
+      endif
+
+      if( icheck > 0 ) then
+        if( ( icheck == 1 .and. ipl == 1 ) .or. icheck > 1 ) write(3,'(/A)') ' Internal basis R1, z along c'
+        if( ( icheck == 1 .and. ipl == 1 ) .or. icheck > 1 ) write(3,160)
+        write(3,170) hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, Beta / radian, phi / radian, chi / radian, &
+                     eta / radian, mu / radian, Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), Vecdafss(:,ipl,1), &
+                     real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+      endif
+
+! Test on results validity
+      x = sqrt( sum( k_s(:)**2 ) )
+      if( abs( x - 1 ) > eps10 .or. alfa < 0._db .or. beta < 0 ) then
+        call write_error
+        do ipr = 3,9,3
+          if( ipr == 3 .and. icheck == 0 ) cycle
+          write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
+          if( abs( x - 1 ) > eps10 ) write(ipr,180) x
+          if( alfa < 0._db ) write(ipr,190) '   Incidence angle, alfa =', alfa / radian
+          if( beta < 0._db ) write(ipr,190) '    Outgoing angle, beta =', beta / radian
+        end do
+        stop
+      endif
+
+    end do
+
+    ipl = lpl
+
+  end do
+
+  do ipl = 1,npldafs
+  end do
+
+
+
+  return
+ 110 format(3(2x,3f10.5))
+ 120 format(//' For the reflection',i3,', (h,k,l) =',2f5.2,f7.4,/ &
+              '   with the operation mode =',5i2,/, &
+              '   the angles',3f8.3,' or the current energy are not possible !')
+ 125 format(/'   One gets a negative discriminant =',1p,e11.3,','/ &
+             '   from wich angle cannot be calculated !'//)
+ 130 format(/' ipl    h      k      l    theta_B  delta    nu     Qaz     Naz     alfa    beta    psi     eta      mu', &
+             '     chi      phi')
+ 140 format(i3,2f7.2,f8.4,8f8.3,4x,'x',7x,'x',7x,'x',3x,f8.3,3x,'eta, mu and chi not calculated')
+ 150 format(i3,2f7.2,f8.4,12f8.3)
+ 160 format(/4x,'h',6x,'k',7x,'l',3x,'theta_B',3x,'alfa',4x,'beta',5x,'phi',5x,'chi',5x,'eta',5x,'mu',16x,'k_i',24x,'Pol_i',24x, &
+            'k_s',23x,'Pol_s_1',22x,'Pol_s_2')
+ 170 format(2f7.2,f8.4,7f8.3,5(1x,3f9.5))
+ 180 format(/'   Normalized outgoing wave vectot modulus =',f8.3,' different from one.'/ &
+             '   There is an error in the code, contact the author !'//)
+ 190 format(/a26,f8.3,' < 0 !'//)
+ 200 format(/4x,'h',6x,'k',7x,'l',3x,'theta_B',3x,'alfa',4x,'beta',5x,'phi',5x,'chi',5x,'eta',5x,'mu',16x,'k_i',24x,'Pol_i',24x, &
+            'k_s',23x,'Pol_s_1',22x,'Pol_s_2')
+end
+
+!*********************************************************************
+
+! The operation modes come from You, J. Appl. Cryst. 32, 614 (1999),
+! with the Spec inversion in sample angle order: eta is 1 and mu is 2
+! Table is :     Detector  Reference    Sample   Sample   Sample
+!              1  delta   alfa = beta     eta      eta      eta
+!              2    nu       alfa          mu       mu       mu
+!              3   Qaz       beta         chi      chi      chi
+!              4   Naz       psi          phi      phi      phi
+!              5    x         x      eta = delta/2  x        x
+!              6    x         x       mu = nu/2     x        x
+
+  subroutine Operation_mode_eval(alfa,Alfa_beta,Alfa_fixed,Angle_m,beta,Beta_fixed,chi,Chi_fixed,Column_detector, &
+                Column_reference,delta,Delta_fixed,eta,Detector_known,Eta_fixed,Eta_half_delta,icheck,mu,Mu_fixed, &
+                Mu_half_nu,Naz,Naz_fixed,nu,Nu_fixed,Operation_m,phi,Phi_fixed,psi,Psi_fixed,Qaz,Qaz_fixed,Specular)
+
+  use declarations
+  implicit none
+
+  character(len=3):: mot3
+
+  integer:: i, icheck, ipr, j, n_a, n_op
+  integer, dimension(5):: Operation_m
+
+  logical:: Alfa_Beta, Alfa_fixed, Beta_fixed, Chi_fixed, Column_detector, Column_reference, Delta_fixed, Detector_known, &
+    Eta_fixed, Eta_half_delta, Mu_fixed, Mu_half_nu, Naz_fixed, Nu_fixed, Operation_m_error, Phi_fixed, Psi_fixed, Qaz_fixed, &
+    Specular
+  real(kind=db):: alfa, beta, chi, delta, eta, mu, Naz, nu, phi, psi, Qaz
+  real(kind=db), dimension(3):: Angle_m
+
+  Alfa_Beta = .false.; Alfa_fixed = .false.;     Beta_fixed = .false.; Chi_fixed = .false.;  Delta_fixed = .false.
+  Eta_fixed = .false.; Eta_half_delta = .false.; Mu_fixed = .false.;   Mu_half_nu = .false.; Naz_fixed = .false.
+  Nu_fixed = .false.;  Phi_fixed = .false.;      Psi_fixed = .false.;  Qaz_fixed = .false.
+
+  alfa = 0._db; beta = 0._db; chi = 0._db; delta = 0._db; eta = 0._db;
+  mu = 0._db;    Naz = 0._db;  nu = 0._db;   phi = 0._db; psi = 0._db; Qaz = 0._db
+
+  Operation_m_error = .false.
+
+! j is the column in the You's table
+  n_op = 0
+  n_a = 0
+
+  do j = 1,5
+
+    if( Operation_m(j) == 0 ) cycle
+
+    n_op = n_op + 1
+    n_a = n_a + 1
+
+    if( n_op > 3 ) cycle
+
+    select case(j)
+
+      case(1)
+
+        select case( Operation_m(j) )
+          case(1)
+            Delta_fixed = .true.
+            delta = Angle_m(n_a)
+          case(2)
+            Nu_fixed = .true.
+            nu = Angle_m(n_a)
+          case(3)
+            Qaz_fixed = .true.
+            Qaz = Angle_m(n_a)
+          case(4)
+            Naz_fixed = .true.
+            Naz = Angle_m(n_a)
+          case default
+            call write_error
+            do ipr = 3,9,3
+              if( ipr == 3 .and. icheck == 0 ) cycle
+              write(ipr,100) Operation_m(:), Angle_m(:) / radian
+              write(ipr,120) ' Detector', i, 4
+            end do
+            stop
+        end select
+
+      case(2)
+
+        select case( Operation_m(j) )
+          case(1)
+            Alfa_beta = .true.
+            n_a = n_a - 1
+          case(2)
+            Alfa_fixed = .true.
+            alfa = Angle_m(n_a)
+          case(3)
+            Beta_fixed = .true.
+            beta = Angle_m(n_a)
+          case(4)
+            Psi_fixed = .true.
+            psi = Angle_m(n_a)
+          case default
+            call write_error
+            do ipr = 3,9,3
+              if( ipr == 3 .and. icheck == 0 ) cycle
+              write(ipr,100) Operation_m(:), Angle_m(:) / radian
+              write(ipr,120) 'Reference', j, Operation_m(j), 4
+            end do
+            stop
+        end select
+
+      case(3,4,5)
+
+        select case( Operation_m(j) )
+          case(1)
+            Operation_m_error = Eta_fixed
+            mot3 = 'eta'
+            Eta_fixed = .true.
+            eta = Angle_m(n_a)
+         case(2)
+            Operation_m_error = Mu_fixed
+            mot3 = ' mu'
+            Mu_fixed = .true.
+            mu = Angle_m(n_a)
+          case(3)
+            Operation_m_error = Chi_fixed
+            mot3 = 'chi'
+            Chi_fixed = .true.
+            chi = Angle_m(n_a)
+          case(4)
+            Operation_m_error = Phi_fixed
+            mot3 = 'phi'
+            Phi_fixed = .true.
+            phi = Angle_m(n_a)
+          case(5)
+            if( n_op /= 3 ) then
+              call write_error
+              do ipr = 3,9,3
+                if( ipr == 3 .and. icheck == 0 ) cycle
+                write(ipr,100) Operation_m(:), Angle_m(:) / radian
+                write(ipr,110) ' eta = delta / 2'
+              end do
+              stop
+            endif
+            Operation_m_error = Eta_half_delta
+            Eta_half_delta = .true.
+          case(6)
+            if( n_op /= 3 ) then
+              call write_error
+              do ipr = 3,9,3
+                if( ipr == 3 .and. icheck == 0 ) cycle
+                write(ipr,100) Operation_m(:), Angle_m(:) / radian
+                write(ipr,110) '     mu = nu / 2'
+              end do
+              stop
+            endif
+            Operation_m_error = Mu_half_nu
+            Mu_half_nu = .true.
+          case default
+            call write_error
+            do ipr = 3,9,3
+              if( ipr == 3 .and. icheck == 0 ) cycle
+              write(ipr,100) Operation_m(:), Angle_m(:) / radian
+              if( n_op == 3 ) then
+                write(ipr,120) '   Sample', j, Operation_m(j), 6
+              else
+                write(ipr,120) '   Sample', j, Operation_m(j), 4
+              endif
+            end do
+            stop
+        end select
+
+        if( Operation_m_error ) then
+          call write_error
+          do ipr = 3,9,3
+            if( ipr == 3 .and. icheck == 0 ) cycle
+            write(ipr,100) Operation_m(:), Angle_m(:) / radian
+            write(ipr,130) mot3
+          end do
+          stop
+        endif
+
+    end select
+
+  end do
+
+  if( n_op /= 3 ) then
+    call write_error
+    do ipr = 3,9,3
+      if( ipr == 3 .and. icheck == 0 ) cycle
+      write(ipr,100) Operation_m(:), Angle_m(:) / radian
+      write(ipr,140) n_op
+    end do
+    stop
+  endif
+
+  Column_reference = Alfa_fixed .or. Beta_fixed .or. Alfa_beta .or. Psi_fixed
+  Detector_known = Delta_fixed .or. Nu_fixed .or. Qaz_fixed
+  Column_detector = Detector_known .or. Naz_fixed
+
+  if( icheck > 1 ) then
+    if( Alfa_Beta ) then
+      write(3,'(/a17,5i2,3x,a12,3f8.3)') ' Operation mode =', Operation_m(:), 'Angle mode =', Angle_m(1:2) / radian
+    else
+      write(3,'(/a17,5i2,3x,a12,3f8.3)') ' Operation mode =', Operation_m(:), 'Angle mode =', Angle_m(:) / radian
+    endif
+    write(3,150) Column_detector, Delta_fixed, Nu_fixed, Qaz_fixed, Naz_fixed
+    write(3,160) Column_reference, Alfa_beta, Alfa_fixed, Beta_fixed, Psi_fixed
+    write(3,170) Eta_fixed, Mu_fixed, Chi_fixed, Phi_fixed
+  endif
+
+  if( Specular .and. .not. ( Alfa_beta .and. Phi_fixed .and. &
+                    ( Naz_fixed .or. ( Chi_fixed .and. ( abs( sin(chi) ) < eps10 .or. abs( cos(chi) ) < eps10 ) ) ) ) ) then
+    call write_error
+    do ipr = 3,9,3
+      if( ipr == 3 .and. icheck == 0 ) cycle
+      write(ipr,100) Operation_m(:), Angle_m(:) / radian
+      write(ipr,'(/A)') ' For the specular reflection, the necessary operation mode options are : '
+      write(ipr,'(10x,a15,/10x,a13)') '- "alfa = beta"','- "Phi fixed"'
+      write(ipr,'(10x,A)') '- "Naz fixed" .or. "Chi fixed" with chi = 0 or 90 degrees !'
+      write(ipr,'(/A//)') ' Other options are not yet programmed, sorry ! '
+    end do
+    stop
+  endif
+
+  if( ( Naz_fixed .and. .not. Column_reference ) .or. &
+      ( Detector_known .and. ( Eta_fixed .or. Mu_fixed ) .and. ( Chi_fixed .or. Phi_fixed ) ) ) then
+    call write_error
+    do ipr = 3,9,3
+      if( ipr == 3 .and. icheck == 0 ) cycle
+      write(ipr,100) Operation_m(:), Angle_m(:) / radian
+      if( Naz_fixed ) then
+        write(ipr,'(/A//)') '  Naz fixed with 2 sample angles fixed is not yet programmed, sorry ! '
+      elseif( Detector_known .and. Eta_fixed .and. Chi_fixed ) then
+        write(ipr,'(/A//)') '  Detector position with eta and chi fixed is not yet programmed, sorry ! '
+      elseif( Detector_known .and. Eta_fixed .and. Phi_fixed ) then
+        write(ipr,'(/A//)') '  Detector position with eta and phi fixed is not yet programmed, sorry ! '
+      elseif( Detector_known .and. Mu_fixed .and. Chi_fixed ) then
+        write(ipr,'(/A//)') '  Detector position with mu and chi fixed is not yet programmed, sorry ! '
+      elseif( Column_reference .and. Mu_fixed .and. Phi_fixed ) then
+        write(ipr,'(/A//)') '  Reference angles with mu and phi fixed is not yet programmed, sorry ! '
+      endif
+    end do
+    stop
+  endif
+
+  return
+100 format(//' The operation mode',5i2,',',/' with the angles =',3f8.3,' degrees, is not possible !')
+110 format(/1x,a16,' is possible only without any other sample angle given !'//)
+120 format(/1x,a9,' digit',i2,' is',i2,' > ',i1,/5x,' It is not possible !'//)
+130 format(/'  Sample ',a3,' value at least 2 times given what is not possible !')
+140 format(/'  Only 3 non-zero terms are possible, and there are',i2,' !'//)
+150 format(/'  Column detector  =',L2,2x,' delta_fixed, nu_fixed,  Qaz_fixed, Naz_fixed =',4L2)
+160 format( '  Column reference =',L2,2x,' alfa=beta, alfa_fixed, beta_fixed, psi_fixed =',4L2)
+170 format( '  Column sample',9x,        ' eta_fixed,   mu_fixed,  chi_fixed, phi_fixed =',4L2)
+end
+
+!***********************************************************************
+
+subroutine Rotation_Matrix(angle,k,Mat)
+
+  use declarations
+  implicit none
+
+  integer:: i, j, k
+
+  real(kind=db):: angle
+  real(kind=db), dimension(3,3):: Mat
+
+  Mat(:,:) = 0._db
+  Mat(k,k) = 1._db
+
+  i = 1 + mod(k,3)
+  j = 1 + mod(i,3)
+
+  Mat(i,i) = cos( angle ); Mat(i,j) = - sin( angle )
+  Mat(j,i) = - Mat(i,j);   Mat(j,j) = Mat(i,i)
+
+  return
+end
+
+!***********************************************************************
+
+subroutine Error_angle(icheck,jpl,Q,Operation_m,Angle_m,Argument,Angle_name)
+
+  use declarations
+  implicit none
+
+  integer:: icheck, ipr, jpl
+  integer, dimension(5):: Operation_m
+
+  character(len=8):: Angle_name
+
+  real(kind=db):: Argument
+  real(kind=db), dimension(3):: Angle_m, Q
+
+! Numerical imprecision cases
+  if( abs( Argument - 1 ) < eps10 ) then
+    Argument = 1._db
+    return
+  elseif( abs( Argument + 1 ) < eps10 ) then
+    Argument = - 1._db
+    return
+  endif
+
+  call write_error
+  do ipr = 3,9,3
+    if( ipr == 3 .and. icheck == 0 ) cycle
+    write(ipr,110) jpl, Q(:), Operation_m(:), Angle_m(:) / radian, Angle_name, Argument, Angle_name(1:3)
+  end do
+  stop
+
+  return
+ 110 format(//' For the reflection',i3,', (h,k,l) =',2f5.2,f7.4,/ &
+              '   with the operation mode =',5i2,/, &
+              '   the angles',3f8.3,' or the current energy are not possible !'// &
+              '   One gets the absolute value of ',a8,' =',f10.3,' > 1,',/&
+              '   from wich an arc',a3,' must be taken !'//)
+end
+
+!***********************************************************************
+
+! Polarization calculation for DAFS
+
+subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Bormann,Bulk,Bulk_step,Dafs_bio,Energy_photon, &
+            Film,hkl_dafs,hkl_film,icheck,isigpi,Length_abs,Mat_or,mpirank,nphi_dafs,nphim,npldafs,npldafs_e,npldafs_f,Orthmatt, &
+            Orthmati,Poldafse,Poldafsem,Poldafss,Poldafssm,Q_mod,Vec_orig,Vecdafse,Vecdafsem,Vecdafss,Vecdafssm)
+
+  use declarations
+  implicit none
+
+  integer:: i, icheck, ip, ipl, ipr, istop, j, mpirank, nphim, npldafs, npldafs_e, npldafs_f
+
+  complex(kind=db), dimension(3):: pe, ps
+  complex(kind=db), dimension(3,npldafs_e):: Poldafsem, Poldafssm
+  complex(kind=db), dimension(3,npldafs,nphim):: Poldafse, Poldafss
+
+  integer, dimension(npldafs):: nphi_dafs
+  integer, dimension(2,npldafs):: isigpi
+
+  logical:: Bormann, Bulk, Bulk_step, Film, hkl_film, Dafs_bio
+
+  real(kind=db):: Angle, c_cos_z, cos_pe, cos_ps, cos_z, cosb, cosp, detmat, dhkl, dp, Energy_photon, &
+    fac, konde, pp, psi, qkn, rad_i, sin_pe, sin_ps, sinb, sinp, Thetabragg, Vol, wn, wsn
+
+  real(kind=db), dimension(3):: ang, angxyz, angxyz_bulk, axyz, axyz_bulk, cosdir, hklred, &
+     qi, qj, qk, v, Vec_orig, vpie, vpe, vps, vpis, vsig, vx, vy, vz, w, we, ws, wx, wy, wz
+  real(kind=db), dimension(npldafs):: Q_mod
+  real(kind=db), dimension(npldafs_f):: Angle_or
+  real(kind=db), dimension(0:3):: det
+  real(kind=db), dimension(3,3):: Mat, Mat_or, Mat_ori, Orthmatt, Orthmati
+  real(kind=db), dimension(3,npldafs):: angpoldafs, hkl_dafs
+  real(kind=db), dimension(3,npldafs_e):: Vecdafsem, Vecdafssm
+  real(kind=db), dimension(npldafs):: Length_abs
+  real(kind=db), dimension(3,npldafs,nphim):: Vecdafse, Vecdafss
+
+! lambda = 2 * pi / k = 2 * d * sintheta
+! In S.I. vecond = k = E*alfa*4*pi*epsilon0 / (e*e)
+! In ua and rydb : k = 0.5 * alfa * E
+  konde = 0.5_db * alfa_sf * Energy_photon
+
   if( ( Bulk .and. .not. hkl_film ) .or. ( Bulk_step .and. hkl_film ) ) then
  ! When bulk_step angxyz_bulk contains film data ! ( See fdm )
     cosdir(:) = cos( angxyz_bulk(:) )
@@ -6748,12 +8073,25 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
     cosdir(:) = cos( angxyz(:) )
   endif
 
-  if( Bormann ) then
-    poldafse(:,:,:) = ( 0._db, 0._db )
-    poldafss(:,:,:) = ( 0._db, 0._db )
-    vecdafse(:,:,:) = 0._db
-    vecdafss(:,:,:) = 0._db
+  if( Bulk_step ) then
+    cos_z = sqrt( sin( angxyz(2) )**2 - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) / sin( angxyz(3) ) )**2 )
+    c_cos_z = axyz(3) * cos_z
+  else
+    cos_z = sqrt( sin( angxyz_bulk(2) )**2 - ( ( cos( angxyz_bulk(1) ) - cos( angxyz_bulk(3) ) * cos( angxyz_bulk(2) ) ) &
+                                           / sin( angxyz_bulk(3) ) )**2 )
+    c_cos_z = axyz_bulk(3) * cos_z
   endif
+! The factor is to convert Length_abs en micrometer
+  c_cos_z = 0.0001_db * bohr * c_cos_z
+
+  if( Bormann ) then
+    Poldafse(:,:,:) = ( 0._db, 0._db )
+    Poldafss(:,:,:) = ( 0._db, 0._db )
+    Vecdafse(:,:,:) = 0._db
+    Vecdafss(:,:,:) = 0._db
+  endif
+
+  istop = 0
 
   do ipl = 1,npldafs
 
@@ -6805,68 +8143,68 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
     endif
 
 ! When angpoldafs(3,ipl) = 10000, polarization and wave vector are imposed
-    if( angpoldafs(3,ipl) > 9999._db ) then
+    if( angpoldafs(3,ipl) > 9999._db .and. .not. Dafs_bio ) then
 
-      poldafse(:,ipl,1) = poldafsem(:,ipl)
-      poldafss(:,ipl,1) = poldafssm(:,ipl)
-      vecdafse(:,ipl,1) = vecdafsem(:,ipl)
-      vecdafss(:,ipl,1) = vecdafssm(:,ipl)
+      Poldafse(:,ipl,1) = Poldafsem(:,ipl)
+      Poldafss(:,ipl,1) = Poldafssm(:,ipl)
+      Vecdafse(:,ipl,1) = Vecdafsem(:,ipl)
+      Vecdafss(:,ipl,1) = Vecdafssm(:,ipl)
 
 ! One goes to the internal orthogonal basis
-      v(:) = real( poldafse(:,ipl,1), db )
+      v(:) = real( Poldafse(:,ipl,1), db )
       if( sum( v(:)**2 )  > eps6 ) then
         call trvec(mpirank,Orthmatt,v,w)
-        poldafse(:,ipl,1) = cmplx( w(:), 0._db )
+        Poldafse(:,ipl,1) = cmplx( w(:), 0._db )
       endif
 
-      v(:) = real( poldafss(:,ipl,1), db )
+      v(:) = real( Poldafss(:,ipl,1), db )
       if( sum( v(:)**2 )  > eps6 ) then
         call trvec(mpirank,Orthmatt,v,w)
-        poldafss(:,ipl,1) = cmplx( w(:), 0._db )
+        Poldafss(:,ipl,1) = cmplx( w(:), 0._db )
       endif
 
-      v(:) = vecdafse(:,ipl,1)
+      v(:) = Vecdafse(:,ipl,1)
       if( sum( v(:)**2 )  > eps6 ) then
         call trvec(mpirank,Orthmatt,v,w)
-        vecdafse(:,ipl,1) = w(:)
+        Vecdafse(:,ipl,1) = w(:)
       endif
 
-      v(:) = vecdafss(:,ipl,1)
+      v(:) = Vecdafss(:,ipl,1)
       if( sum( v(:)**2 )  > eps6 ) then
         call trvec(mpirank,Orthmatt,v,w)
-        vecdafss(:,ipl,1) = w(:)
+        Vecdafss(:,ipl,1) = w(:)
       endif
 
     elseif( Bormann ) then
 
       select case(ipl)
         case(1,10,19,28)
-          poldafse(1,ipl,1) = ( 1._db, 0._db )
-          poldafss(1,ipl,1) = ( 1._db, 0._db )
+          Poldafse(1,ipl,1) = ( 1._db, 0._db )
+          Poldafss(1,ipl,1) = ( 1._db, 0._db )
         case(2,11,20,29)
-          poldafse(1,ipl,1) = ( 1._db, 0._db )
-          poldafss(2,ipl,1) = ( 1._db, 0._db )
+          Poldafse(1,ipl,1) = ( 1._db, 0._db )
+          Poldafss(2,ipl,1) = ( 1._db, 0._db )
         case(3,12,21,30)
-          poldafse(1,ipl,1) = ( 1._db, 0._db )
-          poldafss(3,ipl,1) = ( 1._db, 0._db )
+          Poldafse(1,ipl,1) = ( 1._db, 0._db )
+          Poldafss(3,ipl,1) = ( 1._db, 0._db )
         case(4,13,22,31)
-          poldafse(2,ipl,1) = ( 1._db, 0._db )
-          poldafss(1,ipl,1) = ( 1._db, 0._db )
+          Poldafse(2,ipl,1) = ( 1._db, 0._db )
+          Poldafss(1,ipl,1) = ( 1._db, 0._db )
         case(5,14,23,32)
-          poldafse(2,ipl,1) = ( 1._db, 0._db )
-          poldafss(2,ipl,1) = ( 1._db, 0._db )
+          Poldafse(2,ipl,1) = ( 1._db, 0._db )
+          Poldafss(2,ipl,1) = ( 1._db, 0._db )
         case(6,15,24,33)
-          poldafse(2,ipl,1) = ( 1._db, 0._db )
-          poldafss(3,ipl,1) = ( 1._db, 0._db )
+          Poldafse(2,ipl,1) = ( 1._db, 0._db )
+          Poldafss(3,ipl,1) = ( 1._db, 0._db )
         case(7,16,25,34)
-          poldafse(3,ipl,1) = ( 1._db, 0._db )
-          poldafss(1,ipl,1) = ( 1._db, 0._db )
+          Poldafse(3,ipl,1) = ( 1._db, 0._db )
+          Poldafss(1,ipl,1) = ( 1._db, 0._db )
         case(8,17,26,35)
-          poldafse(3,ipl,1) = ( 1._db, 0._db )
-          poldafss(2,ipl,1) = ( 1._db, 0._db )
+          Poldafse(3,ipl,1) = ( 1._db, 0._db )
+          Poldafss(2,ipl,1) = ( 1._db, 0._db )
         case(9,18,27,36)
-          poldafse(3,ipl,1) = ( 1._db, 0._db )
-          poldafss(3,ipl,1) = ( 1._db, 0._db )
+          Poldafse(3,ipl,1) = ( 1._db, 0._db )
+          Poldafss(3,ipl,1) = ( 1._db, 0._db )
       end select
 
     else
@@ -6958,26 +8296,26 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
 
         call prodvec(vpis,vsig,ws)
 
-        poldafse(:,ipl,1) = cmplx( v(:), 0._db )
-        vecdafse(:,ipl,1) = we(:)
-        poldafss(:,ipl,1) = cmplx( vsig(:), 0._db )
-        vecdafss(:,ipl,1) = ws(:)
+        Poldafse(:,ipl,1) = cmplx( v(:), 0._db )
+        Vecdafse(:,ipl,1) = we(:)
+        Poldafss(:,ipl,1) = cmplx( vsig(:), 0._db )
+        Vecdafss(:,ipl,1) = ws(:)
 
-        poldafse(:,ipl,2) = cmplx( v(:), 0._db )
-        vecdafse(:,ipl,2) = we(:)
-        poldafss(:,ipl,2) = cmplx( vpis(:), 0._db )
-        vecdafss(:,ipl,2) = ws(:)
+        Poldafse(:,ipl,2) = cmplx( v(:), 0._db )
+        Vecdafse(:,ipl,2) = we(:)
+        Poldafss(:,ipl,2) = cmplx( vpis(:), 0._db )
+        Vecdafss(:,ipl,2) = ws(:)
 
 ! Reflexion (-Q)
-        poldafse(:,ipl,3) = cmplx( v(:), 0._db )
-        vecdafse(:,ipl,3) = - we(:)
-        poldafss(:,ipl,3) = cmplx( vsig(:), 0._db )
-        vecdafss(:,ipl,3) = - ws(:)
+        Poldafse(:,ipl,3) = cmplx( v(:), 0._db )
+        Vecdafse(:,ipl,3) = - we(:)
+        Poldafss(:,ipl,3) = cmplx( vsig(:), 0._db )
+        Vecdafss(:,ipl,3) = - ws(:)
 
-        poldafse(:,ipl,4) = cmplx( v(:), 0._db )
-        vecdafse(:,ipl,4) = - we(:)
-        poldafss(:,ipl,4) = cmplx( - vpis(:), 0._db )
-        vecdafss(:,ipl,4) = - ws(:)
+        Poldafse(:,ipl,4) = cmplx( v(:), 0._db )
+        Vecdafse(:,ipl,4) = - we(:)
+        Poldafss(:,ipl,4) = cmplx( - vpis(:), 0._db )
+        Vecdafss(:,ipl,4) = - ws(:)
 
       else
 
@@ -7026,25 +8364,25 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
           vps(:) = cos_ps * vsig(:) + sin_ps * vpis(:)
 
 ! In diffraction all is defined with the complex conjugate, it is the same for circular polarizations
-          select case( isigpi(ipl,1) )
+          select case( isigpi(1,ipl) )
             case(3)
-              poldafse(:,ipl,ip) = cmplx( vsig(:),-vpie(:), db) / sqrt(2._db)
+              Poldafse(:,ipl,ip) = cmplx( vsig(:),-vpie(:), db) / sqrt(2._db)
             case(4)
-              poldafse(:,ipl,ip) = cmplx( vsig(:), vpie(:), db) / sqrt(2._db)
+              Poldafse(:,ipl,ip) = cmplx( vsig(:), vpie(:), db) / sqrt(2._db)
             case default
-              poldafse(:,ipl,ip) = cmplx( vpe(:), 0._db, db)
+              Poldafse(:,ipl,ip) = cmplx( vpe(:), 0._db, db)
           end select
-          vecdafse(:,ipl,ip) = we(:)
+          Vecdafse(:,ipl,ip) = we(:)
 
-          select case( isigpi(ipl,2) )
+          select case( isigpi(2,ipl) )
             case(3)
-              poldafss(:,ipl,ip) = cmplx( vsig(:),-vpis(:), db) / sqrt(2._db)
+              Poldafss(:,ipl,ip) = cmplx( vsig(:),-vpis(:), db) / sqrt(2._db)
             case(4)
-              poldafss(:,ipl,ip) = cmplx( vsig(:), vpis(:), db) / sqrt(2._db)
+              Poldafss(:,ipl,ip) = cmplx( vsig(:), vpis(:), db) / sqrt(2._db)
             case default
-              poldafss(:,ipl,ip) = cmplx( vps(:), 0._db, db)
+              Poldafss(:,ipl,ip) = cmplx( vps(:), 0._db, db)
           end select
-          vecdafss(:,ipl,ip) = ws(:)
+          Vecdafss(:,ipl,ip) = ws(:)
 
         end do
 
@@ -7055,12 +8393,12 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
 
       if( Bormann ) then
 
-        deltak(ipl) = 0._db
+        Q_mod(ipl) = 0._db
 
       else
 
-        v(:) = vecdafse(:,ipl,1)
-        w(:) = vecdafss(:,ipl,1)
+        v(:) = Vecdafse(:,ipl,1)
+        w(:) = Vecdafss(:,ipl,1)
         if( mpirank == 0 .and. ( sum(abs(v(:))) < eps10 .or. sum(abs(w(:))) < eps10 ) ) then
           call write_error
           do ipr = 3,9,3
@@ -7076,42 +8414,20 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
         else
           Thetabragg = 0.5_db * acos( pp )
         endif
-        deltak(ipl) = 2 * sin( thetabragg ) * konde
+        Q_mod(ipl) = 2 * sin( thetabragg ) * konde
       endif
 
     else
 
-      deltak(ipl) = 2 * pi / dhkl
+      Q_mod(ipl) = 2 * pi / dhkl
 
     endif
 
-! Atomic structure factor
-    x = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
-    s = x / bohr                 ! one needs it in angstroem^(-1)
-
-    do ipr = 1,n_atom_proto
-
-      it = itypepr( ipr )
-      elemv = ' '
-      elemv(1:2) = Chemical_Symbol(numat(it))
-      f0(ipr,ipl) = getf0(elemv,s)
-
-! Non-resonant scattering amplitude
-! orbital moment is taken parralel to spin axis...
-      if( Magnetic ) then
-        call get_fmag(deltak(ipl),fmo,fms,ipr,it,lvval,n_atom_proto,nlat(it),nlatm,nrato(it),nrm,nspin,ntype, &
-              popatm,psival,rato)
-! Emc2 = ( 9.1093897 * 2.99792458**2 / 1.602) * 10000 / Rydb
-        Emc2 = 37561.88242_db
-        f_ms(ipr,ipl) = - ( eseuil(nbseuil) / Emc2 ) * f_no_res(1) * fms
-        if( f_no_res(2) < -99._db ) then
-          f_mo(ipr,ipl) = - ( eseuil(nbseuil) / Emc2 ) * f_no_res(1) * fmo
-        else
-! Factor 2 because f_ms corresponds to S et not to 2S.
-          f_mo(ipr,ipl) = 2 * f_no_res(2) * f_ms(ipr,ipl)
-        endif
-      endif
-    end do
+    if( ThetaBragg < eps10 ) then
+      Length_abs(ipl) = 1.e+20_db
+    else
+      Length_abs(ipl) = c_cos_z * 2 / sin( thetabragg )
+    endif
 
     if( icheck > 0 ) then
       if( ipl == 1 ) then
@@ -7130,10 +8446,10 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
           Ang(i) = angpoldafs(i,ipl)
         endif
       end do
-      pe(:) = poldafse(:,ipl,1)
-      ps(:) = poldafss(:,ipl,1)
-      we(:) = vecdafse(:,ipl,1)
-      ws(:) = vecdafss(:,ipl,1)
+      pe(:) = Poldafse(:,ipl,1)
+      ps(:) = Poldafss(:,ipl,1)
+      we(:) = Vecdafse(:,ipl,1)
+      ws(:) = Vecdafss(:,ipl,1)
       pe = matmul( orthmati, pe )
       ps = matmul( orthmati, ps )
       we = matmul( orthmati, we )
@@ -7152,21 +8468,84 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
   if( istop == 1 ) stop
 
   return
-  120 format(//' The reflection number',i3,' : (h,k,l) = (',3f8.3,') does not exist at this energy !'//)
-  125 format(//' The reflection number',i3,' : (h,k,l) = (',3i3,') does not exist at this energy !'//)
+  120 format(//' The reflection number',i3,' : (h,k,l) = (',3f8.3,') does not exist at this photon energy !'//)
+  125 format(//' The reflection number',i3,' : (h,k,l) = (',3i3,') does not exist at this photon energy !'//)
   130 format(/' (h,k,l) = (',3f8.3,')')
   135 format(/' (h,k,l) = (',3i3,')')
   140 format('  Reciprocal mesh base (A-1) :',/5x,'X',8x,'Y',8x,'Z', 3(/3f9.5))
   150 format('  Local base (A-1) :',/5x,'I',8x,'J',8x,'Q', 3(/3f9.5))
   160 format(' Calculations with (h,k,l) = (0,0,0)  need non zero values for the incoming and outgoing'/, &
         ' wave vector in order to calculate the scattering angle !')
-  170 format(/'  (     h,     k,     l) ThetaBragg  d_hkl (A)    Polarization angles        poldafse',5x, &
-      'vecdafse',7x,'poldafss',5x,'vecdafss'/)
-  175 format(/'  (h,k,l) ThetaBragg  d_hkl (A)    Polarization angles        poldafse',5x, &
-      'vecdafse',7x,'poldafss',5x,'vecdafss'/)
+  170 format(/'  (     h,     k,     l) ThetaBragg  d_hkl (A)    Polarization angles        Poldafse',5x, &
+      'Vecdafse',7x,'Poldafss',5x,'Vecdafss'/)
+  175 format(/'  (h,k,l) ThetaBragg  d_hkl (A)    Polarization angles        Poldafse',5x, &
+      'Vecdafse',7x,'Poldafss',5x,'Vecdafss'/)
   180 format(3f8.3,2f10.3,2x,3f8.3,2(2x,2f8.5,2x,f8.5)/, 2(70x,2(2x,2f8.5,2x,f8.5)/))
   181 format(3i3,2f10.3,2x,3f8.3,2(2x,2f8.5,2x,f8.5)/, 2(55x,2(2x,2f8.5,2x,f8.5)/))
   end
+
+!***********************************************************************
+
+! Atomic structure factor
+
+subroutine Atom_structure_factor(Energy_photon, f_ms, f_mo, f_no_res, f0, itypepr, lvval, Magnetic, n_atom_proto, nlat, nlatm, &
+                                 npldafs, nrato, nrm, nspin, ntype, numat, Q_mod, rato, popatm, psival)
+
+  use declarations
+  implicit none
+
+! mc2_Rydb = mc2 in Rydberg = m c^2 / ( e Rydb ) = 2 / alfa^2
+  real(kind=db), parameter:: mc2_Rydb = 2 / alfa_sf**2   ! = 37557.7301195846
+
+  integer:: ipl, ipr, it, n_atom_proto, nlatm, npldafs, nrm, nspin, ntype
+  integer, dimension(0:n_atom_proto):: itypepr
+  integer, dimension(0:ntype):: nlat, nrato, numat
+  integer, dimension(0:ntype,nlatm):: lvval
+
+  character(len=4):: elemv
+  character(len=2):: Chemical_symbol
+
+  logical:: Magnetic
+
+  real(kind=sg):: getf0, s
+  real(kind=db):: Energy_photon, fmo, fms, x
+  real(kind=db), dimension(2):: f_no_res
+  real(kind=db), dimension(npldafs):: Q_mod
+  real(kind=db), dimension(0:nrm,0:ntype):: rato
+  real(kind=db), dimension(0:nrm,nlatm,0:ntype):: psival
+  real(kind=db), dimension(n_atom_proto,npldafs):: f_ms, f_mo, f0
+  real(kind=db), dimension(0:n_atom_proto,nlatm,nspin):: popatm
+
+  do ipl = 1,npldafs
+
+    x = Q_mod(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
+    s = x / bohr                 ! one needs it in angstroem^(-1)
+
+    do ipr = 1,n_atom_proto
+
+      it = itypepr( ipr )
+      elemv = ' '
+      elemv(1:2) = Chemical_Symbol( numat(it) )
+      f0(ipr,ipl) = getf0(elemv,s)
+
+! Non-resonant scattering amplitude
+! orbital moment is taken parralel to spin axis...
+      if( Magnetic ) then
+        call get_fmag(Q_mod(ipl),fmo,fms,ipr,it,lvval,n_atom_proto,nlat(it),nlatm,nrato(it),nrm,nspin,ntype,popatm,psival,rato)
+        f_ms(ipr,ipl) = - ( Energy_photon / mc2_Rydb ) * f_no_res(1) * fms
+        if( f_no_res(2) < -99._db ) then
+          f_mo(ipr,ipl) = - ( Energy_photon / mc2_Rydb ) * f_no_res(1) * fmo
+        else
+! Factor 2 because f_ms corresponds to S et not to 2S.
+          f_mo(ipr,ipl) = 2 * f_no_res(2) * f_ms(ipr,ipl)
+        endif
+      endif
+    end do
+
+  end do
+
+  return
+end
 
 !***********************************************************************
 
@@ -7557,14 +8936,14 @@ end
 
 ! Calculation of bulk non resonant scattering amplitude
 
-subroutine Bulk_scat(angxyz_bulk,axyz_bulk,c_cos_z_b, &
-        deltak,Eseuil,hkl_dafs,hkl_film,icheck,Mat_bulk_i,Mult_bulk,n_atom_bulk,nbseuil,ngroup_temp, &
-        npldafs,phd_f_bulk,posn_bulk,Temp_coef,Temperature,Truncation,xsect_file,Z_abs,Z_bulk)
+subroutine Bulk_scat(angxyz_bulk,axyz_bulk,Energy_photon,hkl_dafs,hkl_film,icheck, &
+        Length_abs,Mat_bulk_i,Mult_bulk,n_atom_bulk,ngroup_temp,npldafs,phd_f_bulk,posn_bulk,Q_mod, &
+        Temp_coef,Temperature,Truncation,xsect_file,Z_abs,Z_bulk)
 
   use declarations
   implicit none
 
-  integer:: icheck, igr, ipl, jgr, n_atom_bulk, nbseuil, ngroup_temp, npldafs, Z, Z_abs
+  integer:: icheck, igr, ipl, jgr, n_atom_bulk, ngroup_temp, npldafs, Z, Z_abs
 
   integer, dimension(2):: Mult_bulk
   integer, dimension(n_atom_bulk):: Z_bulk
@@ -7580,16 +8959,15 @@ subroutine Bulk_scat(angxyz_bulk,axyz_bulk,c_cos_z_b, &
 
   real(kind=sg):: getf0, s
 
-  real(kind=db):: arg, Cal_Volume_maille, conv_mbarn_nelec, c_cos_z_b, c_cos_z_b_m, Deb, &
-    Delta_2, f0_bulk, fpp_bulk_tot, Volume_maille, x, z_top
+  real(kind=db):: arg, Cal_Volume_maille, conv_mbarn_nelec, Deb, &
+    Delta_2, Energy_photon, f0_bulk, fpp_bulk_tot, Volume_maille, x, z_top
 
   real(kind=db), dimension(3):: angxyz_bulk, axyz_bulk, hkl
   real(kind=db), dimension(3,3):: Mat_bulk_i
-  real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(n_atom_bulk):: fp_bulk, fpp_bulk
   real(kind=db), dimension(ngroup_temp):: Temp_coef
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
-  real(kind=db), dimension(npldafs):: abs_mesh, deltak, Length_abs
+  real(kind=db), dimension(npldafs):: abs_mesh, Q_mod, Length_abs
   real(kind=db), dimension(3,npldafs):: hkl_dafs
 
   fp_bulk(:) = 0._db
@@ -7598,16 +8976,14 @@ subroutine Bulk_scat(angxyz_bulk,axyz_bulk,c_cos_z_b, &
   do igr = 1,n_atom_bulk
     Z = Z_bulk(igr)
     if( Z == Z_abs ) cycle
-    call fprime(Z,Eseuil(nbseuil),fpp_bulk(igr),fp_bulk(igr),xsect_file)
+    call fprime(Z,Energy_photon,fpp_bulk(igr),fp_bulk(igr),xsect_file)
     fpp_bulk_tot = fpp_bulk_tot + fpp_bulk(igr)
   end do
 ! Conversion in Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
-  fpp_bulk_tot = fpp_bulk_tot / ( conv_mbarn_nelec(Eseuil(nbseuil)) * pi )
+  fpp_bulk_tot = fpp_bulk_tot / ( conv_mbarn_nelec(Energy_photon) * pi )
 ! Conversion in linear absorption coefficient in micrometer^-1
   Volume_maille = Cal_Volume_maille(axyz_bulk,angxyz_bulk)
   fpp_bulk_tot = 100 * fpp_bulk_tot / ( Volume_maille * bohr**3 )
-! Value for one unit cell (in micrometer)
-  c_cos_z_b_m = 0.0001_db * bohr * c_cos_z_b
 
   Truncation(:) = ( 0._db, 0._db )
   phd_f_bulk(:) = ( 0._db, 0._db )
@@ -7619,7 +8995,7 @@ subroutine Bulk_scat(angxyz_bulk,axyz_bulk,c_cos_z_b, &
 
   do ipl = 1,npldafs
 
-    x = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
+    x = Q_mod(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
     s = x / bohr                 ! on le veut en angstroem - 1
 
     hkl(:) = hkl_dafs(:,ipl)
@@ -7629,15 +9005,11 @@ subroutine Bulk_scat(angxyz_bulk,axyz_bulk,c_cos_z_b, &
 ! Case of irrationnal unit cells
     if( ( abs( hkl(1) ) > eps10 .and. Mult_bulk(1) == 0 ) .or. ( abs( hkl(2) ) > eps10 .and. Mult_bulk(2) == 0 ) ) cycle
 
-    x = deltak(ipl) / ( 2 * alfa_sf * Eseuil(nbseuil) )  ! = sin(theta) / 2
-    x = max( eps10, x )
-
-    Length_abs(ipl) = c_cos_z_b_m / x
     abs_mesh(ipl) = exp( - fpp_bulk_tot * Length_abs(ipl) )
 
     Truncation(ipl) = 1._db / ( 1._db - abs_mesh(ipl) * exp( - img * deux_pi * hkl(3) ) )
 
-    if( Temperature ) Delta_2 = ( deltak(ipl) / ( quatre_pi * bohr ) )**2
+    if( Temperature ) Delta_2 = ( Q_mod(ipl) / ( quatre_pi * bohr ) )**2
 
     do igr = 1,n_atom_bulk
 
@@ -7750,14 +9122,14 @@ end
 
 subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,Cap_disorder,Cap_roughness, &
               Cap_thickness,Cap_thickness_used,Cap_shift,c_cos_z,c_cos_z_b,Delta_roughness_film,delta_z_bottom_cap, &
-              delta_z_top_cap,deltak,Eseuil,Film_roughness,Film_thickness,fpp_cap_tot,hkl_dafs,hkl_film, &
-              icheck,Mult_bulk,Mult_film,n_atom_cap,nbseuil,npldafs,phd_f_cap,posn_cap,R_top_bulk,R_top_film,Taux_cap, &
+              delta_z_top_cap,Energy_photon,Film_roughness,Film_thickness,fpp_cap_tot,hkl_dafs,hkl_film, &
+              icheck,Mult_bulk,Mult_film,n_atom_cap,npldafs,phd_f_cap,posn_cap,Q_mod,R_top_bulk,R_top_film,Taux_cap, &
               xsect_file,Z_cap,z_max_film)
 
   use declarations
   implicit none
 
-  integer:: i, i0, icheck,igr, ipl, n_atom_cap, n, nbseuil, npldafs, Z, Z_bottom_cap, Z_top_cap
+  integer:: i, i0, icheck,igr, ipl, n_atom_cap, n, npldafs, Z, Z_bottom_cap, Z_top_cap
 
   integer, dimension(n_atom_cap):: Z_cap
 
@@ -7776,14 +9148,13 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
 
   real(kind=db):: arg, Atom_radius, Conv_mbarn_nelec, c_cos_z, c_cos_z_b, c_cos_z_c, cos_z_c, Cap_amount, Cap_amount_ref, &
     Cap_disorder, Cap_roughness, Cap_thickness, Cap_thickness_used, Cap_shift, Cal_Volume_maille, Deb, Delta_cap, &
-    Delta_roughness_cap, Delta_roughness_film, delta_z, delta_z_bottom_cap, delta_z_top_cap, f0_cap, Film_roughness, &
-    Film_thickness, fpp_cap_tot, R_bottom_cap, R_top_bulk, R_top_cap, R_top_film, Taux_r, Taux_r2, Volume_maille, x, &
-    z_max_cap, z_max_film, z_min_cap, z_pos
+    Delta_roughness_cap, Delta_roughness_film, delta_z, delta_z_bottom_cap, delta_z_top_cap, Energy_photon, f0_cap,  &
+    Film_roughness,Film_thickness, fpp_cap_tot, R_bottom_cap, R_top_bulk, R_top_cap, R_top_film, Taux_r, Taux_r2, &
+    Volume_maille, x, z_max_cap, z_max_film, z_min_cap, z_pos
 
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_cap, axyz, axyz_bulk, axyz_cap, hkl, p
-  real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(n_atom_cap):: fp_cap, fpp_cap, Taux_cap
-  real(kind=db), dimension(npldafs):: deltak
+  real(kind=db), dimension(npldafs):: Q_mod
   real(kind=db), dimension(3,n_atom_cap):: posn_cap
   real(kind=db), dimension(3,npldafs):: hkl_dafs
 
@@ -7873,13 +9244,13 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
   fpp_cap_tot = 0._db
   do igr = 1,n_atom_cap
     Z = Z_cap(igr)
-    call fprime(Z,Eseuil(nbseuil),fpp_cap(igr),fp_cap(igr),xsect_file)
+    call fprime(Z,Energy_photon,fpp_cap(igr),fp_cap(igr),xsect_file)
     fpp_cap_tot = fpp_cap_tot + Taux_cap(igr) * fpp_cap(igr)
   end do
 
 ! Absorption through the layer
 ! Conversion in Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
-  fpp_cap_tot = fpp_cap_tot / ( conv_mbarn_nelec(Eseuil(nbseuil)) * pi )
+  fpp_cap_tot = fpp_cap_tot / ( conv_mbarn_nelec(Energy_photon) * pi )
 ! Conversion in linear absorption coefficient in micrometre^-1
   Volume_maille = Cal_Volume_maille(axyz_cap,angxyz_cap)
   fpp_cap_tot = 100 * fpp_cap_tot / ( Volume_maille * bohr**3 )
@@ -7892,12 +9263,12 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
 
     if( abs( hkl(1) ) > eps10 .or. abs( hkl(2) ) > eps10 ) cycle
 
-    x = deltak(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
+    x = Q_mod(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
     s = x / bohr                      ! one want it in angstroem - 1
 
 ! Delta_2 = ( Sin(Theta_Bragg)/Lambda )^2
     if( Cap_disorder > eps10 ) then
-      Deb = exp( - 0.5_db * ( Cap_disorder * deltak(ipl) )**2 )
+      Deb = exp( - 0.5_db * ( Cap_disorder * Q_mod(ipl) )**2 )
     else
       Deb = 1._db
     endif
@@ -7926,7 +9297,6 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
         p(3) = p(3) + i
         z_pos = p(3) * c_cos_z_c
         if( z_pos < z_min_cap - delta_z_bottom_cap - Delta_roughness_film - eps10 ) cycle
-!        if( z_pos > z_max_cap + delta_z_top_cap + Delta_roughness_cap + eps10 ) exit
         if( z_pos > z_max_cap + delta_z_top_cap + 2 * Cap_roughness + eps10 ) exit
         if( Cap_roughness > eps10 ) then
           x = ( z_max_cap + delta_z_top_cap - z_pos ) / Cap_roughness
@@ -7995,19 +9365,21 @@ end
 
 !***********************************************************************
 
+! Establishment of the column names for dafs reflexions
+
 subroutine Col_dafs_name(Angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpirank,ncolm,ncolr,ncolt, &
-         nomabs,npldafs,Self_abs)
+         nomabs,npldafs,Operation_mode_used,Self_abs)
 
   use declarations
   implicit none
 
   integer:: i, icol, index, ipldafs, ipr, j, k, mpirank, ncolm, ncolr, ncolt, npldafs
-  integer, dimension(npldafs,2):: isigpi
+  integer, dimension(2,npldafs):: isigpi
 
   character(len=Length_word) nomab
   character(len=Length_word), dimension(ncolm):: nomabs
 
-  logical:: Bormann, Full_self_abs, Self_abs
+  logical:: Bormann, Full_self_abs, Operation_mode_used, Self_abs
 
   real(kind=db):: a
   real(kind=db), dimension(3):: hkl
@@ -8023,7 +9395,9 @@ subroutine Col_dafs_name(Angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpiran
     call trnom_r(j,hkl,nomab)
     j = j + 1
     if( j < Length_word-1 ) nomab(j:j) = ')'
+
     if( Bormann ) then
+
       j = j + 1
       if( j > Length_word ) exit
       select case( ipldafs )
@@ -8044,12 +9418,14 @@ subroutine Col_dafs_name(Angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpiran
         case(3,6,9,12,15,18,21,24,27,30,33,36)
           nomab(j:j) = 'z'
       end select
+
     else
+
       do i = 1,2
         j = j + 1
         if( i == 1 ) k = j
         if( j > Length_word ) exit
-        select case( isigpi(ipldafs,i) )
+        select case( isigpi(i,ipldafs) )
           case(1)
             nomab(j:j) = 's'
           case(2)
@@ -8062,18 +9438,23 @@ subroutine Col_dafs_name(Angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpiran
             nomab(j:j) = 'a'
         end select
       end do
+
     endif
-    j = j + 1
-    if( j < Length_word-1 ) then
-      nomab(j:j) = '_'
-      if( abs( angpoldafs(3,ipldafs) ) < 9999._db ) then
-        a = angpoldafs(3,ipldafs) * 180 / pi
-      else
-        a = 0._db
+
+    if( .not. Operation_mode_used .or. abs( angpoldafs(3,ipldafs) ) < 9999._db ) then
+      j = j + 1
+      if( j < Length_word-1 ) then
+        nomab(j:j) = '_'
+        if( abs( angpoldafs(3,ipldafs) ) < 9999._db ) then
+          a = angpoldafs(3,ipldafs) * 180 / pi
+        else
+          a = 0._db
+        endif
+        index = nint( a )
+        call ad_number(index,nomab,Length_word)
       endif
-      index = nint( a )
-      call ad_number(index,nomab,Length_word)
     endif
+
     nomabs(icol) = nomab
 
     icol = icol + 1
@@ -8133,7 +9514,7 @@ subroutine Col_dafs_name(Angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpiran
           nomab(2:11) = 'mu_pp_ou_i'
           nomabs(icol) = nomab
       end select
-    elseif( self_abs ) then
+    elseif( Self_abs ) then
       icol = icol + 1
       nomab(2:2) = 'A'
       if( k < Length_word ) nomab(k:k+1) = 'in'
@@ -8146,8 +9527,7 @@ subroutine Col_dafs_name(Angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpiran
     endif
   end do
 
-! ncolt correspond au nombre de colonnes total (d'absorption reelle ou
-! virtuelle)
+! ncolt = total number of columns for both XANES and DAFS
   ncolt = icol
   if( ncolt > ncolm .and. mpirank == 0 ) then
     call write_error
@@ -8192,7 +9572,7 @@ end
 
 !***********************************************************************
 
-subroutine get_fmag(deltak,fmo,fms,ipr,it,lvval,n_atom_proto,nl,nlatm,nr,nrm,nspin,ntype,popatm,psival,rato)
+subroutine get_fmag(Q_mod,fmo,fms,ipr,it,lvval,n_atom_proto,nl,nlatm,nr,nrm,nspin,ntype,popatm,psival,rato)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -8222,9 +9602,9 @@ subroutine get_fmag(deltak,fmo,fms,ipr,it,lvval,n_atom_proto,nl,nlatm,nr,nrm,nsp
 ! psival is in fact sqrt(4*pi)*r*psi
     do ir = 2,nr-1
       dr = rato(ir+1,it) - rato(ir-1,it)
-      f = f + ( psival(ir,io,it)**2 / rato(ir,it) ) * sin( deltak * rato(ir,it) ) * dr
+      f = f + ( psival(ir,io,it)**2 / rato(ir,it) ) * sin( Q_mod * rato(ir,it) ) * dr
     end do
-    f = 0.5_db * f / deltak
+    f = 0.5_db * f / Q_mod
 
     fms = fms + spin * f
     fmo = fmo + hund_mo * 2 * spin * f
@@ -8314,8 +9694,7 @@ function DW(q,Z,temp)
 
   real(kind=db), dimension(nassm):: TD
 
-! source: Ashcroft and Mermin; the Debye temperatures correspond to the
-! free element
+! source: Ashcroft and Mermin; the Debye temperatures correspond to the free element
 ! Unknown Debye temperatures are taken as 1
 
   data TD /  110._db,  26._db, 400._db,1000._db,1250._db,1860._db,  79._db,  46._db,   1._db,  63._db, &
@@ -8338,8 +9717,7 @@ function DW(q,Z,temp)
 
   FD = Debye_function(temp,TD(Z))
 
-! 1 uam = 1.660538921*10**(-27)kg
-  x = - 300 * (q*hbar)**2 * FD / ( Mass_atom(Z) * 1.660538921_db * k_Boltzmann * TD(Z) )
+  x = - 300 * (q*hbar)**2 * FD / ( Mass_atom(Z) * atom_mu * k_Boltzmann * TD(Z) )
 
   DW = exp(x)
 

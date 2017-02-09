@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 10th of January 2017, 21 Nivose, An 225.
+! FDMNES II program, Yves Joly, Oana Bunau, 8th of February 2017, 20 Pluviose, An 225.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,16 +43,23 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 10th of January 2017'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 8th of February 2017'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
 
-  real(kind=db), parameter:: alfa_sf = 0.0072973525698_db  ! alfa_sf = 1/137.035999074
-  real(kind=db), parameter:: bohr = 0.52917721092_db
-  real(kind=db), parameter:: hbar = 1.054571726_db         ! hbar = 1.05..*10**(-34)Js
-  real(kind=db), parameter:: k_Boltzmann = 1.3806488_db    ! Constante de Boltzman   ! kb = 1.38...*10**(-23)J/K
-  real(kind=db), parameter:: Rydb = 13.60569253_db
+! Physical constant
+  real(kind=db), parameter:: alfa_sf = 0.0072973525664_db  ! Fine struct. cst. = 0.002 973 525 664(17) = 1/137.035999139  CODATA 2014
+  real(kind=db), parameter:: bohr = 0.52917721067_db       ! Bohr radius       = 0.529 177 210 67(12) x 10^(-10) m        CODATA 2014
+  real(kind=db), parameter:: hbar = 1.054571800_db         ! Planck cst / 2 pi = 1.054 571 800(13) x 10^(-34) J s         CODATA 2014
+  real(kind=db), parameter:: k_Boltzmann = 1.38064852_db   ! Boltzman constant = 1.380 648 52(79) x 10^(-23) J/K          CODATA 2014
+  real(kind=db), parameter:: e_electron = 1.6021766208_db  ! Electron charge   = 1.602 176 6208(98) x  10^(-19) C         CODATA 2014
+  real(kind=db), parameter:: m_electron = 9.10938356_db    ! Electron mass     = 9.109 383 56(11) x 10^(31) kg            CODATA 2014
+  real(kind=db), parameter:: atom_mu = 1.660539040_db      ! Atomic mass unit  = 21.660 539 040(20) x 10^(-27) kg         CODATA 2014
+  real(kind=db), parameter:: c_light = 2.99792458_db       ! Speed of light    = 2.997 924 58 x 10**8 m/s                 Exact
+
+! Rydb = R_Rydb_lim * c * h / e = m (c.alfa)**2 / 2 e = 13.6056930129052 = convertion factor from Rydberg to eV
+  real(kind=db), parameter:: Rydb = 5000 * m_electron * c_light**2 * alfa_sf**2 / e_electron
 
   real(kind=db), parameter:: pi = 3.1415926535897932384626433832_db
   real(kind=db), parameter:: deux_pi = 2 * pi
@@ -322,7 +329,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_conf','atom_nsph','ang_spin ','atomic_sc', &
      'axe_spin ','base_comp','base_reel','bond     ','bulk     ','cap_disor','cap_rough','cap_layer','cap_shift', &
      'cap_thick','cartesian','center   ','center_ab','chlib    ','cif_file ','classic_i','clementi ','core_reso','crystal  ', &
-     'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_exp ','debye    ','delta_en_','dip_rel  ','e1e1     ', &
+     'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_2d  ','dafs_exp ','debye    ','delta_en_','dip_rel  ','e1e1     ', &
      'delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ', &
      'edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot', &
      'etatlie  ','excited  ','extract  ','extract_t','extractpo','extractsy','fdm_comp ','film     ','film_cif_','film_pdb_', &
@@ -338,7 +345,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'rmt      ','rmtg     ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ', &
      'self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
      'screening','solsing  ','spgroup  ','sphere_al','spherical','spinorbit','step_azim','supermuf ', 'symmol   ', &
-     'symsite  ','tddft    ','tddft_dat','temperatu','test_dist','trace    ','vmax     ','v0imp    ','xalpha   ', &
+     'symsite  ','tddft    ','temperatu','test_dist','trace    ','vmax     ','v0imp    ','xalpha   ', &
      'xan_atom ','ylm_comp ','z_absorbe','z_nospino','zero_azim'/
 
   data kw_fit / 'parameter'/
@@ -1737,58 +1744,36 @@ function traduction(grdat)
   traduction = grdat
 
   select case(grdat)
-    case('all_site')
-      traduction = 'allsite'
-    case('borman')
-      traduction = 'bormann'
-    case('dmaxpot','dmax_pot','d_maxpot','distmaxpo','dist_maxp')
-      traduction = 'd_max_pot'
-    case('dip_relat')
-      traduction = 'dip_rel'
-    case('end_jump')
-      traduction = 'endjump'
-    case('fin','fine')
-      traduction = 'end'
-    case('biologie','biology','save_memo','savememor','memorysav')
-      traduction = 'memory_sa'
-    case('gamme')
-      traduction = 'range'
-    case('gammel')
-      traduction = 'rangel'
     case('iabsorbeu','absorbor','assorbito','absorber')
       traduction = 'absorbeur'
-    case('potimag  ')
-      traduction = 'eimag'
-    case('quadripol')
-      traduction = 'quadrupol'
-    case('spin_orbi')
-      traduction = 'spinorbit'
-    case('magnetiqu','magnetic')
-      traduction = 'magnetism'
-    case('polarise','polarised','polarisat','polarizat','polar', 'polarize')
-      traduction = 'polarized'
-    case('dafsscan','dafscan','rxs','rxd')
-      traduction = 'dafs'
-    case('rxs_bio','rxd_bio','rxsbio','rxdbio','dafsbio','rxs_exp', 'rxd_exp')
-      traduction = 'dafs_exp'
+    case('interpoin','inter_poi')
+      traduction = 'adimp'
+    case('allnrixs','allnrix','allxraman','all_xrama')
+      traduction = 'all_nrixs'
+    case('all_site')
+      traduction = 'allsite'
+    case('angspin','spin_ang')
+      traduction = 'ang_spin'
     case('atome','atomes','atoms','atomo','atomi')
       traduction = 'atom'
     case('atome_ch','atomch','atomech','atomoch','atomo_ch', 'atomich','atomi_ch')
       traduction = 'atom_ch'
-    case('crist','cryst','cristallo','cristal')
-      traduction = 'crystal'
+    case('axespin','spin_axe','spin_axes','spinaxe','spinaxes', 'spin_axis','spinaxis')
+      traduction = 'axe_spin'
+    case('basecomp')
+      traduction = 'base_comp'
+    case('basereel','real_basi','real_base')
+      traduction = 'base_reel'
+    case('borman')
+      traduction = 'bormann'
+    case('cartesien')
+      traduction = 'cartesian'
+    case('chlibre','freech')
+      traduction = 'chlib'
+    case('extractio')
+      traduction = 'extrac'
     case('cristal_c','crystal_c','ciffile')
       traduction = 'cif_file'
-    case('cristal_p','crystal_p','pdbfile')
-      traduction = 'pdb_file'
-    case('molec','molecola')
-      traduction = 'molecule'
-    case('lapw','wien')
-      traduction = 'flapw'
-    case('lapw_s','wien_s','flapw_sau','lapw_sauv','wien_sauv', 'flapw_sav','lapw_save','wien_save')
-      traduction = 'flapw_s'
-    case('lapw_r','wien_r','flapw_rec','lapw_recu','wien_recu')
-      traduction = 'flapw_r'
     case('icheck')
       traduction = 'check'
     case('centre')
@@ -1805,142 +1790,174 @@ function traduction(grdat)
       traduction = 'check_pot'
     case('checksph','checksphe')
       traduction = 'check_sph'
-    case('cartesien')
-      traduction = 'cartesian'
-    case('extractio')
-      traduction = 'extrac'
+    case('spinresol','spin_reso','coreresol')
+      traduction = 'core_reso'
+    case('crist','cryst','cristallo','cristal')
+      traduction = 'crystal'
+    case('dmaxpot','dmax_pot','d_maxpot','distmaxpo','dist_maxp')
+      traduction = 'd_max_pot'
+    case('dafsscan','dafscan','rxs','rxd')
+      traduction = 'dafs'
+     case('rxs_bio','rxd_bio','rxsbio','rxdbio','dafsbio','rxs_exp', 'rxd_exp')
+      traduction = 'dafs_exp'
+    case('rxs_2d','rxd_2d','dafs_surf','rxs_surfa','rxd_surfa')
+      traduction = 'dafs_2d'
+    case('state_den','statedens','densite')
+      traduction = 'density'
+    case('stateall','state_all','densityal')
+      traduction = 'density_a'
+    case('converge','deltae','delta_e_c','delta_en','delta_e_s')
+      traduction = 'delta_en_'
+    case('dilat','dilatati','dilat_or')
+      traduction = 'dilatorb'
+   case('dip_relat')
+      traduction = 'dip_rel'
+    case('magdip','dip_mag','mag_dip')
+      traduction = 'dipmag'
+    case('magquad','dip_quad')
+      traduction = 'dipquad'
+    case('dynamical')
+      traduction = 'dyn_g'
+    case('dipole')
+      traduction = 'e1e1'
+    case('e3e1')
+      traduction = 'e1e3'
+    case('seuil','threshold','soglia')
+      traduction = 'edge'
+    case('potimag  ')
+      traduction = 'eimag'
+    case('fin','fine')
+      traduction = 'end'
+    case('end_jump')
+      traduction = 'endjump'
+    case('eclie')
+      traduction = 'etatlie'
     case('extract_s')
       traduction = 'extracsy'
     case('enrgpsii','epsiia')
       traduction = 'epsii'
     case('enrgphot','energpho')
       traduction = 'energphot'
-    case('state_den','statedens','densite')
-      traduction = 'density'
-    case('stateall','state_all','densityal')
-      traduction = 'density_a'
-    case('oldrefere')
-      traduction = 'old_refer'
-    case('newrefere')
-      traduction = 'new_refer'
-    case('eclie')
-      traduction = 'etatlie'
-    case('noteneg')
-      traduction = 'not_eneg'
-    case('chemin')
-      traduction = 'nchemin'
+    case('lapw','wien')
+      traduction = 'flapw'
+    case('lapw_s','wien_s','flapw_sau','lapw_sauv','wien_sauv', 'flapw_sav','lapw_save','wien_save')
+      traduction = 'flapw_s'
+    case('lapw_r','wien_r','flapw_rec','lapw_recu','wien_recu')
+      traduction = 'flapw_r'
+    case('fprim_ato','fprimatom','fprimeato')
+      traduction = 'fprime_at'
+    case('hedin_lun','hedinlund')
+      traduction = 'hedin'
+    case('hubard')
+      traduction = 'hubbard'
+    case('lmaxat','lmaxat0','lmax_at','lmax_atom')
+      traduction = 'lmax'
+    case('lmaxnrixs','lmax_xram','lmaxxrama')
+      traduction = 'lmax_nrix'
+    case('lamstdens')
+      traduction = 'lmaxstden'
+    case('lmaxso','lmaxso0','lmax_so','lmax_sor','lmaxsort')
+      traduction = 'lmaxso'
     case('lminus1')
       traduction = 'lmoins1'
-    case('basereel','real_basi','real_base')
-      traduction = 'base_reel'
-    case('basecomp')
-      traduction = 'base_comp'
-    case('spinresol','spin_reso','coreresol')
-      traduction = 'core_reso'
-    case('angspin','spin_ang')
-      traduction = 'ang_spin'
-    case('axespin','spin_axe','spin_axes','spinaxe','spinaxes', 'spin_axis','spinaxis')
-      traduction = 'axe_spin'
-    case('ang_rotsu','angrotsup','rotsup')
-      traduction = 'rot_sup'
-    case('relat')
-      traduction = 'relativis'
+    case('lquadimp')
+      traduction = 'lquaimp'
+    case('m1_m2','m2m1','m2_m1')
+      traduction = 'm1m2'
+    case('m1_m1')
+      traduction = 'm1m1'
+    case('magnetiqu','magnetic')
+      traduction = 'magnetism'
+    case('biologie','biology','save_memo','savememor','memorysav')
+      traduction = 'memory_sa'
+    case('molec','molecola')
+      traduction = 'molecule'
+    case('muffin_ti')
+      traduction = 'muffintin'
+    case('n_scf','nself','nscf')
+      traduction = 'n_self'
+    case('chemin')
+      traduction = 'nchemin'
+    case('notdipole','nondipole','nodipole','no_dipole','noe1e1')
+      traduction = 'no_e1e1'
+    case('notinterf','noninterf','nointerf','no_dipqua','nodipquad', 'nondipqua','no_interf','noe1e2')
+      traduction = 'no_e1e2'
+    case('noe1e3','noe3e1','no_e3e1')
+      traduction = 'no_e1e3'
+    case('noe2e2')
+      traduction = 'no_e2e2'
+    case('not_core_','not_corer','notcorere','notcorer_','no_core_r','no_corere','nocoreres','nocore_re')
+      traduction = 'no_core_r'
+    case('nofermi')
+      traduction = 'no_fermi'
     case('nonrelat','nonrelati')
       traduction = 'non_relat'
-    case('rayon','rsort','rsorte','raggio')
-      traduction = 'radius'
-    case('r_selfcon','rself','rselfcons','r_scf','rscf')
-      traduction = 'r_self'
+    case('non_exc','nonexcite','non_excit','no_hole','nohole')
+      traduction = 'nonexc'
+    case('normal_ta')
+      traduction = 'normaltau'
+    case('noteneg')
+      traduction = 'not_eneg'
+    case('nrato_dir','nratodira','nr_ato')
+      traduction = 'nrato'
+    case('nixs','xraman','xramman')
+      traduction = 'nrixs'
+    case('dipole_oc','dip_oct')
+      traduction = 'octupole'
+    case('oldzero')
+      traduction = 'old_zero'
+    case('overad','overrad')
+      traduction = 'over_rad'
+    case('optics','optique')
+      traduction = 'optic'
     case('p_self0','pself','pself0','p0_self','p_scf','p0_scf', 'pscf','pscf0','p0scf')
       traduction = 'p_self'
     case('p_scf_max','pselfmax','pscfmax','ppscf_max','p_scfmax','p_selfmax', 'pself_max')
       traduction = 'p_self_max'
+    case('cristal_p','crystal_p','pdbfile')
+      traduction = 'pdb_file'
+    case('polarise','polarised','polarisat','polarizat','polar', 'polarize')
+      traduction = 'polarized'
+    case('quadripol')
+      traduction = 'quadrupol'
+    case('r_selfcon','rself','rselfcons','r_scf','rscf')
+      traduction = 'r_self'
+    case('rayon','rsort','rsorte','raggio')
+      traduction = 'radius'
+    case('gamme')
+      traduction = 'range'
+    case('gammel')
+      traduction = 'rangel'
+    case('raychimp')
+      traduction = 'rchimp'
+    case('relat')
+      traduction = 'relativis'
+    case('rmtimp','rmt_imp','rmtgimp','rmtg_imp')
+      traduction = 'rmtg'
+    case('rmtvo')
+      traduction = 'rmtv0'
+    case('ang_rotsu','angrotsup','rotsup')
+      traduction = 'rot_sup'
+    case('rpa','rpa_lf')
+      traduction = 'rpalf'
     case('selfcons','self_cons')
       traduction = 'scf'
     case('selfexc','self_exc','scfexc')
       traduction = 'scf_exc'
     case('selfnonex','self_non_','self_none','scfnonexc', 'scf_nonex','scf_nohol','scf_no_ho')
       traduction = 'scf_non_e'
-    case('converge','deltae','delta_e_c','delta_en','delta_e_s')
-      traduction = 'delta_en_'
-    case('nofermi')
-      traduction = 'no_fermi'
-    case('overad','overrad')
-      traduction = 'over_rad'
-    case('optics','optique')
-      traduction = 'optic'
+    case('step_scf','pas_scf')
+      traduction = 'scf_step'
     case('ecrantage')
       traduction = 'screening'
-    case('fprim_ato','fprimatom','fprimeato')
-      traduction = 'fprime_at'
-    case('non_exc','nonexcite','non_excit','no_hole','nohole')
-      traduction = 'nonexc'
-    case('seuil','threshold','soglia')
-      traduction = 'edge'
-    case('dipole_oc','dip_oct')
-      traduction = 'octupole'
-    case('magdip','dip_mag','mag_dip')
-      traduction = 'dipmag'
-    case('magquad','dip_quad')
-      traduction = 'dipquad'
-    case('m1_m2','m2m1','m2_m1')
-      traduction = 'm1m2'
-    case('m1_m1')
-      traduction = 'm1m1'
-    case('dipole')
-      traduction = 'e1e1'
-    case('e3e1')
-      traduction = 'e1e3'
-    case('notdipole','nondipole','nodipole','no_dipole','noe1e1')
-      traduction = 'no_e1e1'
-    case('noe2e2')
-      traduction = 'no_e2e2'
-    case('noe1e3','noe3e1','no_e3e1')
-      traduction = 'no_e1e3'
-    case('notinterf','noninterf','nointerf','no_dipqua','nodipquad', 'nondipqua','no_interf','noe1e2')
-      traduction = 'no_e1e2'
-    case('lquadimp')
-      traduction = 'lquaimp'
-    case('normal_ta')
-      traduction = 'normaltau'
-    case('stepazim','stepazimu','azim_step')
-      traduction = 'step_azim'
     case('singsol','solsing_o')
       traduction = 'solsing'
-    case('raychimp')
-      traduction = 'rchimp'
-    case('rmtimp','rmt_imp','rmtgimp','rmtg_imp')
-      traduction = 'rmtg'
-    case('rmtvo')
-      traduction = 'rmtv0'
-    case('muffin_ti')
-      traduction = 'muffintin'
-    case('interpoin','inter_poi')
-      traduction = 'adimp'
-    case('lmaxat','lmaxat0','lmax_at','lmax_atom')
-      traduction = 'lmax'
-    case('lamstdens')
-      traduction = 'lmaxstden'
-    case('lmaxso','lmaxso0','lmax_so','lmax_sor','lmaxsort')
-      traduction = 'lmaxso'
-    case('chlibre','freech')
-      traduction = 'chlib'
-    case('hedin_lun','hedinlund')
-      traduction = 'hedin'
+    case('spin_orbi')
+      traduction = 'spinorbit'
+    case('stepazim','stepazimu','azim_step')
+      traduction = 'step_azim'
     case('selfabsor','self_abso','selfabs')
       traduction = 'self_abs'
-    case('xalfa','alfpot')
-      traduction = 'xalpha'
-    case('hubard')
-      traduction = 'hubbard'
-    case('dilat','dilatati','dilat_or')
-      traduction = 'dilatorb'
-    case('oldzero')
-      traduction = 'old_zero'
-    case('voimp','v0bdcfim','vmoyf','korigimp')
-      traduction = 'v0imp'
-    case('v_intmax','v_max')
-      traduction = 'vmax'
     case('sym','point_gro')
       traduction = 'pointgrou'
     case('sym_mol')
@@ -1949,36 +1966,20 @@ function traduction(grdat)
       traduction = 'filout'
     case('sphere_si')
       traduction = 'sphere_al'
-    case('ylm_compl','ylmcomp','ylmcomple','harmo_com','harmocomp')
-      traduction = 'ylm_comp'
     case('xcorr','tdlda','td_lda','td_dft')
       traduction = 'tddft'
-    case('rpa','rpa_lf')
-      traduction = 'rpalf'
-    case('dynamical')
-      traduction = 'dyn_g'
-    case('recup_opt')
-      traduction = 'optic_dat'
-    case('recup_tdd')
-      traduction = 'tddft_dat'
-    case('n_scf','nself','nscf')
-      traduction = 'n_self'
-    case('nrato_dir','nratodira','nr_ato')
-      traduction = 'nrato'
-    case('not_core_','not_corer','notcorere','notcorer_','no_core_r','no_corere','nocoreres','nocore_re')
-      traduction = 'no_core_r'
     case('testdistm','dist_min','distmin','distamin')
       traduction = 'test_dist'
+    case('voimp','v0bdcfim','vmoyf','korigimp')
+      traduction = 'v0imp'
+    case('v_intmax','v_max')
+      traduction = 'vmax'
+    case('xalfa','alfpot')
+      traduction = 'xalpha'
+    case('ylm_compl','ylmcomp','ylmcomple','harmo_com','harmocomp')
+      traduction = 'ylm_comp'
     case('zabsorber','zabsorbeu','numatabs','numat_abs')
       traduction = 'z_absorbe'
-    case('step_scf','pas_scf')
-      traduction = 'scf_step'
-    case('nixs','xraman','xramman')
-      traduction = 'nrixs'
-    case('allnrixs','allnrix','allxraman','all_xrama')
-      traduction = 'all_nrixs'
-    case('lmaxnrixs','lmax_xram','lmaxxrama')
-      traduction = 'lmax_nrix'
 
 ! Convolution
     case('arc')

@@ -8,7 +8,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
           dv0bdcF,E_cut,E_cut_imp,E_cut_man,Eclie,Eneg,Energ_t, &
           Extract,Eseuil,Full_potential,Full_self_abs,Green,hkl_dafs,Hubb_a,Hubb_d,icheck, &
           iabsorig,ip_max,ip0,isigpi,isymeq, &
-          jseuil,ldip,lmax_pot,lmax_probe,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua, &
+          jseuil,ldip,Length_abs,lmax_pot,lmax_probe,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua, &
           lseuil,ltypcal,m_hubb,Matper,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
           msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_multi_run, &
           n_oo,n_rel,n_rout,n_tens_max,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitl,ninitlr,nlm_pot,nlm_probe, &
@@ -36,7 +36,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   integer, dimension(ninitl):: is_g
   integer, dimension(npldafs):: nphi_dafs
   integer, dimension(ninitl,2):: m_g
-  integer, dimension(npldafs,2):: isigpi
+  integer, dimension(2,npldafs):: isigpi
   integer, dimension(3):: ldip
   integer, dimension(3,3):: lqua, msymdd, msymddi
   integer, dimension(3,3,3):: loct, msymdq, msymdqi
@@ -89,6 +89,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   real(kind=db), dimension(nplrm,2):: pdp
   real(kind=db), dimension(3,nplrm):: vec
   real(kind=db), dimension(3,npldafs):: hkl_dafs
+  real(kind=db), dimension(npldafs):: Length_abs
   real(kind=db), dimension(ninitl,2):: coef_g
   real(kind=db), dimension(nrm,nbseuil):: psii
   real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens
@@ -320,11 +321,10 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
 
       if( ie > nenerg ) exit
 
-! one write "angxyz,angxyz,axyz,axyz", because bulk is not used in optics.
-      call Write_coabs(Allsite,angxyz,angxyz,axyz,axyz,.false.,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+      call Write_coabs(Allsite,angxyz,axyz,.false.,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             E_cut_optic,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck_s,ie,ie_computer,Int_tens, &
-            isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
+            isigpi,isymeq,jseuil,Length_abs,ltypcal,Matper,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
             natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
             nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &

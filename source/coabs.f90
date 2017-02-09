@@ -2,10 +2,10 @@
 
 ! Calculate the absorption cross sections and the DAFS amplitudes
 
-subroutine Write_coabs(Allsite,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_step,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             E_cut,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer,Int_tens, &
-            isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
+            isigpi,isymeq,jseuil,Length_abs,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
             natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
             nphim,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
@@ -62,7 +62,7 @@ subroutine Write_coabs(Allsite,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_step,Carte
 
   integer, dimension(natomsym):: isymeq
   integer, dimension(npldafs):: nphi_dafs
-  integer, dimension(npldafs,2):: isigpi
+  integer, dimension(2,npldafs):: isigpi
 
   logical:: Allsite, Bulk_step, Cartesian_tensor, Cor_abs, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, E_vec, &
     Dafs, Dafs_bio, Final_tddft, Energphot, Extract_ten, Full_self_abs, Green_int, Green_int_mag, idafs, M1M1, Magn_sens, &
@@ -76,7 +76,7 @@ subroutine Write_coabs(Allsite,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_step,Carte
   real(kind=db), dimension(0):: rdum
   real(kind=db), dimension(ninitlr) :: ct_nelec, Epsii
   real(kind=db), dimension(nbseuil):: Eseuil
-  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, voae, voas
+  real(kind=db), dimension(3):: angxyz, axyz, voae, voas
   real(kind=db), dimension(3,3):: matopsym
   real(kind=db), dimension(nenerg) :: Energ
   real(kind=db), dimension(ninitlr) :: sec_atom
@@ -1035,8 +1035,6 @@ subroutine Write_coabs(Allsite,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_step,Carte
     if( E1M1 ) secabsmd(:,:,:) = c_milli * secabsmd(:,:,:)
   endif
 
-  if( Bulk_step .and. ie == 1 ) call Cal_Length_Abs(angxyz_bulk,axyz_bulk,hkl_dafs,npldafs,Eseuil(nbseuil),Length_Abs)
-  
 ! Writing ----------------------------------------------------------------------------------------------------
 
   if( icheck > 0 ) then
@@ -1341,7 +1339,7 @@ subroutine Write_coabs(Allsite,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_step,Carte
         if( Dafs_bio ) then
           write(7,407) nint( hkl_dafs(:,ipl) )
         else
-          write(7,410) nint( hkl_dafs(:,ipl) ), isigpi(ipl,:)
+          write(7,410) nint( hkl_dafs(:,ipl) ), isigpi(:,ipl)
         endif
         dang = 360._db / nphi_dafs(ipl)
 
@@ -1866,51 +1864,6 @@ subroutine Write_ten_bav(Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Fina
   219 format(/' Atom ',i3,3(' Tensor_oo(ke,je,he',3(',',i1),')',36x))
 end
       
-!******************************************************************************************************************************
-
-subroutine Cal_Length_Abs(angxyz,axyz,hkl_dafs,npldafs,Energy,Length_Abs)
-
-  use declarations
-  implicit none
-
-  integer:: ipl, npldafs
-  
-  real(kind=db):: cos_z, c_cos_z, dhkl, Energy, konde, Numerateur, SinThetaBragg
-  real(kind=db), dimension(3):: angxyz, Ar, axyz, Br, cosdir
-  real(kind=db), dimension(npldafs):: Length_Abs
-  real(kind=db), dimension(3,npldafs):: hkl_dafs
-
-! Energy is the photon energy in Rydberg, konde is in atomic unit
-  konde = 0.5_db * alfa_sf * Energy 
-  cosdir(:) = cos( angxyz(:) )
-
-  Numerateur =  1 - sum( cosdir(:)**2 ) + 2 * cosdir(1) * cosdir(2) * cosdir(3) 
-  Ar(:) = sin( angxyz(:) ) / axyz(:)
-  Br(1) = 2 * ( cosdir(1) - cosdir(2) * cosdir(3) ) / ( axyz(2) * axyz(3) ) 
-  Br(2) = 2 * ( cosdir(2) - cosdir(3) * cosdir(1) ) / ( axyz(3) * axyz(1) ) 
-  Br(3) = 2 * ( cosdir(3) - cosdir(1) * cosdir(2) ) / ( axyz(1) * axyz(2) ) 
-
-  cos_z = sqrt( sin( angxyz(2) )**2 - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) &
-        / sin( angxyz(3) ) )**2 )
-  c_cos_z = axyz(3) * cos_z
-
-  do ipl = 1,npldafs
-   
-    if( sum( abs( hkl_dafs(:,ipl) ) ) < eps10 ) then
-      Length_Abs(ipl) = 1.e+10_db
-    else
-! Inter-reticular distance
-      dhkl = sqrt( Numerateur / ( sum( ( hkl_dafs(:,ipl) * Ar(:) )**2 ) - hkl_dafs(2,ipl) * hkl_dafs(3,ipl) * Br(1) &
-                                   - hkl_dafs(3,ipl) * hkl_dafs(1,ipl) * Br(2) - hkl_dafs(1,ipl) * hkl_dafs(2,ipl) * Br(3) ) )
-      SinThetaBragg = pi / ( konde * dhkl )
-      Length_Abs(ipl) = 2 * c_cos_z / SinThetaBragg
-    endif
-    
-  end do
-
-  return
-end
-
 !******************************************************************************************************************************
 
 subroutine write_nrixs(All_nrixs,Allsite,Core_resolved, &

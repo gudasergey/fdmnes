@@ -1854,8 +1854,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 ! Addition of pre-edge absorption and conversion in micrometer^-1
     c_micro = 100 / ( Volume_maille_bulk * bohr**3 )
     Ts(:) = c_micro * ( Ts(:) + mu_0_bulk )
-! Conversion in ua^-1  (Length_abs is in u.a.) 
-    Ts(:) = Ts(:) * bohr / 10000
     
     do ipl = 1,npldafs 
       Trs(:,ipl) = 1 / ( 1 - exp( - Ts(:) * Length_abs(ipl) - img * 2 * pi * l_dafs(ipl) ) )
@@ -1866,11 +1864,10 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     
     if( icheck > 1 ) then
       write(3,'(/a17,1p,e13.5,a14)') ' mu_0_bulk      =', c_micro*mu_0_bulk,' micrometer^-1'
-      write(3,'(A/,23x,1p,120e13.5)') ' Length_abs(1,11,...) (micrometer) =', &
-                                   ( Length_abs(i)*bohr/1000, i = 1,min(npldafs,201), 10 )
+      write(3,'(A/,23x,1p,120e13.5)') ' Length_abs(1,11,...) (micrometer) =', ( Length_abs(i), i = 1,min(npldafs,201), 10 )
       write(3,'(/A)') '    Energy      Ts       1 - exp(-Ts*Length_abs(i)), i = 1,11,...'
       do ie = 1,nes
-        write(3,'(f10.3,1p,121e13.5)') Es(ie)*rydb, Ts(ie)*10000/bohr, &
+        write(3,'(f10.3,1p,121e13.5)') Es(ie)*rydb, Ts(ie), &
                                    ( 1 - exp( - Ts(ie) * Length_abs(i)), i = 1,min(npldafs,201), 10 ) 
       end do
     endif

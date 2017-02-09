@@ -2,8 +2,7 @@
 
 !***********************************************************************
 
-! Sousprogramme elaborant la grille en energie pour le calcul du niveau
-! de Fermi
+! Making of the energy grid for the SCF step
 
 subroutine grille_coh(Eimag_coh,Energ_coh,E_start,Green,icheck,nenerg_coh,Pas_SCF)
 
@@ -44,7 +43,7 @@ end
 
 !***********************************************************************
 
-! Calcul de la charge du petit agregat
+! Calculation of the charge inside the cluster used for SCF
 
 subroutine chg_agr(chargat,chargat_init,ch_c,chg_cluster,chg_open_val,Doping,Full_atom,iaprotoi,ipr_dop,iprabs, &
                  ispin_maj,itabs,icheck,itypepr,mpirank, natome,n_atom_0_self,n_atom_ind_self, &

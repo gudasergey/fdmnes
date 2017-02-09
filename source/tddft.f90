@@ -19,13 +19,13 @@
 !       = ninitlv en TDDFT
 !       = 2 en TDDFT + Optic
 
-subroutine main_tddft(alfpot,All_nrixs,angxyz,angxyz_bulk,Allsite,Atomic_scr,axyz,axyz_bulk,Bulk_step,Classic_irreg, &
+subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Bulk_step,Classic_irreg, &
         coef_g,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Delta_edge,Delta_Eseuil,Dipmag, &
         dv0bdcF,Dyn_eg,Dyn_g,E_cut,E_cut_imp,E_Fermi,E_cut_man,Ecent,Eclie,Elarg,Eneg, &
         Energ_t,Energphot,Epsii_a,Epsii_moy,Eseuil,Estart,f_avantseuil,Full_potential,Full_self_abs, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_dafs,Hubb_a,Hubb_d,icheck, &
-        iabsorig,iopsymc_25,is_g,isigpi,isymeq, &
-        jseuil,Kern_fac,l0_nrixs,ldip,lmax_pot,lmax_nrixs,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua,lseuil, &
+        iabsorig,iopsymc_25,is_g,isigpi,isymeq,jseuil,Kern_fac, &
+        l0_nrixs,ldip,Length_abs,lmax_pot,lmax_nrixs,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua,lseuil, &
         ltypcal,m_g,m_hubb,Magnetic,Matper,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi, &
         msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
         n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
@@ -57,7 +57,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,angxyz_bulk,Allsite,Atomic_scr,axy
   integer, dimension(ninitl):: is_g
   integer, dimension(npldafs):: nphi_dafs
   integer, dimension(ninitl,2):: m_g
-  integer, dimension(npldafs,2):: isigpi
+  integer, dimension(2,npldafs):: isigpi
   integer, dimension(3):: ldip
   integer, dimension(3,3):: lqua, msymdd, msymddi
   integer, dimension(3,3,3):: loct, msymdq, msymdqi
@@ -104,7 +104,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,angxyz_bulk,Allsite,Atomic_scr,axy
      Ecent, Ecmax, EFermi_min, Elarg, Energ_tt, Enervide_t, Epsii_moy, Estart, &
      Gamma_max, Kern_fac, p, Rmtg, Rmtsd, rsbdc, V_intmax, V0muf, Vhbdc, Volume_maille, Workf
 
-  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk
+  real(kind=db), dimension(3):: angxyz, axyz
   real(kind=db), dimension(8):: Time_loc
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(n_rout):: Time_rout
@@ -126,6 +126,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,angxyz_bulk,Allsite,Atomic_scr,axy
   real(kind=db), dimension(nr,2,2):: fxc
   real(kind=db), dimension(3,npldafs,nphim):: Vecdafse, Vecdafss
   real(kind=db), dimension(3,npldafs):: hkl_dafs
+  real(kind=db), dimension(npldafs):: Length_abs
   real(kind=db), dimension(nr,nlm_pot,nspin) :: Vxcato
   real(kind=db), dimension(nq_nrixs):: q_nrixs
   real(kind=db), dimension(nq_nrixs,ninitl_out,0:mpinodes-1):: S_nrixs, S_nrixs_m
@@ -497,10 +498,10 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,angxyz_bulk,Allsite,Atomic_scr,axy
 
       if( ie > nenerg ) exit
 
-      call write_coabs(Allsite,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk_step,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+      call write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer,Int_tens, &
-            isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
+            isigpi,isymeq,jseuil,Length_abs,ltypcal,Matper,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
             natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
             nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
@@ -556,7 +557,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
         dv0bdcF,E_cut,E_cut_imp,E_cut_man,Eclie,Eneg, &
         Energ_t,Energphot,Eseuil,f_avantseuil,Full_potential,Full_self_abs, &
         Gamma_tddft,hkl_dafs,Hubb_a,Hubb_d,icheck,iabsorig,iopsymc_25,is_g,isigpi,isymeq, &
-        jseuil,Kern_fac,ldip,lmax_pot,lmaxabs_t,lmoins1,loct,lplus1,lqua,lseuil, &
+        jseuil,Kern_fac,ldip,Length_abs,lmax_pot,lmaxabs_t,lmoins1,loct,lplus1,lqua,lseuil, &
         ltypcal,m_g,m_hubb,Magnetic,Matper,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
         msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
         n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
@@ -592,7 +593,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
   integer, dimension(ninitl):: is_g
   integer, dimension(npldafs):: nphi_dafs
   integer, dimension(ninitl,2):: m_g
-  integer, dimension(npldafs,2):: isigpi
+  integer, dimension(2,npldafs):: isigpi
   integer, dimension(3):: ldip
   integer, dimension(3,3):: lqua, msymdd, msymddi
   integer, dimension(3,3,3):: loct, msymdq, msymdqi
@@ -652,6 +653,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
   real(kind=db), dimension(3,3):: rot_atom_abs, Rot_int
   real(kind=db), dimension(nplrm,2) :: pdp
   real(kind=db), dimension(3,npldafs):: hkl_dafs
+  real(kind=db), dimension(npldafs):: Length_abs
   real(kind=db), dimension(3,nplrm) :: vec
   real(kind=db), dimension(ninitl,2):: coef_g
   real(kind=db), dimension(nrm,nbseuil):: psii
@@ -1069,11 +1071,10 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
 
       if( ie > nenerg ) exit
 
-! one write "angxyz,angxyz,axyz,axyz", because bulk is not used in optics.
-      call write_coabs(Allsite,angxyz,angxyz,axyz,axyz,.false.,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
+      call write_coabs(Allsite,angxyz,axyz,.false.,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
                   E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft, &
                   f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer,Int_tens, &
-                  isigpi,isymeq,jseuil,ltypcal,Matper,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
+                  isigpi,isymeq,jseuil,Length_abs,ltypcal,Matper,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
                   natomsym,nbseuil, &
                   ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs, &
                   npldafs,nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
