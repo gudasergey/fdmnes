@@ -1,8 +1,8 @@
 ! FDMNES subroutines
 
 ! Calculation of the cartesian tensors
-! Par rapport a coabs, les indices "e" et "s" sont inverses
-! C'est l'indicage de coabs qui est logique
+
+! < g_1 | o*( l_s m_s, k_s, j_s, l_s, irang ) | f_1 > < f_2 | o*( l_i, m_i, k_i, j_i, l_i, jrang  ) | g_2 >  
 
 ! n_Ec = ninitl si TDDFT et XANES et Core_resolved
 !      = nbseuil si TDDFT et XANES sans core_recolved
@@ -24,11 +24,11 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   use declarations
   implicit none
 
-  integer:: he, hhe, hhs, hs, i, icheck, ie, ief, initlr, initlt, ip, ip_max, ip0, ipr, irang, irang1, is, isi, isol, &
-    isp, ispfg, isping, ispinf, j, je, jhe, jhs, jje, jjhe, jjhs, jjs, jrang, js, k, ke, kke, kks, ks, le, lm, lmax, lmax_pot, &
-    lme, lmomax, lms, lomax, ls, lseuil, m_hubb, me, mpinodes, mpirank, mpirank0, &
-    ms, n_Ec, n_oo, n_rel, n_V, nbseuil, ndim2, nenerg_tddft, ninit1, ninitl, &
-    ninitlr, ninitlv, nhe, nje, nhs, njs, nlm_pot, nlm_probe, nlm1g, &
+  integer:: h_s, hh_s, hh_i, h_i, i, icheck, ie, ief, initlr, initlt, ip, ip_max, ip0, ipr, irang, irang1, is, isi, isol, &
+    isp, isp1, isp2,isp3, isp4, ispfg, j, j_i, j_s, jh_i, jh_s, jj_i, jj_s, jjh_i, jjh_s, jrang, k, k_i, k_s, kk_i, kk_s, &
+    l_i, l_s, lm, lm_i, lm_s, lmax, lmax_pot, lmomax, lomax, lseuil, m_hubb, m_i, m_s, mpinodes, mpirank, mpirank0, &
+    n_Ec, n_oo, n_rel, n_V, nbseuil, ndim2, nenerg_tddft, ninit1, ninitl, &
+    ninitlr, ninitlv, nh_i, nh_s, nj_i, nj_s, nlm_pot, nlm_probe, nlm1g, &
     nlm2g, nlm_p_fp, nlmamax, nr, nr_zet, nrang, nrm, ns_dipmag, nspin, nspino, nspinp, numat
 
   parameter( lomax = 3, lmomax = ( lomax + 1 )**2 )
@@ -64,7 +64,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
   logical, dimension(10):: Multipole
 
-  real(kind=db):: c, c0, c1, c12, c120, c3, c5, c8, clme, clms, Eimag, Energ, Enervide_t, Rmtg, Rmtsd, V_intmax
+  real(kind=db):: c, c0, c1, c12, c120, c3, c5, c8, clm_s, clm_i, Eimag, Energ, Enervide_t, Rmtg, Rmtsd, V_intmax
   real(kind=db), dimension(1):: Energ_t
   real(kind=db), dimension(nspin):: Ecinetic_e, V0bd_e
   real(kind=db), dimension(nbseuil):: Eseuil
@@ -90,7 +90,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   E3E3 = Multipole(7); M1M1 = Multipole(8)
 
   NRIXS = .false.
-  Dip_rel = n_rel == 4
+  Dip_rel = n_rel > 1
 
 ! Calcul des integrales radiales et de la solution singuliere
   if( Final_optic ) then
@@ -172,7 +172,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
               if( nlm_p_fp == 1 ) then
                 rof0(ie,lm,isp,isol,i) = rof(lm,1,isp,isol,0,i)
               else
-! ce qui sert de base en tddft, ce sont les (ls,ms,s) et pas les (l,m) vrais.
+! ce qui sert de base en tddft, ce sont les (l_i,m_i,s) et pas les (l,m) vrais.
                 rof0(ie,lm,isp,isol,:) = sum( rof(1:nlm_probe,lm,isp,isol,0,i) )
               endif
             end do
@@ -316,10 +316,10 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
     secdd_m(:,:,:,:,mpirank) = (0._db,0._db)
     if( E3E3 ) secoo_m(:,:,:,:,:,mpirank) = (0._db,0._db)
   endif
-! Boucles sur le rang des tenseurs
 
   if( icheck > 1 .and. .not. Final_optic ) write(3,120) lseuil
 
+! Loops over tensor rank
   do irang = irang1,nrang
     do jrang = irang,nrang
       Tens_lm(:,:,:,:) = (0._db,0._db)
@@ -336,119 +336,122 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
       if( icheck > 1 ) write(3,130) irang, jrang
 
-! Boucles sur les indices des tenseurs
+! Loops over tensor indices
+      do k_s = 1,3
 
-      do ke = 1,3
-
-        if( irang == 1 .and. ldip(ke) /= 1 ) cycle
+        if( irang == 1 .and. ldip(k_s) /= 1 ) cycle
 
         if( irang > 1 ) then
-          nje = 3
+          nj_s = 3
         else
-          nje = 1
+          nj_s = 1
         endif
 
-        do je = 1,nje
+        do j_s = 1,nj_s
 
-          if( irang == 2 .and. lqua(ke,je) /= 1 ) cycle
+          if( irang == 2 .and. lqua(k_s,j_s) /= 1 ) cycle
 
           if( irang == 3 ) then
-            nhe = 3
+            nh_s = 3
           else
-            nhe = 1
+            nh_s = 1
           endif
 
-          do he = 1,nhe
+          do h_s = 1,nh_s
 
-            if( irang == 3 .and. loct(ke,je,he) /= 1 ) cycle
-            jhe = 3 * ( je - 1 ) + he
+            if( irang == 3 .and. loct(k_s,j_s,h_s) /= 1 ) cycle
+            jh_s = 3 * ( j_s - 1 ) + h_s
 
-            do ks = 1,3
+            do k_i = 1,3
 
-              if( jrang == 1 .and. ldip(ks) /= 1 ) cycle
+              if( jrang == 1 .and. ldip(k_i) /= 1 ) cycle
 
               if( jrang > 1 ) then
-                njs = 3
+                nj_i = 3
               else
-                njs = 1
+                nj_i = 1
               endif
 
-              do js = 1,njs
+              do j_i = 1,nj_i
 
-                if( jrang == 2 .and. lqua(ks,js) /= 1 ) cycle
+                if( jrang == 2 .and. lqua(k_i,j_i) /= 1 ) cycle
 
                 if( jrang == 3 ) then
-                  nhs = 3
+                  nh_i = 3
                 else
-                  nhs = 1
+                  nh_i = 1
                 endif
 
-                do hs = 1,nhs
+                do h_i = 1,nh_i
 
-                  if( jrang == 3 .and. loct(ks,js,hs) /= 1 ) cycle
-                  jhs = 3 * ( js - 1 ) + hs
+                  if( jrang == 3 .and. loct(k_i,j_i,h_i) /= 1 ) cycle
+                  jh_i = 3 * ( j_i - 1 ) + h_i
 
                   if( irang == 0 .and. jrang == 0 ) then
-                    if( ks < ke ) cycle
+                    if( k_i < k_s ) cycle
                   elseif( irang == 1 .and. jrang == 1 ) then
-                    if( ks < ke ) cycle
-                    if( msymdd(ke,ks) == 0 .and. msymddi(ke,ks) == 0 ) cycle
-                    if( sum( abs( secdd(ke,ks,1,:,mpirank) ) ) > 1.e-15_db ) cycle
+                    if( k_i < k_s ) cycle
+                    if( msymdd(k_s,k_i) == 0 .and. msymddi(k_s,k_i) == 0 ) cycle
+                    if( sum( abs( secdd(k_s,k_i,1,:,mpirank) ) ) > 1.e-15_db ) cycle
                   elseif( irang == 1 .and. jrang == 2 ) then
-                    if( msymdq(ke,ks,js) == 0 .and. msymdqi(ke,ks,js) == 0 ) cycle
-                    if( sum( abs( secdq(ke,ks,js,:,mpirank) ) ) > 1.e-15_db ) cycle
+                    if( msymdq(k_s,k_i,j_i) == 0 .and. msymdqi(k_s,k_i,j_i) == 0 ) cycle
+                    if( sum( abs( secdq(k_s,k_i,j_i,:,mpirank) ) ) > 1.e-15_db ) cycle
                   elseif( irang == 2 .and. jrang == 2 ) then
-                    if( msymqq(ke,je,ks,js) == 0 .and. msymqqi(ke,je,ks,js) == 0 ) cycle
-                    if( sum( abs( secqq(ke,je,ks,js,:,mpirank) ) ) > 1.e-15_db ) cycle
+                    if( msymqq(k_s,j_s,k_i,j_i) == 0 .and. msymqqi(k_s,j_s,k_i,j_i) == 0 ) cycle
+                    if( sum( abs( secqq(k_s,j_s,k_i,j_i,:,mpirank) ) ) > 1.e-15_db ) cycle
                   elseif( irang == 1 .and. jrang == 3 ) then
-                    if( msymdo(ke,ks,js,hs) == 0 .and. msymdoi(ke,ks,js,hs) == 0 ) cycle
+                    if( msymdo(k_s,k_i,j_i,h_i) == 0 .and. msymdoi(k_s,k_i,j_i,h_i) == 0 ) cycle
                   elseif( irang == 3 .and. jrang == 3 ) then
-                    if( msymoo(ke,jhe,ks,jhs) == 0 .and. msymooi(ke,jhe,ks,jhs) == 0 ) cycle
-                    if( sum( abs( secoo(ke,jhe,ks,jhs,:,mpirank) ) ) > 1.e-15_db ) cycle
+                    if( msymoo(k_s,jh_s,k_i,jh_i) == 0 .and. msymooi(k_s,jh_s,k_i,jh_i) == 0 ) cycle
+                    if( sum( abs( secoo(k_s,jh_s,k_i,jh_i,:,mpirank) ) ) > 1.e-15_db ) cycle
                   endif
 
-! To take into account the relativistic transition channel (just for E1E1). 
-                  do ispfg = 1,n_rel
-                    if( ispfg > 1 .and. ( irang /= 1 .or. jrang /= 1 ) ) exit 
-                    isping = ( ispfg + 1 ) / 2
-                    ispinf = 2 - mod(ispfg,2) 
+! To take into account the relativistic transition channel (just for E1E1).
+                  ispfg = 0
+                  boucle_dip_pos: do isp1 = 1,2
+                  do isp2 = 1,2
+                  do isp3 = 1,2
+                  do isp4 = 1,2
+                    if( lseuil == 0 .and. isp1 /= isp4 ) cycle  ! at K edge, core states are mono-spin. 
+                    ispfg = ispfg + 1
+                    if( ispfg > 1 .and. ( ( irang /= 1 .or. jrang /= 1 ) .or. .not. dip_rel ) ) exit boucle_dip_pos 
 
                     Tens(:) = (0._db,0._db)
                     Tens_m(:) = (0._db,0._db)
 
-                    if( icheck > 1 ) write(3,140) ke, je, he, ks, js, hs, ispfg
+                    if( icheck > 1 ) write(3,140) k_s, j_s, h_s, k_i, j_i, h_i, ispfg
 
-! Boucles sur les composantes spheriques des tenseurs
-                  lme = 0
-                  do le = 0,max(irang,1)
-                    do me = -le,le
-                      lme = lme + 1
+! Loops over spherical components of the tensors
+                  lm_s = 0
+                  do l_s = 0,max(irang,1)
+                    do m_s = -l_s,l_s
+                      lm_s = lm_s + 1
 
-                      clme = clm(irang,ke,je,he,lme)
-                      if( abs(clme) < eps10 ) cycle
+                      clm_s = clm(irang,k_s,j_s,h_s,lm_s)
+                      if( abs(clm_s) < eps10 ) cycle
 
-                      lms = 0
-                      do ls = 0,max(jrang,1)
-                        do ms = -ls,ls
-                          lms = lms + 1
+                      lm_i = 0
+                      do l_i = 0,max(jrang,1)
+                        do m_i = -l_i,l_i
+                          lm_i = lm_i + 1
 
-                          clms = clm(jrang,ks,js,hs,lms)
-                          if( abs(clms) < eps10 ) cycle
+                          clm_i = clm(jrang,k_i,j_i,h_i,lm_i)
+                          if( abs(clm_i) < eps10 ) cycle
 
 ! Calcul de la composante du tenseur
-                          if( sum( abs( Tens_lm(lme,lms,ispfg,:) ) ) < 1.e-15_db ) then
+                          if( sum( abs( Tens_lm(lm_s,lm_i,ispfg,:) ) ) < 1.e-15_db ) then
 
-                            if( icheck > 1 ) write(3,150) le, me, ls, ms, clme, clms
-
+                            if( icheck > 1 ) write(3,150) l_s, m_s, l_i, m_i, clm_s, clm_i
+                            
                             if( Final_optic ) then
-                              call tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me,ls,ms,lmax,lmoins1, &
+                              call tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m_s,l_i,m_i,lmax,lmoins1, &
                                 lplus1,M_depend,ns_dipmag,ndim2,ninitlr,nlm1g,nlm2g,nlm_probe,nlm_p_fp,nspinp,nspino,roff_rr, &
                                 Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
                             else
                               call tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green_int,icheck,ip_max, &
-                                ip0,irang,is_g,isping,ispinf,jrang,le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2, &
-                                ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
-                                Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
+                                ip0,irang,is_g,isp1,isp2,isp3,isp4,jrang,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil, &
+                                ns_dipmag,ndim2,ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul, &
+                                Solsing,Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
                               if( numat == 1) then
                            ! For hydrogen there is only 1 core state
                                 Ten(:) = Ten(:) / 2
@@ -456,17 +459,17 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                               endif
                             endif
 
-                            Tens_lm(lme,lms,ispfg,:) = Ten(:)
-                            Tens_lm_m(lme,lms,ispfg,:) = Ten_m(:)
+                            Tens_lm(lm_s,lm_i,ispfg,:) = Ten(:)
+                            Tens_lm_m(lm_s,lm_i,ispfg,:) = Ten_m(:)
 
                           endif
 
-                          Tens(:) = Tens(:) + clme * clms * Tens_lm(lme,lms,ispfg,:)
-                          Tens_m(:) = Tens_m(:) + clme * clms * Tens_lm_m(lme,lms,ispfg,:)
+                          Tens(:) = Tens(:) + clm_s * clm_i * Tens_lm(lm_s,lm_i,ispfg,:)
+                          Tens_m(:) = Tens_m(:) + clm_s * clm_i * Tens_lm_m(lm_s,lm_i,ispfg,:)
                         end do
                       end do
                     end do
-                  end do ! fin boucle le
+                  end do ! fin boucle l_s
 
 ! Remplissage de la valeur calculee dans tous les elements du tenseur
 ! equivalent par symetrie.
@@ -476,79 +479,79 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
 ! M1-M1 (dipole magnetique - dipole magnetique)
                   if( irang == 0 .and. jrang == 0 ) then
-                    secmm(ke,ks,:,mpirank) = Tens(:)
+                    secmm(k_s,k_i,:,mpirank) = Tens(:)
                     if( Green_int ) then
-                      secmm(ks,ke,:,mpirank) = Tens(:)
-                      secmm_m(ke,ks,:,mpirank) = Tens_m(:)
-                      secmm_m(ks,ke,:,mpirank) = - Tens_m(:)
+                      secmm(k_i,k_s,:,mpirank) = Tens(:)
+                      secmm_m(k_s,k_i,:,mpirank) = Tens_m(:)
+                      secmm_m(k_i,k_s,:,mpirank) = - Tens_m(:)
                     else
-                      secmm(ks,ke,:,mpirank) = conjg( Tens(:) )
+                      secmm(k_i,k_s,:,mpirank) = conjg( Tens(:) )
                     endif
                   endif
 
 ! M1-E1 (dipole magnetique - dipole electrique)
                   if( irang == 0 .and. jrang == 1 ) then
-                    secmd(ke,ks,:,mpirank) = Tens(:)
-                    if( Green_int ) secmd_m(ke,ks,:,mpirank) = Tens_m(:)
+                    secmd(k_s,k_i,:,mpirank) = Tens(:)
+                    if( Green_int ) secmd_m(k_s,k_i,:,mpirank) = Tens_m(:)
                   endif
 
 ! E1-E1 (Dipole-dipole)
                   if( irang == 1 .and. jrang == 1 ) then
 
-                    do kke = 1,3
-                      do kks = kke,3
-                        if( abs(msymdd(kke,kks)) /= abs(msymdd(ke,ks)) .or. abs(msymddi(kke,kks)) &
-                           /= abs(msymddi(ke,ks)) ) cycle
-                        if( msymdd(kke,kks) /= 0 ) then
-                          is = msymdd(kke,kks) / msymdd(ke,ks)
+                    do kk_s = 1,3
+                      do kk_i = kk_s,3
+                        if( abs(msymdd(kk_s,kk_i)) /= abs(msymdd(k_s,k_i)) .or. abs(msymddi(kk_s,kk_i)) &
+                           /= abs(msymddi(k_s,k_i)) ) cycle
+                        if( msymdd(kk_s,kk_i) /= 0 ) then
+                          is = msymdd(kk_s,kk_i) / msymdd(k_s,k_i)
                         else
                           is = 0
                         endif
-                        if( msymddi(kke,kks) /= 0 ) then
-                          isi = msymddi(kke,kks) / msymddi(ke,ks)
+                        if( msymddi(kk_s,kk_i) /= 0 ) then
+                          isi = msymddi(kk_s,kk_i) / msymddi(k_s,k_i)
                         else
                           isi = 0
                         endif
                         if( Green_int ) then
-                          secdd(kke,kks,ispfg,:,mpirank) = is * Tens(:)
-                          secdd(kks,kke,ispfg,:,mpirank) = is * Tens(:)
-                          secdd_m(kke,kks,ispfg,:,mpirank) = isi * Tens_m(:)
-                          secdd_m(kks,kke,ispfg,:,mpirank) = -isi * Tens_m(:)
+                          secdd(kk_s,kk_i,ispfg,:,mpirank) = is * Tens(:)
+                          secdd(kk_i,kk_s,ispfg,:,mpirank) = is * Tens(:)
+                          secdd_m(kk_s,kk_i,ispfg,:,mpirank) = isi * Tens_m(:)
+                          secdd_m(kk_i,kk_s,ispfg,:,mpirank) = -isi * Tens_m(:)
                         else
 ! tenseur hermitique
                           Te(:) = cmplx( is*Tensr(:), isi*Tensi(:), db)
-                          secdd(kke,kks,ispfg,:,mpirank) = Te(:)
-                          secdd(kks,kke,ispfg,:,mpirank) = conjg( Te(:) )
+                          secdd(kk_s,kk_i,ispfg,:,mpirank) = Te(:)
+                          secdd(kk_i,kk_s,ispfg,:,mpirank) = conjg( Te(:) )
                         endif
                       end do
                     end do
 
 ! Dipole-quadrupole
                   elseif( irang == 1 .and. jrang == 2 ) then
-                    do kke = 1,3
-                      do kks = 1,3
-                        do jjs = kks,3
-                          if( abs(msymdq(kke,kks,jjs)) /= abs(msymdq(ke,ks,js)) .or. abs(msymdqi(kke,kks,jjs)) &
-                             /= abs(msymdqi(ke,ks,js)) ) cycle
-                          if( msymdq(kke,kks,jjs) /= 0 ) then
-                            is = msymdq(kke,kks,jjs) / msymdq(ke,ks,js)
+                    do kk_s = 1,3
+                      do kk_i = 1,3
+                        do jj_i = kk_i,3
+                          if( abs(msymdq(kk_s,kk_i,jj_i)) /= abs(msymdq(k_s,k_i,j_i)) .or. abs(msymdqi(kk_s,kk_i,jj_i)) &
+                             /= abs(msymdqi(k_s,k_i,j_i)) ) cycle
+                          if( msymdq(kk_s,kk_i,jj_i) /= 0 ) then
+                            is = msymdq(kk_s,kk_i,jj_i) / msymdq(k_s,k_i,j_i)
                           else
                             is = 0
                           endif
-                          if( msymdqi(kke,kks,jjs) /= 0 ) then
-                            isi = msymdqi(kke,kks,jjs) / msymdqi(ke,ks,js)
+                          if( msymdqi(kk_s,kk_i,jj_i) /= 0 ) then
+                            isi = msymdqi(kk_s,kk_i,jj_i) / msymdqi(k_s,k_i,j_i)
                           else
                             isi = 0
                           endif
                           if( Green_int ) then
-                            secdq(kke,kks,jjs,:,mpirank) =is*Tens(:)
-                            secdq(kke,jjs,kks,:,mpirank) =is*Tens(:)
-                            secdq_m(kke,kks,jjs,:,mpirank) = isi*Tens_m(:)
-                            secdq_m(kke,jjs,kks,:,mpirank) = isi*Tens_m(:)
+                            secdq(kk_s,kk_i,jj_i,:,mpirank) =is*Tens(:)
+                            secdq(kk_s,jj_i,kk_i,:,mpirank) =is*Tens(:)
+                            secdq_m(kk_s,kk_i,jj_i,:,mpirank) = isi*Tens_m(:)
+                            secdq_m(kk_s,jj_i,kk_i,:,mpirank) = isi*Tens_m(:)
                           else
                             Te(:)=cmplx(is*Tensr(:),isi*Tensi(:),db)
-                            secdq(kke,kks,jjs,:,mpirank) = Te(:)
-                            secdq(kke,jjs,kks,:,mpirank) = Te(:)
+                            secdq(kk_s,kk_i,jj_i,:,mpirank) = Te(:)
+                            secdq(kk_s,jj_i,kk_i,:,mpirank) = Te(:)
                           endif
                         end do
                       end do
@@ -556,43 +559,43 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
 ! Dipole-octupole
                   elseif( irang == 1 .and. jrang == 3 ) then
-                    do kke = 1,3
-                      do kks = 1,3
-                        do jjs = 1,3
-                          do hhs = 1,3
-                            if( abs(msymdo(kke,kks,jjs,hhs)) /= abs(msymdo(ke,ks,js,hs)) .or. abs(msymdoi(kke,kks,jjs,hhs)) &
-                               /= abs(msymdoi(ke,ks,js,hs))) cycle
-                            if( msymdo(kke,kks,jjs,hhs)/=0 ) then
-                              is = msymdo(kke,kks,jjs,hhs) / msymdo(ke,ks,js,hs)
+                    do kk_s = 1,3
+                      do kk_i = 1,3
+                        do jj_i = 1,3
+                          do hh_i = 1,3
+                            if( abs( msymdo(kk_s,kk_i,jj_i,hh_i) ) /= abs( msymdo(k_s,k_i,j_i,h_i) )  &
+                              .or. abs( msymdoi(kk_s,kk_i,jj_i,hh_i) ) /= abs( msymdoi(k_s,k_i,j_i,h_i) ) ) cycle
+                            if( msymdo(kk_s,kk_i,jj_i,hh_i) /= 0 ) then
+                              is = msymdo(kk_s,kk_i,jj_i,hh_i) / msymdo(k_s,k_i,j_i,h_i)
                             else
                               is = 0
                             endif
-                            if( msymdoi(kke,kks,jjs,hhs)/=0) then
-                              isi = msymdoi(kke,kks,jjs,hhs) / msymdoi(ke,ks,js,hs)
+                            if( msymdoi(kk_s,kk_i,jj_i,hh_i)/=0) then
+                              isi = msymdoi(kk_s,kk_i,jj_i,hh_i) / msymdoi(k_s,k_i,j_i,h_i)
                             else
                               isi = 0
                             endif
                             if( Green_int ) then
-                              secdo(kke,kks,jjs,hhs,:,mpirank) = is * Tens(:)
-                              secdo(kke,kks,hhs,jjs,:,mpirank) = is * Tens(:)
-                              secdo(kke,jjs,kks,hhs,:,mpirank) = is * Tens(:)
-                              secdo(kke,hhs,kks,jjs,:,mpirank) = is * Tens(:)
-                              secdo(kke,jjs,hhs,kks,:,mpirank) = is * Tens(:)
-                              secdo(kke,hhs,jjs,kks,:,mpirank) = is * Tens(:)
-                              secdo_m(kke,kks,jjs,hhs,:,mpirank) = isi * Tens_m(:)
-                              secdo_m(kke,kks,hhs,jjs,:,mpirank) = isi * Tens_m(:)
-                              secdo_m(kke,jjs,kks,hhs,:,mpirank) = isi * Tens_m(:)
-                              secdo_m(kke,hhs,kks,jjs,:,mpirank) = isi * Tens_m(:)
-                              secdo_m(kke,jjs,hhs,kks,:,mpirank) = isi * Tens_m(:)
-                              secdo_m(kke,hhs,jjs,kks,:,mpirank) = isi * Tens_m(:)
+                              secdo(kk_s,kk_i,jj_i,hh_i,:,mpirank) = is * Tens(:)
+                              secdo(kk_s,kk_i,hh_i,jj_i,:,mpirank) = is * Tens(:)
+                              secdo(kk_s,jj_i,kk_i,hh_i,:,mpirank) = is * Tens(:)
+                              secdo(kk_s,hh_i,kk_i,jj_i,:,mpirank) = is * Tens(:)
+                              secdo(kk_s,jj_i,hh_i,kk_i,:,mpirank) = is * Tens(:)
+                              secdo(kk_s,hh_i,jj_i,kk_i,:,mpirank) = is * Tens(:)
+                              secdo_m(kk_s,kk_i,jj_i,hh_i,:,mpirank) = isi * Tens_m(:)
+                              secdo_m(kk_s,kk_i,hh_i,jj_i,:,mpirank) = isi * Tens_m(:)
+                              secdo_m(kk_s,jj_i,kk_i,hh_i,:,mpirank) = isi * Tens_m(:)
+                              secdo_m(kk_s,hh_i,kk_i,jj_i,:,mpirank) = isi * Tens_m(:)
+                              secdo_m(kk_s,jj_i,hh_i,kk_i,:,mpirank) = isi * Tens_m(:)
+                              secdo_m(kk_s,hh_i,jj_i,kk_i,:,mpirank) = isi * Tens_m(:)
                             else
                               Te(:) = cmplx(is*Tensr(:),isi*Tensi(:),db)
-                              secdo(kke,kks,jjs,hhs,:,mpirank)=Te(:)
-                              secdo(kke,kks,hhs,jjs,:,mpirank)=Te(:)
-                              secdo(kke,jjs,kks,hhs,:,mpirank)=Te(:)
-                              secdo(kke,hhs,kks,jjs,:,mpirank)=Te(:)
-                              secdo(kke,jjs,hhs,kks,:,mpirank)=Te(:)
-                              secdo(kke,hhs,jjs,kks,:,mpirank)=Te(:)
+                              secdo(kk_s,kk_i,jj_i,hh_i,:,mpirank) = Te(:)
+                              secdo(kk_s,kk_i,hh_i,jj_i,:,mpirank) = Te(:)
+                              secdo(kk_s,jj_i,kk_i,hh_i,:,mpirank) = Te(:)
+                              secdo(kk_s,hh_i,kk_i,jj_i,:,mpirank) = Te(:)
+                              secdo(kk_s,jj_i,hh_i,kk_i,:,mpirank) = Te(:)
+                              secdo(kk_s,hh_i,jj_i,kk_i,:,mpirank) = Te(:)
                             endif
                           end do
                         end do
@@ -601,53 +604,53 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
 ! Quadrupole-quadrupole
                   elseif( irang == 2 .and. jrang == 2 ) then
-                    do kke = 1,3
-                      do jje = 1,3
-                        do kks = 1,3
-                          do jjs = 1,3
-                            if( sum( abs( secqq(kke,jje,kks,jjs,:,mpirank) ) ) > 1.e-15_db ) cycle
-                            if( abs(msymqq(kke,jje,kks,jjs)) /= abs(msymqq(ke,je,ks,js)) .or. abs(msymqqi(kke,jje,kks,jjs)) &
-                               /= abs(msymqqi(ke,je,ks,js)) ) cycle
-                            if( msymqq(kke,jje,kks,jjs) /= 0 ) then
-                              is = msymqq(kke,jje,kks,jjs) / msymqq(ke,je,ks,js)
+                    do kk_s = 1,3
+                      do jj_s = 1,3
+                        do kk_i = 1,3
+                          do jj_i = 1,3
+                            if( sum( abs( secqq(kk_s,jj_s,kk_i,jj_i,:,mpirank) ) ) > 1.e-15_db ) cycle
+                            if( abs( msymqq(kk_s,jj_s,kk_i,jj_i) ) /= abs( msymqq(k_s,j_s,k_i,j_i) ) &
+                                .or. abs( msymqqi(kk_s,jj_s,kk_i,jj_i) ) /= abs( msymqqi(k_s,j_s,k_i,j_i) ) ) cycle
+                            if( msymqq(kk_s,jj_s,kk_i,jj_i) /= 0 ) then
+                              is = msymqq(kk_s,jj_s,kk_i,jj_i) / msymqq(k_s,j_s,k_i,j_i)
                             else
                               is = 0
                             endif
-                            if( msymqqi(kke,jje,kks,jjs) /= 0 ) then
-                              isi = msymqqi(kke,jje,kks,jjs) / msymqqi(ke,je,ks,js)
+                            if( msymqqi(kk_s,jj_s,kk_i,jj_i) /= 0 ) then
+                              isi = msymqqi(kk_s,jj_s,kk_i,jj_i) / msymqqi(k_s,j_s,k_i,j_i)
                             else
                               isi = 0
                             endif
                             if( Green_int ) then
                               Te(:) = is * Tens(:)
-                              secqq(kke,jje,kks,jjs,:,mpirank)=Te(:)
-                              secqq(jje,kke,kks,jjs,:,mpirank)=Te(:)
-                              secqq(kke,jje,jjs,kks,:,mpirank)=Te(:)
-                              secqq(jje,kke,jjs,kks,:,mpirank)=Te(:)
-                              secqq(kks,jjs,kke,jje,:,mpirank)=Te(:)
-                              secqq(jjs,kks,kke,jje,:,mpirank)=Te(:)
-                              secqq(kks,jjs,jje,kke,:,mpirank)=Te(:)
-                              secqq(jjs,kks,jje,kke,:,mpirank)=Te(:)
+                              secqq(kk_s,jj_s,kk_i,jj_i,:,mpirank)=Te(:)
+                              secqq(jj_s,kk_s,kk_i,jj_i,:,mpirank)=Te(:)
+                              secqq(kk_s,jj_s,jj_i,kk_i,:,mpirank)=Te(:)
+                              secqq(jj_s,kk_s,jj_i,kk_i,:,mpirank)=Te(:)
+                              secqq(kk_i,jj_i,kk_s,jj_s,:,mpirank)=Te(:)
+                              secqq(jj_i,kk_i,kk_s,jj_s,:,mpirank)=Te(:)
+                              secqq(kk_i,jj_i,jj_s,kk_s,:,mpirank)=Te(:)
+                              secqq(jj_i,kk_i,jj_s,kk_s,:,mpirank)=Te(:)
                               Te(:) = isi * Tens_m(:)
-                              secqq_m(kke,jje,kks,jjs,:,mpirank) = Te(:)
-                              secqq_m(jje,kke,kks,jjs,:,mpirank) = Te(:)
-                              secqq_m(kke,jje,jjs,kks,:,mpirank) = Te(:)
-                              secqq_m(jje,kke,jjs,kks,:,mpirank) = Te(:)
-                              secqq_m(kks,jjs,kke,jje,:,mpirank) = - Te(:)
-                              secqq_m(jjs,kks,kke,jje,:,mpirank) = - Te(:)
-                              secqq_m(kks,jjs,jje,kke,:,mpirank) = - Te(:)
-                              secqq_m(jjs,kks,jje,kke,:,mpirank) = - Te(:)
+                              secqq_m(kk_s,jj_s,kk_i,jj_i,:,mpirank) = Te(:)
+                              secqq_m(jj_s,kk_s,kk_i,jj_i,:,mpirank) = Te(:)
+                              secqq_m(kk_s,jj_s,jj_i,kk_i,:,mpirank) = Te(:)
+                              secqq_m(jj_s,kk_s,jj_i,kk_i,:,mpirank) = Te(:)
+                              secqq_m(kk_i,jj_i,kk_s,jj_s,:,mpirank) = - Te(:)
+                              secqq_m(jj_i,kk_i,kk_s,jj_s,:,mpirank) = - Te(:)
+                              secqq_m(kk_i,jj_i,jj_s,kk_s,:,mpirank) = - Te(:)
+                              secqq_m(jj_i,kk_i,jj_s,kk_s,:,mpirank) = - Te(:)
                             else
                               Te(:)= cmplx( is*Tensr(:), isi*Tensi(:),db)
-                              secqq(kke,jje,kks,jjs,:,mpirank)=Te(:)
-                              secqq(jje,kke,kks,jjs,:,mpirank)=Te(:)
-                              secqq(kke,jje,jjs,kks,:,mpirank)=Te(:)
-                              secqq(jje,kke,jjs,kks,:,mpirank)=Te(:)
+                              secqq(kk_s,jj_s,kk_i,jj_i,:,mpirank) = Te(:)
+                              secqq(jj_s,kk_s,kk_i,jj_i,:,mpirank) = Te(:)
+                              secqq(kk_s,jj_s,jj_i,kk_i,:,mpirank) = Te(:)
+                              secqq(jj_s,kk_s,jj_i,kk_i,:,mpirank) = Te(:)
                               Te(:) = Conjg( Te(:) )
-                              secqq(kks,jjs,kke,jje,:,mpirank)=Te(:)
-                              secqq(jjs,kks,kke,jje,:,mpirank)=Te(:)
-                              secqq(kks,jjs,jje,kke,:,mpirank)=Te(:)
-                              secqq(jjs,kks,jje,kke,:,mpirank)=Te(:)
+                              secqq(kk_i,jj_i,kk_s,jj_s,:,mpirank) = Te(:)
+                              secqq(jj_i,kk_i,kk_s,jj_s,:,mpirank) = Te(:)
+                              secqq(kk_i,jj_i,jj_s,kk_s,:,mpirank) = Te(:)
+                              secqq(jj_i,kk_i,jj_s,kk_s,:,mpirank) = Te(:)
                             endif
                           end do
                         end do
@@ -656,24 +659,24 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 ! Octupole-octupole
                   elseif( irang == 3 .and. jrang == 3 ) then
 
-                    do kke = 1,3
-                      do jje = 1,3
-                        do hhe = 1,3
-                          jjhe = 3 * ( jje - 1 ) + hhe
-                          do kks = 1,3
-                            do jjs = 1,3
-                              do hhs = 1,3
-                                jjhs = 3 * ( jjs - 1 ) + hhs
-                                i = msymoo(kke,jjhe,kks,jjhs)
-                                j = msymoo(ke,jhe,ks,jhs)
+                    do kk_s = 1,3
+                      do jj_s = 1,3
+                        do hh_s = 1,3
+                          jjh_s = 3 * ( jj_s - 1 ) + hh_s
+                          do kk_i = 1,3
+                            do jj_i = 1,3
+                              do hh_i = 1,3
+                                jjh_i = 3 * ( jj_i - 1 ) + hh_i
+                                i = msymoo(kk_s,jjh_s,kk_i,jjh_i)
+                                j = msymoo(k_s,jh_s,k_i,jh_i)
                                 if( abs(i) /= abs(j) ) cycle
                                 if( j /= 0 ) then
                                   is = i / j
                                 else
                                   is = 0
                                 endif
-                                i = msymooi(kke,jjhe,kks,jjhs)
-                                j = msymooi(ke,jhe,ks,jhs)
+                                i = msymooi(kk_s,jjh_s,kk_i,jjh_i)
+                                j = msymooi(k_s,jh_s,k_i,jh_i)
                                 if( abs(i) /= abs(j) ) cycle
                                 if( j /= 0 ) then
                                   isi = i / j
@@ -688,8 +691,8 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                                   Te_m(:) = Conjg( Te(:) )
                                 endif
 
-                                secoo(kke,jjhe,kks,jjhs,:,mpirank) = Te(:)
-                                if( Green_int ) secoo_m(kke,jjhe,kks,jjhs,: ,mpirank) = Te_m(:)
+                                secoo(kk_s,jjh_s,kk_i,jjh_i,:,mpirank) = Te(:)
+                                if( Green_int ) secoo_m(kk_s,jjh_s,kk_i,jjh_i,:,mpirank) = Te_m(:)
 
                               end do
                             end do
@@ -700,7 +703,10 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
                   endif
 
-                  end do  ! fin boucle ispfg
+                  end do
+                  end do
+                  end do 
+                  end do boucle_dip_pos
 
                 end do
               end do
@@ -715,24 +721,24 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
       if( jrang == 3 .and. irang == 2 ) cycle
       if( irang == 0 .and. jrang > 1 ) cycle
       write(3,160)
-      lme = 0
-      do le = 0,max(irang,1)
-        do me = -le,le
-         lme = lme + 1
-         lms = 0
-         do ls = 0,max(jrang,1)
-            do ms = -ls,ls
-              lms = lms + 1
+      lm_s = 0
+      do l_s = 0,max(irang,1)
+        do m_s = -l_s,l_s
+         lm_s = lm_s + 1
+         lm_i = 0
+         do l_i = 0,max(jrang,1)
+            do m_i = -l_i,l_i
+              lm_i = lm_i + 1
               do ispfg = 1,n_rel
                 if( ( irang /= 1 .or. jrang /= 1 ) .and. ispfg > 1 ) exit
-                if( sum( abs(Tens_lm(lme,lms,ispfg,:)) ) > eps15 ) write(3,170) irang, jrang, le, me, ls, ms, &
-                    ispfg, ( Tens_lm(lme,lms,ispfg,initlr), initlr = 1,ninitlr )
+                if( sum( abs(Tens_lm(lm_s,lm_i,ispfg,:)) ) > eps15 ) write(3,170) irang, jrang, l_s, m_s, l_i, m_i, &
+                    ispfg, ( Tens_lm(lm_s,lm_i,ispfg,initlr), initlr = 1,ninitlr )
               end do
               if( .not. Green_int ) cycle
               do ispfg = 1,n_rel
                 if( ( irang /= 1 .or. jrang /= 1 ) .and. ispfg > 1 ) exit
-                if( sum( abs(Tens_lm_m(lme,lms,ispfg,:)) ) > eps15 ) write(3,180) irang, jrang, le, me, ls, ms, &
-                   ispfg, ( Tens_lm_m(lme,lms,ispfg,initlr), initlr = 1,ninitlr )
+                if( sum( abs(Tens_lm_m(lm_s,lm_i,ispfg,:)) ) > eps15 ) write(3,180) irang, jrang, l_s, m_s, l_i, m_i, &
+                   ispfg, ( Tens_lm_m(lm_s,lm_i,ispfg,initlr), initlr = 1,ninitlr )
               end do
             end do
           end do
@@ -742,44 +748,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
     end do
   end do
 
-! ispg = 1 : up-up + dn-dn 
-! ispg = 2 : up-dn + dn-up 
-! ispg = 3 : up-dn - dn-up 
-! ispg = 4 : up-up - dn-dn 
-  if( E1E1 .and. n_rel == 4 ) then
-    do initlr = 1,ninitlr
-
-      mat2(:,:) = secdd(:,:,1,initlr,mpirank) + secdd(:,:,4,initlr,mpirank)
-      secdd(:,:,1,initlr,mpirank) = mat2(:,:)
-
-      mat2(:,:) =  mat2(:,:) - 2 * secdd(:,:,4,initlr,mpirank)
-      secdd(:,:,4,initlr,mpirank) = mat2(:,:)
-
-      mat2(:,:) = secdd(:,:,2,initlr,mpirank) + secdd(:,:,3,initlr,mpirank)
-      secdd(:,:,2,initlr,mpirank) = mat2(:,:)
-
-      mat2(:,:) =  mat2(:,:) - 2 * secdd(:,:,3,initlr,mpirank)
-      secdd(:,:,3,initlr,mpirank) = mat2(:,:)
-
-      if( .not. Green_int ) cycle
-      
-      mat2(:,:) = secdd_m(:,:,1,initlr,mpirank) + secdd_m(:,:,4,initlr,mpirank)
-      secdd_m(:,:,1,initlr,mpirank) = mat2(:,:)
-
-      mat2(:,:) =  mat2(:,:) - 2 * secdd_m(:,:,4,initlr,mpirank)
-      secdd_m(:,:,4,initlr,mpirank) = mat2(:,:)
-
-      mat2(:,:) = secdd_m(:,:,2,initlr,mpirank) + secdd_m(:,:,3,initlr,mpirank)
-      secdd_m(:,:,2,initlr,mpirank) = mat2(:,:)
-
-      mat2(:,:) =  mat2(:,:) - 2 * secdd_m(:,:,3,initlr,mpirank)
-      secdd_m(:,:,3,initlr,mpirank) = mat2(:,:)
-
-      
-    end do
-  endif
-
-! Rotation pour avoir les tenseurs dans la base R1
+! Rotation to get the tensors in R1 basis
 
     rot_tem = matmul( rot_int, transpose(rot_atom_abs) )
 
@@ -824,29 +793,29 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
       endif
 
       if( E3E3 ) then
-        jhe = 0
-        do je = 1,3
-          do he = 1,3
-            jhe = jhe + 1
-            jhs = 0
-            do js = 1,3
-              do hs = 1,3
-                jhs = jhs + 1
-                Mat6(:,je,he,:,js,hs) = secoo(:,jhe,:,jhs,initlr,mpirank)
+        jh_s = 0
+        do j_s = 1,3
+          do h_s = 1,3
+            jh_s = jh_s + 1
+            jh_i = 0
+            do j_i = 1,3
+              do h_i = 1,3
+                jh_i = jh_i + 1
+                Mat6(:,j_s,h_s,:,j_i,h_i) = secoo(:,jh_s,:,jh_i,initlr,mpirank)
               end do
             end do
           end do
         end do
         call rot_tensor_6( Mat6, Rot_tem )
-        jhe = 0
-        do je = 1,3
-          do he = 1,3
-            jhe = jhe + 1
-            jhs = 0
-            do js = 1,3
-              do hs = 1,3
-                jhs = jhs + 1
-                secoo(:,jhe,:,jhs,initlr,mpirank) = Mat6(:,je,he,:,js,hs)
+        jh_s = 0
+        do j_s = 1,3
+          do h_s = 1,3
+            jh_s = jh_s + 1
+            jh_i = 0
+            do j_i = 1,3
+              do h_i = 1,3
+                jh_i = jh_i + 1
+                secoo(:,jh_s,:,jh_i,initlr,mpirank) = Mat6(:,j_s,h_s,:,j_i,h_i)
               end do
             end do
           end do
@@ -894,29 +863,29 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
       endif
 
       if( E3E3 ) then
-        jhe = 0
-        do je = 1,3
-          do he = 1,3
-            jhe = jhe + 1
-            jhs = 0
-            do js = 1,3
-              do hs = 1,3
-                jhs = jhs + 1
-                Mat6(:,je,he,:,js,hs) = secoo_m(:,jhe,:,jhs,initlr,mpirank)
+        jh_s = 0
+        do j_s = 1,3
+          do h_s = 1,3
+            jh_s = jh_s + 1
+            jh_i = 0
+            do j_i = 1,3
+              do h_i = 1,3
+                jh_i = jh_i + 1
+                Mat6(:,j_s,h_s,:,j_i,h_i) = secoo_m(:,jh_s,:,jh_i,initlr,mpirank)
               end do
             end do
           end do
         end do
         call rot_tensor_6( Mat6, Rot_tem )
-        jhe = 0
-        do je = 1,3
-          do he = 1,3
-            jhe = jhe + 1
-            jhs = 0
-            do js = 1,3
-              do hs = 1,3
-                jhs = jhs + 1
-                secoo_m(:,jhe,:,jhs,initlr,mpirank) = Mat6(:,je,he,:,js,hs)
+        jh_s = 0
+        do j_s = 1,3
+          do h_s = 1,3
+            jh_s = jh_s + 1
+            jh_i = 0
+            do j_i = 1,3
+              do h_i = 1,3
+                jh_i = jh_i + 1
+                secoo_m(:,jh_s,:,jh_i,initlr,mpirank) = Mat6(:,j_s,h_s,:,j_i,h_i)
               end do
             end do
           end do
@@ -936,36 +905,36 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   110 format(/' ---- Tenseur_car Tens_ab --------',100('-'))
   120 format(/' lseuil =',i2)
   130 format(/' -- irang =',i2,', jrang =',i2,' --')
-  140 format(/' ke, je, he =',3i3,',  ks, js, hs =',3i3,',  ispfg =',i2)
-  150 format(/' le, me =',2i3,',  ls, ms =',2i3,', Clme, Clms =',1p, 2e13.5)
-  160 format(/' Tensor by harmonics (basis R4) :'/, ' ir jr  le me  ls ms ispfg     Tens(Ylm,i=1,ninitlr)')
-  170 format(2i3,2(i4,i3),i5,1p,20e15.7)
-  180 format('i',i2,i3,2(i4,i3),1p,20e15.7)
+  140 format(/' k_s, j_s, h_s =',3i3,',  k_i, j_i, h_i =',3i3,',  ispfg =',i2)
+  150 format(/' l_s, m_s =',2i3,',  l_i, m_i =',2i3,', clm_s, clm_i =',1p, 2e13.5)
+  160 format(/' Tensor by harmonics (basis R4) :'/, ' ir jr  l_s m_s  l_i m_i ispfg     Tens(Ylm,i=1,ninitlr)')
+  170 format(2i3,i4,i3,2x,i4,i3,i5,1p,20e15.7)
+  180 format('i',i2,i3,i4,i3,2x,i4,i3,1p,20e15.7)
 
 end
 
 !***********************************************************************
 
 subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green_int,icheck,ip_max, &
-                              ip0,irang,is_g,isping,ispinf,jrang,le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2, &
-                              ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
+                              ip0,irang,is_g,isp1,isp2,isp3,isp4,jrang,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil,ns_dipmag, &
+                              ndim2,ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
                               Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
 
   use declarations
   implicit none
 
-  integer, intent(in):: icheck, ip_max, ip0, irang, jrang, le, me, ls, ms, lseuil, ndim2, ninit1, &
+  integer, intent(in):: icheck, ip_max, ip0, irang, jrang, l_i, l_s, m_i, m_s, lseuil, ndim2, ninit1, &
       ninitl, ninitlv, ninitlr, nlm_probe, nlm_p_fp, ns_dipmag, nspinp, nspino
   integer, dimension(ninitl,2), intent(in):: m_g
   integer, dimension(ninitl), intent(in):: is_g
 
-  integer:: i_g_1, i_g_2, initl1, initl2, initlr, is_dipmag, is_r1, is_r2, iseuil1, iseuil2, iso1, iso2, ispf1, ispf2, &
-    ispinf, ispinf1, ispinf2, isping, isping1, isping2, ispp_f1, ispp_f2, l1, l2, li, lm01, lm02, lm_f1, lm_f2, lmax, lmp01, &
+  integer:: i_g_1, i_g_2, initl1, initl2, initlr, is_dipmag, is_r1, is_r2, iseuil1, iseuil2, iso1, iso2, isp1, isp2, isp3, isp4, &
+    ispf1, ispf2, ispinf1, ispinf2, isping1, isping2, ispp_f1, ispp_f2, l1, l2, li, lm01, lm02, lm_f1, lm_f2, lmax, lmp01, &
     lmp02, lmp_f1, lmp_f2, lms_f1, lms_f2, lp_f1, lp_f2, m1, m2, mi1, mi2, mp_f1, mp_f2, mv1, mv2
 
   complex(kind=db):: cfe, cfs, Cg, dfe, dfs, Tau_rad, Tau_rad_i
 
-  complex(kind=db):: Gaunt_nrixs, Gaunte, Gauntm, Gauntmag, Gaunts
+  complex(kind=db):: Gaunt_i, Gaunt_nrixs, Gaunt_s, Gauntm, Gauntmag 
   complex(kind=db), dimension(ninitlr):: Ten, Ten_m
   complex(kind=db), dimension(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,ninitlv):: rof
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
@@ -982,7 +951,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
   Ten(:) = (0._db,0._db)
   Ten_m(:) = (0._db,0._db)
 
-! Boucle sur les etats initiaux
+! Loop over core states < g_1 ...  > < ... >
   do i_g_1 = 1,ninitl
 
     if( Final_tddft ) then
@@ -1018,10 +987,10 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
       is_r1 = iseuil1
     endif
 
-! Boucle sur le spin
-    do isping1 = 1,2  ! Spin de l'etat initial
+! Loop over core state spin < g_1 ...  > < ... >
+    do isping1 = 1,2 
     
-      if( irang == 1 .and. jrang == 1 .and. Dip_rel .and. isping /= isping1 ) cycle
+      if( irang == 1 .and. jrang == 1 .and. Dip_rel .and. isp1 /= isping1 ) cycle
 
       mi1 = m_g(i_g_1,isping1)
       Ci_1 = Coef_g(i_g_1,isping1)
@@ -1057,10 +1026,13 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
           is_r2 = iseuil2
         endif
 
-        do isping2 = 1,2  ! Spin de l'etat initial
+! Loop over core state spin < ...  > < ... g_2 >
+        do isping2 = 1,2  
+        
+!          if( .not. Final_tddft .and. isping1 /= isping2 ) cycle
+          if( .not. ( Final_tddft .or. li /= 0 ) .and. isping1 /= isping2 ) cycle
+          if( irang == 1 .and. jrang == 1 .and. Dip_rel .and. isp4 /= isping2 ) cycle
 
-          if( .not. Final_tddft .and. isping1 /= isping2 ) cycle
-          
           mi2 = m_g(i_g_2,isping2)
           Ci_2 = Coef_g(i_g_2,isping2)
 
@@ -1068,7 +1040,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
 
           Ci2 = Ci_1 * Ci_2
 
-! Boucle sur les harmoniques de l'etat final en entree
+! Loop over spherical harmonics of final states < ... f_1 > < ... >
           do l1 = 0,lmax
 
             if( lplus1 .and. l1 < li + 1 ) cycle
@@ -1080,26 +1052,27 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
               lm_f1 = lm01 + m1
               if( lm_f1 > nlm_probe ) cycle
 
-              do ispinf1 = 1,2  ! spin de l'etat final en entree
+! Loop over spin of final states < ... f_1 > < ... >
+              do ispinf1 = 1,2
 
-                if( irang == 1 .and. jrang == 1 .and. Dip_rel .and. ispinf /= ispinf1 ) cycle
+                if( irang == 1 .and. jrang == 1 .and. Dip_rel .and. isp2 /= ispinf1 ) cycle
 
                 ispf1 = min( ispinf1, nspinp )
 
                 if( NRIXS ) then
-                  Gaunte = Gaunt_nrixs(l1,m1,le,me,li,mi1,Ylm_comp)
+                  Gaunt_s = Gaunt_nrixs(l1,m1,l_s,m_s,li,mi1,Ylm_comp)
                 elseif( irang == 0 ) then
-                  Gaunte = Gauntmag(l1,m1,ispinf1,me,li,mi1,isping1,Ylm_comp,.true.)
+                  Gaunt_s = Gauntmag(l1,m1,ispinf1,m_s,li,mi1,isping1,Ylm_comp,.true.)
                 else
-                  Gaunte = Gauntm(l1,m1,le,me,li,mi1,Ylm_comp)
+                  Gaunt_s = Gauntm(l1,m1,l_s,m_s,li,mi1,Ylm_comp)
                 endif
-                if( abs(Gaunte) < eps10 ) cycle
+                if( abs(Gaunt_s) < eps10 ) cycle
 
-! Il n'y a que pour le dipole magnetique qu'on peut avoir du spin-flip (ou pour le terme dipolaire relativiste)
+! Il n'y a que pour l_s dipole magnetique qu'on peut avoir du spin-flip (ou pour l_s terme dipolaire relativiste)
                 if( ispinf1 /= isping1 .and. ( NRIXS .or. irang > 1 .or. ( irang == 1 .and. &
                                                                            ( .not. Dip_rel .or. jrang /= 1 ) ) ) ) cycle
 
-! Boucle sur les harmoniques de l'etat final en sortie
+! Loop over spin of final states < ... > < f_2 ... >
                 do l2 = 0,lmax
                   if( lplus1 .and. l2 < li + 1 ) cycle
                   if( lmoins1 .and. l2 > li ) cycle
@@ -1113,13 +1086,15 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
                     do ispinf2 = 1,2  ! spin etat final en sortie
                       ispf2 = min( ispinf2, nspinp )
 
+                      if( irang == 1 .and. jrang == 1 .and. Dip_rel .and. isp3 /= ispinf2 ) cycle
+
                       if( ispinf2 /= isping2 .and. ( NRIXS .or. jrang > 1 .or. ( jrang == 1 &
                                                                              .and. ( .not. Dip_rel .or. irang /= 1 ) ) ) ) cycle 
 
 ! Meme en TDDFT avec dipole magnetique, il n'y a pas la situation ci-dessous
-                      if( ( ispinf1 == ispinf2 .and. isping1 /= isping2 ) .or. ( ispinf1 /= ispinf2 .and. isping1 == isping2 ) ) &
-                                                                                                              cycle
-                      if( ( .not. Final_tddft ) .and. ispinf2 /= ispinf1 ) cycle
+!                      if( ( ispinf1 == ispinf2 .and. isping1 /= isping2 ) .or. ( ispinf1 /= ispinf2 .and. isping1 == isping2 ) ) &
+!                                                                                                              cycle
+                      if( .not. ( Final_tddft .or. Spinorbite ) .and. ispinf2 /= ispinf1 ) cycle
 
                       if( Final_tddft .and. ispinf1 /= isping1 ) then
                         is_dipmag = 2
@@ -1128,15 +1103,15 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
                       endif
 
                       if( NRIXS ) then
-                        Gaunts = Gaunt_nrixs(l2,m2,ls,ms,li,mi2,Ylm_comp)
+                        Gaunt_i = Gaunt_nrixs(l2,m2,l_i,m_i,li,mi2,Ylm_comp)
                       elseif( jrang == 0 ) then
-                        Gaunts = Gauntmag(l2,m2,ispinf2,ms,li,mi2,isping2,Ylm_comp,.true.)
+                        Gaunt_i = Gauntmag(l2,m2,ispinf2,m_i,li,mi2,isping2,Ylm_comp,.true.)
                       else
-                        Gaunts = Gauntm(l2,m2,ls,ms,li,mi2,Ylm_comp)
+                        Gaunt_i = Gauntm(l2,m2,l_i,m_i,li,mi2,Ylm_comp)
                       endif
-                      if( abs(Gaunts) < eps10 ) cycle
+                      if( abs(Gaunt_i) < eps10 ) cycle
 
-                      Cg = Ci2 * conjg( Gaunte ) * Gaunts
+                      Cg = Ci2 * conjg( Gaunt_s ) * Gaunt_i
 
                       cfe = (0._db, 0._db)
                       cfs = (0._db, 0._db)
@@ -1144,7 +1119,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
 
         if( .not. Solsing_only ) then
 
-! Boucle sur les harmoniques de l'etat final en entree potentiel non spherique
+! Loop over harmonics of non spherical final states < ... f_1 > < ... >
           lmp_f1 = 0
           do lp_f1 = 0,lmax
             if( nlm_p_fp == 1 .and. lp_f1 /= l1 ) cycle
@@ -1154,7 +1129,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
               if( nlm_p_fp == 1 .and. mp_f1 /= m1 ) cycle
               lmp_f1 = lmp_f1 + 1
 
-! Boucle sur les solutions en entree
+! Loop over spin-orbit solution index < ... f_1 > < ... >
               do ispp_f1 = 1,nspinp
                 if( .not. Spinorbite .and. ispp_f1 /= ispf1 ) cycle
                 iso1 = min( ispp_f1, nspino )
@@ -1167,7 +1142,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
                 endif
                 lms_f1 = lmp01 + (mv1 - 1) * nspino + iso1
 
-! Boucle sur les harmoniques de l'etat final en entree potentiel non spherique
+! Loop over harmonics of non spherical final states < ... > < f_2 ... >
                 lmp_f2 = 0
                 do lp_f2 = 0,lmax
                   if( nlm_p_fp == 1 .and. lp_f2 /= l2 ) cycle
@@ -1177,6 +1152,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
                     if( nlm_p_fp == 1 .and. mp_f2 /= m2 ) cycle
                     lmp_f2 = lmp_f2 + 1
 
+! Loop over spin-orbit solution index < ... > < f_2 ... >
                     do ispp_f2 = 1,nspinp
                       if( .not. Spinorbite .and. ispp_f2 /= ispf2 ) cycle
                       iso2 = min( ispp_f2, nspino )
@@ -1215,24 +1191,24 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
                             write(3,132)
                           endif
                         endif
-                        write(3,135) lp_f1, mp_f1, iso1, lp_f2, mp_f2, iso2, dfe, Gaunts, Gaunte, &
+                        write(3,135) lp_f1, mp_f1, iso1, lp_f2, mp_f2, iso2, dfe, Gaunt_i, Gaunt_s, &
                           rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1), rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2), &
-                          Taull(lms_f2,lms_f1,initl2,initl1,ispinf2,ispinf1,is_dipmag),  &
-                          Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
+                          Taull(lms_f2,lms_f1,initl2,initl1,ispp_f2,ispp_f1,is_dipmag),  &
+                          Taull(lms_f1,lms_f2,initl1,initl2,ispp_f1,ispp_f2,is_dipmag)
                       endif
 
-                    end do ! fin boucle sur les solutions en sortie
-                  end do ! fin boucle mp_f2 sortie pot non spherique
-                end do ! fin boucle lp_f2 sortie pot non spherique
+                    end do ! end of loop over spin-orbit solution f_i ( incoming )
+                  end do ! end of loop over mp_f2 non-spherical
+                end do ! end of loop over lp_f2 non-spherical
 
-              end do ! fin boucle isol1 solutions entree
-            end do ! fin boucle mp_f1 entree pot non spherique
-          end do ! fin boucle lp_f1 entree pot non spherique
+              end do ! end of loop over spin-orbit solution f_s ( outgoing )
+            end do ! end of loop over mp_f1 non-spherical
+          end do ! end of loop over lp_f1 non-spherical
 
         endif
 
-! Comme on ne divise pas par pi, le resultat apparait comme multiplie par pi, si on calcule ensuite le facteur de structure.
-! La normalisation par pi n'est donc pas a faire dans coabs sur l'amplitude dafs.
+! Here one does not divide by pi, so convenient results seems multiplied by pi, when calculating atomic form factor.
+! So, the normalization by pi must not be done in coabs to get the atomic form factor in DAFS.
                       if( Solsing .and. i_g_1 == i_g_2 .and. lm_f1 == lm_f2 .and. ispinf1 == ispinf2 ) then
                         cfe = cfe + Singul(lm_f1,ispf1,irang,jrang,is_r1)
                         cfs = cfs + Singul(lm_f1,ispf1,irang,jrang,is_r1)
@@ -1250,54 +1226,54 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
                       if( icheck > 1 .and.  abs( Tau_rad ) > eps15 ) write(3,140) Ten(initlr), Tau_rad, Cg, &
                                  Singul(lm_f1,ispf1,irang,jrang,is_r1)
 
-                    end do ! fin boucle ispinf2, spin etat final sortie
-                  end do ! fin boucle m2 etat final sortie
-                end do ! fin boucle l2 etat final sortie
+                    end do ! end of loop over ispinf2, spin of final state ( incoming )
+                  end do !  end of loop over  m2 final state
+                end do !  end of loop over  l2 final state
 
-              end do  ! fin boucle sur spin d'etat final en entree
-            end do  ! fin boucle m1 etat final entree
-          end do ! fin boucle l1 etat final entree
+              end do  !  end of loop over spin of final state ( outgoing )
+            end do  !  end of loop over  m1 final state
+          end do !  end of loop over  l1 final state
 
-        end do    ! fin boucle sur le spin d'etat initial sortie
-      end do    ! fin boucle sur les etats initiaux sortie
-    end do    ! fin boucle sur le spin d'etat initial entree
-  end do   ! fin boucle sur les etats initiaux entree
+        end do    !  end of loop over spin of core states ( incoming )
+      end do    !  end of loop over core states ( incoming )
+    end do    !  end of loop over spin of core states ( outgoing )
+  end do   !  end of loop over core states  ( outgoing )
 
-! On multiplie par "i" pour que ce soit la partie reelle du tenseur qui soit l'absorption.
+! One multiplies by "i" in order the real part of the tensor is the absorption.
   Ten(:) = img * Ten(:)
   Ten_m(:) = img * Ten_m(:)
 
   return
   120 format(/' ini1 isg1 Jz1 mi1  Ci1  ini2 isg2 Jz2 mi2  Ci2   l1  m1 isf1  l2  m2 isf2')
   130 format(2(2i4,f6.1,i3,f7.3),2(3i4,2x))
-  131 format(6x,'l1   m1 iso_1   l2   m2 iso_2',11x,'Tau_rad',24x,'Gaunts',25x,'Gaunte',26x,'rofe',26x,'rofs',27x,'Taue',27x, &
-             'Taus')
-  132 format(4x,'lp_1 mp_1 iso_1 lp_2 mp_2 iso_2',11x,'Tau_rad',24x,'Gaunts',25x,'Gaunte',26x,'rofe',26x,'rofs',27x,'Taue',27x, &
-             'Taus')
+  131 format(6x,'l1   m1 iso_1   l2   m2 iso_2',11x,'Tau_rad',23x,'Gaunt_i',24x,'Gaunt_s',25x,'rof_s',25x,'rof_i',26x,'Tau_s', &
+             26x,'Tau_i')
+  132 format(4x,'lp_1 mp_1 iso_1 lp_2 mp_2 iso_2',11x,'Tau_rad',23x,'Gaunt_i',24x,'Gaunt_s',25x,'rof_s',25x,'rof_i',26x,'Tau_s', &
+             26x,'Tau_i')
   135 format(3x,6i5,1p,2e15.7,2(1x,2e15.7),1x,4e15.7,8(1x,2e15.7))
   140 format(17x,'Ten',26x,'Tau_rad',26x,'Cg',27x,'Singul'/,1p,1x,4(1x,2e15.7))
 end
 
 !***********************************************************************
 
-subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me,ls,ms,lmax,lmoins1, &
+subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m_s,l_i,m_i,lmax,lmoins1, &
                                 lplus1,M_depend,ns_dipmag,ndim2,ninitlr,nlm1g,nlm2g,nlm_probe,nlm_p_fp,nspinp,nspino,roff_rr, &
                                 Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
 
   use declarations
   implicit none
 
-  integer, intent(in):: icheck, ip_max, ip0, irang, jrang, le, me, &
-    ls, ms, ndim2, nlm1g, nlm2g, nlm_probe, nlm_p_fp, ns_dipmag, nspinp, nspino
+  integer, intent(in):: icheck, ip_max, ip0, irang, jrang, l_s, m_s, &
+    l_i, m_i, ndim2, nlm1g, nlm2g, nlm_probe, nlm_p_fp, ns_dipmag, nspinp, nspino
 
   integer:: i, io1, io2, is_dipmag, is1, is2, iso, iso_f1, iso_f2, iso_g1, iso_g2, isp, ispm, ispm_f1, ispm_f2, ispm_g1, &
     ispm_g2, isp_f1, isp_f2, isp_g1, isp_g2, l, l_f1, l_f2, l_g1, l_g2, lm, lm_f1, lm_f2, lm_g1, lm_g2, &
-    lmax, lmp_f1, lmp_f2, lmp_g1, lmp_g2, lms, lms_f1, lms_f2, lms_g1, lmp, lmp0, lms_g2, lmss, lmss_f1, lmss_f2, lmss_g1, &
+    lmax, lmp_f1, lmp_f2, lmp_g1, lmp_g2, lm_i, lms_f1, lms_f2, lms_g1, lmp, lmp0, lms_g2, lmss, lmss_f1, lmss_f2, lmss_g1, &
     lmss_g2, lp, m, m_f1, m_f2, m_g1, m_g2, mp, mv, ninitlr, nlmss
 
   integer, dimension(:), allocatable:: iso_val, isp_val, ispm_val, l_val, lm_val, lmp_val, lms_val, m_val
  
-  complex(kind=db):: cf, Gaunte, Gaunt_crc, Gauntmag, Gaunts, Tau_rad
+  complex(kind=db):: cf, Gaunt_s, Gaunt_crc, Gauntmag, Gaunt_i, Tau_rad
   complex(kind=db), dimension(ninitlr):: Ten, Ten_m
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
 
@@ -1311,16 +1287,18 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
   Ten(:) = (0._db,0._db)
   Ten_m(:) = (0._db,0._db)
 
+! Dimension calculation -----------------------------------
+
   nlmss = 0
   do isp = 1,2
     do l = 0,lmax
       do m = -l,l
-! Boucle harmoniques pot non spherique
+! Loop over harmonics, non-spherical potential
         do lp = 0,lmax
           if( nlm_p_fp == 1 .and. lp /= l ) cycle
           do mp = -lp,lp
             if( nlm_p_fp == 1 .and. mp /= m ) cycle
-! Boucle solutions etat initial
+! Loop over solutions
             do iso = 1,nspino
               if( Spinorbite ) then
                 mv = mp - isp + iso
@@ -1343,8 +1321,10 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
   allocate( lms_val(nlmss) )
   allocate( m_val(nlmss) )
 
+! Building of quantum number table -------------------------------
+
   lmss = 0
-! Boucle harmoniques etat initiaux
+! Loop over harmonics
   do l = 0,lmax
 
     do m = -l,l
@@ -1354,7 +1334,7 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
         lm = l + 1
       endif
 
-! Boucle harmoniques pot non spherique, etat initial
+! Loop over harmonics, non-spherical potential
       lmp = 0
       do lp = 0,lmax
         if( nlm_p_fp == 1 .and. lp /= l ) cycle
@@ -1367,7 +1347,7 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
           do isp = 1,2
           ispm = min( isp, nspinp )
 
-! Boucle solutions etat initial
+! Loop over solutions
             do iso = 1,nspino
 
               if( Spinorbite ) then
@@ -1376,7 +1356,7 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
               else
                 mv = mp
               endif
-              lms = lmp0 + ( mv - 1 ) * nspino + iso
+              lm_i = lmp0 + ( mv - 1 ) * nspino + iso
 
               lmss = lmss + 1
 
@@ -1386,7 +1366,7 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
               l_val(lmss) = l
               lm_val(lmss) = lm
               lmp_val(lmss) = lmp 
-              lms_val(lmss) = lms 
+              lms_val(lmss) = lm_i 
               m_val(lmss) = m
               
             end do
@@ -1406,7 +1386,9 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
     endif
   endif
 
-! Boucle etat initial en entree
+! Calculation of the tensor components -------------------------------------------
+
+! Loop over occupied states (outgoing)
   do lmss_g1 = 1,nlmss
 
     iso_g1 = iso_val(lmss_g1) 
@@ -1418,7 +1400,7 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
     lms_g1 = lms_val(lmss_g1) 
     m_g1 = m_val(lmss_g1) 
 
-! Boucle etat final en entree
+! Loop over non-occupied states ( outgoing )
     do lmss_f1 = 1,nlmss
 
       iso_f1 = iso_val(lmss_f1) 
@@ -1430,19 +1412,19 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
       lms_f1 = lms_val(lmss_f1) 
       m_f1 = m_val(lmss_f1) 
 
-! Il n'y a que pour le dipole magnetique qu'on peut avoir du spin-flip
+! spin-flip is possible only for magnetic dipole
       if( isp_f1 /= isp_g1 .and. irang /= 0 ) cycle
 
       if( ( lplus1 .and. l_f1 < l_g1 + 1 ) .or. ( lmoins1 .and. l_f1 > l_g1 )  ) cycle
       if( l_f1 > l_g1 + irang .or. l_f1 < l_g1 - irang .or. mod(l_f1,2) /= mod(l_g1+irang,2) ) cycle
 
-! < g1 me f1 >< f2 ms g2 >
+! < g1 m_s f1 >< f2 m_i g2 >
       if( irang == 0 ) then
-        Gaunte = Gauntmag(l_f1,m_f1,isp_f1,me,l_g1,m_g1,isp_g1,Ylm_comp,Ylm_comp)
+        Gaunt_s = Gauntmag(l_f1,m_f1,isp_f1,m_s,l_g1,m_g1,isp_g1,Ylm_comp,Ylm_comp)
       else
-        Gaunte = Gaunt_crc(l_f1,m_f1,le,me,l_g1,m_g1,Ylm_comp)
+        Gaunt_s = Gaunt_crc(l_f1,m_f1,l_s,m_s,l_g1,m_g1,Ylm_comp)
       endif
-      if( abs(Gaunte) < eps10 ) cycle
+      if( abs(Gaunt_s) < eps10 ) cycle
 
       if( Final_tddft .and. isp_f1 /= isp_g1 ) then
         is_dipmag = 2
@@ -1450,7 +1432,7 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
         is_dipmag = 1
       endif
 
-! Boucle etat final en sortie
+! Loop over non-occupied states ( incoming )
       do lmss_f2 = 1,nlmss
 
         iso_f2 = iso_val(lmss_f2) 
@@ -1461,9 +1443,8 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
         lmp_f2 = lmp_val(lmss_f2) 
         lms_f2 = lms_val(lmss_f2) 
         m_f2 = m_val(lmss_f2) 
-  
-  
-! Boucle etat initial en sortie
+    
+! Loop over occupied states ( incoming )
         do lmss_g2 = 1,nlmss
 
           iso_g2 = iso_val(lmss_g2) 
@@ -1476,17 +1457,18 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
           m_g2 = m_val(lmss_g2) 
 
           if( isp_f2 /= isp_g2 .and. jrang /= 0 ) cycle
-          if( .not. Final_tddft .and. ( isp_g2 /= isp_g1 .or. isp_f2 /= isp_f1 ) ) cycle
+          if( .not. ( Final_tddft .or. Spinorbite ) .and. ( isp_g2 /= isp_g1 .or. isp_f2 /= isp_f1 ) ) cycle
+ !         if( .not. Final_tddft .and. ( isp_g2 /= isp_g1 .or. isp_f2 /= isp_f1 ) ) cycle
           if( ( lplus1 .and. l_f2 < l_g2 + 1 ) .or. ( lmoins1 .and. l_f2 > l_g2 ) ) cycle
           if( l_f2 > l_g2 + jrang .or. l_f2 < l_g2 - jrang .or. mod(l_f2,2) /= mod(l_g2+jrang,2) ) cycle
 
-! < g1 me f1 >< f2 ms g2 >
+! < g1 m_s f1 >< f2 m_i g2 >
           if( jrang == 0 ) then
-            Gaunts = Gauntmag(l_f2,m_f2,isp_f2,ms,l_g2,m_g2,isp_g2,Ylm_comp,Ylm_comp)
+            Gaunt_i = Gauntmag(l_f2,m_f2,isp_f2,m_i,l_g2,m_g2,isp_g2,Ylm_comp,Ylm_comp)
           else
-            Gaunts = Gaunt_crc(l_f2,m_f2,ls,ms,l_g2,m_g2,Ylm_comp)
+            Gaunt_i = Gaunt_crc(l_f2,m_f2,l_i,m_i,l_g2,m_g2,Ylm_comp)
           endif
-          if( abs(Gaunts) < eps10 ) cycle
+          if( abs(Gaunt_i) < eps10 ) cycle
 
           is1 = ispm_f1 + (ispm_g1 - 1) * nspinp
           is2 = ispm_f2 + (ispm_g2 - 1) * nspinp
@@ -1501,9 +1483,9 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
             Tau_rad = - Ro * Taull(lms_f1,lms_f2,1,1,isp_f1,isp_f2,2) * Taull(lms_g2,lms_g1,1,1,isp_g2,isp_g1,1)
           endif
 
-! Bien que Tau apparaisse 2 fois, on divise une seule fois par pi.
-! La normalisation par pi n'est donc pas a faire dans coabs sur l'amplitude dafs.
-          cf = Tau_rad * Conjg( Gaunte ) * Gaunts / pi
+! Evenso Tau appear 2 times, one devide only 1 time by pi.
+! Normalisation by pi must then do not to be done in coabs for dafs amplitude calculation.
+          cf = Tau_rad * Conjg( Gaunt_s ) * Gaunt_i / pi
 
           Ten(1) = Ten(1) + cf
           if( Core_resolved ) then
@@ -1516,28 +1498,28 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,le,me
           if( nlm_p_fp == 1 .and. Spinorbite ) then
             write(3,150) l_g1, m_g1, isp_g1, iso_g1, l_f1, m_f1, isp_f1, iso_f1, &
                 l_f2, m_f2, isp_f2, iso_f2, l_g2, m_g2, isp_g2, iso_g2, &
-                Ten(1), cf, Taull(lms_f2,lms_f1,lms_g2,lms_g1,isp_f1,isp_f2,is_dipmag), Gaunte, Gaunts, & 
+                Ten(1), cf, Taull(lms_f2,lms_f1,lms_g2,lms_g1,isp_f1,isp_f2,is_dipmag), Gaunt_s, Gaunt_i, & 
                 roff_rr(lm_g1,lm_f1,lmp_g1,lmp_f1,is1,io1,irang), &
                 roff_rr(lm_g2,lm_f2,lmp_g2,lmp_f2,is2,io2,jrang)
           elseif( nlm_p_fp == 1 ) then
             write(3,155) l_g1, m_g1, isp_g1, l_f1, m_f1, isp_f1, &
                 l_f2, m_f2, isp_f2, l_g2, m_g2, isp_g2, &
                 Ten(1), cf, Taull(lms_g2,lms_g1,1,1,isp_g2,isp_g1,1), &
-                Taull(lms_f1,lms_f2,1,1,isp_f1,isp_f2,2), Gaunte, Gaunts, & 
+                Taull(lms_f1,lms_f2,1,1,isp_f1,isp_f2,2), Gaunt_s, Gaunt_i, & 
                 roff_rr(lm_g1,lm_f1,lmp_g1,lmp_f1,is1,io1,irang), &
                 roff_rr(lm_g2,lm_f2,lmp_g2,lmp_f2,is2,io2,jrang)
           else
             write(3,160) l_g1, m_g1, lmp_g1, isp_g1, iso_g1, l_f1, m_f1, lmp_f1, isp_f1, iso_f1,&
                 l_f2, m_f2, lmp_f2, isp_f2, iso_f2,  l_g2, m_g2, lmp_g2, isp_g2, iso_g2, &
-                Ten(1), cf, Taull(lms_f1,lms_f2,lms_g2,lms_g1,isp_f1,isp_f2,is_dipmag), Gaunte, Gaunts, & 
+                Ten(1), cf, Taull(lms_f1,lms_f2,lms_g2,lms_g1,isp_f1,isp_f2,is_dipmag), Gaunt_s, Gaunt_i, & 
                 roff_rr(lm_g1,lm_f1,lmp_g1,lmp_f1,is1,io1,irang), &
                 roff_rr(lm_g2,lm_f2,lmp_g2,lmp_f2,is2,io2,jrang)
           endif
 
-        end do    ! fin boucle etat final, sortie
-      end do    ! fin boucle etat final, entree
-    end do    ! fin boucle etat initial, sortie
-  end do   ! fin boucle etat initial, entree
+        end do    ! end of loop over non-occupied states, incoming
+      end do    ! end of loop over non-occupied states, outgoing
+    end do    ! end of loop over occupied states, incoming
+  end do   ! end of loop over occupied states, outgoing
 
   deallocate( iso_val, isp_val, ispm_val, l_val, lm_val, lmp_val, lms_val, m_val )
 
@@ -1555,8 +1537,8 @@ end
 
 !***********************************************************************
 
-! Calcule le coef de Gaunt avec harmoniques complexes = Int( Y(l1,m1)*Y(l2,m2)Y(l3,m3)dOmega )
-! Formule de M. E. Rose p. 62
+! Gaunt coefficient calculation with complex harmonics = Int( Y(l1,m1)*Y(l2,m2)Y(l3,m3)dOmega )
+! Formula from M. E. Rose p. 62
 
 function Gauntcp(l1,m1,l2,m2,l3,m3)
 
@@ -2984,7 +2966,7 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
             if( icheck > 1 ) write(3,120) le, me, ls, ms
 
             call tens_ab(coef_g,Core_resolved,.false.,FDM_comp,Final_tddft,Green,Green_int,icheck,lmax_nrixs, &
-                                l0_nrixs,le,is_g,1,1,ls,le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2, &
+                                l0_nrixs,le,is_g,1,1,1,1,ls,le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2, &
                                 ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
                                 Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
 

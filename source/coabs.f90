@@ -20,7 +20,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
   real(kind=db), parameter:: quatre_mc2 = 4 * 2 / alfa_sf**2  ! en Rydberg
   
   integer:: he, hs, i, ia, iabsorig, ib, ic1, ic2, icheck, icn1, icn2, id, ie, &
-    ie_computer, ig, ii, ind_mu, initlr, ip, ipl, ipldafs, iseuil, ispfg, &
+    ie_computer, ig, ii, ind_mu, initlr, ip, ipl, ipldafs, iseuil, isp1, isp2, isp3, isp4, ispfg, &
     isym, ixandafs, j, j1, je, jhe, jhs, jpl, js, jseuil, ke, ks, l, &
     ll, long, mpinodee, n_dim, n_tens_max, n_multi_run, n_oo, n_rel, n_tens, n1, n2, na, &
     natomsym, nb, nbseuil, nc, nccm, ncolm, ncolr, ncolt, nenerg, ninit1, ninitlr, nl, np, npldafs, &
@@ -64,7 +64,8 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
   integer, dimension(npldafs):: nphi_dafs
   integer, dimension(2,npldafs):: isigpi
 
-  logical:: Allsite, Bulk_step, Cartesian_tensor, Cor_abs, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, E_vec, &
+  logical:: Allsite, Bulk_step, Cartesian_tensor, Cor_abs, Core_resolved, Diag_spin, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, &
+    E3E3, E_vec, &
     Dafs, Dafs_bio, Final_tddft, Energphot, Extract_ten, Full_self_abs, Green_int, Green_int_mag, idafs, M1M1, Magn_sens, &
     Matper, Moyenne, mu_cal, Self_abs, Spherical_signal, Spherical_tensor, Spinorbite_p, Tens_comp, Tensor_eval, Xan_atom
 
@@ -98,7 +99,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
   E1M1 = Multipole(4); E2E2 = Multipole(6);
   E3E3 = Multipole(7); M1M1 = Multipole(8)
 
-  Dip_rel = n_rel == 4
+  Dip_rel = n_rel > 1
   
   if( E1E1 ) secabsdd(:,:,:) = ( 0._db, 0._db )
   if( E2E2 ) secabsqq(:,:,:) = ( 0._db, 0._db )
@@ -645,108 +646,99 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
                 
               else
 
-                do ispfg = 1,n_rel
+                Diag_spin = .false.
+                
+                ispfg = 0
+                do isp1 = 1,2
+                  do isp2 = 1,2
+                    do isp3 = 1,2
+                      do isp4 = 1,2
+                        if( n_rel == 8 .and. isp1 /= isp4 ) cycle 
+                        ispfg = ispfg + 1
 
-                  do ke = 1,3
+                        if( isp2 /= isp3 .and. Diag_spin ) cycle
 
-                    if( ispfg == 1 .or. ispfg == 4 ) then
-                      matpole =  plae(ke)
-                    else
-                      matpole = (0._db, 0._db)
-                    endif
-                    if( ispfg == 1 ) then
-                      if( ke == 1 ) then
-                        matpole = matpole - img * Omega * plae(2)
-                      elseif( ke == 2 ) then
-                        matpole = matpole + img * Omega * plae(1)
-                      endif
-                    elseif( ispfg == 2 ) then
-                      if( ke == 1 ) then
-                        matpole = matpole - Omega * plae(3)
-                      elseif( ke == 2 ) then
-                        matpole = matpole - img * Omega * plae(3)
-                      elseif( ke == 3 ) then
-                        matpole = matpole + img * Omega * ( plae(2) - img * plae(1) )
-                      endif
-                    elseif( ispfg == 3 ) then
-                      if( ke == 1 ) then
-                        matpole = matpole + Omega * plae(3)
-                      elseif( ke == 2 ) then
-                        matpole = matpole - img * Omega * plae(3)
-                      elseif( ke == 3 ) then
-                        matpole = matpole + img * Omega * ( plae(2) + img * plae(1) )
-                      endif
-                    elseif( ispfg == 4 ) then
-                       if( ke == 1 ) then
-                        matpole = matpole + img * Omega * plae(2)
-                      elseif( ke == 2 ) then
-                        matpole = matpole - img * Omega * plae(1)
-                      endif
-                    endif 
- 
-                    do ks = 1,3
-                      if( ispfg == 1 .or. ispfg == 4 ) then
-                        matpols = plas(ks)
-                      else
-                        matpols = (0._db, 0._db)
-                      endif 
- 
-                      if( ispfg == 1 ) then
-                        if( ke == 1 ) then
-                          matpols = matpols - img * Omega * plas(2)
-                        elseif( ke == 2 ) then
-                          matpols = matpols + img * Omega * plas(1)
-                        endif
-                      elseif( ispfg == 2 ) then
-                        if( ke == 1 ) then
-                          matpols = matpols - Omega * plas(3)
-                        elseif( ke == 2 ) then
-                          matpols = matpols - img * Omega * plas(3)
-                        elseif( ke == 3 ) then
-                          matpols = matpols + img * Omega * ( plas(2) - img * plas(1) )
-                        endif
-                      elseif( ispfg == 3 ) then
-                        if( ke == 1 ) then
-                          matpols = matpols + Omega * plas(3)
-                        elseif( ke == 2 ) then
-                          matpols = matpols - img * Omega * plas(3)
-                        elseif( ke == 3 ) then
-                          matpols = matpols + img * Omega * ( plas(2) + img * plas(1) )
-                        endif
-                      elseif( ispfg == 4 ) then
-                         if( ke == 1 ) then
-                          matpols = matpols + img * Omega * plas(2)
-                        elseif( ke == 2 ) then
-                          matpols = matpols - img * Omega * plas(1)
-                        endif
-                      endif 
+                        do ks = 1,3
+                          if( isp1 == isp2 ) then
+                            matpols = plas(ks)
+                          else
+                            matpols = (0._db, 0._db)
+                          endif
+                          if( isp1 == 1 .and. isp2 == 1 ) then
+                            if( ks == 1 ) then
+                              matpols = matpols - img * Omega * plas(2)
+                            elseif( ks == 2 ) then
+                              matpols = matpols + img * Omega * plas(1)
+                            endif
+                          elseif( isp1 == 1 .and. isp2 == 2 ) then
+                            if( ks == 1 ) then
+                              matpols = matpols + Omega * plas(3)
+                            elseif( ks == 2 ) then
+                              matpols = matpols - img * Omega * plas(3)
+                            else
+                              matpols = matpols + img * Omega * ( plas(2) + img * plas(1) )
+                            endif
+                          elseif( isp1 == 2 .and. isp2 == 1 ) then
+                            if( ks == 1 ) then
+                              matpols = matpols - Omega * plas(3)
+                            elseif( ks == 2 ) then
+                              matpols = matpols - img * Omega * plas(3)
+                            else
+                              matpols = matpols + img * Omega * ( plas(2) - img * plas(1) )
+                            endif
+                          elseif( isp1 == 2 .and. isp2 == 2 ) then
+                            if( ks == 1 ) then
+                              matpols = matpols + img * Omega * plas(2)
+                            elseif( ks == 2 ) then
+                              matpols = matpols - img * Omega * plas(1)
+                            endif
+                          endif                      
 
-                      select case(ispfg )
-                        case(1)
-                          sec = sec + matpole * conjg( matpols ) * ( secddia(ks,ke,1,initlr,ia) + secddia(ks,ke,4,initlr,ia) ) / 2 
-                        case(2)
-                          sec = sec + matpole * conjg( matpols ) * ( secddia(ks,ke,2,initlr,ia) + secddia(ks,ke,3,initlr,ia) ) / 2 
-                        case(3)
-                          sec = sec + matpole * conjg( matpols ) * ( secddia(ks,ke,2,initlr,ia) - secddia(ks,ke,3,initlr,ia) ) / 2 
-                        case(4)
-                          sec = sec + matpole * conjg( matpols ) * ( secddia(ks,ke,1,initlr,ia) - secddia(ks,ke,4,initlr,ia) ) / 2
-                      end select
-                      
-                      if( .not. Green_int_mag ) cycle
- 
-                      select case(ispfg )
-                        case(1)
-                          sec = sec + matpole * conjg( matpols ) * ( secddia_m(ks,ke,1,initlr,ia) + secddia_m(ks,ke,4,initlr,ia))/2 
-                        case(2)
-                          sec = sec + matpole * conjg( matpols ) * ( secddia_m(ks,ke,2,initlr,ia) + secddia_m(ks,ke,3,initlr,ia))/2 
-                        case(3)
-                          sec = sec + matpole * conjg( matpols ) * ( secddia_m(ks,ke,2,initlr,ia) - secddia_m(ks,ke,3,initlr,ia))/2 
-                        case(4)
-                          sec = sec + matpole * conjg( matpols ) * ( secddia_m(ks,ke,1,initlr,ia) - secddia_m(ks,ke,4,initlr,ia))/2
-                      end select
-                      
+                          do ke = 1,3
+                            if( isp3 == isp4 ) then
+                              matpole = plae(ke)
+                            else
+                              matpole = (0._db, 0._db)
+                            endif
+                            if( isp3 == 1 .and. isp4 == 1 ) then
+                              if( ke == 1 ) then
+                                matpole = matpole - img * Omega * plae(2)
+                              elseif( ke == 2 ) then
+                                matpole = matpole + img * Omega * plae(1)
+                              endif
+                            elseif( isp3 == 1 .and. isp4 == 2 ) then
+                              if( ke == 1 ) then
+                                matpole = matpole + Omega * plae(3)
+                              elseif( ke == 2 ) then
+                                matpole = matpole - img * Omega * plae(3)
+                              else
+                                matpole = matpole + img * Omega * ( plae(2) + img * plae(1) )
+                              endif
+                            elseif( isp3 == 2 .and. isp4 == 1 ) then
+                              if( ke == 1 ) then
+                                matpole = matpole - Omega * plae(3)
+                              elseif( ke == 2 ) then
+                                matpole = matpole - img * Omega * plae(3)
+                              else
+                                matpole = matpole + img * Omega * ( plae(2) - img * plae(1) )
+                              endif
+                            elseif( isp3 == 2 .and. isp4 == 2 ) then
+                              if( ke == 1 ) then
+                                matpole = matpole + img * Omega * plae(2)
+                              elseif( ke == 2 ) then
+                                matpole = matpole - img * Omega * plae(1)
+                              endif
+                            endif
+
+                            sec = sec + conjg( matpols ) * matpole * secddia(ks,ke,ispfg,initlr,ia)
+
+                            if( Green_int_mag ) sec = sec + conjg( matpols ) * matpole * secddia_m(ks,ke,ispfg,initlr,ia)
+                          
+                          end do
+                        end do
+
+                      end do
                     end do
- 
                   end do
                 end do
 
@@ -1441,8 +1433,8 @@ subroutine Write_ten_bav(Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Fina
   use declarations
   implicit none
 
-  integer:: he, hs, ia, ib, icheck, initlr, ipl, ipldafs, iseuil, ispfg, j1, je, jhe, jhs, js, jseuil, ke, ks, n_oo, n_rel, &
-            natomsym, nb, nbseuil, ninit1, ninitlr, nseuil
+  integer:: he, hs, ia, ib, icheck, initlr, ipl, ipldafs, iseuil, isp1, isp2, isp3, isp4, ispfg, j1, je, jhe, jhs, js, jseuil, &
+            ke, ks, n_oo, n_rel, natomsym, nb, nbseuil, ninit1, ninitlr, nseuil
 
   complex(kind=db), dimension(3,3,n_rel,ninitlr,0:natomsym):: secddia, secddia_m
   complex(kind=db), dimension(3,3,ninitlr,0:natomsym):: secmdia, secmdia_m, secmmia, secmmia_m
@@ -1530,8 +1522,15 @@ subroutine Write_ten_bav(Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Fina
             write(3,149) ia
           endif
         endif
-        do ispfg = 1,n_rel
-          if( ispfg > 1 ) write(3,*)
+        ispfg = 0
+        loop_dip_spinpos: do isp1 = 1,2
+        do isp2 = 1,2
+        do isp3 = 1,2
+        do isp4 = 1,2
+          if( n_rel == 8 .and. isp1 /= isp4 ) cycle
+          ispfg = ispfg + 1
+          if( ispfg > n_rel ) exit loop_dip_spinpos
+          if( ispfg > 1 ) write(3,'(a26,4i2)') 'isp1, isp2, isp3, isp4 =', isp1, isp2, isp3, isp4 
           do ke = 1,3
             if( Green_int_mag ) then
               write(3,150) secddia(ke,:,ispfg,initlr,ia), secddia_m(ke,:,ispfg,initlr,ia)
@@ -1542,6 +1541,9 @@ subroutine Write_ten_bav(Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Fina
             endif
           end do
         end do
+        end do
+        end do
+        end do loop_dip_spinpos
       endif
       if( E1E2 ) then
         do ke = 1,3

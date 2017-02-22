@@ -3975,7 +3975,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     if( .not. ( Flapw .or. Atom .or. Atom_conf ) ) then
 ! In these case, up to here, itype was the atomic number
       jt = 0
-      boucle_1: do igr = 1,ngroup
+      boucle_1: do igr = 1,ngroup - n_atom_bulk
         n = itype(igr)
         do it = 1,jt
           if( numat(it) /= n ) cycle

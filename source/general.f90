@@ -6257,7 +6257,6 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
 ! Fraction of absorption (avoid the singularity when l close to 1). Correct only before the edge.
 
         if( Bulk_step ) Bragg(igr,ipl) = Bragg(igr,ipl) * exp( - ( z_top - p(3) ) * fpp_bulk_tot * Length_abs(ipl) )
-
         if( Taux ) Bragg(igr,ipl) = Bragg(igr,ipl) * Taux_oc(jgr)
         if( Temperature ) Deb = exp( - Temp_coef(igr) * Delta_2 )
         if( icheck > 1 .and. ( Debye .or. Temperature ) ) write(3,165) nint( hkl_dafs(1:3,ipl) ), numat(it), Deb
@@ -8841,11 +8840,7 @@ subroutine Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_fil
     Film_thickness_used = 0._db
   endif
 
-  if( Delta_roughness_film < eps10 ) then
-    Delta_roughness_film = 0._db
-  else
-    Delta_roughness_film = Film_thickness_used
-  endif
+  Delta_roughness_film = Film_thickness_used
 
   if( icheck > 0 ) then
     if( Film_periodical ) then

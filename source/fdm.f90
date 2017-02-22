@@ -930,8 +930,10 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
   E1E2e = Multipole(2)
   SCF_elecabs = SCF_log(1); SCF_mag_free = SCF_log(2); Self_cons = SCF_log(3); Self_nonexc = SCF_log(4); SCF = SCF_log(5)
 
-  if( Dip_rel ) then
-    n_rel = 4
+  if( Dip_rel .and. lseuil == 0 ) then ! For K edges, core state are pure spin states
+    n_rel = 8
+  elseif( Dip_rel ) then
+    n_rel = 16
   else
     n_rel = 1
   endif
