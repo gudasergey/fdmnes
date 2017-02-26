@@ -2734,6 +2734,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
         else
           Hubb_diag_abs = .true.
         endif
+        if( Full_atom ) then
+          iaprabs = iaabsi
+        else
+          iaprabs = iprabs
+        endif
         Rmtg_abs = Rmtg(iprabs)
         Rmtsd_abs = Rmtsd(iprabs)
         allocate( rato_abs(nrato_abs) )
@@ -2901,8 +2906,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           if( Extract ) then
             call E_reading(icheck(19),Eimag(ie),Energ(ie),ie,multi_run,nom_fich_extract)
             allocate( Vra(nrato_abs,nlm_pot,nspin) )
-            call Potex_abs(alfpot,dV0bdcF,Enervide,nlm_pot,nrato_abs,nspin,Optic,rsato_abs,rsbdc,V_intmax,V0bdc,Vcato_abs, &
-                           Vhbdc,Vra,Vxcato_abs,VxcbdcF)
+            call Potex_abs(alfpot,dV0bdcF,Enervide,icheck(16),nlm_pot,nrato_abs,nspin,Optic,rato_abs,rsato_abs,rsbdc,V_intmax, &
+                           V0bdc,Vcato_abs,Vhbdc,Vra,Vxcato_abs,VxcbdcF)
           else
             call potex(Nonsph,axyz,alfpot,dV0bdcF,Energ(ie),Enervide,Full_atom, &
               iaabsi,iapot,iaprotoi,icheck(16),iprabs_nonexc,iprabs,itab,itypepr,Magnetic, &
@@ -3348,11 +3353,16 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                 Vrato(1:nrato_abs,:,:,iprabs) = Vra(1:nrato_abs,:,:)
               endif
             endif
+            if( Full_atom ) then
+              iaprabs = iaabsi
+            else
+              iaprabs = iprabs_nonexc
+            endif
             call Cal_dens(Cal_xanes,Classic_irreg,Density_comp,drho_self,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
-            Full_potential,Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,ich,itypei,itypepr,lla2_state,lmax_pot,lmaxat,m_hubb, &
-            mpinodee,mpirank,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nlmagm,nlm_pot, &
-            nrato,nrm,nrm_self,nspin,nspino,nspinp,ntype,numat,rato,Relativiste,Rmtg,Rmtsd,Solsing,Solsing_o,Spinorbite, &
-            State_all_out,Statedens,Statedens_i,Taull,V_hubb,V_hubb_abs,V_intmax,V0bdc,Vrato,Ylm_comp)
+              Full_potential,Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,ich,itypei,itypepr,lla2_state,lmax_pot,lmaxat,m_hubb, &
+              mpinodee,mpirank,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nlmagm,nlm_pot, &
+              nrato,nrm,nrm_self,nspin,nspino,nspinp,ntype,numat,rato,Relativiste,Rmtg,Rmtsd,Solsing,Solsing_o,Spinorbite, &
+              State_all_out,Statedens,Statedens_i,Taull,V_hubb,V_hubb_abs,V_intmax,V0bdc,Vrato,Ylm_comp)
           endif
 
           deallocate( Taull )

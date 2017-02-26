@@ -8840,7 +8840,11 @@ subroutine Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_fil
     Film_thickness_used = 0._db
   endif
 
-  Delta_roughness_film = Film_thickness_used
+  if( Film_roughness > eps10 ) then
+    Delta_roughness_film = Film_thickness_used
+  else
+    Delta_roughness_film = 0._db
+  endif
 
   if( icheck > 0 ) then
     if( Film_periodical ) then

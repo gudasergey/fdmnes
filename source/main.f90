@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 22th of February 2017, 4 Ventose, An 225.
+! FDMNES II program, Yves Joly, Oana Bunau, 24th of February 2017, 6 Ventose, An 225.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,19 +43,19 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 22th of February 2017'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 24th of February 2017'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
 
 ! Physical constant
-  real(kind=db), parameter:: alfa_sf = 0.0072973525664_db  ! Fine struct. cst. = 0.002 973 525 664(17) = 1/137.035999139  CODATA 2014
+  real(kind=db), parameter:: alfa_sf = 0.0072973525664_db  ! Fine struct. cst. = 0.007 297 352 5664(17) = 1/137.035999139 CODATA 2014
   real(kind=db), parameter:: bohr = 0.52917721067_db       ! Bohr radius       = 0.529 177 210 67(12) x 10^(-10) m        CODATA 2014
   real(kind=db), parameter:: hbar = 1.054571800_db         ! Planck cst / 2 pi = 1.054 571 800(13) x 10^(-34) J s         CODATA 2014
   real(kind=db), parameter:: k_Boltzmann = 1.38064852_db   ! Boltzman constant = 1.380 648 52(79) x 10^(-23) J/K          CODATA 2014
   real(kind=db), parameter:: e_electron = 1.6021766208_db  ! Electron charge   = 1.602 176 6208(98) x  10^(-19) C         CODATA 2014
   real(kind=db), parameter:: m_electron = 9.10938356_db    ! Electron mass     = 9.109 383 56(11) x 10^(31) kg            CODATA 2014
-  real(kind=db), parameter:: atom_mu = 1.660539040_db      ! Atomic mass unit  = 21.660 539 040(20) x 10^(-27) kg         CODATA 2014
+  real(kind=db), parameter:: atom_mu = 1.660539040_db      ! Atomic mass unit  = 1.660 539 040(20) x 10^(-27) kg          CODATA 2014
   real(kind=db), parameter:: c_light = 2.99792458_db       ! Speed of light    = 2.997 924 58 x 10**8 m/s                 Exact
 
 ! Rydb = R_Rydb_lim * c * h / e = m (c.alfa)**2 / 2 e = 13.6056930129052 = convertion factor from Rydberg to eV

@@ -4492,7 +4492,7 @@ subroutine potex(Nonsph,axyz,alfpot,dv0bdcF,Energ,Enervide,Full_atom, &
         write(3,155) iapr
       endif
       do ir = 1,nr
-        write(3,160) rato(ir,it)*bohr, Vrato(ir,1,1:nspin,iapr)*rydb
+        write(3,160) rato(ir,it)*bohr, Vrato(ir,1,:,iapr)*rydb, Vcato(ir,1,iapr)*rydb, Vxcato(ir,1,:,iapr)*rydb
       end do
     end do
   endif
@@ -4512,29 +4512,29 @@ subroutine potex(Nonsph,axyz,alfpot,dv0bdcF,Energ,Enervide,Full_atom, &
   130 format(/4x,'i     Vr_(eV)     ispin = ',i2)
   140 format(5(i5,e15.5))
   146 format('  initl =',i3,/'     rato_(A)   Vrato(up)_(eV) Vrato(dn)_(eV)')
-  150 format('  ipr =',i3,/'     rato_(A)    Vrato_(eV)')
-  155 format('  ipr =',i3,/'     rato_(A)   Vrato(up)_(eV) Vrato(dn)_(eV)')
-  160 format(f15.6,1p,2e15.5)
+  150 format('  ipr =',i3,/7x,'rato_(A)    Vrato_(eV)     Vcato(eV)     Vxcato(eV)')
+  155 format('  ipr =',i3,/7x,'rato_(A)   Vrato(up)_(eV) Vrato(dn)_(eV)     Vcato(eV) Vxcato(up)_(eV) Vxcato(dn)_(eV)')
+  160 format(f15.6,1p,5e15.5)
 end
 
 !***********************************************************************
 
-! Calcul du potentiel excite
+! Calculation of atomic excited potential (when extracted)
 
-subroutine Potex_abs(alfpot,dV0bdcF,Enervide,nlm_pot,nrato_abs,nspin,Optic,rsato_abs,rsbdc,V_intmax,V0bdc,Vcato, &
-                     Vhbdc,Vrato,Vxcato,VxcbdcF)
+subroutine Potex_abs(alfpot,dV0bdcF,Enervide,icheck,nlm_pot,nrato_abs,nspin,Optic,rato_abs,rsato_abs,rsbdc,V_intmax, &
+                     V0bdc,Vcato,Vhbdc,Vrato,Vxcato,VxcbdcF)
 
   use declarations
   implicit none
 
-  integer:: isp, lm, nrato_abs, nlm_pot, nspin
+  integer:: icheck,ir, isp, lm, nrato_abs, nlm_pot, nspin
 
   logical:: Optic
 
   real(kind=db):: alfpot, rsbdc, Enervide, V_intmax, Vhbdc
   real(kind=db), dimension(1):: rs, Vc, Vr, Vxc
   real(kind=db), dimension(nspin):: dV0bdcF,  V0bdc, VxcbdcF
-  real(kind=db), dimension(nrato_abs):: rsato_abs, Vct, Vrt, Vxct
+  real(kind=db), dimension(nrato_abs):: rato_abs, rsato_abs, Vct, Vrt, Vxct
   real(kind=db), dimension(nrato_abs,nlm_pot):: Vcato
   real(kind=db), dimension(nrato_abs,nlm_pot,nspin):: Vrato, Vxcato
 
@@ -4571,7 +4571,21 @@ subroutine Potex_abs(alfpot,dV0bdcF,Enervide,nlm_pot,nrato_abs,nspin,Optic,rsato
 
   if( V_intmax < 1000._db ) V0bdc(:) = min( V0bdc(:), V_intmax )
 
+  if( icheck > 2 ) then
+    if( nspin == 1 ) then
+      write(3,'(A)') '        Radius      Vrato_abs      Vcato_abs     Vxcato_abs'
+    else
+      write(3,'(A)') '        Radius      Vrato_abs_up   Vrato_abs_dn   Vcato_abs     Vxcato_abs_up   Vxcato_abs_dn'
+    endif
+    do ir = 1,nrato_abs
+      write(3,120) rato_abs(ir)*bohr, ( Vrato(ir,1,isp)*rydb, isp = 1,nspin ), Vcato(ir,1)*rydb, &
+                   ( Vxcato(ir,1,isp)*rydb, isp = 1,nspin )
+    end do
+  endif
+
   return
+  120 format(f15.6,1p,5e15.5)
+
 end
 
 !***********************************************************************
@@ -5040,7 +5054,7 @@ subroutine Potential_writing(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsi
   else
     write(3,130)
   endif
-  write(3,'(1p,8e19.11)') E_cut*Rydb, E_Fermi*Rydb, V0muf*Rydb, Vhbdc*Rydb, VxcbdcF(:)*Rydb, dV0bdcf(:)*Rydb, rsbdc, &
+  write(3,'(1p,10e19.11)') E_cut*Rydb, E_Fermi*Rydb, V0muf*Rydb, Vhbdc*Rydb, VxcbdcF(:)*Rydb, dV0bdcf(:)*Rydb, rsbdc, &
                          Ecineticmax*Rydb
 
   write(3,'(/A)') '  Hubb_abs  Hubb_abs_diag'
@@ -5070,14 +5084,14 @@ subroutine Potential_writing(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsi
   endif
 
   do ir = 1,nrato_abs
-    write(3,'(1p,250e19.11)') rato_abs(ir)*bohr, Vcato_abs(ir,:)*Rydb, Vxcato_abs(ir,:,:)*Rydb, rhoato_abs(ir,:)*Rydb, &
+    write(3,'(1p,250e19.11)') rato_abs(ir)*bohr, Vcato_abs(ir,:)*Rydb, Vxcato_abs(ir,:,:)*Rydb, rhoato_abs(ir,:), &
                               rsato_abs(ir)
   end do
 
   return
   110 format(/' ---- Potential data --',100('-'))
   120 format(/'        E_cut             E_Fermi            V0muf              Vhbdc            VxbdcF_up          VxcbdcF_dn', &
-              '         dV0bdcF_up        dV0bdcF_dn         rsbdc        Ecinematicmax')
+              '         dV0bdcF_up         dV0bdcF_dn            rsbdc         Ecinematicmax')
   130 format(/'        E_cut             E_Fermi            V0muf              Vhbdc             VxcbdcF             dV0bdcF', &
               '             rsbdc          Ecinematicmax')
   140 format(/6x,'Epsii_moy',9x,'Delta_Eseuil',3x,9(6x,a6,i1,6x),20(5x,a6,i2,6x))

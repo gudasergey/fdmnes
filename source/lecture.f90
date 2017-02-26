@@ -3867,7 +3867,28 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       Full_self_abs = .false.
     endif
 
-    if( Extract_ten ) Density = .false.
+    if( Extract_ten ) then
+      Density = .false.
+      if( Quadrupole ) then
+        open(1, file = nom_fich_Extract, status='old', iostat=istat)
+        do i = 1,100000
+          read(1,'(A)') mot
+          if( mot(2:6) == 'Dipol'  ) then
+            read(1,'(A)') mot
+            if( mot(2:14) /= 'E1E1 includes' ) then
+              Dip_rel = .false.
+              backspace(1)
+            endif
+            read(1,'(A)') mot
+            if( mot(2:6) /= 'Quadr' ) Quadrupole = .false.
+            read(1,'(A)') mot
+            if( mot(2:6) /= 'Octup' ) octupole = .false.
+            exit
+          endif
+        end do
+        Close(1)
+     endif
+    endif
 
     if( Extract ) then
       State_all = .false.
@@ -3889,18 +3910,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         endif
         if( Seuil == 'Opt' ) Optic = .true.
       end do
-      if( Quadrupole ) then
-        do i = 1,100000
-          read(1,'(A)') mot
-          if( mot(2:6) == 'Dipol'  ) then
-            read(1,'(A)') mot
-            if( mot(2:6) /= 'Quadr' ) Quadrupole = .false.
-            read(1,'(A)') mot
-            if( mot(2:6) /= 'Octup' ) octupole = .false.
-            exit
-          endif
-        end do
-      endif
       Rewind(1)
       Core_resolved = .false.
       do i = 1,100
