@@ -485,7 +485,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
               end do
               stop
             endif
-            read(itape4,*) n, norbv
+            read(itape4,*) ( norbv, i = 1,n )
             nhybm = max (nhybm, norbv )
             do io = 1,norbv
               read(itape4,*)
@@ -3000,7 +3000,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             if( n == 0 ) exit
             n = n - 2
             allocate( igr_nsph(n) )
-            read(itape4,*) nb_atom_nsph, norb, igr_nsph(:)
+            read(itape4,*) nb_atom_nsph, igr_nsph(:), norb
             norbv( igr_nsph(:) ) = norb
             do io = 1,norb
               n = nnombre(itape4,132)
@@ -4635,16 +4635,26 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           write(3,560) 'Kgroup   Temp_cf'
         elseif( Pdb ) then
           write(3,560) 'Kgroup'
-        elseif( Taux .and. Temperature ) then
-          write(3,560) ' Occupancy  Temp_coef'
-        elseif( Taux ) then
-          write(3,560) ' Occupancy'
-        elseif( Temperature ) then
-          write(3,560) ' Temp_coef'
         elseif( Atom_nonsph ) then
-          write(3,560) 'norbv   popats'
+          if( Taux .and. Temperature ) then
+            write(3,560) ' Occupancy  Temp_coef  norbv   popats'
+          elseif( Taux ) then
+            write(3,560) ' Occupancy  norbv   popats'
+          elseif( Temperature ) then
+            write(3,560) ' Temp_coef  norbv   popats'
+          else
+            write(3,560) '  norbv  popats'
+          endif
         else
-          write(3,560)
+          if( Taux .and. Temperature ) then
+            write(3,560) ' Occupancy  Temp_coef'
+          elseif( Taux ) then
+            write(3,560) ' Occupancy'
+          elseif( Temperature ) then
+            write(3,560) ' Temp_coef'
+          else
+            write(3,560)
+          endif
         endif
         do jgr = 1,ngroup - n_atom_bulk
           if( Doping .and. jgr == ngroup - n_atom_bulk ) then
@@ -4663,21 +4673,34 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             write(3,570) Z, it, posn(:,igr), Kgroup(jgr), Temp_coef(jgr)
           elseif( Pdb ) then
             write(3,570) Z, it, posn(:,igr), Kgroup(jgr)
-          elseif( Taux .and. Temperature ) then
-            write(3,571) Z, it, posn(:,igr), Taux_oc(jgr), Temp_coef(jgr)
-          elseif( Taux ) then
-            write(3,571) Z, it, posn(:,igr), Taux_oc(jgr)
-          elseif( Temperature ) then
-            write(3,572) Z, it, posn(:,igr), Temp_coef(jgr)
-          elseif( Atom_nonsph ) then
-            write(3,580) Z, it, posn(:,igr), norbv(jgr), (popats(jgr,l,1:nspin), l = 1,nlat( abs(it)) )
-            if( norbv(igr) /= 0 ) then
-              do io = 1,norbv(jgr)
-                write(3,600)  io, pop_nonsph(io,jgr), real( hybrid(io,:,jgr) )
-              end do
+          elseif( norbv( min(jgr,ngroup_nonsph) ) == 0 ) then
+            if( Taux .and. Temperature ) then
+              write(3,571) Z, it, posn(:,igr), Taux_oc(jgr), Temp_coef(jgr)
+            elseif( Taux ) then
+              write(3,571) Z, it, posn(:,igr), Taux_oc(jgr)
+            elseif( Temperature ) then
+              write(3,572) Z, it, posn(:,igr), Temp_coef(jgr)
+            else
+              write(3,570) Z, it, posn(:,igr)
             endif
           else
-            write(3,570) Z, it, posn(:,igr)
+            if( Taux .and. Temperature ) then
+              write(3,575) Z, it, posn(:,igr), Taux_oc(jgr), Temp_coef(jgr), norbv(jgr), &
+                                                                       ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
+            elseif( Taux ) then
+              write(3,576) Z, it, posn(:,igr), Taux_oc(jgr), norbv(jgr), ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
+            elseif( Temperature ) then
+              write(3,576) Z, it, posn(:,igr), Temp_coef(jgr), norbv(jgr), ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
+            else
+              write(3,580) Z, it, posn(:,igr), norbv(jgr), (popats(jgr,l,1:nspin), l = 1,nlat( abs(it)) )
+            endif
+            do io = 1,norbv(jgr)
+              if( sum( abs( hybrid(io,10:16,jgr) ) ) < eps10 ) then
+                write(3,600)  io, pop_nonsph(io,jgr), real( hybrid(io,1:9,jgr) )
+              else
+                write(3,600)  io, pop_nonsph(io,jgr), real( hybrid(io,:,jgr) )
+              endif
+            end do
           endif
           if( Atom_occ_hubb .and. Hubb( abs(it) ) ) then
             l = l_hubbard( Z )
@@ -5435,8 +5458,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   570 format(i5,i4,3f15.10,i6,f10.5)
   571 format(i5,i4,3f15.10,2f10.5)
   572 format(i5,i4,3f15.10,f10.5)
+  575 format(i5,i4,3f15.10,2f10.5,2x,12f8.4)
+  576 format(i5,i4,3f15.10,f10.5,2x,12f8.4)
   580 format(i5,i4,3f15.10,i5,2x,12f8.4)
-  600 format(4x,'Pop_nsph(',i1,') =',f7.3,', Hybrid =',f8.3,1x,3f7.3,1x,5f7.3,1x,7f7.3,1x,100f7.3)
+  600 format(9x,'Pop_nsph(',i1,') =',f7.3,', Hybrid =',f8.3,1x,3f7.3,1x,5f7.3,1x,7f7.3,1x,100f7.3)
   610 format('    Occ. matrix :', 14f5.2)
   620 format(/1x,a5,' : '/,'   a, b, c =',3f12.7,/'   alfa, beta, gamma =',3f9.3)
   630 format(i5,3f15.10,f15.5)
