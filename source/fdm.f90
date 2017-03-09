@@ -27,6 +27,21 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
     nparm, nphim, npldafs, npldafs_2d, npldafs_e, npldafs_f, nple, nplrm, nq_nrixs, nrato_dirac, nrm, nself, nseuil, nslapwm, &
     nspin, nspino, nspinp, ntype, ntype_bulk, ntype_conf, numat_abs, Trace_k, Wien_save, Z_nospinorbite
 
+  integer, dimension(3):: hkl_borm, hkl_ref
+  integer, dimension(12):: Tensor_imp
+  integer, dimension(30):: icheck
+  integer, dimension(ngroup_par):: npar
+  integer, dimension(nnotskipm):: ifile_notskip
+  integer, dimension(ngroup_par,nparm):: indice_par
+
+  integer, dimension(:), allocatable:: iabsm, iabsorig, icom, igr_i, igr_is, igr_proto, itdil, its_lapw, itype, Kgroup, &
+     ldil, natomeq_s, ngreq, ngreqm, nlat, norbv, nphi_dafs, npl_2d, nposextract, nrato, &
+     nrato_lapw, nsymextract, numat, Z_bulk, Z_cap
+
+  integer, dimension(:,:), allocatable:: igreq, isigpi, isymqa, lvval, nvval, Operation_mode
+
+  integer, dimension(:,:,:), allocatable:: Wien_matsym
+
   character(len=5):: Solver
   character(len=8):: PointGroup
   character(len=9):: keyword
@@ -42,21 +57,6 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
 
   complex(kind=db), dimension(:,:), allocatable:: poldafsem, poldafssm
   complex(kind=db), dimension(:,:,:), allocatable:: hybrid
-
-  integer, dimension(3):: hkl_borm
-  integer, dimension(12):: Tensor_imp
-  integer, dimension(30):: icheck
-  integer, dimension(ngroup_par):: npar
-  integer, dimension(nnotskipm):: ifile_notskip
-  integer, dimension(ngroup_par,nparm):: indice_par
-
-  integer, dimension(:), allocatable:: iabsm, iabsorig, icom, igr_i, igr_is, igr_proto, itdil, its_lapw, itype, Kgroup, &
-     ldil, natomeq_s, ngreq, ngreqm, nlat, norbv, nphi_dafs, npl_2d, nposextract, nrato, &
-     nrato_lapw, nsymextract, numat, Z_bulk, Z_cap
-
-  integer, dimension(:,:), allocatable:: igreq, isigpi, isymqa, lvval, nvval, Operation_mode
-
-  integer, dimension(:,:,:), allocatable:: Wien_matsym
 
   logical:: Absauto, All_nrixs, Allsite, ATA, Atom_nonsph, Atom_occ_hubb, Atomic_scr, &
      Axe_loc, Basereel, Base_ortho, Bormann, Bulk, Clementi, Cap_layer, Cartesian_tensor, Charge_free, &
@@ -89,7 +89,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   real(kind=db), dimension(6):: Trace_p
   real(kind=db), dimension(7):: Time_loc
   real(kind=db), dimension(10):: Gamma_hole
-  real(kind=db), dimension(3,3):: Mat_or
+  real(kind=db), dimension(3,3):: Mat_or, Mat_UB
   real(kind=db), dimension(n_rout):: Time_rout
   real(kind=db), dimension(ngroup_par,nparm):: param
 
@@ -254,10 +254,10 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
     Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
     Eimagent,Eneg_i,Eneg_n_i,Energphot,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift, &
     Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
-    Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs, &
-    hkl_film,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,iscratch,isigpi,itdil,its_lapw,iord,itape4,itype, &
+    Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs,hkl_film,hkl_ref, &
+    Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,iscratch,isigpi,itdil,its_lapw,iord,itape4,itype, &
     itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,l_selec_max,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmax_tddft_inp, &
-    lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Matper,MPI_host_num_for_mumps,mpinodes, &
+    lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper,MPI_host_num_for_mumps,mpinodes, &
     mpinodes0,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_uc,n_devide, &
     n_file_dafs_exp,n_multi_run_e,n_radius,n_range,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg_s,ngamh,ngamme, &
     ngroup,ngroup_hubb,ngroup_lapw,ngroup_m,ngroup_neq,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
@@ -535,10 +535,10 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
       E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Estart, &
       Extract,Extract_ten,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Flapw,Flapw_new,Force_ecr,Full_atom_e, &
       Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_dafs,hkl_film, &
-      Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,igreq,ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype, &
-      itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmax_tddft_inp,lmaxfree, &
-      lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Matper,MPI_host_num_for_mumps,mpinodes,mpinodes0, &
-      mpirank,mpirank_in_mumps_group,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto, &
+      hkl_ref,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,igreq,ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa, &
+      itype,itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmax_tddft_inp, &
+      lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper,MPI_host_num_for_mumps,mpinodes, &
+      mpinodes0,mpirank,mpirank_in_mumps_group,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto, &
       n_atom_proto_bulk,n_atom_proto_uc,n_atom_uc,n_devide,n_multi_run,n_radius,n_range,n_rout,natomeq_s,natomsym_max,nbseuil, &
       nchemin,ncolm,necrantage,neimagent,nenerg_s,neqm,ngamh,ngamme,ngreq,ngroup,ngroup_hubb,ngroup_lapw, &
       ngroup_m,ngroup_nonsph,ngroup_pdb,ngroup_taux,ngroup_temp,nhybm,nklapw,nlm_pot,nlmlapwm,nlat,nlatm,nmatsym,No_solsing, &
@@ -699,10 +699,10 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Estart, &
       Extract,Extract_ten,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Flapw,Flapw_new,Force_ecr,Full_atom_e, &
       Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_dafs,hkl_film, &
-      Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,igreq,ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype, &
-      itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmax_tddft_inp,lmaxfree, &
-      lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Matper,MPI_host_num_for_mumps,mpinodes,mpinodes0, &
-      mpirank,mpirank_in_mumps_group,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto, &
+      hkl_ref,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,igreq,ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa, &
+      itype,itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmax_tddft_inp, &
+      lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper,MPI_host_num_for_mumps,mpinodes, &
+      mpinodes0,mpirank,mpirank_in_mumps_group,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto, &
       n_atom_proto_bulk,n_atom_proto_uc,n_atom_uc,n_devide,n_multi_run,n_radius,n_range,n_rout,natomeq_s,natomsym_max,nbseuil, &
       nchemin,ncolm,necrantage,neimagent,nenerg_s,neqm,ngamh,ngamme,ngreq,ngroup,ngroup_hubb,ngroup_lapw, &
       ngroup_m,ngroup_nonsph,ngroup_pdb,ngroup_taux,ngroup_temp,nhybm,nklapw,nlm_pot,nlmlapwm,nlat,nlatm,nmatsym,No_solsing, &
@@ -753,32 +753,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     nso1, nsort, nsortf, nsm, nspin, nspino, nspinp, nspinorb, nstm, ntype, numat_abs, nvois, nx, &
     nxanout, Trace_k, Wien_save, Z, Z_nospinorbite
 
-  character(len=5):: Struct
-  character(len=8):: PointGroup
-  character(len=132):: nomfich, nom_fich_extract, nomfich_cal_convt, nomfich_s, xsect_file
-
-  character(len=35), dimension(0:ntype):: Com
-  character(len=132), dimension(9):: Wien_file
-  character(len=132), dimension(n_multi_run):: nomfich_cal_conv, nomfich_cal_tddft_conv
-
-  character(len=13), dimension(:), allocatable:: ltypcal
-  character(len=Length_word), dimension(:), allocatable:: nomabs
-
-  complex(kind=db):: f_avantseuil, f_cal
-  complex(kind=db), dimension(npldafs,nphim):: phdf0t
-  complex(kind=db), dimension(3,npldafs_e):: poldafsem, poldafssm
-  complex(kind=db), dimension(nhybm,16,ngroup_nonsph):: hybrid
-
-  complex(kind=db), dimension(:,:), allocatable:: karact, phdafs, phdt, pol
-  complex(kind=db), dimension(:,:,:), allocatable:: poldafse, poldafss
-  complex(kind=db), dimension(:,:,:,:), allocatable:: secmd, secmd_m, secmm, secmm_m, V_hubb_abs, &
-                                                      V_hubb_t
-  complex(kind=db), dimension(:,:,:,:,:), allocatable:: secdd, secdd_m, rof0, secdq, secdq_m, Tau_ato, Taull, Taull_dft, &
-                                                        Taull_tdd, V_hubb, V_hubb_s
-  complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: secdo, secdo_m, secoo, secoo_m, secqq, secqq_m, taull_stk
-  complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Taull_abs
-
-  integer, dimension(3):: ldip
+  integer, dimension(3):: hkl_ref, ldip
   integer, dimension(12):: Tensor_imp
   integer, dimension(3,3):: lqua, msymdd, msymddi
   integer, dimension(3,3,3):: loct, msymdq, msymdqi
@@ -818,6 +793,31 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
   integer, dimension(:,:,:), allocatable:: ia_rep, iato, lato, mato, mpres, nb_rep_t
 
   integer, dimension(:,:,:,:), allocatable:: msymoo, msymooi
+
+  character(len=5):: Struct
+  character(len=8):: PointGroup
+  character(len=132):: nomfich, nom_fich_extract, nomfich_cal_convt, nomfich_s, xsect_file
+
+  character(len=35), dimension(0:ntype):: Com
+  character(len=132), dimension(9):: Wien_file
+  character(len=132), dimension(n_multi_run):: nomfich_cal_conv, nomfich_cal_tddft_conv
+
+  character(len=13), dimension(:), allocatable:: ltypcal
+  character(len=Length_word), dimension(:), allocatable:: nomabs
+
+  complex(kind=db):: f_avantseuil, f_cal
+  complex(kind=db), dimension(npldafs,nphim):: phdf0t
+  complex(kind=db), dimension(3,npldafs_e):: poldafsem, poldafssm
+  complex(kind=db), dimension(nhybm,16,ngroup_nonsph):: hybrid
+
+  complex(kind=db), dimension(:,:), allocatable:: karact, phdafs, phdt, pol
+  complex(kind=db), dimension(:,:,:), allocatable:: poldafse, poldafss
+  complex(kind=db), dimension(:,:,:,:), allocatable:: secmd, secmd_m, secmm, secmm_m, V_hubb_abs, &
+                                                      V_hubb_t
+  complex(kind=db), dimension(:,:,:,:,:), allocatable:: secdd, secdd_m, rof0, secdq, secdq_m, Tau_ato, Taull, Taull_dft, &
+                                                        Taull_tdd, V_hubb, V_hubb_s
+  complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: secdo, secdo_m, secoo, secoo_m, secqq, secqq_m, taull_stk
+  complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Taull_abs
 
   logical:: Abs_in_bulk, Absorbeur, All_nrixs, Allsite, ATA, Atom_comp_cal, Atom_nonsph, Atom_nonsph_loc, Atom_occ_hubb, &
      Atomic_scr, Basereel, Base_hexa, Base_ortho, Bormann, Bulk, Bulk_step, Clementi, Cal_xanes, Cap_layer, &
@@ -861,7 +861,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
   real(kind=db), dimension(6):: Trace_p
   real(kind=db), dimension(7):: Time_loc
   real(kind=db), dimension(10):: Gamma_hole
-  real(kind=db), dimension(3,3):: Cubmat, Mat_or, Orthmat, Orthmati, Orthmatt, Rot_atom_abs, Rot_int
+  real(kind=db), dimension(3,3):: Cubmat, Mat_or, Mat_UB, Orthmat, Orthmati, Orthmatt, Rot_atom_abs, Rot_int
   real(kind=db), dimension(n_rout):: Time_rout
 
   real(kind=db), dimension(n_adimp):: Adimp_e
@@ -2301,8 +2301,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     if( Dafs ) then
       call Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap, &
           Bormann,Bulk,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_avantseuil, &
-          f_no_res,Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck(6),igreq,iprabs_nonexc,isigpi,itabs, &
-          itypepr,Length_abs,lvval,Magnetic,Mat_or,mpirank0,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk, &
+          f_no_res,Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,hkl_ref,icheck(6),igreq,iprabs_nonexc,isigpi, &
+          itabs,itypepr,Length_abs,lvval,Magnetic,Mat_or,Mat_UB,mpirank0,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk, &
           n_atom_proto_uc,n_atom_uc,natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs, &
           nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nrato,nrm,nspin,ntype,numat,Operation_mode,Operation_mode_used, &
           Orthmatt,phdafs,phdf0t,phdt,phi_0,poldafse,poldafsem,poldafss,poldafssm,popatm,posn,posn_bulk,posn_cap,psival,rato, &

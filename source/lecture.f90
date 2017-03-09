@@ -400,7 +400,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
                     end do
                     stop
                 end select
-              case(5,6,7,8,9,10,11,12)
+              case(5,6,7,8,9,10,11,12,13)
                 read(itape4,*)
               case default
                 call write_error
@@ -851,9 +851,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             case(5,6,7)
               read(itape4,*)
               npldafs_t = npldafs_t + 1
-            case(8,9,10,11,12)
+            case(8,9,10,11,12,13)
               read(itape4,*) r, r, p(:)
-              if( abs( p(2) ) < eps10 ) then
+              if( abs( p(2) ) < eps10 .or. ( grdat(1:6) == 'dafs_2d' .and. n < 12 ) ) then
                 npldafs_t = npldafs_t + 1
               else
                 n = nint( ( p(3) - p(1) ) / p(2) ) + 1
@@ -1491,10 +1491,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Density_comp,Dip_rel,Dipmag,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
     Eimagent,Eneg_i,Eneg_n_i,Energphot,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift, &
     Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
-    Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs, &
-    hkl_film,Hubb,Hubbard,Hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,iscratch,isigpi,itdil,its_lapw,iord,itape4,itype, &
+    Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs,hkl_film,hkl_ref, &
+    Hubb,Hubbard,Hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,iscratch,isigpi,itdil,its_lapw,iord,itape4,itype, &
     itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,l_selec_max,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmax_tddft_inp, &
-    lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Matper,MPI_host_num_for_mumps,mpinodes, &
+    lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper,MPI_host_num_for_mumps,mpinodes, &
     mpinodes0,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_uc,n_devide, &
     n_file_dafs_exp,n_multi_run_e,n_radius,n_range,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg,ngamh,ngamme, &
     ngroup,ngroup_hubb,ngroup_lapw,ngroup_m,ngroup_neq,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
@@ -1547,7 +1547,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   character(len=9), dimension(ngroup_par,nparm):: typepar
 
   integer, dimension(2):: Mult_bulk, Mult_film
-  integer, dimension(3):: hkl_borm, ldipimp
+  integer, dimension(3):: hkl_borm, hkl_ref, ldipimp
   integer, dimension(12):: Tensor_imp
   integer, dimension(30):: icheck
   integer, dimension(3,3):: lquaimp
@@ -1609,7 +1609,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                                 axyz_cap, Centre, dpos, p, Vec_orig
   real(kind=db), dimension(6):: Trace_p
   real(kind=db), dimension(10):: Gamma_hole
-  real(kind=db), dimension(3,3):: Cubmat, Cubmat_bulk, Cubmati, Cubmati_bulk, Mat, Mat_or, Rot, Rot_gen
+  real(kind=db), dimension(3,3):: Cubmat, Cubmat_bulk, Cubmati, Cubmati_bulk, Mat, Mat_or, Mat_UB, Rot, Rot_gen
   real(kind=db), dimension(norbdil):: cdil
   real(kind=db), dimension(0:ntype):: r0_lapw, rchimp, rlapw, rmt, rmtimp, V_hubbard
   real(kind=db), dimension(neimagent):: eeient, eimagent
@@ -1737,6 +1737,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Green_self = .true.
   Hedin = .false.
   hkl_film = .false.
+  hkl_ref(1:2) = 0; hkl_ref(3) = 1
   Hybrid(:,:,:) = ( 0._db, 0._db )
   iabsm(1) = 1
   ier = 0
@@ -1763,6 +1764,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   lmax_pot_default = 1
   lmoins1 = .false.
   lplus1 = .false.
+  Mat_UB(:,:) = 0._db
   matper = .true.
   muffintin = .false.
   multrmax = 1
@@ -2582,16 +2584,16 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           ipl = 0
           do jpl = 1,npldafs_2d
             n = nnombre(itape4,132)
-            n = min(n,12)
+            n = min(n,13)
             ipl = ipl + 1
             npl_2d(jpl) = 1
             select case(n)
-              case(9,10)
+              case(10,11)
                 read(itape4,*,iostat=ier) hkl_dafs(:,ipl), Operation_mode(:,jpl), Angle_mode(1:n-8,jpl)
                 ipl = ipl + 1
                 hkl_dafs(:,ipl) = hkl_dafs(:,ipl-1)
-              case(11,12)
-                read(itape4,*,iostat=ier) hkl_dafs(1:2,ipl), p(1:3), Operation_mode(:,jpl) , Angle_mode(1:n-10,jpl)
+              case(12,13)
+                read(itape4,*,iostat=ier) hkl_dafs(1:2,ipl), p(1:3), Operation_mode(:,jpl), Angle_mode(1:n-10,jpl)
                 hkl_dafs(3,ipl) = p(1)
                 npl_2d(jpl) = npl_2d(jpl) + 1
                 if( abs( p(2) ) < eps10 ) cycle
@@ -3402,6 +3404,26 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('one_run')
           One_run = .true.
           State_all = .true.
+
+        case('mat_ub')
+          m = 0
+          allocate( x(9) )
+          do
+            n = nnombre(itape4,132)
+            if( n == 0 ) call write_err_form(itape4,grdat)
+            n = min( m + n, 9 )
+            read(itape4,*,iostat=ier) x(m+1:n)
+            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( n == 9 ) exit
+            m = m + 3
+          end do
+          Mat_UB(1,1:3) = x(1:3)
+          Mat_UB(2,1:3) = x(4:6)
+          Mat_UB(3,1:3) = x(7:9)
+          deallocate( x )
+
+        case('setaz')
+          read(itape4,*) hkl_ref(:)
 
         case('z_absorbe')
           n = nnombre(itape4,132)
@@ -4518,7 +4540,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
       elseif( Operation_mode_used ) then
 
-        write(3,'(/a36,f8.3)') ' Azimuth in the orientation matrix =', phi_0
         write(3,'(/A)') ' DAFS :     h      k     l1   step     lf   Operation mode   Angle_1  Angle_2  Angle_3'
         jpl = 0
         do ipl = 1,npldafs_2d
@@ -4530,6 +4551,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           endif
           write(3,512) hkl_dafs(:,jpl), r, hkl_dafs(3,jpl-1+2*npl_2d(ipl)), Operation_mode(:,ipl), Angle_mode(:,ipl)
         end do
+        if( sum( abs( Mat_UB(:,:) ) ) > eps10 ) then
+          write(3,'(/a14,3f12.7,2(/14x,3f12.7))') '   UB matrix =', ( Mat_UB(i,:), i = 1,3 )
+        else
+          write(3,'(/a36,f8.3)') '   Azimuth in the orientation matrix =', phi_0
+        endif
+        write(3,'(a24,3i4)')  '  Reference axis hkl =', hkl_ref(:)
 
       else
 
@@ -4922,6 +4949,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Hedin,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     if( npldafs > 0 ) call MPI_Bcast(hkl_dafs,3*npldafs, MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(hkl_film,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(hkl_ref,3,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     if( ngroup_nonsph > 0 ) then
       allocate( Hybrid_r(nhybm,16,ngroup_nonsph) )
       allocate( Hybrid_i(nhybm,16,ngroup_nonsph) )
@@ -4964,6 +4992,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(M1M1,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(M1M2,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(M2M2,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Mat_UB,9,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(matper,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(muffintin,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(multrmax,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -5160,9 +5189,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Film_thickness = Film_thickness / bohr
   Film_shift(1:3) = Film_shift(1:3) / bohr
   Film_shift(4) = Film_shift(4) * radian
+  Mat_UB(:,:) = Mat_UB(:,:) * bohr  ! Mat_UB in A^-1 in inpout
   Pas_SCF = Pas_SCF / rydb
   phi_0 = phi_0 * radian
-  q_nrixs(:) = q_nrixs(:) * bohr  ! q_nrxis en A^-1 en entree
+  q_nrixs(:) = q_nrixs(:) * bohr  ! q_nrxis in A^-1 in inpout
   R_rydb = R_rydb / bohr
   r_self = r_self / bohr
   rchimp(:) = rchimp(:) / bohr

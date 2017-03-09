@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 28th of February 2017, 10 Ventose, An 225.
+! FDMNES II program, Yves Joly, Oana Bunau, 8th of March 2017, 18 Ventose, An 225.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 28th of February 2017'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 8th of March 2017'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -251,7 +251,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 189
+  integer, parameter:: nkw_fdm = 191
   integer, parameter:: nkw_conv = 33
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
@@ -336,7 +336,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'film_t   ','film_roug','film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ','flapw_s  ', &
      'flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','hkl_film ','hubbard  ', &
      'iord     ','kern_fac ','lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ', &
-     'lplus1   ','memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','molecule ','molecule_', &
+     'lplus1   ','mat_ub   ','memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','molecule ','molecule_', &
      'muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_e1e1  ','no_e1e2  ','no_e1e3  ', &
      'no_e2e2  ','no_e3e3  ','no_fermi ','no_res_ma','no_res_mo','no_solsin','normaltau','norman   ','noncentre','non_relat', &
      'nonexc   ','not_eneg ','nrato    ','nrixs    ','octupole ','old_zero ','one_run  ','optic    ', &
@@ -344,7 +344,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'quadmag  ','quadrupol','radius   ','range    ','rangel   ','raydem   ','rchimp   ','readfast ','relativis', &
      'rmt      ','rmtg     ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ', &
      'self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
-     'screening','solsing  ','spgroup  ','sphere_al','spherical','spinorbit','step_azim','supermuf ', 'symmol   ', &
+     'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spinorbit','step_azim','supermuf ', 'symmol   ', &
      'symsite  ','tddft    ','temperatu','test_dist','trace    ','vmax     ','v0imp    ','xalpha   ', &
      'xan_atom ','ylm_comp ','z_absorbe','z_nospino','zero_azim'/
 

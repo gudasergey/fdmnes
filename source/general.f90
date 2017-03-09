@@ -134,7 +134,7 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
     endif
   endif
 
-! Liste des atomes absorbeurs
+! List of absorbing atoms
   if( Absauto ) then
     nabs = 0
     do igr = igr_1,igr_2
@@ -366,7 +366,7 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
 
     end do boucle_igr
 
-! On prend les axes de spins en reference au premier atome du groupe
+! One takes the spin axis of the first atom of the group as reference
     if( Magnetic .or. Atom_nonsph ) then
 
       do i = 2,neq
@@ -586,8 +586,7 @@ end
 
 !***********************************************************************
 
-! Sous-routine qui calcule les m et les coefficients qui multiplient les
-! Ylm pour un certain etat |j,mj>
+! Calculation of m and of coefficients multiplying the Ylm for any state |j,mj>
 
 subroutine coef_init(coef_g,is_g,ninitl,jseuil,lseuil,m_g,nbseuil)
 
@@ -603,8 +602,7 @@ subroutine coef_init(coef_g,is_g,ninitl,jseuil,lseuil,m_g,nbseuil)
   real(kind=db) Ci2, J_initl, Jz, spin
   real(kind=db),dimension(ninitl,2),intent(out):: coef_g
 
-! il existe une redondance entre la variable locale ninitl et celle
-! externe ninit
+! there is a redondancy bewtween the locale ninitl and the external ninit
   m_g(:,:) = 1000
   coef_g(:,:) = 0._db
 
@@ -624,7 +622,7 @@ subroutine coef_init(coef_g,is_g,ninitl,jseuil,lseuil,m_g,nbseuil)
     J_initl = li + 0.5_db * isinitl
     ni = nint( 2*J_initl  + 1 )
 
-! Boucle sur les etats initiaux |j,mj>, dont la multiplicite est 2*j+1
+! Loop of core states |j,mj>, with multiplicity 2*j+1
 
     do i = 1,ni
 
@@ -676,7 +674,7 @@ subroutine grille_xanes(eeient,eimag,eimagent,egamme,energ,icheck,lin_gam,ngamme
   real(kind=db), dimension(nenerg) :: energ, eimag
   real(kind=db), dimension(ngamme) :: egamme
 
-! Calcul de la grille en energie.
+! Energy grid elaboration
   energ(1) = egamme(1)
 
   if( lin_gam == 1 ) then            ! 'rangel'
@@ -913,7 +911,7 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
 
       case(1)
 
-! Valeurs pour l'atome excite non encore utilises
+! Value for the excited atom not yet used
         lqnexc(:) = 0
         nqnexc(:) = 0
 
@@ -955,7 +953,7 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
           rato(j,it) = r0_lapw(it) * exp( ( j - 1 ) * dx )
         enddo
         rato(0,it) = 0._db
-! on prolonge
+! extrapolation
         rmax = 2.5_db / bohr
         drmax = 0.1_db / bohr
 
@@ -988,7 +986,7 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
 
     end select
 
-  end do     ! fin de la boucle sur les especes chimiques
+  end do     ! end of loop over chemical species
 
   return
   110 format(/' nrato =',i6,' > nrm =',i6,' !', /' Increase the value of nrm using keyword nrato')
@@ -998,7 +996,7 @@ end
 
 !***********************************************************************
 
-! Calcul des atomes selon Clementi et Roetti
+! Atom calculation following Clementi and Roetti
 
 !  References :
 !   HS  F. Herman and S. Skillman "Atomic Structure Calculations"
@@ -1046,7 +1044,7 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank,nbseuil,nlat,nlatm,Nonexc,n
 
   if( icheck > 1 ) write(3,100) it, Z
 
-! Rayons
+! Radius
   r0 = 0.00005_db / bohr
   rmax = 10._db / bohr
   delta = 1.02_db
@@ -1075,8 +1073,7 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank,nbseuil,nlat,nlatm,Nonexc,n
     Nfact(i) = Nfact(i-1) * sqrt( 2._db * i * ( 2 * i - 1 ) )
   end do
 
-! Pour l'absorbeur, on calcule l'atome excite (Z+1) et l'atome non
-! excite
+! Pour l'absorbeur, on calcule l'atome excite (Z+1) et l'atome non excite
   if( it == itabs .and. .not. nonexc ) then
     ncalc = 2
   else
@@ -6022,8 +6019,8 @@ end
 
 subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap, &
           Bormann,Bulk,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_avantseuil, &
-          f_no_res,Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,icheck,igreq,iprabs,isigpi,itabs, &
-          itypepr,Length_abs,lvval,Magnetic,Mat_or,mpirank,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk, &
+          f_no_res,Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,hkl_ref,icheck,igreq,iprabs,isigpi,itabs, &
+          itypepr,Length_abs,lvval,Magnetic,Mat_or,Mat_UB,mpirank,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk, &
           n_atom_proto_uc,n_atom_uc,natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs, &
           nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nrato,nrm,nspin,ntype,numat,Operation_mode,Operation_mode_used, &
           Orthmatt,phdafs,phdf0t,phdt,phi_0,Poldafse,Poldafsem,Poldafss,Poldafssm,popatm,posn,posn_bulk,posn_cap,psival,rato, &
@@ -6038,6 +6035,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
     ngroup_m, ngroup_taux, ngroup_temp, nlatm, nphim, npldafs, npldafs_2d, npldafs_e, npldafs_f, nrm, nspin, ntype, Z, Z_abs
 
   integer, dimension(2):: Mult_bulk, Mult_film
+  integer, dimension(3):: hkl_ref
 
   character(len=4):: mot4
   character(len=64):: mot64
@@ -6089,7 +6087,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   real(kind=db), dimension(ngroup_taux):: Taux_oc
   real(kind=db), dimension(ngroup_temp):: Temp_coef
   real(kind=db), dimension(nbseuil):: Eseuil
-  real(kind=db), dimension(3,3):: Mat_bulk, Mat_bulk_i, Mat_or, Orthmatt, Orthmati
+  real(kind=db), dimension(3,3):: Mat_bulk, Mat_bulk_i, Mat_or, Mat_UB, Orthmatt, Orthmati
   real(kind=db), dimension(3,n_atom_uc):: posn, posn_t
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
   real(kind=db), dimension(3,n_atom_cap):: posn_cap
@@ -6129,9 +6127,9 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   konde = 0.5_db * alfa_sf * max( Energy_photon, 1._db )
 
   if( Operation_mode_used ) then
-    call SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bulk_step,Energy_photon,hkl_dafs,hkl_film,icheck, &
-                isigpi,Length_abs,nphim,npl_2d,npldafs,npldafs_2d,Operation_mode,Orthmati,phi_0,Poldafse,Poldafss,Q_mod, &
-                Vecdafse,Vecdafss)
+    call SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bulk_step,Energy_photon,hkl_dafs,hkl_film,hkl_ref, &
+                icheck,isigpi,Length_abs,Mat_UB,nphim,npl_2d,npldafs,npldafs_2d,Operation_mode,Orthmati,phi_0,Poldafse,Poldafss, &
+                Q_mod,Vecdafse,Vecdafss)
   else
     call Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Bormann,Bulk,Bulk_step,Dafs_bio,Energy_photon, &
             Film,hkl_dafs,hkl_film,icheck,isigpi,Length_abs,Mat_or,mpirank,nphi_dafs,nphim,npldafs,npldafs_e,npldafs_f,Orthmatt, &
@@ -6670,32 +6668,33 @@ end
 
 ! 2D diffraction case with operation mode
 
-subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bulk_step,Energy_photon,hkl_dafs,hkl_film,icheck, &
-                isigpi,Length_abs,nphim,npl_2d,npldafs,npldafs_2d,Operation_mode,Orthmati,phi_0,Poldafse,Poldafss,Q_mod, &
-                Vecdafse,Vecdafss)
+subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bulk_step,Energy_photon,hkl_dafs,hkl_film,hkl_ref, &
+                icheck,isigpi,Length_abs,Mat_UB,nphim,npl_2d,npldafs,npldafs_2d,Operation_mode,Orthmati,phi_0,Poldafse,Poldafss, &
+                Q_mod,Vecdafse,Vecdafss)
 
   use declarations
   implicit none
 
-  integer:: i, icheck, ipl, ipr, jpl, k, kpl, lpl, npldafs, npldafs_2d, nphim
+  integer:: i, icheck, ipl, ipr, j, jpl, kpl, lpl, ni, npldafs, npldafs_2d, nphim
 
-  integer, dimension(npldafs_2d):: npl_2d
+  integer, dimension(3):: hkl_ref
   integer, dimension(5):: Operation_m
+  integer, dimension(npldafs_2d):: npl_2d
   integer, dimension(2,npldafs):: isigpi
   integer, dimension(5,npldafs_2d):: Operation_mode
 
   complex(kind=db), dimension(3,npldafs,nphim):: Poldafse, Poldafss
 
-  logical:: Alfa_Beta, Alfa_fixed, Beta_fixed, Bulk, Bulk_step, Chi_fixed, Column_reference, Column_detector, Delta_fixed, &
+  logical:: Alfa_Beta, Alfa_fixed, Below, Beta_fixed, Bulk, Bulk_step, Chi_fixed, Column_reference, Column_detector, Delta_fixed, &
             Detector_known, Eta_fixed, Eta_half_delta, hkl_film, Mat_unit, Mu_fixed, Mu_half_nu, Naz_fixed, Nu_fixed, &
-            Phi_fixed, Psi_fixed, Specular, Qaz_fixed
+            Phi_fixed, Psi_fixed, Q_par_n, Qaz_fixed, Ref_spec, Specular, UB_in
 
-  real(kind=db):: a, b, alfa, Angfac, beta, c, c_cos_z, c_x, c_y, c_z, chi, cos_c, cos_d, cos_e, cos_k, cos_m, cos_n, cos_p, &
-        cos_t, cos_tau, cos_z, delta, Energy_photon, eta, Konde, ksi,  mu, Naz, nu, phi, phi_0, psi, Qaz, sin_c, sin_e, sin_k, &
-        sin_m, sin_p, sin_t, sin_tau, step, tau, Theta_Bragg, x
+  real(kind=db):: a, b, alfa, Angfac, Angle, beta, c, c_cos_z, c_x, c_y, c_z, chi, cos_c, cos_d, cos_e, cos_k, &
+        cos_m, cos_n, cos_p, cos_t, cos_tau, cos_tau_ref, cos_z, da, delta, Energy_photon, eta, Konde, ksi,  mu, Naz, nu, phi, &
+        phi_0, psi, Qaz, sin_c, sin_e, sin_k, sin_m, sin_p, sin_t, sin_tau, sin_tau_ref, tau, tau_ref, Theta_Bragg, x
   real(kind=db), dimension(3):: ang, Angle_m, angxyz, angxyz_bulk, abc, axyz, axyz_bulk, cosdir, H_phi, H_phi_n, k_i, k_s, N_L, &
-                                N_phi, p, p_i, p_i_p, p_i_s, p_s_p, p_s_s, Q, Q_L, sindir, Vec, W
-  real(kind=db), dimension(3,3):: Mat_B, Mat_K, Mat_NL, Mat_NN, Mat_Nphi, Mat_p, Mat_U, Mat_UB, Mat, Orthmati
+                                N_phi, Norm_phi, p, p_i, p_i_p, p_i_s, p_s_p, p_s_s, Q, Q_L, sindir, Vec, W
+  real(kind=db), dimension(3,3):: Mat_B, Mat_K, Mat_NL, Mat_NN, Mat_Nphi, Mat_p, Mat_U, Mat_UB, Mat_UB_loc, Mat_UB_t, Mat, Orthmati
   real(kind=db), dimension(npldafs):: Length_abs, Q_mod
   real(kind=db), dimension(3,npldafs):: angpoldafs, hkl_dafs
   real(kind=db), dimension(3,npldafs_2d):: Angle_mode
@@ -6729,6 +6728,10 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
   cosdir(:) = cos( ang(:) )
   sindir(:) = sin( ang(:) )
 
+! Unit cell volume is a.b.c.A
+! Angfac = 2 pi / A
+  Angfac = deux_pi / sqrt( 1 - sum( cosdir(:)**2 ) + 2 * cosdir(1) * cosdir(2) * cosdir(3) )
+
 ! Transformation matrix of Q form (h,k,l) to cartesian coordinates (e_x, e_y, e_z)
 ! with e_y along b, e_z along c* and e_x = e_y x e_e_z.
   c_x = ( cosdir(2) - cosdir(1) * cosdir(3) ) / sindir(3)
@@ -6740,11 +6743,19 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
   Mat_B(3,1) = - c_x / abc(1);  Mat_B(3,2) = ( cosdir(3) * c_x - sindir(3) * c_y ) / abc(2);  Mat_B(3,3) = sindir(3) / abc(3)
 
 ! Orientation matrix
+
   call Rotation_Matrix(-phi_0,3,Mat_U)
+  Mat_UB_t = Matmul( Mat_U, Mat_B )
 
-  Mat_UB = Matmul( Mat_U, Mat_B )
+  if( sum( abs( Mat_UB(:,:) ) ) < eps10 ) then
+    UB_in = .false.
+    Mat_UB_loc(:,:) = Mat_UB_t(:,:)
+  else
+    UB_in = .true.
+    Mat_UB_loc(:,:) = Mat_UB(:,:) / Angfac
+  endif
 
-  call invermat( Mat_UB, Mat )
+  call invermat( Mat_UB_loc, Mat )
   Mat_K = matmul( Orthmati, Mat )
   Mat(:,:) = Mat_K(:,:)
   do i = 1,3
@@ -6753,19 +6764,34 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
   x = sum( abs( Mat(:,:) ) )
   Mat_unit = x < eps10
 
-! Unit cell volume is a.b.c.A
-! Angfac = 2 pi / A
-  Angfac = deux_pi / sqrt( 1 - sum( cosdir(:)**2 ) + 2 * cosdir(1) * cosdir(2) * cosdir(3) )
+  Mat_UB_loc(:,:) = Angfac * Mat_UB_loc(:,:)
 
-  Mat_UB(:,:) = Angfac * Mat_UB(:,:)
+! Normal to the surface
+  Norm_phi(1:2) = 0._db; Norm_phi(3) = 1._db
+  Norm_phi = Matmul( Mat_UB_loc, Norm_phi )
+  x = sqrt( sum( Norm_phi(:)**2 ) )
+  Norm_phi(:) = Norm_phi(:) / x
 
-  N_phi(1:2) = 0._db; N_phi(3) = 1._db
+! Reference vector which by default is the normal to the surface
+  N_phi = Matmul( Mat_UB_loc, hkl_ref )
+  x = sqrt( sum( N_phi(:)**2 ) )
+  N_phi(:) = N_phi(:) / x
 
-  if( icheck > 1 ) then
-    write(3,'(16x,a5,27x,a5,27x,a5)') 'Mat_B', 'Mat_U', 'Mat_UB'
-    do i = 1,3
-      write(3,110) Mat_B(i,:), Mat_U(i,:), Mat_UB(i,:)
-    end do
+  Ref_spec = abs( 1 - dot_product( N_phi, Norm_phi ) ) < eps10
+
+  if( icheck > 0 ) then
+    if( sum( abs( Mat_UB(:,:) ) ) < eps10 ) then
+      write(3,'(/19x,a5,33x,a5,33x,a6)') 'Mat B', 'Mat U', 'Mat UB'
+      do i = 1,3
+        write(3,110) Mat_B(i,:), Mat_U(i,:), Mat_UB_loc(i,:)
+      end do
+    else
+      write(3,'(/19x,a5,33x,a5,33x,a6,30x,a8)') 'Mat B', 'Mat U', 'Mat UB', 'Mat UB_t'
+      do i = 1,3
+        write(3,110) Mat_B(i,:), Mat_U(i,:), Mat_UB_loc(i,:), Angfac * Mat_UB_t(i,:)
+      end do
+    endif
+    write(3,'(/2x,a21,3i3)') 'Reference axis, hkl =', hkl_ref(:)
   endif
 
   ipl = 0
@@ -6774,17 +6800,19 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
     Operation_m(:) = Operation_mode(:,jpl)
     Angle_m(:) = Angle_mode(:,jpl)
 
-    Specular = abs( hkl_dafs(1,ipl+1) ) < eps10 .and. abs( hkl_dafs(2,ipl+1) ) < eps10
     call Operation_mode_eval(alfa,Alfa_beta,Alfa_fixed,Angle_m,beta,Beta_fixed,chi,Chi_fixed,Column_detector, &
                 Column_reference,delta,Delta_fixed,eta,Detector_known,Eta_fixed,Eta_half_delta,icheck,mu,Mu_fixed, &
-                Mu_half_nu,Naz,Naz_fixed,nu,Nu_fixed,Operation_m,phi,Phi_fixed,psi,Psi_fixed,Qaz,Qaz_fixed,Specular)
+                Mu_half_nu,Naz,Naz_fixed,nu,Nu_fixed,Operation_m,phi,Phi_fixed,psi,Psi_fixed,Qaz,Qaz_fixed)
 
     do kpl = 1,npl_2d(jpl)
       ipl = ipl + 1
       lpl = ipl + npl_2d(jpl)
       Q(:) = hkl_dafs(:,ipl)
 
-      H_phi = Matmul( Mat_UB, Q )
+      Specular = abs( Q(1) ) < eps10 .and. abs( Q(2) ) < eps10
+
+      if( Specular .and. abs( Q(3) ) < eps10 ) Q(3) =  1.0001_db * eps10
+      H_phi = Matmul( Mat_UB_loc, Q )
 
 ! Q modulus = mod(k_s - k_i) = 2 * k * sin( Theta_bragg )
       Q_mod(ipl) = sqrt( sum( H_phi(:)**2 ) )
@@ -6806,16 +6834,58 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
       Theta_Bragg = asin( x )
       cos_t = cos( Theta_Bragg )
       sin_t = sin( Theta_Bragg )
-! Angle between surface normal and Q
-      if( Q_mod(ipl) > eps10 ) then
-        cos_tau = H_phi_n(3)
+! Angle between reference vector (by default normal to the surface) and Q
+      cos_tau_ref = dot_product( H_phi_n, N_phi )
+      cos_tau = dot_product( H_phi_n, Norm_phi )
+      if( abs( cos_tau - 1 ) < eps10 ) then
+        tau = 0._db
       else
-        cos_tau = 1._db
+        tau = acos( cos_tau )
       endif
-      tau = acos( cos_tau )
-      sin_tau = sin( Tau )
+      if( abs( cos_tau_ref - 1 ) < eps10 ) then
+        tau_ref = 0._db
+      else
+        tau_ref = acos( cos_tau_ref )
+      endif
+      sin_tau = sin( tau )
+      sin_tau_ref = sin( tau_ref )
+      Q_par_n = abs( sin_tau_ref ) < eps10
+      if( Q_par_n .and. .not. Specular ) then
+        call write_error
+        do ipr = 3,9,3
+          if( ipr == 3 .and. icheck == 0 ) cycle
+          write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
+          write(ipr,'(/a15,3i3)') ' Reference axis =', hkl_ref(:)
+          write(ipr,'(/A//)') ' Q cannot be parallel to the reference axis for a non-specular reflexion !'
+        end do
+        stop
+      endif
+
+      if( Q_par_n .and. .not. ( &
+        ( Alfa_beta .and. Phi_fixed .and. &
+             ( ( Naz_fixed .or. Qaz_fixed ) .or. ( Chi_fixed .and. ( abs( sin(chi) ) < eps10 .or. abs( cos(chi) ) < eps10 ) ) ) ) &
+        .or. ( Nu_fixed .and. abs( sin(nu) ) < eps10 .and.  Mu_fixed .and. abs( sin(mu) ) < eps10 .and.  Psi_fixed ) &
+        .or. ( Delta_fixed .and. abs( sin(delta) ) < eps10 .and.  Eta_fixed .and. abs( sin(eta) ) < eps10 &
+                                                                                                  .and.  Psi_fixed ) ) ) then
+        call write_error
+        do ipr = 3,9,3
+          if( ipr == 3 .and. icheck == 0 ) cycle
+          write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
+          write(ipr,'(/a15,3i3)') ' Reference axis =', hkl_ref(:)
+          write(ipr,'(/A)') ' When Q is parallel to the reference axis, the possible operation modes are : '
+          write(ipr,'(10x,a15,/10x,a13)') '- "alfa = beta"','- "Phi fixed"'
+          write(ipr,'(10x,A)')  '- "Naz fixed" or "Qaz fixed" or "Chi fixed = 0" or "Chi fixed = 90"'
+          write(ipr,'(/10x,A)') 'or "Nu fixed = 0", "Psi fixed" and "Mu fixed = 0"  (vertical mode)'
+          write(ipr,'(/10x,A//)') 'or "Delta fixed = 0", "Psi fixed" and "Eta fixed = 0"  (horizontal mode)'
+        end do
+        stop
+      endif
 
 ! One term of the column reference is known
+      if( Specular ) then
+        alfa = Theta_Bragg
+        beta = Theta_Bragg
+      endif
       if( Column_reference ) then
         if( Alfa_fixed ) beta = asin( 2 * sin_t * cos_tau - sin( alfa ) )
         if( Beta_fixed ) alfa = asin( 2 * sin_t * cos_tau - sin( beta ) )
@@ -6823,19 +6893,24 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
           alfa = asin( sin_t * cos_tau )
           beta = alfa
         endif
-        if( Psi_fixed ) then
+        if( Psi_fixed .and. Ref_spec ) then
+  ! When reference axis is not (0 0 1), calculated further on.
           alfa = asin( cos_tau * sin_t - cos_t * sin_tau * cos( psi ) )
           beta = asin( cos_tau * sin_t + cos_t * sin_tau * cos( psi ) )
-        elseif( .not. Specular ) then
-          x = ( cos_tau * sin_t - sin( alfa ) ) / ( sin_tau * cos_t )
-          if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'cos(psi)')
-          psi = acos( x )
-        else
+        elseif( Ref_spec ) then
+          if( abs( sin_tau ) < eps10 ) then
+            psi = 0._db
+          else
+            x = ( cos_tau * sin_t - sin( alfa ) ) / ( sin_tau * cos_t )
+            if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'cos(psi)')
+            psi = acos( x )
+          endif
+        elseif( .not. Psi_fixed ) then
           psi = 0._db
         endif
       endif
 
-! One of the detector angle is given
+! One of the detector angles is given
       if( Delta_fixed ) then
 
         x = cos( delta )
@@ -6889,9 +6964,11 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 
       if( Column_reference .and. ( Delta_fixed .or. nu_fixed .or. Qaz_fixed ) ) then
 
-        x = ( cos_tau - sin( alfa ) * sin_t ) / ( cos( alfa ) * cos_t )
-        if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'cos(Naz)')
-        Naz = Qaz + acos( x )
+        if( .not. ( Psi_fixed .and. .not. Ref_spec ) ) then
+          x = ( cos_tau - sin( alfa ) * sin_t ) / ( cos( alfa ) * cos_t )
+          if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'cos(Naz)')
+          Naz = Qaz + acos( x )
+        endif
 
       elseif( Column_reference .and. Naz_fixed ) then
 
@@ -6908,79 +6985,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 
       endif
 
-      if( Specular ) then
-
-        if( Chi_fixed .and. Phi_fixed ) then
-          if( abs( sin( chi ) ) < eps10 ) then
-            mu = alfa
-            eta = 0._db
-          elseif( abs( cos( chi ) ) < eps10 ) then
-            mu = 0.
-            eta = alfa
-          endif
-
-        elseif( Naz_fixed ) then
-          ! ------------------------------- this part is not used ----------------
-       !   if( abs( sin( Naz ) ) < eps10 ) then
-       ! mu = alfa + chi
-       !  elseif( abs( cos( Naz ) ) < eps10 ) then
-       ! sin(mu) * sin(alfa) = cos( chi )
-       !   endif
-          if( Mu_fixed ) then
-            cos_m = cos( mu )
-            if( abs( cos_m ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,cos_m,'cos(mu) ')
-            sin_m = sin( mu )
-
-            cos_c = cos_m * cos( Naz ) * cos_t + sin_m * sin_t
-            if( abs( cos_c ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,cos_c,'cos(chi)')
-            chi = acos( cos_c )
-
-            sin_e = ( sin_t - sin_m * cos_c ) / ( cos_m * sin( chi ) )
-            if( abs( sin_e ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,sin_e,'sin(eta)')
-            eta = asin( sin_e )
-
-          elseif( Chi_fixed ) then
-            if( abs( sin( chi ) ) < eps10 ) then
-              mu = alfa
-              eta = 0._db
-            elseif( abs( cos( chi ) ) < eps10 ) then
-              mu = 0.
-              eta = alfa
-            else
-              c = cos( chi )
-              a = cos( Naz ) * cos_t / c
-              b = sin_t / c
-              step = pi / 20
-              mu = 0._db
-              do k = 1,10
-                do i = 1,10
-                  mu = mu + step
-                  c = a * cos( mu ) + b * sin( mu )
-                  if( a > 1._db ) then
-                    if( c > 1._db ) cycle
-                  else
-                    if( c < 1._db ) cycle
-                  endif
-                  mu = mu - step
-                  step = step / 10
-                  exit
-                end do
-              end do
-              sin_e = ( sin_t - sin( mu ) * cos_c ) / ( cos( mu ) * sin( chi ) )
-              eta = asin( sin_e )
-            endif
-          elseif( Eta_fixed ) then
-            call write_error
-            do ipr = 3,9,3
-            if( ipr == 3 .and. icheck == 0 ) cycle
-              write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
-              write(ipr,'(/A//)') '   Eta fixed not programmed for the specular reflection, sorry !'
-            end do
-          endif
-        endif
-      endif
-
-      if( ( Column_detector .or. Column_reference ) .and. .not. Specular ) then
+      if( ( Column_detector .or. Column_reference ) .and. .not. Q_par_n ) then
 ! Allways known
         Mat_Nphi(:,1) = H_phi_n(:)
         call Prodvec(Vec,H_phi_n,N_phi)
@@ -6991,22 +6996,24 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
         Mat_Nphi(:,2) = W(:) / x
       endif
 
-      if( Column_detector .and. Column_reference .and. .not. Specular ) then
+      if( Column_detector .and. Column_reference .and. .not. Q_par_n ) then
 
 ! Q_L is in the laboratory basis after rotation
         Q_L(1) = cos_t * sin( Qaz )
         Q_L(2) = - sin_t
         Q_L(3) = cos_t * cos( Qaz )
 
-        N_L(1) = cos( alfa ) * sin( Naz )
-        N_L(2) = - sin( alfa )
-        N_L(3) = cos( alfa ) * cos( Naz )
-
-! Seems to work with that, I do not understand, correspond à une rotation inverse
-!        if( Eta_fixed ) then
-!          Q_L(1:2) = - Q_L(1:2)
-!          N_L(1:2) = - N_L(1:2)
-!        endif
+        if( Psi_fixed .or. .not. Ref_spec ) then
+          N_L(1) = cos_tau_ref * Q_L(1) - sin_tau_ref * sin( psi ) * Q_L(3)
+          N_L(2) = cos_tau_ref * Q_L(2) + sin_tau_ref * cos( psi )
+          N_L(3) = cos_tau_ref * Q_L(3) + sin_tau_ref * sin( psi ) * Q_L(1)
+          x = sqrt( sum( N_L(:)**2 ) )
+          N_L(:) = N_L(:) / x
+       else
+          N_L(1) = cos( alfa ) * sin( Naz )
+          N_L(2) = - sin( alfa )
+          N_L(3) = cos( alfa ) * cos( Naz )
+        endif
 
         Mat_NL(:,1) = Q_L(:)
         call Prodvec( Vec, Q_L, N_L )
@@ -7099,7 +7106,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 
 ! 1 reference and 2 sample angles ------------------------------------------------------------------------------------------
 
-      if( Column_reference .and. .not. Column_detector .and. .not. Specular ) then
+      if( Column_reference .and. .not. Column_detector .and. .not. Q_par_n ) then
 
         call Rotation_Matrix(Theta_Bragg,3,Mat)
 
@@ -7288,7 +7295,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
               if( ipr == 3 .and. icheck == 0 ) cycle
                 write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
                 write(ipr,'(/A//)') &
-                 '   When the reference is known, chi and mu cannot be both fixed when one of the is 0 or 90 degrees !'
+                 '   When the reference is known, chi and mu cannot be both fixed when one of them is 0 or 90 degrees !'
               end do
               stop
             endif
@@ -7407,6 +7414,76 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
           b = cos_m * cos_k
           psi = atan2( - a * Mat(3,3) - b * Mat(3,2), a * Mat(3,2) - b * Mat(3,3) )
 
+        elseif( Mu_fixed .and. ( Phi_fixed .or. Chi_fixed ) ) then
+
+          call Rotation_Matrix(-Theta_Bragg,3,Mat)
+          call Rotation_Matrix(ksi,2,Mat_p)
+
+          Mat = matmul( Mat_p, Mat )
+
+          call Rotation_Matrix(-mu,1,Mat_p)
+
+          Mat = matmul( Mat_p, Mat )
+
+          if( Chi_fixed ) then
+            sin_c = sin( chi )
+            cos_c = cos( chi )
+            a = - sin_c * Mat_Nphi(2,1)
+            b = - sin_c * Mat_Nphi(1,1)
+            c = Mat(3,1) - cos_c * Mat_Nphi(3,1)
+          else
+            sin_p = sin( phi )
+            cos_p = cos( phi )
+            a = - cos_p * Mat_Nphi(1,1) - sin_p * Mat_Nphi(2,1)
+            b = Mat_Nphi(3,1)
+            c = Mat(3,1)
+          endif
+
+          ni = 10
+          da = 2 * pi / ni
+          Angle = 0._db
+          Below = b < c
+          do j = 1,15
+            do i = 1,ni
+              Angle = Angle + da
+              if( a * sin( Angle ) + b * cos( Angle ) < c == Below ) cycle
+              Angle = Angle - da
+              da = da / ni
+              exit
+            end do
+            if( i == ni + 1 ) then
+              Angle = Angle - ni * da
+              da = da / 10
+              ni = 10 * ni
+            endif
+          end do
+
+          if( Chi_fixed ) then
+            phi = Angle
+            sin_p = sin( phi )
+            cos_p = cos( phi )
+          else
+            chi = Angle
+            sin_c = sin( chi )
+            cos_c = cos( chi )
+          endif
+
+          a = cos_c * ( cos_p * Mat_Nphi(1,1) + sin_p * Mat_Nphi(2,1) ) + sin_c * Mat_Nphi(3,1)
+          b = - sin_p * Mat_Nphi(1,1) + cos_p * Mat_Nphi(2,1)
+
+          eta = atan2( b * Mat(1,1) - a * Mat(2,1), a * Mat(1,1) + b * Mat(2,1) )
+
+! One calculates Psi^-1 =  N_phi^-1 Phi^-1 Chi^-1 Eta^-1 Mat     ( Mat = Mu^-1 F Theta )
+          call Rotation_Matrix(eta,3,Mat_p)
+          Mat = matmul( Mat_p, Mat )
+          call Rotation_Matrix(-chi,2,Mat_p)
+          Mat = matmul( Mat_p, Mat )
+          call Rotation_Matrix(phi,3,Mat_p)
+          Mat = matmul( Mat_p, Mat )
+          call invermat(Mat_Nphi,Mat_p )
+          Mat = matmul( Mat_p, Mat )
+          psi = atan2( Mat(2,3), Mat(2,2) )
+
         endif
 
         x = cos_tau * sin_t - cos_t * sin_tau * cos( psi )
@@ -7506,6 +7583,40 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 
       endif
 
+      if( Q_par_n ) then
+
+        p(:) = Mat_UB_loc(:,3)
+        x = sqrt( sum( p(:)**2 ) )
+        p(:) = p(:) / x
+        b = asin( p(1) )
+        a = - atan2( p(2), p(3) )
+
+        if( Chi_fixed .and. Phi_fixed ) then
+          if( abs( sin( chi ) ) < eps10 ) then
+            mu = alfa
+            eta = 0._db
+          elseif( abs( cos( chi ) ) < eps10 ) then
+            mu = 0.
+            eta = alfa
+          endif
+
+        elseif( Nu_fixed .and. Mu_fixed .and. Psi_fixed ) then
+          if( abs( sin( nu ) ) < eps10 .and. abs( sin( mu ) ) < eps10 ) then
+            chi = pi / 2 - b
+            eta = Theta_Bragg - a
+            phi = 0._db
+          endif
+
+        elseif( Delta_fixed .and. Eta_fixed .and. Psi_fixed ) then
+          if( abs( sin( delta ) ) < eps10 .and. abs( sin( eta ) ) < eps10 ) then
+            chi = - b
+            mu = Theta_Bragg - a
+            phi = 0._db
+          endif
+
+        endif
+      endif
+
 ! Final matrix = Z = M H X Ph
 
       call Rotation_Matrix(-phi,3,Mat)
@@ -7516,7 +7627,14 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
       call Rotation_Matrix(mu,1,Mat_p)
       Mat = matmul( Mat_p, Mat )
 
-      if( .not. ( Naz_fixed .or. ( Column_detector .and. Column_reference ) .or. Specular  ) ) Naz = atan2( Mat(1,3), Mat(3,3) )
+      if( .not. ( Naz_fixed .or. ( Column_detector .and. Column_reference ) .or. Q_par_n  ) ) then
+        if( Specular ) then
+          Naz = Qaz
+        else
+! When reference axis is not the normal to the surface, it can be that this angle is related to the azimuth of the reference axis
+          Naz = atan2( Mat(1,3), Mat(3,3) )
+        endif
+      endif
 
 ! Reference angles
       if( .not. ( Column_reference .or. Column_detector ) ) then
@@ -7531,20 +7649,9 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
         psi = acos( x )
       endif
 
-      if( icheck > 1 ) then
-        if( jpl == 1 .or. icheck > 1 ) write(3,130)
-        if( Specular .and. Naz_fixed ) then
-          write(3,140) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, delta / radian, nu / radian, Qaz / radian, Naz / radian, &
-                     alfa / radian, beta / radian, psi / radian, phi / radian
-        else
-          write(3,150) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, delta / radian, nu / radian, Qaz / radian, Naz / radian, &
-                     alfa / radian, beta / radian, psi / radian, eta / radian, mu / radian, chi / radian, phi / radian
-        endif
-      endif
-
       call invermat( Mat, Mat_p )
 
-      if( Specular .and. Phi_fixed .and. Naz_fixed ) then
+      if( Q_par_n .and. Phi_fixed .and. ( Naz_fixed .or. Qaz_fixed ) ) then
 
         k_i(1) = 0._db
         k_i(2) = cos( alfa )
@@ -7573,6 +7680,31 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
       endif
 
       k_s(:) = H_phi(:) / konde + k_i(:)
+
+      if( Column_detector .and. Column_reference .and. Psi_fixed ) then
+        if( .not. Specular ) then
+          alfa = - asin( k_i(3) )
+          beta = asin( k_s(3) )
+
+          alfa = - asin( dot_product(k_i,Norm_phi) )
+          beta = asin( dot_product(k_s,Norm_phi) )
+
+        endif
+
+        if( .not. Naz_fixed .and. .not. Ref_spec ) Naz = Qaz
+        if( .not. Naz_fixed .and. .not. Ref_spec ) then
+          if( Specular ) then
+            Naz = Qaz
+          else
+            x = ( cos_tau - sin( alfa ) * sin_t ) / ( cos( alfa ) * cos_t )
+            if( abs( x ) > 1+eps10 ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'cos(Naz)')
+! Numerical problem
+            if( x > 1._db ) x = x / abs(x)
+            Naz = Qaz + acos( x )
+          endif
+        endif
+
+      endif
 
       Vecdafse(:,ipl,1) = k_i(:)
       Vecdafss(:,ipl,1) = k_s(:)
@@ -7632,12 +7764,23 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
       endif
       Length_abs(lpl) = Length_abs(ipl)
 
+      if( phi > pi ) phi = phi - 2 * pi
+
       if( icheck > 1 .and. .not. Mat_unit ) then
-        if( ( icheck == 1 .and. ipl == 1 ) .or. icheck > 1 ) write(3,'(/A)') ' Basis surface'
-        if( ( icheck == 1 .and. ipl == 1 ) .or. icheck > 1 ) write(3,160)
-        write(3,170) hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, Beta / radian, phi / radian, chi / radian, &
-                     eta / radian, mu / radian, Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), Vecdafss(:,ipl,1), &
+        write(3,'(/A)') ' Basis surface'
+        write(3,150)
+        if( Q_par_n .and. ( Naz_fixed .or. Qaz_fixed ) ) then
+          write(3,160) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
+                     nu / radian, Qaz / radian, Naz / radian, &
+                     psi / radian, phi / radian, Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), &
+                     Vecdafss(:,ipl,1), real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+        else
+          write(3,170) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
+                     nu / radian, Qaz / radian, Naz / radian, &
+                     psi / radian, eta / radian, mu / radian, chi / radian, phi / radian, &
+                     Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), Vecdafss(:,ipl,1), &
                      real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+        endif
       endif
 
       if( .not. Mat_unit ) then
@@ -7658,23 +7801,43 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
       endif
 
       if( icheck > 0 ) then
-        if( ( icheck == 1 .and. ipl == 1 ) .or. icheck > 1 ) write(3,'(/A)') ' Internal basis R1, z along c'
-        if( ( icheck == 1 .and. ipl == 1 ) .or. icheck > 1 ) write(3,160)
-        write(3,170) hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, Beta / radian, phi / radian, chi / radian, &
-                     eta / radian, mu / radian, Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), Vecdafss(:,ipl,1), &
+        if( kpl == 1 .or. ( icheck > 1  .and. .not. Mat_unit ) ) then
+          write(3,'(/A)') ' Internal basis R1, z along c'
+          write(3,150)
+        endif
+        if( Q_par_n .and. ( Naz_fixed .or. Qaz_fixed ) ) then
+          write(3,160) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
+                     nu / radian, Qaz / radian, Naz / radian, &
+                     psi / radian, phi / radian, Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), &
+                     Vecdafss(:,ipl,1), real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+        else
+          write(3,170) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
+                     nu / radian, Qaz / radian, Naz / radian, &
+                     psi / radian, eta / radian, mu / radian, chi / radian, phi / radian, &
+                     Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), Vecdafss(:,ipl,1), &
                      real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+        endif
       endif
 
 ! Test on results validity
       x = sqrt( sum( k_s(:)**2 ) )
+      if( UB_in .and. Q_par_n .and. abs( x - 1 ) > eps10 .and. abs( x - 1 ) < 1.e-09_db) then
+        k_s(:) = k_s(:) / x
+        x = 1._db
+      endif
       if( abs( x - 1 ) > eps10 .or. alfa < 0._db .or. beta < 0 ) then
         call write_error
         do ipr = 3,9,3
           if( ipr == 3 .and. icheck == 0 ) cycle
           write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
           if( abs( x - 1 ) > eps10 ) write(ipr,180) x
-          if( alfa < 0._db ) write(ipr,190) '   Incidence angle, alfa =', alfa / radian
-          if( beta < 0._db ) write(ipr,190) '    Outgoing angle, beta =', beta / radian
+          if( UB_in .and. Q_par_n ) then
+            write(ipr,190)
+          elseif( abs( x - 1 ) > eps10 ) then
+            write(ipr,'(/A)') '   There is an error in the code, contact the author !'
+          endif
+          if( alfa < 0._db ) write(ipr,210) '   Incidence angle =', alfa / radian
+          if( beta < 0._db ) write(ipr,210) '    Outgoing angle =', beta / radian
         end do
         stop
       endif
@@ -7685,30 +7848,21 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 
   end do
 
-  do ipl = 1,npldafs
-  end do
-
-
-
   return
- 110 format(3(2x,3f10.5))
- 120 format(//' For the reflection',i3,', (h,k,l) =',2f5.2,f7.4,/ &
+ 110 format(4(2x,3f12.7))
+ 120 format(//' For the reflection',i5,', (h,k,l) =',3f8.4,/ &
               '   with the operation mode =',5i2,/, &
               '   the angles',3f8.3,' or the current energy are not possible !')
  125 format(/'   One gets a negative discriminant =',1p,e11.3,','/ &
              '   from wich angle cannot be calculated !'//)
- 130 format(/' ipl    h      k      l    theta_B  delta    nu     Qaz     Naz     alfa    beta    psi     eta      mu', &
-             '     chi      phi')
- 140 format(i3,2f7.2,f8.4,8f8.3,4x,'x',7x,'x',7x,'x',3x,f8.3,3x,'eta, mu and chi not calculated')
- 150 format(i3,2f7.2,f8.4,12f8.3)
- 160 format(/4x,'h',6x,'k',7x,'l',3x,'theta_B',3x,'alfa',4x,'beta',5x,'phi',5x,'chi',5x,'eta',5x,'mu',16x,'k_i',24x,'Pol_i',24x, &
-            'k_s',23x,'Pol_s_1',22x,'Pol_s_2')
- 170 format(2f7.2,f8.4,7f8.3,5(1x,3f9.5))
- 180 format(/'   Normalized outgoing wave vectot modulus =',f8.3,' different from one.'/ &
-             '   There is an error in the code, contact the author !'//)
- 190 format(/a26,f8.3,' < 0 !'//)
- 200 format(/4x,'h',6x,'k',7x,'l',3x,'theta_B',3x,'alfa',4x,'beta',5x,'phi',5x,'chi',5x,'eta',5x,'mu',16x,'k_i',24x,'Pol_i',24x, &
-            'k_s',23x,'Pol_s_1',22x,'Pol_s_2')
+ 150 format(/'   ipl    h      k      l     theta_B   alfa    beta   delta    nu     Qaz     Naz     psi', &
+             '     eta      mu     chi      phi',16x,'k_i',24x,'Pol_i',24x,'k_s',23x,'Pol_s_1',22x,'Pol_s_2')
+ 160 format(i5,2f7.2,f9.4,9f8.3,4x,'x',7x,'x',7x,'x',3x,f8.3,5(1x,3f9.5))
+ 170 format(i5,2f7.2,f9.4,12f8.3,5(1x,3f9.5))
+ 180 format(/'   Normalized outgoing wave vector modulus =',f14.10,' different from one.')
+ 190 format(/'   When an experimental UB matrix is used,',/ &
+             '   it is better to also use a reference axis not along 0 0 1, which is the default !', /'   ( keyword "setaz" )'//)
+ 210 format(/a20,f12.7,' < 0 !'//)
 end
 
 !*********************************************************************
@@ -7725,19 +7879,20 @@ end
 
   subroutine Operation_mode_eval(alfa,Alfa_beta,Alfa_fixed,Angle_m,beta,Beta_fixed,chi,Chi_fixed,Column_detector, &
                 Column_reference,delta,Delta_fixed,eta,Detector_known,Eta_fixed,Eta_half_delta,icheck,mu,Mu_fixed, &
-                Mu_half_nu,Naz,Naz_fixed,nu,Nu_fixed,Operation_m,phi,Phi_fixed,psi,Psi_fixed,Qaz,Qaz_fixed,Specular)
+                Mu_half_nu,Naz,Naz_fixed,nu,Nu_fixed,Operation_m,phi,Phi_fixed,psi,Psi_fixed,Qaz,Qaz_fixed)
 
   use declarations
   implicit none
 
   character(len=3):: mot3
+  character(len=5), dimension(3):: Angle_name
 
   integer:: i, icheck, ipr, j, n_a, n_op
   integer, dimension(5):: Operation_m
 
   logical:: Alfa_Beta, Alfa_fixed, Beta_fixed, Chi_fixed, Column_detector, Column_reference, Delta_fixed, Detector_known, &
-    Eta_fixed, Eta_half_delta, Mu_fixed, Mu_half_nu, Naz_fixed, Nu_fixed, Operation_m_error, Phi_fixed, Psi_fixed, Qaz_fixed, &
-    Specular
+    Eta_fixed, Eta_half_delta, Mu_fixed, Mu_half_nu, Naz_fixed, Nu_fixed, Operation_m_error, Phi_fixed, Psi_fixed, Qaz_fixed
+
   real(kind=db):: alfa, beta, chi, delta, eta, mu, Naz, nu, phi, psi, Qaz
   real(kind=db), dimension(3):: Angle_m
 
@@ -7771,15 +7926,19 @@ end
           case(1)
             Delta_fixed = .true.
             delta = Angle_m(n_a)
+            Angle_name(n_a) = 'delta'
           case(2)
             Nu_fixed = .true.
             nu = Angle_m(n_a)
+            Angle_name(n_a) = '   nu'
           case(3)
             Qaz_fixed = .true.
             Qaz = Angle_m(n_a)
+            Angle_name(n_a) = '  Qaz'
           case(4)
             Naz_fixed = .true.
             Naz = Angle_m(n_a)
+            Angle_name(n_a) = '  Naz'
           case default
             call write_error
             do ipr = 3,9,3
@@ -7799,12 +7958,15 @@ end
           case(2)
             Alfa_fixed = .true.
             alfa = Angle_m(n_a)
+            Angle_name(n_a) = ' alfa'
           case(3)
             Beta_fixed = .true.
             beta = Angle_m(n_a)
+            Angle_name(n_a) = ' beta'
           case(4)
             Psi_fixed = .true.
             psi = Angle_m(n_a)
+            Angle_name(n_a) = '  psi'
           case default
             call write_error
             do ipr = 3,9,3
@@ -7823,21 +7985,25 @@ end
             mot3 = 'eta'
             Eta_fixed = .true.
             eta = Angle_m(n_a)
+            Angle_name(n_a) = '  eta'
          case(2)
             Operation_m_error = Mu_fixed
             mot3 = ' mu'
             Mu_fixed = .true.
             mu = Angle_m(n_a)
+            Angle_name(n_a) = '   mu'
           case(3)
             Operation_m_error = Chi_fixed
             mot3 = 'chi'
             Chi_fixed = .true.
             chi = Angle_m(n_a)
+            Angle_name(n_a) = '  chi'
           case(4)
             Operation_m_error = Phi_fixed
             mot3 = 'phi'
             Phi_fixed = .true.
             phi = Angle_m(n_a)
+            Angle_name(n_a) = '  phi'
           case(5)
             if( n_op /= 3 ) then
               call write_error
@@ -7904,58 +8070,38 @@ end
   Detector_known = Delta_fixed .or. Nu_fixed .or. Qaz_fixed
   Column_detector = Detector_known .or. Naz_fixed
 
+  if( icheck > 0 ) write(3,145) , Operation_m(:), ( Angle_name(i), Angle_m(i) / radian, i = 1,n_a )
   if( icheck > 1 ) then
-    if( Alfa_Beta ) then
-      write(3,'(/a17,5i2,3x,a12,3f8.3)') ' Operation mode =', Operation_m(:), 'Angle mode =', Angle_m(1:2) / radian
-    else
-      write(3,'(/a17,5i2,3x,a12,3f8.3)') ' Operation mode =', Operation_m(:), 'Angle mode =', Angle_m(:) / radian
-    endif
     write(3,150) Column_detector, Delta_fixed, Nu_fixed, Qaz_fixed, Naz_fixed
     write(3,160) Column_reference, Alfa_beta, Alfa_fixed, Beta_fixed, Psi_fixed
     write(3,170) Eta_fixed, Mu_fixed, Chi_fixed, Phi_fixed
   endif
 
-  if( Specular .and. .not. ( Alfa_beta .and. Phi_fixed .and. &
-                    ( Naz_fixed .or. ( Chi_fixed .and. ( abs( sin(chi) ) < eps10 .or. abs( cos(chi) ) < eps10 ) ) ) ) ) then
-    call write_error
-    do ipr = 3,9,3
-      if( ipr == 3 .and. icheck == 0 ) cycle
-      write(ipr,100) Operation_m(:), Angle_m(:) / radian
-      write(ipr,'(/A)') ' For the specular reflection, the necessary operation mode options are : '
-      write(ipr,'(10x,a15,/10x,a13)') '- "alfa = beta"','- "Phi fixed"'
-      write(ipr,'(10x,A)') '- "Naz fixed" .or. "Chi fixed" with chi = 0 or 90 degrees !'
-      write(ipr,'(/A//)') ' Other options are not yet programmed, sorry ! '
-    end do
-    stop
-  endif
-
   if( ( Naz_fixed .and. .not. Column_reference ) .or. &
-      ( Detector_known .and. ( Eta_fixed .or. Mu_fixed ) .and. ( Chi_fixed .or. Phi_fixed ) ) ) then
+      ( Detector_known .and. Eta_fixed .and. ( Chi_fixed .or. Phi_fixed ) ) ) then
     call write_error
     do ipr = 3,9,3
       if( ipr == 3 .and. icheck == 0 ) cycle
-      write(ipr,100) Operation_m(:), Angle_m(:) / radian
+      write(ipr,100) Operation_m(:), ( Angle_name(i), Angle_m(i) / radian, i = 1,n_a )
       if( Naz_fixed ) then
-        write(ipr,'(/A//)') '  Naz fixed with 2 sample angles fixed is not yet programmed, sorry ! '
+        write(ipr,'(/A//)') '  Naz fixed with 2 sample angles fixed is not yet programmed, sorry !'
       elseif( Detector_known .and. Eta_fixed .and. Chi_fixed ) then
-        write(ipr,'(/A//)') '  Detector position with eta and chi fixed is not yet programmed, sorry ! '
+        write(ipr,'(/A//)') '  Detector position with eta and chi fixed is not yet programmed, sorry !'
       elseif( Detector_known .and. Eta_fixed .and. Phi_fixed ) then
-        write(ipr,'(/A//)') '  Detector position with eta and phi fixed is not yet programmed, sorry ! '
-      elseif( Detector_known .and. Mu_fixed .and. Chi_fixed ) then
-        write(ipr,'(/A//)') '  Detector position with mu and chi fixed is not yet programmed, sorry ! '
-      elseif( Column_reference .and. Mu_fixed .and. Phi_fixed ) then
-        write(ipr,'(/A//)') '  Reference angles with mu and phi fixed is not yet programmed, sorry ! '
+        write(ipr,'(/A//)') '  Detector position with eta and phi fixed is not yet programmed, sorry !'
       endif
     end do
     stop
   endif
 
   return
-100 format(//' The operation mode',5i2,',',/' with the angles =',3f8.3,' degrees, is not possible !')
+100 format(//' The operation mode',5i2,' is not possible !',/ &
+             ' Angles:',3(1x,a5,' =',f8.3,','))
 110 format(/1x,a16,' is possible only without any other sample angle given !'//)
 120 format(/1x,a9,' digit',i2,' is',i2,' > ',i1,/5x,' It is not possible !'//)
 130 format(/'  Sample ',a3,' value at least 2 times given what is not possible !')
 140 format(/'  Only 3 non-zero terms are possible, and there are',i2,' !'//)
+145 format(/'  Operation mode =',5i2,',',3(1x,a5,' =',f8.3,','))
 150 format(/'  Column detector  =',L2,2x,' delta_fixed, nu_fixed,  Qaz_fixed, Naz_fixed =',4L2)
 160 format( '  Column reference =',L2,2x,' alfa=beta, alfa_fixed, beta_fixed, psi_fixed =',4L2)
 170 format( '  Column sample',9x,        ' eta_fixed,   mu_fixed,  chi_fixed, phi_fixed =',4L2)
