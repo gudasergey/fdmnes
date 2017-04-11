@@ -5,9 +5,9 @@
 ! Reading subroutine giving the dimensions of the tables, necessary for the rest of the code, including the main reading routine 'lecture'
 
 subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_layer,Dafs_bio,Doping,Extract,Extract_ten,Film, &
-    Flapw,Full_self_abs,Hubbard,itape4,Magnetic,Memory_save,mpinodes0,mpirank0,n_atom_bulk,n_atom_cap,n_atom_uc,n_file_dafs_exp, &
-    n_multi_run_e,nb_atom_conf_m,ncolm,neimagent,nenerg,ngamme,ngroup,ngroup_neq,nhybm,nklapw, &
-    nlatm,nlmlapwm,nmatsym,norbdil,npldafs,npldafs_2d,npldafs_e,nple,nplrm,n_adimp,n_radius,n_range,nq_nrixs, &
+    Flapw,Full_self_abs,Hubbard,itape4,Magnetic,Memory_save,mpinodes0,mpirank0,n_atom, &
+    n_file_dafs_exp,n_multi_run_e,nb_atom_conf_m,ncolm,neimagent,nenerg,ngamme,ngroup,nhybm, &
+    nklapw,nlatm,nlmlapwm,nmatsym,norbdil,npldafs,npldafs_2d,npldafs_e,nple,nplrm,n_adimp,n_radius,n_range,nq_nrixs, &
     NRIXS,nspin,nspino,nspinp,ntype,ntype_bulk,ntype_conf,Pdb,Readfast,Self_abs,Space_file,Taux,Temperature,Use_FDMX,Xan_atom)
 
   use declarations
@@ -15,33 +15,32 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   include 'mpif.h'
 
   integer:: eof, eoff, i, iabsm_1, ie, ier, igamme, igr, igrdat, io, ipr, ipl, istat, it, itape4, itype_1, itype_dop, j, jgr, &
-    jpl, k, kgr, l, ligne, lin_gam, lmax_nrixs, mpierr, mpinodes0, mpirank0, n, n_adimp, n_atom_bulk, n_atom_cap, n_atom_uc, &
-    n_radius, n_range, n_dic, n_file_dafs_exp, n_fract_x, n_fract_y, n_fract_z, n_label, n_multi_run_e, na, nb, nb_atom_conf_m, &
-    ncolm, neimagent, nenerg, ngamme, ngc, ngroup, ngroup_neq, nhybm, nklapw, nl, &
+    jpl, k, l, lin_gam, lmax_nrixs, mpierr, mpinodes0, mpirank0, n, n_adimp, n_atom_bulk, n_atom_cap, &
+    n_atom_int, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_uc, n_radius, n_range, n_dic, n_file_dafs_exp, &
+    n_fract_x, n_fract_y, n_fract_z, n_label, n_multi_run_e, nb, &
+    nb_atom_conf_m, ncolm, neimagent, nenerg, ngamme, ngc, ngroup, n_atom_neq, nhybm, nklapw, nl, &
     nlatm, nlmlapwm, nmatsym, nn, nnombre, norbdil, norbv, npldafs, npldafs_2d, npldafs_e, npldafs_t, &
-    nple, nplm, nplrm, nq_nrixs, nspin, nspino, nspinp, ntype, ntype_bulk, numat_1, numat_abs, ntype_conf, Wien_save, Z
+    nple, nplm, nplrm, nq_nrixs, nspin, nspino, nspinp, ntype, ntype_bulk, numat_abs, ntype_conf, Wien_save, Z
 
-  integer, dimension(:), allocatable:: Z_bulk
+  integer, dimension(8):: n_atom
+  integer, dimension(:), allocatable :: Z_bulk
 
-  character(len=2):: Chemical_Symbol, Chemical_Symbol_c, Symbol
   character(len=4):: mot4
   character(len=6):: mot6
   character(len=9):: grdat
   character(len=13):: Space_Group, Spgr
-  character(len=132):: Fichier, Fichier_cif, Fichier_pdb, identmot, mot, motsb, Space_file, word_from_text
+  character(len=132):: Fichier, Fichier_cif, Fichier_pdb, identmot, mot, motsb, Space_file
   character(len=132), dimension(9):: Wien_file
 
-  integer, dimension(:), allocatable :: igra, neq, numat
-
   logical:: Abs_in_bulk, Absauto, adimpin, Atom, Atom_conf, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Bulk, Cif, Cap_layer, &
-     Cylindre, Dafs_bio, Doping, Extract, Extract_ten, Film, Flapw, Full_self_abs, Hubbard, Magnetic, Matper, Memory_save, &
-     NRIXS, Pdb, Pol_dafs_in, Quadrupole, Readfast, Screening, Self_abs, Spherique, Taux, Temperature, Use_FDMX, Xan_atom
+     Cylindre, Dafs_bio, Doping, Extract, Extract_ten, Film, Flapw, Full_self_abs, Hubbard, &
+     Magnetic, Matper, Memory_save, NRIXS, Pdb, Pol_dafs_in, Quadrupole, Readfast, Screening, Self_abs, Spherique, &
+     Taux, Temperature, Use_FDMX, Very_fast, Xan_atom
 
-  real(kind=db):: Adimp, Angz, de, def, number_from_text, E, phi, r, Rsorte_s, Theta
+  real(kind=db):: Adimp, Angz, de, def, number_from_text, E, r, Rsorte_s
   real(kind=db), dimension(3):: p
-  real(kind=db), dimension(3,3):: Mat
   real(kind=db), dimension(:), allocatable:: E_adimp, E_radius, Egamme
-  real(kind=db), dimension(:,:), allocatable:: pop, posn, posout
+  real(kind=db), dimension(:,:), allocatable:: pop
 
   Absauto = .true.
   Angz = 0._db
@@ -71,6 +70,11 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   n_adimp = 1
   n_atom_bulk = 0
   n_atom_cap = 0
+  n_atom_int = 0
+  n_atom_per = 0
+  n_atom_per_neq = 0
+  n_atom_sur = 0
+  n_atom_uc = 0
   n_dic = 0
   n_file_dafs_exp = 0
   n_multi_run_e = 1
@@ -98,7 +102,6 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   ntype = 0
   ntype_bulk = 0
   ntype_conf = 0
-  numat_1 = 0
   numat_abs = 0
   Pdb = .false.
   Pol_dafs_in = .false.
@@ -230,6 +233,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
         case('temperatu')
           Temperature = .true.
+
+        case('occupancy')
+          Taux = .true.
 
         case('xan_atom')
           Xan_atom = .true.
@@ -525,11 +531,11 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           end do
 
 ! Cluster, film or unit cell description
-        case('crystal','molecule','crystal_t','molecule_','film','film_t')
-          if( grdat == 'crystal_t' .or. grdat == 'molecule_' .or. grdat(1:6) == 'film_t' ) Taux = .true.
+        case('crystal','molecule','crystal_t','molecule_','film','film_t','surface','surface_t','interface','interfac_')
+          if( grdat(6:6) == 't' .or.grdat(9:9) == 't' .or. grdat(9:9) == '_' ) Taux = .true.
 
-          Matper = ( grdat(1:7) /= 'molecule' )
-          Film = grdat(1:4) == 'film'
+          if( grdat(1:8) /= 'molecule' ) Matper = .true.
+          if( grdat(1:1) == 'f' .or. grdat(1:1) == 's' .or. grdat(1:1) == 'i' ) Film = .true.
 
           n = nnombre(itape4,132)
           if( n == 0 ) then
@@ -551,7 +557,6 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           if( Readfast .or. Taux .or. Temperature ) then
             do igr = 1,100000
               read(itape4,*,iostat=ier) i, p(:)
-              if( igr == 1 ) numat_1 = i
               if( ier /= 0 ) exit
             end do
             Backspace(itape4)
@@ -570,7 +575,6 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
                   read(itape4,*)
                 case(5)
                   read(itape4,*,iostat=ier) i, p(:), norbv
-                  if( igr == 1 ) numat_1 = i
                   if( ier > 0 ) call write_err_form(itape4,grdat)
                   if( norbv < 0 ) then
                     nhybm = max( nhybm, - norbv - 1 )
@@ -598,7 +602,16 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
               endif
             end do
           endif
-          n_atom_uc = igr - 1
+          if( grdat(1:1) == 'c' .or. grdat(1:1) == 'm' ) then
+            n_atom_uc = igr - 1
+            n_atom_per = n_atom_uc
+          elseif( grdat(1:1) == 'f' ) then
+            n_atom_per = igr - 1
+          elseif( grdat(1:1) == 's' ) then
+            n_atom_sur = igr - 1
+          elseif( grdat(1:1) == 'i' ) then
+            n_atom_int = igr - 1
+          endif
 
 ! Description de l'agregat :
         case('cif_file','film_cif_')
@@ -689,7 +702,11 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
           Close(8)
 
-          n_atom_uc = igr
+          if( grdat(1:1) == 'c' ) then
+            n_atom_uc = igr
+          elseif( grdat(1:1) == 'f' ) then
+            n_atom_per = igr
+          endif
 
           if( Space_group == ' ' ) then
             call write_error
@@ -700,7 +717,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             stop
           endif
 
-          if( n_atom_uc == 0 ) then
+          if( n_atom_uc == 0 .and. n_atom_per == 0 ) then
             call write_error
             do ipr = 6,9,3
               write(ipr,110)
@@ -766,11 +783,17 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           end do
 
           Close(8)
-          n_atom_uc = igr
+
+          if( grdat(1:1) == 'p' ) then
+            n_atom_uc = igr
+          else
+            n_atom_per = igr
+          endif
 
         case('flapw','flapw_s','flapw_r','flapw_s_p','flapw_psi','flapw_n','flapw_n_p','flapw_s_n')
 
           Flapw = .true.
+          Matper = .true.
 
           if( grdat(6:7) == '_s' ) then
             n = nnombre(itape4,132)
@@ -870,8 +893,6 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
     if( Pol_dafs_in ) npldafs_e = npldafs
 
-    ngroup_neq = n_atom_uc
-
     if( n_adimp > 1 .and. n_radius > 1 .and. .not. Extract ) then
 
       n_range = n_adimp + n_radius - 1
@@ -902,331 +923,37 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
     endif
 
-! Necessary to check if an absorber is in the bulk
-! This part is in fact not used. Could be used to exclude the bulk atoms from ntype.
-    if( Bulk .and. numat_abs == 0 ) then
-
-! Search of the atom type which is absorbing
-      if( Atom .or. Flapw ) then
-        Rewind(itape4)
-        do igrdat = 1,100000
-          read(itape4,'(A)') mot
-          grdat = identmot(mot,9)
-          if( grdat(1:7) /= 'crystal' .and. grdat(1:7) /= 'molecul' .and. grdat(1:4) /= 'film' ) cycle
-          read(itape4,*)
-          do igr = 1,ngroup_neq
-            if( Readfast .or. Taux .or. Temperature .or. .not. ( Atom_nonsph .or. Atom_occ_hubb .or. Axe_loc ) ) then
-              read(itape4,*) itype_1
-            else
-              n = nnombre(itape4,132)
-              if( n == 0 ) exit
-              if( n == 2 .or. n == 3 ) then
-                read(itape4,*)
-                n = nnombre(itape4,132)
-              endif
-              norbv = 0
-              select case(n)
-                case(4)
-                  read(itape4,*) itype_1
-                case default
-                  read(itape4,*,iostat=ier) itype_1, p(:), norbv
-                  if( ier > 0 ) call write_err_form(itape4,grdat)
-              end select
-              if( norbv == 0 ) cycle
-              do io = 1,abs(norbv)
-                read(itape4,*)
-              end do
-            endif
-            if( igr == iabsm_1 ) exit
-          end do
-          exit
-        end do
-
-        Rewind(itape4)
-        do igrdat = 1,100000
-          read(itape4,'(A)') mot
-          grdat = identmot(mot,9)
-          if( grdat(1:4) /= 'atom' ) cycle
-          do i = 1,itype_1
-            read(itape4,*) numat_abs
-          end do
-          exit
-        end do
-
-      else
-        numat_abs = numat_1
-      endif
-
-    endif
-
     if( Bulk ) then
       do i = 1,n_atom_bulk
         if( Z_bulk(i) /= numat_abs ) cycle
         Abs_in_bulk = .true.
       end do
-
       deallocate( Z_bulk ) ! allocation done during the main reading
     endif
 
+    if( n_atom_per == 0 ) n_atom_per = n_atom_uc
+    n_atom_neq = n_atom_per + n_atom_sur + n_atom_int
+    n_atom_per_neq = n_atom_per
+
     if( Space_Group /= ' ' .or. ntype == 0 .or. Atom_conf ) then
-
-      allocate( neq(ngroup_neq) )
-      allocate( posn(3,ngroup_neq) )
-      allocate( posout(3,n_atom_uc) )
-      allocate( numat(n_atom_uc) )
-
-      if( Pdb ) then
-
-        open(8, file = Fichier_pdb, status='old', iostat=istat)
-
-        igr = 0
-
-        do ligne = 1,100000
-
-          read(8,'(a6)') mot6
-
-          select case(mot6)
-
-            case('END   ')
-
-              exit
-
-            case('SCALE1' )
-
-              backspace(8)
-              do i = 1,3
-                read(8,'(10x,3f10.6)') Mat(i,:)
-              end do
-
-            case('ATOM  ','HETATM')
-
-              backspace(8)
-              read(8,'(30x,3f8.3,22x,a2)') p(:), Symbol
-
-              igr = igr + 1
-              p = Matmul( Mat, p )
-              posn(:,igr) = p(:)
-
-              Symbol = adjustl(Symbol)
-              do i = 1,103
-                if( Chemical_Symbol_c(i) /= Symbol .and. Chemical_Symbol(i) /= Symbol ) cycle
-                numat(igr) = i
-                exit
-              end do
-              if( i == 104 ) then
-                call write_error
-                do ipr = 6,9,3
-                  write(ipr,170) igr, Symbol
-                end do
-                stop
-              endif
-              if( igr == ngroup_neq ) exit
-
-            case default
-
-              cycle
-
-          end select
-
-        end do
-
-        Close(8)
-
-      elseif( Cif ) then
-
-        open(8, file = Fichier_cif, status='old', iostat=istat)
-
-        igr = 0
-
-        do
-          read(8,'(A)') mot
-          if( mot(1:10) == '_atom_site' ) exit
-        end do
-        backspace(8)
-
-        n = 0
-        do
-          n = n + 1
-          read(8,'(A)') mot
-          if( mot(1:1) /= '_' ) then
-            backspace(8)
-            exit
-          endif
-        end do
-
-        do igr = 1,ngroup_neq
-
-          read(8,'(A)') mot
-          motsb = word_from_text(n_label,mot)
-
-! Lecture element chimique
-          Symbol = motsb(1:2)
-          if( Symbol(2:2) == '1' .or. Symbol(2:2) == '2' .or. Symbol(2:2) == '3' .or. Symbol(2:2) == '4' .or.  &
-              Symbol(2:2) == '5' .or. Symbol(2:2) == '6' .or. Symbol(2:2) == '7' .or. Symbol(2:2) == '8' .or.  &
-              Symbol(2:2) == '9' ) Symbol(2:2) = ' '
-
-          do i = 1,103
-            if( Chemical_Symbol_c(i) /= Symbol .and. Chemical_Symbol(i) /= Symbol ) cycle
-            numat(igr) = i
-            exit
-          end do
-          if( i == 104 ) then
-            call write_error
-            do ipr = 6,9,3
-              write(ipr,170) igr, Symbol
-            end do
-            stop
-          endif
-
-          posn(1,igr) = number_from_text(n_fract_x,mot)
-          posn(2,igr) = number_from_text(n_fract_y,mot)
-          posn(3,igr) = number_from_text(n_fract_z,mot)
-
-        end do
-
-        Close(8)
-
-      else
-
-        Rewind(itape4)
-
-        do igrdat = 1,100000
-          read(itape4,'(A)') mot
-          grdat = identmot(mot,9)
-          if( grdat(1:7) /= 'crystal' .and. grdat(1:7) /= 'molecul' .and. grdat(1:4) /= 'film' ) cycle
-
-          n = nnombre(itape4,132)
-          if( n == 2 ) then
-            cylindre = .true.
-          elseif( n == 1 ) then
-            spherique = .true.
-          endif
-          read(itape4,*)
-          do igr = 1,ngroup_neq
-            if( Readfast .or. Taux .or. Temperature .or. .not. ( Atom_nonsph .or. Atom_occ_hubb .or. Axe_loc) ) then
-              read(itape4,*) numat(igr), posn(:,igr)
-            else
-              n = nnombre(itape4,132)
-              if( n == 0 ) exit
-              if( n == 2 .or. n == 3 ) then
-                read(itape4,*)
-                n = nnombre(itape4,132)
-              endif
-              norbv = 0
-              select case(n)
-                case(4)
-                  read(itape4,*) numat(igr), posn(:,igr)
-                case default
-                  read(itape4,*,iostat=ier) numat(igr), posn(:,igr), norbv
-                  if( ier > 0 ) call write_err_form(itape4,grdat)
-              end select
-              if( norbv == 0 ) cycle
-              do io = 1,abs(norbv)
-                read(itape4,*)
-              end do
-            endif
-          end do
-
-          exit
-        end do
-
-      endif
-
-      if( ntype == 0 ) then
-
-        ntype = 1
-        boucle_1: do igr = 2,ngroup_neq
-          do jgr = 1,igr-1
-            if( numat(igr) == numat(jgr) ) cycle boucle_1
-          end do
-          ntype = ntype + 1
-        end do boucle_1
-        if( Doping ) then
-          do igr = 1,ngroup_neq
-            if( numat(igr) == itype_dop ) exit
-          end do
-          if( igr > ngroup_neq ) ntype = ntype + 1
-        endif
-
-      elseif( Atom_conf ) then
-
-        allocate( igra(ngroup_neq) )
-        igra(:) = 0
-        Rewind(itape4)
-
-        do igrdat = 1,100000
-          read(itape4,'(A)') mot
-          grdat = identmot(mot,9)
-          if( grdat /= 'atom_conf' ) cycle
-
-          na = 0
-          do it = 1,ntype
-            read(itape4,*) n, igra(na+1:na+n)
-            na = na + n
-          end do
-          exit
-        end do
-
-        boucle_2: do igr = 1,ngroup_neq
-          do kgr = 1,na
-            if( igr == igra(kgr) ) cycle boucle_2
-          end do
-          boucle_3: do jgr = 1,igr-1
-            do kgr = 1,na
-              if( jgr == igra(kgr) ) cycle boucle_3
-            end do
-            if( numat(igr) == numat(jgr) ) cycle boucle_2
-          end do boucle_3
-          ntype = ntype + 1
-        end do boucle_2
-
-        deallocate( igra )
-
-      endif
-
-      if( Space_Group /= ' ' ) then
-
-! Atom defined with few digits
-        if( abs( Angz - 120._db ) < 0.0001_db ) then
-          do i = 1,11
-            if( i == 3 .or. i == 6 .or. i == 9 ) cycle
-            Where( abs( Posn - i / 12._db ) < 0.00005_db ) Posn = i / 12._db
-          end do
-        endif
-
-        do igr = 1,ngroup_neq
-          if( cylindre ) then
-            r = posn(1,igr)
-            Theta = pi * posn(2,igr) / 180
-            posn(1,igr) = r * cos( theta )
-            posn(2,igr) = r * sin( theta )
-          elseif( spherique ) then
-            r = posn(1,igr)
-            theta = pi * posn(2,igr) / 180
-            phi = pi * posn(3,igr) / 180
-            posn(1,igr) = r * sin( theta ) * cos( phi)
-            posn(2,igr) = r * sin( theta ) * sin( phi)
-            posn(3,igr) = r * cos( theta )
-          endif
-        end do
-
-        if( Cif ) then
-          call spgroup(Cif,.false.,neq,n_atom_uc,ngroup_neq,numat,posn,posout,Fichier_cif,Space_group)
-        else
-          call spgroup(Cif,.false.,neq,n_atom_uc,ngroup_neq,numat,posn,posout,Space_file,Space_group)
-        endif
-
-      endif
-
-      deallocate( posn )
-      deallocate( posout )
-      deallocate( neq )
-      deallocate( numat )
-
+      Very_fast = Readfast .or. Taux .or. Temperature .or. .not. ( Atom_nonsph .or. Atom_occ_hubb .or. Axe_loc)
+      call Dim_reading(Angz,Atom_conf,Cif,Doping,Fichier_cif,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per,n_atom_per_neq, &
+                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,ntype,Pdb,Space_file,Space_Group,Very_fast)
     endif
+    n_atom_uc = n_atom_per + n_atom_sur + n_atom_int
 
 ! Pour le cas des atomes charges ou il faut ajouter une orbitale:
     if( nlatm > 0 .or. Screening ) nlatm = nlatm + 1
+
+! ntype is the total number of atom types including the bulk atoms when existing
+    ntype = ntype + ntype_bulk
+! ngroup is the total number of atoms including the bulk atoms when existing
+    ngroup = n_atom_uc + n_atom_bulk
+    if( Doping ) ngroup = ngroup + 1
+    if( Doping .and. Atom_conf ) ntype = ntype + 1
+
+    n_atom(1) = n_atom_bulk; n_atom(2) = n_atom_cap; n_atom(3) = n_atom_int; n_atom(4) = n_atom_neq; n_atom(5) = n_atom_per
+    n_atom(6) = n_atom_per_neq; n_atom(7) = n_atom_sur; n_atom(8) = n_atom_uc
 
   endif   ! arrive mpirank0 /= 0
 
@@ -1248,9 +975,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     call MPI_Bcast(Hubbard,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Magnetic,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_adimp,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(n_atom_bulk,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(n_atom_cap,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(n_atom_uc,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(n_atom,8,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_dic,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_multi_run_e,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_radius,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
@@ -1259,7 +984,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     call MPI_Bcast(neimagent,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nenerg,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ngamme,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(ngroup_neq,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(ngroup,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nhybm,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nklapw,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nlatm,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -1306,13 +1031,6 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   if( xan_atom ) ncolm = ncolm + 1
   if( self_abs ) ncolm = ncolm  + 2*npldafs
   if( Full_self_abs ) ncolm = ncolm  + 4*npldafs
-
-! ntype is the total number of atom types including the bulk atoms when existing
-  ntype = ntype + ntype_bulk
-! ngroup is the total number of atoms including the bulk atoms when existing
-  ngroup = n_atom_uc + n_atom_bulk
-  if( Doping ) ngroup = ngroup + 1
-  if( Doping .and. Atom_conf ) ntype = ntype + 1
 
   return
   110 format(//'  Error in the indata file :')
@@ -1383,7 +1101,7 @@ end
 
 !***********************************************************************
 
-! Routine de lecture des potentiels et densites electroniques venant de WIEN
+! Lecture subroutine of potentials and electronic densities comming from Wien2k
 
 subroutine lectpot_dim(n_atom_uc,nklapw,nlmlapwm,nmatsym,nomstruct,nomvcoul,ntype,Wien_save)
 
@@ -1461,7 +1179,7 @@ subroutine lectpot_dim(n_atom_uc,nklapw,nlmlapwm,nmatsym,nomstruct,nomvcoul,ntyp
         read(8,*)
       end do
 
-    end do ! fin de la boucle sur les atomes
+    end do ! end of loop over atoms
 
     do i = 1,5
       read(8,*)
@@ -1479,25 +1197,323 @@ end
 
 !*********************************************************************
 
+subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Fichier_cif,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per,n_atom_per_neq, &
+                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,ntype,Pdb,Space_file,Space_Group,Very_fast)
+
+  use declarations
+  implicit none
+
+  integer:: i, ier, igr, igrdat, io, ipr, istat, it, itape4, itype_dop, jgr, kgr, ligne, n, n_atom_int, n_atom_per, &
+    n_atom_per_neq, n_atom_sur, n_label, n_fract_x, n_fract_y, n_fract_z, na, n_atom_neq, nnombre, norbv, ntype
+
+  integer, dimension(n_atom_per):: neq, numat
+  integer, dimension(n_atom_neq):: igra, itype
+
+  character(len=2):: Chemical_Symbol, Chemical_Symbol_c, Symbol
+  character(len=6):: mot6
+  character(len=9):: grdat
+  character(len=13):: Space_Group
+  character(len=132):: Fichier_cif, Fichier_pdb, identmot, mot, motsb, Space_file, Word_from_text
+
+  logical:: Atom_conf, Cif, Cylindre, Doping, Pdb, Spherique, Very_fast
+
+  real(kind=db):: Angz, number_from_text
+  real(kind=db), dimension(3):: p
+  real(kind=db), dimension(3,3):: Mat
+  real(kind=db), dimension(3,n_atom_per_neq):: posn, posout
+
+  if( Pdb ) then
+
+    open(8, file = Fichier_pdb, status='old', iostat=istat)
+
+    igr = 0
+
+    do ligne = 1,100000
+
+      read(8,'(a6)') mot6
+
+      select case(mot6)
+
+        case('END   ')
+
+          exit
+
+        case('SCALE1' )
+
+          backspace(8)
+          do i = 1,3
+            read(8,'(10x,3f10.6)') Mat(i,:)
+          end do
+
+        case('ATOM  ','HETATM')
+
+          backspace(8)
+          read(8,'(30x,3f8.3,22x,a2)') p(:), Symbol
+
+          igr = igr + 1
+          p = Matmul( Mat, p )
+          posn(:,igr) = p(:)
+
+          Symbol = adjustl(Symbol)
+          do i = 1,103
+            if( Chemical_Symbol_c(i) /= Symbol .and. Chemical_Symbol(i) /= Symbol ) cycle
+            numat(igr) = i
+            exit
+          end do
+          if( i == 104 ) then
+            call write_error
+            do ipr = 6,9,3
+              write(ipr,170) igr, Symbol
+            end do
+            stop
+          endif
+          if( igr == n_atom_per ) exit
+
+        case default
+
+          cycle
+
+      end select
+
+    end do
+
+    Close(8)
+
+  elseif( Cif ) then
+
+    open(8, file = Fichier_cif, status='old', iostat=istat)
+
+    igr = 0
+
+    do
+      read(8,'(A)') mot
+      if( mot(1:10) == '_atom_site' ) exit
+    end do
+    backspace(8)
+
+    n = 0
+    do
+      n = n + 1
+      read(8,'(A)') mot
+      if( mot(1:1) /= '_' ) then
+        backspace(8)
+        exit
+      endif
+    end do
+
+    do igr = 1,n_atom_per
+
+      read(8,'(A)') mot
+      motsb = word_from_text(n_label,mot)
+
+! Lecture element chimique
+      Symbol = motsb(1:2)
+      if( Symbol(2:2) == '1' .or. Symbol(2:2) == '2' .or. Symbol(2:2) == '3' .or. Symbol(2:2) == '4' .or.  &
+          Symbol(2:2) == '5' .or. Symbol(2:2) == '6' .or. Symbol(2:2) == '7' .or. Symbol(2:2) == '8' .or.  &
+          Symbol(2:2) == '9' ) Symbol(2:2) = ' '
+
+      do i = 1,103
+        if( Chemical_Symbol_c(i) /= Symbol .and. Chemical_Symbol(i) /= Symbol ) cycle
+        numat(igr) = i
+        exit
+      end do
+      if( i == 104 ) then
+        call write_error
+        do ipr = 6,9,3
+          write(ipr,170) igr, Symbol
+        end do
+        stop
+      endif
+
+      posn(1,igr) = number_from_text(n_fract_x,mot)
+      posn(2,igr) = number_from_text(n_fract_y,mot)
+      posn(3,igr) = number_from_text(n_fract_z,mot)
+
+    end do
+
+    Close(8)
+
+  else
+
+    Rewind(itape4)
+
+    do igrdat = 1,100000
+      read(itape4,'(A)') mot
+      grdat = identmot(mot,9)
+      if( grdat(1:7) == 'crystal' .or. grdat(1:7) == 'molecul' .or. grdat(1:4) == 'film' ) exit
+    end do
+
+    n = nnombre(itape4,132)
+    if( n == 2 ) then
+      Cylindre = .true.
+    elseif( n == 1 ) then
+      Spherique = .true.
+    endif
+    read(itape4,*)
+
+    do igr = 1,n_atom_per_neq
+      if( Very_fast ) then
+        read(itape4,*) numat(igr), posn(:,igr)
+      else
+        n = nnombre(itape4,132)
+        if( n == 0 ) exit
+        if( n == 2 .or. n == 3 ) then
+          read(itape4,*)
+          n = nnombre(itape4,132)
+        endif
+        norbv = 0
+        select case(n)
+          case(4)
+            read(itape4,*) numat(igr), posn(:,igr)
+          case default
+            read(itape4,*,iostat=ier) numat(igr), posn(:,igr), norbv
+            if( ier > 0 ) call write_err_form(itape4,grdat)
+        end select
+        if( norbv == 0 ) cycle
+        do io = 1,abs(norbv)
+          read(itape4,*)
+        end do
+      endif
+
+    end do
+
+  endif
+
+  if( Space_Group /= ' ' ) then
+
+! Atom defined with few digits
+    if( abs( Angz - 120._db ) < 0.0001_db ) then
+      do i = 1,11
+        if( i == 3 .or. i == 6 .or. i == 9 ) cycle
+        Where( abs( Posn - i / 12._db ) < 0.00005_db ) Posn = i / 12._db
+      end do
+    endif
+
+    if( Cif ) then
+      call spgroup(Cif,.false.,neq,n_atom_per,n_atom_per_neq,numat,posn,posout,Fichier_cif,Space_group)
+    else
+      call spgroup(Cif,.false.,neq,n_atom_per,n_atom_per_neq,numat,posn,posout,Space_file,Space_group)
+    endif
+
+  endif
+
+  itype(1:n_atom_per_neq) = numat(1:n_atom_per_neq)
+
+  if( ntype == 0 ) then
+
+    if( n_atom_int > 0 ) then
+
+      Rewind(itape4)
+
+      do igrdat = 1,100000
+        read(itape4,'(A)') mot
+        grdat = identmot(mot,9)
+        if( grdat(1:7) == 'interfa' ) exit
+      end do
+
+      read(itape4,*)
+
+      do igr = n_atom_per_neq + 1, n_atom_per_neq + n_atom_int
+        read(itape4,*) itype(igr)
+      end do
+
+    endif
+
+    if( n_atom_sur > 0 ) then
+
+      Rewind(itape4)
+
+      do igrdat = 1,100000
+        read(itape4,'(A)') mot
+        grdat = identmot(mot,9)
+        if( grdat(1:7) == 'surface' ) exit
+      end do
+
+      read(itape4,*)
+
+      do igr = n_atom_per_neq + n_atom_int+ 1, n_atom_neq
+        read(itape4,*) itype(igr)
+      end do
+
+    endif
+
+    if( n_atom_neq > 0 ) ntype = 1
+
+    boucle_1: do igr = 2, n_atom_neq
+      do jgr = 1,igr-1
+        if( itype(igr) == itype(jgr) ) cycle boucle_1
+      end do
+      ntype = ntype + 1
+    end do boucle_1
+    if( Doping ) then
+      do igr = 1,n_atom_neq
+        if( itype(igr) == itype_dop ) exit
+      end do
+      if( igr > n_atom_neq ) ntype = ntype + 1
+    endif
+
+  endif
+
+  if( Atom_conf ) then
+
+    igra(:) = 0
+    Rewind(itape4)
+
+    do igrdat = 1,100000
+      read(itape4,'(A)') mot
+      grdat = identmot(mot,9)
+      if( grdat /= 'atom_conf' ) cycle
+
+      na = 0
+      do it = 1,ntype
+        read(itape4,*) n, igra(na+1:na+n)
+        na = na + n
+      end do
+      exit
+    end do
+
+    boucle_2: do igr = 1,n_atom_neq
+      do kgr = 1,na
+        if( igr == igra(kgr) ) cycle boucle_2
+      end do
+      boucle_3: do jgr = 1,igr-1
+        do kgr = 1,na
+          if( jgr == igra(kgr) ) cycle boucle_3
+        end do
+        if( itype(igr) == itype(jgr) ) cycle boucle_2
+      end do boucle_3
+      ntype = ntype + 1
+    end do boucle_2
+
+  endif
+
+  return
+  170 format(/' Error in the Pdb file :',// &
+              ' The chemical symbol of atom number',i6,' is: ', a2,', what is not known!'//)
+end
+
+!*********************************************************************
+
 ! Reading subroutine
 ! All the indata are in Angstroem and eV.
 ! Angle are in degrees
 ! They are converted in this routine in atomic units (Bohr radius and Rydberg).
 
 subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_mode,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
-    Angxyz_cap,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk,axyz_cap, &
+    Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk, &
+    axyz_cap,axyz_int,axyz_sur, &
     Basereel,Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free, &
     Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density, &
     Density_comp,Dip_rel,Dipmag,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
     Eimagent,Eneg_i,Eneg_n_i,Energphot,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift, &
     Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
-    Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs,hkl_film,hkl_ref, &
-    Hubb,Hubbard,Hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,iscratch,isigpi,itdil,its_lapw,iord,itape4,itype, &
+    Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard, &
+    Hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,Interface_shift,iscratch,isigpi,itdil,its_lapw,iord,itape4,itype, &
     itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,l_selec_max,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmax_tddft_inp, &
     lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper,MPI_host_num_for_mumps,mpinodes, &
-    mpinodes0,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_uc,n_devide, &
-    n_file_dafs_exp,n_multi_run_e,n_radius,n_range,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg,ngamh,ngamme, &
-    ngroup,ngroup_hubb,ngroup_lapw,ngroup_m,ngroup_neq,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
+    mpinodes0,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_uc,n_atom_proto, &
+    n_devide,n_file_dafs_exp,n_multi_run_e,n_radius,n_range,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg, &
+    ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw,ngroup_m,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
     ngroup_temp,nhybm,nlat,nlatm,No_solsing,nom_fich_Extract, &
     nomfich,nomfichbav,Noncentre, &
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
@@ -1509,7 +1525,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     r0_lapw,rchimp,Readfast,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,rydberg,rsorte_s,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Solver,Space_file,Spherical_signal,Spherical_tensor, &
-    Spinorbite,state_all,state_all_out,Supermuf,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef, &
+    Spinorbite,state_all,state_all_out,Supermuf,Surface_shift,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef, &
     Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_hubbard,V_intmax,Vec_orig, &
     Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
 
@@ -1521,12 +1537,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     ispin, istat, istop, isymeq, it, itape4, itype_dop, j, jgr, jpl, jseuil, jt, k, kgr, l, l_hubbard, l_level_val, &
     l_selec_max, l1, l2, lamstdens, lecrantage, lin_gam, lmax_nrixs, lmax_pot, lmax_pot_default, lmax_tddft_inp, lmaxat0, &
     lmaxso0, long, lseuil, m, m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank0, multi_run, multrmax, &
-    n, n_adimp, n_atom_bulk, n_atom_cap, n_atom_proto, n_atom_uc, n_devide, n_file_dafs_exp, n_fract_x, n_fract_y, n_fract_z,  &
-    n_label, n_multi_run_e, n_occupancy, n_radius, n_range, n1, n2, natomsym, nb_atom_conf_m, nb_atom_nsph, nbseuil, nchemin, &
-    necrantage, neimagent, nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_neq, ngroup_nonsph, &
+    n, n_adimp, n_atom_bulk, n_atom_cap, n_atom_int, n_atom_neq, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_proto, &
+    n_atom_uc, n_devide, n_file_dafs_exp, &
+    n_fract_x, n_fract_y, n_fract_z, n_label, n_multi_run_e, n_occupancy, n_radius, n_range, n1, n2, natomsym, &
+    nb_atom_conf_m, nb_atom_nsph, nbseuil, &
+    nchemin, necrantage, neimagent, nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_nonsph, &
     ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, nhybm, nlatm, nn, nnombre, non_relat, norb, norbdil, normrmt, &
-    nparm, nphim, nphimt, npldafs, npldafs_2d, npldafs_e, npldafs_f, nple, nq_nrixs, nrato_dirac, nrm, nscan, nself, nseuil, nslapwm, &
-    nspin, ntype, ntype_bulk, ntype_conf, numat_abs, Trace_k, Wien_save, Z_nospinorbite, Z
+    nparm, nphim, nphimt, npldafs, npldafs_2d, npldafs_e, npldafs_f, nple, nq_nrixs, nrato_dirac, nrm, nscan, nself, nseuil, &
+    nslapwm, nspin, ntype, ntype_bulk, ntype_conf, numat_abs, Trace_k, Wien_save, Z_nospinorbite, Z
 
   character(len=1):: Let
   character(len=2):: Chemical_Symbol, Chemical_Symbol_c, Symbol
@@ -1548,6 +1566,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
   integer, dimension(2):: Mult_bulk, Mult_film
   integer, dimension(3):: hkl_borm, hkl_ref, ldipimp
+  integer, dimension(8):: n_atom
   integer, dimension(12):: Tensor_imp
   integer, dimension(30):: icheck
   integer, dimension(3,3):: lquaimp
@@ -1584,7 +1603,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     exc_imp, Extract, Extract_ten, FDM_comp, FDMX_only, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, &
     Full_potential, Full_self_abs, &
     Gamma_hole_imp, Gamma_tddft, Green_s, Green_self, Green_int, Hedin, hkl_film, Hubbard, korigimp, lmaxfree, lmoins1, lplus1, &
-    M1M1, M1M2, M2M2, Magnetic, matper, muffintin, noncentre, nonexc, nonexc_imp, normaltau, no_core_resolved, no_dipquad, &
+    M1M1, M1M2, M2M2, Magnetic, Matper, muffintin, noncentre, nonexc, nonexc_imp, normaltau, no_core_resolved, no_dipquad, &
     no_e1e3, no_e2e2, no_e3e3, No_solsing, Octupole, Old_zero, One_run, Operation_mode_used, Optic, Overad, Pas_SCF_imp, Pdb, &
     Perdew, PointGroup_Auto, Polarise, quadmag, Quadrupole, r_self_imp, Readfast, Relativiste, &
     rpalf, rydberg, SCF, SCF_elecabs, SCF_mag_free, Self_abs, self_cons, SCF_exc_imp, self_nonexc, &
@@ -1598,15 +1617,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   logical, dimension(0:ntype):: Hubb
 
   real(kind=db):: Alfpot, Ang_borm, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, D_max_pot, Delta_En_conv, &
-    Delta_Epsii, Eclie, Eclie_out, Film_roughness, Film_thickness, g1, g2, Gamma_max, Kern_fac, number_from_text, Overlap, &
-    p_self_max, p_self0, Pas_SCF, phi, phi_0, pop_nsph, pp, q, &
-    r, r_self, R_rydb, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, V_intmax, vv
+    Delta_Epsii, Eclie, Eclie_out, Film_roughness, Film_thickness, Film_zero, g1, g2, Gamma_max, Kern_fac, &
+    number_from_text, Overlap, p_self_max, p_self0, Pas_SCF, phi, phi_0, pop_nsph, pp, q, &
+    r, r_self, R_rydb, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, V_intmax, vv, z_min
 
   real(kind=db), dimension(nq_nrixs):: q_nrixs
   real(kind=db), dimension(2):: f_no_res
-  real(kind=db), dimension(5):: Film_shift
-  real(kind=db), dimension(3):: Ang, Ang_rotsup, Ang_spin, Angxyz, Angxyz_bulk, Angxyz_cap, Axe, Axe_spin, axyz, axyz_bulk, &
-                                axyz_cap, Centre, dpos, p, Vec_orig
+  real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
+  real(kind=db), dimension(3):: Ang, Ang_rotsup, Ang_spin, Angxyz, Angxyz_bulk, Angxyz_cap, Angxyz_int, Angxyz_sur, Axe, Axe_spin, &
+                                axyz, axyz_bulk, axyz_cap, axyz_int, axyz_sur, Centre, dpos, p, Vec_orig
   real(kind=db), dimension(6):: Trace_p
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(3,3):: Cubmat, Cubmat_bulk, Cubmati, Cubmati_bulk, Mat, Mat_or, Mat_UB, Rot, Rot_gen
@@ -1650,6 +1669,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   real(kind=db), dimension(:,:), allocatable:: pos
   real(kind=db), dimension(:,:,:), allocatable:: Hybrid_i, Hybrid_r
 
+  n_atom_int = n_atom(3); n_atom_neq = n_atom(4); n_atom_per = n_atom(5)
+  n_atom_per_neq = n_atom(6); n_atom_sur = n_atom(7)
+
 ! Parametres par defaut
   adimp(:) = 0.25_db
   adimpin = .false. !*** JDB
@@ -1682,6 +1704,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Clementi = .false.
   Cif = .false.
   com(:) = ' Dirac'
+  Core_resolved_e = .false.
   Coupelapw = .false.
   Dip_rel = .false.
   E1E1 = .true.;  E1E2e = .false.; E1E3 = .false.
@@ -1724,9 +1747,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Fermi_auto = .true.
   Film_roughness = 0._db
   Film_shift(:) = 0._db
-  Film_shift(3) = -1000._db
-  Film_shift(5) = -1000._db  ! Film_zero
-  Film_thickness = -1000._db
+  Film_thickness = 0._db
+  Film_zero = -1000._db
   Flapw_new = .false.
   Force_ecr = .false.
   Full_atom_e = .false.
@@ -1741,6 +1763,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Hybrid(:,:,:) = ( 0._db, 0._db )
   iabsm(1) = 1
   ier = 0
+  Interface_shift(:) = 0._db
   Charge_free = .false.
   icom(:) = 1
   igr_dop = 0
@@ -1765,13 +1788,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   lmoins1 = .false.
   lplus1 = .false.
   Mat_UB(:,:) = 0._db
-  matper = .true.
+  Matper = .false.
   muffintin = .false.
   multrmax = 1
   n_devide = 2
   nchemin = - 1
   necrantage = 0
   nlat(:) = 0
+  no_core_resolved = .false.
   no_dipquad = .false.
   no_e1e3 = .false.
   no_e3e3 = .false.
@@ -1810,19 +1834,22 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   pdpolar(:,:) = 0._db
   perdew = .false.
   phi_0 = 0._db
+  PointGroup = ' '
+  PointGroup_Auto = .true.
   polar(:,:) = 0._db
   polarise = .false.
   popats(:,:,:) = 0._db
   quadmag = .false.
   Quadrupole = .false.
-  relativiste = .false.
-  rchimp(:) = 0._db
   r_self_imp = .false.
-  rmt(:) = 0._db
-  rmtimp(:) = 0._db
-  roverad = 0._db
-  rpotmax = 0._db
-  rsorte_s(:) = 3._db
+  rchimp(:) = 0._db
+  Relativiste = .false.
+  Rmt(:) = 0._db
+  Rmtimp(:) = 0._db
+  Roverad = 0._db
+  RPALF = .false.
+  Rpotmax = 0._db
+  Rsorte_s(:) = 3._db
   Rydberg = .false.
   R_rydb = 1._db
   SCF = .false.
@@ -1836,18 +1863,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   solsing_s = .false.
   solsing_only = .false.
   Space_Group = ' '
-  spherical_tensor = .false.
-  spherical_signal = .false.
-  spherique = .false.
+  Spherical_tensor = .false.
+  Spherical_signal = .false.
+  Spherique = .false.
   Spinorbite = .false.
-  core_resolved_e = .false.
-  no_core_resolved = .false.
   State_all = .false.
   State_all_out = .false.
-  supermuf = .false.
-  PointGroup = ' '
-  PointGroup_Auto = .true.
-  RPALF = .false.
+  Supermuf = .false.
+  Surface_shift(:) = 0._db
   Symauto = .true.
   Symmol = .false.
   Taux_cap(:) = 1._db
@@ -1859,8 +1882,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   trace_format_wien = .false.
   Trace_k = 0
   Trace_p(:) = 0._db
-  veconde(:,:) = 0._db
-  v0bdcFimp(:) = 0._db
+  Veconde(:,:) = 0._db
+  V0bdcFimp(:) = 0._db
   V_hubbard(:) = 0._db
   v_intmax = 1000000 * rydb
   Vec_orig(1:2) = 0._db; Vec_orig(3) = 1._db
@@ -1958,15 +1981,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           n = nnombre(itape4,132)
           if( n == 1 ) then
             read(itape4,*,iostat=ier) Film_shift(3)
-          elseif( n == 3 ) then
-            read(itape4,*,iostat=ier) Film_shift(1:3)
           else
-            read(itape4,*,iostat=ier) Film_shift(1:4)
+            n = min(4,n)
+            read(itape4,*,iostat=ier) Film_shift(1:n)
           endif
           if(ier > 0 ) call write_err_form(itape4,grdat)
 
        case('film_zero')
-         read(itape4,*,iostat=ier) Film_shift(5)
+         read(itape4,*,iostat=ier) Film_zero
          if( ier > 0 ) call write_err_form(itape4,grdat)
 
         case('film_thic')
@@ -1975,6 +1997,28 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('hkl_film')
           hkl_film = .true.
+
+        case('inter_shi')
+          n = nnombre(itape4,132)
+          if( n == 1 ) then
+            read(itape4,*,iostat=ier) Interface_shift(3)
+          elseif( n == 3 ) then
+            read(itape4,*,iostat=ier) Interface_shift(1:3)
+          else
+            read(itape4,*,iostat=ier) Interface_shift(1:4)
+          endif
+          if( ier > 0 ) call write_err_form(itape4,grdat)
+
+        case('surface_s')
+          n = nnombre(itape4,132)
+          if( n == 1 ) then
+            read(itape4,*,iostat=ier) Surface_shift(3)
+          elseif( n == 3 ) then
+            read(itape4,*,iostat=ier) Surface_shift(1:3)
+          else
+            read(itape4,*,iostat=ier) Surface_shift(1:4)
+          endif
+          if( ier > 0 ) call write_err_form(itape4,grdat)
 
         case('dip_rel')
           Dip_rel = .true.
@@ -2777,6 +2821,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('flapw','flapw_s','flapw_r','flapw_s_p','flapw_psi', 'flapw_n','flapw_n_p','flapw_s_n')
 
+          Matper = .true.
           if( grdat(6:7) == '_n' ) Flapw_new = .true.
           if( grdat(6:7) == '_s' ) then
             Wien_save = 1
@@ -3086,32 +3131,54 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           if( motsb(1:1) == ' ' ) motsb = adjustl(motsb)
           Space_group = motsb(1:13)
 
-        case('crystal','molecule','film','crystal_t','molecule_','film_t')
-          Matper = ( grdat(1:8) /= 'molecule' )
+! Cluster, film or unit cell description
+        case('crystal','molecule','crystal_t','molecule_','film','film_t','surface','surface_t','interface','interfac_')
+
+          if( grdat(1:8) /= 'molecule' ) Matper = .true.
+
           n = nnombre(itape4,132)
           if( n == 3 ) then
-            read(itape4,*) axyz(1:3)
-            angxyz(1:3) = 90._db
+            read(itape4,*) axe(1:3)
+            ang(1:3) = 90._db
           elseif( n == 2 ) then
             cylindre = .true.
-            read(itape4,*) axyz(1:3:2)
-            axyz(2) = axyz(1)
-            angxyz(1:3) = 90._db
+            read(itape4,*) axe(1:3:2)
+            axe(2) = axe(1)
+            ang(1:3) = 90._db
           elseif( n == 1 ) then
             spherique = .true.
-            read(itape4,*) axyz(1)
-            axyz(2) = axyz(1)
-            axyz(3) = axyz(1)
-            angxyz(1:3) = 90._db
+            read(itape4,*) axe(1)
+            axe(2) = axe(1)
+            axe(3) = axe(1)
+            ang(1:3) = 90._db
           else
-            read(itape4,*,iostat=ier) axyz(1:3), angxyz(1:3)
+            read(itape4,*,iostat=ier) axe(1:3), ang(1:3)
           endif
           if( ier > 0 ) call write_err_form(itape4,grdat)
-          do igr = 1,ngroup_neq
+          if( grdat(1:1) == 's' ) then
+            angxyz_sur(:) = ang(:)
+            axyz_sur(:) = axe(:)
+          elseif( grdat(1:1) == 'i' ) then
+            angxyz_int(:) = ang(:)
+            axyz_int(:) = axe(:)
+          else
+            angxyz(:) = ang(:)
+            axyz(:) = axe(:)
+          endif
+          do igr = 1,n_atom_neq
+            if( grdat(1:1) == 'i' ) then
+              if( igr <= n_atom_per_neq .or. igr > n_atom_per_neq + n_atom_int) cycle
+            elseif( grdat(1:1) == 's' ) then
+              if( igr <= n_atom_per_neq + n_atom_int ) cycle
+            elseif( igr > n_atom_per_neq ) then
+              cycle
+            endif
             if( Temperature .and. Taux ) then
               n = nnombre(itape4,132)
               if( n > 5 ) then
                 read(itape4,*) itype(igr), posn(:,igr), Taux_oc(igr), Temp_coef(igr)
+              elseif( n == 5 ) then
+                read(itape4,*) itype(igr), posn(:,igr), Taux_oc(igr)
               else
                 read(itape4,*) itype(igr), posn(:,igr)
               endif
@@ -3349,7 +3416,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 endif
               end do
 
-              do igr = 1,ngroup_neq
+              do igr = 1,n_atom_per_neq
 
                 read(8,'(A)') mot
                 motsb = word_from_text(n_label,mot)
@@ -3443,7 +3510,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           read(itape4,*) Pas_SCF
 
 ! Parametres deja lus dans lectdim
-        case('full_self','magnetism','memory_sa','self_abs','readfast','temperatu')
+        case('full_self','magnetism','memory_sa','occupancy','self_abs','readfast','temperatu')
 
         case default
 
@@ -3654,21 +3721,23 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       end do
     endif
 
-    do igr = 1,n_atom_uc
-      if( cylindre ) then
+    if( cylindre ) then
+      do igr = 1,n_atom_uc
         r = posn(1,igr)
         theta = pi * posn(2,igr) / 180
         posn(1,igr) = r * cos( theta )
         posn(2,igr) = r * sin( theta )
-      elseif( spherique ) then
+      end do
+    elseif( spherique ) then
+      do igr = 1,n_atom_uc
         r = posn(1,igr)
         theta = pi * posn(2,igr) / 180
         phi = pi * posn(3,igr) / 180
         posn(1,igr) = r * sin( theta ) * cos( phi)
         posn(2,igr) = r * sin( theta ) * sin( phi)
         posn(3,igr) = r * cos( theta )
-      endif
-    end do
+      end do
+    endif
 
     if( Atom_conf ) then
 
@@ -3680,8 +3749,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
       jt = ntype_conf
 
-      boucle_2: do igr = 1,ngroup_neq+1
-        if( .not. Doping .and. igr == ngroup_neq+1 ) cycle
+      boucle_2: do igr = 1,n_atom_neq+1
+        if( .not. Doping .and. igr == n_atom_neq+1 ) cycle
         do it = 1,ntype_conf
           do kgr = 1,nb_atom_conf(it)
             if( igr == igra(kgr,it) ) cycle boucle_2
@@ -3696,7 +3765,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           if( itype(igr) == itype(jgr) ) cycle boucle_2
         end do boucle_3
         jt = jt + 1
-        if( Doping .and. igr == ngroup_neq+1 ) then
+        if( Doping .and. igr == n_atom_neq+1 ) then
           numat(jt) = itype_dop
         else
           numat(jt) = itype(igr)
@@ -3704,8 +3773,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         itZ( numat(jt) ) = jt
       end do boucle_2
 
-      boucle_igr: do igr = 1,ngroup_neq+1
-        if( .not. Doping .and. igr == ngroup_neq+1 ) cycle
+      boucle_igr: do igr = 1,n_atom_neq+1
+        if( .not. Doping .and. igr == n_atom_neq+1 ) cycle
         do it = 1,ntype_conf
           do kgr = 1,nb_atom_conf(it)
             if( igr /= igra(kgr,it) ) cycle
@@ -3713,7 +3782,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             cycle boucle_igr
           end do
         end do
-        if( Doping .and. igr == ngroup_neq+1 ) then
+        if( Doping .and. igr == n_atom_neq+1 ) then
           itype(igr) = itZ( itype_dop )
         else
           itype(igr) = itZ( itype(igr) )
@@ -3734,29 +3803,63 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
     endif
 
-    if( .not. Matper ) Space_group = ' '
+    if( .not. Matper .or. n_atom_per == 0 ) Space_group = ' '
 
     iabsorig(:) = iabsm(:)
+
     if( Matper .and. Space_group /= ' ' ) then
-      allocate( neq(ngroup_neq) )
-      allocate( pos(3,ngroup_neq) )
-      do igr = 1,ngroup_neq
+
+! Recopy of surface and inter-layer atoms in film
+      n = n_atom_int + n_atom_sur
+      do i = n_atom_int + n_atom_sur,1,-1
+        ia = n_atom_uc - n + i
+        igr = n_atom_per_neq + i
+        if( igr_dop == igr ) igr_dop = ia
+        posn(:,ia) = posn(:,igr)
+        itype(ia) = itype(igr)
+        if( Taux ) Taux_oc(ia) = Taux_oc(igr)
+        if( Temperature ) Temp_coef(ia) = Temp_coef(igr)
+        if( ngroup_pdb > 0 ) Kgroup(ia) = Kgroup(igr)
+
+        Ang_base_loc_gr(:,ia) = Ang_base_loc_gr(:,igr )
+
+        if( ia <= ngroup_nonsph ) then
+          norbv(ia) = norbv(igr)
+          if( norbv(ia) /= 0 ) then
+            hybrid(:,:,ia) = hybrid(:,:,igr)
+            pop_nonsph(:,ia) = pop_nonsph(:,igr)
+          endif
+        endif
+        if( Atom_occ_hubb ) occ_hubb_e(:,:,:,ia) = occ_hubb_e(:,:,:,igr)
+
+        do multi_run = 1,n_multi_run_e
+          if( iabsorig(multi_run) == igr ) iabsm(multi_run) = ia
+        end do
+      end do
+
+      iabsorig(:) = iabsm(:)
+
+      allocate( neq(n_atom_per_neq) )
+      allocate( pos(3,n_atom_per_neq) )
+      do igr = 1,n_atom_per_neq
         pos(:,igr) = posn(:,igr)
       end do
       if( Cif ) then
-        call spgroup(Cif,.true.,neq,n_atom_uc,ngroup_neq,itype,pos,posn,Fichier_cif,Space_group)
+        call spgroup(Cif,.true.,neq,n_atom_uc,n_atom_per_neq,itype,pos,posn,Fichier_cif,Space_group)
       else
-        call spgroup(Cif,.true.,neq,n_atom_uc,ngroup_neq,itype,pos,posn,Space_file,Space_group)
+        call spgroup(Cif,.true.,neq,n_atom_uc,n_atom_per_neq,itype,pos,posn,Space_file,Space_group)
       endif
-      if( Doping ) then
-        do igr = 1,n_atom_uc
+
+      if( Doping .and. igr_dop <= n_atom_per_neq ) then
+        do igr = 1,n_atom_uc - n
           if( sum( abs( posn(:,igr) - pos(:,igr_dop) ) ) > eps10 ) cycle
           igr_dop = igr
           exit
         end do
       endif
-      ia = n_atom_uc + 1
-      do igr = ngroup_neq,1,-1
+
+      ia = n_atom_uc - n + 1
+      do igr = n_atom_per_neq,1,-1
         do i = 1,neq(igr)
           ia = ia - 1
           itype(ia) = itype(igr)
@@ -3780,8 +3883,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           if( iabsorig(multi_run) == igr ) iabsm(multi_run) = ia
         end do
       end do
-      deallocate( pos )
-      deallocate( neq )
+
+      deallocate( neq, pos )
+
     endif
 
     if( Doping ) iabsm(1) = n_atom_uc + 1
@@ -3789,7 +3893,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
     if( Flapw ) then
       nrm = nrato_dirac
-      call lect_struct_lapw(angxyz,axyz,icheck(1),its_lapw,itype,n_atom_uc,ngroup_lapw,Wien_file(1),nrato_lapw,nrm,nslapwm, &
+      call lect_struct_lapw(angxyz,axyz,icheck(1),its_lapw,itype,n_atom_per,ngroup_lapw,Wien_file(1),nrato_lapw,nrm,nslapwm, &
                             ntype,ntype_bulk,numat,posn,r0_lapw,rlapw,rotloc_lapw,Wien_matsym,Wien_taulap)
       if( normrmt == 1 ) normrmt = 2
     elseif( nrm == 0 ) then
@@ -3875,13 +3979,80 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       endif
     endif
 
+! Film preparation
     if( Film ) then
       if( .not. Bulk ) hkl_film = .true.
     else
       Bulk = .false.
       Cap_layer = .false.
     endif
-    if( .not. Bulk ) Film_shift(1:4) = 0._db
+    if( n_atom_per == 0 ) Film_shift(:) = 0._db
+    if( n_atom_int == 0 ) Interface_shift(:) = 0._db
+    if( n_atom_sur == 0 ) Surface_shift(:) = 0._db
+    if( Film .and. n_atom_per == 0 .and.  n_atom_sur == 0 ) then
+      n_atom_sur = n_atom_int
+      n_atom_int = 0
+      Surface_shift(:) = Interface_shift(:)
+      Interface_shift(:) = 0._db
+      axyz_sur(:) = axyz_int(:)
+      angxyz_sur(:) = angxyz_int(:)
+    endif
+    if( Film .and. n_atom_per == 0 ) then
+      axyz(:) = axyz_sur(:)
+      angxyz(:) = angxyz_sur(:)
+    endif
+
+    if( Film .and. n_atom_per /= 0 ) then
+      if( Film_zero > eps10 ) then
+        do jgr = 1,n_atom_per
+          posn(3,jgr) = posn(3,jgr) - Film_zero
+          if( posn(3,jgr) < - eps10 ) posn(3,jgr) = posn(3,jgr) + 1._db
+        end do
+      endif
+      z_min = 10000._db
+      do jgr = 1,n_atom_per
+        z_min = min( z_min, posn(3,jgr) )
+      end do
+      do jgr = 1,n_atom_per
+        posn(3,jgr) = posn(3,jgr) - z_min
+      end do
+    endif
+    if( Film .and. n_atom_int /= 0 ) then
+      z_min = 10000._db
+      do jgr = n_atom_per+1, n_atom_per+n_atom_int
+        z_min = min( z_min, posn(3,jgr) )
+      end do
+      do jgr = n_atom_per+1, n_atom_per+n_atom_int
+        posn(3,jgr) = posn(3,jgr) - z_min
+      end do
+    endif
+    if( Film .and. n_atom_sur /= 0 ) then
+      z_min = 10000._db
+      do jgr = n_atom_per+n_atom_int+1, n_atom_uc
+        z_min = min( z_min, posn(3,jgr) )
+      end do
+      do jgr = n_atom_per+n_atom_int+1, n_atom_uc
+        posn(3,jgr) = posn(3,jgr) - z_min
+      end do
+    endif
+    if( Cap_layer ) then
+      z_min = 10000._db
+      do jgr = 1,n_atom_cap
+        z_min = min( z_min, posn_cap(3,jgr) )
+      end do
+      do jgr = 1,n_atom_cap
+        posn_cap(3,jgr) = posn_cap(3,jgr) - z_min
+      end do
+    endif
+    if( Bulk ) then
+      z_min = 10000._db
+      do jgr = 1,n_atom_bulk
+        z_min = min( z_min, posn_bulk(3,jgr) )
+      end do
+      do jgr = 1,n_atom_bulk
+        posn_bulk(3,jgr) = posn_bulk(3,jgr) - z_min
+      end do
+    endif
 
     if( Operation_mode_used ) then
       Bormann = .false.
@@ -4247,13 +4418,20 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       if( Film .and. Bulk ) then
 
         angxyz_bulk(:) = angxyz_bulk(:) * radian
-        Film_shift(4) = Film_shift(4) * radian
-        call mult_film_bulk(angxyz_bulk,axyz,axyz_bulk,Film_shift,Mult_bulk,Mult_film)
-        angxyz_bulk(:) = angxyz_bulk(:) / radian
-        Film_shift(4) = Film_shift(4) / radian
-
-        Diagonal = abs( angxyz_bulk(3) - 90 ) < 1._db .and. &
+        if( n_atom_per > 0 ) then
+          Film_shift(4) = Film_shift(4) * radian
+          call mult_film_bulk(angxyz_bulk,axyz,axyz_bulk,Film_shift,Mult_bulk,Mult_film)
+          Film_shift(4) = Film_shift(4) / radian
+          Diagonal = abs( angxyz_bulk(3) - 90 ) < 1._db .and. &
                   ( abs( Film_shift(4) - 45 ) <  1._db .or. abs( Film_shift(4) + 45 ) < 1._db )
+        elseif( n_atom_sur > 0 ) then
+          Surface_shift(4) = Surface_shift(4) * radian
+          call mult_film_bulk(angxyz_bulk,axyz_sur,axyz_bulk,Surface_shift,Mult_bulk,Mult_film)
+          Surface_shift(4) = Surface_shift(4) / radian
+          Diagonal = abs( angxyz_bulk(3) - 90 ) < 1._db .and. &
+                  ( abs( Surface_shift(4) - 45 ) <  1._db .or. abs( Surface_shift(4) + 45 ) < 1._db )
+        endif
+        angxyz_bulk(:) = angxyz_bulk(:) / radian
 
         i = 0
         do ipl = 1,npldafs
@@ -4556,7 +4734,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         else
           write(3,'(/a36,f8.3)') '   Azimuth in the orientation matrix =', phi_0
         endif
-        write(3,'(a24,3i4)')  '  Reference axis hkl =', hkl_ref(:)
+        write(3,'(a24,3i4)')  '   Reference axis hkl =', hkl_ref(:)
 
       else
 
@@ -4645,42 +4823,41 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         write(3,*)
         if( Film ) then
-          write(3,'(a19,i5)') ' Film,  n_atom_uc =', n_atom_uc
+          write(3,'(a55,4i5)') ' Film,  n_atom_uc, n_atom_int, n_atom_sur, n_atom_per =', n_atom_uc, n_atom_int, &
+                               n_atom_sur, n_atom_per
         elseif( Matper ) then
           write(3,'(a22,i5)') ' Crystal,  n_atom_uc =', n_atom_uc
         else
           write(3,'(a22,i5)') ' Molecule,  n_atom_uc =', n_atom_uc
         endif
         if( Space_group /= ' ' .and. Matper ) write(3,554) Space_group
-        write(3,555) axyz(1:3)
-        write(3,556) angxyz(1:3)
         if( Pdb .and. Taux .and. Temperature ) then
-          write(3,560) 'Kgroup  Occupancy  Temp_cf'
+          mot = 'Kgroup  Occupancy  Temp_cf'
         elseif( Pdb .and. Taux ) then
-          write(3,560) 'Kgroup  Occupancy'
+          mot = 'Kgroup  Occupancy'
         elseif( Pdb .and. Temperature ) then
-          write(3,560) 'Kgroup   Temp_cf'
+          mot = 'Kgroup   Temp_cf'
         elseif( Pdb ) then
-          write(3,560) 'Kgroup'
+          mot = 'Kgroup'
         elseif( Atom_nonsph ) then
           if( Taux .and. Temperature ) then
-            write(3,560) ' Occupancy  Temp_coef  norbv   popats'
+            mot = ' Occupancy  Temp_coef  norbv   popats'
           elseif( Taux ) then
-            write(3,560) ' Occupancy  norbv   popats'
+            mot = ' Occupancy  norbv   popats'
           elseif( Temperature ) then
-            write(3,560) ' Temp_coef  norbv   popats'
+            mot = ' Temp_coef  norbv   popats'
           else
-            write(3,560) '  norbv  popats'
+            mot = '  norbv  popats'
           endif
         else
           if( Taux .and. Temperature ) then
-            write(3,560) ' Occupancy  Temp_coef'
+            mot = ' Occupancy  Temp_coef'
           elseif( Taux ) then
-            write(3,560) ' Occupancy'
+            mot = ' Occupancy'
           elseif( Temperature ) then
-            write(3,560) ' Temp_coef'
+            mot = ' Temp_coef'
           else
-            write(3,560)
+            mot = ' '
           endif
         endif
         do jgr = 1,ngroup - n_atom_bulk
@@ -4690,6 +4867,21 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           else
             igr = jgr
           endif
+          if( jgr == 1 .and. n_atom_per > 0 ) then
+            write(3,555) axyz(1:3)
+            write(3,556) angxyz(1:3)
+          endif
+          if( jgr == n_atom_per + 1 .and. n_atom_int > 0 ) then
+            write(3,'(/A)') '   Interface elements :'
+            write(3,555) axyz_int(1:3)
+            write(3,556) angxyz_int(1:3)
+          elseif( jgr == n_atom_per + n_atom_int + 1 .and. n_atom_sur > 0 ) then
+            write(3,'(/A)') '   Surface elements :'
+            write(3,555) axyz_sur(1:3)
+            write(3,556) angxyz_sur(1:3)
+          endif
+          if( jgr == 1 ) write(3,560) mot
+
           it = itype(jgr)
           Z = numat( abs(it) )
           if( Pdb .and. Taux .and. Temperature ) then
@@ -4723,9 +4915,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             endif
             do io = 1,norbv(jgr)
               if( sum( abs( hybrid(io,10:16,jgr) ) ) < eps10 ) then
-                write(3,600)  io, pop_nonsph(io,jgr), real( hybrid(io,1:9,jgr) )
+                write(3,600) io, pop_nonsph(io,jgr), real( hybrid(io,1:9,jgr) )
               else
-                write(3,600)  io, pop_nonsph(io,jgr), real( hybrid(io,:,jgr) )
+                write(3,600) io, pop_nonsph(io,jgr), real( hybrid(io,:,jgr) )
               endif
             end do
           endif
@@ -4739,16 +4931,21 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         if( Film ) then
           write(3,*)
-          if( Film_thickness > -100._db ) write(3,'(a15,f10.5)') ' Film thickness = ', Film_thickness
-          if( Film_shift(3) < -100._db ) then
-            write(3,'(a15,2f10.5)') ' Film shift =  ', Film_shift(1:2)
-            write(3,'(A)') ' Default vertical film shift, equal to the sum of top bulk and bottom film atom radii'
-          else
-            write(3,'(a15,3f10.5)') ' Film shift =  ', Film_shift(1:3)
+          if( n_atom_per > 0 ) then
+            write(3,'(a17,f10.5)') ' Film thickness =', Film_thickness
+            write(3,'(a17,3f10.5)') ' Film shift     =', Film_shift(1:3)
+            if( abs( Film_shift(4) ) > eps10 ) write(3,'(a17,f10.5)') ' Film rotat     =', Film_shift(4)
+            if( abs( Film_zero ) > -100._db )  write(3,'(a17,f10.5)') ' Film zero      =', Film_zero
           endif
-          if( abs( Film_shift(4) ) > eps10 ) write(3,'(a13,2f13.5)') ' Film rotat =', Film_shift(4)
-          if( abs( Film_shift(5) ) > -100._db )  write(3,'(a13,f13.5)') ' Film zero =', Film_shift(5)
-          if( Film_roughness > eps10 ) write(3,'(a17,f13.5)') ' Film roughness =', Film_roughness
+          if( Film_roughness > eps10 ) write(3,'(a17,f10.5)') ' Film roughness =', Film_roughness
+          if( n_atom_int > 0 ) then
+            write(3,'(a17,3f10.5)') ' Interface shift=', Interface_shift(1:3)
+            if( abs( Interface_shift(4) ) > eps10 ) write(3,'(a17,f10.5)') ' Interface rotat=', Interface_shift(4)
+          endif
+          if( n_atom_sur > 0 ) then
+            write(3,'(a17,3f10.5)') ' Surface shift  =', Surface_shift(1:3)
+            if( abs( Surface_shift(4) ) > eps10 ) write(3,'(a17,f10.5)') ' Surface rotat  =', Interface_shift(4)
+          endif
           if( hkl_film ) then
             write(3,'(A)') ' hkl definition of the film'
           else
@@ -4882,12 +5079,16 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Angle_mode,3*npldafs_2d, MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     if( npldafs > 0 ) call MPI_Bcast(angpoldafs,3*npldafs, MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(angxyz,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(angxyz_int,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(angxyz_sur,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Ang_base_loc,3*(ntype+1),MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Ang_base_loc_gr,3*ngroup,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Ang_rotsup,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Ang_spin,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Axe_spin,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(axyz,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(axyz_int,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(axyz_sur,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Basereel,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Bormann,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Cap_roughness,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -4938,7 +5139,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(FDM_comp,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Film_roughness,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Film_thickness,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Film_shift,5,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Film_shift,4,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Force_ecr,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Full_atom_e,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Full_potential,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
@@ -4965,6 +5166,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     endif
     call MPI_Bcast(iabsm,n_multi_run_e,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(iabsorig,n_multi_run_e,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Interface_shift,4,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(iord,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(isigpi,npldafs*2, MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(itdil,norbdil, MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -5071,8 +5273,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(State_all,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(State_all_out,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Supermuf,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(vecdafsem,3*npldafs_e,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(vecdafssm,3*npldafs_e,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Surface_shift,4,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Vecdafsem,3*npldafs_e,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Vecdafssm,3*npldafs_e,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(PointGroup_Auto,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Symauto,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Symmol,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
@@ -5156,6 +5359,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       call write_error_message(Error_message,ipr0,istop)
     endif
 
+    if( Film_roughness > eps10 ) then
+      do igr = n_atom_per + 1, n_atom_uc
+        if( posn(3,igr) < 1 + eps10 ) cycle
+        Error_message = ' It is not possible to have at the same time film roughness and overlayer !'
+        call write_error_message(Error_message,ipr0,istop)
+        exit
+      end do
+    endif
+
     if( istop == 1 ) stop
   endif
 
@@ -5163,10 +5375,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   adimp(:) = adimp(:) / bohr
   Angle_mode(:,:) = Angle_mode(:,:) * radian
   angxyz(:) = angxyz(:) * radian
-  angxyz_cap(:) = angxyz_cap(:) * radian
   angxyz_bulk(:) = angxyz_bulk(:) * radian
+  angxyz_cap(:) = angxyz_cap(:) * radian
+  angxyz_int(:) = angxyz_int(:) * radian
+  angxyz_sur(:) = angxyz_sur(:) * radian
   where( abs(angpoldafs) < 9999._db ) angpoldafs = angpoldafs * radian
   axyz(1:3) = axyz(1:3) / bohr
+  axyz_int(1:3) = axyz_int(1:3) / bohr
+  axyz_sur(1:3) = axyz_sur(1:3) / bohr
   if( Bulk ) axyz_bulk(1:3) = axyz_bulk(1:3) / bohr
   if( Cap_layer ) axyz_cap(1:3) = axyz_cap(1:3) / bohr
   Cap_disorder = Cap_disorder / bohr
@@ -5189,6 +5405,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Film_thickness = Film_thickness / bohr
   Film_shift(1:3) = Film_shift(1:3) / bohr
   Film_shift(4) = Film_shift(4) * radian
+  Interface_shift(1:3) = Interface_shift(1:3) / bohr
+  Interface_shift(4) = Interface_shift(4) * radian
   Mat_UB(:,:) = Mat_UB(:,:) * bohr  ! Mat_UB in A^-1 in inpout
   Pas_SCF = Pas_SCF / rydb
   phi_0 = phi_0 * radian
@@ -5200,6 +5418,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Roverad = Roverad / bohr
   Rpotmax = Rpotmax / bohr
   Rsorte_s(:) = Rsorte_s(:) / bohr
+  Surface_shift(1:3) = Surface_shift(1:3) / bohr
+  Surface_shift(4) = Surface_shift(4) * radian
   Test_dist_min = Test_dist_min / bohr
   V_intmax = V_intmax / Rydb
   if( Hubbard ) V_hubbard(:) = V_hubbard(:) / Rydb
@@ -5239,6 +5459,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       Ang_base_loc_gr(:,igr) = Ang_base_loc(:, abs(itype(igr)) )
     end do
     do igr = 1,ngroup - n_atom_bulk
+
+      if( igr == n_atom_per + n_atom_int + 1 .and. n_atom_per + n_atom_int /= 0 .and. n_atom_sur /= 0 ) then
+        call cal_cubmat(angxyz_sur,Cubmat,Struct)
+        call invermat(Cubmat,Cubmati)
+      elseif( igr == n_atom_per + 1 .and. n_atom_int /= 0 ) then
+        call cal_cubmat(angxyz_int,Cubmat,Struct)
+        call invermat(Cubmat,Cubmati)
+      endif
+
       if( Ang_base_loc_gr(1,igr) < - 1000._db ) Ang_base_loc_gr(:,igr) = Ang_spin(:)
       Ang(:) = Ang_base_loc_gr(:,igr)
       call mat_euler( Ang, Rot )
@@ -5568,11 +5797,17 @@ subroutine Rmt_fix(icheck,ntype,numat,Rmt)
     endif
   end do
 
-  if( icheck > 0 ) write(3,110) Rmt(1:ntype)
+  if( icheck > 0 ) then
+    write(3,110)
+    do it = 1,ntype
+      write(3,120) it, numat(it), Rmt(it)
+    end do
+  endif
   Rmt(:) = Rmt(:) / bohr
 
   return
-  110 format(/' FDM atom radius =',10f6.3)
+  110 format(/' FDM atom radius: Type   Z    R')
+  120 format(16x,2i5,f7.3)
 end
 
 !***********************************************************************
@@ -6126,6 +6361,7 @@ subroutine Auto_center(axyz,Centre,Centre_auto_abs,Cubmat,icheck,itype,n_atom_uc
   140 format(//' The farest absorbing atom is at R =',f7.3,' A  > Cluster radius =',f7.3,' A',// &
                ' Increase the cluster radius !',/)
 end
+
 
 
 

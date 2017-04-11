@@ -2,8 +2,8 @@
 
 ! Remplissage de la matrice FDM et resolution du systeme d'equations lineaires.
 
-subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xanes,cgrad, &
-                    clapl,Classic_irreg,dcosxyz,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide,FDM_comp,Full_atom, &
+subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, &
+                    clapl,Classic_irreg,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide,FDM_comp,Full_atom, &
                     gradvr,iaabsi,iaprotoi,iato,ibord,icheck,ie,igreq,igroupi,igrph,irep_util,isbord,iso,ispinin,isrt,ivois, &
                     isvois,karact,lato,lmaxa,lmaxso,lso,mato,MPI_host_num_for_mumps,mpirank0,mso, &
                     natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup_m,ngrph,nim,nicm, &
@@ -44,13 +44,12 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   complex(kind=db), dimension(:,:,:), allocatable :: Bessel, Neuman
   complex(kind=db), dimension(:,:,:,:), allocatable :: taull_tem
 
-  logical:: Base_hexa, Base_ortho, Basereel, Basereelt, Cal_xanes, Cal_comp, Classic_irreg, E_comp, Eneg, FDM_comp, Full_atom, &
+  logical:: Base_hexa, Basereel, Basereelt, Cal_xanes, Cal_comp, Classic_irreg, E_comp, Eneg, FDM_comp, Full_atom, &
     recop, Relativiste, Repres_comp, Rydberg, Spinorbite, Solsing, State_all_r, Stop_job, Sym_cubic, Ylm_comp
   logical, dimension(natome):: Atom_axe
 
   real(kind=db):: adimp, Eclie_out, Eimag, Enervide, R_rydb, Rsort, Time_fill, Time_tria 
 
-  real(kind=db), dimension(3):: dcosxyz
   real(kind=db), dimension(nspin):: Ecinetic_out, V0bd_out
   real(kind=db), dimension(nopsm,nspino):: Kar, Kari
   real(kind=db), dimension(nvois):: cgrad
@@ -120,7 +119,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Base_ortho,Basereelt,Cal_xa
   do isp = 1,nspin
     if( .not. Spinorbite .and. isp /= ispinin ) cycle
     jsp = jsp + 1
-    call phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic_out(isp),Eclie_out,Eimag, &
+    call phiso(Adimp,Bessel,Besselr,E_comp,Ecinetic_out(isp),Eclie_out,Eimag, &
        Eneg,Enervide,icheck,jsp,isrt,lmaxso,mpirank0,Neuman,Neumanr,npsom,nsort,nsort_c,nsort_r,nspinr,nstm, &
        R_Rydb,Rsort,Rydberg,V0bd_out(isp),xyz)
   end do
@@ -526,7 +525,7 @@ end
 
 ! Calculation of the Neuman and Bessel functions in the FDM grid of point at the border of the outer-sphere
 
-subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic_out,Eclie_out,Eimag, &
+subroutine phiso(Adimp,Bessel,Besselr,E_comp,Ecinetic_out,Eclie_out,Eimag, &
        Eneg,Enervide,icheck,isp,isrt,lmaxso,mpirank0,Neuman,Neumanr,npsom,nsort,nsort_c,nsort_r,nspinr,nstm, &
        R_Rydb,Rsort,Rydberg,V0bd_out,xyz)
 
@@ -544,12 +543,12 @@ subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic_out,Ecl
   complex(kind=db), dimension(:), allocatable:: f12
   complex(kind=db), dimension(:,:), allocatable:: rbs, rnm, u
 
-  logical:: Base_ortho, E_comp, Eneg, Rydberg
+  logical:: E_comp, Eneg, Rydberg
 
   real(kind=db):: Adimp, cal_norm, clapl, clapl0, deltar, dr, Ecinetic_out, Ec, Eclie_out, ee, Eimag, Enervide, fnorm, konder, &
-                  p1, p2, pp, R_rydb, Rmax, rr, Rsort, V0bd_out, vnorme, zr
+                  p1, p2, pp, R_rydb, Rmax, rr, Rsort, V0bd_out, zr
 
-  real(kind=db), dimension(3):: dcosxyz, p
+  real(kind=db), dimension(3):: p
   real(kind=db), dimension(0:lmaxso):: bsr, nmr
   real(kind=db), dimension(4,npsom):: xyz
   real(kind=db), dimension(nsort_r,0:lmaxso,nspinr):: Besselr, Neumanr
@@ -711,7 +710,7 @@ subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic_out,Ecl
       do ib = 1,nsort
         i = isrt(ib)
         p(1:3) = xyz(1:3,i)
-        rr = vnorme(Base_ortho,dcosxyz,p)
+        rr = sqrt( sum( p(:)**2 ) )
         do ir = nr-1,2,-1
           if( r(ir) > rr ) exit
         end do
@@ -764,12 +763,12 @@ subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic_out,Ecl
       i = isrt(ib)
       p(1:3) = xyz(1:3,i)
       if( E_comp ) then
-        z = konde * vnorme(Base_ortho,dcosxyz,p)
+        z = konde * sqrt( sum( p(:)**2 ) )
         call cbessneu(fnormc,z,lmaxso,lmaxso,bs,nm)
         Neuman(ib,0:lmaxso,isp) = nm(0:lmaxso)
         Bessel(ib,0:lmaxso,isp) = bs(0:lmaxso)
       else
-        zr = konder * vnorme(Base_ortho,dcosxyz,p)
+        zr = konder * sqrt( sum( p(:)**2 ) )
         call cbessneur(fnorm,zr,lmaxso,lmaxso,bsr,nmr)
         Neumanr(ib,0:lmaxso,isp) = nmr(0:lmaxso)
         Besselr(ib,0:lmaxso,isp) = bsr(0:lmaxso)
@@ -785,7 +784,7 @@ subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic_out,Ecl
         do ib = 1,nsort
           i = isrt(ib)
           p(1:3) = xyz(1:3,i)
-          rr = vnorme(Base_ortho,dcosxyz,p)
+          rr = sqrt( sum( p(:)**2 ) )
           z = konde * rr
           write(3,140) isrt(ib), rr*bohr, Bessel(ib,l,isp), Neuman(ib,l,isp)
         end do
@@ -794,7 +793,7 @@ subroutine phiso(Adimp,Base_ortho,Bessel,Besselr,dcosxyz,E_comp,Ecinetic_out,Ecl
         do ib = 1,nsort
           i = isrt(ib)
           p(1:3) = xyz(1:3,i)
-          rr = vnorme(Base_ortho,dcosxyz,p)
+          rr = sqrt( sum( p(:)**2 ) )
           zr = konder * rr
           write(3,140) isrt(ib), rr*bohr, Besselr(ib,l,isp), Neumanr(ib,l,isp)
         end do
@@ -1818,7 +1817,7 @@ end
 
 ! Calculation of multiple scattering amplitude using the multiple scattering theory
 
-subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,Classic_irreg,dcosxyz,ecinetic,Eimag,Full_atom,ia_eq,ia_rep,iaabsi,iaprotoi, &
+subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_eq,ia_rep,iaabsi,iaprotoi, &
                     iato,icheck,igreq,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato,n_atom_0, &
                     n_atom_ind,n_atom_proto,natome,natomp,nb_eq,nb_rpr,nb_rep_t,nb_sym_op,nchemin,neqm,ngroup_m, &
                     ngrph,nlmagm,nlmsa,nlmsam,nlmsamax,Normaltau,nspin,nspino,nspinp,pos,posi,recop,Repres_comp, &
@@ -1853,14 +1852,14 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,Classic_irreg,dcosxyz,ecinetic,
   integer, dimension(0:n_atom_proto,neqm):: igreq
   integer, dimension(nlmsam,natome,ngrph):: lato, mato, iato
 
-  logical:: Base_ortho, Brouder, Cal_xanes, Classic_irreg, Ereel, Full_atom, Normaltau, Solsing, &
+  logical:: Brouder, Cal_xanes, Classic_irreg, Ereel, Full_atom, Normaltau, Solsing, &
     Recop, Repres_comp, Spinorbite, State_all_r, Stop_job, Sym_cubic, Tau_nondiag, Ylm_comp
 
   real(kind=db):: Eimag, tp1, tp2, tp3, Time_fill, Time_tria
 
   real(kind=db), dimension(nspin):: ecinetic
   real(kind=db), dimension(nspin):: konder
-  real(kind=db), dimension(3):: dcosxyz, w
+  real(kind=db), dimension(3):: w
   real(kind=db), dimension(3,3):: Mat_rot
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_grn
   real(kind=db), dimension(3,natome):: posi
@@ -2055,7 +2054,7 @@ subroutine msm(Axe_atom_grn,Base_ortho,Cal_xanes,Classic_irreg,dcosxyz,ecinetic,
 
 ! L'atome ne diffuse pas vers lui-meme.
         w(1:3) = posi(1:3,ia) - pos(1:3,ibb)
-        r = vnorme(Base_ortho,dcosxyz,w)
+        r = sqrt( sum( w(:)**2 ) )
         if( r < eps10 ) cycle
 
 ! Recherche de l'indice "ind" correspondant au representant n1.

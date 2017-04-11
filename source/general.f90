@@ -4,17 +4,18 @@
 
 ! Looking for equivalent atoms in the unit cell and search of the relative symmetry
 
-subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom_gr,axyz,Base_ortho,Bulk, &
-        Doping,Extract,Flapw,iabsm,icheck,igr_i,igr_is,igr_proto,itype, &
-        Magnetic,Matper,Memory_save,n_atom_proto,n_atom_uc,n_multi_run_e,neqm, &
+subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom_gr, &
+        axyz,axyz_int,axyz_sur,Base_ortho,Base_ortho_int,Base_ortho_sur,Bulk, &
+        Doping,Extract,Flapw,iabsm,icheck,igr_i,igr_is,igr_proto,itype,Magnetic,Matper, &
+        Memory_save,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,n_multi_run_e,neqm, &
         ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,numat_abs,popats,posn,Sym_2D)
 
   use declarations
   implicit none
 
   integer:: i, ia, ia_b, ib, ib_b, icheck, igr, igr_1, igr_2, igr_b, igra, igrb, io, irev, is, isp, it, ita, itb, jgr, jgr_b, &
-     js, long, n_atom_proto, n_atom_uc, n_multi_run_e, na, nabs, nb, nla, nlb, neq, neqm, ngroup, ngroup_m, nlatm, nspin, &
-     ntype, numat_abs, numat_it, numat_jgr
+     js, long, n_atom_int, n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, n_multi_run_e, na, nabs, nb, nla, nlb, neq, neqm, &
+     ngroup, ngroup_m, nlatm, nspin, ntype, numat_abs, numat_it, numat_jgr
 
   character(len=5):: struct
   character(len=9):: nomsym
@@ -28,27 +29,54 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
   integer, dimension(ntype):: itequ
   integer, dimension(:), allocatable:: iabsmm, isymq
 
-  logical:: Atom_nonsph, absauto, base_ortho, Bulk, Doping, Extract, Flapw, Magnetic, matper, Memory_save, mspinor, Sym_2D
+  logical:: Atom_nonsph, absauto, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Doping, Extract, Flapw, Magnetic, Matper, &
+            Memory_save, mspinor, Sym_2D
   logical, dimension(ngroup):: Atom_nsph_e, ok
   logical, dimension(0:ngroup_m):: Atom_with_axe
   logical, dimension(n_atom_uc):: Far_atom
 
   real(kind=db):: dist, distm_neq, dpop, pp1, pp2, Vnorme
 
-  real(kind=db), dimension(3):: angxyz, Axe_atom_c, axyz, dcosxyz, ps, spini, vspin, wspin
-  real(kind=db), dimension(3,3):: Cubmat, Cubmati, matopsym
+  real(kind=db), dimension(3):: angxyz, angxyz_int, angxyz_sur, Axe_atom_c, axyz, axyz_int, axyz_sur, dcosxyz, dcosxyz_int, &
+                                dcosxyz_sur, ps, spini, vspin, wspin
+  real(kind=db), dimension(3,3):: Cubmat, Cubmat_int, Cubmat_sur, Cubmati, Cubmati_int, Cubmati_sur, matopsym
   real(kind=db), dimension(3,n_atom_uc):: pos, posg, posn, poss
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_gr, Axe_atom_s
   real(kind=db), dimension(ngroup,nlatm,nspin):: popats
 
   call Cal_Cubmat(angxyz,Cubmat,Struct)
   call invermat(Cubmat,Cubmati)
-
+  if( .not. Bulk .and. n_atom_int /= 0 ) then
+  endif
+  if( .not. Bulk .and. n_atom_sur /= 0 ) then
+  endif
   dcosxyz(:) = 2 * cos( angxyz(:) )
-  if( abs( dcosxyz(1) ) < eps10 .and. abs( dcosxyz(2) ) < eps10 .and. abs( dcosxyz(3) ) < eps10 ) then
+  if( sum( abs( dcosxyz(:) ) ) < eps10 ) then
     Base_ortho = .true.
   else
     Base_ortho = .false.
+  endif
+
+  if( .not. Bulk .and. n_atom_int /= 0 ) then
+    call Cal_Cubmat(angxyz_int,Cubmat_int,Struct)
+    call invermat(Cubmat_int,Cubmati_int)
+    dcosxyz_int(:) = 2 * cos( angxyz_int(:) )
+    if( sum( abs( dcosxyz_int(:) ) ) < eps10 ) then
+      Base_ortho_int = .true.
+    else
+      Base_ortho_int = .false.
+    endif
+  endif
+
+  if( .not. Bulk .and. n_atom_sur /= 0 ) then
+    call Cal_Cubmat(angxyz_sur,Cubmat_sur,Struct)
+    call invermat(Cubmat_sur,Cubmati_sur)
+    dcosxyz_sur(:) = 2 * cos( angxyz_sur(:) )
+    if( sum( abs( dcosxyz_sur(:) ) ) < eps10 ) then
+      Base_ortho_sur = .true.
+    else
+      Base_ortho_sur = .false.
+    endif
   endif
 
   if( Bulk ) then
@@ -75,10 +103,10 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
     if( igra > igr_2 ) cycle
 
     do itb = ita+1,ntype
-!!
+
       if( itequ(itb) /= itb ) cycle
       if( FLAPW .and. .not. Extract ) cycle
-!!
+
       nb = numat(itb)
       if( nb /= na ) cycle
       nlb = nlat(itb)
@@ -168,7 +196,7 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
       Far_atom(jgr) = .true.
       do ia = 1,nabs
         ps(:) = posn(:,iabsmm(ia)) - posn(:,igr)
-        if( Sym_2D ) then
+        if( Sym_2D .or. ( iabsmm(ia) > n_atom_per  .or. igr > n_atom_per ) ) then
           do i = 1,2
             if( ps(i) > 0.5_db ) ps(i) = ps(i) - 1._db
             if( ps(i)  < -0.5_db ) ps(i) = ps(i) + 1._db
@@ -177,8 +205,16 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
           where( ps > 0.5_db ) ps = ps - 1._db
           where( ps < -0.5_db ) ps = ps + 1._db
         endif
-        ps(:) = ps(:) * axyz(:)
-        dist = Vnorme(Base_ortho,dcosxyz,ps)
+        if( igr <= n_atom_per ) then
+          ps(:) = ps(:) * axyz(:)
+          dist = Vnorme(Base_ortho,dcosxyz,ps)
+        elseif( igr <= n_atom_per+n_atom_int ) then
+          ps(:) = ps(:) * axyz_int(:)
+          dist = Vnorme(Base_ortho_int,dcosxyz_int,ps)
+        else
+          ps(:) = ps(:) * axyz_sur(:)
+          dist = Vnorme(Base_ortho_sur,dcosxyz_sur,ps)
+        endif
         if( dist <= distm_neq ) then
           Far_atom(igr) =  .false.
           exit
@@ -214,7 +250,7 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
       posg(:,ia) = posn(:,ia) - ps(:)
     end do
 
-    if( Matper ) call inmesh(posg,n_atom_uc,Sym_2D)
+    if( Matper ) call inmesh(posg,n_atom_per,n_atom_uc,Sym_2D)
 
     neq = 1
     isymq(1) = 1
@@ -223,20 +259,25 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
 
     boucle_igr: do igr = 1,n_atom_uc
 
+      if( ( jgr <= n_atom_per .and. igr > n_atom_per ) .or. ( igr <= n_atom_per .and. jgr > n_atom_per ) &
+        .or. ( jgr <= n_atom_per+n_atom_int .and. igr > n_atom_per+n_atom_int ) &
+        .or. ( igr <= n_atom_per+n_atom_int .and. jgr > n_atom_per+n_atom_int ) ) cycle
+
       if( ok(igr) .or. Far_atom(igr) ) cycle boucle_igr
 
       if( abs(itypegen(igr)) /= abs(itypegen(jgr))) cycle boucle_igr
 
       do ia = 1,n_atom_uc
-        pos(:,ia) = posg(:,ia) - posg(:,igr)
+        pos(:,ia) = posn(:,ia) - posn(:,igr)
       end do
-      if( Matper ) call inmesh(pos,n_atom_uc,Sym_2D)
+      if( Matper ) call inmesh(pos,n_atom_per,n_atom_uc,Sym_2D)
 
 ! Search of symmeties making the atoms equivalent
       boucle_is: do is = 1,nopsm
 
 ! For 2D diffraction, one only keeps 2D symmetries
-        if( Sym_2D .and. .not. ( is == 18 .or. is == 21 .or. is == 24 .or. is == 40 .or. is == 41 .or. is == 45 &
+        if( ( Sym_2D .or. igr > n_atom_per ) &
+                      .and. .not. ( is == 1 .or. is == 18 .or. is == 21 .or. is == 24 .or. is == 40 .or. is == 41 .or. is == 45 &
                                 .or. ( is >= 49 .and. is <= 52 ) .or. ( is >= 57 .and. is <= 64 ) ) ) cycle
 
         call opsym(is,matopsym)
@@ -250,7 +291,7 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
           ps = matmul( matopsym, ps )
           poss(:,ia) = ps(:) / axyz(:)
         end do
-        if( Matper ) call inmesh(poss,n_atom_uc,Sym_2D)
+        if( Matper ) call inmesh(poss,n_atom_per,n_atom_uc,Sym_2D)
 
         if( Magnetic .or. Atom_nonsph ) then
           call opsym(is,matopsym)
@@ -286,6 +327,9 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
         boucle_irev: do irev = 1,nspin    ! 1 identity, 2 time reversal
 
           boucle_ia: do ia = 1,n_atom_uc
+            if( ( ia <= n_atom_per .and. igr > n_atom_per ) .or. ( ia > n_atom_per .and. igr <= n_atom_per ) &
+             .or. ( ia <= n_atom_per+n_atom_int .and. igr > n_atom_per+n_atom_int ) &
+             .or. ( ia > n_atom_per+n_atom_int .and. igr <= n_atom_per+n_atom_int ) ) cycle
             if( Bulk ) then
               ia_b = ngroup - n_atom_uc + ia
             else
@@ -293,6 +337,9 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
             endif
 
             boucle_ib: do ib = 1,n_atom_uc
+              if( ( ib <= n_atom_per .and. igr > n_atom_per ) .or. ( ib > n_atom_per .and. igr <= n_atom_per ) &
+               .or. ( ib <= n_atom_per+n_atom_int .and. igr > n_atom_per+n_atom_int ) &
+               .or. ( ib > n_atom_per+n_atom_int .and. igr <= n_atom_per+n_atom_int )) cycle
               if( Bulk ) then
                 ib_b = ngroup - n_atom_uc + ib
               else
@@ -454,6 +501,8 @@ subroutine Symsite(Absauto,angxyz,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom
       igr_is(jgr_b) = 1
 
       do igr = 1,n_atom_uc
+        if( ( jgr <= n_atom_per .and. igr > n_atom_per ) .or. ( jgr > n_atom_per .and. igr <= n_atom_per ) ) cycle
+
         if( ok(igr ) .or. itypegen(igr) /= itypegen(jgr) ) cycle
         if( Bulk ) then
           igr_b = ngroup - n_atom_uc + igr
@@ -501,12 +550,12 @@ end
 
 !*********************************************************************
 
-subroutine inmesh(pos,n_atom_uc,Sym_2D)
+subroutine inmesh(pos,n_atom_per,n_atom_uc,Sym_2D)
 
   use declarations
   implicit none
 
-  integer:: igr, k, m, n_atom_uc
+  integer:: igr, k, m, n_atom_per, n_atom_uc
 
   logical:: Sym_2D
 
@@ -514,8 +563,9 @@ subroutine inmesh(pos,n_atom_uc,Sym_2D)
 
   do igr = 1,n_atom_uc
     do k = 1,3
-      if( Sym_2D .and. k == 3 ) exit
-      if( pos(k,igr) > 1._sg - eps10 ) then
+      if( ( Sym_2D .or. igr > n_atom_per ) .and. k == 3 ) exit
+!      if( pos(k,igr) > 1._sg - eps10 ) then
+      if( pos(k,igr) > 1._db - eps10 ) then
         m = int( pos(k,igr) + eps10 )
         pos(k,igr) = pos(k,igr) - m
       elseif( pos(k,igr) < - eps10 ) then
@@ -2117,42 +2167,41 @@ end
 
 ! Calculation of the number of atoms in the clusters used for potential calculation and xanes calculation
 
-subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step,Chargat,Cubmat,d_ecrant,dcosxyz,deccent, &
-        Doping,dpos, &
-        Film_shift,Flapw,iabsorbeur,iabsfirst,icheck,igr_dop,igreq,itabs,itype,Kgroup,Matper,mpirank,multi_run,multrmax, &
-        n_atom_bulk,n_atom_proto,n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
-        Noncentre,ntype,numat,posn,posn_bulk,One_run,Proto_all,r_self,rsorte_s,rmax,rpotmax,Self_cons,Sym_2D,Taux_oc, &
-        Z_bulk)
+subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
+        Base_ortho_sur,Bulk,Bulk_step,Chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
+        dpos,Film_shift,Film_thickness,Flapw,iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift, &
+        itabs,itype,Kgroup,Matper,mpirank,multi_run,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur, &
+        n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
+        Noncentre,posn,posn_bulk,One_run,Proto_all,r_self,rsorte_s,rmax,rpotmax,Self_cons,Surface_shift,Sym_2D, &
+        Taux_oc)
 
   use declarations
   implicit none
 
-  integer:: i_radius, iabsfirst, iabsorbeur, icheck, igr, igr_dop, igr0, ipr, itabs, ix, iy, iz, jgr, &
-     mpirank, multi_run, multrmax, n_atom_bulk, n_atom_proto, n_atom_uc, n_igr, n_radius, natomeq_coh, natomp, natomr, neqm, &
-     ngroup, ngroup_pdb, ngroup_taux, ntype, nxmaille, nymaille, nzmaille
+  integer:: i_radius, iabsfirst, iabsorbeur, icheck, igr, igr_dop, igr0, ipr, itabs, ix, iy, iz, jgr, mpirank, multi_run, &
+     multrmax, n_atom_bulk, n_atom_int, n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, n_igr, n_radius, natomeq_coh, natomp, &
+     natomr, neqm, ngroup, ngroup_pdb, ngroup_taux, nxmaille, nymaille, nzmaille
 
   integer, dimension(ngroup):: itype
-  integer, dimension(0:ntype):: numat
   integer, dimension(n_radius):: natomeq_s
   integer, dimension(ngroup_pdb):: Kgroup
-  integer, dimension(n_atom_bulk):: Z_bulk
   integer, dimension(0:n_atom_proto):: ngreq
   integer, dimension(0:n_atom_proto,neqm):: igreq
 
-  logical:: ATA, Base_ortho, Base_ortho_bulk, Bulk, Bulk_step, Doping, Flapw, matper, noncentre, One_run, Proto_all, Self_cons, &
-            Sym_2D
+  logical:: ATA, Base_ortho, Base_ortho_bulk, Base_ortho_int, Base_ortho_sur,Bulk, Bulk_step, Doping, &
+        Flapw, Matper, Noncentre, One_run, Proto_all, Self_cons, Sym_2D
   logical, dimension(n_atom_proto):: ipr_ok
 
-  real(kind=db):: d_ecrant, dist, r_self, Rmax, Rpotmax, Rsortm, vnorme
+  real(kind=db):: d_ecrant, cos_z, cos_z_b, cos_z_i, cos_z_s, Delta_bulk, Delta_film, Delta_int, Delta_sur, dist, &
+    Film_thickness, r_self, Rmax, Rpotmax, Rsortm, Vnorme
   real(kind=db), dimension(n_radius):: rsorte_s
-  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, axyz_g, dcosxyz, dcosxyz_bulk, deccent, dpos, ps, &
-                                Shift_bulk, v
-  real(kind=db), dimension(5):: Film_shift
+  real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_int, angxyz_sur, axyz, axyz_bulk, axyz_int, axyz_g, axyz_sur, &
+                                dcosxyz, dcosxyz_bulk, dcosxyz_int, dcosxyz_sur, deccent, dpos, ps, v
+  real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
   real(kind=db), dimension(ngroup_taux):: Taux_oc
   real(kind=db), dimension(3,n_atom_uc):: posn
   real(kind=db), dimension(3,n_atom_bulk):: posg_bulk, posn_bulk
   real(kind=db), dimension(0:n_atom_proto):: chargat
-  real(kind=db), dimension(3,3):: Cubmat, Mat
   real(kind=db), dimension(:,:), allocatable:: posg
 
   if( Bulk_step ) then
@@ -2163,22 +2212,39 @@ subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk
  else
     dcosxyz(:) = 2 * cos( angxyz(:) )
     igr0 = 1
-    n_igr = n_atom_uc
+    if( Sym_2D ) then
+      n_igr = n_atom_uc
+      dcosxyz_int(:) = 2 * cos( angxyz_int(:) )
+      dcosxyz_sur(:) = 2 * cos( angxyz_sur(:) )
+      cos_z = sqrt( sin( angxyz(2) )**2 - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) &
+            / sin( angxyz(3) ) )**2 )
+      if( n_atom_int > 0 ) &
+        cos_z_i = sqrt( sin( angxyz_int(2) )**2 - ( ( cos( angxyz_int(1) ) - cos( angxyz_int(3) ) * cos( angxyz_int(2) ) ) &
+                / sin( angxyz_int(3) ) )**2 )
+      if( n_atom_sur > 0 ) &
+        cos_z_s = sqrt( sin( angxyz_sur(2) )**2 - ( ( cos( angxyz_sur(1) ) - cos( angxyz_sur(3) ) * cos( angxyz_sur(2) ) ) &
+                / sin( angxyz_sur(3) ) )**2 )
+      if( n_atom_bulk > 0 ) &
+        cos_z_b = sqrt( sin( angxyz_bulk(2) )**2 - ( ( cos( angxyz_bulk(1) ) - cos( angxyz_bulk(3) ) * cos( angxyz_bulk(2) ) ) &
+                / sin( angxyz_sur(3) ) )**2 )
+    else
+! When the is no interface with the film of when no film n_atom_per = n_atom_uc
+      n_igr = n_atom_per
+    endif
     axyz_g(:) = axyz(:)
   endif
-  if( abs( dcosxyz(1) ) < eps10 .and. abs( dcosxyz(2) ) < eps10 .and. abs( dcosxyz(3) ) < eps10 ) then
-    Base_ortho = .true.
-  else
-    Base_ortho = .false.
-  endif
 
-! L'atome absorbeur est mis au centre (en cas de One_run, c'est le premier absorbeur)
+! The absorbing atom is set at the center (in case of One_run, it is the first absorbing atom )
   if( Noncentre .and. .not. Bulk_step ) then
     deccent(:) = 0._db
   elseif( Bulk_step ) then
     deccent(:) = posn_bulk(:,iabsfirst-ngroup+n_atom_bulk) * axyz_bulk(:)
-  else
+  elseif( iabsfirst <= n_atom_per ) then
     deccent(:) = posn(:,iabsfirst) * axyz(:)
+  elseif( iabsfirst <= n_atom_per+n_atom_int ) then
+    deccent(:) = posn(:,iabsfirst) * axyz_int(:)
+  else
+    deccent(:) = posn(:,iabsfirst) * axyz_sur(:)
   endif
 
   allocate( posg(3,igr0:n_igr) )
@@ -2188,9 +2254,17 @@ subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk
       posg(1:3,igr) = posn_bulk(1:3,igr-ngroup+n_atom_bulk) * axyz_g(1:3) - deccent(1:3)
     end do
   else
-    do igr = igr0,n_igr
-      posg(1:3,igr) = posn(1:3,igr) * axyz_g(1:3) - deccent(1:3)
+    do igr = igr0,n_atom_per
+      posg(1:3,igr) = posn(1:3,igr) * axyz(1:3) - deccent(1:3)
     end do
+    if( Sym_2D ) then
+      do igr = n_atom_per + 1, n_atom_per + n_atom_int
+        posg(1:3,igr) = posn(1:3,igr) * axyz_int(1:3) - deccent(1:3)
+      end do
+      do igr = n_atom_per + n_atom_int + 1, n_igr
+        posg(1:3,igr) = posn(1:3,igr) * axyz_sur(1:3) - deccent(1:3)
+      end do
+    endif
   endif
 
   if( rpotmax > eps4 ) then
@@ -2200,9 +2274,23 @@ subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk
   endif
 
   if( Matper ) then
-    nxmaille = nint( Rmax / axyz_g(1) ) + 3
-    nymaille = nint( Rmax / axyz_g(2) ) + 3
-    nzmaille = nint( Rmax / axyz_g(3) ) + 3
+    nxmaille = nint( Rmax / axyz(1) ) + 3
+    nymaille = nint( Rmax / axyz(2) ) + 3
+    if( n_atom_per == 0 ) then
+      nzmaille = 0
+    elseif( Sym_2D ) then
+      if( n_atom_int /= 0 ) then
+        nxmaille = max( nxmaille, nint( Rmax / axyz_int(1) ) + 3 )
+        nymaille = max( nymaille, nint( Rmax / axyz_int(2) ) + 3 )
+      endif
+      if( n_atom_sur /= 0 ) then
+        nxmaille = max( nxmaille, nint( Rmax / axyz_sur(1) ) + 3 )
+        nymaille = max( nymaille, nint( Rmax / axyz_sur(2) ) + 3 )
+      endif
+      nzmaille = nint( Film_thickness / axyz(3) ) + 3
+    else
+      nzmaille = nint( Rmax / axyz(3) ) + 3
+    endif
   else
     nxmaille = 0
     nymaille = 0
@@ -2215,13 +2303,14 @@ subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk
   ipr_ok(:) = .false.
 
   do ix = -nxmaille,nxmaille
-    v(1) = ix * axyz_g(1)
     do iy = -nymaille,nymaille
-      v(2) = iy * axyz_g(2)
       do iz = -nzmaille,nzmaille
-        if( Sym_2D .and. iz /= 0 ) cycle
-        v(3) = iz * axyz_g(3)
         boucle_igr: do igr = igr0,n_igr
+          if( Sym_2D ) then
+            if( igr > n_atom_per .and. iz /= 0 ) cycle
+            if( iabsfirst <= n_atom_per + n_atom_int .and. iz < 0 ) cycle
+            if( iabsfirst > n_atom_per + n_atom_int .and. iz > 0 ) cycle
+          endif
           if( ngroup_pdb > 0 ) then
             if( Kgroup(iabsorbeur) /= Kgroup(igr) .and. Kgroup(iabsorbeur) /= 0 .and. Kgroup(igr) /= 0 ) cycle
           endif
@@ -2232,13 +2321,51 @@ subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk
               if( sum( abs(posg(:,igr) - posg(:,iabsorbeur)) ) < eps6 ) cycle
             endif
           endif
+          if( Bulk .or. igr <= n_atom_per ) then
+            v(1) = ix * axyz_g(1)
+            v(2) = iy * axyz_g(2)
+            v(3) = iz * axyz_g(3)
+          elseif( igr <= n_atom_per + n_atom_int ) then
+            v(1) = ix * axyz_int(1)
+            v(2) = iy * axyz_int(2)
+            v(3) = iz * axyz_int(3)
+          else
+            v(1) = ix * axyz_sur(1)
+            v(2) = iy * axyz_sur(2)
+            v(3) = iz * axyz_sur(3)
+          endif
           ps(1:3) = posg(1:3,igr) + v(1:3)
+
+          if( Sym_2D .and. igr <= n_atom_per ) then
+            if( ps(3) * cos_z > Film_thickness + eps10 ) cycle
+            if( iabsfirst <= n_atom_per + n_atom_int ) then
+              ps(3) = ps(3) + ( Delta_Film - Delta_int ) / cos_z
+              ps(1:2) = ps(1:2) + Film_shift(1:2)
+            else
+              ps(3) = ps(3) - ( Delta_sur - Delta_film ) / cos_z
+              ps(1:2) = ps(1:2) - Surface_shift(1:2)
+            endif
+          elseif( Sym_2D ) then
+            if( iabsfirst <= n_atom_per + n_atom_int .and. igr > n_atom_per + n_atom_int ) then
+              ps(3) = ps(3) + ( Delta_sur - Delta_int ) / cos_z_s
+              ps(1:2) = ps(1:2) + Film_shift(1:2) + Surface_shift(1:2)
+            elseif( iabsfirst > n_atom_per + n_atom_int .and. igr <= n_atom_per + n_atom_int ) then
+              ps(3) = ps(3) - ( Delta_sur - Delta_int ) / cos_z_i
+              ps(1:2) = ps(1:2) - Film_shift(1:2) - Surface_shift(1:2)
+            endif
+          endif
           if( .not. ATA .and. .not. ( ix == 0 .and. iy == 0 .and. iz == 0 .and. igr == iabsorbeur ) ) then
             do jgr = igr0,igr-1
               if( sum( abs( posg(:,igr) - posg(:,jgr) ) ) < eps6 )  cycle boucle_igr
             end do
           endif
-          dist = Vnorme(Base_ortho,dcosxyz,ps)
+          if( Bulk .or. igr <= n_atom_per ) then
+            dist = Vnorme(Base_ortho,dcosxyz,ps)
+          elseif( igr <= n_atom_per + n_atom_int ) then
+            dist = Vnorme(Base_ortho_int,dcosxyz_int,ps)
+          else
+            dist = Vnorme(Base_ortho_sur,dcosxyz_sur,ps)
+          endif
           if( dist <= r_self + eps10 ) then
             natomeq_coh = natomeq_coh + 1
             boucle_ipr: do ipr = 1,n_atom_proto
@@ -2260,11 +2387,16 @@ subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk
 
   if( Sym_2D .and. Bulk ) then
 
-    call Film_Bulk_Sp(angxyz,angxyz_bulk,axyz,axyz_bulk,Cubmat,deccent,Film_shift,itype,Mat,n_atom_bulk,n_atom_uc,ngroup,ntype, &
-                        numat,Shift_bulk,posn,posn_bulk,Z_bulk)
+!    if( n_atom_int > 0 ) then
+!      call Cal_Cubmat(angxyz_int,Cubmat_int,Struct)
+!      call Film_Bulk_Sp(angxyz_bulk,axyz_bulk,Cubmat_int,deccent,Interface_Shift,Mat,n_atom_bulk,Shift_bulk,posn_bulk)
+!    else
+!      call Cal_Cubmat(angxyz_sur,Cubmat_sur,Struct)
+!      call Film_Bulk_Sp(angxyz_bulk,axyz_bulk,Cubmat_sur,deccent,Surface_Shift,Mat,n_atom_bulk,Shift_bulk,posn_bulk)
+!    endif
 
     do igr = 1,n_atom_bulk
-      posg_bulk(1:3,igr) = posn_bulk(1:3,igr) * axyz_bulk(1:3) + Shift_bulk(1:3)
+      posg_bulk(1:3,igr) = posn_bulk(1:3,igr) * axyz_bulk(1:3)
     end do
 
     dcosxyz_bulk(:) = 2 * cos( angxyz_bulk(:) )
@@ -2286,8 +2418,17 @@ subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk
           v(3) = iz * axyz_bulk(3)
           do igr = 1,n_atom_bulk
             ps(1:3) = posg_bulk(1:3,igr) + v(1:3)
- ! We change to film unit cell basis
-            ps = Matmul( Mat, ps )
+
+            if( Sym_2D ) then
+              if( iabsfirst <= n_atom_per + n_atom_int ) then
+                ps(3) = ps(3) + ( Delta_bulk - Delta_int ) / cos_z_b
+                ps(1:2) = ps(1:2) - Interface_shift(1:2)
+              else
+                ps(3) = ps(3) + ( Delta_bulk - Delta_sur ) / cos_z_b
+                ps(1:2) = ps(1:2) - Interface_shift(1:2) - Film_shift(1:2) - Surface_shift(1:2)
+              endif
+            endif
+
             dist = Vnorme(Base_ortho_bulk,dcosxyz_bulk,ps)
             if( dist <= r_self + eps10 ) natomeq_coh = natomeq_coh + 1
             do i_radius = 1,n_radius
@@ -2312,10 +2453,12 @@ subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk
 
   if( .not. Flapw .and. Matper ) then
     rsortm = max( r_self, rsorte_s(1) )
-    call reduc_natomp(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step,Cubmat,chargat,d_ecrant,dcosxyz,deccent, &
-            Doping,dpos,Film_shift,iabsorbeur,icheck,igr_dop,igreq,itabs,itype,Kgroup,matper,mpirank,multi_run,n_atom_bulk, &
-            n_atom_proto,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb,ngroup_taux,noncentre,ntype,numat,One_run,posn, &
-            posn_bulk,Rmax,Rsortm,Sym_2D,Taux_oc,Z_bulk)
+    call Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
+            Base_ortho_sur,Bulk,Bulk_step,chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
+            Doping,dpos,Film_shift, &
+            Film_thickness,iabsorbeur,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank,multi_run, &
+            n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb, &
+            ngroup_taux,noncentre,One_run,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
     natomp = natomr
   endif
 
@@ -2367,105 +2510,80 @@ subroutine natomp_cal(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk
 
 ! Determination of Film-bulk spacing
 
-subroutine Film_Bulk_Sp(angxyz,angxyz_bulk,axyz,axyz_bulk,Cubmat,deccent,Film_shift,itype,Mat,n_atom_bulk,n_atom_uc,ngroup, &
-                        ntype,numat,Shift_bulk,posn,posn_bulk,Z_bulk)
+subroutine Film_Bulk_Sp(angxyz_bulk,axyz_bulk,Cubmat,deccent,Shift,Mat,n_atom_bulk,Shift_bulk,posn_bulk)
 
   use declarations
   implicit none
 
-  integer:: igr, it, n_atom_bulk, n_atom_uc, ngroup, ntype, Z_bottom_film, Z_top_bulk
-  integer, dimension(ngroup):: itype
-  integer, dimension(0:ntype):: numat
-  integer, dimension(n_atom_bulk):: Z_bulk
+  integer:: igr, n_atom_bulk
 
   character(len=5):: struct_bulk
 
-  real(kind=db):: Angle, Atom_radius, c_cos_z, c_cos_z_b, cos_z, cos_z_b, z_max_bulk, z_min_film, z_pos
-  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, deccent, Shift_bulk
-  real(kind=db), dimension(5):: Film_shift
+  real(kind=db):: Angle, c_cos_z_b, cos_z_b, z_max_bulk, z_pos
+  real(kind=db), dimension(3):: angxyz_bulk, axyz_bulk, deccent, Shift_bulk
+  real(kind=db), dimension(4):: Shift
   real(kind=db), dimension(3,3):: Cubmat, Cubmat_bulk, Cubmati, Mat, Rot
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
-  real(kind=db), dimension(3,n_atom_uc):: posn
-
-  cos_z = sqrt( sin( angxyz(2) )**2  - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) / sin( angxyz(3) ) )**2 )
-  c_cos_z = axyz(3) * cos_z
 
   cos_z_b = sqrt( sin( angxyz_bulk(2) )**2  - ( ( cos( angxyz_bulk(1) ) - cos( angxyz_bulk(3) ) * cos( angxyz_bulk(2) ) ) &
           / sin( angxyz_bulk(3) ) )**2 )
   c_cos_z_b = axyz_bulk(3) * cos_z_b
-
-  z_min_film = 1000000._db
-
-  do igr = 1,n_atom_uc
-
-    it = itype( igr )
-    if( numat( it ) == 0 ) cycle
-
-    z_pos = posn(3,igr) * c_cos_z
-    if( z_pos > z_min_film ) cycle
-    z_min_film = z_pos
-    Z_bottom_film = numat(it)
-  end do
 
   z_max_bulk = -100000._db
   do igr = 1,n_atom_bulk
     z_pos = posn_bulk(3,igr) * c_cos_z_b
     if( z_pos < z_max_bulk ) cycle
     z_max_bulk = z_pos
-    Z_top_bulk = Z_bulk(igr)
   end do
 
-  Shift_bulk(1:2) = - Film_shift(1:2)
-  if( Film_shift(3) < - 100._db ) then
-    Shift_bulk(3) = z_min_film - z_max_bulk - ( Atom_radius( Z_top_bulk ) + Atom_radius( Z_bottom_film ) )
-  else
-    Shift_bulk(3) = z_min_film - z_max_bulk - Film_shift(3)
-  endif
+  Shift_bulk(1:2) = - Shift(1:2)
+  Shift_bulk(3) = - z_max_bulk - Shift(3)
 
   Shift_bulk(:) = Shift_bulk(:) - deccent(1:3)
 
   Rot(:,:) = 0._db
   Rot(1,1) = 1._db; Rot(2,2) = 1._db; Rot(3,3) = 1._db
-  if( abs( Film_shift(4) ) > eps10 ) then
-    Angle = Film_shift(4)
+  if( abs( Shift(4) ) > eps10 ) then
+    Angle = Shift(4)
     Rot(1,1) = cos( Angle ); Rot(1,2) = sin( Angle )
     Rot(2,1) = - Rot(1,2);   Mat(2,2) = Rot(1,1)
   endif
 
-    call cal_cubmat(angxyz_bulk,cubmat_bulk,Struct_bulk)
-    call invermat(Cubmat,Cubmati)
-    Mat = Matmul( Cubmati, Matmul( Rot, Cubmat_bulk ) )
+  call cal_cubmat(angxyz_bulk,cubmat_bulk,Struct_bulk)
+  call invermat(Cubmat,Cubmati)
+  Mat = Matmul( Cubmati, Matmul( Rot, Cubmat_bulk ) )
 
   return
 end
 
 !*********************************************************************
 
-subroutine Reduc_natomp(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step,Cubmat,chargat,d_ecrant,dcosxyz,deccent, &
-            Doping,dpos,Film_shift,iabsorbeur,icheck,igr_dop,igreq,itabs,itype,Kgroup,matper,mpirank,multi_run,n_atom_bulk, &
-            n_atom_proto,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb,ngroup_taux,noncentre,ntype,numat,One_run,posn, &
-            posn_bulk,Rmax,Rsortm,Sym_2D,Taux_oc,Z_bulk)
+subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
+            Base_ortho_sur,Bulk,Bulk_step,chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
+            Doping,dpos,Film_shift, &
+            Film_thickness,iabsorbeur,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank,multi_run, &
+            n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb, &
+            ngroup_taux,noncentre,One_run,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
 
   use declarations
   implicit none
 
-  integer:: ia, iaabs, iaabsfirst, iabsorbeur, icheck, igr, igr_dop, ipr, itabs, mpirank, multi_run, n_atom_bulk, n_atom_proto, &
-            n_atom_uc, na, natomp, natomq, natomr, ngroup, ngroup_pdb, ngroup_taux, ntype
+  integer:: ia, iaabs, iaabsfirst, iabsorbeur, icheck, igr, igr_dop, ipr, itabs, mpirank, multi_run, n_atom_bulk, n_atom_int, &
+            n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, na, natomp, natomq, natomr, ngroup, ngroup_pdb, ngroup_taux
   integer, dimension(natomp):: iaproto, igroup, itypep
   integer, dimension(ngroup_pdb):: Kgroup
   integer, dimension(ngroup):: itype
-  integer, dimension(0:ntype):: numat
   integer, dimension(0:n_atom_proto):: ngreq
   integer, dimension(0:n_atom_proto,ngroup):: igreq
-  integer, dimension(n_atom_bulk):: Z_bulk
 
-  logical:: ATA, Base_ortho, Bulk, Bulk_step, Doping, Matper, Noncentre, One_run, OK, Sym_2D
+  logical:: ATA, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Doping, Matper, Noncentre, One_run, OK, Sym_2D
 
-  real(kind=db):: Ch, Ch_min, Ch_test, Chagreg, Chg, d_ecrant, Rmax, Rsortm
-  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, dcosxyz, deccent, dpos
-  real(kind=db), dimension(5):: Film_shift
+  real(kind=db):: Ch, Ch_min, Ch_test, Chagreg, Chg, d_ecrant, Delta_bulk, Delta_film, Delta_int, Delta_sur, &
+    Film_thickness, Rmax, Rsortm
+  real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_int, angxyz_sur, axyz, axyz_bulk, axyz_int, axyz_sur, dcosxyz, &
+                                deccent, dpos
+  real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
   real(kind=db), dimension(natomp):: dista
-  real(kind=db), dimension(3,3):: Cubmat
   real(kind=db), dimension(3,natomp):: pos
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
   real(kind=db), dimension(3,n_atom_uc):: posn
@@ -2474,10 +2592,12 @@ subroutine Reduc_natomp(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bu
 
   Matper = .true.
 
-  call Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step,Cubmat,dcosxyz,deccent,dista,Doping,dpos, &
-              Film_shift,iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,itabs,itype,itypep,Kgroup,Matper,mpirank,multi_run, &
-              n_atom_bulk,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre,ntype,numat,One_run,pos,posn,posn_bulk,Rmax, &
-              Sym_2D,Taux_oc,Z_bulk)
+  call Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
+              Base_ortho_sur,Bulk,Bulk_step,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
+              dista,Doping,dpos,Film_shift,Film_thickness, &
+              iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank, &
+              multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre, &
+              One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
   do ia = 1,natomp
     boucle_i: do ipr = 1,n_atom_proto
@@ -2565,32 +2685,33 @@ end
 
 !*********************************************************************
 
-subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step,Cubmat,dcosxyz,deccent,dista,Doping,dpos, &
-              Film_shift,iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,itabs,itype,itypep,Kgroup,Matper,mpirank,multi_run, &
-              n_atom_bulk,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre,ntype,numat,One_run,pos,posn,posn_bulk,Rmax, &
-              Sym_2D,Taux_oc,Z_bulk)
+subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
+              Base_ortho_sur,Bulk,Bulk_step,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
+              dista,Doping,dpos,Film_shift,Film_thickness, &
+              iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank, &
+              multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre, &
+              One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
   use declarations
   implicit none
 
   integer:: ia, ia1, ia2, iaabs, iaabsfirst, iabsorbeur, ib, igr, igr0, igr_dop, igr12, ipr, iprint, itabs, ity12, &
-    ix, iy, iz, mpirank, multi_run, n_atom_bulk, n_atom_uc, n_igr, natomp, ngroup, ngroup_pdb, ngroup_taux, ntype, nxmaille, &
-    nymaille, nzmaille
+    ix, iy, iz, mpirank, multi_run, n_atom_bulk, n_atom_int, n_atom_per, n_atom_sur, n_atom_uc, n_igr, natomp, ngroup, &
+    ngroup_pdb, ngroup_taux, nxmaille, nymaille, nzmaille
   integer, dimension(ngroup):: itype
-  integer, dimension(0:ntype):: numat
   integer, dimension(natomp):: igroup, itypep
   integer, dimension(ngroup_pdb):: Kgroup
-  integer, dimension(n_atom_bulk):: Z_bulk
 
-  logical:: Abs_case, ATA, Base_ortho, Base_ortho_bulk, Bulk, Bulk_step, Doping, Matper, Noncentre, One_run, Sym_2D
+  logical:: Abs_case, ATA, Base_ortho, Base_ortho_bulk, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Doping, &
+    Matper, Noncentre, One_run, Sym_2D
 
-  real(kind=db):: dist, dist12, Rmax, Vnorme
-  real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, axyz_g, dcosxyz, dcosxyz_bulk, deccent, dpos, ps, &
-                                Shift_bulk, v
-  real(kind=db), dimension(5):: Film_shift
+  real(kind=db):: cos_z, cos_z_b, cos_z_i, cos_z_s, Delta_bulk, Delta_film, Delta_int, Delta_sur, dist, &
+    dist12, Film_thickness, Rmax, Vnorme
+  real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_int, angxyz_sur, axyz, axyz_bulk, axyz_int, axyz_sur, axyz_g, &
+                                dcosxyz, dcosxyz_bulk, dcosxyz_int, dcosxyz_sur, deccent, dpos, ps, v
+  real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
   real(kind=db), dimension(ngroup_taux):: Taux_oc
   real(kind=db), dimension(natomp):: dista
-  real(kind=db), dimension(3,3):: Cubmat, Mat
   real(kind=db), dimension(3,n_atom_uc):: posn
   real(kind=db), dimension(3,n_atom_bulk):: posg_bulk, posn_bulk
   real(kind=db), dimension(3,natomp):: pos
@@ -2602,7 +2723,25 @@ subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step
     axyz_g(:) = axyz_bulk(:)
   else
     igr0 = 1
-    n_igr = n_atom_uc
+    if( Sym_2D ) then
+      n_igr = n_atom_uc
+      dcosxyz_int(:) = 2 * cos( angxyz_int(:) )
+      dcosxyz_sur(:) = 2 * cos( angxyz_sur(:) )
+      cos_z = sqrt( sin( angxyz(2) )**2 - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) &
+            / sin( angxyz(3) ) )**2 )
+      if( n_atom_int > 0 ) &
+        cos_z_i = sqrt( sin( angxyz_int(2) )**2 - ( ( cos( angxyz_int(1) ) - cos( angxyz_int(3) ) * cos( angxyz_int(2) ) ) &
+                / sin( angxyz_int(3) ) )**2 )
+      if( n_atom_sur > 0 ) &
+        cos_z_s = sqrt( sin( angxyz_sur(2) )**2 - ( ( cos( angxyz_sur(1) ) - cos( angxyz_sur(3) ) * cos( angxyz_sur(2) ) ) &
+                / sin( angxyz_sur(3) ) )**2 )
+      if( n_atom_bulk > 0 ) &
+        cos_z_b = sqrt( sin( angxyz_bulk(2) )**2 - ( ( cos( angxyz_bulk(1) ) - cos( angxyz_bulk(3) ) * cos( angxyz_bulk(2) ) ) &
+                / sin( angxyz_sur(3) ) )**2 )
+    else
+! When the is no interface with the film of when no film n_atom_per = n_atom_uc
+      n_igr = n_atom_per
+    endif
     axyz_g(:) = axyz(:)
   endif
 
@@ -2613,15 +2752,37 @@ subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step
       posg(1:3,igr) = posn_bulk(1:3,igr-ngroup+n_atom_bulk) * axyz_g(1:3) - deccent(1:3)
     end do
   else
-    do igr = igr0,n_igr
-      posg(1:3,igr) = posn(1:3,igr) * axyz_g(1:3) - deccent(1:3)
+    do igr = igr0,n_atom_per
+      posg(1:3,igr) = posn(1:3,igr) * axyz(1:3) - deccent(1:3)
     end do
+    if( Sym_2D ) then
+      do igr = n_atom_per + 1, n_atom_per + n_atom_int
+        posg(1:3,igr) = posn(1:3,igr) * axyz_int(1:3) - deccent(1:3)
+      end do
+      do igr = n_atom_per + n_atom_int + 1, n_igr
+        posg(1:3,igr) = posn(1:3,igr) * axyz_sur(1:3) - deccent(1:3)
+      end do
+    endif
   endif
 
   if( Matper ) then
-    nxmaille = nint( rmax / axyz_g(1) ) + 3
-    nymaille = nint( rmax / axyz_g(2) ) + 3
-    nzmaille = nint( rmax / axyz_g(3) ) + 3
+    nxmaille = nint( Rmax / axyz(1) ) + 3
+    nymaille = nint( Rmax / axyz(2) ) + 3
+    if( n_atom_per == 0 ) then
+      nzmaille = 0
+    elseif( Sym_2D ) then
+      if( n_atom_int /= 0 ) then
+        nxmaille = max( nxmaille, nint( Rmax / axyz_int(1) ) + 3 )
+        nymaille = max( nymaille, nint( Rmax / axyz_int(2) ) + 3 )
+      endif
+      if( n_atom_sur /= 0 ) then
+        nxmaille = max( nxmaille, nint( Rmax / axyz_sur(1) ) + 3 )
+        nymaille = max( nymaille, nint( Rmax / axyz_sur(2) ) + 3 )
+      endif
+      nzmaille = nint( Film_thickness / axyz(3) ) + 3
+    else
+      nzmaille = nint( Rmax / axyz(3) ) + 3
+    endif
   else
     nxmaille = 0
     nymaille = 0
@@ -2632,13 +2793,14 @@ subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step
   ia = 0
 
   do ix = -nxmaille,nxmaille
-    v(1) = ix * axyz_g(1)
     do iy = -nymaille,nymaille
-      v(2) = iy * axyz_g(2)
       do iz = -nzmaille,nzmaille
-        if( Sym_2D .and. iz /= 0 ) cycle
-        v(3) = iz * axyz_g(3)
         boucle_igr: do igr = igr0,n_igr
+          if( Sym_2D ) then
+            if( igr > n_atom_per .and. iz /= 0 ) cycle
+            if( iabsorbeur <= n_atom_per + n_atom_int .and. iz < 0 ) cycle
+            if( iabsorbeur > n_atom_per + n_atom_int .and. iz > 0 ) cycle
+          endif
           if( ngroup_pdb > 0 ) then
             if( Kgroup(iabsorbeur) /= Kgroup(igr) .and. Kgroup(iabsorbeur) /= 0 .and. Kgroup(igr) /= 0 ) cycle
           endif
@@ -2652,7 +2814,39 @@ subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step
               if( sum( abs(posg(:,igr) - posg(:,iabsorbeur)) ) < eps6 ) cycle
             endif
           endif
+          if( Bulk .or. igr <= n_atom_per ) then
+            v(1) = ix * axyz_g(1)
+            v(2) = iy * axyz_g(2)
+            v(3) = iz * axyz_g(3)
+          elseif( igr <= n_atom_per + n_atom_int ) then
+            v(1) = ix * axyz_int(1)
+            v(2) = iy * axyz_int(2)
+            v(3) = iz * axyz_int(3)
+          else
+            v(1) = ix * axyz_sur(1)
+            v(2) = iy * axyz_sur(2)
+            v(3) = iz * axyz_sur(3)
+          endif
           ps(1:3) = posg(1:3,igr) + v(1:3)
+
+          if( Sym_2D .and. igr <= n_atom_per ) then
+            if( ps(3) * cos_z > Film_thickness + eps10 ) cycle
+            if( iabsorbeur <= n_atom_per + n_atom_int ) then
+              ps(3) = ps(3) + ( Delta_Film - Delta_int ) / cos_z
+              ps(1:2) = ps(1:2) + Film_shift(1:2)
+            else
+              ps(3) = ps(3) - ( Delta_sur - Delta_film ) / cos_z
+              ps(1:2) = ps(1:2) - Surface_shift(1:2)
+            endif
+          elseif( Sym_2D ) then
+            if( iabsorbeur <= n_atom_per + n_atom_int .and. igr > n_atom_per + n_atom_int ) then
+              ps(3) = ps(3) + ( Delta_sur - Delta_int ) / cos_z_s
+              ps(1:2) = ps(1:2) + Film_shift(1:2) + Surface_shift(1:2)
+            elseif( iabsorbeur > n_atom_per + n_atom_int .and. igr <= n_atom_per + n_atom_int ) then
+              ps(3) = ps(3) - ( Delta_sur - Delta_int ) / cos_z_i
+              ps(1:2) = ps(1:2) - Film_shift(1:2) - Surface_shift(1:2)
+            endif
+          endif
           if( .not. ATA .and. .not. Abs_case ) then
             do ib = 1,ia
               if( sum( abs( pos(:,ib) - ps(:) ) ) < eps6 ) then
@@ -2669,7 +2863,13 @@ subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step
               endif
             end do
           endif
-          dist = Vnorme(Base_ortho,dcosxyz,ps)
+          if( Bulk .or. igr <= n_atom_per ) then
+            dist = Vnorme(Base_ortho,dcosxyz,ps)
+          elseif( igr <= n_atom_per + n_atom_int ) then
+            dist = Vnorme(Base_ortho_int,dcosxyz_int,ps)
+          else
+            dist = Vnorme(Base_ortho_sur,dcosxyz_sur,ps)
+          endif
           if( dist > Rmax + eps10 ) cycle
           ia = ia + 1
           pos(1:3,ia) = ps(1:3)
@@ -2691,11 +2891,16 @@ subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step
 
   if( Sym_2D .and. Bulk ) then
 
-    call Film_Bulk_Sp(angxyz,angxyz_bulk,axyz,axyz_bulk,Cubmat,deccent,Film_shift,itype,Mat,n_atom_bulk,n_atom_uc,ngroup,ntype, &
-                        numat,Shift_bulk,posn,posn_bulk,Z_bulk)
+!    if( n_atom_int > 0 ) then
+!      call Cal_Cubmat(angxyz_int,Cubmat_int,Struct)
+!      call Film_Bulk_Sp(angxyz_bulk,axyz_bulk,Cubmat_int,deccent,Interface_Shift,Mat,n_atom_bulk,Shift_bulk,posn_bulk)
+!    else
+!      call Cal_Cubmat(angxyz_sur,Cubmat_sur,Struct)
+!      call Film_Bulk_Sp(angxyz_bulk,axyz_bulk,Cubmat_sur,deccent,Surface_Shift,Mat,n_atom_bulk,Shift_bulk,posn_bulk)
+!    endif
 
     do igr = 1,n_atom_bulk
-      posg_bulk(1:3,igr) = posn_bulk(1:3,igr) * axyz_bulk(1:3) + Shift_bulk(1:3)
+      posg_bulk(1:3,igr) = posn_bulk(1:3,igr) * axyz_bulk(1:3)
     end do
 
     dcosxyz_bulk(:) = 2 * cos( angxyz_bulk(:) )
@@ -2717,8 +2922,17 @@ subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step
           v(3) = iz * axyz_bulk(3)
           do igr = 1,n_atom_bulk
             ps(1:3) = posg_bulk(1:3,igr) + v(1:3)
- ! We change to film unit cell basis
-            ps = Matmul( Mat, ps )
+
+            if( Sym_2D ) then
+              if( iabsorbeur <= n_atom_per + n_atom_int ) then
+                ps(3) = ps(3) + ( Delta_bulk - Delta_int ) / cos_z_b
+                ps(1:2) = ps(1:2) - Interface_shift(1:2)
+              else
+                ps(3) = ps(3) + ( Delta_bulk - Delta_sur ) / cos_z_b
+                ps(1:2) = ps(1:2) - Interface_shift(1:2) - Film_shift(1:2) - Surface_shift(1:2)
+              endif
+            endif
+
             dist = Vnorme(Base_ortho_bulk,dcosxyz_bulk,ps)
             if( dist > rmax + eps10 ) cycle
             ia = ia + 1
@@ -2755,6 +2969,10 @@ subroutine Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step
     v(:) = pos(:,ia)
     if( ( igroup(ia) > ngroup - n_atom_bulk ) .and. .not. Bulk_step ) then
       dista(ia) = Vnorme(Base_ortho_bulk,dcosxyz_bulk,v)
+    elseif( igroup(ia) > n_atom_per .and. igroup(ia) <= n_atom_per + n_atom_int ) then
+      dista(ia) = Vnorme(Base_ortho_int,dcosxyz_int,v)
+    elseif( igroup(ia) > n_atom_per + n_atom_int .and. igroup(ia) <= n_atom_uc ) then
+      dista(ia) = Vnorme(Base_ortho_sur,dcosxyz_sur,v)
     else
       dista(ia) = Vnorme(Base_ortho,dcosxyz,v)
     endif
@@ -2795,24 +3013,26 @@ end
 
 ! Elaboration de l'agregat.
 
-subroutine agregat(angxyz,angxyz_bulk,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn,axyz,axyz_bulk, &
-          Base_hexa,Base_ortho,Bulk,Bulk_step,Chargat,Cubmat,dcosxyz,deccent,dista,Doping,dpos,Film_shift,iaabs,iaabsfirst, &
-          iabsorbeur,iaproto,iapot,icheck,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,iopsymc,iopsymr,itabs,itype,itypep,karact, &
-          Kgroup,Magnetic,Matper,mpirank,multi_run,n_atom_bulk,n_atom_proto,n_atom_uc,natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup, &
-          ngroup_m,ngroup_pdb,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat,One_run,Orthmat,Orthmati,Orthmatt,PointGroup, &
-          PointGroup_Auto,popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc,Spinorbite,Rot_Atom_gr,Struct,Sym_2D,Sym_4, &
-          Sym_cubic,Symmol,Taux,Taux_oc,Test_dist_min,Z_bulk)
+subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn, &
+          axyz,axyz_bulk,axyz_int,axyz_sur,Base_hexa,Base_ortho,Base_ortho_int,Base_ortho_sur,Bulk,Bulk_step, &
+          Chargat,Cubmat,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,dista, &
+          Doping,dpos,Film_shift,Film_thickness,iaabs,iaabsfirst,iabsorbeur, &
+          iaproto,iapot,icheck,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,Interface_shift,iopsymc,iopsymr,itabs,itype,itypep, &
+          karact,Kgroup,Magnetic,Matper,mpirank,multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc, &
+          natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat, &
+          One_run,Orthmat,Orthmati,Orthmatt,PointGroup,PointGroup_Auto,popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc, &
+          Spinorbite,Rot_Atom_gr,Struct,Surface_shift,Sym_2D,Sym_4,Sym_cubic,Symmol,Taux,Taux_oc,Test_dist_min)
 
   use declarations
   implicit none
 
   integer:: i, ia, iaabs, iaabsfirst, iabsorbeur, ib, icheck, igr, igr_dop, igrpt, igrpt_nomag, igrpt_sg, igrpt_sg_cmp, &
-    igrpt_sg_cal, igrpt_sg_so, igrpt0, igrptn, ipr, ired, istop, it, itabs, k, mpirank, multi_run, n_atom_bulk, n_atom_proto, &
-    n_atom_uc, natomp, nb_rep, nb_sym_op, neqm, ngroup, ngroup_m, ngroup_pdb, ngroup_taux, nlatm, npr1, nspin, ntype, Za, Zb
+    igrpt_sg_cal, igrpt_sg_so, igrpt0, igrptn, ipr, ired, istop, it, itabs, k, mpirank, multi_run, n_atom_bulk, n_atom_int, n_atom_per, &
+    n_atom_proto, n_atom_sur, n_atom_uc, natomp, nb_rep, nb_sym_op, neqm, ngroup, ngroup_m, ngroup_pdb, ngroup_taux, nlatm, npr1, nspin, &
+    ntype, Za, Zb
 
   integer, dimension(natomp):: iaproto, igroup, itypep
   integer, dimension(nopsm):: iopsymc, iopsymr
-  integer, dimension(n_atom_bulk):: Z_bulk
   integer, dimension(0:ntype):: nlat, numat
   integer, dimension(0:n_atom_proto):: iapot, ngreq
   integer, dimension(ngroup):: itype
@@ -2823,14 +3043,16 @@ subroutine agregat(angxyz,angxyz_bulk,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu
                      PointSubGroup_name, PointSubGroup_Sch
   character(len=5):: Struct, Struct_bulk
 
-  logical:: ATA, Atom_mag_cal, Atom_nonsph, Base_hexa, Base_ortho, Bulk, Bulk_step, Doping, Magnetic, Matper, Noncentre, &
-    One_run, PointGroup_Auto, Self_nonexc, Spinorbite, Sym_2D, Sym_4, Sym_cubic, Symmol, Taux
+  logical:: ATA, Atom_mag_cal, Atom_nonsph, Base_hexa, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Doping, Magnetic, &
+    Matper, Noncentre, One_run, PointGroup_Auto, Self_nonexc, Spinorbite, Sym_2D, Sym_4, Sym_cubic, Symmol, Taux
   logical, dimension(0:ngroup_m):: Atom_with_axe
 
-  real(kind=db):: Angle, Dist, Dist_max, Distm, Dsa, Dsb, Prod, rad_i, Rmax, Test_dist_min
+  real(kind=db):: Angle, Delta_bulk, Delta_film, Delta_int, Delta_sur, Dist, Dist_max, Distm, Dsa, Dsb, &
+    Film_thickness, Prod, rad_i, Rmax, Test_dist_min
 
-  real(kind=db), dimension(3):: angxyz, angxyz_bulk, Axe_spin, Axe_spin_0, axyz, axyz_bulk, dcosxyz, deccent, dpos, pa, pb, v
-  real(kind=db), dimension(5):: Film_shift
+  real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_int, angxyz_sur, Axe_spin, Axe_spin_0, axyz, axyz_bulk, axyz_int, &
+    axyz_sur, dcosxyz, deccent, dpos, pa, pb, v
+  real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
   real(kind=db), dimension(3,3):: Cubmat, Cubmat_bulk, Orthmat, Orthmati, Orthmatt, Rot_un, Rotmat, Rot_int, Rot_so, Rot_tem, &
                                   Rotspin
   real(kind=db), dimension(natomp):: dista
@@ -2863,10 +3085,12 @@ subroutine agregat(angxyz,angxyz_bulk,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu
     base_ortho = .false.
   endif
 
-  call Clust(angxyz,angxyz_bulk,ATA,axyz,axyz_bulk,Base_ortho,Bulk,Bulk_step,Cubmat,dcosxyz,deccent,dista,Doping,dpos, &
-              Film_shift,iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,itabs,itype,itypep,Kgroup,Matper,mpirank,multi_run, &
-              n_atom_bulk,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre,ntype,numat,One_run,pos,posn,posn_bulk,Rmax, &
-              Sym_2D,Taux_oc,Z_bulk)
+  call Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
+              Base_ortho_sur,Bulk,Bulk_step,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
+              dista,Doping,dpos,Film_shift,Film_thickness, &
+              iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank, &
+              multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre, &
+              One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
   if( icheck > 0 ) write(3,130) iaabs
 
@@ -2996,7 +3220,7 @@ subroutine agregat(angxyz,angxyz_bulk,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu
 
     do i = 1,2
 
-      call sym_cluster(Atom_with_axe,Axe_atom_clu,Base_ortho,dcosxyz,iaabs,igroup,iopsymc,itype,itypep, &
+      call sym_cluster(Atom_with_axe,Axe_atom_clu,iaabs,igroup,iopsymc,itype,itypep, &
              natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,Symmol)
 
       call cluster_rot(iopsymc,rot_tem)
@@ -3023,12 +3247,11 @@ subroutine agregat(angxyz,angxyz_bulk,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu
 
     end do
 
-    call sym_cluster(Atom_with_axe,Axe_atom_clu,Base_ortho,dcosxyz,iaabs,igroup,iopsymc,itype,itypep, &
+    call sym_cluster(Atom_with_axe,Axe_atom_clu,iaabs,igroup,iopsymc,itype,itypep, &
              natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,Symmol)
 
     call numgrpt(iopsymc,igrpt,igrpt_nomag,mpirank,.false.)
 
-!        if( spinorbite) then
       orthmat = matmul( rot_so, orthmat )
       rotmat = matmul( rot_so, rotmat )
 
@@ -3045,9 +3268,8 @@ subroutine agregat(angxyz,angxyz_bulk,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu
         end do
         Axe_spin = matmul( rot_so, Axe_spin )
       endif
-      call sym_cluster(Atom_with_axe,Axe_atom_clu,Base_ortho,dcosxyz,iaabs,igroup,iopsymc,itype,itypep, &
+      call sym_cluster(Atom_with_axe,Axe_atom_clu,iaabs,igroup,iopsymc,itype,itypep, &
              natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,Symmol)
-!        endif
 
   else
 
@@ -3755,7 +3977,7 @@ end
 
 ! Sous-programme calculant la symetrie ponctuelle de l'agregat
 
-subroutine sym_cluster(Atom_with_axe,Axe_atom_clu,Base_ortho,dcosxyz,iaabs,igroup,iopsym,itype,itypep, &
+subroutine sym_cluster(Atom_with_axe,Axe_atom_clu,iaabs,igroup,iopsym,itype,itypep, &
              natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,Symmol)
 
   use declarations
@@ -3770,12 +3992,12 @@ subroutine sym_cluster(Atom_with_axe,Axe_atom_clu,Base_ortho,dcosxyz,iaabs,igrou
   integer, dimension(ngroup):: itypegen
   integer, dimension(nopsm):: iopsym
 
-  logical:: Base_ortho, Symmol
+  logical:: Symmol
   logical, dimension(0:ngroup_m):: Atom_with_axe
 
-  real(kind=db):: dpop, Vnorme
+  real(kind=db):: dpop, x
 
-  real(kind=db), dimension(3):: Axe_atom_c, Axe_atom_s, dcosxyz, ps, pt, vspin, vspini, wspin, wspini
+  real(kind=db), dimension(3):: Axe_atom_c, Axe_atom_s, ps, pt, vspin, vspini, wspin, wspini
   real(kind=db), dimension(3,3):: matopsym
   real(kind=db), dimension(ngroup,nlatm,nspin) :: popats
   real(kind=db), dimension(3,natomp):: Axe_atom_clu, pos
@@ -3857,7 +4079,8 @@ subroutine sym_cluster(Atom_with_axe,Axe_atom_clu,Base_ortho,dcosxyz,iaabs,igrou
               wspin(3) = 1._db;  wspin(1:2) = 0._db
             endif
             call prodvec( vspin, Axe_atom_c, wspin )
-            vspin = vspin / Vnorme(Base_ortho,dcosxyz,vspin)
+            x = sqrt( sum( vspin(:)**2 ) )
+            vspin(:) = vspin(:) / x
 
             call prodvec( wspin, Axe_atom_c, vspin )
 
@@ -4698,10 +4921,10 @@ end
 
 ! Sousprogramme calculant la forme des tenseurs
 
-subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz,Dipmag, &
+subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Dipmag, &
                E1E2e,Green,iaabs,icheck,igroup,igrpt0,iopsymc,iopsymr,itype,itypep,ldip,loct,lqua,lseuil,magnetic, &
                msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo, msymooi,msymqq,msymqqi,Multipole,n_oo,natomp,ngroup, &
-               ngroup_m,nlat,nlatm,nspin,ntype,numat, octupole,popats,pos,quadrupole,rot_atom_abs,Rot_int, &
+               ngroup_m,nlat,nlatm,nspin,ntype,numat,octupole,popats,pos,quadrupole,rot_atom_abs,Rot_int, &
                Spinorbite,State_all,Symmol,Tensor_imp)
 
   use declarations
@@ -4719,12 +4942,12 @@ subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz,Dip
   integer, dimension(ngroup):: itype
   integer, dimension(0:ntype):: nlat, numat
 
-  logical:: Atom_comp, Atom_comp_cal, Atom_mag, Atom_mag_cal, Nonsph, Base_ortho, Dipmag, E1E1, E1E2, E1E2e, E1E3, &
+  logical:: Atom_comp, Atom_comp_cal, Atom_mag, Atom_mag_cal, Nonsph, Dipmag, E1E1, E1E2, E1E2e, E1E3, &
      E2E2, E3E3, Green, magnet, Magnetic, Octupole, Quadrupole, Spinorbite, State_all, Symmol
   logical, dimension(10):: Multipole
   logical, dimension(0:ngroup_m):: Atom_with_axe
 
-  real(kind=db), dimension(3):: dcosxyz, ps
+  real(kind=db), dimension(3):: ps
   real(kind=db), dimension(3,3):: rot_atom_abs, Rot_int, rot_tem
   real(kind=db), dimension(3,natomp):: Axe_atom_clu, pos
   real(kind=db), dimension(ngroup,nlatm,nspin):: popats
@@ -4748,7 +4971,7 @@ subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz,Dip
     end do
   end do
 
-! Evaluation de la symetrie de l'atome absorbeur
+! Evaluation of the absorbing atom symmetry
   if( Magnetic ) then
     Atom_mag = Atom_mag_cal(igrpt0)
   else
@@ -4761,18 +4984,18 @@ subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz,Dip
     iopsym_abs(:) = iopsymc(:)
   else
     if( spinorbite ) then
-      call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
+      call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu, &
         iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsym_abs,iopsymr,itype,itypep,Magnetic,mpirank, &
         natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol)
     else
-! On prend la symetrie complete (iopsymc)
-      call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
+! Here one uses the complete symmetry (iopsymc)
+      call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu, &
         iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsym_abs,iopsymc,itype,itypep,Magnetic,mpirank, &
         natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol)
     endif
   endif
-! La rotation est calcule avec la symetrie utilisee (iopsymr)
-  call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
+! The rotation is calculated with the used symmetry (iopsymr)
+  call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu, &
       iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsymt,iopsymr,itype,itypep,Magnetic,mpirank, &
       natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol)
 
@@ -6017,22 +6240,26 @@ end
 
 ! Calculation of polarizations, Bragg factors and non resonant scattering amplitudes for DAFS
 
-subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Axe_atom_gr,axyz,axyz_bulk,axyz_cap, &
-          Bormann,Bulk,Bulk_step,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Dafs_bio,Eseuil,f_avantseuil, &
-          f_no_res,Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,hkl_ref,icheck,igreq,iprabs,isigpi,itabs, &
-          itypepr,Length_abs,lvval,Magnetic,Mat_or,Mat_UB,mpirank,n_atom_bulk,n_atom_cap,n_atom_proto,n_atom_proto_bulk, &
-          n_atom_proto_uc,n_atom_uc,natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp,nlat,nlatm,nphi_dafs, &
-          nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nrato,nrm,nspin,ntype,numat,Operation_mode,Operation_mode_used, &
-          Orthmatt,phdafs,phdf0t,phdt,phi_0,Poldafse,Poldafsem,Poldafss,Poldafssm,popatm,posn,posn_bulk,posn_cap,psival,rato, &
-          Taux,Taux_cap,Taux_oc,Temp,Temp_coef,Temperature,Vec_orig,Vecdafse,Vecdafsem,Vecdafss,Vecdafssm,xsect_file, &
-          Z_bulk,Z_cap)
+subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Angxyz_int,Angxyz_sur,Axe_atom_gr, &
+          axyz,axyz_bulk,axyz_cap,axyz_int,axyz_sur,Bormann,Bulk,Bulk_step, &
+          Cap_layer,Cap_disorder,Cap_roughness,Cap_thickness,Dafs_bio,Delta_bulk,Delta_cap,Delta_film,Delta_int, &
+          Delta_roughness_film,Delta_sur,delta_z_bottom_cap,delta_z_top_cap,delta_z_top_film,Eseuil,f_avantseuil, &
+          f_no_res,Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,hkl_ref,ich,igreq,Interface_shift, &
+          iprabs_nonexc,isigpi,itabs,itypepr,Length_abs,lvval,Magnetic,Mat_or,Mat_UB,mpirank,n_atom_bulk,n_atom_cap,n_atom_int, &
+          n_atom_per,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_sur,n_atom_uc, &
+          natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp, &
+          nlat,nlatm,nphi_dafs,nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nrato,nrm,nspin,ntype,numat,Operation_mode, &
+          Operation_mode_used,Orthmatt,phdafs,phdf0t,phdt,phi_0,Poldafse,Poldafsem,Poldafss,Poldafssm,popatm,posn,posn_bulk, &
+          posn_cap,psival,rato,Surface_shift,Taux,Taux_cap,Taux_oc,Temp,Temp_coef,Temperature,Vec_orig,Vecdafse,Vecdafsem, &
+          Vecdafss,Vecdafssm,xsect_file,Z_bulk,Z_cap)
 
   use declarations
   implicit none
 
-  integer:: i, icheck, igr, ip, ipl, ipr, iprabs, it, itabs, iwrite, j, jgr, kgr, mpirank, n_atom_bulk, n_atom_cap, &
-    n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, n_atom_uc, n1_proto, n2_proto, natomsym, nbseuil, neqm, ngrm, ngroup, &
-    ngroup_m, ngroup_taux, ngroup_temp, nlatm, nphim, npldafs, npldafs_2d, npldafs_e, npldafs_f, nrm, nspin, ntype, Z, Z_abs
+  integer:: i, ich, icheck, igr, ip, ipl, ipr, iprabs_nonexc, it, itabs, iwrite, j, jgr, kgr, mpirank, n_atom_bulk, n_atom_cap, &
+    n_atom_int, n_atom_per, n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, n_atom_sur, n_atom_uc, n1_proto, n2_proto, &
+    natomsym, nbseuil, neqm, ngrm, ngroup, ngroup_m, ngroup_taux, ngroup_temp, ni, nlatm, nphim, npldafs, npldafs_2d, npldafs_e, &
+    npldafs_f, nrm, nspin, ntype, Z, Z_abs
 
   integer, dimension(2):: Mult_bulk, Mult_film
   integer, dimension(3):: hkl_ref
@@ -6066,20 +6293,19 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   integer, dimension(0:n_atom_proto,neqm):: igreq
   integer, dimension(neqm):: igr_tem
 
-  logical:: Abs_in_bulk, Bulk, Bulk_step, Bormann, Cap_layer, Dafs_bio, Debye, Film, Film_periodical, hkl_film, Magnetic, &
-            Operation_mode_used, Taux, Temperature
+  logical:: Abs_in_bulk, Bulk, Bulk_step, Bormann, Cap_layer, Dafs_bio, Debye, Film, Film_periodical, hkl_film, Interlayer, &
+            Magnetic, Operation_mode_used, Surface, Taux, Temperature
 
-  real(kind=db):: abs_cap, arg, c_cos_z, c_cos_z_b, Cal_Delta_bulk, Cal_volume_maille, Cap_disorder, Cap_roughness, &
-    Cap_thickness, Cap_thickness_used, Cap_shift, cos_z_b, Deb, Delta_2, Delta_bulk, Q_mod_A, &
-    Delta_roughness_film, delta_z_bottom_cap, delta_z_bottom_film, delta_z_top_cap, delta_z_top_film, dpdeg, &
-    DW, Energy_photon, Film_roughness, Film_thickness, Film_thickness_used, fpp_bulk_tot, &
-    fpp_cap_tot, konde, phi_0, R_bottom_film, R_top_bulk, R_top_film, rap_lsur2s, Taux_r, &
-    Temp, Tempt, Volume_maille, x,  z_max_film, z_pos, z_top
+  real(kind=db):: abs_cap, arg, c_cos_z, c_cos_z_b, c_cos_z_i, c_cos_z_s, Cal_volume_maille, Cap_disorder, Cap_roughness, &
+    Cap_thickness, cos_z, cos_z_b, cos_z_i, cos_z_s, Deb, Delta_2, Delta_bulk, Delta_cap, Delta_int, Delta_film, &
+    Delta_roughness_film, Delta_sur, delta_z_bottom_cap, delta_z_top_cap, delta_z_top_film, dpdeg, &
+    DW, Energy_photon, Film_roughness, Film_thickness, fpp_bulk_tot, &
+    fpp_cap_tot, konde, phi_0,  Q_mod_A, rap_lsur2s, Taux_r, Temp, Tempt, Volume_maille, x, z_pos, z_top
 
   real(kind=db), dimension(2):: f_no_res
-  real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_cap, axyz, axyz_bulk, axyz_cap, hkl, &
-     p, v, Vec_orig, we, ws
-  real(kind=db), dimension(5):: Film_shift
+  real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_cap, angxyz_int, angxyz_sur, axyz, axyz_bulk, axyz_cap, axyz_int, &
+     axyz_sur, hkl, p, v, Vec_orig, we, ws
+  real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
   real(kind=db), dimension(npldafs):: Length_abs, Q_mod
   real(kind=db), dimension(npldafs_f):: Angle_or
   real(kind=db), dimension(3,npldafs_2d):: Angle_mode
@@ -6088,7 +6314,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   real(kind=db), dimension(ngroup_temp):: Temp_coef
   real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(3,3):: Mat_bulk, Mat_bulk_i, Mat_or, Mat_UB, Orthmatt, Orthmati
-  real(kind=db), dimension(3,n_atom_uc):: posn, posn_t
+  real(kind=db), dimension(3,n_atom_uc):: posn
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
   real(kind=db), dimension(3,n_atom_cap):: posn_cap
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_g, Axe_atom_gr
@@ -6101,6 +6327,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   real(kind=db), dimension(n_atom_proto,npldafs):: f_ms, f_mo, f0
   real(kind=db), dimension(0:n_atom_proto,nlatm,nspin):: popatm
 
+  icheck = ich
   if( icheck > 0 ) write(3,110)
 
   call invermat(Orthmatt,Orthmati)
@@ -6109,8 +6336,6 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   Mult_bulk(:) = 0
 
   Z_abs = numat(itabs)
-
-  Film_periodical = Film .and. .not. ( Film_thickness < - 100._db )
 
   if( Bulk_step ) then
     n1_proto = n_atom_proto - n_atom_proto_bulk + 1
@@ -6146,20 +6371,33 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
     Debye = .false.
   endif
 
-  if( Film ) call Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_film, &
-            delta_z_top_film,Film_periodical,Film_roughness,Film_shift,Film_thickness,Film_thickness_used,icheck,igreq,itypepr, &
-            n_atom_proto,n_atom_proto_uc,n_atom_uc,neqm,ngreq,ntype,numat,posn,posn_t,R_bottom_film, &
-            R_top_film,z_max_film)
-
   if( Bulk ) then
 
-    call bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_bulk,Mult_bulk,Mult_film)
+    if( n_atom_per == 0 ) then
+      call bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Surface_shift,icheck,Mat_bulk,Mult_bulk,Mult_film)
+    else
+      call bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_bulk,Mult_bulk,Mult_film)
+    endif
     if( hkl_film .and. .not. Bulk_step ) call invermat( Mat_bulk, Mat_bulk_i )
 
     cos_z_b = sqrt( sin( angxyz_bulk(2) )**2 - ( ( cos( angxyz_bulk(1) ) - cos( angxyz_bulk(3) ) * cos( angxyz_bulk(2) ) ) &
             / sin( angxyz_bulk(3) ) )**2 )
     c_cos_z_b = axyz_bulk(3) * cos_z_b
 
+  endif
+
+  cos_z = sqrt( sin( angxyz(2) )**2 - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) &
+          / sin( angxyz(3) ) )**2 )
+  c_cos_z = axyz(3) * cos_z
+  if( n_atom_sur > 0 ) then
+    cos_z_s = sqrt( sin( angxyz_sur(2) )**2 - ( ( cos( angxyz_sur(1) ) - cos( angxyz_sur(3) ) * cos( angxyz_sur(2) ) ) &
+            / sin( angxyz_sur(3) ) )**2 )
+    c_cos_z_s = axyz_sur(3) * cos_z_s
+  endif
+  if( n_atom_int > 0 ) then
+    cos_z_i = sqrt( sin( angxyz_int(2) )**2 - ( ( cos( angxyz_int(1) ) - cos( angxyz_int(3) ) * cos( angxyz_int(2) ) ) &
+            / sin( angxyz_int(3) ) )**2 )
+    c_cos_z_i = axyz_int(3) * cos_z_i
   endif
 
   if( Bulk_step ) then
@@ -6216,26 +6454,62 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
         else
           p(:) = posn(:,jgr)
         endif
+        Interlayer = Film .and. .not. Bulk_step .and. jgr > n_atom_per .and. jgr <= n_atom_per + n_atom_int
+        Surface = Film .and. .not. Bulk_step .and. jgr > n_atom_per + n_atom_int
+        Film_periodical = Film .and. .not. Bulk_step .and. jgr <= n_atom_per
+
+        if( Interlayer ) then
+          x = ( axyz_int(1) - axyz(1) ) * hkl(1) + ( axyz_int(2) - axyz(2) ) * hkl(2)
+          if( abs( x ) > eps10 ) cycle
+          p(3) = p(3) * c_cos_z_i / c_cos_z
+       elseif( Surface ) then
+          x = ( axyz_sur(1) - axyz(1) ) * hkl(1) + ( axyz_sur(2) - axyz(2) ) * hkl(2)
+          if( abs( x ) > eps10 ) cycle
+          p(3) = p(3) * c_cos_z_s / c_cos_z
+        endif
 
  ! Shift between film and bulk
-        if( Bulk .and. .not. Bulk_step ) p(1:2) = p(1:2) +  Film_shift(1:2) / axyz(1:2)
+        if( Film .and. .not. Bulk_step ) then
+          if( n_atom_int > 0 ) p(1:2) = p(1:2) + Interface_shift(1:2) / axyz_int(1:2)
+          if( n_atom_per > 0 .and. .not. Interlayer ) p(1:2) = p(1:2) +  Film_shift(1:2) / axyz(1:2)
+          if( n_atom_sur > 0 .and. .not. ( Interlayer .or. Film_periodical ) ) p(1:2) = p(1:2) + Surface_shift(1:2) / axyz_sur(1:2)
+        endif
 
-        do i = 0,1000000
-          if( Film .and. .not. Bulk_step .and. Film_periodical ) then
+        if( Film_periodical ) then
+          ni = 1000000
+        else
+          ni = 0
+        endif
+
+        do i = 0,ni
+          Taux_r = 1._db
+          if( Film_periodical ) then
             z_pos = p(3) * c_cos_z
-            if( z_pos > z_max_film + delta_z_top_film + Delta_roughness_film + eps10 ) exit
-          endif
-          if( Film_roughness > eps10 .and. .not. Bulk_step ) then
-            x = ( z_max_film + delta_z_top_film - z_pos ) / Film_roughness
-            Taux_r = 1._db - erfc( x ) * 0.5_db
-          else
-            Taux_r = 1._db
+            if( Film_roughness > eps10 ) then
+              if( z_pos > Film_thickness + delta_z_top_film + Delta_roughness_film + eps10 ) exit
+              x = ( Film_thickness + delta_z_top_film - z_pos ) / Film_roughness
+              Taux_r = 1._db - erfc( x ) * 0.5_db
+            else
+              if( z_pos > Film_thickness + eps10 ) exit
+            endif
           endif
           arg = deux_pi * sum( p(:) * hkl(:) )
+          if( Film_periodical ) then
+            arg = arg + deux_pi * ( Delta_film / c_cos_z ) * hkl(3)
+          elseif( Interlayer ) then
+            arg = arg + deux_pi * ( Delta_int / c_cos_z ) * hkl(3)
+          elseif( Surface ) then
+            arg = arg + deux_pi * ( Delta_sur / c_cos_z ) * hkl(3)
+          endif
           Bragg(igr,ipl) = Bragg(igr,ipl) + Taux_r * cmplx( cos(arg), sin(arg), db )
-          if( ( .not. Film .or. Bulk_step .or. ( Film .and. .not. Film_periodical ) ) .and. i == 0 ) exit
           p(3) = p(3) + 1._db
         end do
+
+        if( Interlayer ) then
+          Bragg(igr,ipl) = Bragg(igr,ipl) * axyz(1) * axyz(2) / ( axyz_int(1) * axyz_int(2) )
+        elseif( Surface .and. n_atom_per == 0 ) then
+          Bragg(igr,ipl) = Bragg(igr,ipl) * axyz(1) * axyz(2) / ( axyz_sur(1) * axyz_sur(2) )
+        endif
 
         if( Bulk .and. .not. Bulk_step ) then
           cfac = ( 0._db, 0._db )
@@ -6253,17 +6527,16 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
         endif
 
 ! Fraction of absorption (avoid the singularity when l close to 1). Correct only before the edge.
-
         if( Bulk_step ) Bragg(igr,ipl) = Bragg(igr,ipl) * exp( - ( z_top - p(3) ) * fpp_bulk_tot * Length_abs(ipl) )
         if( Taux ) Bragg(igr,ipl) = Bragg(igr,ipl) * Taux_oc(jgr)
         if( Temperature ) Deb = exp( - Temp_coef(igr) * Delta_2 )
         if( icheck > 1 .and. ( Debye .or. Temperature ) ) write(3,165) nint( hkl_dafs(1:3,ipl) ), numat(it), Deb
         if( Debye .or. Temperature ) Bragg(igr,ipl) = Bragg(igr,ipl) * Deb
-        if( ipr == iprabs ) phdafs(igr,ipl) = Bragg(igr,ipl)
+        if( ipr == iprabs_nonexc ) phdafs(igr,ipl) = Bragg(igr,ipl)
 
       end do
       phd(ipr,ipl) = sum( Bragg(1:ngreq(ipr),ipl) )
-      if( ipr == iprabs ) phdabs(ipl) = phd(ipr,ipl)
+      if( ipr == iprabs_nonexc ) phdabs(ipl) = phd(ipr,ipl)
 
     end do
 
@@ -6327,8 +6600,6 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
 
   if( Bulk ) then
 
-    Delta_bulk = Cal_Delta_bulk(c_cos_z_b,Film_shift,icheck,n_atom_bulk,posn_bulk,R_bottom_film,R_top_bulk,Z_bulk)
-
     call Cal_Phase_Bulk(angxyz,angxyz_bulk,axyz,axyz_bulk,c_cos_z,c_cos_z_b,Delta_bulk,Film_shift,hkl_dafs,hkl_film, &
                           Mult_bulk,npldafs,Phase_bulk)
 
@@ -6348,11 +6619,11 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   endif
 
   if( Cap_layer .and. .not. Bulk_step ) &
-    call Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,Cap_disorder,Cap_roughness, &
-              Cap_thickness,Cap_thickness_used,Cap_shift,c_cos_z,c_cos_z_b,Delta_roughness_film,delta_z_bottom_cap, &
-              delta_z_top_cap,Energy_photon,Film_roughness,Film_thickness,fpp_cap_tot,hkl_dafs,hkl_film, &
-              icheck,Mult_bulk,Mult_film,n_atom_cap,npldafs,phd_f_cap,posn_cap,Q_mod,R_top_bulk,R_top_film,Taux_cap, &
-              xsect_file,Z_cap,z_max_film)
+    call Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Cap_disorder,Cap_roughness, &
+              Cap_thickness,c_cos_z,c_cos_z_b,Delta_cap,Delta_roughness_film,delta_z_bottom_cap, &
+              delta_z_top_cap,Energy_photon,Film_roughness,fpp_cap_tot,hkl_dafs,hkl_film, &
+              Mult_bulk,Mult_film,n_atom_cap,npldafs,phd_f_cap,posn_cap,Q_mod,Taux_cap, &
+              xsect_file,Z_cap)
 
   do ipl = npldafs,1,-1
 
@@ -6575,6 +6846,8 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
       if( Film ) then
         if(  mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
         if( Bulk .and. .not. Abs_in_bulk ) then
+        arg = deux_pi*hkl_dafs(3,ipl)*Film_shift(3)/c_cos_z
+        ph = exp(arg*img)
           if( Cap_layer ) then
             write(3,300) hkl_dafs(:,ipl), phdf0t(ipl,1), abs( phdf0t(ipl,1) )**2, phd_f_bulk(ipl), Truncation(ipl), &
                          Phase_bulk(ipl), phd_f_cap(ipl)
@@ -6614,7 +6887,6 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   if( Film ) then
     deallocate( phd_f_bulk, phd_f_cap )
     if( Bulk ) deallocate( Phase_bulk )
-    posn(:,:) = posn_t(:,:)
   endif
 
   if( Magnetic ) then
@@ -6655,7 +6927,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
         ' i*Ph_m*fma*(f_spin*vs+f_orb*vo)   vs = spin.vec_b',13x, 'vo = spin.vec_a')
   290 format(2f8.3,f9.4,1p,e13.5,2x,2e13.5,2(2x,e13.5),6(2x,2e13.5))
   295 format(3i3,1p,e13.5,2x,2e13.5,2(2x,e13.5),6(2x,2e13.5))
-  300 format(2f8.3,f9.4,1p,2x,2e13.5,2x,e13.5,5(2x,2e13.5))
+  300 format(2f8.3,f9.4,1p,2x,2e13.5,2x,e13.5,8(2x,2e13.5))
   310 format(3i3,1p,2x,2e13.5,2x,e13.5,5(2x,2e13.5))
   375 format(/'  Polarization and wave vectors in the internal basis R1 ( orthogonal basis, z along c crystal )',// &
               '         pol            vec           pls',12x,'vos')
@@ -6705,7 +6977,15 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 ! In ua and rydb : k = 0.5 * alfa * E
   konde = 0.5_db * alfa_sf * Energy_photon
 
-  if( ( Bulk .and. .not. hkl_film ) .or. ( Bulk_step .and. hkl_film ) ) then
+!  if( ( Bulk .and. .not. hkl_film ) .or. ( Bulk_step .and. hkl_film ) ) then
+! ! When bulk_step angxyz_bulk contains film data ! ( See fdm )
+!    abc(:) = axyz_bulk(:)
+!    ang(:) = angxyz_bulk(:)
+!  else
+!    abc(:) = axyz(:)
+!    ang(:) = angxyz(:)
+!  endif
+  if( Bulk .and. .not. hkl_film ) then
  ! When bulk_step angxyz_bulk contains film data ! ( See fdm )
     abc(:) = axyz_bulk(:)
     ang(:) = angxyz_bulk(:)
@@ -6780,15 +7060,20 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
   Ref_spec = abs( 1 - dot_product( N_phi, Norm_phi ) ) < eps10
 
   if( icheck > 0 ) then
-    if( sum( abs( Mat_UB(:,:) ) ) < eps10 ) then
+    if( .not. UB_in ) then
       write(3,'(/19x,a5,33x,a5,33x,a6)') 'Mat B', 'Mat U', 'Mat UB'
       do i = 1,3
         write(3,110) Mat_B(i,:), Mat_U(i,:), Mat_UB_loc(i,:)
       end do
-    else
-      write(3,'(/19x,a5,33x,a5,33x,a6,30x,a8)') 'Mat B', 'Mat U', 'Mat UB', 'Mat UB_t'
+    elseif( Mat_unit ) then
+      write(3,'(/18x,a6,30x,a11)') 'Mat UB', 'Mat UB theo'
       do i = 1,3
-        write(3,110) Mat_B(i,:), Mat_U(i,:), Mat_UB_loc(i,:), Angfac * Mat_UB_t(i,:)
+        write(3,110) Mat_UB_loc(i,:),  Angfac * Mat_UB_t(i,:)
+      end do
+    else
+      write(3,'(/18x,a6,30x,a11,29x,a7)') 'Mat UB', 'Mat UB theo', 'Mat Rot'
+      do i = 1,3
+        write(3,110) Mat_UB_loc(i,:), Angfac * Mat_UB_t(i,:), Mat_K(i,:)
       end do
     endif
     write(3,'(/2x,a21,3i3)') 'Reference axis, hkl =', hkl_ref(:)
@@ -7446,7 +7731,8 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
           do j = 1,15
             do i = 1,ni
               Angle = Angle + da
-              if( a * sin( Angle ) + b * cos( Angle ) < c == Below ) cycle
+ ! .EQV. instead of == is mandatory for logical variables in some compilers
+              if( a * sin( Angle ) + b * cos( Angle ) < c .EQV. Below ) cycle
               Angle = Angle - da
               da = da / ni
               exit
@@ -8211,7 +8497,14 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
 ! In ua and rydb : k = 0.5 * alfa * E
   konde = 0.5_db * alfa_sf * Energy_photon
 
-  if( ( Bulk .and. .not. hkl_film ) .or. ( Bulk_step .and. hkl_film ) ) then
+!  if( ( Bulk .and. .not. hkl_film ) .or. ( Bulk_step .and. hkl_film ) ) then
+! ! When bulk_step angxyz_bulk contains film data ! ( See fdm )
+!    cosdir(:) = cos( angxyz_bulk(:) )
+!  else
+!    cosdir(:) = cos( angxyz(:) )
+!  endif
+
+  if( Bulk .and. .not. hkl_film ) then
  ! When bulk_step angxyz_bulk contains film data ! ( See fdm )
     cosdir(:) = cos( angxyz_bulk(:) )
   else
@@ -8706,7 +8999,7 @@ subroutine Bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_
 
   real(kind=db):: Cal_Volume_maille, cos_g, sin_g, Vol
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, cos_a, V, Vec_a, Vec_b, Vec_c
-  real(kind=db), dimension(5):: Film_shift
+  real(kind=db), dimension(4):: Film_shift
   real(kind=db), dimension(3,3):: Mat, Mat_bulk, Mat_film, Mat_i
 
 ! Bulk
@@ -8796,7 +9089,7 @@ end
 
   real(kind=db):: diag_bulk, Val_bulk, Val_film
   real(kind=db), dimension(3):: angxyz_bulk, axyz, axyz_bulk
-  real(kind=db), dimension(5):: Film_shift
+  real(kind=db), dimension(4):: Film_shift
 
   Diagonal = abs( angxyz_bulk(3) - pi / 2 ) < eps10 .and. &
             ( abs( Film_shift(4) - pi / 4 ) <  eps10 .or. abs( Film_shift(4) + pi / 4 ) < eps10 )
@@ -8830,160 +9123,130 @@ end
 
 !***********************************************************************
 
-subroutine Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_film, &
-            delta_z_top_film,Film_periodical,Film_roughness,Film_shift,Film_thickness,Film_thickness_used,icheck,igreq,itypepr, &
-            n_atom_proto,n_atom_proto_uc,n_atom_uc,neqm,ngreq,ntype,numat,posn,posn_t,R_bottom_film, &
-            R_top_film,z_max_film)
+Subroutine Prep_Film(angxyz,angxyz_bulk,angxyz_cap,angxyz_int,angxyz_sur,axyz,axyz_bulk,axyz_cap,axyz_int,axyz_sur, &
+               Cap_shift,Cap_roughness,Cap_thickness,Delta_bulk,Delta_cap,Delta_int,Delta_film,Delta_roughness_film,Delta_sur, &
+               delta_z_bottom_cap,delta_z_top_cap,delta_z_top_film,Film_shift,Film_roughness,Film_thickness,ich, &
+               Interface_shift,itype,n_atom_bulk,n_atom_cap,n_atom_int,n_atom_per, &
+               n_atom_sur,n_atom_uc,ngroup,ntype,numat,posn,posn_bulk,posn_cap,Surface_shift)
 
   use declarations
   implicit none
 
-  integer:: i, icheck, igr, ipr, jgr, it, n_atom_proto, n_atom_proto_uc, n_atom_uc, neqm, ntype, Z_bottom_film, Z_top_film
+  integer:: i, ich, icheck, igr, n_atom_bulk, n_atom_cap, n_atom_int, n_atom_per, n_atom_sur, n_atom_uc, ngroup, ntype, &
+    Z_bottom_int, Z_bottom_film, Z_bottom_sur, Z_top_film, Z_top_int, Z_top_sur
 
+  integer, dimension(ngroup):: itype
   integer, dimension(0:ntype):: numat
-  integer, dimension(0:n_atom_proto):: itypepr, ngreq
-  integer, dimension(0:n_atom_proto,neqm):: igreq
-  integer, dimension(neqm):: igr_tem
 
-  logical:: Film_periodical
+  real(kind=db):: Atom_radius, c_cos_z, c_cos_z_b, c_cos_z_c, c_cos_z_i, c_cos_z_s, Cap_roughness, Cap_shift, Cap_thickness_used, &
+    Cap_thickness, cos_z, cos_z_b, cos_z_c, cos_z_i, cos_z_s, Delta_bulk, Delta_cap, Delta_Film, Delta_int, &
+    Delta_roughness_film, Delta_sur, delta_z_bottom_cap, delta_z_top_cap, &
+    delta_z_top_film, Interface_thickness, Film_roughness, Film_thickness, Film_Thickness_used, Surface_thickness, z_max, z_pos
 
-  real(kind=db):: Atom_radius, c_cos_z, cos_z, Delta_roughness_film, delta_z, delta_z_bottom_film, &
-    delta_z_top_film, Film_roughness, Film_thickness, Film_thickness_used, R_bottom_film, R_top_film, Thickness, z_max_film, &
-    z_max_2_film, z_min_film, z_min_2_film, z_pos
+  real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
+  real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_cap, angxyz_int, angxyz_sur, axyz, axyz_bulk, axyz_cap, axyz_int, &
+                                axyz_sur
+  real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
+  real(kind=db), dimension(3,n_atom_uc):: posn
+  real(kind=db), dimension(3,n_atom_cap):: posn_cap
 
-  real(kind=db), dimension(3):: angxyz, axyz
-  real(kind=db), dimension(5):: Film_shift
-  real(kind=db), dimension(3,n_atom_uc):: posn, posn_t
+  icheck = ich
+
+! Bulk
+
+  cos_z_b = sqrt( sin( angxyz_bulk(2) )**2 - ( ( cos( angxyz_bulk(1) ) - cos( angxyz_bulk(3) ) * cos( angxyz_bulk(2) ) ) &
+        / sin( angxyz_bulk(3) ) )**2 )
+  c_cos_z_b = axyz_bulk(3) * cos_z_b
+
+  z_max = -100000._db
+  do igr = 1,n_atom_bulk
+    z_pos = posn_bulk(3,igr) * c_cos_z_b
+    z_max = max( z_max, z_pos )
+  end do
+
+  Delta_bulk = - z_max
+
+! Film
+
+  Z_bottom_film = 0
+  Z_bottom_int = 0
+  Z_bottom_sur = 0
+  Z_top_film = 0
+  Z_top_int = 0
+  Z_top_sur = 0
 
   cos_z = sqrt( sin( angxyz(2) )**2 - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) &
         / sin( angxyz(3) ) )**2 )
-
   c_cos_z = axyz(3) * cos_z
 
-! Storage if modification
-  posn_t(:,:) = posn(:,:)
-
-  if( Film_shift(5) > - eps10 ) then
-    do jgr = 1,n_atom_uc
-      posn(3,jgr) = posn(3,jgr) - Film_shift(5)
-      if( posn(3,jgr) < 0._db - eps10 ) posn(3,jgr) = posn(3,jgr) + 1._db
-    end do
+  if( n_atom_int > 0 ) then
+    cos_z_i = sqrt( sin( angxyz_int(2) )**2 - ( ( cos( angxyz_int(1) ) - cos( angxyz_int(3) ) * cos( angxyz_int(2) ) ) &
+            / sin( angxyz_int(3) ) )**2 )
+    c_cos_z_i = axyz_int(3) * cos_z_i
+  endif
+  if( n_atom_sur > 0 ) then
+    cos_z_s = sqrt( sin( angxyz_sur(2) )**2 - ( ( cos( angxyz_sur(1) ) - cos( angxyz_sur(3) ) * cos( angxyz_sur(2) ) ) &
+            / sin( angxyz_sur(3) ) )**2 )
+    c_cos_z_s = axyz_sur(3) * cos_z_s
   endif
 
-  z_min_film = 1000000._db
-  Z_bottom_film = 0
-  Z_top_film = 0
+  Film_thickness_used = 0._db
 
-  do ipr = 1,n_atom_proto_uc
+  do igr = 1,n_atom_per
 
-    it = itypepr( ipr )
-    if( numat( it ) == 0 ) cycle
-    igr_tem(:) = igreq(ipr,:)
-
-    do igr = 1,ngreq(ipr)
-      jgr = igr_tem(igr)
-      if( posn(3,jgr) < z_min_film ) then
-        z_min_film = posn(3,jgr)
-        Z_bottom_film = numat(it)
-      endif
+    do i = 0,1000000
+      z_pos = ( posn(3,igr) + i ) * c_cos_z
+      if( z_pos > Film_thickness - eps10 ) exit
+      if( z_pos < Film_thickness_used ) cycle
+      Film_thickness_used = max( Film_thickness_used, z_pos )
+      Z_top_film = numat(itype(igr))
     end do
 
   end do
 
-! Bottom atom is set at z = 0
-  do ipr = 1,n_atom_proto_uc
-
-    it = itypepr( ipr )
-    if( numat( it ) == 0 ) cycle
-    igr_tem(:) = igreq(ipr,:)
-
-    do igr = 1,ngreq(ipr)
-      jgr = igr_tem(igr)
-      posn(3,jgr) = posn(3,jgr) - z_min_film
-    end do
-
+  Surface_thickness = 0._db
+  do igr = n_atom_per + n_atom_int + 1, n_atom_uc
+    z_pos = posn(3,igr) * c_cos_z_s
+    if( z_pos < Surface_thickness ) cycle
+    Surface_thickness = max( Surface_thickness, z_pos )
+    Z_top_sur = numat(itype(igr))
   end do
 
-  if( Film_periodical ) then
-    z_min_2_film = - 1000000._db
-  else
-    z_min_2_film = 1000000._db
-  endif
+  Interface_thickness = 0._db
+  do igr = n_atom_per + 1, n_atom_per + n_atom_int
+    z_pos = posn(3,igr) * c_cos_z_i
+    Interface_thickness = max( Interface_thickness, z_pos )
+    Z_top_int = numat(itype(igr))
+  end do
 
-  do ipr = 1,n_atom_proto_uc
-
-    it = itypepr( ipr )
-    if( numat( it ) == 0 ) cycle
-    igr_tem(:) = igreq(ipr,:)
-
-    do igr = 1,ngreq(ipr)
-      jgr = igr_tem(igr)
-      if( Film_periodical ) then
-        z_pos = ( posn(3,jgr) - 1 ) * c_cos_z
-        if( z_pos > z_min_2_film ) z_min_2_film = z_pos
+  do igr = 1,n_atom_uc
+    if( abs( posn(3,igr) ) < eps10 ) then
+      if( igr <= n_atom_per ) then
+        Z_bottom_film = numat( itype(igr) )
+      elseif( igr <= n_atom_per + n_atom_int ) then
+        Z_bottom_int = numat( itype(igr) )
       else
-        z_pos = posn(3,jgr) * c_cos_z
-        if( z_pos < eps10 ) cycle
-        if( z_pos < z_min_2_film ) z_min_2_film = z_pos
-     endif
-    end do
-
+        Z_bottom_sur = numat( itype(igr) )
+      endif
+    endif
   end do
 
-  if( Z_bottom_film /= 0 ) then
-    R_bottom_film = Atom_radius( Z_bottom_film )
-  else
-    R_bottom_film = 0._db
-  endif
-
-  if( z_min_2_film >= 100000._db ) then
-    delta_z = 0.5_db * c_cos_z
-  else
-    delta_z = 0.5_db * abs( z_min_2_film )
-  endif
-  delta_z_bottom_film = min( delta_z, R_bottom_film )
-
-  z_max_film = -1000000._db
-  z_max_2_film = -1000000._db
-
-  do ipr = 1,n_atom_proto_uc
-
-    it = itypepr( ipr )
-    if( numat( it ) == 0 ) cycle
-
-    R_top_film = Atom_radius( numat(it) )
-
-    igr_tem(:) = igreq(ipr,:)
-
-    do igr = 1,ngreq(ipr)
-      jgr = igr_tem(igr)
-      do i = 0,1000000
-        if( .not. Film_periodical .and. i > 0 ) exit
-        z_pos = ( posn(3,jgr) + i ) * axyz(3) * cos_z
-        if( Film_periodical ) then
-          Thickness = z_pos
-          if( Thickness > Film_thickness - eps10 ) exit
-        endif
-        if( z_pos > z_max_film ) then
-          z_max_film = z_pos
-          Z_top_film = numat(it)
-        endif
-      end do
+! Search of second top most atom
+  z_max = 0._db
+  do igr = 1,n_atom_per
+    do i = 0,1000000
+      z_pos = ( posn(3,igr) + i ) * c_cos_z
+      if( z_pos > Film_thickness_used - eps10 ) exit
+      z_max = max( z_max, z_pos )
     end do
-
   end do
 
-  if( Z_top_film /= 0 ) then
-    R_top_film = Atom_radius( Z_top_film )
+  if( z_max > eps10 ) then
+    delta_z_top_film = 0.5_db * ( Film_thickness_used - z_max )
+  elseif( Z_top_film /= 0 .and. Z_top_film /= 0 ) then
+    delta_z_top_film = Atom_radius( Z_top_film )
   else
-    R_top_film = 0._db
-  endif
-  delta_z_top_film = R_top_film
-
-  if( Film_thickness > eps10 ) then
-    Film_thickness_used = z_max_film
-  else
-    Film_thickness_used = 0._db
+    delta_z_top_film = 0._db
   endif
 
   if( Film_roughness > eps10 ) then
@@ -8992,89 +9255,92 @@ subroutine Prep_film(angxyz,axyz,c_cos_z,Delta_roughness_film,delta_z_bottom_fil
     Delta_roughness_film = 0._db
   endif
 
-  if( icheck > 0 ) then
-    if( Film_periodical ) then
-      write(3,222) 'Film_thickness', Film_thickness * bohr, 'Film_thickness_used', Film_thickness_used * bohr
-    else
-      write(3,222) 'Film_thickness', Film_thickness_used * bohr
-    endif
-    write(3,223) 'Film_roughness', Film_roughness * bohr
-    write(3,224) 'bottom_film', Z_bottom_film, 'bottom_film', R_bottom_film * bohr, 'bottom_film', delta_z_bottom_film * bohr
-    write(3,224) 'top_film   ', Z_top_film, 'top_film   ', R_top_film * bohr, 'top_film   ', delta_z_top_film * bohr
-  endif
+! Cap layer
 
-  return
-  222 format(/1x,a14,' =',f7.3,'    ',a19,' =',f7.3,' A')
-  223 format( 1x,a14,' =',f7.3,' A')
-  224 format( ' Z_',a11,'  =',i3,'        R_',a11,' =',f7.3,'  delta_z_',a11,' =',f7.3,' A')
-end
+  cos_z_c = sqrt( sin( angxyz_cap(2) )**2 - ( ( cos( angxyz_cap(1) ) - cos( angxyz_cap(3) ) * cos( angxyz_cap(2) ) ) &
+          / sin( angxyz_cap(3) ) )**2 )
 
-!*********************************************************************************************************
+  c_cos_z_c = cos_z_c * axyz_cap(3)
 
-! Determination of Film-bulk spacing
+  Cap_thickness_used = 0._db
+  do igr = 1,n_atom_cap
 
-  function Cal_Delta_bulk(c_cos_z_b,Film_shift,icheck,n_atom_bulk,posn_bulk,R_bottom_film,R_top_bulk,Z_bulk)
+    do i = 0,1000000
+      z_pos = ( posn_cap(3,igr) + i ) * c_cos_z_c
+      if( z_pos > Cap_thickness - eps10 ) exit
+      if( z_pos < Cap_thickness_used ) cycle
+      Cap_thickness_used = max( Cap_thickness_used, z_pos )
+    end do
 
-  use declarations
-  implicit none
-
-  integer:: icheck, igr, n_atom_bulk, Z_top_bulk
-  integer, dimension(n_atom_bulk):: Z_bulk
-
-  real(kind=db):: Atom_radius, c_cos_z_b, Cal_Delta_bulk, Delta_bulk, delta_z, delta_z_top_bulk, R_bottom_film, R_top_bulk, &
-                  z_max_bulk, z_pos
-  real(kind=db), dimension(5):: Film_shift
-  real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
-
-  z_max_bulk = -100000._db
-  do igr = 1,n_atom_bulk
-    if( posn_bulk(3,igr) < z_max_bulk ) cycle
-    z_max_bulk = posn_bulk(3,igr)
-    Z_top_bulk = Z_bulk(igr)
   end do
 
-  z_pos = z_max_bulk + 1._db
-  do igr = 1,n_atom_bulk
-    if( posn_bulk(3,igr) + 1._db > z_pos ) cycle
-    z_pos = posn_bulk(3,igr) + 1._db
+! Search of second top most atom
+  z_max = -100._db
+  do igr = 1,n_atom_cap
+    do i = 0,1000000
+      z_pos = ( posn_cap(3,igr) + i ) * c_cos_z_c
+      if( z_pos > Cap_thickness_used - eps10 ) exit
+      z_max = max( z_max, z_pos )
+    end do
   end do
 
-  z_max_bulk = z_max_bulk * c_cos_z_b
-  z_pos = z_pos * c_cos_z_b
-
-  R_top_bulk = Atom_radius( Z_top_bulk )
-
-! half inter-reticular distance
-  delta_z = 0.5_db * ( z_pos - z_max_bulk )
-  delta_z_top_bulk = min( delta_z, R_top_bulk )
-
-  Delta_bulk = - z_max_bulk
-  if( Film_shift(3) < - 100._db ) then
-    Delta_bulk = Delta_bulk - ( R_top_bulk + R_bottom_film )
+  if( z_max > - eps10 ) then
+    delta_z_top_cap = 0.5_db * ( Cap_thickness_used - z_max )
   else
-    Delta_bulk = Delta_bulk - Film_shift(3)
+    delta_z_top_cap = 0._db
   endif
 
-  Cal_Delta_bulk = Delta_Bulk
+  delta_z_bottom_cap = 100._db
+  do igr = 1,n_atom_cap
+    do i = 0,1
+      z_pos = ( posn_cap(3,igr) + i ) * c_cos_z_c
+      if( z_pos < eps10 ) cycle
+      delta_z_bottom_cap = min( delta_z_bottom_cap, z_pos )
+    end do
+  end do
+  delta_z_bottom_cap = 0.5_db * delta_z_bottom_cap
+
+  Delta_int = Interface_shift(3)
+  Delta_Film = Delta_int + Interface_thickness + Film_shift(3)
+  Delta_sur = Delta_Film + Film_thickness_used + Surface_shift(3)
+  Delta_cap = Delta_sur + Surface_thickness + Cap_shift
 
   if( icheck > 0 ) then
-    if( Film_shift(3) < - 100._db ) then
-      write(3,110) 'Film_shift    ', ( R_top_bulk + R_bottom_film ) * bohr
-    else
-      write(3,110) 'Film_shift    ', Film_shift(3) * bohr
+    write(3,100)
+    if( n_atom_per > 0 ) then
+      write(3,110) Film_thickness_used * bohr, Film_shift(3) * bohr, Film_thickness * bohr, Film_roughness * bohr
+      write(3,120) delta_z_top_film * bohr, Z_bottom_film, Z_top_film
     endif
-    write(3,*)
-    write(3,120) 'top_bulk   ', Z_top_bulk, 'top_bulk   ', R_top_bulk * bohr, 'top_bulk   ', delta_z_top_bulk * bohr
-    write(3,130) z_max_bulk * bohr
-    write(3,140) 'bulk', Delta_bulk * bohr
+    if( n_atom_int > 0 ) write(3,130) Interface_thickness * bohr, Interface_shift(3) * bohr, Z_bottom_int, Z_top_int
+    if( n_atom_sur > 0 ) write(3,140) Surface_thickness * bohr, Surface_shift(3) * bohr, Z_bottom_sur, Z_top_sur
+
+    if( n_atom_cap > 0 ) then
+      write(3,150) Cap_thickness_used * bohr, Cap_shift *bohr, Cap_thickness * bohr, Cap_roughness * bohr
+      write(3,160) delta_z_bottom_cap * bohr, delta_z_top_cap * bohr
+    endif
+    if( n_atom_bulk > 0 ) write(3,170) Delta_bulk * bohr
+    if( n_atom_int > 0 ) write(3,180) Delta_int * bohr
+    if( n_atom_per > 0 ) write(3,190) Delta_Film * bohr
+    if( n_atom_sur > 0 ) write(3,200) Delta_sur * bohr
+    if( n_atom_cap > 0 ) write(3,210) Delta_cap * bohr
   endif
 
+  Film_Thickness = Film_thickness_used
+  Cap_thickness = Cap_thickness_used
+
   return
-  110 format( 1x,a14,' =',f7.3,' A')
-  120 format( ' Z_',a11,'  =',i3,'        R_',a11,' =',f7.3,'  delta_z_',a11,' =',f7.3,' A')
-  130 format( ' z_max_bulk     =',f7.3,' A')
-  140 format( ' Delta_',a4,'     =',f7.3,' A')
-  return
+  100 format(/'----- Prep_Film ', 100('-')/ )
+  110 format(' Film thickness used =',f10.5,', Film shift       =',f10.5,', Film thickness =',f10.5,', Film roughness =',f10.5,' A')
+  120 format(31x,' delta_z_top_film   =',f10.5,' A,  Z bottom film  =',i3,',  Z top film =',i3)
+  130 format(' Interface thickness =',f10.5,', Interface shift =',f10.5,' A,  Z bottom int   =',i3,', Z top int  =',i3)
+  140 format(' Surface thickness   =',f10.5,', Surface shift   =',f10.5,' A,  Z bottom sur   =',i3,', Z top sur =',i3)
+  150 format(' Cap thickness used  =',f10.5,', Cap shift       =',f10.5,', Cap thickness  =',f10.5,',  Cap roughness = ',f10.5,' A')
+  160 format(31x,' delta_z_bottom_cap =',f10.5,' A, delta_z_top_cap =',f8.3,' A')
+  170 format(' Delta Bulk          =',f10.5,' A')
+  180 format(' Delta Interface     =',f10.5,' A')
+  190 format(' Delta Film          =',f10.5,' A')
+  200 format(' Delta Surface       =',f10.5,' A')
+  210 format(' Delta Cap           =',f10.5,' A')
 end
 
 !*********************************************************************************************************
@@ -9217,14 +9483,14 @@ end
 
   real(kind=db):: arg, c_cos_z, c_cos_z_b, Delta_bulk, Rap
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, axyz, axyz_bulk, hkl
-  real(kind=db), dimension(5):: Film_shift
+  real(kind=db), dimension(4):: Film_shift
   real(kind=db), dimension(3,npldafs):: hkl_dafs
 
   Phase_Bulk(:) = ( 0._db, 0._db )
 
   do ipl = 1,npldafs
 
-! No need to transform hkl if hkl_film true,because below vision by c_cos_z or c_ cos_z_b
+! No need to transform hkl if hkl_film true, because below division by c_cos_z or c_ cos_z_b
     hkl(:) = hkl_dafs(:,ipl)
 
 ! Mult_bulk = 0 is for non rationnal ratio between bulk and film
@@ -9238,6 +9504,7 @@ end
 
     if( hkl_film ) then
       arg = deux_pi * hkl(3) * Delta_bulk / c_cos_z
+!      arg = deux_pi * hkl(3) * (Delta_bulk-Film_shift(3)) / c_cos_z
     else
       arg = deux_pi * hkl(3) * Delta_bulk / c_cos_z_b
     endif
@@ -9265,16 +9532,16 @@ end
 
 ! Calculation of the scattering amplitude from the cap layer
 
-subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,Cap_disorder,Cap_roughness, &
-              Cap_thickness,Cap_thickness_used,Cap_shift,c_cos_z,c_cos_z_b,Delta_roughness_film,delta_z_bottom_cap, &
-              delta_z_top_cap,Energy_photon,Film_roughness,Film_thickness,fpp_cap_tot,hkl_dafs,hkl_film, &
-              icheck,Mult_bulk,Mult_film,n_atom_cap,npldafs,phd_f_cap,posn_cap,Q_mod,R_top_bulk,R_top_film,Taux_cap, &
-              xsect_file,Z_cap,z_max_film)
+subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Cap_disorder,Cap_roughness, &
+              Cap_thickness,c_cos_z,c_cos_z_b,Delta_cap,Delta_roughness_film,delta_z_bottom_cap, &
+              delta_z_top_cap,Energy_photon,Film_roughness,fpp_cap_tot,hkl_dafs,hkl_film, &
+              Mult_bulk,Mult_film,n_atom_cap,npldafs,phd_f_cap,posn_cap,Q_mod,Taux_cap, &
+              xsect_file,Z_cap)
 
   use declarations
   implicit none
 
-  integer:: i, i0, icheck,igr, ipl, n_atom_cap, n, npldafs, Z, Z_bottom_cap, Z_top_cap
+  integer:: i, i0, igr, ipl, n_atom_cap, n, npldafs, Z
 
   integer, dimension(n_atom_cap):: Z_cap
 
@@ -9287,15 +9554,14 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
   complex(kind=db):: Bragg_cap
   complex(kind=db), dimension(npldafs):: phd_f_cap
 
-  logical:: Bulk, hkl_film
+  logical:: hkl_film
 
   real(kind=sg):: getf0, s
 
-  real(kind=db):: arg, Atom_radius, Conv_mbarn_nelec, c_cos_z, c_cos_z_b, c_cos_z_c, cos_z_c, Cap_amount, Cap_amount_ref, &
-    Cap_disorder, Cap_roughness, Cap_thickness, Cap_thickness_used, Cap_shift, Cal_Volume_maille, Deb, Delta_cap, &
-    Delta_roughness_cap, Delta_roughness_film, delta_z, delta_z_bottom_cap, delta_z_top_cap, Energy_photon, f0_cap,  &
-    Film_roughness,Film_thickness, fpp_cap_tot, R_bottom_cap, R_top_bulk, R_top_cap, R_top_film, Taux_r, Taux_r2, &
-    Volume_maille, x, z_max_cap, z_max_film, z_min_cap, z_pos
+  real(kind=db):: arg, Conv_mbarn_nelec, c_cos_z, c_cos_z_b, c_cos_z_c, cos_z_c, Cap_amount, Cap_amount_ref, &
+    Cap_disorder, Cap_roughness, Cap_thickness, Cal_Volume_maille, Deb, Delta_cap, &
+    Delta_roughness_film, delta_z_bottom_cap, delta_z_top_cap, Energy_photon, f0_cap,  &
+    Film_roughness, fpp_cap_tot, Taux_r, Taux_r2, Volume_maille, x, z_pos
 
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_cap, axyz, axyz_bulk, axyz_cap, hkl, p
   real(kind=db), dimension(n_atom_cap):: fp_cap, fpp_cap, Taux_cap
@@ -9307,78 +9573,6 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
           / sin( angxyz_cap(3) ) )**2 )
 
   c_cos_z_c = cos_z_c * axyz_cap(3)
-
-  z_min_cap = 1000000._db
-  z_max_cap = -1000000._db
-
-  do igr = 1,n_atom_cap
-    if( posn_cap(3,igr) > z_min_cap ) cycle
-    z_min_cap = posn_cap(3,igr)
-    Z_bottom_cap = Z_cap(igr)
-  end do
-
-  z_pos = z_min_cap - 1._db
-  do igr = 1,n_atom_cap
-    if( posn_cap(3,igr) - 1._db < z_pos ) cycle
-    z_pos = posn_cap(3,igr) - 1._db
-  end do
-
-  z_min_cap = z_min_cap * c_cos_z_c
-  z_pos = z_pos * c_cos_z_c
-
-  R_bottom_cap = Atom_radius( Z_bottom_cap )
-
-  delta_z = 0.5_db * ( z_min_cap - z_pos )
-  delta_z_bottom_cap = min( delta_z, R_bottom_cap )
-
-  z_max_cap = z_min_cap
-  Z_top_cap = Z_bottom_cap
-
-  do igr = 1,n_atom_cap
-    R_top_cap = Atom_radius( Z_cap(igr) )
-    do i = 0,1000000
-      z_pos = ( posn_cap(3,igr) + i ) * c_cos_z_c
-      if( z_pos < z_max_cap ) cycle
-      if( z_pos - z_min_cap > Cap_thickness ) exit
-      if( z_pos > z_max_cap ) then
-        z_max_cap = z_pos
-        Z_top_cap = Z_cap(igr)
-      endif
-    end do
-  end do
-
-  R_top_cap = Atom_radius( Z_top_cap )
-  delta_z = R_top_cap
-
-  do igr = 1,n_atom_cap
-    R_top_cap = Atom_radius( Z_cap(igr) )
-    do i = 0,1000000
-      z_pos = ( posn_cap(3,igr) + i ) * c_cos_z_c
-      if( z_pos > z_max_cap - eps10 ) exit
-      delta_z = min( delta_z, 0.5_db * ( z_max_cap - z_pos ) )
-    end do
-  end do
-  delta_z_top_cap = delta_z
-
-  Cap_thickness_used = z_max_cap - z_min_cap + delta_z_top_cap + delta_z_bottom_cap
-
-  if( Film_thickness < eps10 .and. .not. Bulk ) then
-    Delta_cap = 0._db
-    Cap_shift = 0._db
-  elseif( Film_thickness < eps10 ) then
-    Delta_cap = z_min_cap
-    if( Cap_shift < -100._db ) Cap_shift = R_top_bulk + R_bottom_cap
-  else
-    Delta_cap = z_max_film - z_min_cap
-    if( Cap_shift < -100._db ) Cap_shift = R_top_film + R_bottom_cap
-  endif
-  Delta_cap = Delta_cap + Cap_shift
-
-  if( Cap_roughness < eps10 ) then
-    Delta_roughness_cap = 0._db
-  else
-    Delta_roughness_cap = z_max_cap - z_min_cap + delta_z_top_cap - delta_z_bottom_cap
-  endif
 
   if( Delta_roughness_film > eps10 ) then
     i0 = - nint( Delta_roughness_film / c_cos_z_c ) - 1
@@ -9400,7 +9594,7 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
   Volume_maille = Cal_Volume_maille(axyz_cap,angxyz_cap)
   fpp_cap_tot = 100 * fpp_cap_tot / ( Volume_maille * bohr**3 )
 ! Thickness to cross (go and return) (to multiply by 2/sin(theta_bragg) )
-  fpp_cap_tot = 0.00001_db * bohr * fpp_cap_tot * Cap_thickness_used
+  fpp_cap_tot = 0.00001_db * bohr * fpp_cap_tot * Cap_thickness
 
   do ipl = 1,npldafs
 
@@ -9441,22 +9635,23 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
         p(:) = posn_cap(:,igr)
         p(3) = p(3) + i
         z_pos = p(3) * c_cos_z_c
-        if( z_pos < z_min_cap - delta_z_bottom_cap - Delta_roughness_film - eps10 ) cycle
-        if( z_pos > z_max_cap + delta_z_top_cap + 2 * Cap_roughness + eps10 ) exit
+        if( z_pos < - delta_z_bottom_cap - Delta_roughness_film - eps10 ) cycle
         if( Cap_roughness > eps10 ) then
-          x = ( z_max_cap + delta_z_top_cap - z_pos ) / Cap_roughness
+          if( z_pos > Cap_thickness + delta_z_top_cap + 2 * Cap_roughness + eps10 ) exit
+          x = ( Cap_thickness + delta_z_top_cap - z_pos ) / Cap_roughness
           Taux_r = 1._db - erfc( x ) * 0.5_db
         else
+          if( z_pos > Cap_thickness + eps10 ) exit
           Taux_r = 1._db
         endif
-        if( Film_roughness > eps10 .and. z_pos < z_min_cap + Delta_roughness_film + eps10 ) then
-          x = ( z_pos - z_min_cap ) / Film_roughness
+        if( Film_roughness > eps10 .and. z_pos < Delta_roughness_film + eps10 ) then
+          x = ( z_pos + delta_z_bottom_cap ) / Film_roughness
           Taux_r2 =  erfc( x )
           Taux_r2 = 1._db - Taux_r2 * 0.5_db
           Taux_r = Taux_r * Taux_r2
         endif
         Cap_amount = Cap_amount + Taux_cap(igr) * Taux_r
-        if( z_pos < z_max_cap + delta_z_top_cap + eps10 .and. z_pos > z_min_cap - delta_z_bottom_cap - eps10 ) &
+        if( z_pos < Cap_thickness + delta_z_top_cap .and. z_pos > - delta_z_bottom_cap ) &
           Cap_amount_ref = Cap_amount_ref + Taux_cap(igr)
         arg = deux_pi * sum( p(:) * hkl(:) )
         Bragg_cap = Bragg_cap + Deb * Taux_r * cmplx( cos(arg), sin(arg), db )
@@ -9466,14 +9661,11 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
 
     end do
 
-! This renormaization is to keep the same amount of cap atoms whatever is the toughness
+! This renormaization is to keep the same amount of cap atoms whatever is the roughness
     if( Cap_amount > eps10 ) phd_f_cap(ipl) = ( Cap_amount_ref / Cap_amount ) * phd_f_cap(ipl)
 
-    if( hkl_film ) then
-      arg = deux_pi * hkl(3) * Delta_cap / c_cos_z
-    else
-      arg = deux_pi * hkl(3) * Delta_cap / c_cos_z_b
-    endif
+! hkl(3) is given in cap cell unit
+    arg = deux_pi * hkl(3) * Delta_cap / c_cos_z_c
     phd_f_cap(ipl) = phd_f_cap(ipl) * cmplx( cos(arg), sin(arg), db )
 
 ! Case of non rationnal ratio between bulk and film, or R45 (sqrt(2), sqrt(2))
@@ -9490,22 +9682,7 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Bulk,C
 
   end do
 
-  if( icheck > 0 ) then
-    write(3,110) 'Cap_thickness ', Cap_thickness * bohr, 'Cap_thickness_used ', Cap_thickness_used * bohr
-    write(3,120) 'Cap_shift     ', Cap_shift * bohr
-    write(3,120) 'Cap_roughness ', Cap_roughness * bohr
-    write(3,130) 'bottom_cap ', Z_bottom_cap, 'bottom_cap ', R_bottom_cap * bohr, 'bottom_cap ', delta_z_bottom_cap * bohr
-    write(3,130) 'top_cap    ', Z_top_cap, 'top_cap    ', R_top_cap * bohr, 'top_cap    ', delta_z_top_cap * bohr
-    write(3,140) 'cap ', z_min_cap * bohr, 'cap ', z_max_cap * bohr
-    write(3,150) 'cap ', Delta_cap * bohr
-  endif
-
   return
-  110 format(/1x,a14,' =',f7.3,'    ',a19,' =',f7.3,' A')
-  120 format(1x,a14,' =',f7.3,' A')
-  130 format(' Z_',a11,'  =',i3,'        R_',a11,' =',f7.3,'  delta_z_',a11,' =',f7.3,' A')
-  140 format(' z_min_',a4,'     =',f7.3,'    z_max_',a4,'    =',f7.3,' A')
-  150 format(' Delta_',a4,'     =',f7.3,' A')
 end
 
 !***********************************************************************
@@ -11225,7 +11402,7 @@ end
 ! Selection des atomes du petit agregat
 ! Evaluation de leur groupe ponctuel dans cet agregat.
 
-subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_clu,Base_ortho,dcosxyz,dista, &
+subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_clu,dista, &
            distai,Full_atom,Green,hubbard,i_self,ia_eq,ia_eq_inv,ia_rep,iaabs,iaabsi,iabsorbeur,iaproto,iaprotoi,icheck,igreq, &
            igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,ipr0,is_eq,itype,itypei,itypep,itypepr,magnetic,m_hubb, &
            m_hubb_e,mpirank,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,nb_eq,nb_rpr, &
@@ -11257,16 +11434,16 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
 
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb
 
-  logical:: Atom_mag_cal, Nonsph, Atom_occ_mat, Base_ortho, Full_atom, Green, Hubbard, magnetic, overad, &
+  logical:: Atom_mag_cal, Nonsph, Atom_occ_mat, Full_atom, Green, Hubbard, magnetic, overad, &
           Spinorbite, Symmol, Ylm_comp
   logical, dimension(nb_sym_op):: Fait
   logical, dimension(natome):: Atom_comp, Atom_axe
   logical, dimension(0:natome):: Atom_mag
   logical, dimension(0:ngroup_m):: Atom_with_axe
 
-  real(kind=db):: Adimp, Dist, Rm, Rmax, Rsort, Rsorte, Roverad, Vnorme
+  real(kind=db):: Adimp, Dist, Rm, Rmax, Rsort, Rsorte, Roverad
 
-  real(kind=db), dimension(3):: dcosxyz, dp, ps, v
+  real(kind=db), dimension(3):: dp, ps, v
   real(kind=db), dimension(3,3):: matopsym, rot_a
   real(kind=db), dimension(0:ntype) :: rmt, V_hubbard
   real(kind=db), dimension(3,natome):: Axe_atom_clui, posi
@@ -11451,7 +11628,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   do ia = 1,natome
     if( icheck > 1 ) write(3,130) ia
     ps(:) = posi(:,ia)
-    call point_group_atom(Atom_comp(ia),Atom_mag(ia),Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
+    call point_group_atom(Atom_comp(ia),Atom_mag(ia),Atom_with_axe,Nonsph,Axe_atom_clu, &
         iaabs,iatomp(ia),icheck,igroup,igroupi(ia),igrpt(ia),igrpt0,iopsyma,iopsymr,itype,itypep,magnetic,mpirank,natomp, &
         ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_a,Spinorbite,Symmol)
 
@@ -11564,7 +11741,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
       do ia2 = ia1+1,natome
         it2 = itypei(ia2)
         v(:) = posi(:,ia1) - posi(:,ia2)
-        dist = Vnorme(Base_ortho,dcosxyz,v)
+        dist = sqrt( sum( v(:)**2 ) )
         if( dist < rmt(it1) + rmt(it2) - Adimp .and. mpirank == 0) then
           call write_error
           do ipr = 3,9,3
@@ -11865,7 +12042,7 @@ end
 
 !***********************************************************************
 
-subroutine point_group_atom(Ylm_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu,Base_ortho,dcosxyz, &
+subroutine point_group_atom(Ylm_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu, &
           iaabs,iap,icheck,igroup,igra,igrpt,igrpt0,iopsym,iopsymr,itype,itypep,magnetic,mpirank,natomp, &
           ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,posi,rot_atom,Spinorbite,Symmol)
 
@@ -11877,10 +12054,10 @@ subroutine point_group_atom(Ylm_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu,
   integer, dimension(ngroup):: itype
   integer, dimension(0:ntype):: nlat, numat
 
-  logical:: Ylm_comp, Atom_comp_cal, Atom_mag, Atom_mag_cal, Nonsph, Base_ortho, Magnetic, Spinorbite, Symmol
+  logical:: Atom_comp_cal, Atom_mag, Atom_mag_cal, Magnetic, Nonsph, Spinorbite, Symmol, Ylm_comp
   logical, dimension(0:ngroup_m):: Atom_with_axe
 
-  real(kind=db), dimension(3):: dcosxyz, posi, px, py, pz, v
+  real(kind=db), dimension(3):: posi, px, py, pz, v
   real(kind=db), dimension(3,3):: rot_atom, rot_tem, rot_un
   real(kind=db), dimension(3,natomp):: Axe_atom_clu, Axe_atom_clut, p, pos
   real(kind=db), dimension(ngroup,nlatm,nspin):: popats
@@ -11907,7 +12084,7 @@ subroutine point_group_atom(Ylm_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu,
 ! Determination des symmetries du groupe ponctuel (iopsymc)
     do i = 1,2
 
-      call sym_cluster(Atom_with_axe,Axe_atom_clut,Base_ortho,dcosxyz,iaabs,igroup,iopsym,itype,itypep, &
+      call sym_cluster(Atom_with_axe,Axe_atom_clut,iaabs,igroup,iopsym,itype,itypep, &
              natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,p,Symmol)
 
 ! Le groupe ponctuel de l'atome doit etre un sous-groupe du groupe de l'agregat.
@@ -12067,7 +12244,7 @@ end
 
 ! Calcul du nombre de point du maillage.
 
-subroutine nbpoint(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,igrpt_nomag,iopsymr,iord,Moy_loc, &
+subroutine nbpoint(Adimp,Base_hexa,D_max_pot,Green,iaabs,igrpt_nomag,iopsymr,iord,Moy_loc, &
                mpirank,natomp,npoint,npso,nvois,nx,pos,Rsort)
 
   use declarations
@@ -12076,10 +12253,10 @@ subroutine nbpoint(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,igrp
   integer:: ia, iaabs, igrpt_nomag, iord, isym, ix, iy, iz, mpirank, natomp, npoint, npso, nvois, nx
   integer, dimension(nopsm):: iopsymr
 
-  logical Base_hexa, Base_ortho, Green, Moy_loc
+  logical Base_hexa, Green, Moy_loc
 
-  real(kind=db):: Adimp, D_max_pot, Dist, Dist_max, Dista, dcour, f, Rmax, Rsort, Vnorme
-  real(kind=db), dimension(3):: dcosxyz, p, v, w
+  real(kind=db):: Adimp, d, D_max_pot, Dist, Dist_max, Dista, dcour, f, Rmax, Rsort
+  real(kind=db), dimension(3):: p, v, w
   real(kind=db), dimension(3,natomp):: pos
 
   Dist_max = D_max_pot / Adimp + eps10
@@ -12090,7 +12267,8 @@ subroutine nbpoint(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,igrp
     do ia = 1,natomp
       if( ia == iaabs ) cycle
       p(:) = pos(:,ia) - pos(:,iaabs)
-      dcour = min(dcour,Vnorme(Base_ortho,dcosxyz,p))
+      d = sqrt( sum( p(:)**2 ) )
+      dcour = min( dcour, d )
     end do
     rmax = min(dcour,rsort) / Adimp + epspos
   else
@@ -12113,9 +12291,9 @@ subroutine nbpoint(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,igrp
         v(3) = 1._db * iz
         if( Moy_loc ) then
           w(:) = v(:) - p(:)
-          dist = Vnorme(Base_ortho,dcosxyz,w)
+          dist = sqrt( sum( w(:)**2 ) )
         else
-          dist = Vnorme(Base_ortho,dcosxyz,v)
+          dist = sqrt( sum( v(:)**2 ) )
         endif
         if( dist > rmax ) cycle
         w(:) = v(:)
@@ -12123,11 +12301,10 @@ subroutine nbpoint(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,igrp
         w(:) = abs( (v(:) - w(:) ) )
         if( w(1) > epspos .or. w(2) > epspos .or. w(3) > epspos ) cycle
         if( Green .and. .not. Moy_loc ) then
-! Pour la moyenne du potentiel, on ne prend pas les points loin de tout
-! atome
+! Pour la moyenne du potentiel, on ne prend pas les points loin de tout atome
           do ia = 1,natomp
             w(:) = pos(:,ia) / Adimp - v(:)
-            dista = Vnorme(Base_ortho,dcosxyz,w)
+            dista = sqrt( sum( w(:)**2 ) )
             if( dista < Dist_max ) exit
           end do
           if( ia > natomp ) cycle
@@ -12151,7 +12328,7 @@ end
 
 ! Elaboration du maillage.
 
-subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,icheck, &
+subroutine reseau(Adimp,Base_hexa,D_max_pot,Green,iaabs,icheck, &
                igrpt_nomag,indice,iopsymr,iord,itypei,Moy_loc,mpirank,mpres,natome,natomp,nim, &
                npoint,npr,npso,npsom,ntype,numia,nx,pos,posi,Rmt,Rsort,rvol,xyz)
 
@@ -12167,10 +12344,10 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
   integer, dimension(npsom):: numia
   integer, dimension(-nx:nx,-nx:nx,-nx:nx):: mpres
 
-  logical:: Base_hexa, Base_ortho, Green, Moy_loc
+  logical:: Base_hexa, Green, Moy_loc
 
-  real(kind=db):: Adimp, D_max_pot, Dist, Dist_max, Dista, dcour, df3, dr, f, f3, Rmax, Rsort, Rvmax, Vnorme, xyzij
-  real(kind=db), dimension(3):: dcosxyz, p, x, v, w, w1
+  real(kind=db):: Adimp, d, D_max_pot, Dist, Dist_max, Dista, dcour, df3, dr, f, f3, Rmax, Rsort, Rvmax, xyzij
+  real(kind=db), dimension(3):: p, x, v, w, w1
   real(kind=db), dimension(nim):: rvol
   real(kind=db), dimension(0:ntype) :: rmt
   real(kind=db), dimension(3,natome):: posi
@@ -12189,7 +12366,8 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
     do ia = 1,natomp
       if( ia == iaabs ) cycle
       p(:) = pos(:,ia) - pos(:,iaabs)
-      dcour = min(dcour,Vnorme(Base_ortho,dcosxyz,p))
+      d = sqrt( sum( p(:)**2 ) )
+      dcour = min( dcour, d )
     end do
     rmax = min(dcour,rsort) / Adimp + epspos
   else
@@ -12212,9 +12390,9 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
         v(3) = 1._db * iz
         if( Moy_loc ) then
           w(:) = v(:) - p(:)
-          dist = Vnorme(Base_ortho,dcosxyz,w)
+          dist = sqrt( sum( w(:)**2 ) )
         else
-          dist = Vnorme(Base_ortho,dcosxyz,v)
+          dist = sqrt( sum( v(:)**2 ) )
         endif
         if( dist > Rmax ) cycle
         w(:) = v(:)
@@ -12224,7 +12402,7 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
 ! Pour la moyenne du potentiel, on ne prend pas les points loin de tout atome
           do ia = 1,natomp
             w(:) = pos(:,ia) / Adimp - v(:)
-            dista = Vnorme(Base_ortho,dcosxyz,w)
+            dista = sqrt( sum( w(:)**2 ) )
             if( dista < Dist_max ) exit
           end do
           if( ia > natomp ) cycle
@@ -12284,7 +12462,7 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
     p(1:3) = posi(1:3,ia)
     do i = 1,npoint
       x(1:3) = xyz(1:3,i)
-      call posrel(Base_ortho,dcosxyz,iopsymr,x,p,v,dr,isym)
+      call posrel(iopsymr,x,p,v,dr,isym)
       if( dr < rmt(it) + epspos ) numia(i) = ia
     end do
   end do
@@ -12314,20 +12492,19 @@ subroutine reseau(Adimp,Base_hexa,Base_ortho,D_max_pot,dcosxyz,Green,iaabs,ichec
         v(3) = 1._db * iz
         if( Moy_loc ) then
           w(:) = v(:) - p(:)
-          dist = Vnorme(Base_ortho,dcosxyz,w)
+          dist = sqrt( sum( w(:)**2 ) )
         else
-          dist = Vnorme(Base_ortho,dcosxyz,v)
+          dist = sqrt( sum( v(:)**2 ) )
         endif
         if( dist > Rmax ) cycle
         w(:) = v(:)
         call posequiv(mpirank,w,iopsymr,isym,igrpt_nomag)
 
         if( Green .and. .not. Moy_loc ) then
-! Pour la moyenne du potentiel, on ne prend pas les points loin de tout
-! atome
+! Pour la moyenne du potentiel, on ne prend pas les points loin de tout atome
           do ia = 1,natomp
             w1(:) = pos(:,ia) / Adimp - w(:)
-            dista = Vnorme(Base_ortho,dcosxyz,w1)
+            dista = sqrt( sum( w1(:)**2 ) )
             if( Dista < Dist_max ) exit
           end do
           if( ia > natomp ) cycle
@@ -12395,20 +12572,18 @@ end
 
 !***********************************************************************
 
-subroutine posrel(Base_ortho,dcosxyz,iopsymr,x,a,u,dr,isym)
+subroutine posrel(iopsymr,x,a,u,dr,isym)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
 
   integer, dimension(nopsm):: iopsymr
 
-  logical:: Base_ortho
-
-  real(kind=db), dimension(3):: a, b, dcosxyz, x, u, v, w
+  real(kind=db), dimension(3):: a, b, x, u, v, w
   real(kind=db), dimension(3,3):: matopsym
 
   u(:) = x(:) - a(:)
-  dr = Vnorme(Base_ortho,dcosxyz,u)
+  dr = sqrt( sum( u(:)**2 ) )
   isym = 1
 
   do is = 2,nopsm
@@ -12430,7 +12605,7 @@ subroutine posrel(Base_ortho,dcosxyz,iopsymr,x,a,u,dr,isym)
     w(1:3) = x(1:3) - b(1:3)
     call opsym(isi,matopsym)
     v = matmul( matopsym, w )
-    dr1 = Vnorme(Base_ortho,dcosxyz,v)
+    dr1 = sqrt( sum( v(:)**2 ) )
     if( dr1 < dr-epspos ) then
       u(:) = v(:)
       dr = dr1
@@ -12608,7 +12783,7 @@ end
 ! Routine effectuant la selection des points en bordure des spheres muffin-tin, et calculant les distances relatives de ces points au
 ! centre de l'atome correspondant.
 
-subroutine bordure(Base_ortho,dcosxyz,Green,icheck,iopsymr,iord,iscratch,ivois,mpirank,natome,nbm,nbtm,nim, &
+subroutine bordure(Green,icheck,iopsymr,iord,iscratch,ivois,mpirank,natome,nbm,nbtm,nim, &
              npoint,npso,npsom,nsm,nstm,numia,nvois,posi,rvol,xyz)
 
   use declarations
@@ -12621,9 +12796,9 @@ subroutine bordure(Base_ortho,dcosxyz,Green,icheck,iopsymr,iord,iscratch,ivois,m
   integer, dimension(:), allocatable:: isrt
   integer, dimension(:,:), allocatable:: ibord, isbord
 
-  logical:: Base_ortho, Green
+  logical:: Green
 
-  real(kind=db), dimension(3):: dcosxyz, p, v, x
+  real(kind=db), dimension(3):: p, v, x
   real(kind=db), dimension(natome):: pdharm
   real(kind=db), dimension(nim):: rvol
   real(kind=db), dimension(3,natome):: posi
@@ -12729,7 +12904,7 @@ subroutine bordure(Base_ortho,dcosxyz,Green,icheck,iopsymr,iord,iscratch,ivois,m
           nbordf(ia) = nbordf(ia) + 1
           p(1:3) = posi(1:3,ia)
           x(1:3) = xyz(1:3,i)
-          call posrel(Base_ortho,dcosxyz,iopsymr,x,p,v,dr,isym)
+          call posrel(iopsymr,x,p,v,dr,isym)
           ibord(nbordf(ia),ia) = i
           isbord(nbordf(ia),ia) = isym
         endif
@@ -12757,7 +12932,7 @@ subroutine bordure(Base_ortho,dcosxyz,Green,icheck,iopsymr,iord,iscratch,ivois,m
         nbord(ia) = nbord(ia) + 1
         p(1:3) = posi(1:3,ia)
         x(1:3) = xyz(1:3,i)
-        call posrel(Base_ortho,dcosxyz,iopsymr,x,p,v,dr,isym)
+        call posrel(iopsymr,x,p,v,dr,isym)
         ibord(nbord(ia),ia) = i
         isbord(nbord(ia),ia) = isym
         exit
@@ -13683,7 +13858,7 @@ end
 
 ! Calculation of the Ylm and of the distances from the atom center of each points.
 
-subroutine ylmpt(Base_ortho,dcosxyz,iaprotoi,ibord,icheck,iopsymr,isrt,lmaxat,lmaxso,n_atom_proto,natome, &
+subroutine ylmpt(iaprotoi,ibord,icheck,iopsymr,isrt,lmaxat,lmaxso,n_atom_proto,natome, &
              nbord,nbtm,nlmmax,nlmomax,nsort,nstm,npsom,posi,rot_atom,rot_atom_abs,xyz,Ylmato,Ylmso)
 
   use declarations
@@ -13700,10 +13875,8 @@ subroutine ylmpt(Base_ortho,dcosxyz,iaprotoi,ibord,icheck,iopsymr,isrt,lmaxat,lm
 
   complex(kind=db), dimension(:), allocatable :: Ylmc
 
-  logical:: Base_ortho
-
   real(kind=db):: r
-  real(kind=db), dimension(3):: dcosxyz, p, v, w
+  real(kind=db), dimension(3):: p, v, w
   real(kind=db), dimension(3,3):: rot_a, rot_atom_abs
   real(kind=db), dimension(3,3,natome):: rot_atom
   real(kind=db), dimension(3,natome):: posi
@@ -13741,7 +13914,7 @@ subroutine ylmpt(Base_ortho,dcosxyz,iaprotoi,ibord,icheck,iopsymr,isrt,lmaxat,lm
         i = ibord(ib,ia)
       endif
       w(1:3) = xyz(1:3,i)
-      call posrel(Base_ortho,dcosxyz,iopsymr,w,p,v,r,isym)
+      call posrel(iopsymr,w,p,v,r,isym)
       w = matmul( rot_a, v )
       call cYlm(lmax,w,r,Ylmc,nlmc)
 ! Conversion in real Ylm

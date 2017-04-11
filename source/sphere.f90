@@ -4,7 +4,7 @@
 
 !***********************************************************************
 
-subroutine Sphere(Axe_Atom_grn,Base_ortho,dcosxyz,Ecinetic,Eimag,Energ,Enervide,Full_atom, &
+subroutine Sphere(Axe_Atom_grn,Ecinetic,Eimag,Energ,Enervide,Full_atom, &
             Full_potential,Green,Hubb_a,Hubb_d,iaabsi,iapr,iaprotoi, &
             ibord,icheck,igreq,igroupi,iopsymr,lmax,lmax_pot,m_hubb, n_atom_0, &
             n_atom_ind,n_atom_proto,natome,nbord,nbtm,nbtm_fdm,neqm,ngroup_m, &
@@ -28,11 +28,10 @@ subroutine Sphere(Axe_Atom_grn,Base_ortho,dcosxyz,Ecinetic,Eimag,Energ,Enervide,
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind):: Tau_ato
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
 
-  logical:: Base_ortho, Ecomp, Full_atom, Full_potential, Green, Hubb_a, Hubb_d, Hubb_m, Radial_comp, Relativiste, Renorm, &
+  logical:: Ecomp, Full_atom, Full_potential, Green, Hubb_a, Hubb_d, Hubb_m, Radial_comp, Relativiste, Renorm, &
     Spinorbite, Ylm_comp
 
   real(kind=db):: cosang, Eimag, Energ, Enervide, Rmtg, Rmtsd, V_intmax
-  real(kind=db), dimension(3):: dcosxyz
   real(kind=db), dimension(nspin):: Ecinetic, V0bd
   real(kind=db), dimension(nr,nlm_pot,nspin):: Vrato
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_grn
@@ -174,7 +173,7 @@ subroutine Sphere(Axe_Atom_grn,Base_ortho,dcosxyz,Ecinetic,Eimag,Energ,Enervide,
           iang = 1
         endif
 
-        call cal_phiato(Base_ortho,dcosxyz,Full_potential,ia,iang,ibord,icheck,iopsymr,l,lmax,nlm1,nlm2,natome, &
+        call cal_phiato(Full_potential,ia,iang,ibord,icheck,iopsymr,l,lmax,nlm1,nlm2,natome, &
              nbord(ia),nbtm,nbtm_fdm,nlmagm,nlmmax,nphiato1,nphiato7,npsom,nr,nspinp,nspino,phiato,posi,r, &
              Radial_comp,Spinorbite,ui,ur,xyz,Ylm_comp,Ylmato)
       end do
@@ -2719,7 +2718,7 @@ end
 
 ! Calcul des fonctions de base sur les points du maillage
 
-subroutine cal_phiato(Base_ortho,dcosxyz,Full_potential,ia,iang,ibord,icheck,iopsymr,ll,lmax,nlm1,nlm2,natome, &
+subroutine cal_phiato(Full_potential,ia,iang,ibord,icheck,iopsymr,ll,lmax,nlm1,nlm2,natome, &
              nbord,nbtm,nbtm_fdm,nlmagm,nlmmax,nphiato1,nphiato7,npsom,nr,nspinp,nspinpo,phiato,posi,r, &
              Radial_comp,Spinorbite,ui,ur,xyz,Ylm_comp,Ylmato)
 
@@ -2734,10 +2733,10 @@ subroutine cal_phiato(Base_ortho,dcosxyz,Full_potential,ia,iang,ibord,icheck,iop
 
   complex(kind=db):: phic, phid, yc
 
-  logical:: Ylm_comp, Base_ortho, Full_potential, Radial_comp, Spinorbite
+  logical:: Ylm_comp, Full_potential, Radial_comp, Spinorbite
 
   real(kind=db):: f_interp2, phi, phii, r0, rm, rp, rrel, u0, uc0, ucm, ucp, um, up
-  real(kind=db), dimension(3):: dcosxyz, ps, x, w
+  real(kind=db), dimension(3):: ps, x, w
   real(kind=db), dimension(nr):: r
   real(kind=db), dimension(3,natome):: posi
   real(kind=db), dimension(nr,nlm1,nlm2,nspinp,nspinpo):: ui, ur
@@ -2752,7 +2751,7 @@ subroutine cal_phiato(Base_ortho,dcosxyz,Full_potential,ia,iang,ibord,icheck,iop
     i = ibord(ib,ia)
     x(1:3) = xyz(1:3,i)
 
-    call posrel(Base_ortho,dcosxyz,iopsymr,x,ps,w,rrel,isym)
+    call posrel(iopsymr,x,ps,w,rrel,isym)
 
     do i = 2,nr
       if( r(i) > rrel ) exit

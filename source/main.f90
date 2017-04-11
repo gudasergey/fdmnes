@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 8th of March 2017, 18 Ventose, An 225.
+! FDMNES II program, Yves Joly, Oana Bunau, 7th of April 2017, 18 Germinal, An 225.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 8th of March 2017'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 7th of April 2017'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -251,11 +251,11 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 191
+  integer, parameter:: nkw_fdm = 195
   integer, parameter:: nkw_conv = 33
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
-  integer, parameter:: nkw_mult = 3
+  integer, parameter:: nkw_mult = 4
   integer, parameter:: nkw_selec = 5
   integer, parameter:: nmetricm = 4
   integer, parameter:: nparam_conv = 11
@@ -339,14 +339,14 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'lplus1   ','mat_ub   ','memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','molecule ','molecule_', &
      'muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_e1e1  ','no_e1e2  ','no_e1e3  ', &
      'no_e2e2  ','no_e3e3  ','no_fermi ','no_res_ma','no_res_mo','no_solsin','normaltau','norman   ','noncentre','non_relat', &
-     'nonexc   ','not_eneg ','nrato    ','nrixs    ','octupole ','old_zero ','one_run  ','optic    ', &
+     'nonexc   ','not_eneg ','nrato    ','nrixs    ','occupancy','octupole ','old_zero ','one_run  ','optic    ', &
      'over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ','pointgrou','polarized', &
      'quadmag  ','quadrupol','radius   ','range    ','rangel   ','raydem   ','rchimp   ','readfast ','relativis', &
      'rmt      ','rmtg     ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ', &
      'self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
-     'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spinorbit','step_azim','supermuf ', 'symmol   ', &
-     'symsite  ','tddft    ','temperatu','test_dist','trace    ','vmax     ','v0imp    ','xalpha   ', &
-     'xan_atom ','ylm_comp ','z_absorbe','z_nospino','zero_azim'/
+     'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spinorbit','step_azim','supermuf ','surface  ', &
+     'surface_s','surface_t','symmol   ','symsite  ','tddft    ','temperatu','test_dist','trace    ','vmax     ','v0imp    ', &
+     'xalpha   ','xan_atom ','ylm_comp ','z_absorbe','z_nospino','zero_azim'/
 
   data kw_fit / 'parameter'/
 
@@ -355,7 +355,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
   data kw_selec/ 'selec_inp','selec_out','energy   ','azimuth  ', 'reflectio'/
 
-  data kw_mult / 'mult_cell','unit_cell','atomic_nu'/
+  data kw_mult / 'mult_cell','unit_cell','atomic_nu','surf_cell'/
 
 ! First the convolution parameter, then the others
   data param_conv / &
@@ -2145,7 +2145,7 @@ subroutine mult_cell(itape,nomfich)
 
   integer:: eof, eoff, i, igrdat, ipr, itape, ix, iy, iz, j, l, n, nnombre, ntype
 
-  real(kind=db):: alfa, ax, ay, az, beta, gamma
+  real(kind=db):: alfa, ax, ay, az, beta, gamma, Thickness
   real(kind=db), dimension(3):: q
   real(kind=db), dimension(3,nam):: p
 
@@ -2153,14 +2153,16 @@ subroutine mult_cell(itape,nomfich)
   integer, dimension(nam):: itype, Z
   integer, dimension(ntypem):: Numat
 
-  Logical:: Ang, Typ
+  Logical:: Ang, Surface, Typ
 
   character(len=2):: Chemical_Symbol
   character(len=9):: grdat
   character(len=132):: identmot, nomfich, mot, mots
 
   Ang = .false.
+  Surface = .false.
   Typ = .false.
+  Thickness = 0._db
   Numat(:) = 0
   nm(:) = 1
 
@@ -2194,6 +2196,17 @@ subroutine mult_cell(itape,nomfich)
         if( n == 0 ) call write_err_form(itape,grdat)
         n = min(n,3)
         read(itape,*) nm(1:n)
+
+      case('surf_cell')
+        Surface = .true.
+        n = nnombre(itape,132)
+        if( n == 0 ) call write_err_form(itape,grdat)
+        n = min(n,3)
+        if( n == 1 ) then
+          read(itape,*) Thickness
+        else
+          read(itape,*) nm(1:2), Thickness
+        endif
 
       case('atomic_nu')
         Typ = .true.
@@ -2263,14 +2276,25 @@ subroutine mult_cell(itape,nomfich)
 
   end do
 
-  if( Ang ) then
-    write(2,120) ax*nm(1), ay*nm(2), az*nm(3), alfa, beta, gamma
-    write(6,120) ax*nm(1), ay*nm(2), az*nm(3), alfa, beta, gamma
+  if( Surface ) then
+    if( Ang ) then
+      write(2,120) ax*nm(1), ay*nm(2), az, alfa, beta, gamma
+      write(6,120) ax*nm(1), ay*nm(2), az, alfa, beta, gamma
+    else
+      write(2,120) ax*nm(1), ay*nm(2), az
+      write(6,120) ax*nm(1), ay*nm(2), az
+    endif
   else
-    write(2,120) ax*nm(1), ay*nm(2), az*nm(3)
-    write(6,120) ax*nm(1), ay*nm(2), az*nm(3)
+    if( Ang ) then
+      write(2,120) ax*nm(1), ay*nm(2), az*nm(3), alfa, beta, gamma
+      write(6,120) ax*nm(1), ay*nm(2), az*nm(3), alfa, beta, gamma
+    else
+      write(2,120) ax*nm(1), ay*nm(2), az*nm(3)
+      write(6,120) ax*nm(1), ay*nm(2), az*nm(3)
+    endif
   endif
 
+  if( Surface ) nm(3) = int( Thickness / az ) + 1
   j = 0
   do ix = 0,nm(1)-1
     do iy = 0,nm(2)-1
@@ -2280,7 +2304,12 @@ subroutine mult_cell(itape,nomfich)
           j = j + 1
           q(1) = ( p(1,i) + ix ) / nm(1)
           q(2) = ( p(2,i) + iy ) / nm(2)
-          q(3) = ( p(3,i) + iz ) / nm(3)
+          if( Surface ) then
+            q(3) = p(3,i) + iz
+          else
+            q(3) = ( p(3,i) + iz ) / nm(3)
+          endif
+          if( Surface .and. q(3) > Thickness ) cycle
           write(2,160) itype(i), q(:), j, Chemical_Symbol(Z(i))
           write(6,160) itype(i), q(:), j, Chemical_Symbol(Z(i))
         end do
