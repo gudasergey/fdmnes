@@ -60,7 +60,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   complex(kind=db), dimension(:,:,:), allocatable:: hybrid
 
   logical:: Absauto, All_nrixs, Allsite, ATA, Atom_nonsph, Atom_occ_hubb, Atomic_scr, &
-     Axe_loc, Basereel, Base_ortho, Base_ortho_int, Base_ortho_sur, Bormann, Bulk, Clementi, Cap_layer, Cartesian_tensor, &
+     Axe_loc, Basereel, Base_ortho_int, Base_ortho_sur, Bormann, Bulk, Clementi, Cap_layer, Cartesian_tensor, &
      Charge_free, Classic_irreg, Core_resolved, Convolution_cal, Coupelapw, Dafs, Dafs_bio, Density, Density_comp, &
      Dip_rel, Dipmag, Doping, Dyn_eg, Dyn_g, E_cut_man, Eneg_i, Eneg_n_i, Energphot, Extract, Extract_ten, FDM_comp, FDMX_only, &
      Film, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, &
@@ -351,7 +351,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
 
 ! Evaluation of the symmetries of the (magnetic) space group
   call Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom_gr, &
-        axyz,axyz_int,axyz_sur,Base_ortho,Base_ortho_int,Base_ortho_sur,.false., &
+        axyz,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur,.false., &
         Doping,Extract,Flapw,iabsm,icheck(3),igr_i,igr_is,igr_proto,itype,Magnetic,Matper, &
         Memory_save,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,n_multi_run_e,neqm, &
         ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,numat_abs,popats,posn,Sym_2D)
@@ -363,7 +363,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   if( Bulk ) then
     Sym_2D = .false.
     call Symsite(Absauto,angxyz_bulk,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom_gr, &
-        axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int,Base_ortho_sur,Bulk, &
+        axyz_bulk,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur,Bulk, &
         .false.,Extract,Flapw,iabsm,icheck(3),igr_i,igr_is,igr_proto,itype,Magnetic,.true., &
         Memory_save,n_atom_int,n_atom_bulk,n_atom_proto,n_atom_sur,n_atom_bulk,n_multi_run_e,neqm, &
         ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,numat_abs,popats,posn_bulk,Sym_2D)
@@ -537,7 +537,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
 
   call Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mode,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
       Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_with_axe,Atomic_scr,Axe_atom_gr,axyz,axyz_bulk, &
-      axyz_cap,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, Base_ortho_sur, &
+      axyz_cap,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur, &
       Basereel,Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil, &
       Charge_free,Classic_irreg,Clementi,Com,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_edge,Delta_En_conv, &
       Delta_Epsii,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_cut_man,E_radius, &
@@ -704,7 +704,7 @@ end
 
 subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mode,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
       Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_with_axe,Atomic_scr,Axe_atom_gr,axyz,axyz_bulk, &
-      axyz_cap,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, Base_ortho_sur, &
+      axyz_cap,axyz_int,axyz_sur,Base_ortho_int, Base_ortho_sur, &
       Basereel,Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil, &
       Charge_free,Classic_irreg,Clementi,Com,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_edge,Delta_En_conv, &
       Delta_Epsii,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_cut_man,E_radius, &
@@ -835,7 +835,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Taull_abs
 
   logical:: Abs_in_bulk, Absorbeur, All_nrixs, Allsite, ATA, Atom_comp_cal, Atom_nonsph, Atom_nonsph_loc, Atom_occ_hubb, &
-     Atomic_scr, Basereel, Base_hexa, Base_ortho, Base_ortho_inp, Base_ortho_int, Base_ortho_sur, Bormann, Bulk, Bulk_step, &
+     Atomic_scr, Basereel, Base_hexa, Base_ortho_int, Base_ortho_sur, Bormann, Bulk, Bulk_step, &
      Clementi, Cal_xanes, &
      Cap_layer, Cartesian_tensor, Charge_free, Classic_irreg, Convergence, Core_resolved, Coupelapw, Dafs, Dafs_bio, Density, &
      Density_comp, Devide_Ei, Dip_rel, Dipmag, Doping, Dyn_eg, Dyn_g, E_comp, E1E1, E1E2, E1E2e, E1E3, E1M1, E2E2, E3E3, &
@@ -874,7 +874,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
   real(kind=db), dimension(2):: chg_open_val, f_no_res, pop_open_val
   real(kind=db), dimension(3):: Ang_rotsup, Angxyz, angxyz_bulk, angxyz_cap, angxyz_int, angxyz_sur, axyz, axyz_bulk, axyz_cap, &
-                                axyz_int, axyz_sur, dcosxyz, deccent, dpos, Vec_orig
+                                axyz_int, axyz_sur, deccent, dpos, Vec_orig
   real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
   real(kind=db), dimension(6):: Trace_p
   real(kind=db), dimension(7):: Time_loc
@@ -1064,15 +1064,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     endif
   end do
 
-  Base_ortho_inp = Base_ortho
-
 !- Loop over non equivalent atoms ---------------------------------------------------------------------------
 
   boucle_multi: do multi_run = 1,n_multi_run
 
     if( Skip(multi_run) ) cycle
-
-    Base_ortho = Base_ortho_inp
 
     Epsii(:) = 0._db
     Epsii_moy = 0._db
@@ -1235,8 +1231,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
     if( ( .not. One_run ) .or. multi_run == 1 ) then
       d_ecrant = 1 - sum( Ecrantage(:) )
-      call natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
-        Base_ortho_sur,Bulk,Bulk_step,Chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
+      call natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho_int, &
+        Base_ortho_sur,Bulk,Bulk_step,Chargat,d_ecrant,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
         dpos,Film_shift,Film_thickness,Flapw,iabsorbeur,iabsfirst,icheck(5),igr_dop,igreq,Interface_shift, &
         itabs,itype,Kgroup,Matper,mpirank,multi_run,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur, &
         n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
@@ -1258,8 +1254,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 ! L'abaissement de symmetrie n'est effectif que si l'absorbeur est non centre
 ! De meme "Atom_nonsph" n'est utile que pour le Xanes
     call agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn, &
-          axyz,axyz_bulk,axyz_int,axyz_sur,Base_hexa,Base_ortho,Base_ortho_int,Base_ortho_sur,Bulk,Bulk_step, &
-          Chargat,Cubmat,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,dista, &
+          axyz,axyz_bulk,axyz_int,axyz_sur,Base_hexa,Base_ortho_int,Base_ortho_sur,Bulk,Bulk_step, &
+          Chargat,Cubmat,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,dista, &
           Doping,dpos,Film_shift,Film_thickness,iaabs,iaabsfirst,iabsorbeur, &
           iaproto,iapot,ich,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,Interface_shift,iopsymc,iopsymr,itabs,itype,itypep, &
           karact,Kgroup,Magnetic,Matper,mpirank,multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc, &

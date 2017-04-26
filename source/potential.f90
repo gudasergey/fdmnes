@@ -1318,7 +1318,7 @@ subroutine orbval(Hybrid,iaproto,iapot,icheck,igreq,igroup,itypepr,lvval,mpirank
                     stop
                   endif
                   rho_nul(lm) = .false.
-                  aap = g * pop_nonsph(io,igr) * abs( conjg(hybrid(io,lmp,igr)) * hybrid(io,lmpp,igr) )
+                  aap = g * pop_nonsph(io,igr) * real( conjg(hybrid(io,lmp,igr)) * hybrid(io,lmpp,igr), db )
 
                   rholm(1:nr,lm) = rholm(1:nr,lm) + aap * psival(1:nr,np,it) * psival(1:nr,npp,it) / r(1:nr)**2
                 end do

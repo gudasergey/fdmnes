@@ -321,8 +321,12 @@ subroutine coef_sch_rad(Enervide,f2,g0,gm,gp,gso,nlm,nr,nspin,nspino,numat,r,Rel
 
   gso(:,:) = 0._db
 
-  do ir = 1,nr-1
-    rp = r(ir+1)
+  do ir = 1,nr
+    if( ir == nr ) then
+      rp = r(nr)**2 / r(nr-1)
+    else
+      rp = r(ir+1)
+    endif
     if( ir == 1 ) then
       rm = r(1)**2 / r(2)
     else

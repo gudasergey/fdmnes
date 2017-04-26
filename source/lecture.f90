@@ -1333,7 +1333,7 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Fichier_cif,Fichier_pdb,itape4,
 
     Close(8)
 
-  else
+  elseif( Space_Group /= ' ' .or. ntype == 0 ) then
 
     Rewind(itape4)
 

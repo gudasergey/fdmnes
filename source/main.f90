@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 7th of April 2017, 18 Germinal, An 225.
+! FDMNES II program, Yves Joly, Oana Bunau, 12th of April 2017, 23 Germinal, An 225.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -15,7 +15,7 @@
 
 ! When using the MUMPS library, one also needs :
 !   mat_solve_MUMPS.f and MUMPS (and associated SCOTCH and METIS), BLAS and LAPACK libraries.
-!   Inclusion of MUMPS library is due to A. Guda, S. Guda, M. Soldatov et al, University of Rostov-on-Don, Russia
+!   Inclusion of MUMPS library is due to S. Guda, A. Guda, M. Soldatov et al, University of Rostov-on-Don, Russia
 !   MUMPS is from P. Amestoy et al (http://mumps-solver.org/)
 
 ! When using gaussian solver, one also needs :
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 7th of April 2017'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 12th of April 2017'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )

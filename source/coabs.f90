@@ -131,7 +131,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
     nb = 1
   endif
 
-  if( dafs ) then
+  if( Dafs ) then
 
     allocate( ampldafs(npldafs,nphim,ninitlr,0:natomsym) )
     if( E1E1 ) allocate( ampldafsdd(npldafs,nphim,ninitlr,0:natomsym) )
@@ -141,6 +141,13 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
     if( E3E3 ) allocate( ampldafsoo(npldafs,nphim,ninitlr,0:natomsym) )
     if( M1M1 ) allocate( ampldafsmm(npldafs,nphim,ninitlr,0:natomsym) )
     if( E1M1 ) allocate( ampldafsmd(npldafs,nphim,ninitlr,0:natomsym) )
+    if( E1E1 ) ampldafsdd(:,:,:,:) = ( 0._db, 0._db ) 
+    if( E1E2 ) ampldafsdq(:,:,:,:) = ( 0._db, 0._db )
+    if( E2E2 ) ampldafsqq(:,:,:,:) = ( 0._db, 0._db )
+    if( E1E3 ) ampldafsdo(:,:,:,:) = ( 0._db, 0._db )
+    if( E3E3 ) ampldafsoo(:,:,:,:) = ( 0._db, 0._db )
+    if( M1M1 ) ampldafsmm(:,:,:,:) = ( 0._db, 0._db )
+    if( E1M1 ) ampldafsmd(:,:,:,:) = ( 0._db, 0._db )
     if( Cor_abs ) then
       allocate( mu(npldafs,nphim,2,ninitlr,0:natomsym) )
       if( E1E1 ) allocate( mudd(npldafs,nphim,2,ninitlr,0:natomsym) )
@@ -150,6 +157,13 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
       if( E3E3 ) allocate( muoo(npldafs,nphim,2,ninitlr,0:natomsym) )
       if( M1M1 ) allocate( mumm(npldafs,nphim,2,ninitlr,0:natomsym) )
       if( E1M1 ) allocate( mumd(npldafs,nphim,2,ninitlr,0:natomsym) )
+      if( E1E1 ) mudd(:,:,:,:,:) = ( 0._db, 0._db )
+      if( E1E2 ) mudq(:,:,:,:,:) = ( 0._db, 0._db )
+      if( E2E2 ) muqq(:,:,:,:,:) = ( 0._db, 0._db )
+      if( E1E3 ) mudo(:,:,:,:,:) = ( 0._db, 0._db )
+      if( E3E3 ) muoo(:,:,:,:,:) = ( 0._db, 0._db )
+      if( M1M1 ) mumm(:,:,:,:,:) = ( 0._db, 0._db )
+      if( E1M1 ) mumd(:,:,:,:,:) = ( 0._db, 0._db )
     endif
 
   endif
@@ -170,7 +184,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
 
     Ephseuil = Energ(ie)
     Ephoton = Ephseuil + Eseuil(iseuil)
-! Pour les seuils de tres basse Energie:
+! For very low energy edges:
     Ephoton = max(0.001_db/Rydb, Ephoton)
     if( Energphot ) Ephseuil = Ephoton
 
