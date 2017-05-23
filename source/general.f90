@@ -808,7 +808,7 @@ end
 
 subroutine init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Flapw,Force_ecr,Hubb,iabsorbeur, &
       iabsorig,icheck,icom,igreq,iprabs,iprabs_nonexc,itabs,itype,itype_dop,itypepr,jseuil,lcoeur,lecrantage, &
-      lseuil,lvval,mpinodes,mpirank,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage,neqm,ngreq,ngroup,nlat,nlatm, &
+      lseuil,lvval,mpinodes0,mpirank0,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage,neqm,ngreq,ngroup,nlat,nlatm, &
       nnlm,nomfich_s,Nonexc,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,numat_abs,nvval,pop_open_val, &
       popatm,popats,popatv,popval,psi_coeur,psii,psi_open_val,psival,r0_lapw,rato,rchimp,Relativiste,rho_coeur, &
       rhoit,rlapw,Rmt,Rmtimp,V_hubbard,nompsii)
@@ -818,7 +818,7 @@ subroutine init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Fla
   include 'mpif.h'
 
   integer:: i, iabsorig, iabsorbeur, icheck, igr, ipr, iprabs, iprabs_nonexc, itabs, itype_dop, jseuil, l, lecrantage, lseuil, &
-      mpinodes, mpirank, n_atom_proto, n_multi_run, n_orbexc, nbseuil, necrantage, neqm, ngroup, nlatm, nnlm, nrato_dirac, nrm, &
+      mpinodes0, mpirank0, n_atom_proto, n_multi_run, n_orbexc, nbseuil, necrantage, neqm, ngroup, nlatm, nnlm, nrato_dirac, nrm, &
       nseuil, nspin, ntype, numat_abs
 
   character(len=132):: nomfich_s, nompsii
@@ -852,7 +852,7 @@ subroutine init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Fla
   real(kind=db), dimension(2):: pop_open_val
   real(kind=db), dimension(0:nrm,2,0:ntype):: psi_coeur
 
-  if( n_multi_run > 1 .and. mpirank == 0 ) then
+  if( n_multi_run > 1 .and. mpirank0 == 0 ) then
     l = len_trim(nomfich_s)
     nomfich_s(l+1:l+1) = '_'
     call ad_number(iabsorig,nomfich_s,132)
@@ -876,11 +876,11 @@ subroutine init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Fla
   endif
 
 ! Atomic electron density
-  call atom(Clementi,com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpirank,nbseuil,ncoeur,ngroup,nlat, &
+  call atom(Clementi,com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpirank0,nbseuil,ncoeur,ngroup,nlat, &
         nlatm,nnlm,Nonexc,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,nvval,popatc,popats, &
         popatv,popexc,popval,psi_coeur,psii,psival,r0_lapw,rato,Relativiste,rho_coeur,rhoit,rlapw)
 
-  call pop_group(Chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank,ngroup,nlat,nlatm,nspin,ntype,numat,popatc,popats)
+  call pop_group(Chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,ngroup,nlat,nlatm,nspin,ntype,numat,popatc,popats)
 
   do ipr = 1,n_atom_proto
     igr = igreq(ipr,1)
@@ -892,7 +892,7 @@ subroutine init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Fla
 
 ! Absorbing atom electron density
   call type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,itabs,itype,itype_dop,jseuil,lcoeur,lecrantage, &
-        lqnexc,lseuil,lvval,mpinodes,mpirank,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,Nonexc,nqnexc, &
+        lqnexc,lseuil,lvval,mpinodes0,mpirank0,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,Nonexc,nqnexc, &
         nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popatc,popats,popatv,popexc,popval, &
         psi_coeur,psii,psi_open_val,psival,rato,rchimp,Relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
 
@@ -906,7 +906,7 @@ end
 
 !***********************************************************************
 
-subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpirank,nbseuil,ncoeur,ngroup,nlat, &
+subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpirank0,nbseuil,ncoeur,ngroup,nlat, &
         nlatm,nnlm,Nonexc,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,nvval,popatc,popats, &
         popatv,popexc,popval,psi_coeur,psii,psival,r0_lapw,rato,Relativiste,rho_coeur,rhoit,rlapw)
 
@@ -914,7 +914,7 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
   implicit none
   include 'mpif.h'
 
-  integer:: icheck, igr, ipr, it, j, jseuil, k, l, lseuil, mpirank, n, n_orbexc, &
+  integer:: icheck, igr, ipr, it, j, jseuil, k, l, lseuil, mpirank0, n, n_orbexc, &
     nbseuil, ngroup, nlatm, nnlm, nr, nrato_dirac, nrm, nseuil, nspin, ntype
 
   real(kind=db):: dr, drmax, dx, rmax
@@ -961,7 +961,7 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
         lqnexc(:) = 0
         nqnexc(:) = 0
 
-        call dirgen(icheck,it,0,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
+        call dirgen(icheck,it,0,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank0,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
           nnlm,nonexc,nqnexc,nr,nrato_dirac,nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
           popexc,popval,psi_coeur,psii,psi_open_val,psival,ra,rho_coeur,rhoit,numat(it),Relativiste)
 
@@ -978,7 +978,7 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
 
       case(2)
 
-        call clem(icheck,it,0,lseuil,lvval,mpirank,nbseuil,nlat,nlatm,nonexc,nr,nrm,nseuil,ntype,nvval,popatc, &
+        call clem(icheck,it,0,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,nonexc,nr,nrm,nseuil,ntype,nvval,popatc, &
                popatv,psii,psival,ra,rhoit,numat(it))
         nrato(it) = nr
         rato(1:nr,it) = ra(1:nr)
@@ -987,7 +987,7 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
       case(3)
 
         nrato(it) = nrato_lapw(it)
-        if( nrato(it) > nrm .and. mpirank == 0 ) then
+        if( nrato(it) > nrm .and. mpirank0 == 0 ) then
           call write_error
           do ipr = 3,9,3
             write(ipr,110) nrato(it), nrm
@@ -1058,7 +1058,7 @@ end
 !   ESP   Exponential constant for the basis function
 !   CON   Coefficient which multiplies the basis function
 !
-subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank,nbseuil,nlat,nlatm,Nonexc,nrato,nrm,nseuil,ntype,nvval,popatc, &
+subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,Nonexc,nrato,nrm,nseuil,ntype,nvval,popatc, &
               popatv,psii,psival,rato,rhoit,Z)
 
   use declarations
@@ -1067,7 +1067,7 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank,nbseuil,nlat,nlatm,Nonexc,n
   integer, parameter:: norbm = 11
   integer, parameter:: ntrm = 11
 
-  integer:: i, icalc, icheck, io, io0, ipr, ir, it, itabs, iv, j, lseuil, mpirank, nbseuil, ncalc, nlatm, norb, norb0, nr, &
+  integer:: i, icalc, icheck, io, io0, ipr, ir, it, itabs, iv, j, lseuil, mpirank0, nbseuil, ncalc, nlatm, norb, norb0, nr, &
     nrato, nrm, nseuil, ntype, Z, Zp
 
   integer, dimension(norbm):: nazim, nazim0, nconf, nconf0, nprin, nprin0, nterm, nterm0
@@ -1105,7 +1105,7 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank,nbseuil,nlat,nlatm,Nonexc,n
   end do
   nrato = ir
   nr = nrato
-  if( nr > nrm .and. mpirank == 0 ) then
+  if( nr > nrm .and. mpirank0 == 0 ) then
     call write_error
     do ipr = 3,9,3
       write(ipr,105) nr, nrm
@@ -1198,7 +1198,7 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank,nbseuil,nlat,nlatm,Nonexc,n
     do i = 1,norb
       if( nprin(i) == nvval(it,io) .and. nazim(i) == lvval(it,io)) exit
     end do
-    if( i == norb+1 .and. mpirank == 0 ) then
+    if( i == norb+1 .and. mpirank0 == 0 ) then
       call write_error
       do ipr = 3,9,3
         write(ipr,110) it, nvval(it,io), lvval(it,io)
@@ -1256,12 +1256,12 @@ end
 
 ! Charge et population de chaque atome de la maille
 
-subroutine pop_group(chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank,ngroup,nlat,nlatm,nspin,ntype,numat,popatc,popats)
+subroutine pop_group(chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,ngroup,nlat,nlatm,nspin,ntype,numat,popatc,popats)
 
   use declarations
   implicit none
 
-  integer:: icheck, igr, it, l, mpirank, ngroup, nlatm, nspin, ntype
+  integer:: icheck, igr, it, l, mpirank0, ngroup, nlatm, nspin, ntype
   integer, dimension(0:ntype) :: nlat, numat
   integer, dimension(ngroup):: itype
 
@@ -1302,7 +1302,7 @@ subroutine pop_group(chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank,ngro
 
 ! Test sur la neutralite de la maille ou de la molecule
   Chargm = sum( chargatg( 1:ngroup ) )
-  if( abs(Chargm) > 0.0001 .and. mpirank == 0 ) then
+  if( abs(Chargm) > 0.0001 .and. mpirank0 == 0 ) then
     write(3,120) Chargm
     write(6,120) Chargm
     if( .not. Charge_free ) then
@@ -1323,7 +1323,7 @@ end
 !*********************************************************************
 
 subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,itabs,itype,itype_dop,jseuil,lcoeur,lecrantage, &
-        lqnexc,lseuil,lvval,mpinodes,mpirank,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,nonexc,nqnexc, &
+        lqnexc,lseuil,lvval,mpinodes0,mpirank0,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,nonexc,nqnexc, &
         nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popatc,popats,popatv,popexc,popval, &
         psi_coeur,psii,psi_open_val,psival,rato,rchimp,relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
 
@@ -1363,7 +1363,7 @@ subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
     itabs = abs( itype(iabsorbeur) )
   endif
 
-  if( numat(itabs) == 0 .and. mpirank == 0 ) then
+  if( numat(itabs) == 0 .and. mpirank0 == 0 ) then
     call write_error
     do ipr = 3,9,3
       write(ipr,110) iabsorbeur
@@ -1388,7 +1388,7 @@ subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
   Hubb(0) = Hubb(itabs)
   V_hubbard(0) = V_hubbard(itabs)
 
-  call Screendef(ecrantage,force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,mpirank,n_orbexc,necrantage, &
+  call Screendef(ecrantage,force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,mpirank0,n_orbexc,necrantage, &
         nlat,nlatm,nnlm,nqnexc,nseuil,nspin,ntype,nvval,popexc,popval,numat(itabs))
 
 ! itabs est remis a la valeur initiale a la fin de la routine si on est en nonexc
@@ -1399,12 +1399,12 @@ subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
 
   if( icom(itabs) == 2 .or. nompsii == 'clementi' ) then
 
-    call clem(icheck,itabs,itabs,lseuil,lvval,mpirank,nbseuil,nlat,nlatm,nonexc,nr,nrm,nseuil,ntype,nvval,popatc, &
+    call clem(icheck,itabs,itabs,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,nonexc,nr,nrm,nseuil,ntype,nvval,popatc, &
           popatv,psii,psival,rr,rhoit,numat(itabs))
 
   elseif( icom(itabs) == 1 .or. nompsii == 'dirac' ) then
 
-    call dirgen(icheck,itabs,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
+    call dirgen(icheck,itabs,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank0,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
          nnlm,nonexc,nqnexc,nr,nrato_dirac,nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
          popexc,popval,psi_coeur,psii,psi_open_val,psival, rr,rho_coeur,rhoit,numat(itabs),relativiste)
 
@@ -1417,7 +1417,7 @@ subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
     end do
 
   elseif( icom(itabs) == 3 .and. nompsii /= 'clementi' .and. nompsii /= 'dirac' ) then
-    if( mpirank == 0 ) then
+    if( mpirank0 == 0 ) then
       open(8, file = nompsii, status='old', iostat=istat)
       if( istat /= 0 ) call write_open_error(nompsii,istat,1)
       read(8,*) nr
@@ -1427,11 +1427,11 @@ subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
       if( nbseuil == 2 ) psii(:,nbseuil) = psii(:,1)
       close(8)
     endif
-    if( mpinodes > 1 ) then
+    if( mpinodes0 > 1 ) then
       call MPI_Bcast(nr,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
       call MPI_Bcast(rr,nrm,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
       call MPI_Bcast(psii,nrm*nbseuil,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
-      call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
     endif
   endif
 
@@ -1493,7 +1493,7 @@ end
 
 ! Calcul de la configuration electronique de l'atome excite
 
-subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,mpirank,n_orbexc,necrantage, &
+subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,mpirank0,n_orbexc,necrantage, &
         nlat,nlatm,nnlm,nqnexc,nseuil,nspin,ntype,nvval,popexc,popval,Z)
 
   use declarations
@@ -1601,7 +1601,7 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
     end do
 ! On doit constuire une orbitale supplementaire
     n_orbexc = n_orbexc + 1
-    if( n_orbexc > nnlm .and. mpirank == 0 ) then
+    if( n_orbexc > nnlm .and. mpirank0 == 0 ) then
       call write_error
       do ipr = 3,9,3
         write(ipr,103)
@@ -2033,7 +2033,7 @@ end
 
 !***********************************************************************
 
-function extract_nenerg(multi_run,nom_fich_extract,Tddft)
+function extract_nenerg(multi_run,nom_fich_extract,Optic,Tddft)
 
   use declarations
   implicit none
@@ -2042,7 +2042,7 @@ function extract_nenerg(multi_run,nom_fich_extract,Tddft)
 
   character(len=132):: mot, nom_fich_extract
 
-  logical:: Tddft
+  logical:: Optic, Tddft
 
   open(1, file = nom_fich_extract, status='old', iostat=istat)
   if( istat /= 0 ) call write_open_error(nom_fich_extract,istat,1)
@@ -2066,7 +2066,7 @@ function extract_nenerg(multi_run,nom_fich_extract,Tddft)
   if( tddft ) then
     do while(eof==0)
       read(1,'(A)',iostat=eof) mot
-      if( mot(2:12) == 'Cycle TDDFT' .or. mot(2:12) == 'Cycle Tddft') exit
+      if( mot(2:12) == 'Cycle TDDFT' .or. mot(2:12) == 'Cycle Tddft' ) exit
     end do
 
     if( eof /= 0 ) then
@@ -2085,7 +2085,7 @@ function extract_nenerg(multi_run,nom_fich_extract,Tddft)
       read(1,'(A)',iostat=eof) mot
       if( eof /= 0 ) exit boucle_je
       if( mot(2:12) == 'Cycle TDDFT' .or. mot(2:12) == 'Cycle Tddft' .or. mot(2:15) == 'Absorbing atom' ) exit boucle_je
-      if( mot(7:11) == 'Coabs' ) nenerg = nenerg + 1
+      if( ( .not. Optic .and. mot(7:11) == 'Coabs' ) .or. ( Optic .and. mot(7:11) == 'Tau -' ) ) nenerg = nenerg + 1
     end do
   end do boucle_je
 
@@ -2100,14 +2100,14 @@ end
 
 !***********************************************************************
 
-subroutine extract_energ(Energ_s,Eseuil,multi_run,nbbseuil,nbseuil,nenerg_s,nom_fich_extract,tddft)
+subroutine extract_energ(Energ_s,Eseuil,multi_run,nbbseuil,nbseuil,nenerg_s,nom_fich_extract,Optic,Tddft)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
 
   character(len=132) mot, nom_fich_extract
 
-  logical tddft
+  logical:: Optic, Tddft
 
   real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(nenerg_s):: energ_s
@@ -2134,14 +2134,14 @@ subroutine extract_energ(Energ_s,Eseuil,multi_run,nbbseuil,nbseuil,nenerg_s,nom_
 
     do
       read(1,'(A)') mot
-      if( mot(7:11) == 'Coabs' ) exit
+      if( ( .not. Optic .and. mot(7:11) == 'Coabs' ) .or. ( Optic .and. mot(7:11) == 'Tau -' ) ) exit
     end do
 
     do
       read(1,'(A)') mot
-      if( mot(6:10) == 'energ' .or. mot(5:10) == 'Energy' ) then
-        read(1,*) energ_s(ie)
-        energ_s(ie) = energ_s(ie) / rydb
+      if( mot(6:10) == 'energ' .or. mot(5:10) == 'Energy' .or. mot(9:13) == 'Energ') then
+        read(1,*) Energ_s(ie)
+        Energ_s(ie) = Energ_s(ie) / rydb
         cycle boucle_ie
       endif
     end do
@@ -2166,7 +2166,7 @@ end
 subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho_int, &
         Base_ortho_sur,Bulk,Bulk_step,Chargat,d_ecrant,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
         dpos,Film_shift,Film_thickness,Flapw,iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift, &
-        itabs,itype,Kgroup,Matper,mpirank,multi_run,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur, &
+        itabs,itype,Kgroup,Matper,mpirank0,multi_run,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur, &
         n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
         Noncentre,posn,posn_bulk,One_run,Proto_all,r_self,rsorte_s,rmax,rpotmax,Self_cons,Surface_shift,Sym_2D, &
         Taux_oc)
@@ -2174,7 +2174,7 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
   use declarations
   implicit none
 
-  integer:: i_radius, iabsfirst, iabsorbeur, icheck, igr, igr_dop, igr0, ipr, itabs, ix, iy, iz, jgr, mpirank, multi_run, &
+  integer:: i_radius, iabsfirst, iabsorbeur, icheck, igr, igr_dop, igr0, ipr, itabs, ix, iy, iz, jgr, mpirank0, multi_run, &
      multrmax, n_atom_bulk, n_atom_int, n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, n_igr, n_radius, natomeq_coh, natomp, &
      natomr, neqm, ngroup, ngroup_pdb, ngroup_taux, nxmaille, nymaille, nzmaille
 
@@ -2449,13 +2449,13 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
     call Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
             Base_ortho_sur,Bulk,Bulk_step,chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
             Doping,dpos,Film_shift, &
-            Film_thickness,iabsorbeur,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank,multi_run, &
+            Film_thickness,iabsorbeur,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0,multi_run, &
             n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb, &
             ngroup_taux,noncentre,One_run,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
     natomp = natomr
   endif
 
-  if( mpirank == 0 ) then
+  if( mpirank0 == 0 ) then
 
     if( icheck > 0 ) write(3,110)
 
@@ -2504,14 +2504,14 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
 subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
             Base_ortho_sur,Bulk,Bulk_step,chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
             Doping,dpos,Film_shift, &
-            Film_thickness,iabsorbeur,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank,multi_run, &
+            Film_thickness,iabsorbeur,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0,multi_run, &
             n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb, &
             ngroup_taux,noncentre,One_run,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
 
   use declarations
   implicit none
 
-  integer:: ia, iaabs, iaabsfirst, iabsorbeur, icheck, igr, igr_dop, ipr, itabs, mpirank, multi_run, n_atom_bulk, n_atom_int, &
+  integer:: ia, iaabs, iaabsfirst, iabsorbeur, icheck, igr, igr_dop, ipr, itabs, mpirank0, multi_run, n_atom_bulk, n_atom_int, &
             n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, na, natomp, natomq, natomr, ngroup, ngroup_pdb, ngroup_taux
   integer, dimension(natomp):: iaproto, igroup, itypep
   integer, dimension(ngroup_pdb):: Kgroup
@@ -2538,7 +2538,7 @@ subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_b
   call Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
               Base_ortho_sur,Bulk,Bulk_step,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
               dista,Doping,dpos,Film_shift,Film_thickness, &
-              iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank, &
+              iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
               multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre, &
               One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
@@ -2631,7 +2631,7 @@ end
 subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
               Base_ortho_sur,Bulk,Bulk_step,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
               dista,Doping,dpos,Film_shift,Film_thickness, &
-              iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank, &
+              iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
               multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre, &
               One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
@@ -2639,7 +2639,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
   implicit none
 
   integer:: ia, ia1, ia2, iaabs, iaabsfirst, iabsorbeur, ib, igr, igr0, igr_dop, igr12, ipr, iprint, itabs, ity12, &
-    ix, iy, iz, mpirank, multi_run, n_atom_bulk, n_atom_int, n_atom_per, n_atom_sur, n_atom_uc, n_igr, natomp, ngroup, &
+    ix, iy, iz, mpirank0, multi_run, n_atom_bulk, n_atom_int, n_atom_per, n_atom_sur, n_atom_uc, n_igr, natomp, ngroup, &
     ngroup_pdb, ngroup_taux, nxmaille, nymaille, nzmaille
   integer, dimension(ngroup):: itype
   integer, dimension(natomp):: igroup, itypep
@@ -2880,7 +2880,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
 
   endif
 
-  if( iaabs == 0 .and. mpirank == 0 ) then
+  if( iaabs == 0 .and. mpirank0 == 0 ) then
     call write_error
     do ipr = 3,9,3
       write(ipr,110)
@@ -2952,7 +2952,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
           Chargat,Cubmat,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,dista, &
           Doping,dpos,Film_shift,Film_thickness,iaabs,iaabsfirst,iabsorbeur, &
           iaproto,iapot,icheck,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,Interface_shift,iopsymc,iopsymr,itabs,itype,itypep, &
-          karact,Kgroup,Magnetic,Matper,mpirank,multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc, &
+          karact,Kgroup,Magnetic,Matper,mpirank0,multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc, &
           natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat, &
           One_run,Orthmat,Orthmati,Orthmatt,PointGroup,PointGroup_Auto,popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc, &
           Spinorbite,Rot_Atom_gr,Struct,Surface_shift,Sym_2D,Sym_4,Sym_cubic,Symmol,Taux,Taux_oc,Test_dist_min)
@@ -2961,7 +2961,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
   implicit none
 
   integer:: i, ia, iaabs, iaabsfirst, iabsorbeur, ib, icheck, igr, igr_dop, igrpt, igrpt_nomag, igrpt_sg, igrpt_sg_cmp, &
-    igrpt_sg_cal, igrpt_sg_so, igrpt0, igrptn, ipr, ired, istop, it, itabs, k, mpirank, multi_run, n_atom_bulk, n_atom_int, &
+    igrpt_sg_cal, igrpt_sg_so, igrpt0, igrptn, ipr, ired, istop, it, itabs, k, mpirank0, multi_run, n_atom_bulk, n_atom_int, &
     n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, natomp, nb_rep, nb_sym_op, neqm, ngroup, ngroup_m, ngroup_pdb, ngroup_taux, &
     nlatm, npr1, nspin, ntype, Za, Zb
 
@@ -3022,7 +3022,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
   call Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
               Base_ortho_sur,Bulk,Bulk_step,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
               dista,Doping,dpos,Film_shift,Film_thickness, &
-              iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank, &
+              iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
               multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre, &
               One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
@@ -3182,7 +3182,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
     call sym_cluster(Atom_with_axe,Axe_atom_clu,iaabs,igroup,iopsymc,itype,itypep, &
              natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,Symmol)
 
-    call numgrpt(iopsymc,igrpt,igrpt_nomag,mpirank,.false.)
+    call numgrpt(iopsymc,igrpt,igrpt_nomag,mpirank0,.false.)
 
       orthmat = matmul( rot_so, orthmat )
       rotmat = matmul( rot_so, rotmat )
@@ -3205,7 +3205,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
 
   else
 
-    call grp_opsym_imp(iopsymc,igrpt,igrpt_nomag,mpirank,PointGroup)
+    call grp_opsym_imp(iopsymc,igrpt,igrpt_nomag,mpirank0,PointGroup)
 
   endif
 
@@ -3220,7 +3220,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
     npr1 = 6
   endif
 
-  if( mpirank == 0 ) then
+  if( mpirank0 == 0 ) then
     do ipr = npr1,6,3
       if( igrpt > 32 ) then
         write(ipr,140) PointGroup_name, igrpt
@@ -3239,7 +3239,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
 ! On prend un sous-groupe.
   igrptn = igrpt
   if( PointGroup_Auto ) then
-    call numgrpt(iopsymc,igrpt,igrpt_nomag,mpirank,.true.)
+    call numgrpt(iopsymc,igrpt,igrpt_nomag,mpirank0,.true.)
     igrpt_sg = igrpt_sg_cal(.false.,igrpt,igrpt_nomag, Spinorbite)
   else
     igrpt_sg = igrpt
@@ -3259,7 +3259,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
     PointGroup = 'SousGr'
     igrpt_nomag = igrpt_sg
     iopsymr(:) = iopsymc(:)
-    call grp_opsym_imp(iopsymr,igrpt,igrpt_nomag,mpirank,PointGroup)
+    call grp_opsym_imp(iopsymr,igrpt,igrpt_nomag,mpirank0,PointGroup)
     ired = 1
   else
     iopsymr(:) = iopsymc(:)
@@ -3271,7 +3271,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
       PointGroup = 'SousGr'
       igrpt_nomag = igrpt_sg
       iopsymr(:) = iopsymc(:)
-      call grp_opsym_imp(iopsymr,igrpt,igrpt_nomag,mpirank,PointGroup)
+      call grp_opsym_imp(iopsymr,igrpt,igrpt_nomag,mpirank0,PointGroup)
       ired = 1
     endif
     igrpt_sg = igrpt_sg_cmp(igrpt,igrpt_nomag)
@@ -3279,7 +3279,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
       PointGroup = 'SousGr'
       igrpt_nomag = igrpt_sg
       iopsymr(:) = iopsymc(:)
-      call grp_opsym_imp(iopsymr,igrpt,igrpt_nomag,mpirank,PointGroup)
+      call grp_opsym_imp(iopsymr,igrpt,igrpt_nomag,mpirank0,PointGroup)
       ired = 1
     end if
   endif
@@ -3289,7 +3289,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
 ! igrpt0 est transporte dans la routine point_group_atom
   igrpt0 = igrpt
 
-  if( ired == 1 .and. mpirank == 0 ) then
+  if( ired == 1 .and. mpirank0 == 0 ) then
     do ipr = npr1,6,3
       if( igrpt > 32 ) then
         write(ipr,180) PointGroup_name, igrpt
@@ -4281,7 +4281,7 @@ end
 
 !***********************************************************************
 
-subroutine numgrpt(iopsym,igrpt,igrpt_nomag,mpirank,Sgrp)
+subroutine numgrpt(iopsym,igrpt,igrpt_nomag,mpirank0,Sgrp)
 
   use declarations
   implicit none
@@ -4289,7 +4289,7 @@ subroutine numgrpt(iopsym,igrpt,igrpt_nomag,mpirank,Sgrp)
   integer, parameter:: ngrptm = 32
   integer, parameter:: ngrptmagm = 90
 
-  integer:: i, igr_sg, igrpt, igrpt_nomag, ipr, is, k, mpirank, nb_ord, ni
+  integer:: i, igr_sg, igrpt, igrpt_nomag, ipr, is, k, mpirank0, nb_ord, ni
 
   integer, dimension(nopsm):: iopsymc, iopsym
 
@@ -4362,7 +4362,7 @@ subroutine numgrpt(iopsym,igrpt,igrpt_nomag,mpirank,Sgrp)
 
   end do
 
-  if( mpirank == 0 ) then
+  if( mpirank0 == 0 ) then
     call write_error
     do ipr = 3,9,3
       write(ipr,'(/A)') ' Point group not found !'
@@ -4378,7 +4378,7 @@ end
 
 !***********************************************************************
 
-subroutine grp_opsym_imp(iopsymc,igrpt,igrpt_nomag,mpirank,PointGroup)
+subroutine grp_opsym_imp(iopsymc,igrpt,igrpt_nomag,mpirank0,PointGroup)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -4440,7 +4440,7 @@ subroutine grp_opsym_imp(iopsymc,igrpt,igrpt_nomag,mpirank,PointGroup)
 
   endif
 
-  if( mpirank == 0 ) then
+  if( mpirank0 == 0 ) then
     call write_error
     do ipr = 3,9,3
       write(ipr,'(/A)') ' Point group not found !'
@@ -4854,7 +4854,7 @@ end
 ! Sousprogramme calculant la forme des tenseurs
 
 subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Dipmag, &
-               E1E2e,Green,iaabs,icheck,igroup,igrpt0,iopsymc,iopsymr,itype,itypep,ldip,loct,lqua,lseuil,magnetic, &
+               E1E2e,Green,iaabs,icheck,igroup,igrpt0,iopsymc,iopsymr,itype,itypep,ldip,loct,lqua,lseuil,magnetic,mpirank0,&
                msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo, msymooi,msymqq,msymqqi,Multipole,n_oo,natomp,ngroup, &
                ngroup_m,nlat,nlatm,nspin,ntype,numat,octupole,popats,pos,quadrupole,rot_atom_abs,Rot_int, &
                Spinorbite,State_all,Symmol,Tensor_imp)
@@ -4917,18 +4917,18 @@ subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Dipmag, &
   else
     if( spinorbite ) then
       call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu, &
-        iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsym_abs,iopsymr,itype,itypep,Magnetic,mpirank, &
+        iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsym_abs,iopsymr,itype,itypep,Magnetic,mpirank0, &
         natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol)
     else
 ! Here one uses the complete symmetry (iopsymc)
       call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu, &
-        iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsym_abs,iopsymc,itype,itypep,Magnetic,mpirank, &
+        iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsym_abs,iopsymc,itype,itypep,Magnetic,mpirank0, &
         natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol)
     endif
   endif
 ! The rotation is calculated with the used symmetry (iopsymr)
   call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu, &
-      iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsymt,iopsymr,itype,itypep,Magnetic,mpirank, &
+      iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsymt,iopsymr,itype,itypep,Magnetic,mpirank0, &
       natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol)
 
   if( spinorbite .or. ( nspin == 2 .and. lseuil > 0 ) ) then
@@ -6177,7 +6177,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
           Cap_layer,Cap_disorder,Cap_roughness,Cap_thickness,Dafs_bio,Delta_bulk,Delta_cap,Delta_film,Delta_int, &
           Delta_roughness_film,Delta_sur,delta_z_bottom_cap,delta_z_top_cap,delta_z_top_film,Eseuil,f_avantseuil, &
           f_no_res,Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,hkl_ref,ich,igreq,Interface_shift, &
-          iprabs_nonexc,isigpi,itabs,itypepr,Length_abs,lvval,Magnetic,Mat_or,Mat_UB,mpirank,n_atom_bulk,n_atom_cap,n_atom_int, &
+          iprabs_nonexc,isigpi,itabs,itypepr,Length_abs,lvval,Magnetic,Mat_or,Mat_UB,mpirank0,n_atom_bulk,n_atom_cap,n_atom_int, &
           n_atom_per,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_sur,n_atom_uc, &
           natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp, &
           nlat,nlatm,nphi_dafs,nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nrato,nrm,nspin,ntype,numat,Operation_mode, &
@@ -6188,7 +6188,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   use declarations
   implicit none
 
-  integer:: i, ich, icheck, igr, ip, ipl, ipr, iprabs_nonexc, it, itabs, iwrite, j, jgr, kgr, mpirank, n_atom_bulk, n_atom_cap, &
+  integer:: i, ich, icheck, igr, ip, ipl, ipr, iprabs_nonexc, it, itabs, iwrite, j, jgr, kgr, mpirank0, n_atom_bulk, n_atom_cap, &
     n_atom_int, n_atom_per, n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, n_atom_sur, n_atom_uc, n1_proto, n2_proto, &
     natomsym, nbseuil, neqm, ngrm, ngroup, ngroup_m, ngroup_taux, ngroup_temp, ni, nlatm, nphim, npldafs, npldafs_2d, npldafs_e, &
     npldafs_f, nrm, nspin, ntype, Z, Z_abs
@@ -6289,7 +6289,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
                 Q_mod,Vecdafse,Vecdafss)
   else
     call Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Bormann,Bulk,Bulk_step,Dafs_bio,Energy_photon, &
-            Film,hkl_dafs,hkl_film,icheck,isigpi,Length_abs,Mat_or,mpirank,nphi_dafs,nphim,npldafs,npldafs_e,npldafs_f,Orthmatt, &
+            Film,hkl_dafs,hkl_film,icheck,isigpi,Length_abs,Mat_or,mpirank0,nphi_dafs,nphim,npldafs,npldafs_e,npldafs_f,Orthmatt, &
             Orthmati,Poldafse,Poldafsem,Poldafss,Poldafssm,Q_mod,Vec_orig,Vecdafse,Vecdafsem,Vecdafss,Vecdafssm)
   endif
 
@@ -8393,13 +8393,13 @@ end
 ! Polarization calculation for DAFS
 
 subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Bormann,Bulk,Bulk_step,Dafs_bio,Energy_photon, &
-            Film,hkl_dafs,hkl_film,icheck,isigpi,Length_abs,Mat_or,mpirank,nphi_dafs,nphim,npldafs,npldafs_e,npldafs_f,Orthmatt, &
+            Film,hkl_dafs,hkl_film,icheck,isigpi,Length_abs,Mat_or,mpirank0,nphi_dafs,nphim,npldafs,npldafs_e,npldafs_f,Orthmatt, &
             Orthmati,Poldafse,Poldafsem,Poldafss,Poldafssm,Q_mod,Vec_orig,Vecdafse,Vecdafsem,Vecdafss,Vecdafssm)
 
   use declarations
   implicit none
 
-  integer:: i, icheck, ip, ipl, ipr, istop, j, mpirank, nphim, npldafs, npldafs_e, npldafs_f
+  integer:: i, icheck, ip, ipl, ipr, istop, j, mpirank0, nphim, npldafs, npldafs_e, npldafs_f
 
   complex(kind=db), dimension(3):: pe, ps
   complex(kind=db), dimension(3,npldafs_e):: Poldafsem, Poldafssm
@@ -8494,7 +8494,7 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
       dhkl = sqrt( det(0) / sum( hklred(1:3) * det(1:3) ) )
       fac = abs( pi / ( konde * dhkl ) )
 
-      if( fac > 1._db .and. mpirank == 0 ) then
+      if( fac > 1._db .and. mpirank0 == 0 ) then
         if( istop == 0 ) call write_error
         do ipr = 3,9,3
           if( ipr == 3 .and. icheck == 0 ) cycle
@@ -8523,25 +8523,25 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
 ! One goes to the internal orthogonal basis
       v(:) = real( Poldafse(:,ipl,1), db )
       if( sum( v(:)**2 )  > eps6 ) then
-        call trvec(mpirank,Orthmatt,v,w)
+        call trvec(mpirank0,Orthmatt,v,w)
         Poldafse(:,ipl,1) = cmplx( w(:), 0._db )
       endif
 
       v(:) = real( Poldafss(:,ipl,1), db )
       if( sum( v(:)**2 )  > eps6 ) then
-        call trvec(mpirank,Orthmatt,v,w)
+        call trvec(mpirank0,Orthmatt,v,w)
         Poldafss(:,ipl,1) = cmplx( w(:), 0._db )
       endif
 
       v(:) = Vecdafse(:,ipl,1)
       if( sum( v(:)**2 )  > eps6 ) then
-        call trvec(mpirank,Orthmatt,v,w)
+        call trvec(mpirank0,Orthmatt,v,w)
         Vecdafse(:,ipl,1) = w(:)
       endif
 
       v(:) = Vecdafss(:,ipl,1)
       if( sum( v(:)**2 )  > eps6 ) then
-        call trvec(mpirank,Orthmatt,v,w)
+        call trvec(mpirank0,Orthmatt,v,w)
         Vecdafss(:,ipl,1) = w(:)
       endif
 
@@ -8769,7 +8769,7 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
 
         v(:) = Vecdafse(:,ipl,1)
         w(:) = Vecdafss(:,ipl,1)
-        if( mpirank == 0 .and. ( sum(abs(v(:))) < eps10 .or. sum(abs(w(:))) < eps10 ) ) then
+        if( mpirank0 == 0 .and. ( sum(abs(v(:))) < eps10 .or. sum(abs(w(:))) < eps10 ) ) then
           call write_error
           do ipr = 3,9,3
             write(ipr,160)
@@ -9621,13 +9621,13 @@ end
 
 ! Establishment of the column names for dafs reflexions
 
-subroutine Col_dafs_name(Angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpirank,ncolm,ncolr,ncolt, &
+subroutine Col_dafs_name(Angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpirank0,ncolm,ncolr,ncolt, &
          nomabs,npldafs,Operation_mode_used,Self_abs)
 
   use declarations
   implicit none
 
-  integer:: i, icol, index, ipldafs, ipr, j, k, mpirank, ncolm, ncolr, ncolt, npldafs
+  integer:: i, icol, index, ipldafs, ipr, j, k, mpirank0, ncolm, ncolr, ncolt, npldafs
   integer, dimension(2,npldafs):: isigpi
 
   character(len=Length_word) nomab
@@ -9783,7 +9783,7 @@ subroutine Col_dafs_name(Angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpiran
 
 ! ncolt = total number of columns for both XANES and DAFS
   ncolt = icol
-  if( ncolt > ncolm .and. mpirank == 0 ) then
+  if( ncolt > ncolm .and. mpirank0 == 0 ) then
     call write_error
     do ipr = 3,9,3
       write(ipr,105) ncolt, ncolm
@@ -10013,13 +10013,13 @@ end
 ! Sousprogramme evaluant les orbitales sondees par les regles de selection des transitions
 
 subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,lplus1,lqua,lseuil, &
-                  M1M1,mpirank,nb_rep,nbseuil,ngrph,nspino,Spinorbite,State_all,Sym_cubic,Ylm_comp)
+                  M1M1,mpirank0,nb_rep,nbseuil,ngrph,nspino,Spinorbite,State_all,Sym_cubic,Ylm_comp)
 
   use declarations
   implicit none
 
   integer:: icheck, initl, iseuil, iop, isinitl, ism, ispin, ispo, jseuil, jspin, kpl, kspin, kv2, kvo, &
-    l, lf, lf1, lf2, lg, linitl, lo, lseuil, m, m_initl, mi, mm, mo, mpirank, ms, nb_rep, nbseuil, ngrph, nlfm, nlfm0, &
+    l, lf, lf1, lf2, lg, linitl, lo, lseuil, m, m_initl, mi, mm, mo, mpirank0, ms, nb_rep, nbseuil, ngrph, nlfm, nlfm0, &
     noperat, nselec, nsm, nspino
 
   integer, dimension(2):: ninitl
@@ -10036,7 +10036,7 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
 
   logical:: E1M1, lmoins1, lplus1, M1M1, Spinorbite, state_all, sym_cubic, Ylm_comp
 
-  real(kind=db):: Gauntc, jzinitl
+  real(kind=db):: Gaunt_r, jzinitl
   real(kind=db), dimension(2):: jinitl
 
   if( icheck > 0 )  write(3,110)
@@ -10176,7 +10176,7 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
                 do ms = -1,1,2
                   if( m_initl == 0 .and. ms == 1 ) exit
                   mi = ms * abs( m_initl )
-                  gnt = gauntc(l,m,lo,mo,linitl,mi)
+                  gnt = Gaunt_r(l,m,lo,mo,linitl,mi)
                   if( abs(gnt) < eps6 ) cycle
                   do lg = 1,min(lf,nlfm)
                     if( lselec(lg) == l .and. mselec(lg) == m ) cycle boucle_ll
@@ -10229,7 +10229,7 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
 
   end do   ! fin boucle dimension
 
-  if( mpirank == 0 .and. nselec > nlfm0 ) write(3,170) nselec
+  if( mpirank0 == 0 .and. nselec > nlfm0 ) write(3,170) nselec
 
   if( state_all ) then
     call irep_util_all(icheck,iopsymr,irep_util,karact,nb_rep, ngrph,nspino,Spinorbite)
@@ -10531,13 +10531,13 @@ end
 
 ! Sousprogramme calculant les valeurs des vecteurs polarisation et onde
 
-subroutine polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank,msymdd,msymqq,ncolm,ncolr,nomabs,nple,nplr, &
+subroutine polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,ncolm,ncolr,nomabs,nple,nplr, &
         nplrm,nxanout,Octupole,Orthmatt,pdp, pdpolar,pol,polar,Polarise,Quadrupole,Veconde,Vec,Xan_atom)
 
   use declarations
   implicit none
 
-  integer:: i, icheck, ii, ipl, ipr, j, jj, jpl, k, kpl, mpirank, ncolm, ncolr, nj, nple, nplr, nplrm, nxanout
+  integer:: i, icheck, ii, ipl, ipr, j, jj, jpl, k, kpl, mpirank0, ncolm, ncolr, nj, nple, nplr, nplrm, nxanout
 
   character(len=Length_word):: nomab
   character(len=Length_word), dimension(ncolm):: nomabs
@@ -10663,17 +10663,17 @@ subroutine polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank,msymdd,msymqq,ncolm
 ! On passe en base interne (orthonormee)
       p(:) = polar(:,ipl) / axyz(:)
       pp = sum( p(:)**2 )
-      if( abs(pp) > eps6 ) call trvec(mpirank,Orthmatt,p,pl)
+      if( abs(pp) > eps6 ) call trvec(mpirank0,Orthmatt,p,pl)
 
       v(:) = veconde(:,ipl) / axyz(:)
       vv = sum( v(:)**2 )
-      if( vv > eps6 ) call trvec(mpirank,Orthmatt,v,vo)
+      if( vv > eps6 ) call trvec(mpirank0,Orthmatt,v,vo)
 
 ! Test sur l'orthogonalite
       if( Quadrupole .or. Octupole .or. Dipmag ) then
         pv = abs( sum( vo(:) * pl(:) ) )
         if( pv > eps4 ) then
-          if( mpirank == 0 ) then
+          if( mpirank0 == 0 ) then
             call write_error
             do ipr = 3,9,3
               write(ipr,110) ipl, p(:), v(:)
@@ -10911,12 +10911,12 @@ end
 
 !***********************************************************************
 
-subroutine trvec(mpirank,Orthmat,ve,vs)
+subroutine trvec(mpirank0,Orthmat,ve,vs)
 
   use declarations
   implicit none
 
-  integer:: ipr, mpirank
+  integer:: ipr, mpirank0
 
   real(kind=db):: pp
   real(kind=db), dimension(3):: ve, vs, w
@@ -10929,7 +10929,7 @@ subroutine trvec(mpirank,Orthmat,ve,vs)
   pp = sqrt( sum( w(:)**2 ) )
   if( pp > eps4 ) then
     w(:) = w(:) / pp
-  elseif( mpirank == 0 ) then
+  elseif( mpirank0 == 0 ) then
     call write_error
     do ipr = 3,9,3
       write(ipr,110)
@@ -11337,7 +11337,7 @@ end
 subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_clu,dista, &
            distai,Full_atom,Green,hubbard,i_self,ia_eq,ia_eq_inv,ia_rep,iaabs,iaabsi,iabsorbeur,iaproto,iaprotoi,icheck,igreq, &
            igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,ipr0,is_eq,itype,itypei,itypep,itypepr,magnetic,m_hubb, &
-           m_hubb_e,mpirank,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,nb_eq,nb_rpr, &
+           m_hubb_e,mpirank0,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,nb_eq,nb_rpr, &
            nb_rep_t,nb_sym_op,neqm,ngreq,ngroup,ngroup_hubb,ngroup_m,nlat,nlatm,nspin,nspinp,ntype,numat,nx,occ_hubb_e,overad, &
            popats,pos,posi,rmt,rot_atom,roverad,rsort,rsorte,Spinorbite,Symmol,V_hubb,V_hubbard,Ylm_comp)
 
@@ -11347,7 +11347,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   character(len=8):: ptgrname_int
 
   integer:: i, i_self, ia, ia1, ia2, iaabs, iaabsi, iabsorbeur, iapr, ib, icheck, ie, ig, iga, igr, igrpt_nomag, igrpt0, &
-     ind_rep, iord, ipr, ipr0, is, isp, isym, it, it1, it2, j, js, l, l_hubbard, m, m_hubb, mp, m_hubb_e, mpirank, &
+     ind_rep, iord, ipr, ipr0, is, isp, isym, it, it1, it2, j, js, l, l_hubbard, m, m_hubb, mp, m_hubb_e, mpirank0, &
      n_atom_0_self, n_atom_ind_self, n_atom_proto, na_ligne, na1, na2, natome, natomeq, natomp, &
      nb_sym_op, neqm, ngroup, ngroup_hubb, ngroup_m, nlatm, nspin, nspinp, ntype, nx
 
@@ -11398,7 +11398,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   ib = 0
   do ia = 1,natomeq
     ps(:) = pos(:,ia)
-    call posequiv(mpirank,ps,iopsymr,isym,igrpt_nomag)
+    call posequiv(mpirank0,ps,iopsymr,isym,igrpt_nomag)
     dp(:) = abs( ps(:) - pos(:,ia) )
     if( dp(1) > epspos .or. dp(2) > epspos .or. dp(3) > epspos ) cycle
     ib = ib + 1
@@ -11454,7 +11454,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   nb_eq(:) = 0
   do ia = 1,natomeq
     ps(:) = pos(:,ia)
-    call posequiv(mpirank,ps,iopsymr,isym,igrpt_nomag)
+    call posequiv(mpirank0,ps,iopsymr,isym,igrpt_nomag)
     if( abs(isym) /= 1 ) cycle
     do ib = 1,natome
       dp(:) = abs( ps(:) - posi(:,ib) )
@@ -11467,7 +11467,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   end do
   do ia = 1,natomeq
     ps(:) = pos(:,ia)
-    call posequiv(mpirank,ps,iopsymr,isym,igrpt_nomag)
+    call posequiv(mpirank0,ps,iopsymr,isym,igrpt_nomag)
     if( abs(isym) == 1 ) cycle
     do ib = 1,natome
       dp(:) = abs( ps(:) - posi(:,ib) )
@@ -11561,7 +11561,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     if( icheck > 1 ) write(3,130) ia
     ps(:) = posi(:,ia)
     call point_group_atom(Atom_comp(ia),Atom_mag(ia),Atom_with_axe,Nonsph,Axe_atom_clu, &
-        iaabs,iatomp(ia),icheck,igroup,igroupi(ia),igrpt(ia),igrpt0,iopsyma,iopsymr,itype,itypep,magnetic,mpirank,natomp, &
+        iaabs,iatomp(ia),icheck,igroup,igroupi(ia),igrpt(ia),igrpt0,iopsyma,iopsymr,itype,itypep,magnetic,mpirank0,natomp, &
         ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_a,Spinorbite,Symmol)
 
     Atom_comp(ia) = Ylm_comp
@@ -11674,7 +11674,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
         it2 = itypei(ia2)
         v(:) = posi(:,ia1) - posi(:,ia2)
         dist = sqrt( sum( v(:)**2 ) )
-        if( dist < rmt(it1) + rmt(it2) - Adimp .and. mpirank == 0) then
+        if( dist < rmt(it1) + rmt(it2) - Adimp .and. mpirank0 == 0) then
           call write_error
           do ipr = 3,9,3
             write(ipr,280) ia1, numat(itypei(ia1)), igroupi(ia1), ia2, numat(itypei(ia2)), igroupi(ia2), dist*bohr, &
@@ -11686,7 +11686,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     end do
   endif
 
-  if( iaabsi == 0 .and. mpirank == 0 ) then
+  if( iaabsi == 0 .and. mpirank0 == 0 ) then
     call write_error
     do ipr = 3,9,3
       write(ipr,290)
@@ -11725,7 +11725,7 @@ end
 
 ! Cherche le point equivalent a l'interieur de la zone de calcul compte tenu des symmetries.
 
-subroutine posequiv(mpirank,pos,iopsym,isym,igrpt_nomag)
+subroutine posequiv(mpirank0,pos,iopsym,isym,igrpt_nomag)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -11933,7 +11933,7 @@ subroutine posequiv(mpirank,pos,iopsym,isym,igrpt_nomag)
 
   end do boucle
 
-  if( is > nopsm .and. mpirank == 0 ) then
+  if( is > nopsm .and. mpirank0 == 0 ) then
     call write_error
     do ipr = 3,9,3
       write(ipr,120) igrpt_nomag, pos(1:3)
@@ -11975,7 +11975,7 @@ end
 !***********************************************************************
 
 subroutine point_group_atom(Ylm_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu, &
-          iaabs,iap,icheck,igroup,igra,igrpt,igrpt0,iopsym,iopsymr,itype,itypep,magnetic,mpirank,natomp, &
+          iaabs,iap,icheck,igroup,igra,igrpt,igrpt0,iopsym,iopsymr,itype,itypep,magnetic,mpirank0,natomp, &
           ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,posi,rot_atom,Spinorbite,Symmol)
 
   use declarations
@@ -12046,7 +12046,7 @@ subroutine point_group_atom(Ylm_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu,
 
     end do
 
-    call numgrpt(iopsym,igrpt,igrpt_nomag,mpirank,.false.)
+    call numgrpt(iopsym,igrpt,igrpt_nomag,mpirank0,.false.)
 
   endif
 
@@ -12177,12 +12177,12 @@ end
 ! Calcul du nombre de point du maillage.
 
 subroutine nbpoint(Adimp,Base_hexa,D_max_pot,Green,iaabs,igrpt_nomag,iopsymr,iord,Moy_loc, &
-               mpirank,natomp,npoint,npso,nvois,nx,pos,Rsort)
+               mpirank0,natomp,npoint,npso,nvois,nx,pos,Rsort)
 
   use declarations
   implicit none
 
-  integer:: ia, iaabs, igrpt_nomag, iord, isym, ix, iy, iz, mpirank, natomp, npoint, npso, nvois, nx
+  integer:: ia, iaabs, igrpt_nomag, iord, isym, ix, iy, iz, mpirank0, natomp, npoint, npso, nvois, nx
   integer, dimension(nopsm):: iopsymr
 
   logical Base_hexa, Green, Moy_loc
@@ -12229,7 +12229,7 @@ subroutine nbpoint(Adimp,Base_hexa,D_max_pot,Green,iaabs,igrpt_nomag,iopsymr,ior
         endif
         if( dist > rmax ) cycle
         w(:) = v(:)
-        call posequiv(mpirank,w,iopsymr,isym,igrpt_nomag)
+        call posequiv(mpirank0,w,iopsymr,isym,igrpt_nomag)
         w(:) = abs( (v(:) - w(:) ) )
         if( w(1) > epspos .or. w(2) > epspos .or. w(3) > epspos ) cycle
         if( Green .and. .not. Moy_loc ) then
@@ -12261,14 +12261,14 @@ end
 ! Elaboration du maillage.
 
 subroutine reseau(Adimp,Base_hexa,D_max_pot,Green,iaabs,icheck, &
-               igrpt_nomag,indice,iopsymr,iord,itypei,Moy_loc,mpirank,mpres,natome,natomp,nim, &
+               igrpt_nomag,indice,iopsymr,iord,itypei,Moy_loc,mpirank0,mpres,natome,natomp,nim, &
                npoint,npr,npso,npsom,ntype,numia,nx,pos,posi,Rmt,Rsort,rvol,xyz)
 
   use declarations
   implicit none
 
   integer:: i, ia, iaabs, icheck, igrpt_nomag, indi1, indi2, indi3, iord, ipr, istop, isym, it, ix, ix1, iy, iy1, iz, iz1, j, &
-            mpirank, natome, natomp, nim, npoint, npr, npso, npsom, ntype, nx
+            mpirank0, natome, natomp, nim, npoint, npr, npso, npsom, ntype, nx
 
   integer, dimension(natome):: itypei
   integer, dimension(nopsm):: iopsymr
@@ -12328,7 +12328,7 @@ subroutine reseau(Adimp,Base_hexa,D_max_pot,Green,iaabs,icheck, &
         endif
         if( dist > Rmax ) cycle
         w(:) = v(:)
-        call posequiv(mpirank,w,iopsymr,isym,igrpt_nomag)
+        call posequiv(mpirank0,w,iopsymr,isym,igrpt_nomag)
         if( abs(v(1)-w(1)) > epspos .or. abs(v(2)-w(2)) > epspos .or. abs(v(3)-w(3)) > epspos ) cycle
         if( Green .and. .not. Moy_loc ) then
 ! Pour la moyenne du potentiel, on ne prend pas les points loin de tout atome
@@ -12430,7 +12430,7 @@ subroutine reseau(Adimp,Base_hexa,D_max_pot,Green,iaabs,icheck, &
         endif
         if( dist > Rmax ) cycle
         w(:) = v(:)
-        call posequiv(mpirank,w,iopsymr,isym,igrpt_nomag)
+        call posequiv(mpirank0,w,iopsymr,isym,igrpt_nomag)
 
         if( Green .and. .not. Moy_loc ) then
 ! Pour la moyenne du potentiel, on ne prend pas les points loin de tout atome
@@ -12452,7 +12452,7 @@ subroutine reseau(Adimp,Base_hexa,D_max_pot,Green,iaabs,icheck, &
         iz1 = nint( w(3) )
         i = mpres(ix1,iy1,iz1)
         if( i > npoint ) cycle
-        if( i == 0 .and. mpirank == 0 ) then
+        if( i == 0 .and. mpirank0 == 0 ) then
           call write_error
           do ipr = 3,9,3
             write(ipr,130) ix, iy, iz, ix1, iy1, iz1
@@ -12553,7 +12553,7 @@ end
 ! Routine calculant les coefficients du laplacien.
 
 subroutine laplac(Adimp,Base_hexa,cgrad,clapl,icheck, igrpt_nomag,indice,iopsymr,iord,ivois,isvois, &
-                  mpirank,mpres,npso,npsom,nvois,nx)
+                  mpirank0,mpres,npso,npsom,nvois,nx)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -12673,7 +12673,7 @@ subroutine laplac(Adimp,Base_hexa,cgrad,clapl,icheck, igrpt_nomag,indice,iopsymr
 
 ! Si le voisin tombe en dehors de la maille, on le ramene dedans par
 ! la symetrie eventuelle.
-      call posequiv(mpirank,v,iopsymr,isym,igrpt_nomag)
+      call posequiv(mpirank0,v,iopsymr,isym,igrpt_nomag)
       if( base_hexa ) then
         la(1) = nint( v(1) + f3 * v(2) )
         la(2) = nint( df3 * v(2) )
@@ -12715,7 +12715,7 @@ end
 ! Routine effectuant la selection des points en bordure des spheres muffin-tin, et calculant les distances relatives de ces points au
 ! centre de l'atome correspondant.
 
-subroutine bordure(Green,icheck,iopsymr,iord,iscratch,ivois,mpirank,natome,nbm,nbtm,nim, &
+subroutine bordure(Green,icheck,iopsymr,iord,iscratch,ivois,mpirank0,natome,nbm,nbtm,nim, &
              npoint,npso,npsom,nsm,nstm,numia,nvois,posi,rvol,xyz)
 
   use declarations
@@ -12771,7 +12771,7 @@ subroutine bordure(Green,icheck,iopsymr,iord,iscratch,ivois,mpirank,natome,nbm,n
       if( ia < 1 ) cycle
       do iv = 1,nvois
         j = ivois(i,iv)
-        if( j == 0 .and. mpirank == 0 ) then
+        if( j == 0 .and. mpirank0 == 0 ) then
           call write_error
           do ipr = 3,9,3
             write(ipr,110) i, ia, iv, xyz(:,i)
@@ -12852,7 +12852,7 @@ subroutine bordure(Green,icheck,iopsymr,iord,iscratch,ivois,mpirank,natome,nbm,n
       if( ia < 1 ) cycle
       do iv = 1,nvois
         j = ivois(i,iv)
-        if( j == 0 .and. mpirank == 0 ) then
+        if( j == 0 .and. mpirank0 == 0 ) then
           call write_error
           do ipr = 3,9,3
             write(ipr,110) i, ia, iv, xyz(:,i)
@@ -12897,7 +12897,7 @@ subroutine bordure(Green,icheck,iopsymr,iord,iscratch,ivois,mpirank,natome,nbm,n
     end do
   endif
 
-  if( mpirank == 0 ) then
+  if( mpirank0 == 0 ) then
     open(iscratch, status='SCRATCH')
     do ia = 1,natome
       write(iscratch,*) nbordf(ia), nbord(ia)
@@ -12958,7 +12958,7 @@ end
 
 !***********************************************************************
 
-subroutine recup_bordure(ibord,isbord,iscratch,isrt,mpinodes,mpirank,natome,nbord,nbordf,nbm,nbtm,nsm, &
+subroutine recup_bordure(ibord,isbord,iscratch,isrt,mpinodes0,mpirank0,natome,nbord,nbordf,nbm,nbtm,nsm, &
         nsort,nsortf,nstm,poidsa,poidso)
 
   use declarations
@@ -12973,7 +12973,7 @@ subroutine recup_bordure(ibord,isbord,iscratch,isrt,mpinodes,mpirank,natome,nbor
   real(kind=db), dimension(nsm):: poidso
   real(kind=db), dimension(nbm,natome):: poidsa
 
-  if( mpirank == 0 ) then
+  if( mpirank0 == 0 ) then
     rewind(iscratch)
     do ia = 1,natome
       read(iscratch,*) nbordf(ia), nbord(ia)
@@ -12988,9 +12988,9 @@ subroutine recup_bordure(ibord,isbord,iscratch,isrt,mpinodes,mpirank,natome,nbor
     if( nsortf > 0 ) read(iscratch,*) poidso(1:nsortf)
     Close(iscratch)
   endif
-  if( mpinodes > 1 ) then
+  if( mpinodes0 > 1 ) then
     ndim = nbtm * natome
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
     call MPI_Bcast(nbordf,natome,MPI_INTEGER,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(nbord,natome,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ibord,ndim,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -13010,13 +13010,13 @@ end
 ! Calcul de l'energie du niveau de coeur initial.
 
 subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_moy,Eseuil,icheck,is_g, &
-           itabs_nonexc,lseuil,m_g,mpirank,nbseuil,ninit1,ninitl,ninitlr,nr,nrm,nseuil,nspine,ntype,numat,psii,rato,Rmtg, &
+           itabs_nonexc,lseuil,m_g,mpirank0,nbseuil,ninit1,ninitl,ninitlr,nr,nrm,nseuil,nspine,ntype,numat,psii,rato,Rmtg, &
            Rmtsd,V_abs_i,V_intmax,V0bde,WorkF)
 
   use declarations
   implicit none
 
-  integer icheck, initl, ipr, isol, isp, itabs_nonexc, jsp, lmax_pot_loc, lseuil, m, mpirank, nbseuil, ninit1, ninitl, &
+  integer icheck, initl, ipr, isol, isp, itabs_nonexc, jsp, lmax_pot_loc, lseuil, m, mpirank0, nbseuil, ninit1, ninitl, &
     ninitlr, nlm_pot_loc, nm1, nm2, nr, nrm, nseuil, nsol, nspin, nspine, nspino, nspinp, ntype, numat
 
   parameter(nspin = 2, nspino = 2, nspinp = 2)
@@ -13157,7 +13157,7 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_
       j = lseuil - 0.5_db
     endif
 
-    if( ( ipr == 3 .and. icheck > 0 ) .or. ( ipr == 6 .and. Core_resolved .and. mpirank == 0 ) ) then
+    if( ( ipr == 3 .and. icheck > 0 ) .or. ( ipr == 6 .and. Core_resolved .and. mpirank0 == 0 ) ) then
       if( ipr == 3 ) write(ipr,115)
       if( ipr == 3 .and. ninit1 /= ninitl ) write(ipr,120) Delta * rydb
       mj = - j - 1
@@ -13175,7 +13175,7 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_
       end do
     endif
 
-    if( .not. Core_resolved .and. ( ( ipr == 3 .and. icheck > 0) .or. ( ipr == 6 .and. mpirank == 0 ) ) ) then
+    if( .not. Core_resolved .and. ( ( ipr == 3 .and. icheck > 0) .or. ( ipr == 6 .and. mpirank0 == 0 ) ) ) then
       if( ipr == 3 ) then
         if( ninitlr == 1 ) then
           Write(ipr,140) Epsii(:) * Rydb
@@ -13378,16 +13378,18 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
       if( Spinorbite ) then
         if( m == -l-1 ) then
           ur(:,1) = 0._db
-          ur(:,2) = urs(:,1,m2,2,nspino)
+          ur(:,2) = urs(:,1,m2,2,nspino) * r(:)
         elseif( m == l ) then
-          ur(:,1) = urs(:,m1,m2,1,1)
+          ur(:,1) = urs(:,m1,m2,1,1) * r(:)
           ur(:,2) = 0._db
         else
-          ur(:,1) = urs(:,l+1+m,m2,1,isol)
-          ur(:,2) = urs(:,l+1+m+1,m2,2,isol)
+          ur(:,1) = urs(:,l+1+m,m2,1,isol) * r(:)
+          ur(:,2) = urs(:,l+1+m+1,m2,2,isol) * r(:)
         endif
       else
-        ur(:,:) = urs(:,min(l+1+m,m1),m2,:,1)
+        do isp = 1,nspin
+          ur(:,isp) = urs(:,min(l+1+m,m1),m2,isp,1) * r(:)
+        end do
       endif
       deallocate( urs, uis )
 
@@ -13517,7 +13519,7 @@ end
 ! Calculations of the (l,m) belloging to each representations
 
 subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,itypei,karact,lato, &
-             lmaxat,lmaxso,lso,mato,mpirank,mso,n_atom_proto,natome,nbordf,ngrph,nlmsa0,nlmsam,nlmso0, &
+             lmaxat,lmaxso,lso,mato,mpirank0,mso,n_atom_proto,natome,nbordf,ngrph,nlmsa0,nlmsam,nlmso0, &
              nso1,nsortf,nspino,ntype,numat,Orthmati,posi,rot_atom)
 
   use declarations
@@ -13647,7 +13649,7 @@ subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,it
     do igrph = 1,ngrph
 
       nsp = nspino * nsortf
-      if( nlmso0(igrph) > nsp .and. mpirank == 0 ) then
+      if( nlmso0(igrph) > nsp .and. mpirank0 == 0 ) then
         if( istop == 0 ) call write_error
         do ipr = 3,9,3
           write(ipr,200) nlmso0(igrph), nsp
@@ -13658,7 +13660,7 @@ subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,it
       do ia = 1,natome
         if( numat( itypei(ia) ) == 0 ) cycle
         nsp = nspino * nbordf(ia)
-        if( nlmsa0(ia,igrph) > nsp .and. mpirank == 0 ) then
+        if( nlmsa0(ia,igrph) > nsp .and. mpirank0 == 0 ) then
           if( istop == 0 ) call write_error
           do ipr = 3,9,3
             write(ipr,210) ia, nlmsa0(ia,igrph), nsp
@@ -14011,7 +14013,7 @@ end
 
 ! Selection des harmoniques spheriques compte tenu des symetries
 
-subroutine ylmsym(iopsym,lmax,lv,mpirank,mv,nlms,nlmtot)
+subroutine ylmsym(iopsym,lmax,lv,mpirank0,mv,nlms,nlmtot)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -14121,7 +14123,7 @@ subroutine ylmsym(iopsym,lmax,lv,mpirank,mv,nlms,nlmtot)
       endif
 
 ! Axes 4 selon 0x ou 0y
-      if( mpirank == 0 .and. ( iops(16) == 1 .or. iops(17) == 1 .or. iops(26) == 1 .or. iops(27) == 1 ) ) then
+      if( mpirank0 == 0 .and. ( iops(16) == 1 .or. iops(17) == 1 .or. iops(26) == 1 .or. iops(27) == 1 ) ) then
         call write_error
         do ipr = 3,9,3
           write(ipr,110)
@@ -14130,7 +14132,7 @@ subroutine ylmsym(iopsym,lmax,lv,mpirank,mv,nlms,nlmtot)
       endif
 
       lm = lm + 1
-      if( lm > nlms .and. mpirank == 0 ) then
+      if( lm > nlms .and. mpirank0 == 0 ) then
         call write_error
         do ipr = 3,9,3
           write(ipr,120) lm, nlms
@@ -14251,6 +14253,94 @@ subroutine cbessneu(fnorm,z,lmax,lmaxm,bessel,neuman)
     neuman(l) = l1 * neuman(l-1) / z - neuman(l-2)
     bessel(l) = l1 * bessel(l-1) / z - bessel(l-2)
   end do
+
+  return
+end
+
+!***********************************************************************
+
+! Calculation of spherical Hankel function of first kind  ( or Riccati-Hankel(+) function, divided by z )
+! and its derivative versus r, not z
+
+subroutine Cal_Hankel(d_Hankel,Hankel,konde,lmax,r)
+
+  use declarations
+  implicit none
+
+  integer:: l, lmax
+
+  complex(kind=db):: cfac, fnorm, konde, z
+  complex(kind=db), dimension(0:lmax):: d_hankel, hankel
+  complex(kind=db), dimension(0:lmax+1):: hankel_t
+
+  real(kind=db):: r
+
+  z = konde * r
+
+  hankel_t(0) = - img
+
+  if( lmax > 0 ) hankel_t(1) = - 1._db - img / z
+
+  do l = 2,lmax+1
+    hankel_t(l) = (2*l - 1) * hankel_t(l-1) / z - hankel_t(l-2)
+  end do
+
+  do l = 0,lmax
+    d_hankel(l) = l * hankel_t(l) / z - hankel_t(l+1)
+  end do
+
+! For normalization by the squrare root of the density of state in vacuum
+  fnorm = sqrt( konde / pi )
+  cfac = fnorm * exp( img * z ) / z
+
+  hankel(0:lmax) = cfac * hankel_t(0:lmax)
+
+! Multiplication by konde, because it is the derivative versus r, not z
+  d_hankel(0:lmax) = cfac * konde * d_hankel(0:lmax)
+
+  return
+end
+
+!***********************************************************************
+
+! Calculation of spherical Bessel function ( or Riccati-Bessel function, divided by z )
+! and its derivative versus r, not z
+
+subroutine Cal_Bessel(d_Bessel,Bessel,konde,lmax,r)
+
+  use declarations
+  implicit none
+
+  integer:: l, lmax
+
+  complex(kind=db):: cfac, fnorm, konde, z
+  complex(kind=db), dimension(0:lmax):: d_Bessel, Bessel
+  complex(kind=db), dimension(0:lmax+1):: Bessel_t
+
+  real(kind=db):: r
+
+  z = konde * r
+
+  Bessel_t(0) = sin( z )
+
+  if( lmax > 0 ) Bessel_t(1) = - cos( z ) + Bessel_t(0) / z
+
+  do l = 2,lmax+1
+    Bessel_t(l) = (2*l - 1) * Bessel_t(l-1) / z - Bessel_t(l-2)
+  end do
+
+  do l = 0,lmax
+    d_Bessel(l) = l * Bessel_t(l) / z - Bessel_t(l+1)
+  end do
+
+! For normalization by the squrare root of the density of state in vacuum
+  fnorm = sqrt( konde / pi )
+  cfac = fnorm / z
+
+  Bessel(0:lmax) = cfac * Bessel_t(0:lmax)
+
+! Multiplication by konde, because it is the derivative versus r, not z
+  d_Bessel(0:lmax) = cfac * konde * d_Bessel(0:lmax)
 
   return
 end

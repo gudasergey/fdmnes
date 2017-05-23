@@ -1011,7 +1011,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     call MPI_Bcast(Xan_atom,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Wien_save,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
 
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
   endif
 
   if( nq_nrixs >= 1 .and. lmax_nrixs > 1 ) Quadrupole = .true.
@@ -1505,26 +1505,27 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Basereel,Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free, &
     Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density, &
     Density_comp,Dip_rel,Dipmag,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
-    Eimagent,Eneg_i,Eneg_n_i,Energphot,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift, &
+    Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift, &
     Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
     Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard, &
     Hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,Interface_shift,iscratch,isigpi,itdil,its_lapw,iord,itape4,itype, &
-    itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,l_selec_max,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmax_tddft_inp, &
-    lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper,MPI_host_num_for_mumps,mpinodes, &
-    mpinodes0,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_uc,n_atom_proto, &
+    itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,l_selec_max,lamstdens,ldil,lecrantage,lin_gam,lmax_pot, &
+    lmax_tddft_inp,lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper, &
+    mpinodes,mpinodes0,mpirank,mpirank0, &
+    Muffintin,Multipole,multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_uc,n_atom_proto, &
     n_devide,n_file_dafs_exp,n_multi_run_e,n_radius,n_range,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg, &
     ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw,ngroup_m,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
-    ngroup_temp,nhybm,nlat,nlatm,No_solsing,nom_fich_Extract, &
+    ngroup_temp,nhybm,nlat,nlatm,No_DFT,No_solsing,nom_fich_Extract, &
     nomfich,nomfichbav,Noncentre, &
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
     nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
     nself,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_bulk,ntype_conf,numat,numat_abs, &
     nvval,occ_hubb_e,Octupole,Old_zero,One_run,Operation_mode,Operation_mode_used,Optic,Overad,Overlap,p_self_max,p_self0, &
     param,Pas_SCF,pdpolar,phi_0,PointGroup,PointGroup_Auto,polar,Polarise,poldafsem,poldafssm, &
-    pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadmag,Quadrupole,R_rydb, &
-    r0_lapw,rchimp,Readfast,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
+    pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadmag,Quadrupole,R_rydb,r_self, &
+    r0_lapw,rchimp,Readfast,Relativiste,Renorm,Rlapw,Rmt,Rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,rydberg,rsorte_s,SCF_log,Self_abs, &
-    Solsing_s,Solsing_only,Solver,Space_file,Spherical_signal,Spherical_tensor, &
+    Solsing_s,Solsing_only,Space_file,Spherical_signal,Spherical_tensor, &
     Spinorbite,state_all,state_all_out,Supermuf,Surface_shift,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef, &
     Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_hubbard,V_intmax,Vec_orig, &
     Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
@@ -1536,9 +1537,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   integer:: eof, eoff, i, i_range, ier, ia, ie, igr, igr_dop, igrdat, io, iord, ip, ipar, ipl, ipl0, ipr, ipr0, iscratch, isp, &
     ispin, istat, istop, isymeq, it, itape4, itype_dop, j, jgr, jpl, jseuil, jt, k, kgr, l, l_hubbard, l_level_val, &
     l_selec_max, l1, l2, lamstdens, lecrantage, lin_gam, lmax_nrixs, lmax_pot, lmax_pot_default, lmax_tddft_inp, lmaxat0, &
-    lmaxso0, long, lseuil, m, m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank0, multi_run, multrmax, &
-    n, n_adimp, n_atom_bulk, n_atom_cap, n_atom_int, n_atom_neq, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_proto, &
-    n_atom_uc, n_devide, n_file_dafs_exp, &
+    lmaxso0, long, lseuil, m, m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank, mpirank0, &
+    mpirank_in_mumps_group, multi_run, multrmax, n, n_adimp, n_atom_bulk, n_atom_cap, n_atom_int, n_atom_neq, n_atom_per, &
+    n_atom_per_neq, n_atom_sur, n_atom_proto, n_atom_uc, n_devide, n_file_dafs_exp, &
     n_fract_x, n_fract_y, n_fract_z, n_label, n_multi_run_e, n_occupancy, n_radius, n_range, n1, n2, natomsym, &
     nb_atom_conf_m, nb_atom_nsph, nbseuil, &
     nchemin, necrantage, neimagent, nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_nonsph, &
@@ -1601,12 +1602,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Clementi, Core_resolved, Core_resolved_e, Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
     Dip_rel, Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Film, &
     exc_imp, Extract, Extract_ten, FDM_comp, FDMX_only, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, &
-    Full_potential, Full_self_abs, &
-    Gamma_hole_imp, Gamma_tddft, Green_s, Green_self, Green_int, Hedin, hkl_film, Hubbard, korigimp, lmaxfree, lmoins1, lplus1, &
-    M1M1, M1M2, M2M2, Magnetic, Matper, muffintin, noncentre, nonexc, nonexc_imp, normaltau, no_core_resolved, no_dipquad, &
-    no_e1e3, no_e2e2, no_e3e3, No_solsing, Octupole, Old_zero, One_run, Operation_mode_used, Optic, Overad, Pas_SCF_imp, Pdb, &
-    Perdew, PointGroup_Auto, Polarise, quadmag, Quadrupole, r_self_imp, Readfast, Relativiste, &
-    rpalf, rydberg, SCF, SCF_elecabs, SCF_mag_free, Self_abs, self_cons, SCF_exc_imp, self_nonexc, &
+    Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green_s, Green_self, Green_int, &
+    Hedin, hkl_film, Hubbard, Kern_fast, korigimp, lmaxfree, lmoins1, lplus1, M1M1, M1M2, M2M2, Magnetic, Matper, muffintin, &
+    No_DFT, no_core_resolved, no_dipquad, no_e1e3, no_e2e2, no_e3e3, No_solsing, noncentre, nonexc, nonexc_imp, normaltau, &
+    Octupole, Old_zero, One_run, Operation_mode_used, Optic, Overad, &
+    Pas_SCF_imp, Pdb, Perdew, PointGroup_Auto, Polarise, quadmag, Quadrupole, r_self_imp, Readfast, Relativiste, &
+    Renorm, rpalf, rydberg, SCF, SCF_elecabs, SCF_mag_free, Self_abs, self_cons, SCF_exc_imp, self_nonexc, &
     self_nonexc_imp, solsing_only, solsing_s, spherical_signal, spherical_tensor, spherique, &
     Spinorbite, State_all, State_all_out, Supermuf, Symauto, Symmol, Taux, Tddft, Temperature, &
     Trace_format_wien, Use_FDMX, Ylm_comp_inp
@@ -1617,7 +1618,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   logical, dimension(0:ntype):: Hubb
 
   real(kind=db):: Alfpot, Ang_borm, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, D_max_pot, Delta_En_conv, &
-    Delta_Epsii, Eclie, Eclie_out, Film_roughness, Film_thickness, Film_zero, g1, g2, Gamma_max, Kern_fac, &
+    Delta_Epsii, Eclie, Eclie_out, Ephot_min, Film_roughness, Film_thickness, Film_zero, g1, g2, Gamma_max, Kern_fac, &
     number_from_text, Overlap, p_self_max, p_self0, Pas_SCF, phi, phi_0, pop_nsph, pp, q, &
     r, r_self, R_rydb, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, V_intmax, vv, z_min
 
@@ -1740,6 +1741,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Eneg_i = .false.
   Eneg_n_i = .false.
   Energphot = .false.
+  Ephot_min = - 1000000._db
   Exc_imp = .false.
   f_no_res(1) = 1._db     ! mag
   f_no_res(2) = -100._db  ! mom
@@ -1772,6 +1774,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   istop = 0
   Hubb(:) = .false.
   Kern_fac = 2._db
+  Kern_fast = .false.
   korigimp = .false.
   lamstdens = -1
   ldipimp(:) = -1
@@ -1796,6 +1799,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   necrantage = 0
   nlat(:) = 0
   no_core_resolved = .false.
+  No_DFT = .false.
   no_dipquad = .false.
   no_e1e3 = .false.
   no_e3e3 = .false.
@@ -1844,6 +1848,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   r_self_imp = .false.
   rchimp(:) = 0._db
   Relativiste = .false.
+  Renorm = .true.
   Rmt(:) = 0._db
   Rmtimp(:) = 0._db
   Roverad = 0._db
@@ -2190,6 +2195,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('non_relat')
           non_relat = 1
 
+        case('no_dft')
+          No_DFT = .true.
+
+        case('no_renorm')
+          Renorm = .false.
+
         case('no_res_ma')
           read(itape4,*,iostat=ier) f_no_res(1)
           if( ier > 0 ) call write_err_form(itape4,grdat)
@@ -2220,6 +2231,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             end do
             stop
           end if
+
+        case('ephot_min')
+          read(itape4,*,iostat=ier) Ephot_min
+          if( ier > 0 ) call write_err_form(itape4,grdat)
 
         case('radius')
           n = nnombre(itape4,132)
@@ -2288,6 +2303,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) Kern_fac
           if( ier > 0 ) call write_err_form(itape4,grdat)
+
+        case('kern_fast')
+          Kern_fast = .true.
 
         case('gamma_tdd')
           Gamma_tddft = .true.
@@ -3509,7 +3527,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           Pas_SCF_imp = .true.
           read(itape4,*) Pas_SCF
 
-! Parametres deja lus dans lectdim
+! Parameterss already red in lectdim
         case('full_self','magnetism','memory_sa','occupancy','self_abs','readfast','temperatu')
 
         case default
@@ -3529,7 +3547,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
     end do boucle_lect
 
-! Fin de la lecture.
+! End of lecture.
 
 !*** JDB
     if (.NOT. adimpin .AND. Use_FDMX) then
@@ -3574,10 +3592,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     long = len_trim(nomfich)
     nomfichbav(long+1:long+8) = '_bav.txt'
 
-    do i = 1,28
+    do i = 1,30
       if( icheck(i) > 1 ) exit
     end do
-    if( Extract .and. i > 28 ) icheck(1:28) = 0
+    if( Extract .and. i > 30 ) icheck(1:30) = 0
 
     i = sum( icheck(1:28) )
     if( i > 0 ) then
@@ -4524,7 +4542,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
     if( istop == 1 ) stop
 
-! Normalisation des vecteurs hybridations :
+! Normalisation of hybridation parameters
     if( Atom_nonsph ) then
       do igr = 1,ngroup
         if( norbv(igr) == 0 ) cycle
@@ -4545,7 +4563,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     endif
     if( .not. green_s .and. ( .not. FDM_comp ) .and. neimagent > 0 ) eimagent(:) = 0._db
 
-! Ecriture des entrees :
+! Writing of indata:
     if( icheck(1) > 0 ) then
 
       if( Extract ) then
@@ -4577,7 +4595,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         if( .not. green_s .and. overad ) write(3,320) roverad
         write(3,330) icheck(:)
         if( lin_gam == 1 ) write(3,340)
-        write(3,350) egamme(1:ngamme)
+        if( abs( Egamme(1) ) < 999.999_db .and. abs( Egamme(ngamme) ) < 999.999_db ) then
+          write(3,350) Egamme(1:ngamme)
+        else
+          write(3,360) Egamme(1:ngamme)
+        endif
         write(3,'(A)') ' Dipole component'
       endif
       if( Dip_rel ) write(3,'(A)') ' E1E1 includes the spin-orbit relativistic transition channel'
@@ -4600,7 +4622,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         else
           write(3,'(A)') '   No broadening in the Chi_0 calculation'
         endif
+        write(3,'(a13,f5.2)') '   Kern_fac =', Kern_fac
+        if( Optic .and. Kern_fast ) write(3,'(A)') '   Single calculation of Kernel with wave functions at Fermi energy'
       endif
+      if( No_DFT ) write(3,'(A)') '   No DFT output'
       if( ( Optic .or. Tddft ) .and. lmax_tddft_inp >= 0 ) write(3,325) lmax_tddft_inp
       if( Core_resolved ) write(3,'(A)') ' Core resolved in outputs'
 
@@ -4987,7 +5012,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           if( Cap_disorder > eps10 ) write(3,640) 'disorder ', Cap_disorder
         endif
 
-! About potental
+! About potential
         if( Flapw ) then
           if( Hedin .or. Perdew ) then
             write(3,'(/A)') ' FLAPW potential energy dependant'
@@ -5041,7 +5066,21 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       end if
 
     endif
+  endif ! Point d'arrivee mpirank0 /= 0
 
+  if( mpinodes0 > 1 ) then
+    call MPI_Bcast(Green_s,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Extract,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+  endif
+  call getSolverParams(MPI_host_num_for_mumps,mpinodes0,Solver)
+  if( Green_s .or. Extract ) MPI_host_num_for_mumps = 1
+  mpirank = mpirank0 / MPI_host_num_for_mumps
+  mpinodes = mpinodes0 / MPI_host_num_for_mumps
+  mpirank_in_mumps_group = mod( mpirank0, MPI_host_num_for_mumps )
+  call MPI_COMM_SPLIT(MPI_COMM_WORLD,mpirank,mpirank_in_mumps_group,MPI_COMM_MUMPS,mpierr)
+  call MPI_COMM_SPLIT(MPI_COMM_WORLD,mpirank_in_mumps_group,mpirank,MPI_COMM_GATHER,mpierr)
+
+  if( mpirank0 == 0 ) then
     do ipr = 3,6,3
       if( icheck(1) < 1 .and. ipr == 3 ) cycle
       if( Green_s .or. Extract ) then
@@ -5070,7 +5109,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       endif
     end do
 
-  endif  ! Point d'arrivee mpirank0 /= 0
+  endif
 
   if( mpinodes0 > 1 ) then
     call MPI_Bcast(adimp,n_adimp,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -5135,6 +5174,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Eneg_i,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Eneg_n_i,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Energphot,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Ephot_min,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(f_no_res,2,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(FDM_comp,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Film_roughness,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -5145,7 +5185,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Full_potential,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Gamma_tddft,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Green_int,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Green_s,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Green_self,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Hedin,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     if( npldafs > 0 ) call MPI_Bcast(hkl_dafs,3*npldafs, MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -5160,7 +5199,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       endif
       call MPI_Bcast(Hybrid_r,nhybm*16*ngroup_nonsph,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
       call MPI_Bcast(Hybrid_i,nhybm*16*ngroup_nonsph,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-      call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
       if( mpirank0 /= 0 ) Hybrid(:,:,:) = cmplx( Hybrid_r(:,:,:), Hybrid_i(:,:,:),db )
       deallocate( Hybrid_i, Hybrid_r )
     endif
@@ -5173,6 +5212,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(itype,ngroup,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(jseuil,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Kern_fac,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Kern_fast,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Kgroup,ngroup_pdb, MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(korigimp,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(lamstdens,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -5203,6 +5243,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(nbseuil,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nchemin,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(necrantage,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(No_dft,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(No_solsing,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(noncentre,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nonexc,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
@@ -5242,7 +5283,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     do i = 1,8
       if( mpirank0 == 0 ) j = iachar( PointGroup(i:i) )
       call MPI_Bcast(j,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-      call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
       if( mpirank0 /= 0 ) PointGroup(i:i) = achar( j )
     end do
     call MPI_Bcast(posn,3*n_atom_uc,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -5250,6 +5291,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Quadrupole,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(r_self,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Relativiste,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Renorm,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(roverad,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(rpotmax,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(R_rydb,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -5262,7 +5304,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     do i = 1,3
       if( mpirank0 == 0 ) j = iachar( Seuil(i:i) )
       call MPI_Bcast(j,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-      call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
       if( mpirank0 /= 0 ) seuil(i:i) = achar( j )
     end do
     call MPI_Bcast(Solsing_s,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
@@ -5308,7 +5350,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     endif
 
     n = ntype + 1
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
     call MPI_Bcast(icom,n,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nlat,n,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Hubb,n,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
@@ -5320,7 +5362,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(rchimp,n,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(rmt,n,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(rmtimp,n,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
 
     if( Flapw ) then
       call MPI_Bcast(its_lapw,ngroup_lapw,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
@@ -5331,11 +5373,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       do i = 1,132
         if( mpirank0 == 0 ) j = iachar( Wien_file(8)(i:i) )
         call MPI_Bcast(j,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-        call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
         if( mpirank0 /= 0 ) Wien_file(8)(i:i) = achar( j )
       end do
     endif
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
 
     if( mpirank0 /= 0 ) icheck(:) = 0
 
@@ -5401,6 +5443,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Eeient(:) = Eeient(:) / Rydb
   Egamme(:) = Egamme(:) / Rydb
   Eimagent(:) = Eimagent(:) / Rydb
+  Ephot_min = Ephot_min / Rydb
   Film_roughness = Film_roughness / bohr
   Film_thickness = Film_thickness / bohr
   Film_shift(1:3) = Film_shift(1:3) / bohr
@@ -5677,7 +5720,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   325 format('   In optic and tddft parts, expansion in spherical harmonics limited to lmax =',i2)
   330 format(' icheck =',30i2)
   340 format(' Linear range :')
-  350 format(' Range =',20f8.3,5(/8x,20f8.3))
+  350 format(' Range =',40f8.3,5(/8x,40f8.3))
+  360 format(' Range =',40f10.3,5(/8x,40f10.3))
   400 format(' Spin-orbit not taken into account for the atomic number', i3)
   410 format('   Path expansion, n =',i3)
   420 format('   Imposed type muffin-tin radius, Rmtimp =',10f6.3,/9x,10f6.3)

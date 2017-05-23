@@ -1304,7 +1304,7 @@ subroutine orbval(Hybrid,iaproto,iapot,icheck,igreq,igroup,itypepr,lvval,mpirank
                   lmpp = lmpp + 1
                   if( abs(hybrid(io,lmpp,igr)) < eps10 ) cycle
 
-                  g = gauntc(l,m,lp,mp,lpp,mpp)
+                  g = Gaunt_r(l,m,lp,mp,lpp,mpp)
                   if( abs( g ) < eps10 ) cycle
 
                   do npp = 1,nlat(it)
@@ -2688,12 +2688,12 @@ subroutine potlapw(axyz,chargat,Coupelapw,deccent,Flapw_new,Full_atom,iapot, &
 
   if( mpinodes0 > 1 ) then
     ndim = ( nrm + 1 ) * ( n_atom_ind - n_atom_0 + 1 )
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
     call MPI_Bcast(rsato,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     ndim = ndim*nlm_pot
     call MPI_Bcast(Vcato,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     ndim = ( nrm + 1 ) * ( n_atom_ind - n_atom_0 + 1 ) * nspin
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
     call MPI_Bcast(rhoato,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     ndim = ndim*nlm_pot
     call MPI_Bcast(Vxcato,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -2848,11 +2848,11 @@ subroutine potlapw(axyz,chargat,Coupelapw,deccent,Flapw_new,Full_atom,iapot, &
   endif   ! arrivee Wien_save == - 1 .or. mpirank /= 0
 
   if( mpinodes0 > 1 ) then
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
     call MPI_Bcast(vh,npoint,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(rs,npoint,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     ndim = npoint * nspin
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
     call MPI_Bcast(rho,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Vxc,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
   endif
@@ -4558,7 +4558,7 @@ subroutine Potex_abs(alfpot,dV0bdcF,Enervide,icheck,nlm_pot,nrato_abs,nspin,Opti
   else
 
     do isp = 1,nspin
-      do lm = 2,nlm_pot
+      do lm = 1,nlm_pot
         Vrato(:,lm,isp) = Vcato(:,lm) + Vxcato(:,lm,isp)
       end do
       V0bdc(isp) = Vhbdc + VxcbdcF(isp) + dV0bdcF(isp)

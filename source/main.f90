@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 12th of April 2017, 23 Germinal, An 225.
+! FDMNES II program, Yves Joly, Oana Bunau, 22th of May 2017, 3 Prairial, An 225.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 12th of April 2017'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 22th of May 2017'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -87,7 +87,7 @@ program fdmnes
   implicit none
   include 'mpif.h'
 
-  integer:: i, ipr, istat, j, k, l, mpirank_in_mumps_group, MPI_host_num_for_mumps, mpierr, mpinodes0, mpirank, mpirank0, n, &
+  integer:: i, ipr, istat, j, k, l, mpierr, mpinodes0, mpirank0, n, &
             ncalcul, nnombre
 
   character(len=1):: mot1
@@ -106,13 +106,6 @@ program fdmnes
   call MPI_Comm_Rank(MPI_COMM_WORLD,mpirank0,mpierr)
 
   fdmfile = 'fdmfile.txt'
-
-  call getSolverParams(MPI_host_num_for_mumps,mpinodes0,Solver)
-
-  mpirank = mpirank0 / MPI_host_num_for_mumps
-  mpirank_in_mumps_group = mod( mpirank0, MPI_host_num_for_mumps )
-  call MPI_COMM_SPLIT(MPI_COMM_WORLD,mpirank,mpirank_in_mumps_group,MPI_COMM_MUMPS,mpierr)
-  call MPI_COMM_SPLIT(MPI_COMM_WORLD,mpirank_in_mumps_group,mpirank,MPI_COMM_GATHER,mpierr)
 
   if( mpirank0 == 0 ) then
 
@@ -178,18 +171,17 @@ program fdmnes
 
   if( mpinodes0 > 1 ) then
     call MPI_Bcast(ncalcul,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
   endif
 
   if( mpirank0 /= 0 ) allocate( fdmnes_inp(ncalcul) )
 
   do i = 1,ncalcul
-    call fit(fdmnes_inp(i),MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solver)
+    call fit(fdmnes_inp(i),mpirank0,mpinodes0)
   end do
 
   deallocate( fdmnes_inp )
 
-  if( mpinodes0 > 1 ) call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
   call MPI_FINALIZE(mpierr)
 
   110 format(//' Problem when reading the file names in fdmfile.txt !'/, &
@@ -244,14 +236,14 @@ end
 
 !***********************************************************************
 
-subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solver)
+subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
 
   use declarations
   implicit none
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 195
+  integer, parameter:: nkw_fdm = 199
   integer, parameter:: nkw_conv = 33
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
@@ -266,11 +258,10 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   integer:: eof, i, i1, ibl, ical, ifdm, igr, index_Met_Fit, indpar, &
     inotskip, ip, ipar, ipbl, ipr, istat, istop, itape, itape_minim, itape1, itape2, itape3, itape4, itape5, itph, itpj, itpm, &
     itps, itape6, iscratch, iscratchconv, j, jgr, jpar, k, l, Length_line, &
-    ligne, ligne2, m, MPI_host_num_for_mumps, mpierr, mpirank, mpirank0, mpinodes0, n, &
+    ligne, ligne2, m, mpierr, mpirank0, mpinodes0, n, &
     n_atom_proto_p, n_shift, n1, n2, nb_datafile, nblock, ncal, ncal_nonfdm, ndem, ndm, ng, ngamh, ngroup_par, ngroup_par_conv, &
     nmetric, nn, nnombre, nnotskip, nnotskipm, nparm, npm, mermrank
 
-  character(len=5):: Solver
   character(len=9):: grdat, mot9, traduction
   character(len=13):: mot13
   character(len=132):: comt, convolution_out, fdmfit_out, fdmnes_inp, Fichier, Folder_dat, identmot, mot, nomfich, &
@@ -332,15 +323,15 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
      'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_2d  ','dafs_exp ','debye    ','delta_en_','dip_rel  ','e1e1     ', &
      'delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ', &
      'edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot', &
-     'etatlie  ','excited  ','extract  ','extract_t','extractpo','extractsy','fdm_comp ','film     ','film_cif_','film_pdb_', &
-     'film_t   ','film_roug','film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ','flapw_s  ', &
-     'flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','hkl_film ','hubbard  ', &
-     'iord     ','kern_fac ','lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ', &
-     'lplus1   ','mat_ub   ','memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','molecule ','molecule_', &
-     'muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_e1e1  ','no_e1e2  ','no_e1e3  ', &
-     'no_e2e2  ','no_e3e3  ','no_fermi ','no_res_ma','no_res_mo','no_solsin','normaltau','norman   ','noncentre','non_relat', &
-     'nonexc   ','not_eneg ','nrato    ','nrixs    ','occupancy','octupole ','old_zero ','one_run  ','optic    ', &
-     'over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ','pointgrou','polarized', &
+     'ephot_min','etatlie  ','excited  ','extract  ','extract_t','extractpo','extractsy','fdm_comp ','film     ','film_cif_', &
+     'film_pdb_','film_t   ','film_roug','film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ', &
+     'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','hkl_film ', &
+     'hubbard  ','iord     ','kern_fac ','kern_fast','lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden', &
+     'ldipimp  ','lmoins1  ','lplus1   ','mat_ub   ','memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism', &
+     'molecule ','molecule_','muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_dft   ','no_e1e1  ', &
+     'no_e1e2  ','no_e1e3  ','no_e2e2  ','no_e3e3  ','no_fermi ','no_renorm','no_res_ma','no_res_mo','no_solsin','normaltau', &
+     'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','occupancy','octupole ','old_zero ', &
+     'one_run  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ','pointgrou','polarized', &
      'quadmag  ','quadrupol','radius   ','range    ','rangel   ','raydem   ','rchimp   ','readfast ','relativis', &
      'rmt      ','rmtg     ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ', &
      'self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
@@ -360,9 +351,8 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 ! First the convolution parameter, then the others
   data param_conv / &
      'ecent    ','e_cut    ','elarg    ','gamma_hol','gamma_max','gaussian ','shift    ','aseah    ','bseah    ','vibr     ', &
-     'weight   ', &
-     'a        ','abc      ','anga     ','angb     ','angc     ','b        ','c        ','dposx    ','dposy    ','dposz    ', &
-     'occup    ','phi      ','poporb   ','posx     ','posy     ','posz     ','theta    '/
+     'weight   ','a        ','abc      ','anga     ','angb     ','angc     ','b        ','c        ','dposx    ','dposy    ', &
+     'dposz    ','occup    ','phi      ','poporb   ','posx     ','posy     ','posz     ','theta    '/
 
   call CPU_TIME(time)
   tp_deb = real(time,db)
@@ -923,7 +913,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
             exit boucle_i
           end do
           if( n == 0 ) then
-            nb_datafile = nb_datafile + 1  ! nombre de fichiers
+            nb_datafile = nb_datafile + 1  ! number of files
             Fichier = Adjustl( mot )
             l = len_trim(Fichier)
             if( l > 4 ) then
@@ -1094,11 +1084,11 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
   endif
 
-  endif   ! Arrivee en cas de calcul parallele
+  endif   ! Arriving for parallel computing
 
   if( mpinodes0 > 1 ) then
     call MPI_Bcast(Mult_cal,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
   endif
   if( Mult_cal ) then
     if( mpirank0 == 0 ) call mult_cell(itape6,nomfich)
@@ -1134,25 +1124,25 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
 
     if( mpirank0 == 0 ) l = len_trim(xsect_file)
     call MPI_Bcast(l,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
     do i = 1,l
       if( mpirank0 == 0 ) j = iachar( xsect_file(i:i) )
       call MPI_Bcast(j,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-      call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
       if( mpirank0 /= 0 ) xsect_file(i:i) = achar( j )
     end do
 
     if( mpirank0 == 0 ) l = len_trim(Space_file)
     call MPI_Bcast(l,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
     do i = 1,l
       if( mpirank0 == 0 ) j = iachar( Space_file(i:i) )
       call MPI_Bcast(j,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-      call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
       if( mpirank0 /= 0 ) Space_file(i:i) = achar( j )
     end do
 
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
   endif
 
   if( mpirank0 > 0 ) then
@@ -1246,7 +1236,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
       call MPI_Bcast(npar,ngroup_par,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
       call MPI_Bcast(npbl,nblock,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     endif
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
     if( Fit_cal ) then
       call MPI_Bcast(nparam,ngroup_par,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
       call MPI_Bcast(indice_par,nparm*ngroup_par,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -1260,7 +1250,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
           do i = 1,9
             if( mpirank0 == 0 ) j = iachar( mot(i:i) )
             call MPI_Bcast(j,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-            call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
             if( mpirank0 /= 0 ) mot(i:i) = achar( j )
           end do
           if( mpirank0 /= 0 ) typepar(igr,ipar) = mot
@@ -1470,15 +1460,13 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
       ifdm = mod(ical,ncal_nonfdm)
     endif
 
-    if( mpinodes0 > 1 ) call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
-
     if( Fdmnes_cal .and. ifdm == 1 ) then
       if( ical > 1 ) Close(3)
 
       call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
           Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
-          itape1,itape4,MPI_host_num_for_mumps,mpinodes0,mpirank,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-          nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file,Use_FDMX,FDMX_only, &
+          itape1,itape4,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
+          nomfich,nomfichbav,npar,nparm,param,Scan_a,Space_file,typepar,xsect_file,Use_FDMX,FDMX_only, &
           fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
           tdebye,tmeas_inp,tmeas,expntl,expntlA,expntlB,victoreen,victA,victB,mermrank)
 
@@ -1551,7 +1539,7 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
   if( Fit_cal .and. mpinodes0 > 1 ) then
     call MPI_Bcast(Minim_fdm_ok,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(minimok,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
   endif
 
   if( Fit_cal .and. minimok .and. ncal > 1 ) then
@@ -1599,8 +1587,8 @@ subroutine fit(fdmnes_inp,MPI_host_num_for_mumps,mpirank,mpirank0,mpinodes0,Solv
       Close(3)
       call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
-        itape1,itape4,MPI_host_num_for_mumps,mpinodes0,mpirank,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-        nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file,Use_FDMX,FDMX_only, &
+        itape1,itape4,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
+        nomfich,nomfichbav,npar,nparm,param,Scan_a,Space_file,typepar,xsect_file,Use_FDMX,FDMX_only, &
         fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
         tdebye,tmeas_inp,tmeas,expntl,expntlA,expntlB,victoreen,victA,victB,mermrank)
 

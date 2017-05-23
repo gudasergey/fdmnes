@@ -49,7 +49,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   integer, dimension(:,:), allocatable:: hkl_dafs, nsup, ne_initl
 
   logical:: Abs_before, Abs_in_bulk, Another_one, Arc, bav_open, Bormann, Dafs, Dafs_bio, Check_conv, chem, Circular, &
-    Conv_done, Cor_abs, decferm, Deuxieme, Double_cor, E_cut_man, Energphot, Epsii_ref_man, Extrap, Fermip, Fit_cal, &
+    Conv_done, Cor_abs, decferm, Deuxieme, Double_cor, E_cut_man, Energphot, Epsii_ref_man, Extrap, Fermip, First_E, Fit_cal, &
     Forbidden, fprim, fprime_atom, Full_self_abs, Gamma, Gamma_hole_imp, Gamma_var, Gaussian_default, Green_int, Just_total, &
     Magn, no_extrap, nxan_lib, Photo_emission, Scan_a, scan_true, Seah, Self_abs, &
     Shift_auto, Signal_Sph, Stokes, Sup_sufix, Tenseur, Tenseur_car, Thomson, Transpose_file
@@ -2013,6 +2013,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     allocate( Signal(npldafs,n_signal) )
   endif
   
+  First_E = .true.
+  
   do ie = 1,nes
 
     do ipl = 1,nxan
@@ -2117,9 +2119,10 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     endif
     allocate( Ep(1) )
     Ep(:) = 0._db
-    call write_out(rdum,rdum,Volume_maille,zero_c,E_cut,Es(ie),Ep,0._db,.false.,rdum,ie, &
+    call Write_out(rdum,rdum,Volume_maille,zero_c,E_cut,Es(ie),Ep,0._db,First_E,.false.,rdum, &
                    0,n_col,jpl,0,1,Convolution_out,nom_col,1,0,0,0,0,n,cdum,cdum,Tens,V0muf(1),.false.,0)
     deallocate( Ep )
+    First_E = .false.
   end do
 
   deallocate( Tens )

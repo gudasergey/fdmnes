@@ -17,7 +17,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                 icheck,ie,ip_max,ip0,is_g,lmax,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
                 n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe, &
-                nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Rmtg,Rmtsd,rof0,rot_atom_abs,Rot_int, &
+                nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Renorm,Rmtg,Rmtsd,rof0,rot_atom_abs,Rot_int, &
                 secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m, &
                 secqq,secqq_m,Solsing,Solsing_only,Spinorbite,Taull,Tddft,V_hubb,V_intmax,V0bd,Vrato,Ylm_comp)
 
@@ -60,7 +60,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
   logical:: Classic_irreg, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, FDM_comp, Final_optic, &
     Final_tddft, Full_potential, Green, Green_int, Hubb_a, Hubb_d, lmoins1, lplus1, M_depend, M1M1, No_diag, NRIXS, Relativiste, &
-    Solsing, Solsing_only, Spinorbite, Tddft, Ylm_comp
+    Renorm, Solsing, Solsing_only, Spinorbite, Tddft, Ylm_comp
 
   logical, dimension(10):: Multipole
 
@@ -118,7 +118,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
     call radial_optic(Classic_irreg,Ecinetic,Eimag_t,Energ_t,Enervide,Full_potential,Hubb_a,Hubb_d,icheck,ief,ip_max,ip0, &
          lmax,lmax_pot,m_depend,m_hubb,1,n_Ec,n_V,nlm_pot,nlm1g,nlm2g,No_diag,nr,nr_zet,nspin,nspino,nspinp,numat,r,Relativiste, &
-         Rmtg,Rmtsd,roff_rr,roff0,Solsing,Spinorbite,V_hubb,V_intmax,V0bd,Vrato,Ylm_comp,zet)
+         Renorm,Rmtg,Rmtsd,roff_rr,roff0,Solsing,Spinorbite,V_hubb,V_intmax,V0bd,Vrato,Ylm_comp,zet)
     
     deallocate( roff0, zet )
 
@@ -159,7 +159,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
       call radial(Classic_irreg,Ecinetic_e,Eimag,Energ,Enervide_t,Eseuil,Final_tddft,Full_potential,Hubb_a,Hubb_d,icheck, &
          initlt,ip_max,ip0,lmax,lmax_pot,m_hubb,nbseuil,ninit1,ninitlv,nlm_pot,nlm_probe,nlm_p_fp,nr,NRIXS,nrm,nspin,nspino, &
-         nspinp,numat,psii,r,r_or_bess,Relativiste,Rmtg,Rmtsd,rof,Singul,Solsing,Spinorbite,V_hubb,V_intmax,V0bd_e,Vrato_e, &
+         nspinp,numat,psii,r,r_or_bess,Relativiste,Renorm,Rmtg,Rmtsd,rof,Singul,Solsing,Spinorbite,V_hubb,V_intmax,V0bd_e,Vrato_e, &
          Ylm_comp)
 
     end do
@@ -445,8 +445,8 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                             
                             if( Final_optic ) then
                               call tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m_s,l_i,m_i,lmax,lmoins1, &
-                                lplus1,M_depend,ns_dipmag,ndim2,ninitlr,nlm1g,nlm2g,nlm_probe,nlm_p_fp,nspinp,nspino,roff_rr, &
-                                Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
+                                lplus1,M_depend,ns_dipmag,ndim2,ninitlr,nlm1g,nlm2g,nlm_probe,nlm_p_fp,nspinp,nspino, &
+                                roff_rr,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
                             else
                               call tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green_int,icheck,ip_max, &
                                 ip0,irang,is_g,isp1,isp2,isp3,isp4,jrang,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil, &
@@ -934,7 +934,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
 
   complex(kind=db):: cfe, cfs, Cg, dfe, dfs, Tau_rad, Tau_rad_i
 
-  complex(kind=db):: Gaunt_i, Gaunt_nrixs, Gaunt_s, Gauntm, Gauntmag 
+  complex(kind=db):: Gaunt_i, Gaunt_nrixs, Gaunt_s, Gaunt_xrc, Gauntmag 
   complex(kind=db), dimension(ninitlr):: Ten, Ten_m
   complex(kind=db), dimension(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,ninitlv):: rof
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
@@ -1064,7 +1064,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
                 elseif( irang == 0 ) then
                   Gaunt_s = Gauntmag(l1,m1,ispinf1,m_s,li,mi1,isping1,Ylm_comp,.true.)
                 else
-                  Gaunt_s = Gauntm(l1,m1,l_s,m_s,li,mi1,Ylm_comp)
+                  Gaunt_s = Gaunt_xrc(l1,m1,l_s,m_s,li,mi1,Ylm_comp)
                 endif
                 if( abs(Gaunt_s) < eps10 ) cycle
 
@@ -1091,9 +1091,6 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
                       if( ispinf2 /= isping2 .and. ( NRIXS .or. jrang > 1 .or. ( jrang == 1 &
                                                                              .and. ( .not. Dip_rel .or. irang /= 1 ) ) ) ) cycle 
 
-! Meme en TDDFT avec dipole magnetique, il n'y a pas la situation ci-dessous
-!                      if( ( ispinf1 == ispinf2 .and. isping1 /= isping2 ) .or. ( ispinf1 /= ispinf2 .and. isping1 == isping2 ) ) &
-!                                                                                                              cycle
                       if( .not. ( Final_tddft .or. Spinorbite ) .and. ispinf2 /= ispinf1 ) cycle
 
                       if( Final_tddft .and. ispinf1 /= isping1 ) then
@@ -1107,7 +1104,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
                       elseif( jrang == 0 ) then
                         Gaunt_i = Gauntmag(l2,m2,ispinf2,m_i,li,mi2,isping2,Ylm_comp,.true.)
                       else
-                        Gaunt_i = Gauntm(l2,m2,l_i,m_i,li,mi2,Ylm_comp)
+                        Gaunt_i = Gaunt_xrc(l2,m2,l_i,m_i,li,mi2,Ylm_comp)
                       endif
                       if( abs(Gaunt_i) < eps10 ) cycle
 
@@ -1256,9 +1253,9 @@ end
 
 !***********************************************************************
 
-subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m_s,l_i,m_i,lmax,lmoins1, &
-                                lplus1,M_depend,ns_dipmag,ndim2,ninitlr,nlm1g,nlm2g,nlm_probe,nlm_p_fp,nspinp,nspino,roff_rr, &
-                                Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
+subroutine Tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m_s,l_i,m_i,lmax,lmoins1, &
+                                lplus1,M_depend,ns_dipmag,ndim2,ninitlr,nlm1g,nlm2g,nlm_probe,nlm_p_fp,nspinp,nspino, &
+                                roff_rr,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
 
   use declarations
   implicit none
@@ -1266,14 +1263,14 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m
   integer, intent(in):: icheck, ip_max, ip0, irang, jrang, l_s, m_s, &
     l_i, m_i, ndim2, nlm1g, nlm2g, nlm_probe, nlm_p_fp, ns_dipmag, nspinp, nspino
 
-  integer:: i, io1, io2, is_dipmag, is1, is2, iso, iso_f1, iso_f2, iso_g1, iso_g2, isp, ispm, ispm_f1, ispm_f2, ispm_g1, &
-    ispm_g2, isp_f1, isp_f2, isp_g1, isp_g2, l, l_f1, l_f2, l_g1, l_g2, lm, lm_f1, lm_f2, lm_g1, lm_g2, &
+  integer:: i, io1, io2, is_dipmag, is1, is12, is2, is21, iso, iso_f1, iso_f2, iso_g1, iso_g2, isp, ispm, ispm_f1, ispm_f2, &
+    ispm_g1, ispm_g2, isp_f1, isp_f2, isp_g1, isp_g2, l, l_f1, l_f2, l_g1, l_g2, lm, lm_f1, lm_f2, lm_g1, lm_g2, &
     lmax, lmp_f1, lmp_f2, lmp_g1, lmp_g2, lm_i, lms_f1, lms_f2, lms_g1, lmp, lmp0, lms_g2, lmss, lmss_f1, lmss_f2, lmss_g1, &
     lmss_g2, lp, m, m_f1, m_f2, m_g1, m_g2, mp, mv, ninitlr, nlmss
 
   integer, dimension(:), allocatable:: iso_val, isp_val, ispm_val, l_val, lm_val, lmp_val, lms_val, m_val
  
-  complex(kind=db):: cf, Gaunt_s, Gaunt_crc, Gauntmag, Gaunt_i, Tau_rad
+  complex(kind=db):: cf, Gaunt_s, Gaunt_xrx, Gauntmag, Gaunt_i, Tau_rad
   complex(kind=db), dimension(ninitlr):: Ten, Ten_m
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
 
@@ -1377,12 +1374,16 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m
   end do
 
   if( icheck > 1 ) then
-    if( nlm_p_fp == 1 .and. Spinorbite ) then
+    if( nlm_p_fp == 1 .and. Spinorbite .and. Final_tddft ) then
       write(3,110)
+    elseif( nlm_p_fp == 1 .and. Final_tddft ) then
+      write(3,112)
+    elseif( nlm_p_fp == 1 .and. Spinorbite ) then
+      write(3,115)
     elseif( nlm_p_fp == 1 ) then
       write(3,120)
     else
-      write(3,120) 
+      write(3,130) 
     endif
   endif
 
@@ -1420,17 +1421,12 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m
 
 ! < g1 m_s f1 >< f2 m_i g2 >
       if( irang == 0 ) then
-        Gaunt_s = Gauntmag(l_f1,m_f1,isp_f1,m_s,l_g1,m_g1,isp_g1,Ylm_comp,Ylm_comp)
+!        Gaunt_s = Gauntmag(l_f1,m_f1,isp_f1,m_s,l_g1,m_g1,isp_g1,Ylm_comp,Ylm_comp)
+        Gaunt_s = conjg( Gauntmag(l_g1,m_g1,isp_g1,m_s,l_f1,m_f1,isp_f1,Ylm_comp,Ylm_comp) )
       else
-        Gaunt_s = Gaunt_crc(l_f1,m_f1,l_s,m_s,l_g1,m_g1,Ylm_comp)
+        Gaunt_s = Gaunt_xrx(l_f1,m_f1,l_s,m_s,l_g1,m_g1,Ylm_comp)
       endif
       if( abs(Gaunt_s) < eps10 ) cycle
-
-      if( Final_tddft .and. isp_f1 /= isp_g1 ) then
-        is_dipmag = 2
-      else
-        is_dipmag = 1
-      endif
 
 ! Loop over non-occupied states ( incoming )
       do lmss_f2 = 1,nlmss
@@ -1457,8 +1453,10 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m
           m_g2 = m_val(lmss_g2) 
 
           if( isp_f2 /= isp_g2 .and. jrang /= 0 ) cycle
-          if( .not. ( Final_tddft .or. Spinorbite ) .and. ( isp_g2 /= isp_g1 .or. isp_f2 /= isp_f1 ) ) cycle
- !         if( .not. Final_tddft .and. ( isp_g2 /= isp_g1 .or. isp_f2 /= isp_f1 ) ) cycle
+          
+!          if( .not. ( Final_tddft .or. Spinorbite ) .and. ( isp_g2 /= isp_g1 .or. isp_f2 /= isp_f1 ) ) cycle
+!          if( ( isp_g2 /= isp_g1 .or. isp_f2 /= isp_f1 ) ) cycle
+          
           if( ( lplus1 .and. l_f2 < l_g2 + 1 ) .or. ( lmoins1 .and. l_f2 > l_g2 ) ) cycle
           if( l_f2 > l_g2 + jrang .or. l_f2 < l_g2 - jrang .or. mod(l_f2,2) /= mod(l_g2+jrang,2) ) cycle
 
@@ -1466,7 +1464,7 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m
           if( jrang == 0 ) then
             Gaunt_i = Gauntmag(l_f2,m_f2,isp_f2,m_i,l_g2,m_g2,isp_g2,Ylm_comp,Ylm_comp)
           else
-            Gaunt_i = Gaunt_crc(l_f2,m_f2,l_i,m_i,l_g2,m_g2,Ylm_comp)
+            Gaunt_i = Gaunt_xrx(l_f2,m_f2,l_i,m_i,l_g2,m_g2,Ylm_comp)
           endif
           if( abs(Gaunt_i) < eps10 ) cycle
 
@@ -1478,7 +1476,12 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m
           Ro = roff_rr(lm_g1,lm_f1,lmp_g1,lmp_f1,is1,io1,irang) * roff_rr(lm_g2,lm_f2,lmp_g2,lmp_f2,is2,io2,jrang)
 
           if( Final_tddft ) then
-            Tau_rad = - Ro * Taull(lms_f1,lms_f2,lms_g1,lms_g2,isp_f1,isp_f2,is_dipmag)
+            is12 = 2 * isp_g1 - 2 + isp_g2
+            is21 = 2 * isp_g2 - 2 + isp_g1
+     ! + conjg is because this taull must be multiplied by - i to be classical tau like.
+            Tau_rad = - 0.5 * Ro * ( Taull(lms_f1,lms_f2,lms_g1,lms_g2,isp_f1,isp_f2,is12) &
+                               + conjg( Taull(lms_f2,lms_f1,lms_g2,lms_g1,isp_f2,isp_f1,is21) ) )
+ !           Tau_rad = - Ro * cmplx( real( Taull(lms_f1,lms_f2,lms_g1,lms_g2,isp_f1,isp_f2,is12), db ), 0._db, db )
           else                       
             Tau_rad = - Ro * Taull(lms_f1,lms_f2,1,1,isp_f1,isp_f2,2) * Taull(lms_g2,lms_g1,1,1,isp_g2,isp_g1,1)
           endif
@@ -1486,7 +1489,7 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m
 ! Evenso Tau appear 2 times, one devide only 1 time by pi.
 ! Normalisation by pi must then do not to be done in coabs for dafs amplitude calculation.
           cf = Tau_rad * Conjg( Gaunt_s ) * Gaunt_i / pi
-
+            
           Ten(1) = Ten(1) + cf
           if( Core_resolved ) then
             do i = 2,ninitlr
@@ -1495,10 +1498,23 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m
           endif
 
           if( icheck < 2  .or. abs( cf ) < 1.e-15_db ) cycle
-          if( nlm_p_fp == 1 .and. Spinorbite ) then
+          if( nlm_p_fp == 1 .and. Spinorbite .and. Final_tddft ) then
             write(3,150) l_g1, m_g1, isp_g1, iso_g1, l_f1, m_f1, isp_f1, iso_f1, &
                 l_f2, m_f2, isp_f2, iso_f2, l_g2, m_g2, isp_g2, iso_g2, &
-                Ten(1), cf, Taull(lms_f2,lms_f1,lms_g2,lms_g1,isp_f1,isp_f2,is_dipmag), Gaunt_s, Gaunt_i, & 
+                Ten(1), cf, Taull(lms_f2,lms_f1,lms_g2,lms_g1,isp_f1,isp_f2,is12), Gaunt_s, Gaunt_i, & 
+                roff_rr(lm_g1,lm_f1,lmp_g1,lmp_f1,is1,io1,irang), &
+                roff_rr(lm_g2,lm_f2,lmp_g2,lmp_f2,is2,io2,jrang)
+          elseif( nlm_p_fp == 1 .and. Final_tddft ) then
+            write(3,155) l_g1, m_g1, isp_g1, l_f1, m_f1, isp_f1, &
+                l_f2, m_f2, isp_f2, l_g2, m_g2, isp_g2, &
+                Ten(1), cf, Taull(lms_f2,lms_f1,lms_g2,lms_g1,isp_f1,isp_f2,is12), Gaunt_s, Gaunt_i, & 
+                roff_rr(lm_g1,lm_f1,lmp_g1,lmp_f1,is1,io1,irang), &
+                roff_rr(lm_g2,lm_f2,lmp_g2,lmp_f2,is2,io2,jrang)
+          elseif( nlm_p_fp == 1 .and. Spinorbite ) then
+            write(3,150) l_g1, m_g1, isp_g1, iso_g1, l_f1, m_f1, isp_f1, iso_f1, &
+                l_f2, m_f2, isp_f2, iso_f2, l_g2, m_g2, isp_g2, iso_g2, &
+                Ten(1), cf, Taull(lms_g2,lms_g1,1,1,isp_g2,isp_g1,1), &
+                Taull(lms_f1,lms_f2,1,1,isp_f1,isp_f2,2), Gaunt_s, Gaunt_i, & 
                 roff_rr(lm_g1,lm_f1,lmp_g1,lmp_f1,is1,io1,irang), &
                 roff_rr(lm_g2,lm_f2,lmp_g2,lmp_f2,is2,io2,jrang)
           elseif( nlm_p_fp == 1 ) then
@@ -1526,6 +1542,10 @@ subroutine tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m
   return
   110 format(/' lg1 mg1 sg1 og1 lf1 mf1 sf1 of1 lf2 mf2 sf2 of2 lg2 mg2 sg2 og2',11x,'Tens',21x,'d_Tens', &
               17x,'Tau_f1f2g1g2',14x,'Gaunte_g1f1',15x,'Gaunts_g2f2',10x,'rof_f1g1',5x,'rof_f2g2')
+  112 format(/' lg1 mg1 sg1 lf1 mf1 sf1 lf2 mf2 sf2 lg2 mg2 sg2',11x,'Tens',21x,'d_Tens', &
+              17x,'Tau_f1f2g1g2',14x,'Gaunte_g1f1',15x,'Gaunts_g2f2',10x,'rof_f1g1',5x,'rof_f2g2')
+  115 format(/' lg1 mg1 sg1 og1 lf1 mf1 sf1 of1 lf2 mf2 sf2 of2 lg2 mg2 sg2 og22',11x,'Tens',21x,'d_Tens', &
+              19x,'Tau_g1g2',18x,'Tau_f1f2',16x,'Gaunte_g1f1',15x,'Gaunts_g2f2',10x,'rof_f1g1',5x,'rof_f2g2')
   120 format(/' lg1 mg1 sg1 lf1 mf1 sf1 lf2 mf2 sf2 lg2 mg2 sg2',11x,'Tens',21x,'d_Tens', &
               19x,'Tau_g1g2',18x,'Tau_f1f2',16x,'Gaunte_g1f1',15x,'Gaunts_g2f2',10x,'rof_f1g1',5x,'rof_f2g2')
   130 format(/' lg1 mg1 pg1 sg1 og1 lf1 mf1 pf1 sf1 of1 lf2 mf2 pf2 sf2 of2 lg2 mg2 pg2 sg2 og2',11x,'Tens',21x,'d_Tens', &
@@ -1684,17 +1704,17 @@ end
 
 ! This subroutine calculates the Gaunt coefficients for real spherical harmonics
 
-function Gauntc( l1, m1, l2, m2, l3, m3 )
+function Gaunt_r( l1, m1, l2, m2, l3, m3 )
 
   use declarations
   implicit none
 
   integer:: itr, ityfct1, ityfct2, ityfct3, itygam, ityp, itypi, l1, l2, l3, ltsti, ltst, m, m1, m2, m3, mgam, mi, nexp, ns, nsf
  
-  real(kind=db):: ab, cgc, pre, Gauntc, gf, sqr2i
+  real(kind=db):: ab, cgc, pre, Gaunt_r, gf, sqr2i
   
   if( mod( l3+l1+l2, 2 ) /= 0 .or. abs( l1 - l3 ) > l2 .or. ( l1 + l3 ) < l2 ) then
-    Gauntc = 0._db
+    Gaunt_r = 0._db
     return
   endif
 
@@ -1703,7 +1723,7 @@ function Gauntc( l1, m1, l2, m2, l3, m3 )
   m = abs( m3 )
 
   if( mi+mgam /= m .and. mi+m /= mgam .and. m+mgam /= mi ) then
-    gauntc = 0._db
+    Gaunt_r = 0._db
     return
   endif
 
@@ -1749,7 +1769,7 @@ function Gauntc( l1, m1, l2, m2, l3, m3 )
     if( mgam+mi == m .and. ityfct3 /= 0 ) ab = ab + (-1)**m * cgc(ltst,itr,ltsti,m,-mgam) * ityfct3
   endif
 
-  gauntc = gf * ab
+  Gaunt_r = gf * ab
 
   return
 end
@@ -1758,18 +1778,18 @@ end
 
 ! Calcule le coefficient de Gaunt avec Y(l,m) complexe ou reel, Y(lo,mo) reel et Y(li,mi) complexe. 
 
-function Gauntm(l,m,lo,mo,li,mi,Ylm_comp)
+function Gaunt_xrc(l,m,lo,mo,li,mi,Ylm_comp)
 
   use declarations
   implicit none
   
   integer:: l, li, lo, m, mi, mo
   
-  complex(kind=db):: Gauntm
+  complex(kind=db):: Gaunt_xrc
 
   logical:: Ylm_comp
 
-  real(kind=db):: Gauntc, Gauntcp, gi, gr
+  real(kind=db):: Gaunt_r, Gauntcp, gi, gr
   
   if( Ylm_comp ) then
 
@@ -1787,55 +1807,55 @@ function Gauntm(l,m,lo,mo,li,mi,Ylm_comp)
   else
 
     if( mi == 0 ) then
-      gr = gauntc(l,m,lo,mo,li,mi)
+      gr = Gaunt_r(l,m,lo,mo,li,mi)
       gi = 0._db
     elseif( mi > 0 ) then
-      gr = gauntc(l,m,lo,mo,li,mi) / sqrt( 2._db )
-      gi = gauntc(l,m,lo,mo,li,-mi) / sqrt( 2._db )
+      gr = Gaunt_r(l,m,lo,mo,li,mi) / sqrt( 2._db )
+      gi = Gaunt_r(l,m,lo,mo,li,-mi) / sqrt( 2._db )
     else
-      gr = (-1)**mi * gauntc(l,m,lo,mo,li,-mi) / sqrt( 2._db )
-      gi = - (-1)**mi * gauntc(l,m,lo,mo,li,mi) / sqrt( 2._db )
+      gr = (-1)**mi * Gaunt_r(l,m,lo,mo,li,-mi) / sqrt( 2._db )
+      gi = - (-1)**mi * Gaunt_r(l,m,lo,mo,li,mi) / sqrt( 2._db )
     endif
 
   endif
 
-  Gauntm = cmplx( gr, gi,db )
+  Gaunt_xrc = cmplx( gr, gi, db )
 
   return
 end
 
 !***********************************************************************
 
-! Calcule le coefficient de Gaunt avec Y(l1,m1) complexe, Y(l2,m2) reel et Y(l3,m3) complexe
+! Calcule le coefficient de Gaunt avec Y(l1,m1) complexe ou reel, Y(l2,m2) reel et Y(l3,m3) complexe ou reel
 
-function Gaunt_crc(l1,m1,l2,m2,l3,m3,Ylm_comp)
+function Gaunt_xrx(l1,m1,l2,m2,l3,m3,Ylm_comp)
 
   use declarations
   implicit none
   
   integer:: l1, l2, l3, m1, m2, m3
   
-  complex(kind=db):: Gaunt_crc
+  complex(kind=db):: Gaunt_xrx
 
   logical Ylm_comp
 
-  real(kind=db):: Gauntc, Gauntcp, Gtot
+  real(kind=db):: Gaunt_r, Gauntcp, Gtot
 
   if( Ylm_comp ) then
 
     if( m2 == 0 ) then
-      Gaunt_crc = cmplx( gauntcp(l1,m1,l2,m2,l3,m3), 0._db, db )
+      Gaunt_xrx = cmplx( gauntcp(l1,m1,l2,m2,l3,m3), 0._db, db )
     elseif( m2 > 0 ) then
       Gtot = ( Gauntcp(l1,m1,l2,m2,l3,m3) + (-1)**m2 * Gauntcp(l1,m1,l2,-m2,l3,m3) ) / sqrt( 2._db ) 
-      Gaunt_crc = cmplx( Gtot, 0._db, db )
+      Gaunt_xrx = cmplx( Gtot, 0._db, db )
     else
       Gtot = ( (-1)**m2 * Gauntcp(l1,m1,l2,m2,l3,m3) - Gauntcp(l1,m1,l2,-m2,l3,m3) ) / sqrt( 2._db )
-      Gaunt_crc = cmplx( 0._db, Gtot, db )
+      Gaunt_xrx = cmplx( 0._db, Gtot, db )
     endif
 
   else
 
-    Gaunt_crc = cmplx( Gauntc(l1,m1,l2,m2,l3,m3), 0._db, db )
+    Gaunt_xrx = cmplx( Gaunt_r(l1,m1,l2,m2,l3,m3), 0._db, db )
 
   endif
 
@@ -2851,7 +2871,7 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                 icheck,l0_nrixs,lmax_nrixs,is_g,lmax,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank, &
                 n_Ec,n_V,nbseuil,ns_dipmag,ndim2,ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe, &
-                nlm_p_fp,nq_nrixs,nr,nrm,nspin,nspino,nspinp,numat,psii,q_nrixs,r,Relativiste,Rmtg, &
+                nlm_p_fp,nq_nrixs,nr,nrm,nspin,nspino,nspinp,numat,psii,q_nrixs,r,Relativiste,Renorm,Rmtg, &
                 Rmtsd,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Taull, &
                 V_hubb,V_intmax,V0bd,Vrato,Ylm_comp)
 
@@ -2874,7 +2894,7 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   integer, dimension(ninitl):: is_g
 
   logical:: Classic_irreg, Core_resolved, FDM_comp, Final_tddft, Full_potential, Green, Green_int, &
-    Hubb_a, Hubb_d, lmoins1, lplus1, NRIXS, Relativiste, Solsing, Solsing_only, Spinorbite, &
+    Hubb_a, Hubb_d, lmoins1, lplus1, NRIXS, Relativiste, Renorm, Solsing, Solsing_only, Spinorbite, &
     Ylm_comp
 
   real(kind=db):: Eimag, Energ, Enervide_t, Rmtg, Rmtsd, V_intmax
@@ -2929,7 +2949,7 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
       call radial(Classic_irreg,Ecinetic_e,Eimag,Energ,Enervide_t,Eseuil,Final_tddft,Full_potential,Hubb_a,Hubb_d,icheck,initlt, &
         lmax_nrixs,l0_nrixs,lmax,lmax_pot,m_hubb,nbseuil,ninit1,ninitlv,nlm_pot,nlm_probe,nlm_p_fp,nr,NRIXS,nrm,nspin,nspino, &
-        nspinp,numat,psii,r,bessel,Relativiste,Rmtg,Rmtsd,rof,Singul,Solsing,Spinorbite,V_hubb,V_intmax,V0bd_e, &
+        nspinp,numat,psii,r,bessel,Relativiste,Renorm,Rmtg,Rmtsd,rof,Singul,Solsing,Spinorbite,V_hubb,V_intmax,V0bd_e, &
         Vrato_e,Ylm_comp)
 
     end do

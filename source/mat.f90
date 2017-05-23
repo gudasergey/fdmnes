@@ -5,7 +5,7 @@
 subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, &
                     clapl,Classic_irreg,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide,FDM_comp,Full_atom, &
                     gradvr,iaabsi,iaprotoi,iato,ibord,icheck,ie,igreq,igroupi,igrph,irep_util,isbord,iso,ispinin,isrt,ivois, &
-                    isvois,karact,lato,lmaxa,lmaxso,lso,mato,MPI_host_num_for_mumps,mpirank0,mso, &
+                    isvois,karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso, &
                     natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup_m,ngrph,nim,nicm, &
                     nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
                     nsort,nsortf,nso1,nspin,nspino,nspinp,nstm,numia,nvois,phiato,poidsa,poidso,R_rydb,Recop,Relativiste, &
@@ -16,7 +16,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   implicit none
   
   integer:: i, i1, i2, ia, iaabsi, icheck, idir1, idir2, idir3, ie, igrph, ii, ipas, irep, is1, is2, isens, isg, isp, ispinin, &
-    jj, jsp, l, l1, l2, lm, lm01, lm01c, lm02, lm02c, lm1, lm2, lmaxso, lmf, lms, lmw, m, m1, m2, &
+    jj, jsp, l, l1, l2, lm, lm01, lm01c, lm02, lm02c, lm1, lm2, lmaxso, lmf, lms, lmw, m, m1, m2, mpierr, &
     MPI_host_num_for_mumps, mpirank0, natome, n_atom_0, n_atom_ind, n_atom_proto, nbm, nbtm, neqm, ngroup_m, ngrph, nim, nicm,&
     nligne, nligne_i, nligneso, nlmagm, nlmmax ,nlmomax, nlmsam, nlmso, nlmso_i, nlmw, nphiato1, nphiato7, npoint, npr, &
     npsom, nsm, nsort, nsort_c, nsort_r, nsortf ,nso1, nspin, nspino, nspinp, nspinr, nstm, nvois
@@ -68,6 +68,8 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
 
   real(kind=db), dimension(:,:), allocatable :: smi, smr
   real(kind=db), dimension(:,:,:), allocatable :: Besselr, Neumanr
+
+  call MPI_Comm_Size(MPI_COMM_MUMPS,MPI_host_num_for_mumps,mpierr)
 
   Stop_job = .true.
 
@@ -2149,7 +2151,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
                         gmatc = gmatc + (-1)**m * conjg(ylmc(lmc)) * g
                       endif
                     else
-                      g = gauntc(l1,ms1,l2,ms2,l,m)
+                      g = Gaunt_r(l1,ms1,l2,ms2,l,m)
                       if( abs( g ) < eps10 ) cycle
                       lm = ll + m
                       gmatr = gmatr + ylm(lm) * g
@@ -3750,7 +3752,11 @@ subroutine Tau_reading(icheck,ie,iaabsi,lmaxa,nenerg,nlmagm,nspinp,Taull)
 
 ! lmaxa can be < lmax because lmax is deined by the max of the lmax of the atoms with same atomic numer than the absorbing one 
   nlm = ( lmax + 1 )**2
-  nlma = ( lmaxa + 1 )**2
+  if( lmaxa < lmax ) then
+    nlma = ( lmaxa + 1 )**2
+  else
+    nlma = nlm
+  endif
 
   Taull(:,:,:,:,:) = ( 0._db, 0._db)
 

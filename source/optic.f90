@@ -1,21 +1,21 @@
 ! FDMNES subroutine
 
-! Set of subroutines for procedure optic.
+! Set of subroutines for procedure optic
 
 !***********************************************************************
 
 subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_resolved,Dafs,Dafs_bio, &
-          dv0bdcF,E_cut,E_cut_imp,E_cut_man,Eclie,Eneg,Energ_t, &
-          Extract,Eseuil,Full_potential,Full_self_abs,Green,hkl_dafs,Hubb_a,Hubb_d,icheck, &
+          dv0bdcF,E_cut,E_cut_imp,E_cut_man,Eclie,Eneg,Energ_s,Ephot_min, &
+          Extract_ten,Eseuil,Full_potential,Full_self_abs,Green,hkl_dafs,Hubb_a,Hubb_d,icheck, &
           iabsorig,ip_max,ip0,isigpi,isymeq, &
           jseuil,ldip,Length_abs,lmax_pot,lmax_probe,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua, &
-          lseuil,ltypcal,m_hubb,Matper,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
+          lseuil,ltypcal,m_hubb,Matper,Moyenne,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
           msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_multi_run, &
           n_oo,n_rel,n_rout,n_tens_max,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitl,ninitlr,nlm_pot,nlm_probe, &
           nlmamax,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm, &
           nr,nrm,nseuil,nspin,nspino,nspinp, &
           numat,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss,psii, &
-          r,Relativiste,Rmtg,Rmtsd,rot_atom_abs,Rot_int,Self_abs,Solsing_only, &
+          r,Relativiste,Renorm,Rmtg,Rmtsd,rot_atom_abs,Rot_int,Self_abs,Solsing_only, &
           Spherical_signal,Spherical_tensor,Spinorbite,Taull_tdd,Taux_eq,Tddft,Time_rout,V_intmax,V_hubb,V0muf, &
           Vcato,vec,vecdafse,vecdafss,Vhbdc,Volume_maille,VxcbdcF,Vxcato,Workf,Ylm_comp)
 
@@ -24,7 +24,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
 
   integer:: iabsorig, icheck_s, ie, ie_computer, ie_q, ie_s, ie_t, ip_max, ip0, &
     iso1, iso2, isp, isp1, isp2, iss1, iss2, je, jseuil, l0_nrixs, lm1, lm2, lmax, lmax_pot, &
-    lmax_probe, lmaxabs_t, lms1, lms2, lseuil, m_hubb, MPI_host_num_for_mumps, mpinodes, mpirank, mpirank0, &
+    lmax_probe, lmaxabs_t, lms1, lms2, lseuil, m_hubb, mpinodes, mpirank, mpirank0, &
     lmax_nrixs, lmaxat0, n_Ec, n_multi_run, n_oo, n_rel, n_rout, &
     n_tens_max, n_V, natomsym, nbseuil, ncolm, ncolr, ncolt, &
     ndim2, nenerg, nenerg_s, nenerg_tddft, nge, ninit1, ninitl, ninitlr, nlm_pot, nlm_probe, nlm_p_fp, &
@@ -64,23 +64,23 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Taull_abs
 
   logical:: Allsite, Cartesian_tensor, Classic_irreg, Core_resolved, Dafs, Dafs_bio, E_cut_man, &
-    E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Eneg, Energphot, Extract, FDM_comp, Final_optic, Final_tddft, Full_potential, &
-    Full_self_abs, Green, Green_int, Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, M1M1, Matper, &
-    Moyenne, Relativiste, Self_abs, Solsing, &
+    E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Eneg, Energphot, Extract_ten, FDM_comp, Final_optic, Final_tddft, First_E, &
+    Full_potential, Full_self_abs, Green, Green_int, Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, M1M1, Matper, &
+    Moyenne, Relativiste, Renorm, Self_abs, Solsing, &
     Solsing_only, Spherical_signal, Spherical_tensor, Spinorbite, Tddft, Xan_atom, Ylm_comp
 
   logical, dimension(10):: Multipole
 
   real(kind=sg):: time
 
-  real(kind=db):: delta_E, E_cut, E_cut_imp, E_cut_optic, Eclie, Ecmax, &
+  real(kind=db):: delta_E, E_cut, E_cut_imp, E_cut_optic, Eclie, Ecmax, Ephot_min, &
     p, Rmtg, Rmtsd, V_intmax, V0muf, Vhbdc, Volume_maille, Workf
 
   real(kind=db), dimension(3):: angxyz, axyz
   real(kind=db), dimension(3):: tp
   real(kind=db), dimension(n_rout):: Time_rout
   real(kind=db), dimension(nspin):: dv0bdcF, VxcbdcF
-  real(kind=db), dimension(nenerg_s):: Energ_s, Energ_t
+  real(kind=db), dimension(nenerg_s):: Energ_s
   real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(ninitlr):: Epsii, sec_atom
   real(kind=db), dimension(nr):: r
@@ -119,6 +119,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   endif
 
   allocate( Taull_abs(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag) )
+  Taull_abs(:,:,:,:,:,:,:) = (0._db, 0._db)
   allocate( En(n_Ec) )
   allocate( V0bdc(nspin,n_V) )
   
@@ -127,7 +128,6 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   else
     E_cut_optic = E_cut
   endif
-  Energ_s(:) = Energ_t(:) + E_cut_optic
 
   E1E1 = Multipole(1); E1E2 = Multipole(2); E1E3 = Multipole(3);
   E1M1 = Multipole(4); E2E2 = Multipole(6);
@@ -143,7 +143,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   allocate( Enervide(n_Ec) )
 
 ! Elaboration of energy grid 
-  call dim_grille_optic(E_cut_optic,Energ_s,mpirank0,nenerg,nenerg_s)
+  call dim_grille_optic(E_cut_optic,Energ_s,icheck(29),mpirank0,nenerg,nenerg_s)
 
   allocate( Energ(nenerg) )
   allocate( Eimag(nenerg) )
@@ -164,11 +164,15 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
 
   nge = ( nenerg - 1 ) / mpinodes + 1
 
+  First_E = .true.
+  
 ! Loop over photon energy
   boucle_energ: do je = 1,nge
 
     ie = ( je - 1 ) * mpinodes + mpirank + 1
 
+    if( Energ(ie) < Ephot_min - eps10 ) cycle
+    
     if( ie <= nenerg ) then
 
       secdd(:,:,:,:,mpirank) = (0._db,0._db)
@@ -258,7 +262,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
         else
           delta_E = 0.5_db * ( Energ_s(ie_s+1) - Energ_s(ie_s-1) )
         endif
-! The suare-root of the tep energy is set to the square in subroutine tenseur_car
+! The square-root of the step energy is set to the square in subroutine tenseur_car
         Taull_abs(:,:,:,:,:,:,:) = sqrt( Delta_E ) * Taull_abs(:,:,:,:,:,:,:) 
  
         nenerg_tddft = 0
@@ -269,7 +273,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
                 Hubb_d,icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
                 n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlr,nlm_pot,nlm_probe, &
-                nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Rmtg,Rmtsd,rof0,rot_atom_abs,Rot_int, &
+                nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Renorm,Rmtg,Rmtsd,rof0,rot_atom_abs,Rot_int, &
                 secdd_t,secdd_m_t,secdo_t,secdo_m_t,secdq_t,secdq_m_t,secmd_t,secmd_m_t,secmm_t,secmm_m_t,secoo_t,secoo_m_t, &
                 secqq_t,secqq_m_t,Solsing,Solsing_only,Spinorbite,Taull_abs,Tddft,V_hubb,V_intmax,V0bdc,Vrato,Ylm_comp)
 
@@ -296,7 +300,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
           Time_rout(11) = Time_rout(11) + tp(2) - tp(1)
         endif
 
-      end do ! End of loop over electron ene'rgies
+      end do ! End of loop over electron energies
 
     endif  ! arrival when ie > nenerg
 
@@ -304,7 +308,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
       l0_nrixs = 0; lmax_nrixs = 0; nq_nrixs = 0
       allocate( S_nrixs(nq_nrixs,ninitlr,0:mpinodes-1) )
       allocate( S_nrixs_l(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:mpinodes-1) )
-      call MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo,n_rel,ninitlr, &
+      call MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,n_oo,n_rel,ninitlr, &
                        nq_nrixs,S_nrixs,S_nrixs_l,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
       deallocate( S_nrixs, S_nrixs_l )
     endif
@@ -322,7 +326,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
       if( ie > nenerg ) exit
 
       call Write_coabs(Allsite,angxyz,axyz,.false.,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
-            E_cut_optic,Energ,Energphot,Extract,Epsii,Eseuil,Final_tddft, &
+            E_cut_optic,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft,First_E, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck_s,ie,ie_computer,Int_tens, &
             isigpi,isymeq,jseuil,Length_abs,ltypcal,Matper,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
             natomsym,nbseuil, &
@@ -332,6 +336,8 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
             secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
             Spherical_tensor,Spinorbite,Taux_eq,V0muf,vecdafse,vecdafss,vec,Volume_maille,Xan_atom) 
 
+      First_E = .false.
+      
     end do
 
     call CPU_TIME(time)
@@ -349,15 +355,14 @@ end
 
 !***********************************************************************
 
-! Sous-programme qui definit les dimensions de la nouvelle gamme d'energie pour le calcul optic.
+! Subroutine giving the dimension of the photon energy table in optics
 
-subroutine dim_grille_optic(E_cut,Energ_s,mpirank0,nenerg,nenerg_s)
+subroutine dim_grille_optic(E_cut,Energ_s,icheck,mpirank0,nenerg,nenerg_s)
 
   use declarations
   implicit none
 
-  integer,intent(in):: mpirank0, nenerg_s
-  integer,intent(out):: nenerg
+  integer:: icheck, mpirank0, nenerg, nenerg_s
 
   real(kind=db), intent(in):: E_cut
   real(kind=db), dimension(nenerg_s), intent(in):: Energ_s
@@ -367,6 +372,7 @@ subroutine dim_grille_optic(E_cut,Energ_s,mpirank0,nenerg,nenerg_s)
   if( E_cut < Energ_s(1) .and. mpirank0 == 0 ) then
     call write_error
     do ipr = 3,9,3
+      if( ipr == 3 .and. icheck == 0 ) cycle
       write(ipr,110) E_cut*rydb, Energ_s(1)*rydb
     end do
     stop
@@ -375,6 +381,7 @@ subroutine dim_grille_optic(E_cut,Energ_s,mpirank0,nenerg,nenerg_s)
   if( E_cut > Energ_s(nenerg_s) .and. mpirank0 == 0 ) then
     call write_error
     do ipr = 3,9,3
+      if( ipr == 3 .and. icheck == 0 ) cycle
       write(ipr,120) E_cut*rydb, Energ_s(nenerg_s)*rydb
     end do
     stop
@@ -394,7 +401,7 @@ end
 
 !***********************************************************************
 
-! Sous-programme qui definit une nouvelle gamme d'energie pour le calcul optic.
+! Subroutine giving the photon energy table for optics.
 
 subroutine grille_optic(E_cut,Energ,Energ_s,icheck,nenerg, nenerg_s)
 

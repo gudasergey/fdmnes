@@ -3,8 +3,8 @@
 
 subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
-        itape1,itape4,MPI_host_num_for_mumps,mpinodes0,mpirank,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-        nomfich,nomfichbav,npar,nparm,param,Scan_a,Solver,Space_file,typepar,xsect_file,Use_FDMX,FDMX_only, &
+        itape1,itape4,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
+        nomfich,nomfichbav,npar,nparm,param,Scan_a,Space_file,typepar,xsect_file,Use_FDMX,FDMX_only, &
         fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
         tdebye,tmeas_inp,tmeas,expntl,expntlA,expntlB,victoreen,victA,victB,mermrank)
 
@@ -17,8 +17,8 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
 
   integer:: i, igr, igr_dop, iord, ipr, ipr_dop, ir, is, iscratch, istat, it, itape1, itape4, itph, itpm, itps, &
     itype_dop, j, jseuil, l, l_selec_max, lamstdens, lecrantage, lin_gam, lmax_nrixs, lmax_pot, lmax_tddft_inp, lmaxat0, &
-    lmaxso0, lseuil, m_hubb_e, mermrank, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank, mpirank0, &
-    mpirank_in_mumps_group, multi_run, multrmax, n, n_atom_bulk, n_atom_cap, n_atom_int, n_atom_neq, n_atom_per, n_atom_per_neq, &
+    lmaxso0, lseuil, m_hubb_e, mermrank, mpierr, mpinodes, mpinodes0, mpirank, mpirank0, &
+    multi_run, multrmax, n, n_atom_bulk, n_atom_cap, n_atom_int, n_atom_neq, n_atom_per, n_atom_per_neq, &
     n_atom_proto, n_atom_proto_bulk, n_atom_proto_p, n_atom_proto_uc, n_atom_sur, n_atom_uc, n_devide, n_file_dafs_exp, &
     n_multi_run, n_multi_run_e, natomsym_max, n_adimp, n_radius, n_range, nb_atom_conf_m, nbseuil, nchemin, ncolm, &
     necrantage, neimagent, nenerg_s, neqm, ngamh, ngamme, &
@@ -43,7 +43,6 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
 
   integer, dimension(:,:,:), allocatable:: Wien_matsym
 
-  character(len=5):: Solver
   character(len=8):: PointGroup
   character(len=9):: keyword
   character(len=132):: comt, identmot, mot, nomfich, nom_fich_extract, nomfichbav, &
@@ -64,10 +63,10 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
      Charge_free, Classic_irreg, Core_resolved, Convolution_cal, Coupelapw, Dafs, Dafs_bio, Density, Density_comp, &
      Dip_rel, Dipmag, Doping, Dyn_eg, Dyn_g, E_cut_man, Eneg_i, Eneg_n_i, Energphot, Extract, Extract_ten, FDM_comp, FDMX_only, &
      Film, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, &
-     Gamma_tddft, Green_int, Green_s, Green_self, hkl_film, Hubbard, key_calc, korigimp, lmaxfree, &
-     lmoins1, lplus1, Magnetic, Matper, Memory_save, Muffintin, No_solsing, Noncentre, Nonexc, Normaltau, NRIXS, Octupole, &
-     Old_zero, One_run, Operation_mode_used, Optic, Overad, Pdb, PointGroup_Auto, Polarise, Quadmag, Quadrupole, &
-     Readfast, Relativiste, RPALF, Rydberg, Scan_a, Self_abs, &
+     Gamma_tddft, Green_int, Green_s, Green_self, hkl_film, Hubbard, Kern_fast, key_calc, korigimp, lmaxfree, &
+     lmoins1, lplus1, Magnetic, Matper, Memory_save, Muffintin, No_DFT, No_solsing, Noncentre, Nonexc, Normaltau, NRIXS, &
+     Octupole, Old_zero, One_run, Operation_mode_used, Optic, Overad, Pdb, PointGroup_Auto, Polarise, Quadmag, Quadrupole, &
+     Readfast, Relativiste, Renorm, RPALF, Rydberg, Scan_a, Self_abs, &
      Solsing_s, Solsing_only, Spherical_signal, Spherical_tensor, Spinorbite, State_all, &
      State_all_out, Supermuf, Sym_2D, Symauto, Symmol, Taux, Tddft, &
      Temperature, Trace_format_wien, Use_FDMX, Xan_atom, Ylm_comp_inp, &
@@ -80,7 +79,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
 
   real(kind=db):: alfpot, Ang_borm, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, &
      D_max_pot, Delta_edge, Delta_En_conv, Delta_Epsii, E_cut_imp, Ecent, Eclie, Eclie_out, Elarg, &
-     Estart, Film_roughness, Film_thickness, Gamma_max, Kern_fac, overlap, p_self_max, p_self0, Pas_SCF, &
+     Ephot_min, Estart, Film_roughness, Film_thickness, Gamma_max, Kern_fac, overlap, p_self_max, p_self0, Pas_SCF, &
      phi_0, R_rydb, R_self, Roverad, Rpotmax, Rtph, Temp, Test_dist_min, V_intmax, &
      dwfactor, tdebye, tmeas, expntlA, expntlB, victA, victB
 
@@ -116,9 +115,6 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
     call CPU_TIME(time)
     Time_loc(1) = real(time,db)
   endif
-
-  mpirank_in_mumps_group = mod( mpirank0, MPI_host_num_for_mumps )
-  mpinodes = mpinodes0 / MPI_host_num_for_mumps
 
   call lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_layer,Dafs_bio,Doping,Extract,Extract_ten,Film, &
     Flapw,Full_self_abs,Hubbard,itape4,Magnetic,Memory_save,mpinodes0,mpirank0,n_atom, &
@@ -250,48 +246,36 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   allocate( Z_bulk(n_atom_bulk) )
   allocate( Z_cap(n_atom_cap) )
 
-  if( mpinodes0 > 1 ) call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
-
   call lecture(Absauto,adimp_e,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_mode,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk, &
     axyz_cap,axyz_int,axyz_sur, &
     Basereel,Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free, &
     Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density, &
     Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
-    Eimagent,Eneg_i,Eneg_n_i,Energphot,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift, &
+    Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift, &
     Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
     Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard, &
     hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,Interface_shift,iscratch,isigpi,itdil,its_lapw,iord,itape4,itype, &
-    itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,l_selec_max,lamstdens,ldil,lecrantage,lin_gam,lmax_pot,lmax_tddft_inp, &
-    lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper,MPI_host_num_for_mumps,mpinodes, &
-    mpinodes0,mpirank0,Muffintin,Multipole,multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_uc,n_atom_proto, &
+    itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,l_selec_max,lamstdens,ldil,lecrantage,lin_gam,lmax_pot, &
+    lmax_tddft_inp,lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper, &
+    mpinodes,mpinodes0,mpirank,mpirank0, &
+    Muffintin,Multipole,multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_uc,n_atom_proto, &
     n_devide,n_file_dafs_exp,n_multi_run_e,n_radius,n_range,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent, &
     nenerg_s,ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw,ngroup_m,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
-    ngroup_temp,nhybm,nlat,nlatm,No_solsing,nom_fich_extract, &
+    ngroup_temp,nhybm,nlat,nlatm,No_DFT,No_solsing,nom_fich_extract, &
     nomfich,nomfichbav,Noncentre, &
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
     nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
     nself,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_bulk,ntype_conf,numat,numat_abs, &
     nvval,occ_hubb_e,Octupole,Old_zero,One_run,Operation_mode,Operation_mode_used,Optic,Overad,Overlap,p_self_max,p_self0, &
     param,Pas_SCF,pdpolar,phi_0,PointGroup,PointGroup_Auto,Polar,Polarise,poldafsem,poldafssm, &
-    pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadmag,Quadrupole,R_rydb, &
-    r0_lapw,rchimp,Readfast,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
+    pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadmag,Quadrupole,R_rydb,r_self, &
+    r0_lapw,rchimp,Readfast,Relativiste,Renorm,Rlapw,Rmt,Rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,Rydberg,Rsorte_s,SCF_log,Self_abs, &
-    Solsing_s,Solsing_only,Solver,Space_file,Spherical_signal,Spherical_tensor, &
+    Solsing_s,Solsing_only,Space_file,Spherical_signal,Spherical_tensor, &
     Spinorbite,State_all,State_all_out,Supermuf,Surface_shift,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef, &
     Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_hubbard,V_intmax,Vec_orig, &
     Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
-
-  if( Green_s .or. Extract ) then
-    if (MPI_host_num_for_mumps /= 1) then
-      MPI_host_num_for_mumps = 1
-      mpirank = mpirank0
-      mpinodes = mpinodes0
-      mpirank_in_mumps_group = 0
-      call MPI_COMM_SPLIT(MPI_COMM_WORLD,mpirank,mpirank_in_mumps_group,MPI_COMM_MUMPS,mpierr)
-      call MPI_COMM_SPLIT(MPI_COMM_WORLD,mpirank_in_mumps_group,mpirank,MPI_COMM_GATHER,mpierr)
-    endif
-  endif
 
 !*** JDB Sept. 2016
   if( FDMX_only ) then
@@ -541,26 +525,26 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
       Basereel,Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil, &
       Charge_free,Classic_irreg,Clementi,Com,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_edge,Delta_En_conv, &
       Delta_Epsii,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_cut_man,E_radius, &
-      E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Estart, &
+      E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Estart, &
       Extract,Extract_ten,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Flapw,Flapw_new, &
       Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s, &
       Green_self,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,igreq,Interface_shift, &
-      ipr_dop,iscratch,isigpi, &
-      itdil,its_lapw,iord,isymqa,itype,itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam, &
+      ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype,itype_dop,jseuil, &
+      Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam, &
       lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e, &
-      Magnetic,Mat_or,Mat_UB,Matper,MPI_host_num_for_mumps,mpinodes,mpinodes0,mpirank,mpirank_in_mumps_group,mpirank0, &
+      Magnetic,Mat_or,Mat_UB,Matper,mpinodes,mpinodes0,mpirank,mpirank0, &
       Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_int,n_atom_per, &
       n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_sur,n_atom_uc,n_devide,n_multi_run,n_radius,n_range,n_rout,natomeq_s, &
       natomsym_max,nbseuil,nchemin,ncolm,necrantage,neimagent,nenerg_s,neqm,ngamh,ngamme,ngreq,ngroup,ngroup_hubb,ngroup_lapw, &
-      ngroup_m,ngroup_nonsph,ngroup_pdb,ngroup_taux,ngroup_temp,nhybm,nklapw,nlm_pot,nlmlapwm,nlat,nlatm,nmatsym,No_solsing, &
-      nom_fich_extract,nomfich,nomfich_cal_conv,nomfich_cal_tddft_conv,Noncentre, &
+      ngroup_m,ngroup_nonsph,ngroup_pdb,ngroup_taux,ngroup_temp,nhybm,nklapw,nlm_pot,nlmlapwm,nlat,nlatm,nmatsym,No_DFT, &
+      No_solsing,nom_fich_extract,nomfich,nomfich_cal_conv,nomfich_cal_tddft_conv,Noncentre, &
       Nonexc,norbdil,norbv,Normaltau,normrmt,nphi_dafs,nphim, &
       npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nple,nplrm,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,NRIXS,nrm, &
       nself,nseuil,nslapwm,nspin,nspino,nspinp,nsymextract,ntype,numat,numat_abs, &
       nvval,occ_hubb_e,Octupole,Old_zero,One_run,Operation_mode,Operation_mode_used,Optic,Overad,Overlap,p_self_max,p_self0, &
       Pas_SCF,pdpolar,phi_0,PointGroup,PointGroup_Auto,Polar,Polarise,poldafsem,poldafssm, &
-      pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,posq,q_nrixs,Quadrupole,R_rydb, &
-      r0_lapw,rchimp,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
+      pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,posq,q_nrixs,Quadrupole,R_rydb,r_self, &
+      r0_lapw,rchimp,Relativiste,Renorm,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
       roverad,RPALF,rpotmax,Rydberg,Rsorte_s,SCF_log,Self_abs,Skip, &
       Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spinorbite,State_all,State_all_out,Supermuf,Surface_shift,Symmol, &
       Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef,Temperature,Tensor_imp,Test_dist_min,Time_rout,Trace_format_wien, &
@@ -708,26 +692,26 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       Basereel,Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil, &
       Charge_free,Classic_irreg,Clementi,Com,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_edge,Delta_En_conv, &
       Delta_Epsii,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_cut_man,E_radius, &
-      E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Estart, &
+      E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Estart, &
       Extract,Extract_ten,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Flapw,Flapw_new, &
       Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s, &
       Green_self,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_dop,igreq,Interface_shift, &
-      ipr_dop,iscratch,isigpi, &
-      itdil,its_lapw,iord,isymqa,itype,itype_dop,jseuil,Kern_fac,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam, &
+      ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype,itype_dop,jseuil, &
+      Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam, &
       lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e, &
-      Magnetic,Mat_or,Mat_UB,Matper,MPI_host_num_for_mumps,mpinodes,mpinodes0,mpirank,mpirank_in_mumps_group,mpirank0, &
+      Magnetic,Mat_or,Mat_UB,Matper,mpinodes,mpinodes0,mpirank,mpirank0, &
       Muffintin,Multipole,multrmax,n_adimp,n_atom_bulk,n_atom_cap,n_atom_int,n_atom_per, &
       n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_sur,n_atom_uc,n_devide,n_multi_run,n_radius,n_range,n_rout,natomeq_s, &
       natomsym_max,nbseuil,nchemin,ncolm,necrantage,neimagent,nenerg_s,neqm,ngamh,ngamme,ngreq,ngroup,ngroup_hubb,ngroup_lapw, &
-      ngroup_m,ngroup_nonsph,ngroup_pdb,ngroup_taux,ngroup_temp,nhybm,nklapw,nlm_pot,nlmlapwm,nlat,nlatm,nmatsym,No_solsing, &
-      nom_fich_extract,nomfich,nomfich_cal_conv,nomfich_cal_tddft_conv,Noncentre, &
+      ngroup_m,ngroup_nonsph,ngroup_pdb,ngroup_taux,ngroup_temp,nhybm,nklapw,nlm_pot,nlmlapwm,nlat,nlatm,nmatsym,No_DFT, &
+      No_solsing,nom_fich_extract,nomfich,nomfich_cal_conv,nomfich_cal_tddft_conv,Noncentre, &
       Nonexc,norbdil,norbv,Normaltau,normrmt,nphi_dafs,nphim, &
       npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nple,nplrm,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,NRIXS,nrm, &
       nself,nseuil,nslapwm,nspin,nspino,nspinp,nsymextract,ntype,numat,numat_abs, &
       nvval,occ_hubb_e,Octupole,Old_zero,One_run,Operation_mode,Operation_mode_used,Optic,Overad,Overlap,p_self_max,p_self0, &
       Pas_SCF,pdpolar,phi_0,PointGroup,PointGroup_Auto,Polar,Polarise,poldafsem,poldafssm, &
-      pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,posq,q_nrixs,Quadrupole,R_rydb, &
-      r0_lapw,rchimp,Relativiste,r_self,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
+      pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,posq,q_nrixs,Quadrupole,R_rydb,r_self, &
+      r0_lapw,rchimp,Relativiste,Renorm,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
       roverad,RPALF,rpotmax,Rydberg,Rsorte_s,SCF_log,Self_abs,Skip, &
       Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spinorbite,State_all,State_all_out,Supermuf,Surface_shift,Symmol, &
       Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef,Temperature,Tensor_imp,Test_dist_min,Time_rout,Trace_format_wien, &
@@ -751,7 +735,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     iss2, it, itab, itabs, itabs_nonexc, itype_dop, j, je, jseuil, l, l_hubbard, &
     l0_nrixs, l1, l2, lamstdens, lecrantage, lh, lin_gam, lla_state, lla2_state, lm1, lm2, lmax, lmax_nrixs, lmax_pot, &
     lmax_abs, lmaxabs_t, lmax_tddft, lmax_tddft_inp, lmaxabsa, lmaxat0, lmaxg, lmaxmax, lmaxso, lmaxso_max, lmax_probe, lmaxso0, &
-    lms1, lms2, lseuil, m, m_hubb, m_hubb_e, m1, m2, MPI_host_num_for_mumps, mpierr, mpinodee, mpinodee0, mpinodes, mpinodes0, &
+    lms1, lms2, lseuil, m, m_hubb, m_hubb_e, m1, m2, mpierr, mpinodee, mpinodee0, mpinodes, mpinodes0, &
     mpirank, mpirank0, mpirank_in_mumps_group, multi_imp, multi_run, multrmax, n, n_adimp, n_atom_0, n_atom_0_self, n_atom_bulk, &
     n_atom_cap ,n_atom_ind, n_atom_ind_self, n_atom_int, n_atom_per, n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, &
     n_atom_sur, n_atom_uc, n_devide, &
@@ -841,12 +825,12 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
      Density_comp, Devide_Ei, Dip_rel, Dipmag, Doping, Dyn_eg, Dyn_g, E_comp, E1E1, E1E2, E1E2e, E1E3, E1M1, E2E2, E3E3, &
      E_cut_man, Eneg, Eneg_i, Eneg_n_i, Energphot, Extract, &
      Extract_Green, Extract_ten, FDM_comp, FDM_comp_m, Fermi, Fermi_first, Film, Final_optic, &
-     Final_tddft, Flapw, Flapw_new, Force_ecr, Full_atom, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, &
+     Final_tddft, First_E, Flapw, Flapw_new, Force_ecr, Full_atom, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, &
      Gamma_tddft, Green, Green_i, Green_int, Green_s, Green_self, hkl_film, Hubb_a, Hubb_abs, Hubb_d, Hubb_diag_abs, Hubbard, &
-     korigimp, Level_val_abs, Level_val_exc, lmaxfree, lmoins1, lplus1, M1M1, Magnetic, Matper, Moy_cluster, &
-     Moy_loc, Moyenne, Muffintin, No_solsing, Noncentre, Nonexc_g, Nonexc, Nonsph, Normaltau, NRIXS, Octupole, &
+     Kern_fast, korigimp, Level_val_abs, Level_val_exc, lmaxfree, lmoins1, lplus1, M1M1, Magnetic, Matper, Moy_cluster, &
+     Moy_loc, Moyenne, Muffintin, No_DFT, No_solsing, Noncentre, Nonexc_g, Nonexc, Nonsph, Normaltau, NRIXS, Octupole, &
      Old_zero, One_run,Operation_mode_used, Optic, Optic_xanes, Overad, PointGroup_Auto, Polarise, Proto_all, &
-     Quadrupole, Recop, Relativiste, RPALF, Rydberg, SCF, SCF_elecabs, SCF_mag_fix, &
+     Quadrupole, Recop, Relativiste, Renorm, Renorm_SCF, RPALF, Rydberg, SCF, SCF_elecabs, SCF_mag_fix, &
      SCF_mag_free, Second_run, Self_abs, Self_cons, Self_nonexc, &
      Solsing, Solsing_s, Solsing_o, Solsing_only, Spherical_signal, Spherical_tensor, Spino, Spinorbite, State_all, &
      State_all_out, Supermuf, Sym_2D, Sym_4, Sym_cubic, Symmol, Tau_nondiag, Taux, Tddft, &
@@ -866,7 +850,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     Delta_Eseuil, Delta_film, Delta_int, Delta_roughness_film, Delta_sur, delta_z_bottom_cap, delta_z_top_cap, delta_z_top_film, &
     E, E_cut, E_cut_imp, E_Fermi, E_Open_val, E_Open_val_exc, E_start, &
     E_zero, Ecent, Ecineticmax, Ecineticmax_out, Eclie, Eclie_out, Ecmax, Ecmax_out, Ei0, Eii, Elarg, Em, En_cluster, &
-    En_cluster_s, Enervide, Enragr, Epsii_moy, Estart, Extract_E_cut, Extract_E_Fermi, Extract_V0bdcF, Film_roughness, &
+    En_cluster_s, Enervide, Enragr, Ephot_min, Epsii_moy, Estart, Extract_E_cut, Extract_E_Fermi, Extract_V0bdcF, Film_roughness, &
     Film_thickness, Gamma_max, Kern_fac, overlap, p_self, p_self_max, p_self0, Pas_SCF, phi_0, R_rydb, R_self, Rmax, &
     Rmtg_abs, Rmtsd_abs, Roverad, Rpotmax, rsbdc, rsbdc_out, Rsort, Rsorte, &
     Temp, Test_dist_min, Time_fill, Time_tria, tp_SCF_1, tp_SCF_2, tp_XANES_1, tp_XANES_2, V_intmax, V0muf, &
@@ -943,10 +927,12 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
   real(kind=sg):: time
 
+  call MPI_Comm_Rank(MPI_COMM_MUMPS,mpirank_in_mumps_group,mpierr)
   Moy_cluster = .true.
   iaabsfirst = 0
   E1E2e = Multipole(2)
   SCF_elecabs = SCF_log(1); SCF_mag_free = SCF_log(2); Self_cons = SCF_log(3); Self_nonexc = SCF_log(4); SCF = SCF_log(5)
+  Renorm_SCF = .true.
 
   if( Dip_rel .and. lseuil == 0 ) then ! For K edges, core state are pure spin states
     n_rel = 8
@@ -1172,7 +1158,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
         call extract_Epsii(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,icheck(14),nbseuil, &
                  ninit1,ninitl,ninitlr)
       endif
-      nenerg_s = extract_nenerg(multi_imp,nom_fich_extract,Tddft)
+      nenerg_s = extract_nenerg(multi_imp,nom_fich_extract,.false.,Tddft)
       allocate( Energ_s(nenerg_s) )
       allocate( Eimag_s(nenerg_s) )
       if( Tddft ) then
@@ -1180,7 +1166,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       else
         nbbseuil = nbseuil
       endif
-      call extract_energ(Energ_s,Eseuil,multi_imp,nbbseuil,nbseuil,nenerg_s,nom_fich_extract,Tddft)
+      call extract_energ(Energ_s,Eseuil,multi_imp,nbbseuil,nbseuil,nenerg_s,nom_fich_extract,.false.,Tddft)
 
     elseif( Extract ) then
 
@@ -1195,16 +1181,16 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                              Vxcato_abs,VxcbdcF)
 
       if( multi_run == 1 ) then
-        if( mpirank0 == 0 ) nenerg_s = extract_nenerg(multi_imp,nom_fich_extract,.false.)
+        if( mpirank0 == 0 ) nenerg_s = extract_nenerg(multi_imp,nom_fich_extract,Optic,.false.)
         if( mpinodes > 1 ) then
-        call MPI_Bcast(nenerg_s,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+          call MPI_Bcast(nenerg_s,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
         endif
         allocate( Energ_s(nenerg_s) )
         allocate( Eimag_s(nenerg_s) )
-        if( mpirank0 == 0 ) call extract_energ(Energ_s,Eseuil,multi_imp,nbseuil,nbseuil,nenerg_s,nom_fich_extract,.false.)
+        if( mpirank0 == 0 ) call extract_energ(Energ_s,Eseuil,multi_imp,nbseuil,nbseuil,nenerg_s,nom_fich_extract,Optic,.false.)
         if( mpinodes > 1 ) then
-        call MPI_Bcast(Energ_s,nenerg_s,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-        call MPI_Bcast(Eimag_s,nenerg_s,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+          call MPI_Bcast(Energ_s,nenerg_s,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+          call MPI_Bcast(Eimag_s,nenerg_s,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
         endif
       endif
 
@@ -1234,7 +1220,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       call natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho_int, &
         Base_ortho_sur,Bulk,Bulk_step,Chargat,d_ecrant,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
         dpos,Film_shift,Film_thickness,Flapw,iabsorbeur,iabsfirst,icheck(5),igr_dop,igreq,Interface_shift, &
-        itabs,itype,Kgroup,Matper,mpirank,multi_run,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur, &
+        itabs,itype,Kgroup,Matper,mpirank0,multi_run,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur, &
         n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
         Noncentre,posn,posn_bulk,One_run,Proto_all,r_self,rsorte_s,rmax,rpotmax,Self_cons,Surface_shift,Sym_2D, &
         Taux_oc)
@@ -1258,7 +1244,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           Chargat,Cubmat,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,dista, &
           Doping,dpos,Film_shift,Film_thickness,iaabs,iaabsfirst,iabsorbeur, &
           iaproto,iapot,ich,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,Interface_shift,iopsymc,iopsymr,itabs,itype,itypep, &
-          karact,Kgroup,Magnetic,Matper,mpirank,multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc, &
+          karact,Kgroup,Magnetic,Matper,mpirank0,multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc, &
           natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat, &
           One_run,Orthmat,Orthmati,Orthmatt,PointGroup,PointGroup_Auto,popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc, &
           Spinorbite,Rot_Atom_gr,Struct,Surface_shift,Sym_2D,Sym_4,Sym_cubic,Symmol,Taux,Taux_oc,Test_dist_min)
@@ -1358,8 +1344,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
     allocate( Hubb_diag(n_atom_0_self:n_atom_ind_self) )
     Hubb_diag(:) = .true.
-    allocate( V_hubb(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self) )
-    V_hubb(:,:,:,:,:) = (0._db, 0._db)
+
+    if( .not. Extract_ten ) then
+      allocate( V_hubb(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self) )
+      V_hubb(:,:,:,:,:) = (0._db, 0._db)
+    endif
 
 !------ SCF ----------------------------------------------------------------------------------------------------------------------------------
 
@@ -1963,8 +1952,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
               call Sphere(Axe_atom_grn,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
               Full_potential,Green,Hubb_a,Hubb_d,iaabsi,iapr,iaprotoi,ibord,ich,igreq,igroupi,iopsymr,lmax,lmax_pot,m_hubb, &
-              n_atom_0,n_atom_ind,n_atom_proto,natome,nbord,nbtm,nbtm_fdm,neqm,ngroup_m, &
-              nlm_pot,nlmagm,nlmmax,nphiato1,nphiato7,npsom,nr,nspin,nspino,nspinp,Z,phiato,posi,r,Relativiste,Rmtg(ipr), &
+              n_atom_0,n_atom_ind,n_atom_proto,natome,nbord,nbtm,nbtm_fdm,neqm,ngroup_m,nlm_pot, &
+              nlmagm,nlmmax,nphiato1,nphiato7,npsom,nr,nspin,nspino,nspinp,Z,phiato,posi,r,Relativiste,Renorm_SCF,Rmtg(ipr), &
               Rmtsd(ipr),Spino,Tau_ato,V_hubb_t,V_intmax,V0bdc,Vrato_e,xyz,Ylm_comp,Ylmato)
 
               deallocate( r )
@@ -2022,7 +2011,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                     call mat(Adimp,Atom_axe,Axe_Atom_grn,Base_hexa,Basereel,Cal_xanes,cgrad,clapl, &
                       Classic_irreg,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,FDM_comp_m,Full_atom, &
                       gradvr,iaabsi,iaprotoi,iato,ibord,ich,ie,igreq,igroupi,igrph,irep_util,isbord,iso,ispin,isrt,ivois,isvois, &
-                      karact,lato,lmaxa,lmaxso,lso,mato,MPI_host_num_for_mumps,mpirank0,mso, &
+                      karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso, &
                       natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup,ngrph,nim,nicm, &
                       nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
                       nsort,nsortf,nso1,nspin,nspino,nspinp,nstm,numia,nvois,phiato,poidsa,poidso,R_rydb,Recop,Relativiste, &
@@ -2055,11 +2044,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
               Time_rout(11) = Time_rout(11) + Time_loc(5) - Time_loc(4)
             endif
 
-            call cal_dens(Cal_xanes,Classic_irreg,Density_comp,drho_self,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
+            call Cal_dens(Cal_xanes,Classic_irreg,Density_comp,drho_self,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
               Full_potential,Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,ich,itypei,itypepr,lla2_state,lmax_pot,lmaxat,m_hubb, &
               mpinodes,mpirank,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nlmagm,nlm_pot, &
-              nrato,nrm,nrm_self,nspin,nspino,nspinp,ntype,numat,rato,Relativiste,Rmtg,Rmtsd,Solsing,Solsing_o,Spinorbite, &
-              State_all_out,Statedens,Statedens_i,Taull,V_hubb,V_hubb_abs,V_intmax,V0bdc,Vrato,Ylm_comp)
+              nrato,nrm,nrm_self,nspin,nspino,nspinp,ntype,numat,rato,Relativiste,Renorm_SCF,Rmtg,Rmtsd,Solsing,Solsing_o, &
+              Spinorbite,State_all_out,Statedens,Statedens_i,Taull,V_hubb,V_hubb_abs,V_intmax,V0bdc,Vrato,Ylm_comp)
 
             deallocate( taull )
 
@@ -2072,11 +2061,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           endif ! end of condition on ie <= nenerg, for parallel processing
 
           if( mpinodes > 1 ) then
-            call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
-            call MPI_RECV_statedens(MPI_host_num_for_mumps,lla2_state,lmaxat,mpinodes,mpirank,mpirank0,n_atom_0, &
+
+            call MPI_RECV_statedens(lla2_state,lmaxat,mpinodes,mpirank,mpirank0,n_atom_0, &
                                       n_atom_ind,n_atom_proto,nspinp,Statedens,Statedens_i)
-            call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
-            call MPI_RECV_self(drho_self,MPI_host_num_for_mumps,nlm_pot,mpinodes,mpirank,mpirank0,n_atom_0_self, &
+
+            call MPI_RECV_self(drho_self,nlm_pot,mpinodes,mpirank,mpirank0,n_atom_0_self, &
                                  n_atom_ind_self,nrm_self,nspin)
           endif
 
@@ -2111,7 +2100,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
             endif
 
-            call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
               call MPI_Bcast(Fermi,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
               call MPI_Bcast(E_cut,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
               call MPI_Bcast(E_Fermi,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
@@ -2146,7 +2135,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           m = n_atom_ind_self - n_atom_0_self + 1
           m2 = nspin * m
           n = ( 1 + nrm_self ) * nspin * m * nlm_pot
-          call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
             call MPI_Bcast(rho_self,n,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
             call MPI_Bcast(chargat_self,m2,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
             call MPI_Bcast(Energ_self,m,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
@@ -2275,7 +2264,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
 ! Evaluation of the tensor shape of the cartesian tensors
     call Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Dipmag, &
-           E1E2e,Green,iaabs,icheck(6),igroup,igrpt0,iopsymc,iopsymr,itype,itypep,ldip,loct,lqua,lseuil,Magnetic, &
+           E1E2e,Green,iaabs,icheck(6),igroup,igrpt0,iopsymc,iopsymr,itype,itypep,ldip,loct,lqua,lseuil,Magnetic,mpirank0, &
            msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_oo,natomp,ngroup, &
            ngroup_m,nlat,nlatm,nspin,ntype,numat,Octupole,popats,pos,Quadrupole,rot_atom_abs,Rot_int, &
            Spinorbite,State_all,Symmol,Tensor_imp)
@@ -2338,8 +2327,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           Cap_layer,Cap_disorder,Cap_roughness,Cap_thickness,Dafs_bio,Delta_bulk,Delta_cap,Delta_film,Delta_int, &
           Delta_roughness_film,Delta_sur,delta_z_bottom_cap,delta_z_top_cap,delta_z_top_film,Eseuil,f_avantseuil, &
           f_no_res,Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,hkl_ref,ich,igreq,Interface_shift, &
-          iprabs_nonexc,isigpi,itabs,itypepr,Length_abs,lvval,Magnetic,Mat_or,Mat_UB,mpirank,n_atom_bulk,n_atom_cap,n_atom_int, &
-          n_atom_per,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_sur,n_atom_uc, &
+          iprabs_nonexc,isigpi,itabs,itypepr,Length_abs,lvval,Magnetic,Mat_or,Mat_UB,mpirank0,n_atom_bulk,n_atom_cap, &
+          n_atom_int, n_atom_per,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_sur,n_atom_uc, &
           natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp, &
           nlat,nlatm,nphi_dafs,nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nrato,nrm,nspin,ntype,numat,Operation_mode, &
           Operation_mode_used,Orthmatt,phdafs,phdf0t,phdt,phi_0,Poldafse,Poldafsem,Poldafss,Poldafssm,popatm,posn,posn_bulk, &
@@ -2919,6 +2908,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
         allocate( taull_stk(nlm_probe,nspinp,nlm_probe,nspinp,2:n_multi_run,nge) )
       index_e = 0
 
+      First_E = .true.
       boucle_energ_xanes: do je = 1,nge
 
         if( mpinodee /= mpinodes .and. mpirank0 /= 0 ) cycle
@@ -3133,8 +3123,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             call Sphere(Axe_atom_grn,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
               Full_potential,Green,Hubb_a,Hubb_d,iaabsi,iapr,iaprotoi,ibord,icheck(18),igreq,igroupi,iopsymr,lmax,lmax_pot, &
               m_hubb,n_atom_0,n_atom_ind,n_atom_proto,natome,nbord,nbtm,nbtm_fdm,neqm,ngroup_m, &
-              nlm_pot,nlmagm,nlmmax,nphiato1,nphiato7,npsom,nr,nspin,nspino,nspinp,Z,phiato,posi,r,Relativiste,Rmtg(ipr), &
-              Rmtsd(ipr),Spino,Tau_ato,V_hubb_t,V_intmax,V0bdc,Vrato_e,xyz,Ylm_comp,Ylmato)
+              nlm_pot,nlmagm,nlmmax,nphiato1,nphiato7,npsom,nr,nspin,nspino,nspinp,Z,phiato,posi,r,Relativiste,Renorm, &
+              Rmtg(ipr),Rmtsd(ipr),Spino,Tau_ato,V_hubb_t,V_intmax,V0bdc,Vrato_e,xyz,Ylm_comp,Ylmato)
 
             deallocate( r )
             deallocate( Vrato_e, V_hubb_t )
@@ -3196,7 +3186,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                   call mat(Adimp,Atom_axe,Axe_Atom_grn,Base_hexa,Basereel,Cal_xanes,cgrad,clapl, &
                     Classic_irreg,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,FDM_comp_m, Full_atom, &
                     gradvr,iaabsi,iaprotoi,iato,ibord,ich,ie,igreq,igroupi,igrph,irep_util,isbord,iso,ispin,isrt,ivois,isvois, &
-                    karact,lato,lmaxa,lmaxso,lso,mato,MPI_host_num_for_mumps,mpirank0,mso, &
+                    karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso, &
                     natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup,ngrph,nim,nicm, &
                     nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
                     nsort,nsortf,nso1,nspin,nspino,nspinp,nstm,numia,nvois,phiato,poidsa,poidso,R_rydb,Recop,Relativiste, &
@@ -3335,8 +3325,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                     Eimag(ie),Energ(ie),Enervide_t,Eseuil,FDM_comp,Final_tddft,Full_potential,Green,Green_i,Hubb_abs, &
                     Hubb_diag_abs,icheck(20),l0_nrixs,lmax_nrixs,is_g,lmax_probe,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
                     mpinodee,mpirank, &
-                    n_Ec,n_V,nbseuil,ns_dipmag,ndim2,ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe, &
-                    nlm_p_fp,nq_nrixs,nrato_abs,nrm,nspin,nspino,nspinp,numat(itabs),psii,q_nrixs,rato_abs,Relativiste,Rmtg_abs, &
+                    n_Ec,n_V,nbseuil,ns_dipmag,ndim2,ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe,nlm_p_fp, &
+                    nq_nrixs,nrato_abs,nrm,nspin,nspino,nspinp,numat(itabs),psii,q_nrixs,rato_abs,Relativiste,Renorm,Rmtg_abs, &
                     Rmtsd_abs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Taull_abs, &
                     V_hubb_abs,V_intmax,V0bdc,Vra,Ylm_comp)
 
@@ -3345,8 +3335,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                     Hubb_diag_abs,icheck(20),ie,ip_max,ip00,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g, &
                     m_hubb,mpinodee,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi, &
                     Multipole,n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlv,nlm_pot, &
-                    nlm_probe,nlm_p_fp,nlmamax,nrato_abs,nrm,nspin,nspino,nspinp,numat(itabs),psii,rato_abs,Relativiste,Rmtg_abs, &
-                    Rmtsd_abs,rof0,rot_atom_abs,Rot_int,secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm, &
+                    nlm_probe,nlm_p_fp,nlmamax,nrato_abs,nrm,nspin,nspino,nspinp,numat(itabs),psii,rato_abs,Relativiste,Renorm, &
+                    Rmtg_abs,Rmtsd_abs,rof0,rot_atom_abs,Rot_int,secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm, &
                     secmm_m,secoo,secoo_m,secqq,secqq_m,Solsing,Solsing_only,Spinorbite,Taull_abs,Tddft,V_hubb_abs,V_intmax, &
                     V0bdc,Vra,Ylm_comp)
               endif
@@ -3398,12 +3388,12 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             call Cal_dens(Cal_xanes,Classic_irreg,Density_comp,drho_self,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
               Full_potential,Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,ich,itypei,itypepr,lla2_state,lmax_pot,lmaxat,m_hubb, &
               mpinodee,mpirank,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nlmagm,nlm_pot, &
-              nrato,nrm,nrm_self,nspin,nspino,nspinp,ntype,numat,rato,Relativiste,Rmtg,Rmtsd,Solsing,Solsing_o,Spinorbite, &
-              State_all_out,Statedens,Statedens_i,Taull,V_hubb,V_hubb_abs,V_intmax,V0bdc,Vrato,Ylm_comp)
+              nrato,nrm,nrm_self,nspin,nspino,nspinp,ntype,numat,rato,Relativiste,Renorm,Rmtg,Rmtsd,Solsing,Solsing_o, &
+              Spinorbite,State_all_out,Statedens,Statedens_i,Taull,V_hubb,V_hubb_abs,V_intmax,V0bdc,Vrato,Ylm_comp)
           endif
 
           deallocate( Taull )
-          if( .not. Optic ) deallocate( Vra )
+          if( .not. Optic .or. Extract ) deallocate( Vra )
 
           if( mpirank0 == 0 ) then
             call CPU_TIME(time)
@@ -3415,21 +3405,21 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
         if( mpinodee > 1 ) then
 
-          call MPI_RECV_Tau(lmax_dft,MPI_host_num_for_mumps,mpinodee,mpirank,mpirank0,n_atom_proto,nlmmax,nspinp,Taull_dft)
+          call MPI_RECV_Tau(lmax_dft,mpinodee,mpirank,mpirank0,n_atom_proto,nlmmax,nspinp,Taull_dft)
 
           if( Density ) &
-            call MPI_RECV_statedens(MPI_host_num_for_mumps,lla2_state,lmaxat,mpinodes,mpirank,mpirank0,n_atom_0, &
+            call MPI_RECV_statedens(lla2_state,lmaxat,mpinodes,mpirank,mpirank0,n_atom_0, &
                                       n_atom_ind,n_atom_proto,nspinp,Statedens,Statedens_i)
 
           if( .not. Optic ) &
-            call MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodee,mpirank,mpirank0,Multipole,n_oo,n_rel, &
+            call MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodee,mpirank,mpirank0,Multipole,n_oo,n_rel, &
                               ninitlr,nq_nrixs,S_nrixs,S_nrixs_l,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
           if( Green_i ) &
-            call MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodee,mpirank,mpirank0,Multipole,n_oo,n_rel, &
+            call MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodee,mpirank,mpirank0,Multipole,n_oo,n_rel, &
                               ninitlr,nq_nrixs,S_nrixs_m,S_nrixs_l_m,secdd_m,secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
 
           if( Tddft_xanes .or. Optic_xanes ) then
-            call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
             call MPI_Bcast_tddft(je,mpinodee,mpirank,nbseuil,nenerg,nenerg_tddft,nlmamax,nspinp,nspino,rof0,Taull_tdd)
           endif
 
@@ -3441,7 +3431,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
           if( ie > nenerg0 ) exit
 
-          call MPI_Bcast(Eimag(ie),1,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
+          if( mpinodee > 1 ) call MPI_Bcast(Eimag(ie),1,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
 
           if( mpirank0 == 0 ) then
 
@@ -3454,8 +3444,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
             if( .not. Optic ) then
 
-              call write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resolved,Dafs, &
-                Dafs_bio,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft, &
+              call Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resolved,Dafs, &
+                Dafs_bio,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E, &
                 f_avantseuil,Full_self_abs,Green_i,hkl_dafs,iabsorig(multi_run),icheck(21),ie,ie_computer,Int_tens, &
                 isigpi,isymeq,jseuil,Length_abs,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
                 natomsym,nbseuil, &
@@ -3466,13 +3456,14 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                 Self_abs,Spherical_signal, &
                 Spherical_tensor,Spinorbite,Taux_eq,V0muf,Vecdafse,Vecdafss,vec,Volume_maille,Xan_atom)
 
-              if( NRIXS ) call write_nrixs(All_nrixs,Allsite,Core_resolved,Volume_maille, &
-                E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft, &
+              if( NRIXS ) call Write_nrixs(All_nrixs,Allsite,Core_resolved,Volume_maille, &
+                E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E, &
                 f_avantseuil,Green_i,iabsorig(multi_run),icheck(21),ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
                 jseuil,mpinodee,n_multi_run,natomsym,nbseuil,nenerg,ninit1,ninitlr,nomfich,nomfich_cal_convt, &
                 nq_nrixs,nseuil,nspinp,numat_abs,q_nrixs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Spinorbite,Taux_eq,V0muf)
 
-              if( ie == 1 ) nomfich_cal_conv(multi_run) = nomfich_cal_convt
+              if( First_E ) nomfich_cal_conv(multi_run) = nomfich_cal_convt
+              First_E = .false.
             endif
 
             call CPU_TIME(time)
@@ -3545,18 +3536,18 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           Time_loc(1) = real(time,db)
         endif
 
-        call main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_resolved,Dafs,Dafs_bio, &
-          dV0bdcF,E_cut,E_cut_imp,E_cut_man,Eclie,Eneg,Energ_s, &
-          Extract,Eseuil,Full_potential,Full_self_abs,Green,hkl_dafs,Hubb_abs,Hubb_diag_abs,icheck, &
+        if( .not. No_DFT ) call main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_resolved,Dafs,Dafs_bio, &
+          dV0bdcF,E_cut,E_cut_imp,E_cut_man,Eclie,Eneg,Energ_s,Ephot_min, &
+          Extract_ten,Eseuil,Full_potential,Full_self_abs,Green,hkl_dafs,Hubb_abs,Hubb_diag_abs,icheck, &
           iabsorig(multi_run),ip_max,ip0,isigpi,isymeq, &
           jseuil,ldip,Length_abs,lmax_pot,lmax_probe,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua, &
-          lseuil,ltypcal,m_hubb,Matper,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
+          lseuil,ltypcal,m_hubb,Matper,Moyenne,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
           msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_multi_run, &
           n_oo,n_rel,n_rout,n_tens_max,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitl,ninitlr,nlm_pot, &
           nlm_probe,nlmamax,nomabs,nomfich,nomfich_cal_conv(multi_run),nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm, &
           nrato_abs,nrm,nseuil,nspin,nspino,nspinp, &
           numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss,psii, &
-          rato_abs,Relativiste,Rmtg_abs,Rmtsd_abs,rot_atom_abs,Rot_int,Self_abs,Solsing_only, &
+          rato_abs,Relativiste,Renorm,Rmtg_abs,Rmtsd_abs,rot_atom_abs,Rot_int,Self_abs,Solsing_only, &
           Spherical_signal,Spherical_tensor,Spinorbite,Taull_tdd,Taux_eq,Tddft,Time_rout,V_intmax,V_hubb_abs,V0muf, &
           Vcato_abs,vec,Vecdafse,Vecdafss,Vhbdc,Volume_maille,VxcbdcF,Vxcato_abs,Workf,Ylm_comp)
 
@@ -3572,20 +3563,20 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           ninitl_out = 1
         endif
 
-        if( Tddft ) call main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg, &
-          coef_g,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Dipmag, &
+        if( Tddft ) call main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,coef_g, &
+          Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Dipmag, &
           dV0bdcF,E_cut,E_cut_imp,E_cut_man,Eclie,Eneg, &
-          Energ_s,Energphot,Eseuil,f_avantseuil,Full_potential,Full_self_abs, &
-          Gamma_tddft,hkl_dafs,Hubb_abs,Hubb_diag_abs,icheck,iabsorig(multi_run),iopsymc(25),is_g,isigpi,isymeq, &
-          jseuil,Kern_fac,ldip,Length_abs,lmax_pot,lmaxabs_t,lmoins1,loct,lplus1,lqua,lseuil, &
-          ltypcal,m_g,m_hubb,Magnetic,Matper,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi, &
-          msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
+          Energ_s,Energphot,Ephot_min,Eseuil,f_avantseuil,Full_potential,Full_self_abs, &
+          Gamma_tddft,hkl_dafs,Hubb_abs,Hubb_diag_abs,icheck,iabsorig(multi_run),is_g,isigpi,isymeq, &
+          jseuil,Kern_fac,Kern_fast,ldip,Length_abs,lmax_pot,lmaxabs_t,lmoins1,loct,lplus1,lqua,lseuil, &
+          ltypcal,m_g,m_hubb,Magnetic,Matper,Moyenne,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
+          msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
           n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
           natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ninit1,ninitl,ninitl_out,ninitlr,nlm_pot,nlmamax, &
           nomabs,nomfich,nomfich_cal_tddft_conv(multi_run),nomfich_s, &
           nphi_dafs,nphim,npldafs,nplr,nplrm,nrato_abs,nrm,nseuil,nspin,nspino,nspinp, &
           numat_abs,nxanout,Octupole,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
-          psii,Quadrupole,rato_abs,Relativiste,rhoato_abs,Rmtg_abs,Rmtsd_abs, &
+          psii,rato_abs,Relativiste,Renorm,rhoato_abs,Rmtg_abs,Rmtsd_abs, &
           rot_atom_abs,Rot_int,RPALF,rsato_abs,Self_abs,Solsing_only, &
           Spherical_signal,Spherical_tensor,Spinorbite,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb_abs,V0muf, &
           Vcato_abs,Vec,Vecdafse,Vecdafss,Vhbdc,Volume_maille,VxcbdcF, &
@@ -3613,14 +3604,14 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_dafs,Hubb_abs,Hubb_diag_abs,icheck, &
           iabsorig(multi_run),iopsymc(25),is_g,isigpi,isymeq,jseuil,Kern_fac, &
           l0_nrixs,ldip,Length_abs,lmax_pot,lmax_nrixs,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua,lseuil, &
-          ltypcal,m_g,m_hubb,Magnetic,Matper,Moyenne,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,msymdd,msymddi, &
+          ltypcal,m_g,m_hubb,Magnetic,Matper,Moyenne,mpinodes,mpirank,mpirank0,msymdd,msymddi, &
           msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
           n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
           natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ngamh,ninit1,ninitl,ninitl_out,ninitlr,nlm_pot,nlmamax, &
           nomabs,nomfich,nomfich_cal_tddft_conv(multi_run),nomfich_s, &
           nphi_dafs,nphim,npldafs,nplr,nplrm,nq_nrixs,nrato_abs,NRIXS,nrm,nseuil,nspin,nspino,nspinp, &
           numat_abs,nxanout,Octupole,Old_zero,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
-          psii,q_nrixs,Quadrupole,rato_abs,Relativiste,rhoato_abs,Rmtg_abs,Rmtsd_abs, &
+          psii,q_nrixs,Quadrupole,rato_abs,Relativiste,Renorm,rhoato_abs,Rmtg_abs,Rmtsd_abs, &
           rof0,rot_atom_abs,Rot_int,RPALF,rsato_abs,rsbdc,Self_abs,Solsing_only, &
           Spherical_signal,Spherical_tensor,Spinorbite,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb_abs,V0muf, &
           Vcato_abs,Vec,Vecdafse,Vecdafss,Vhbdc,Volume_maille,VxcbdcF, &
@@ -3725,7 +3716,7 @@ subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Bulk_step,Cartesia
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:0):: secoo, secoo_m
 
   logical:: Allsite, Bulk_step, Cartesian_tensor, Core_resolved, Dafs, Dafs_bio, &
-     Energphot, Final_tddft, Full_self_abs, Green_int, Matper, Moyenne, Self_abs, Spherical_signal, &
+     Energphot, Final_tddft, First_E, Full_self_abs, Green_int, Matper, Moyenne, Self_abs, Spherical_signal, &
      Spherical_tensor, Spinorbite, Tddft, Tensor_rot, Xan_atom
 
   logical, dimension(10):: Multipole
@@ -3749,11 +3740,12 @@ subroutine extract_write_coabs(Allsite,Ang_rotsup,angxyz,axyz,Bulk_step,Cartesia
 
   ie_computer = 0
   do ie = 1,nenerg_s
+    First_E = ie == 1
     call extract_coabs(Ang_rotsup,Core_resolved,Green_int,icheck,ie,isymext,multi_run,Multipole, &
             n_oo,n_rel,nenerg_s,ninit1,ninitlr,nom_fich_extract,Rotsup,secdd,secdd_m,secdo,secdo_m,secdq, &
             secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Tensor_rot,Tddft)
     call write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
-            E_cut,Energ_s,Energphot,.true.,Epsii,Eseuil,Final_tddft, &
+            E_cut,Energ_s,Energphot,.true.,Epsii,Eseuil,Final_tddft,First_E, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer,Int_tens, &
             isigpi,isymeq,jseuil,Length_abs,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
             natomsym,nbseuil, &
@@ -3771,23 +3763,24 @@ end
 
 !***********************************************************************
 
-subroutine MPI_RECV_Tau(lmax_dft,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,n_atom_proto,nlmmax,nspinp,Taull_dft)
+subroutine MPI_RECV_Tau(lmax_dft,mpinodes,mpirank,mpirank0,n_atom_proto,nlmmax,nspinp,Taull_dft)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
   include 'mpif.h'
 
-  integer:: idim, ie, mpirank, mpirank0, n_atom_proto, nlmmax, nspinp
+  integer:: idim, ie, mpirank, mpirank0, n_atom_proto, nlmmax, nspinp, mpirank_in_mumps_group
   integer, dimension(0:n_atom_proto,0:mpinodes-1):: lmax_dft
 
   complex(kind=db), dimension(nlmmax,nspinp,nlmmax,nspinp,0:mpinodes-1):: Taull_dft
 
   real(kind=db), dimension(nlmmax,nspinp,nlmmax,nspinp,0:mpinodes-1):: Taull_dft_i, Taull_dft_r
 
+  call MPI_Comm_Rank(MPI_COMM_MUMPS,mpirank_in_mumps_group,mpierr)
   idim = n_atom_proto + 1
   if( mpirank0 == 0 ) then
    call MPI_GATHER(MPI_IN_PLACE,idim,MPI_INTEGER,lmax_dft,idim,MPI_INTEGER,0,MPI_COMM_GATHER,mpierr)
-  elseif( mod(mpirank0,MPI_host_num_for_mumps) == 0 ) then
+  elseif( mpirank_in_mumps_group == 0 ) then
 	  call MPI_GATHER(lmax_dft(0,mpirank),idim,MPI_INTEGER,lmax_dft,idim,MPI_INTEGER,0,MPI_COMM_GATHER,mpierr)
   endif
 
@@ -3799,12 +3792,12 @@ subroutine MPI_RECV_Tau(lmax_dft,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank
   if( mpirank0 == 0 ) then
    call MPI_GATHER(MPI_IN_PLACE,idim,MPI_REAL8,Taull_dft_r,idim,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
    call MPI_GATHER(MPI_IN_PLACE,idim,MPI_REAL8,Taull_dft_i,idim,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
-  elseif( mod(mpirank0,MPI_host_num_for_mumps) == 0 ) then
+  elseif( mpirank_in_mumps_group == 0 ) then
 	  call MPI_GATHER(Taull_dft_r(1,1,1,1,mpirank),idim,MPI_REAL8,Taull_dft_r,idim,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
 	  call MPI_GATHER(Taull_dft_i(1,1,1,1,mpirank),idim,MPI_REAL8,Taull_dft_i,idim,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
   endif
 
-  call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
 
   if( mpirank0 == 0 ) then
     do ie = 1,mpinodes-1
@@ -3817,14 +3810,14 @@ end
 
 !***********************************************************************
 
-subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpirank,mpirank0,Multipole,n_oo,n_rel,ninitlr, &
+subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,n_oo,n_rel,ninitlr, &
                   nq_nrixs,S_nrixs,S_nrixs_l,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
   include 'mpif.h'
 
-  integer:: idim0, idim1, idim2, idim3, idim4, idim5, MPI_host_num_for_mumps, mpierr, mpinodes, mpirank, mpirank0, n_oo, n_rel, &
+  integer:: idim0, idim1, idim2, idim3, idim4, idim5, mpirank_in_mumps_group, mpierr, mpinodes, mpirank, mpirank0, n_oo, n_rel, &
             ninitlr, rang
 
   complex(kind=db), dimension(3,3,n_rel,ninitlr,0:mpinodes-1):: secdd
@@ -3845,6 +3838,7 @@ subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpir
   real(kind=db), dimension(3,3,3,3,ninitlr,0:mpinodes-1):: secdo_ei, secdo_er, secqq_ei, secqq_er
   real(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:mpinodes-1):: secoo_ei, secoo_er
 
+  call MPI_Comm_Rank(MPI_COMM_MUMPS,mpirank_in_mumps_group,mpierr)
   E1E1 = Multipole(1); E1E2 = Multipole(2); E1E3 = Multipole(3);
   E1M1 = Multipole(4); E2E2 = Multipole(6);
   E3E3 = Multipole(7); M1M1 = Multipole(8)
@@ -3895,7 +3889,7 @@ subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpir
     secqq_ei(:,:,:,:,:,mpirank) = aimag( secqq(:,:,:,:,:,mpirank) )
   endif
 
-  call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
 
   if( mpirank0 == 0 ) then
     if( E1E1 )  then
@@ -3935,7 +3929,7 @@ subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpir
       call MPI_GATHER(MPI_IN_PLACE,idim6,MPI_REAL8,S_nrixs_l,idim6,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
     endif
 
-  elseif( mod(mpirank0,MPI_host_num_for_mumps) == 0 ) then
+  elseif( mpirank_in_mumps_group == 0 ) then
 
 	  if( E1E1 ) then
 	    call MPI_GATHER(secdd_er(1,1,1,1,mpirank),idim0,MPI_REAL8,secdd_er,idim0,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
@@ -3981,7 +3975,7 @@ subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,MPI_host_num_for_mumps,mpinodes,mpir
 
   end if
 
-  call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
 
 ! One rebuilds the secXX; Now the central processor has the results from all the others
   if( mpirank0 == 0 ) then
@@ -4001,19 +3995,20 @@ end
 
 !***********************************************************************
 
-subroutine MPI_RECV_statedens(MPI_host_num_for_mumps,lla2_state,lmaxat,mpinodes,mpirank,mpirank0,n_atom_0, &
+subroutine MPI_RECV_statedens(lla2_state,lmaxat,mpinodes,mpirank,mpirank0,n_atom_0, &
                               n_atom_ind,n_atom_proto,nspinp,Statedens,Statedens_i)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
   include 'mpif.h'
 
-  integer:: MPI_host_num_for_mump
+  integer:: mpirank_in_mumps_group
   integer, dimension(0:n_atom_proto):: lmaxat
   integer, dimension(0:n_atom_proto,0:mpinodes-1):: lmaxat_e
 
   real(kind=db), dimension(lla2_state,nspinp,lla2_state,nspinp,n_atom_0:n_atom_ind,0:mpinodes-1):: Statedens, Statedens_i
 
+  call MPI_Comm_Rank(MPI_COMM_MUMPS,mpirank_in_mumps_group,mpierr)
   lmaxat_e(:,mpirank) = lmaxat(:)
   idim = n_atom_proto + 1
 
@@ -4021,7 +4016,7 @@ subroutine MPI_RECV_statedens(MPI_host_num_for_mumps,lla2_state,lmaxat,mpinodes,
 
   if( mpirank0 == 0 ) then
     call MPI_GATHER(MPI_IN_PLACE,idim,MPI_INTEGER,lmaxat_e,idim,MPI_INTEGER,0,MPI_COMM_GATHER,mpierr)
-  elseif ( mod(mpirank0,MPI_host_num_for_mumps) == 0 ) then
+  elseif ( mpirank_in_mumps_group == 0 ) then
     call MPI_GATHER(lmaxat_e(0,mpirank),idim,MPI_INTEGER,lmaxat_e,idim,MPI_INTEGER,0,MPI_COMM_GATHER,mpierr)
   end if
 
@@ -4033,13 +4028,13 @@ subroutine MPI_RECV_statedens(MPI_host_num_for_mumps,lla2_state,lmaxat,mpinodes,
 
   if( mpirank0 == 0 ) then
     call MPI_GATHER(MPI_IN_PLACE,idim,MPI_REAL8,Statedens,idim,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
-  elseif( mod(mpirank0,MPI_host_num_for_mumps) == 0 ) then
+  elseif( mpirank_in_mumps_group == 0 ) then
     call MPI_GATHER(Statedens(1,1,1,1,n_atom_0,mpirank),idim,MPI_REAL8,Statedens,idim,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
   end if
 
   if( mpirank0 == 0 ) then
     call MPI_GATHER(MPI_IN_PLACE,idim,MPI_REAL8,Statedens_i,idim,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
-  elseif( mod(mpirank0,MPI_host_num_for_mumps) == 0 ) then
+  elseif( mpirank_in_mumps_group == 0 ) then
     call MPI_GATHER(Statedens_i(1,1,1,1,n_atom_0,mpirank),idim, MPI_REAL8,Statedens_i,idim,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
   end if
 
@@ -4060,19 +4055,20 @@ end
 
 !     Linux Intel compiler for Itanium based applications: -heap-array[:size]
 
-subroutine MPI_RECV_self(drho_self,MPI_host_num_for_mumps,nlm_pot,mpinodes,mpirank,mpirank0,n_atom_0_self,n_atom_ind_self, &
+subroutine MPI_RECV_self(drho_self,nlm_pot,mpinodes,mpirank,mpirank0,n_atom_0_self,n_atom_ind_self, &
                          nrm_self,nspin)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
   include 'mpif.h'
 
-  integer:: idim1, lm, MPI_host_num_for_mumps, mpinodes, mpirank, mpirank0, n_atom_0_self, n_atom_ind_self, nlm_pot, nrm_self, &
+  integer:: idim1, lm, mpirank_in_mumps_group, mpinodes, mpirank, mpirank0, n_atom_0_self, n_atom_ind_self, nlm_pot, nrm_self, &
             nspin, rang
 
   real(kind=db), dimension(nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self,0:mpinodes-1):: drho_self
   real(kind=db), dimension(nrm_self,nspin,0:mpinodes-1):: drho_self_e
 
+  call MPI_Comm_Rank(MPI_COMM_MUMPS,mpirank_in_mumps_group,mpierr)
   idim1 = nrm_self * nspin
 
   do lm = 1,nlm_pot
@@ -4083,15 +4079,15 @@ subroutine MPI_RECV_self(drho_self,MPI_host_num_for_mumps,nlm_pot,mpinodes,mpira
 ! Barrier is here very important: without it, it can be that we use the same
 !    buffer rhov_self_eX by 2 different process with different iapr
 
-      call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
 
       if( mpirank0 == 0 ) then
         call MPI_GATHER(MPI_IN_PLACE,idim1,MPI_REAL8,drho_self_e,idim1,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
-      elseif( mod(mpirank0,MPI_host_num_for_mumps) == 0 ) then
+      elseif( mpirank_in_mumps_group == 0 ) then
         call MPI_GATHER(drho_self_e(1,1,mpirank),idim1,MPI_REAL8,drho_self_e,idim1,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
       end if
 
-      call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
 
       if( mpirank0 == 0 ) then
         do rang = 1,mpinodes-1
@@ -4101,7 +4097,7 @@ subroutine MPI_RECV_self(drho_self,MPI_host_num_for_mumps,nlm_pot,mpinodes,mpira
 
 ! This barrier is important, because drho_self_e eis used as
 ! buffer and must not be filled by 2 different atom ia
-      call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
 
     end do
   end do
@@ -4135,7 +4131,7 @@ subroutine MPI_Bcast_Hubb(Hubb_diag,m_hubb,mpirank,n_atom_0_self,n_atom_ind_self
   call MPI_Bcast(V_hubb_r,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
   call MPI_Bcast(V_hubb_i,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
 
-  call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
 
   if( mpirank /= 0 ) V_hubb(:,:,:,:,:) = cmplx( V_hubb_r(:,:,:,:,:), V_hubb_i(:,:,:,:,:), db )
 
@@ -4177,7 +4173,7 @@ subroutine MPI_Bcast_tddft(je,mpinodes,mpirank,nbseuil,nenerg,nenerg_tddft,nlmam
     call MPI_Bcast(Taull_tdd_r,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
     call MPI_Bcast(Taull_tdd_i,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
 
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
 
     if( ie_computer /= mpirank ) Taull_tdd(ie,:,:,:,:) = cmplx( Taull_tdd_r(:,:,:,:), Taull_tdd_i(:,:,:,:), db )
 
@@ -4198,10 +4194,10 @@ subroutine MPI_Bcast_tddft(je,mpinodes,mpirank,nbseuil,nenerg,nenerg_tddft,nlmam
       endif
 
       call MPI_Bcast(rof0_r,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
-      call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
       call MPI_Bcast(rof0_i,ndim,MPI_REAL8,ie_computer,MPI_COMM_GATHER,mpierr)
 
-      call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
 
       if( ie_computer /= mpirank ) rof0(ie,:,:,:,:) = cmplx( rof0_r(:,:,:,:), rof0_i(:,:,:,:), db )
 
@@ -4339,7 +4335,7 @@ subroutine Potential_reading(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsi
       call MPI_Bcast(V_hubb_abs_i,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
       call MPI_Bcast(V_hubb_abs_r,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
 
-    call MPI_BARRIER(MPI_COMM_WORLD,mpierr)
+
 
     if( mpirank0 /= 0 ) V_hubb_abs(:,:,:,:) = cmplx( V_hubb_abs_r(:,:,:,:), V_hubb_abs_i(:,:,:,:), db )
 
