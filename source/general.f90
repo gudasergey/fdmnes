@@ -772,40 +772,6 @@ end
 
 !***********************************************************************
 
-function extract_green(nom_fich_extract)
-
-  use declarations
-  implicit none
-
-  integer:: istat, l
-
-  character(len=132) mot, nom_fich_extract
-
-  logical green_s, extract_green
-
-  open(1, file = nom_fich_extract, status='old', iostat=istat)
-  if( istat /= 0 ) call write_open_error(nom_fich_extract,istat,1)
-
-  do l = 1,100000
-    read(1,'(A)' ) mot
-    if( mot(2:20) == 'Multiple scattering' ) then
-      green_s = .true.
-      exit
-    elseif( mot(2:25) == 'Finite difference method' ) then
-      green_s = .false.
-      exit
-    endif
-  end do
-
-  Close(1)
-
-  extract_green = green_s
-
-  return
-end
-
-!***********************************************************************
-
 subroutine init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Flapw,Force_ecr,Hubb,iabsorbeur, &
       iabsorig,icheck,icom,igreq,iprabs,iprabs_nonexc,itabs,itype,itype_dop,itypepr,jseuil,lcoeur,lecrantage, &
       lseuil,lvval,mpinodes0,mpirank0,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage,neqm,ngreq,ngroup,nlat,nlatm, &
@@ -3449,11 +3415,11 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
   206 format(/' Transformation Crystal Bases - Bases R2 :')
   207 format(/' Inverse matrix :')
   210 format(/' Cluster: atom positions in order, in the internal R2 bases',/ &
-   '   Z      posx       posy       posz          dista     Taux_oc  ia   igr ity ipr  chargat')
+   '   Z        posx           posy           posz            dista     Taux_oc  ia   igr ity ipr  chargat')
   215 format(/' Cluster: atom positions in order, in the internal R2 bases',/ &
-   '   Z      posx       posy       posz          dista    ia   igr ity ipr  chargat')
-  220 format(i4,3f11.6,'   ! ',f11.6,f10.5,i4,i6,2i4,f9.5)
-  225 format(i4,3f11.6,'   ! ',f11.6,i4,i6,2i4,f9.5)
+   '   Z        posx           posy           posz            dista    ia   igr ity ipr  chargat')
+  220 format(i4,3f15.10,'   ! ',f11.6,f10.5,i4,i6,2i4,f9.5)
+  225 format(i4,3f15.10,'   ! ',f11.6,i4,i6,2i4,f9.5)
   230 format(/' ipr   iapot')
   240 format(i4,i6)
   250 format(4i5,f13.3)
@@ -3720,6 +3686,39 @@ subroutine cluster_rot(iopsym,rotmat)
     is = 0
   endif
 
+  if( n_opsym_3 == 2 .and. n_opsym_2 == 3 ) then
+    if( iops(2) == 1 ) then
+      v(1) = 1._db; v(2) = 1._db; v(3) = 1._db
+    elseif( iops(4) == 1 ) then
+      v(1) = 1._db; v(2) = -1._db; v(3) = 1._db
+    elseif( iops(6) == 1 ) then
+      v(1) = -1._db; v(2) = 1._db; v(3) = 1._db
+    elseif( iops(8) == 1 ) then
+      v(1) = 1._db; v(2) = 1._db; v(3) = -1._db
+    endif
+    if( iops(10) == 1 ) then
+      x(1) = 1._db; x(2) = 1._db; x(3) = 0._db
+    elseif( iops(11) == 1 ) then
+      x(1) = -1._db; x(2) = 1._db; x(3) = 0._db
+    elseif( iops(12) == 1 ) then
+      x(1) = 1._db; x(2) = 0._db; x(3) = 1._db
+    elseif( iops(13) == 1 ) then
+      x(1) = -1._db; x(2) = 0._db; x(3) = -1._db
+    endif
+
+    vn = sqrt( sum(v(:)**2) )
+    v(:) = v(:) / vn
+    vn = sqrt( sum(x(:)**2) )
+    x(:) = x(:) / vn
+
+    call prodvec(w,v,x)
+    rotmat(1,:) = x(:)
+    rotmat(2,:) = w(:)
+    rotmat(3,:) = v(:)
+
+    return
+  endif
+
   if( n_opsym_2 == 1 .or. n_opsym_s == 1 ) then
 
     if( i2 == 10 .or. is == 48 ) then
@@ -3929,7 +3928,7 @@ subroutine sym_cluster(Atom_with_axe,Axe_atom_clu,iaabs,igroup,iopsym,itype,ityp
 
   real(kind=db):: dpop, x
 
-  real(kind=db), dimension(3):: Axe_atom_c, Axe_atom_s, ps, pt, vspin, vspini, wspin, wspini
+  real(kind=db), dimension(3):: Axe_atom_c, Axe_atom_s, ps, pt, v, vspin, vspini, wspin, wspini
   real(kind=db), dimension(3,3):: matopsym
   real(kind=db), dimension(ngroup,nlatm,nspin) :: popats
   real(kind=db), dimension(3,natomp):: Axe_atom_clu, pos
@@ -4028,8 +4027,8 @@ subroutine sym_cluster(Atom_with_axe,Axe_atom_clu,iaabs,igroup,iopsym,itype,ityp
           if( .not. Symmol ) then
             if( ( ia == iaabs .and. ib /= iaabs ) .or. ( ia /= iaabs .and. ib == iaabs ) ) cycle
           endif
-          if( abs( pos(1,ib) - pt(1) ) > epspos .or. abs( pos(2,ib) - pt(2) ) > epspos .or. &
-              abs( pos(3,ib) - pt(3) ) > epspos ) cycle
+          v(1:3) = pos(1:3,ib) - pt(1:3)
+          if( abs( v(1) ) > epspos .or. abs( v(2) ) > epspos .or. abs( v(3) ) > epspos ) cycle
           igrb = igroup(ib)
           if( abs(itypegen(igrb)) /= abs(itypegen(igra)) ) cycle
 !     &                                               cycle boucle_sym
@@ -4111,33 +4110,36 @@ subroutine opsym(is,matopsym)
 !      4 : rot 2*pi/3 around (1,-1,1)
 !      5 : rot 4*pi/3 around (1,-1,1)
 !      6 : rot 2*pi/3 around (-1,1,1)
-  data matsym1/ 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 1.0_db, &
-                1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, &
-                1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 1.0_db, 0.0_db, 0.0_db, &
-                0.0_db, 0.0_db, 1.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, &
-                0.0_db, 0.0_db, 1.0_db, -1.0_db, 0.0_db, 0.0_db/
+  data matsym1/ 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, &
+                0.0_db, 0.0_db, 1.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, &
+                0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 1.0_db, 0.0_db, 0.0_db, &
+                0.0_db,-1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 1.0_db, 0.0_db, 0.0_db, &
+                0.0_db, 0.0_db, 1.0_db,-1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, &
+                0.0_db,-1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db,-1.0_db, 0.0_db, 0.0_db/
 !      7 : rot 4*pi/3 around (-1,1,1)
 !      8 : rot 2*pi/3 around (1,1,-1)
 !      9 : rot 4*pi/3 around (1,1,-1)
 !      10 : rot 2*pi/2 around (1,1,0)
 !      11 : rot 2*pi/2 around (-1,1,0)
 !      12 : rot 2*pi/2 around (1,0,1)
-  data matsym2/ 0.0_db, 0.0_db,-1.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, &
-                0.0_db, 0.0_db,-1.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 1.0_db, 0.0_db, 0.0_db, &
-                0.0_db,-1.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, &
-                0.0_db,-1.0_db, 0.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db, 1.0_db, &
-                0.0_db,-1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db/
+  data matsym2/ 0.0_db, 0.0_db,-1.0_db,-1.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, &
+                0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db,-1.0_db, 0.0_db, 0.0_db, &
+                0.0_db, 0.0_db,-1.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, &
+                0.0_db, 1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, &
+                0.0_db,-1.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, &
+                0.0_db, 0.0_db, 1.0_db, 0.0_db,-1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db/
 !      13 : rot 2*pi/2 around (-1,0,1)
 !      14 : rot 2*pi/2 around (0,1,1)
 !      15 : rot 2*pi/2 around (0,-1,1)
 !      16 : C4x, rot 2*pi/4 around 0x
 !      17 : C4y, rot 2*pi/4 around 0y
 !      18 : C4z, rot 2*pi/4 around 0z
-  data matsym3/ 0.0_db, 0.0_db,-1.0_db, 0.0_db,-1.0_db, 0.0_db, -1.0_db, 0.0_db, 0.0_db, -1.0_db, 0.0_db, 0.0_db, &
-                0.0_db, 0.0_db, 1.0_db, 0.0_db, 1.0_db, 0.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, &
-                0.0_db,-1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 1.0_db, 0.0_db, &
-                0.0_db, 0.0_db, 1.0_db, 0.0_db, 1.0_db, 0.0_db, -1.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, &
-                1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db/
+  data matsym3/ 0.0_db, 0.0_db,-1.0_db, 0.0_db,-1.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db, &
+               -1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db, 0.0_db, 1.0_db, 0.0_db, &
+               -1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db,-1.0_db, 0.0_db, &
+                1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db,-1.0_db, 0.0_db, 1.0_db, 0.0_db, &
+                0.0_db, 0.0_db, 1.0_db, 0.0_db, 1.0_db, 0.0_db,-1.0_db, 0.0_db, 0.0_db, &
+                0.0_db,-1.0_db, 0.0_db, 1.0_db, 0.0_db, 0.0_db, 0.0_db, 0.0_db, 1.0_db/
 !      19 : -C4x, rot -2*pi/4 around 0x
 !      20 : -C4y, rot -2*pi/4 around 0y
 !      21 : -C4z, rot -2*pi/4 around 0z

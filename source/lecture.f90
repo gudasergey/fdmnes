@@ -1602,10 +1602,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Clementi, Core_resolved, Core_resolved_e, Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
     Dip_rel, Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Film, &
     exc_imp, Extract, Extract_ten, FDM_comp, FDMX_only, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, &
-    Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green_s, Green_self, Green_int, &
-    Hedin, hkl_film, Hubbard, Kern_fast, korigimp, lmaxfree, lmoins1, lplus1, M1M1, M1M2, M2M2, Magnetic, Matper, muffintin, &
-    No_DFT, no_core_resolved, no_dipquad, no_e1e3, no_e2e2, no_e3e3, No_solsing, noncentre, nonexc, nonexc_imp, normaltau, &
-    Octupole, Old_zero, One_run, Operation_mode_used, Optic, Overad, &
+    Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green_s, Green_self, Green_int, Hedin, hkl_film, &
+    Hubbard, Kern_fac_default, Kern_fast, korigimp, lmaxfree, lmoins1, lplus1, M1M1, M1M2, M2M2, Magnetic, Matper, muffintin, &
+    No_DFT, no_core_resolved, no_dipquad, no_e1e3, no_e2e2, no_e3e3, No_renorm, No_solsing, noncentre, nonexc, nonexc_imp, &
+    normaltau, Octupole, Old_zero, One_run, Operation_mode_used, Optic, Overad, &
     Pas_SCF_imp, Pdb, Perdew, PointGroup_Auto, Polarise, quadmag, Quadrupole, r_self_imp, Readfast, Relativiste, &
     Renorm, rpalf, rydberg, SCF, SCF_elecabs, SCF_mag_free, Self_abs, self_cons, SCF_exc_imp, self_nonexc, &
     self_nonexc_imp, solsing_only, solsing_s, spherical_signal, spherical_tensor, spherique, &
@@ -1773,7 +1773,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   isigpi(:,:) = 0
   istop = 0
   Hubb(:) = .false.
-  Kern_fac = 2._db
+  Kern_fac_default = .true.
   Kern_fast = .false.
   korigimp = .false.
   lamstdens = -1
@@ -1804,6 +1804,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   no_e1e3 = .false.
   no_e3e3 = .false.
   no_e2e2 = .false.
+  No_renorm = .false.
   No_solsing = .false.
   nonexc = .false.
   nonexc_imp = .false.
@@ -1848,7 +1849,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   r_self_imp = .false.
   rchimp(:) = 0._db
   Relativiste = .false.
-  Renorm = .true.
+  Renorm = .false.
   Rmt(:) = 0._db
   Rmtimp(:) = 0._db
   Roverad = 0._db
@@ -1992,9 +1993,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           endif
           if(ier > 0 ) call write_err_form(itape4,grdat)
 
-       case('film_zero')
-         read(itape4,*,iostat=ier) Film_zero
-         if( ier > 0 ) call write_err_form(itape4,grdat)
+        case('film_zero')
+          read(itape4,*,iostat=ier) Film_zero
+          if( ier > 0 ) call write_err_form(itape4,grdat)
 
         case('film_thic')
           read(itape4,*,iostat=ier) Film_thickness
@@ -2032,7 +2033,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           FDM_comp = .true.
 
         case('full_pote')
-
           Full_potential = .true.
           n = nnombre(itape4,132)
           if( n > 0 ) then
@@ -2043,7 +2043,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           endif
 
         case('optic')
-
           Optic = .true.
 
         case('clementi')
@@ -2199,7 +2198,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           No_DFT = .true.
 
         case('no_renorm')
-          Renorm = .false.
+          No_renorm = .true.
+
+        case('renorm')
+          Renorm = .true.
 
         case('no_res_ma')
           read(itape4,*,iostat=ier) f_no_res(1)
@@ -2300,6 +2302,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           dyn_g = .true.
 
         case('kern_fac')
+          Kern_fac_default = .false.
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) Kern_fac
           if( ier > 0 ) call write_err_form(itape4,grdat)
@@ -2657,19 +2660,20 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
               case(12,13)
                 read(itape4,*,iostat=ier) hkl_dafs(1:2,ipl), p(1:3), Operation_mode(:,jpl), Angle_mode(1:n-10,jpl)
                 hkl_dafs(3,ipl) = p(1)
-                npl_2d(jpl) = npl_2d(jpl) + 1
-                if( abs( p(2) ) < eps10 ) cycle
-                n = nint( ( p(3) - p(1) ) / p(2) )
-                n = max( 0, n )
-                if( n == 0 ) cycle
-                t = ( p(3) - p(1) ) / n
-                ipl0 = ipl
-                do i = 1,n
-                  ipl = ipl + 1
-                  hkl_dafs(3,ipl) = hkl_dafs(3,ipl0) + i * t
-                  hkl_dafs(1:2,ipl) = hkl_dafs(1:2,ipl0)
-                end do
-                npl_2d(jpl) = 1 + n
+                if( abs( p(2) ) > eps10 ) then
+                  n = nint( ( p(3) - p(1) ) / p(2) )
+                  n = max( 0, n )
+                  if( n > 0 ) then
+                    t = ( p(3) - p(1) ) / n
+                    ipl0 = ipl
+                    do i = 1,n
+                      ipl = ipl + 1
+                      hkl_dafs(3,ipl) = hkl_dafs(3,ipl0) + i * t
+                      hkl_dafs(1:2,ipl) = hkl_dafs(1:2,ipl0)
+                    end do
+                    npl_2d(jpl) = 1 + n
+                  endif
+                endif
 ! Then the same index for the other outgoing polarization
                 do i = 1,npl_2d(jpl)
                   ipl = ipl + 1
@@ -3918,6 +3922,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       nrm = nrato_dirac
     endif
 
+    if( Green_s .or. Renorm .or. .not. ( Optic  .or. No_renorm ) ) then
+      Renorm = .true.
+    else
+      Renorm = .false.
+    endif
+
     if( Pdb ) One_run = .false.
 
     if( numat_abs /= 0 ) then
@@ -4104,35 +4114,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     if( Extract ) then
       State_all = .false.
       State_all_out = .false.
-
-      open(1, file = nom_fich_Extract, status='old', iostat=istat)
-      if( istat /= 0 ) call write_open_error(nom_fich_Extract,istat,1)
-      do i = 1,100000
-        read(1,'(A)') mot
-        if( mot(2:10) == 'Threshold' ) then
-          l = len_trim(mot)
-          if( mot(l:l) == 'e' ) then
-            Seuil = mot(l-7:l-5)
-            Seuil = adjustl( Seuil )
-          else
-            Seuil = mot(14:16)
-          endif
-          exit
-        endif
-        if( Seuil == 'Opt' ) Optic = .true.
-      end do
-      Rewind(1)
-      Core_resolved = .false.
-      do i = 1,100
-        read(1,'(A)') mot
-        if( mot(2:5) /= 'Core'  ) cycle
-        Core_resolved = .true.
-        exit
-      end do
-      Close(1)
+      call Extract_log(Core_resolved,Green_s,nom_fich_extract,Optic,Renorm,Seuil)
     endif
 
     if( Spinorbite .and. non_relat == 0 ) Relativiste = .true.
+
+    if( Optic .and. .not. Hedin .and. abs(alfpot) < eps6 ) Perdew = .true.
 
     if( .not. Flapw .and. abs(alfpot) < eps6 .and. .not. Perdew ) Hedin = .true.
     if( Hedin ) then
@@ -4141,6 +4128,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       alfpot = 0.33_db
     elseif( Perdew ) then
       alfpot = -1._db
+    endif
+
+    if( Kern_fac_default ) then
+      if( Optic ) then
+        Kern_fac = 1._db
+      else
+        Kern_fac = 2._db
+      endif
     endif
 
     if( Optic ) then
@@ -4592,7 +4587,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         else
           write(3,315) Rsorte_s(1), ( E_radius(i-1), Rsorte_s(i), i = 2,n_radius )
         endif
-        if( .not. green_s .and. overad ) write(3,320) roverad
+        if( .not. Green_s .and. overad ) write(3,320) roverad
         write(3,330) icheck(:)
         if( lin_gam == 1 ) write(3,340)
         if( abs( Egamme(1) ) < 999.999_db .and. abs( Egamme(ngamme) ) < 999.999_db ) then
@@ -4659,7 +4654,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         else
           write(3,'(A)') ' Complex bases'
         endif
-        if( green_s ) then
+        if( Green_s ) then
           write(3,'(A)') ' Multiple scattering calculation (Green)'
           if( Green_int ) write(3,'(A)') '    Full Green mode'
           if( supermuf ) write(3,'(A)') '    Continuous potential (Supermuf)'
@@ -4699,8 +4694,13 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           if( v_intmax < 100000._db ) write(3,490) V_intmax
         endif
       endif
+      if( Renorm ) then
+        write(3,'(A)') ' Normalization of the atomic radial wave functions to one state per Rydberg'
+      else
+        write(3,'(A)') ' No normalization of the atomic radial wave functions'
+      endif
       if( Atom_nonsph ) write(3,'(/A)') ' Calculation with non spherical orbitals'
-      if( temp > eps10 ) write(3,500) Temp
+      if( Temp > eps10 ) write(3,500) Temp
       if( Temperature ) write(3,'(/A)') ' Temperature coefficients taken into account for diffraction'
 
       if( nple > 0 ) then
@@ -4746,13 +4746,13 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         write(3,'(/A)') ' DAFS :     h      k     l1   step     lf   Operation mode   Angle_1  Angle_2  Angle_3'
         jpl = 0
         do ipl = 1,npldafs_2d
-          jpl = jpl + 1
+          jpl = jpl + npl_2d(ipl)
           if( npl_2d(ipl) > 1 ) then
-            r = ( hkl_dafs(3,jpl-1+2*npl_2d(ipl)) - hkl_dafs(3,jpl) ) / ( npl_2d(ipl) - 1 )
+            r = ( hkl_dafs(3,jpl) - hkl_dafs(3,jpl-npl_2d(ipl)+1) ) / ( npl_2d(ipl) - 1 )
           else
             r = 0._db
           endif
-          write(3,512) hkl_dafs(:,jpl), r, hkl_dafs(3,jpl-1+2*npl_2d(ipl)), Operation_mode(:,ipl), Angle_mode(:,ipl)
+          write(3,512) hkl_dafs(1:3,jpl-npl_2d(ipl)+1), r, hkl_dafs(3,jpl), Operation_mode(:,ipl), Angle_mode(:,ipl)
         end do
         if( sum( abs( Mat_UB(:,:) ) ) > eps10 ) then
           write(3,'(/a14,3f12.7,2(/14x,3f12.7))') '   UB matrix =', ( Mat_UB(i,:), i = 1,3 )
@@ -4853,7 +4853,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         elseif( Matper ) then
           write(3,'(a22,i5)') ' Crystal,  n_atom_uc =', n_atom_uc
         else
-          write(3,'(a22,i5)') ' Molecule,  n_atom_uc =', n_atom_uc
+          write(3,'(a22,i5)') ' Molecule, n_atom_uc =', n_atom_uc
         endif
         if( Space_group /= ' ' .and. Matper ) write(3,554) Space_group
         if( Pdb .and. Taux .and. Temperature ) then
@@ -5811,6 +5811,76 @@ end
 
 !***********************************************************************
 
+subroutine Extract_log(Core_resolved,Green_s,nom_fich_extract,Optic,Renorm,Seuil)
+
+  use declarations
+  implicit none
+
+  integer:: i, istat, l
+
+  character(len=3):: Seuil
+  character(len=132):: mot, nom_fich_extract
+
+  logical:: Core_resolved, Green_s, Optic, Renorm
+
+  open(1, file = nom_fich_extract, status='old', iostat=istat)
+  if( istat /= 0 ) call write_open_error(nom_fich_extract,istat,1)
+
+  do i = 1,100000
+    read(1,'(A)') mot
+    if( mot(2:10) == 'Threshold' ) then
+      l = len_trim(mot)
+      if( mot(l:l) == 'e' ) then
+        Seuil = mot(l-7:l-5)
+        Seuil = adjustl( Seuil )
+      else
+        Seuil = mot(14:16)
+      endif
+      exit
+    endif
+    if( Seuil == 'Opt' ) Optic = .true.
+  end do
+
+  Rewind(1)
+  Core_resolved = .false.
+  do i = 1,100
+    read(1,'(A)') mot
+    if( mot(2:5) /= 'Core'  ) cycle
+    Core_resolved = .true.
+    exit
+  end do
+
+  Rewind(1)
+
+  do l = 1,100000
+    read(1,'(A)' ) mot
+    if( mot(2:20) == 'Multiple scattering' ) then
+      Green_s = .true.
+      exit
+    elseif( mot(2:25) == 'Finite difference method' ) then
+      Green_s = .false.
+      exit
+    endif
+  end do
+
+  do l = 1,100000
+    read(1,'(A)' ) mot
+    if( mot(2:50) == 'Normalization of the atomic radial wave functions' ) then
+      Renorm = .true.
+      exit
+    elseif( mot(2:53) == 'No normalization of the atomic radial wave functions' ) then
+      Renorm = .false.
+      exit
+    endif
+  end do
+
+  Close(1)
+
+  return
+end
+
+!***********************************************************************
+
 ! Muffin-tin radius fixation for FDM method
 
 subroutine Rmt_fix(icheck,ntype,numat,Rmt)
@@ -6402,7 +6472,7 @@ subroutine Auto_center(axyz,Centre,Centre_auto_abs,Cubmat,icheck,itype,n_atom_uc
   110 format(/' Center set at  =',3f9.5,'  (cell unit)')
   120 format(' Farest ',a2,' atom at =',f9.5,' A')
   130 format(' Farest atom at =',f7.3,' A')
-  140 format(//' The farest absorbing atom is at R =',f7.3,' A  > Cluster radius =',f7.3,' A',// &
+  140 format(//' The farther absorbing atom is at R =',f7.3,' A  > Cluster radius =',f7.3,' A',// &
                ' Increase the cluster radius !',/)
 end
 

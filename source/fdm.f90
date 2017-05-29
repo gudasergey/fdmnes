@@ -998,7 +998,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 !-------------------------------------------------
 
   if( Extract ) then
-    if( mpirank0 == 0 ) Green_s = Extract_Green(nom_fich_extract)
     if( mpinodes > 1 ) then
     call MPI_Bcast(Green_s,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     endif
@@ -3473,7 +3472,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             if( Density .and. i_range == 1 ) &
               call Cal_Density(Energ,Full_atom,iaabsi,iaprotoi,icheck(28),ie,ie_computer,Int_statedens,itypei,itypepr, &
                 lamstdens,lla_state,lla2_state,lmaxat,mpinodee,n_atom_0,n_atom_ind,n_atom_proto,natome,nenerg,nomfich_s, &
-                nonexc_g,nrato,nrm,nspinp,ntype,numat,Rato,Rmtsd,State_all,Statedens)
+                nonexc_g,nrato,nrm,nspinp,ntype,numat,Rato,Rmtsd,State_all_out,Statedens)
 
             call CPU_TIME(time)
             Time_loc(3) = real(time,db)

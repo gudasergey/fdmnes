@@ -2719,7 +2719,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
   allocate( V0bdc(nspin,n_V) )
 
 ! Elaboration of the energy grid for Tddft
-  call dim_grille_optic(E_cut_tddft,Energ_s,mpirank0,nenerg,nenerg_s)
+  call dim_grille_optic(E_cut_tddft,Energ_s,icheck(22),mpirank0,nenerg,nenerg_s)
   allocate( Energ(nenerg) )
   call grille_optic(E_cut_tddft,Energ,Energ_s,icheck(22),nenerg,nenerg_s)
 
