@@ -4,10 +4,10 @@
 
 subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             E_cut,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft,First_E, &
-            f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer,Int_tens, &
-            isigpi,isymeq,jseuil,Length_abs,ltypcal,Matper,Moyenne,mpinodee,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
-            natomsym,nbseuil, &
-            ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
+            f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer,igr_bulk_z,Int_tens, &
+            isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodee,multi_0,Multipole,n_bulk_sup, &
+            n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
+            ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv,nomfich_s,nphi_dafs,npldafs, &
             nphim,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
             sec_atom,secdd_a,secdd_m_a,secdq_a,secdq_m_a,secdo_a,secdo_m_a, &
             secmd_a,secmd_m_a,secmm_a,secmm_m_a,secoo_a,secoo_m_a,secqq_a,secqq_m_a, &
@@ -19,18 +19,25 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
 
   real(kind=db), parameter:: quatre_mc2 = 4 * 2 / alfa_sf**2  ! en Rydberg
   
-  integer:: he, hs, i, ia, iabsorig, ib, ic1, ic2, icheck, icn1, icn2, id, ie, &
+  integer:: he, hs, i, i_bulk_z, ia, iabsorig, ib, ic1, ic2, icheck, icn1, icn2, id, ie, &
     ie_computer, ig, ii, ind_mu, initlr, ip, ipl, ipldafs, iseuil, isp1, isp2, isp3, isp4, ispfg, &
-    isym, ixandafs, j, j1, je, jhe, jhs, jpl, js, jseuil, ke, ks, l, &
-    ll, long, mpinodee, n_dim, n_tens_max, n_multi_run, n_oo, n_rel, n_tens, n1, n2, na, &
-    natomsym, nb, nbseuil, nc, nccm, ncolm, ncolr, ncolt, nenerg, ninit1, ninitlr, nl, np, npldafs, &
+    isym, ixandafs, j, j1, je, jhe, jhs, jpl, js, jseuil, ke, ks, l, ll, long, mpinodee, multi_0, &
+    n_bulk_sup, n_bulk_z, n_bulk_z_max, n_dim, n_tens_max, n_multi_run, n_oo, n_rel, n_tens, n1, n2, na, &
+    nab, natomsym, nb, nbseuil, nc, nccm, ncolm, ncolr, ncolt, nenerg, ninit1, ninitlr, nl, np, npldafs, &
     nphim, nplt, nplr, nplrm, nseuil, nspin, numat_abs, nxanout, nw
+
+  integer, dimension(natomsym):: isymeq
+  integer, dimension(npldafs):: nphi_dafs
+  integer, dimension(2,npldafs):: isigpi
+  integer, dimension(n_bulk_z):: n_bulk_zc
+  integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
 
   character(len=length_word):: nomab
   character(len=length_word), dimension(ncolm):: nomabs
   character(len=length_word), dimension(ncolm*ninitlr):: title
   character(len=13), dimension(nplrm):: ltypcal
-  character(len=132):: nomfich, nomfich_cal_convt, nomfich_s, nomfichdafst, nomficht
+  character(len=132):: nomfich, nomfich_s, nomfichdafst, nomficht
+  character(len=132), dimension(n_multi_run+n_bulk_sup):: nomfich_cal_conv
   character(len=2310):: mot
 
   complex(kind=db):: cf, f_avantseuil, matpole, matpols, ph, ph_m, sec
@@ -60,10 +67,6 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
     ampldafsmm, ampldafsoo, ampldafsqq
   complex(kind=db), dimension(:,:,:,:,:), allocatable :: mu, mudd, mudo, mudq, mumd, mumm, muoo, muqq
 
-  integer, dimension(natomsym):: isymeq
-  integer, dimension(npldafs):: nphi_dafs
-  integer, dimension(2,npldafs):: isigpi
-
   logical:: Allsite, Bulk_step, Cartesian_tensor, Cor_abs, Core_resolved, Diag_spin, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, &
     E3E3, E_vec, Dafs, Dafs_bio, Final_tddft, Energphot, Extract_ten, First_E, &
     Full_self_abs, Green_int, Green_int_mag, idafs, M1M1, Magn_sens, &
@@ -85,6 +88,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
   real(kind=db), dimension(nplrm,2) :: pdp
   real(kind=db), dimension(3,npldafs):: hkl_dafs
   real(kind=db), dimension(npldafs):: Length_Abs
+  real(kind=db), dimension(n_bulk_z):: Length_rel
   real(kind=db), dimension(ncolm*ninitlr) :: tens
   real(kind=db), dimension(natomsym) :: Taux_eq
   real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens
@@ -130,7 +134,12 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
     na = 0
     nb = 1
   endif
-
+  if( n_bulk_z > 1 ) then
+    nab = natomsym
+  else
+    nab = na
+  endif
+  
   if( Dafs ) then
 
     allocate( ampldafs(npldafs,nphim,ninitlr,0:natomsym) )
@@ -625,7 +634,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
           uas(3) = voas(1) * plas(2) - voas(2) * plas(1)
         endif
 
-        do ia = 0,na
+        do ia = 0,nab
           do initlr = 1,ninitlr
 
             if( Core_resolved .and. .not. Final_tddft ) then
@@ -968,7 +977,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
 
   if( xan_atom ) then
     secabsdd(ncolr,:,0) = sec_atom(:) * natomsym
-    do ia = 1,na
+    do ia = 1,nab
       secabsdd(ncolr,:,ia) = sec_atom(:)
     end do
   endif
@@ -1045,7 +1054,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
 
   if( icheck > 0 ) then
     if( Dip_rel ) write(3,'(/1x,a7,1p,e12.5)') 'Omega =', Omega
-    do ia = 0,na
+    do ia = 0,nab
       if( ia == 0 ) then
         if( .not. ( nseuil == 0 .and. Matper ) ) then
           write(3,283) ct_nelec(:) * pi
@@ -1162,6 +1171,10 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
 
   do ia = 0,na
 
+    i_bulk_z = 0
+    do
+      i_bulk_z = i_bulk_z + 1
+    
     nomficht = nomfich
     nomfichdafst = nomfich
 
@@ -1189,12 +1202,20 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
       nomfichdafst(l+1:l+1) = '_'
       call ad_number(iabsorig,nomfichdafst,132)
     endif
+    if( n_bulk_z > 1 ) then
+      l = len_trim(nomficht)
+      nomficht(l+1:l+1) = '_'
+      call ad_number(i_bulk_z,nomficht,132)
+      l = len_trim(nomfichdafst)
+      nomfichdafst(l+1:l+1) = '_'
+      call ad_number(i_bulk_z,nomfichdafst,132)
+    endif
     l = len_trim(nomficht)
     nomficht(l+1:l+4) = '.txt'
     l = len_trim(nomfichdafst)
     nomfichdafst(l+1:l+4) = '.txt'
 
-    if( ie == 1 .and. ia == 0 ) nomfich_cal_convt = nomficht
+    if( ie == 1 .and. ia == 0 ) nomfich_cal_conv(multi_0+i_bulk_z) = nomficht
 
     n_tens = 0
 
@@ -1230,10 +1251,26 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
       endif
 
       ipl = n_tens + ncolr - nxanout + 1
-      Tens(n_tens+1:ipl) = secabs(nxanout:ncolr,initlr,ia)
+      if( ia == 0 .and. n_bulk_z > 1 ) then
+        Tens(n_tens+1:ipl) = 0._db
+        do ib = 1,natomsym
+          do i = 1,n_bulk_zc(i_bulk_z)
+            if( igr_bulk_z(i,i_bulk_z) == ib ) Tens(n_tens+1:ipl) = Tens(n_tens+1:ipl) + secabs(nxanout:ncolr,initlr,ib)  
+          end do
+        end do
+      else
+        Tens(n_tens+1:ipl) = secabs(nxanout:ncolr,initlr,ia)
+      endif
       do ipldafs = 1,npldafs
-        if( ia == 0 ) then
+        if( ia == 0 .and. n_bulk_z <= 1 ) then
           cf = ampldafs(ipldafs,1,initlr,ia)
+        elseif( ia == 0 ) then
+          cf = ( 0._db, 0._db )
+          do ib = 1,natomsym
+            do i = 1,n_bulk_zc(i_bulk_z)
+              if( igr_bulk_z(i,i_bulk_z) == ib ) cf = cf + conjg( phdafs(ib,ipldafs) ) * ampldafs(ipldafs,1,initlr,ib)  
+            end do
+          end do
         else
 ! Le exp(iQr) est converti. On recupere le complexe conjugue dans convolution.
           cf = conjg( phdafs(ia,ipldafs) ) * ampldafs(ipldafs,1,initlr,ia)
@@ -1275,7 +1312,8 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
     elseif( Bulk_step .and. ie == 1 ) then
       allocate( hkl_dafs_fake(3,npldafs) )
       hkl_dafs_fake(1,:) = Length_abs(:) 
-      hkl_dafs_fake(2,:) = 1.e+10_db   ! fake value used in write_out, signature of truncation 
+      hkl_dafs_fake(2,:) = Length_rel(i_bulk_z) * Length_abs(:)   ! fake value used in write_out, signature of truncation 
+      hkl_dafs_fake(2,1) = hkl_dafs_fake(2,1) + 10000._db   ! fake value used in write_out, signature of truncation 
       hkl_dafs_fake(3,:) = hkl_dafs(3,:) 
       call write_out(rdum,rdum,Volume_maille,f_avantseuil,E_cut,Ephseuil, &
             Epsii,Eseuil(nbseuil),First_E,Green_int,hkl_dafs_fake,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title, &
@@ -1384,6 +1422,9 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
       close(7)
     endif
 
+      if( i_bulk_z >= n_bulk_z ) exit
+    end do
+    
   end do  ! fin boucle sur atomes
 
   if( dafs ) then
@@ -2351,7 +2392,8 @@ subroutine Write_out(angxyz,axyz,Volume_maille,f_avantseuil,E_cut,Ephseuil,Epsii
 ! For 2D resonant diffraction, when an absorbing atom is in the bulk,
 ! hkl_dafs(2,1) is a fake number which when high means that hkl_dafs(i,ipl), contains Length_abs.  
   if( npps > 0 ) then
-    Truncature = hkl_dafs(2,1) > 10000._db
+    Truncature = hkl_dafs(2,1) > 1000._db
+    if( Truncature ) hkl_dafs(2,1) = hkl_dafs(2,1) - 10000._db
   else
     Truncature = .false.
   endif
@@ -2489,8 +2531,9 @@ subroutine Write_out(angxyz,axyz,Volume_maille,f_avantseuil,E_cut,Ephseuil,Epsii
       end select
       if( nppa > 0 ) write(ipr,155) natomsym, axyz(:)*bohr, angxyz(:) / radian, ( nint( hkl_dafs(:,i) ), i = 1,npp )
       if( Truncature) then
-        write(ipr,156) dummy, hkl_dafs(1,:)
-        write(ipr,156) dummy, hkl_dafs(3,:)
+        do i = 1,3
+          write(ipr,156) dummy, hkl_dafs(i,:)
+        end do
       endif
     endif
     do i = 1,n

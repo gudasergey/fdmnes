@@ -10,9 +10,9 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
           iabsorig,ip_max,ip0,isigpi,isymeq, &
           jseuil,ldip,Length_abs,lmax_pot,lmax_probe,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua, &
           lseuil,ltypcal,m_hubb,Matper,Moyenne,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
-          msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_multi_run, &
+          msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_0,Multipole,n_bulk_sup,n_multi_run, &
           n_oo,n_rel,n_rout,n_tens_max,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitl,ninitlr,nlm_pot,nlm_probe, &
-          nlmamax,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm, &
+          nlmamax,nomabs,nomfich,nomfich_cal_conv,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm, &
           nr,nrm,nseuil,nspin,nspino,nspinp, &
           numat,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss,psii, &
           r,Relativiste,Renorm,Rmtg,Rmtsd,rot_atom_abs,Rot_int,Self_abs,Solsing_only, &
@@ -22,10 +22,13 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   use declarations
   implicit none
 
+  integer, parameter:: n_bulk_z = 0
+  integer, parameter:: n_bulk_z_max = 0
+
   integer:: iabsorig, icheck_s, ie, ie_computer, ie_q, ie_s, ie_t, ip_max, ip0, &
     iso1, iso2, isp, isp1, isp2, iss1, iss2, je, jseuil, l0_nrixs, lm1, lm2, lmax, lmax_pot, &
     lmax_probe, lmaxabs_t, lms1, lms2, lseuil, m_hubb, mpinodes, mpirank, mpirank0, &
-    lmax_nrixs, lmaxat0, n_Ec, n_multi_run, n_oo, n_rel, n_rout, &
+    lmax_nrixs, lmaxat0, multi_0, n_bulk_sup, n_Ec, n_multi_run, n_oo, n_rel, n_rout, &
     n_tens_max, n_V, natomsym, nbseuil, ncolm, ncolr, ncolt, &
     ndim2, nenerg, nenerg_s, nenerg_tddft, nge, ninit1, ninitl, ninitlr, nlm_pot, nlm_probe, nlm_p_fp, &
     nlmamax, nphim, npldafs, nplr, nplrm, nq_nrixs, nr, nrm, ns_dipmag, nseuil, nspin, &
@@ -42,10 +45,13 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   integer, dimension(3,3,3):: loct, msymdq, msymdqi
   integer, dimension(3,3,3,3)::  msymdo, msymdoi, msymqq, msymqqi
   integer, dimension(3,n_oo,3,n_oo):: msymoo, msymooi
+  integer, dimension(n_bulk_z):: n_bulk_zc
+  integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
 
-  character(len=132):: nomfich, nomfich_s, nomfich_cal_convt
+  character(len=132):: nomfich, nomfich_s
   character(len=13), dimension(nplrm):: ltypcal
   character(len=length_word), dimension(ncolm):: nomabs
+  character(len=132), dimension(n_multi_run+n_bulk_sup):: nomfich_cal_conv
 
   complex(kind=db):: f_avantseuil
   complex(kind=db), dimension(3,nplrm):: pol
@@ -90,6 +96,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   real(kind=db), dimension(3,nplrm):: vec
   real(kind=db), dimension(3,npldafs):: hkl_dafs
   real(kind=db), dimension(npldafs):: Length_abs
+  real(kind=db), dimension(n_bulk_z):: Length_rel
   real(kind=db), dimension(ninitl,2):: coef_g
   real(kind=db), dimension(nrm,nbseuil):: psii
   real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens
@@ -327,13 +334,14 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
 
       call Write_coabs(Allsite,angxyz,axyz,.false.,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio, &
             E_cut_optic,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft,First_E, &
-            f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck_s,ie,ie_computer,Int_tens, &
-            isigpi,isymeq,jseuil,Length_abs,ltypcal,Matper,Moyenne,mpinodes,Multipole,n_multi_run,n_oo,n_rel,n_tens_max, &
-            natomsym,nbseuil, &
-            ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_convt,nomfich_s,nphi_dafs,npldafs, &
-            nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
-            phdt,pol,poldafse,poldafss,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
-            secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
+            f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck_s,ie,ie_computer,igr_bulk_z,Int_tens, &
+            isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodes,multi_0,Multipole,n_bulk_sup, &
+            n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
+            ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv,nomfich_s,nphi_dafs,npldafs, &
+            nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
+            sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
+            secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m, &
+            Self_abs,Spherical_signal, &
             Spherical_tensor,Spinorbite,Taux_eq,V0muf,vecdafse,vecdafss,vec,Volume_maille,Xan_atom) 
 
       First_E = .false.

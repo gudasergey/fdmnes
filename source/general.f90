@@ -1266,10 +1266,10 @@ subroutine pop_group(chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,ngr
     end do
   endif
 
-! Test sur la neutralite de la maille ou de la molecule
+! Test on neutrality of the unit cell or the cluster
   Chargm = sum( chargatg( 1:ngroup ) )
   if( abs(Chargm) > 0.0001 .and. mpirank0 == 0 ) then
-    write(3,120) Chargm
+    if( icheck > 0 ) write(3,120) Chargm
     write(6,120) Chargm
     if( .not. Charge_free ) then
       call write_error
@@ -1280,7 +1280,7 @@ subroutine pop_group(chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,ngr
 
   return
   110 format(/' ---- Pop_group ----',100('-'))
-  120 format(/' Unit mesh or molecule charge =',f8.4)
+  120 format(/' Unit cell or molecule charge =',f8.4)
   130 format(/'  igr    charge   popats(1)  popats(2)')
   140 format(/'  igr    charge   popats(1,up)  popats(1,dn) ...')
   150 format(i4,11f11.5)
@@ -2244,7 +2244,7 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
   if( Matper ) then
     nxmaille = nint( Rmax / axyz(1) ) + 3
     nymaille = nint( Rmax / axyz(2) ) + 3
-    if( n_atom_per == 0 ) then
+    if( n_atom_per == 0 .and. .not. Bulk_step ) then
       nzmaille = 0
     elseif( Sym_2D ) then
       if( n_atom_int /= 0 ) then
@@ -2677,7 +2677,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
   if( Matper ) then
     nxmaille = nint( Rmax / axyz(1) ) + 3
     nymaille = nint( Rmax / axyz(2) ) + 3
-    if( n_atom_per == 0 ) then
+    if( n_atom_per == 0 .and. .not. Bulk_step ) then
       nzmaille = 0
     elseif( Sym_2D ) then
       if( n_atom_int /= 0 ) then
@@ -6178,10 +6178,11 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
           axyz,axyz_bulk,axyz_cap,axyz_int,axyz_sur,Bormann,Bulk,Bulk_step, &
           Cap_layer,Cap_disorder,Cap_roughness,Cap_thickness,Dafs_bio,Delta_bulk,Delta_cap,Delta_film,Delta_int, &
           Delta_roughness_film,Delta_sur,delta_z_bottom_cap,delta_z_top_cap,delta_z_top_film,Eseuil,f_avantseuil, &
-          f_no_res,Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,hkl_ref,ich,igreq,Interface_shift, &
-          iprabs_nonexc,isigpi,itabs,itypepr,Length_abs,lvval,Magnetic,Mat_or,Mat_UB,mpirank0,n_atom_bulk,n_atom_cap,n_atom_int, &
-          n_atom_per,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_sur,n_atom_uc, &
-          natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp, &
+          f_no_res,Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,hkl_ref,ich,igr_bulk_z, &
+          igreq,Interface_shift, &
+          iprabs_nonexc,isigpi,itabs,itypepr,Length_abs,Length_rel,lvval,Magnetic,Mat_or,Mat_UB,mpirank0,n_atom_bulk,n_atom_cap, &
+          n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_sur,n_atom_uc,n_bulk_z,n_bulk_z_max, &
+          n_bulk_zc,natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp, &
           nlat,nlatm,nphi_dafs,nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nrato,nrm,nspin,ntype,numat,Operation_mode, &
           Operation_mode_used,Orthmatt,phdafs,phdf0t,phdt,phi_0,Poldafse,Poldafsem,Poldafss,Poldafssm,popatm,posn,posn_bulk, &
           posn_cap,psival,rato,Surface_shift,Taux,Taux_cap,Taux_oc,Temp,Temp_coef,Temperature,Vec_orig,Vecdafse,Vecdafsem, &
@@ -6191,12 +6192,15 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   implicit none
 
   integer:: i, ich, icheck, igr, ip, ipl, ipr, iprabs_nonexc, it, itabs, iwrite, j, jgr, kgr, mpirank0, n_atom_bulk, n_atom_cap, &
-    n_atom_int, n_atom_per, n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, n_atom_sur, n_atom_uc, n1_proto, n2_proto, &
+    n_atom_int, n_atom_per, n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, n_atom_sur, n_atom_uc, n_bulk_z, n_bulk_z_max, &
+    n1_proto, n2_proto, &
     natomsym, nbseuil, neqm, ngrm, ngroup, ngroup_m, ngroup_taux, ngroup_temp, ni, nlatm, nphim, npldafs, npldafs_2d, npldafs_e, &
     npldafs_f, nrm, nspin, ntype, Z, Z_abs
 
   integer, dimension(2):: Mult_bulk, Mult_film
   integer, dimension(3):: hkl_ref
+  integer, dimension(n_bulk_z):: n_bulk_zc
+  integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
 
   character(len=4):: mot4
   character(len=64):: mot64
@@ -6247,6 +6251,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   real(kind=db), dimension(ngroup_taux):: Taux_oc
   real(kind=db), dimension(ngroup_temp):: Temp_coef
   real(kind=db), dimension(nbseuil):: Eseuil
+  real(kind=db), dimension(n_bulk_z):: Length_rel
   real(kind=db), dimension(3,3):: Mat_bulk, Mat_bulk_i, Mat_or, Mat_UB, Orthmatt, Orthmati
   real(kind=db), dimension(3,n_atom_uc):: posn
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
@@ -6415,7 +6420,9 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
           ni = 0
         endif
 
+        p(3) = p(3) - 1._db
         do i = 0,ni
+          p(3) = p(3) + 1._db
           Taux_r = 1._db
           if( Film_periodical ) then
             z_pos = p(3) * c_cos_z
@@ -6436,7 +6443,6 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
             arg = arg + deux_pi * ( Delta_sur / c_cos_z ) * hkl(3)
           endif
           Bragg(igr,ipl) = Bragg(igr,ipl) + Taux_r * cmplx( cos(arg), sin(arg), db )
-          p(3) = p(3) + 1._db
         end do
 
         if( Interlayer ) then
@@ -6461,7 +6467,16 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
         endif
 
 ! Fraction of absorption (avoid the singularity when l close to 1). Correct only before the edge.
-        if( Bulk_step ) Bragg(igr,ipl) = Bragg(igr,ipl) * exp( - ( z_top - p(3) ) * fpp_bulk_tot * Length_abs(ipl) )
+        if( Bulk_step ) then
+          Bragg(igr,ipl) = Bragg(igr,ipl) * exp( - ( z_top - p(3) ) * fpp_bulk_tot * Length_abs(ipl) )
+          boucle_i: do i = 1,n_bulk_z
+            do j = 1,n_bulk_zc(i)
+              if( igr_bulk_z(j,i) /= igr ) cycle
+              Length_rel(i) = z_top - p(3)
+              exit boucle_i
+            end do
+          end do boucle_i
+        endif
         if( Taux ) Bragg(igr,ipl) = Bragg(igr,ipl) * Taux_oc(jgr)
         if( Temperature ) Deb = exp( - Temp_coef(igr) * Delta_2 )
         if( icheck > 1 .and. ( Debye .or. Temperature ) ) write(3,165) nint( hkl_dafs(1:3,ipl) ), numat(it), Deb
@@ -6700,7 +6715,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
 
     do ipl = 1,npldafs
       if( Film .or. Bulk_step ) then
-        if( mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
+        if( mod(ipl,10) /= 1 .and. npldafs > 20 .and. icheck == 1 ) cycle
         write(3,235) hkl_dafs(:,ipl), phdafs(1:natomsym,ipl)
       else
         write(3,240) nint(hkl_dafs(:,ipl)), phdafs(1:natomsym,ipl)
@@ -6734,7 +6749,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
         endif
         do ipl = 1,npldafs
           if( Film .or. Bulk_step ) then
-            if( mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
+            if( mod(ipl,10) /= 1 .and. npldafs > 20 .and. icheck == 1 ) cycle
             write(3,270) hkl_dafs(:,ipl), f0(ipr,ipl), fp(ipr), fpp(ipr), phd(ipr,ipl), phd_f0(ipr,ipl), phd_fan(ipr,ipl)
           else
             write(3,275) nint(hkl_dafs(:,ipl)), f0(ipr,ipl), fp(ipr), fpp(ipr), phd(ipr,ipl), phd_f0(ipr,ipl), phd_fan(ipr,ipl)
@@ -6748,7 +6763,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
         endif
         do ipl = 1,npldafs
           if( Film .or. Bulk_step ) then
-            if( mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
+            if( mod(ipl,10) /= 1 .and. npldafs > 20 .and. icheck == 1 ) cycle
             write(3,290) hkl_dafs(:,ipl), f0(ipr,ipl), fp(ipr), fpp(ipr), f_ms(ipr,ipl), f_mo(ipr,ipl), phd(ipr,ipl), &
               phd_f0(ipr,ipl), phd_fan(ipr,ipl), phd_fmag(ipr,ipl), v_vec_b(ipl), v_vec_a(ipl)
           else
@@ -6778,7 +6793,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
 
     do ipl = 1,npldafs
       if( Film ) then
-        if(  mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
+        if(  mod(ipl,10) /= 1 .and. npldafs > 20 .and. icheck == 1 ) cycle
         if( Bulk .and. .not. Abs_in_bulk ) then
         arg = deux_pi*hkl_dafs(3,ipl)*Film_shift(3)/c_cos_z
         ph = exp(arg*img)
@@ -7165,10 +7180,13 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
       elseif( Qaz_fixed ) then
 
         delta = asin( 2 * sin_t * cos_t * sin( Qaz ) )
-        if( abs( delta ) > eps10 ) then
-          nu = asin( tan( delta ) / tan( Qaz ) )
-        else
+        if( Specular ) eta = delta / 2
+        if( abs( delta ) < eps10 ) then
           nu = 2 * Theta_Bragg
+        elseif( abs( Qaz ) - pi < eps10 ) then
+          nu = 0._db
+        else
+          nu = asin( tan( delta ) / tan( Qaz ) )
         endif
 
       endif
@@ -7275,12 +7293,11 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 
         elseif( Eta_fixed .or. Chi_fixed .or. Eta_half_delta ) then
 
-           if( Eta_half_delta ) eta = delta / 2
-
            Mat(:,:) = Mat_NN(:,:)
 
-           if( Eta_fixed ) then
+           if( Eta_half_delta .or. Eta_fixed ) then
 
+             if( Eta_half_delta ) eta = delta / 2
              cos_e = cos( eta )
              sin_e = sin( eta )
              if( abs( cos_e ) < eps10 ) then
@@ -7540,13 +7557,15 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
         Qaz = ksi + pi / 2
 
         delta = asin( 2 * sin_t * cos_t * sin( Qaz ) )
-        if( abs( delta ) > eps10 ) then
+        if( abs( delta ) < eps10 ) then
+          nu = 2 * Theta_Bragg
+        elseif( abs( Qaz ) - pi < eps10 ) then
+          nu = 0._db
+        else
           x = tan( delta ) / tan( Qaz )
           if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(nu) ')
           nu = asin( x )
-        else
-          nu = 2 * Theta_Bragg
-        endif
+       endif
 
       endif
 
@@ -8077,7 +8096,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
              '   from wich angle cannot be calculated !'//)
  150 format(/'   ipl    h      k      l     theta_B   alfa    beta   delta    nu     Qaz     Naz     psi', &
              '     eta      mu     chi      phi',16x,'k_i',24x,'Pol_i',24x,'k_s',23x,'Pol_s_1',22x,'Pol_s_2')
- 160 format(i5,2f7.2,f9.4,9f8.3,4x,'x',7x,'x',7x,'x',3x,f8.3,5(1x,3f9.5))
+ 160 format(i5,2f7.2,f9.4,8f8.3,4x,'x',7x,'x',7x,'x',3x,f8.3,5(1x,3f9.5))
  170 format(i5,2f7.2,f9.4,12f8.3,5(1x,3f9.5))
  180 format(/'   Normalized outgoing wave vector modulus =',f14.10,' different from one.')
  190 format(/'   When an experimental UB matrix is used,',/ &
@@ -8809,7 +8828,7 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
           write(3,175)
         endif
       endif
-      if( Film .and. mod(ipl,10) /= 1 .and. icheck == 1 ) cycle
+      if( Film .and. mod(ipl,10) /= 1 .and. npldafs > 20 .and. icheck == 1 ) cycle
       rad_i = 180._db / pi
       do i = 1,3
         if( abs( angpoldafs(i,ipl) ) > 9999._db ) then

@@ -67,8 +67,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(ngroup_par,nparm) :: param
   real(kind=db), dimension(:), allocatable:: angle, bb, betalor, decal, e1, e2, Efermip, Elor, En_fermi, Energ, &
-        Energ_tr, Ep, Eph1, Ephoton, Es, Eseuil, fi, fr, l_dafs, Length_abs, lori, lorix, lorr, lorrx, Pds, p1f, p2f, Tens, &
-        V0muf, Ts, Yr, Yi
+        Energ_tr, Ep, Eph1, Ephoton, Es, Eseuil, fi, fr, l_dafs, Length_abs, Length_rel, lori, lorix, lorr, lorrx, & 
+        Pds, p1f, p2f, Tens, V0muf, Ts, Yr, Yi
   real(kind=db), dimension(:,:), allocatable:: decal_initl, Ef, Epsii, mua_r, mua_i, Signal, Stokes_param, Xa, &
                                                Xanes, Xs
   real(kind=db), dimension(:,:,:), allocatable:: Icirc, Icirccor, Icor, Icircdcor, Idcor
@@ -855,6 +855,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     allocate( f0_bulk(npldafs) )
     f0_bulk(:) = (0._db, 0._db )
     allocate( l_dafs(npldafs) )
+    allocate( Length_rel(npldafs) )
     allocate( Length_abs(npldafs) )
   endif
 
@@ -946,7 +947,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     open(2, file = fichin(ifich), status='old', iostat=istat)
 
     read(2,*)
-    do i = 1,5
+    do i = 1,6
       n = nnombre(2,Length_line)
       if( n == 0 ) then
         read(2,*)
@@ -1255,6 +1256,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           axyz(:) = axyz(:) / bohr
         elseif( Trunc(ifich) ) then
           read(2,*) Length_abs(:)
+          read(2,*) Length_rel(:)
           read(2,*) l_dafs(:)
         endif
       elseif( Tenseur ) then
@@ -1856,7 +1858,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     Ts(:) = c_micro * ( Ts(:) + mu_0_bulk )
     
     do ipl = 1,npldafs 
-      Trs(:,ipl) = 1 / ( 1 - exp( - Ts(:) * Length_abs(ipl) - img * 2 * pi * l_dafs(ipl) ) )
+      Trs(:,ipl) = exp( - Ts(:) * Length_rel(ipl) ) / ( 1 - exp( - Ts(:) * Length_abs(ipl) - img * 2 * pi * l_dafs(ipl) ) )
       do ip = 1,nphi(ipl)
         As(:,ip,ipl) = As(:,ip,ipl) + Trs(:,ipl) * As_bulk(:,ip,ipl) 
       end do
@@ -1865,6 +1867,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     if( icheck > 1 ) then
       write(3,'(/a17,1p,e13.5,a14)') ' mu_0_bulk      =', c_micro*mu_0_bulk,' micrometer^-1'
       write(3,'(A/,23x,1p,120e13.5)') ' Length_abs(1,11,...) (micrometer) =', ( Length_abs(i), i = 1,min(npldafs,201), 10 )
+      write(3,'(A/,23x,1p,120e13.5)') ' Length_rel(1,11,...) (micrometer) =', ( Length_rel(i), i = 1,min(npldafs,201), 10 )
       write(3,'(/A)') '    Energy      Ts       1 - exp(-Ts*Length_abs(i)), i = 1,11,...'
       do ie = 1,nes
         write(3,'(f10.3,1p,121e13.5)') Es(ie)*rydb, Ts(ie), &
@@ -2225,7 +2228,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   deallocate( p1f, p2f, Pds, phdtscan )
   deallocate( Run_done, Stokes_name, Stokes_param, Skip_run )
   deallocate( Trunc, V0muf, Xs )
-  if( Abs_in_bulk ) deallocate( As_bulk, f0_bulk, f0scan_bulk, l_dafs, Length_abs, Ts  )
+  if( Abs_in_bulk ) deallocate( As_bulk, f0_bulk, f0scan_bulk, l_dafs, Length_abs, Length_rel, Ts  )
   if( Cor_abs ) deallocate( mus )
 
   if( ncal > 1 .and. ical == ncal+1 ) then
@@ -2510,7 +2513,7 @@ subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Epsii,Eseuil
         Self_abs = i > 131
         backspace(2)
       else
-        read(2,*)
+        read(2,*); read(2,*) 
         Trunc(ifich) = .true.
         Abs_in_bulk = .true.
         mu_0_bulk = fpp_avantseuil

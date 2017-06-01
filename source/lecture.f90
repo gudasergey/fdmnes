@@ -4782,7 +4782,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           end do
 
           if( angpoldafs(3,ipl) > 9999._db ) then
-            if( ipl == 1 ) write(3,'(/A)') ' DAFS :     Polarization             Wave vector '
+            if( ipl == 1 ) write(3,'(/A)') ' DAFS :       Polarization                Wave vector'
+            write(3,515) hkl_dafs(:,ipl)
             write(3,513) poldafse(1:3,ipl), vecdafsem(1:3,ipl), ' incoming'
             write(3,513) poldafss(1:3,ipl), vecdafssm(1:3,ipl), ' outgoing'
           else
@@ -5737,7 +5738,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   510 format(6x,3f7.3,3x,3f7.3,3x,f7.3,4x,f7.3)
   511 format(/' Bormann',/ '  (h, k, l) = (',i3,',',i3,',',i3,')   Azimuth =',f7.2)
   512 format(7x,5f7.3,3x,5i2,4x,3f9.3)
-  513 format(6x,3f7.3,3x,3f7.3,3x,A)
+  513 format(6x,3f9.5,3x,3f9.5,3x,A)
   515 format(7x,3f7.3,3x,a11,2f10.3,'      scan')
   516 format(7x,3f7.3,3x,a11,'      scan',2f10.3)
   517 format(7x,3f7.3,3x,a11,f10.3,'          scan',f10.3)
