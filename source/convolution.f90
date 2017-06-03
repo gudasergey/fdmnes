@@ -14,15 +14,22 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   use declarations
   implicit none
 
-  integer:: Dafs_exp_type, eof, i, i_conv, ical, icheck, ie, ie1, ie2, ifich, ifichref, igr, ii, initl, initlref, ip, ipar, &
-    ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, j0, je, jfich, jfichref, jpl, js, jseuil, &
-    k, l, Length_line, long, mfich, n, n_col, n_energ_tr, n_selec_core, n_signal, n_Stokes, n1, n2, n3, n4, natomsym, &
+  integer:: Dafs_exp_type, eof, i, i_conv, i_Trunc, ical, icheck, ie, ie1, ie2, ifich, ifichref, igr, ii, initl, initlref, ip, &
+    ipar, ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, j0, je, jfich, jfichref, jpl, js, jseuil, &
+    k, l, Length_line, long, mfich, n, n_col, n_energ_tr, n_selec_core, n_signal, n_Stokes, n_Trunc, n1, n2, n3, n4, natomsym, &
     ncal, ne2, nef, nelor, nemax, nen2, nenerg, nenerge, nes, nfich, &
     nfich_tot, ngamh, ngroup_par, ninit, ninit1, ninitlm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
     npldafs_th, nseuil, numat, nxan, nw
 
 ! njp : Points au dela de la gamme pour diminuer les effets de bord de la convolution
   integer, parameter:: njp = 500
+
+  integer, dimension(3) :: hkl_S
+  integer, dimension(10) :: num_core
+  integer, dimension(ngroup_par) :: npar
+  integer, dimension(ngroup_par,nparm) :: indice_par
+  integer, dimension(:), allocatable:: i_done, indf, ne, ninitl, nphi
+  integer, dimension(:,:), allocatable:: hkl_dafs, nsup, ne_initl
 
   character(len=1):: rep
   character(len=9):: keyword, mot9
@@ -36,17 +43,10 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   complex(kind=db):: cf, zero_c
   complex(kind=db), dimension(1):: cdum
-  complex(kind=db), dimension(:), allocatable :: dampl, dph, dpht, f0, f0_bulk, f0_th
-  complex(kind=db), dimension(:,:), allocatable :: f0scan, f0scan_bulk, phdtscan, Trs
-  complex(kind=db), dimension(:,:,:), allocatable :: Ad, Adafs, As, As_bulk
-  complex(kind=db), dimension(:,:,:,:), allocatable :: mu, mus
-
-  integer, dimension(3) :: hkl_S
-  integer, dimension(10) :: num_core
-  integer, dimension(ngroup_par) :: npar
-  integer, dimension(ngroup_par,nparm) :: indice_par
-  integer, dimension(:), allocatable:: i_done, indf, ne, ninitl, nphi
-  integer, dimension(:,:), allocatable:: hkl_dafs, nsup, ne_initl
+  complex(kind=db), dimension(:), allocatable:: dampl, dph, dpht, f0, f0_bulk, f0_th
+  complex(kind=db), dimension(:,:), allocatable:: f0scan, f0scan_bulk, phdtscan, Trs
+  complex(kind=db), dimension(:,:,:), allocatable:: Ad, Adafs, As
+  complex(kind=db), dimension(:,:,:,:), allocatable:: As_bulk, mu, mus
 
   logical:: Abs_before, Abs_in_bulk, Another_one, Arc, bav_open, Bormann, Dafs, Dafs_bio, Check_conv, chem, Circular, &
     Conv_done, Cor_abs, decferm, Deuxieme, Double_cor, E_cut_man, Energphot, Epsii_ref_man, Extrap, Fermip, First_E, Fit_cal, &
@@ -67,9 +67,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(ngroup_par,nparm) :: param
   real(kind=db), dimension(:), allocatable:: angle, bb, betalor, decal, e1, e2, Efermip, Elor, En_fermi, Energ, &
-        Energ_tr, Ep, Eph1, Ephoton, Es, Eseuil, fi, fr, l_dafs, Length_abs, Length_rel, lori, lorix, lorr, lorrx, & 
+        Energ_tr, Ep, Eph1, Ephoton, Es, Eseuil, fi, fr, l_dafs, Length_abs, lori, lorix, lorr, lorrx, & 
         Pds, p1f, p2f, Tens, V0muf, Ts, Yr, Yi
-  real(kind=db), dimension(:,:), allocatable:: decal_initl, Ef, Epsii, mua_r, mua_i, Signal, Stokes_param, Xa, &
+  real(kind=db), dimension(:,:), allocatable:: decal_initl, Ef, Epsii, Length_rel, mua_r, mua_i, Signal, Stokes_param, Xa, &
                                                Xanes, Xs
   real(kind=db), dimension(:,:,:), allocatable:: Icirc, Icirccor, Icor, Icircdcor, Idcor
 
@@ -715,7 +715,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Trunc(:) = .false.
 
   call Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Epsii,Eseuil,f0_forward,Fichin,Fichscanin,fpp_avantseuil, &
-          fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,ne,nfich,ninit1,ninitl,ninitlm,nphim,npldafs, &
+          fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_Trunc,ne,nfich,ninit1,ninitl,ninitlm,nphim,npldafs, &
           nseuil,numat,nxan,nxan_lib,Scan_true,Self_abs,Signal_Sph,Tenseur,Tenseur_car,Trunc,V0muf,Volume_maille, &
           Volume_maille_bulk)
 
@@ -855,7 +855,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     allocate( f0_bulk(npldafs) )
     f0_bulk(:) = (0._db, 0._db )
     allocate( l_dafs(npldafs) )
-    allocate( Length_rel(npldafs) )
+    allocate( Length_rel(npldafs,n_Trunc) )
     allocate( Length_abs(npldafs) )
   endif
 
@@ -1122,7 +1122,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   allocate( phdtscan(nphim,npldafs) )
   allocate( Xs(nes,nxan) )
   if( Abs_in_bulk ) then
-    allocate( As_bulk(nes,nphim,npldafs) )
+    allocate( As_bulk(nes,nphim,npldafs,n_Trunc) )
     allocate( f0scan_bulk(nphim,npldafs) )
     allocate( Ts(nes) )
   endif
@@ -1192,7 +1192,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   if( Dafs ) As(:,:,:) = (0._db,0._db)
   if( Cor_abs ) mus(:,:,:,:) = (0._db,0._db)
   if( Abs_in_bulk ) then
-    As_bulk(:,:,:) = (0._db,0._db)
+    As_bulk(:,:,:,:) = (0._db,0._db)
     Ts(:) = 0._db
     f0scan_bulk(:,:) = ( 0._db, 0._db )
   endif
@@ -1201,7 +1201,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   phdtscan(:,:) = ( 0._db, 0._db ) 
  
   ifich = 0
+  i_Trunc = 0
   do jfich = 1,mfich
+    if( Trunc(jfich) ) i_Trunc = i_Trunc + 1
     if( run_done(jfich) ) cycle
     ifich = ifich + 1
 
@@ -1256,7 +1258,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           axyz(:) = axyz(:) / bohr
         elseif( Trunc(ifich) ) then
           read(2,*) Length_abs(:)
-          read(2,*) Length_rel(:)
+          read(2,*) Length_rel(:,i_Trunc)
           read(2,*) l_dafs(:)
         endif
       elseif( Tenseur ) then
@@ -1830,7 +1832,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         if( Cor_abs ) mus(ie,:,:,:) = mus(ie,:,:,:) + p2f(ie) * mu(i-1,:,:,:) + p1f(ie) * mu(i,:,:,:)
         if( Trunc(ifich) ) then
           Ts(ie) = Ts(ie) + p2f(ie) * Xanes(i-1,nxan) + p1f(ie) * Xanes(i,nxan)
-          As_bulk(ie,:,:) = As_bulk(ie,:,:) + p2f(ie) * Adafs(i-1,:,:) + p1f(ie) * Adafs(i,:,:)
+          As_bulk(ie,:,:,i_Trunc) = As_bulk(ie,:,:,i_Trunc) + p2f(ie) * Adafs(i-1,:,:) + p1f(ie) * Adafs(i,:,:)
         else
           Xs(ie,:) = Xs(ie,:) + p2f(ie) * Xanes(i-1,:) + p1f(ie) * Xanes(i,:)
         endif
@@ -1858,16 +1860,21 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     Ts(:) = c_micro * ( Ts(:) + mu_0_bulk )
     
     do ipl = 1,npldafs 
-      Trs(:,ipl) = exp( - Ts(:) * Length_rel(ipl) ) / ( 1 - exp( - Ts(:) * Length_abs(ipl) - img * 2 * pi * l_dafs(ipl) ) )
-      do ip = 1,nphi(ipl)
-        As(:,ip,ipl) = As(:,ip,ipl) + Trs(:,ipl) * As_bulk(:,ip,ipl) 
+      Trs(:,ipl) = 1 / ( 1 - exp( - Ts(:) * Length_abs(ipl) - img * 2 * pi * l_dafs(ipl) ) )
+      do i_Trunc = 1,n_Trunc 
+        do ip = 1,nphi(ipl)
+          As(:,ip,ipl) = As(:,ip,ipl) + exp( - Ts(:) * Length_rel(ipl,i_Trunc) ) * Trs(:,ipl) * As_bulk(:,ip,ipl,i_Trunc) 
+        end do
       end do
     end do
     
     if( icheck > 1 ) then
       write(3,'(/a17,1p,e13.5,a14)') ' mu_0_bulk      =', c_micro*mu_0_bulk,' micrometer^-1'
       write(3,'(A/,23x,1p,120e13.5)') ' Length_abs(1,11,...) (micrometer) =', ( Length_abs(i), i = 1,min(npldafs,201), 10 )
-      write(3,'(A/,23x,1p,120e13.5)') ' Length_rel(1,11,...) (micrometer) =', ( Length_rel(i), i = 1,min(npldafs,201), 10 )
+      do i_Trunc = 1,n_Trunc
+        write(3,'(A/,23x,1p,120e13.5)') ' Length_rel(1,11,...) (micrometer) =', &
+                                                                      ( Length_rel(i,i_Trunc), i = 1,min(npldafs,201), 10 )
+      end do
       write(3,'(/A)') '    Energy      Ts       1 - exp(-Ts*Length_abs(i)), i = 1,11,...'
       do ie = 1,nes
         write(3,'(f10.3,1p,121e13.5)') Es(ie)*rydb, Ts(ie), &
@@ -2454,15 +2461,15 @@ end
 ! Reading of dimensions
 
 subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Epsii,Eseuil,f0_forward,Fichin,Fichscanin,fpp_avantseuil, &
-          fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,ne,nfich,ninit1,ninitl,ninitlm,nphim,npldafs, &
+          fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_Trunc,ne,nfich,ninit1,ninitl,ninitlm,nphim,npldafs, &
           nseuil,numat,nxan,nxan_lib,Scan_true,Self_abs,Signal_Sph,Tenseur,Tenseur_car,Trunc,V0muf,Volume_maille, &
           Volume_maille_bulk)
 
   use declarations
   implicit none
 
-  integer:: eof, i, ie, ifich, ipl, ipr, istat, jseuil, Length_line, n, nfich, ninit1, ninitlm, nnombre, nphi, nphim, nphim1, &
-            npldafs, npldafs1, nseuil, numat, nxan, nxan1
+  integer:: eof, i, ie, ifich, ipl, ipr, istat, jseuil, Length_line, n, n_Trunc, nfich, ninit1, ninitlm, nnombre, nphi, &
+            nphim, nphim1, npldafs, npldafs1, nseuil, numat, nxan, nxan1
   integer, dimension(nfich):: ne, ninitl
 
   character(len=13):: nomab
@@ -2476,6 +2483,8 @@ subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Epsii,Eseuil
   real(kind=db):: Eintmax, Eph, f0_forward, fpp_avantseuil, mu_0_bulk, Volume, Volume_maille, Volume_maille_bulk  
   real(kind=db), dimension(ninitlm,nfich):: Epsii
   real(kind=db), dimension(nfich):: En_Fermi, Eph1, Eseuil, V0muf
+
+  n_Trunc = 0
  
   do ifich = 1,nfich
 
@@ -2515,6 +2524,7 @@ subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Epsii,Eseuil
       else
         read(2,*); read(2,*) 
         Trunc(ifich) = .true.
+        n_Trunc = n_Trunc + 1
         Abs_in_bulk = .true.
         mu_0_bulk = fpp_avantseuil
       endif

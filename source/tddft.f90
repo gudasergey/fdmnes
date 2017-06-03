@@ -27,7 +27,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Bulk_step,
           l0_nrixs,ldip,Length_abs,Length_rel,lmax_pot,lmax_nrixs,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua,lseuil, &
           ltypcal,m_g,m_hubb,Magnetic,Matper,Moyenne,mpinodes,mpirank,mpirank0,msymdd,msymddi, &
           msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_0,multi_run,Multipole, &
-          n_bulk_sup,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
+          n_bulk_sup,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_max,n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
           natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ngamh,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlmamax, &
           nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s, &
           nphi_dafs,nphim,npldafs,nplr,nplrm,nq_nrixs,nr,NRIXS,nrm,nseuil,nspin,nspino,nspinp, &
@@ -45,7 +45,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Bulk_step,
   integer:: cal_nenerge, iabsorig, icheck_s, ie, ie_computer, ie_e, initl, iopsymc_25, ip_max, ip0, &
     ir, isp, je, jseuil, l, l0_nrixs, lmax, lmax_pot, lmax_probe, lmax_nrixs, lmaxabs_t, &
     lmaxat0, lseuil,m_hubb, mpinodes, mpirank, mpirank0, multi_0, multi_run, n_bulk_sup, &
-    n_bulk_z, n_bulk_z_max, n_Ec, n_multi_run, n_oo, n_rel, n_rout, n_tens_max, n_V, natomsym, nbseuil, &
+    n_bulk_z, n_bulk_z_max, n_Ec, n_max, n_multi_run, n_oo, n_rel, n_rout, n_tens_max, n_V, natomsym, nbseuil, &
     ncolm, ncolr, ncolt, nd3, nenerg, nenerg_s, nenerg_tddft, nenerge, ngamh, nge, ninit1, ninitl, ninitl_out, &
     ninitlv, nlm, nlm_fp, nlm_pot, nlm_probe, nlm_p_fp, nlmamax, nlms_f, nlms_g, nlmsm_f, &
     nphim, npldafs, nplr, nplrm, nq_nrixs, nr, nrm, ns_dipmag, &
@@ -73,7 +73,8 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Bulk_step,
   complex(kind=db):: f_avantseuil
   complex(kind=db), dimension(3,nplrm):: pol
   complex(kind=db), dimension(natomsym,npldafs):: phdafs
-  complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdt
+  complex(kind=db), dimension(npldafs,nphim):: phdf0t
+  complex(kind=db), dimension(npldafs,nphim,n_max):: phdt
   complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
   complex(kind=db), dimension(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil):: rof0
   complex(kind=db), dimension(3,3,ninitl_out,0:mpinodes-1):: secmd, secmd_m, secmm, secmm_m
@@ -507,7 +508,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Bulk_step,
             E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer,igr_bulk_z,Int_tens, &
             isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodes,multi_0,Multipole,n_bulk_sup, &
-            n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
+            n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nphi_dafs,npldafs, &
             nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
             phdt,pol,poldafse,poldafss,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
@@ -2509,6 +2510,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
   integer, parameter:: lmax_nrixs = 0
   integer, parameter:: n_bulk_z = 0
   integer, parameter:: n_bulk_z_max = 0
+  integer, parameter:: n_max = 0
 
   integer:: i, iabsorig, icheck_s, ie, ie_computer, ie_e, ie_g, ief, ip_max, ip0, &
     iso1, iso2, isp, isp1, isp2, j, je, jef, jseuil, lm1, lm2, lmax, lmax_pot, &
@@ -2541,7 +2543,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
   complex(kind=db):: f_avantseuil
   complex(kind=db), dimension(3,nplrm):: pol
   complex(kind=db), dimension(natomsym,npldafs):: phdafs
-  complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdt
+  complex(kind=db), dimension(npldafs,nphim,n_max):: phdf0t, phdt
   complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
   complex(kind=db), dimension(3,3,n_rel,ninitl_out,0:mpinodes-1):: secdd, secdd_m, secdd_t, secdd_m_t
   complex(kind=db), dimension(3,3,ninitl_out,0:mpinodes-1):: secmd, secmd_m, secmm, secmm_m, &
@@ -3056,7 +3058,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
             E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer,igr_bulk_z,Int_tens, &
             isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodes,multi_0,Multipole,n_bulk_sup, &
-            n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
+            n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nphi_dafs, &
             npldafs,nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
             phdt,pol,poldafse,poldafss,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &

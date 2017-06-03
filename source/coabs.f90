@@ -6,7 +6,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
             E_cut,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft,First_E, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer,igr_bulk_z,Int_tens, &
             isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodee,multi_0,Multipole,n_bulk_sup, &
-            n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
+            n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv,nomfich_s,nphi_dafs,npldafs, &
             nphim,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
             sec_atom,secdd_a,secdd_m_a,secdq_a,secdq_m_a,secdo_a,secdo_m_a, &
@@ -22,7 +22,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
   integer:: he, hs, i, i_bulk_z, ia, iabsorig, ib, ic1, ic2, icheck, icn1, icn2, id, ie, &
     ie_computer, ig, ii, ind_mu, initlr, ip, ipl, ipldafs, iseuil, isp1, isp2, isp3, isp4, ispfg, &
     isym, ixandafs, j, j1, je, jhe, jhs, jpl, js, jseuil, ke, ks, l, ll, long, mpinodee, multi_0, &
-    n_bulk_sup, n_bulk_z, n_bulk_z_max, n_dim, n_tens_max, n_multi_run, n_oo, n_rel, n_tens, n1, n2, na, &
+    n_bulk_sup, n_bulk_z, n_bulk_z_max, n_dim, n_max, n_multi_run, n_oo, n_rel, n_tens, n_tens_max, n1, n2, na, &
     nab, natomsym, nb, nbseuil, nc, nccm, ncolm, ncolr, ncolt, nenerg, ninit1, ninitlr, nl, np, npldafs, &
     nphim, nplt, nplr, nplrm, nseuil, nspin, numat_abs, nxanout, nw
 
@@ -59,7 +59,8 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:mpinodee-1):: secoo_a, secoo_m_a
   complex(kind=db), dimension(npldafs):: phdtem, phdf0t1, phdt1
   complex(kind=db), dimension(3,nplrm):: pol
-  complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdt
+  complex(kind=db), dimension(npldafs,nphim):: phdf0t
+  complex(kind=db), dimension(npldafs,nphim,n_max):: phdt
   complex(kind=db), dimension(natomsym,npldafs):: phdafs
   complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
 
@@ -381,7 +382,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
   end do ! fin boucle initlr
 
   if( Dafs ) then
-    phdt1(:) = phdt(:,1)
+    phdt1(:) = phdt(:,1,1)
     phdf0t1(:) = phdf0t(:,1)
   endif
 
@@ -1299,7 +1300,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
     end do
 
     if( ia == 0 ) then
-      phdtem(:) = phdt(:,1)
+      phdtem(:) = phdt(:,1,i_bulk_z)
     else
       phdtem(:) = phdafs(ia,:)
     endif
@@ -1411,7 +1412,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
           nw = nw + 1
           compnum(nw) = phdf0t(ipl,ip)
           nw = nw + 1
-          compnum(nw) = phdt(ipl,ip)
+          compnum(nw) = phdt(ipl,ip,i_bulk_z)
           if( Dafs_bio ) then
             write(7,420) compnum(1:nw)
           else

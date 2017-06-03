@@ -24,6 +24,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
 
   integer, parameter:: n_bulk_z = 0
   integer, parameter:: n_bulk_z_max = 0
+  integer, parameter:: n_max = 0
 
   integer:: iabsorig, icheck_s, ie, ie_computer, ie_q, ie_s, ie_t, ip_max, ip0, &
     iso1, iso2, isp, isp1, isp2, iss1, iss2, je, jseuil, l0_nrixs, lm1, lm2, lmax, lmax_pot, &
@@ -56,7 +57,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   complex(kind=db):: f_avantseuil
   complex(kind=db), dimension(3,nplrm):: pol
   complex(kind=db), dimension(natomsym,npldafs):: phdafs
-  complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdt
+  complex(kind=db), dimension(npldafs,nphim,n_max):: phdf0t, phdt
   complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
   complex(kind=db), dimension(3,3,n_rel,ninitlr,0:mpinodes-1):: secdd, secdd_m, secdd_t, secdd_m_t
   complex(kind=db), dimension(3,3,ninitlr,0:mpinodes-1):: secmd, secmd_m, secmm, secmm_m, secmd_t, secmd_m_t, secmm_t, secmm_m_t
@@ -336,7 +337,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
             E_cut_optic,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft,First_E, &
             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck_s,ie,ie_computer,igr_bulk_z,Int_tens, &
             isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodes,multi_0,Multipole,n_bulk_sup, &
-            n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
+            n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
             ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv,nomfich_s,nphi_dafs,npldafs, &
             nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
             sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &

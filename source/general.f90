@@ -6182,7 +6182,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
           igreq,Interface_shift, &
           iprabs_nonexc,isigpi,itabs,itypepr,Length_abs,Length_rel,lvval,Magnetic,Mat_or,Mat_UB,mpirank0,n_atom_bulk,n_atom_cap, &
           n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_sur,n_atom_uc,n_bulk_z,n_bulk_z_max, &
-          n_bulk_zc,natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp, &
+          n_bulk_zc,n_max,natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp, &
           nlat,nlatm,nphi_dafs,nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nrato,nrm,nspin,ntype,numat,Operation_mode, &
           Operation_mode_used,Orthmatt,phdafs,phdf0t,phdt,phi_0,Poldafse,Poldafsem,Poldafss,Poldafssm,popatm,posn,posn_bulk, &
           posn_cap,psival,rato,Surface_shift,Taux,Taux_cap,Taux_oc,Temp,Temp_coef,Temperature,Vec_orig,Vecdafse,Vecdafsem, &
@@ -6193,7 +6193,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
 
   integer:: i, ich, icheck, igr, ip, ipl, ipr, iprabs_nonexc, it, itabs, iwrite, j, jgr, kgr, mpirank0, n_atom_bulk, n_atom_cap, &
     n_atom_int, n_atom_per, n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, n_atom_sur, n_atom_uc, n_bulk_z, n_bulk_z_max, &
-    n1_proto, n2_proto, &
+    n_max, n1_proto, n2_proto, &
     natomsym, nbseuil, neqm, ngrm, ngroup, ngroup_m, ngroup_taux, ngroup_temp, ni, nlatm, nphim, npldafs, npldafs_2d, npldafs_e, &
     npldafs_f, nrm, nspin, ntype, Z, Z_abs
 
@@ -6208,9 +6208,11 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
 
   complex(kind=db):: f_avantseuil, cfac, ph, ph_cjg
   complex(kind=db), dimension(3):: vec_a, vec_b, pe, ps
-  complex(kind=db), dimension(npldafs):: phdabs, v_vec_a, v_vec_b
+  complex(kind=db), dimension(npldafs):: v_vec_a, v_vec_b
   complex(kind=db), dimension(npldafs):: Truncation
-  complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdt
+  complex(kind=db), dimension(npldafs,n_max):: phdabs
+  complex(kind=db), dimension(npldafs,nphim):: phdf0t
+  complex(kind=db), dimension(npldafs,nphim,n_max):: phdt
   complex(kind=db), dimension(natomsym,npldafs):: phdafs
   complex(kind=db), dimension(n_atom_proto,npldafs):: phd, phd_f0, phd_f0_cjg, phd_fan_cjg, phd_fan, phd_fmag
   complex(kind=db), dimension(3,npldafs_e):: Poldafsem, Poldafssm
@@ -6485,7 +6487,19 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
 
       end do
       phd(ipr,ipl) = sum( Bragg(1:ngreq(ipr),ipl) )
-      if( ipr == iprabs_nonexc ) phdabs(ipl) = phd(ipr,ipl)
+      if( ipr == iprabs_nonexc ) then
+        if( Bulk_step ) then
+          phdabs(ipl,:) = (0._db,0._db)
+          do i = 1,n_bulk_z
+            do j = 1,n_bulk_zc(i)
+              igr = igr_bulk_z(j,i)
+              phdabs(ipl,i) = phdabs(ipl,i) + Bragg(igr,ipl)
+            end do
+          end do
+        else
+          phdabs(ipl,1) = phd(ipr,ipl)
+        endif
+      endif
 
     end do
 
@@ -6601,10 +6615,10 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
       cfac = sum( conjg( ps(:) ) * pe(:) )
       if( Dafs_bio .and. ip > 2 ) then
         phdf0t(ipl,ip) = cfac * ph_cjg
-        phdt(ipl,ip) = cfac * conjg( phdabs(ipl) )
+        phdt(ipl,ip,:) = cfac * conjg( phdabs(ipl,:) )
       else
         phdf0t(ipl,ip) = cfac * ph
-        phdt(ipl,ip) = cfac * phdabs(ipl)
+        phdt(ipl,ip,:) = cfac * phdabs(ipl,:)
       endif
     end do
     phd_f0(n1_proto:n2_proto,ipl) = cfac * phd_f0(n1_proto:n2_proto,ipl)
@@ -6658,7 +6672,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
     do ipl = 1,npldafs
       do ip = 1,nphi_dafs(ipl)
         phdf0t(ipl,ip) = Phase_bulk(ipl) * phdf0t(ipl,ip)
-        phdt(ipl,ip) = Phase_bulk(ipl) * phdt(ipl,ip)
+        phdt(ipl,ip,:) = Phase_bulk(ipl) * phdt(ipl,ip,:)
       end do
       phdafs(1:natomsym,ipl) = Phase_bulk(ipl) * phdafs(1:natomsym,ipl)
     end do

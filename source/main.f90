@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 31st of May 2017, 12 Prairial, An 225.
+! FDMNES II program, Yves Joly, Oana Bunau, 1st of June 2017, 13 Prairial, An 225.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 31st of May 2017'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 1st of June 2017'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -91,7 +91,6 @@ program fdmnes
             ncalcul, nnombre
 
   character(len=1):: mot1
-  character(len=5):: Solver
   character(len=8):: dat
   character(len=10):: tim
   character(len=11):: fdmfile
