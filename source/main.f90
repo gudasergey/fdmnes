@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 1st of June 2017, 13 Prairial, An 225.
+! FDMNES II program, Yves Joly, Oana Bunau, 12th of June 2017, 24 Prairial, An 225.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 1st of June 2017'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 12th of June 2017'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -242,7 +242,7 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 199
+  integer, parameter:: nkw_fdm = 200
   integer, parameter:: nkw_conv = 33
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 11
@@ -324,7 +324,8 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
      'edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot', &
      'ephot_min','etatlie  ','excited  ','extract  ','extract_t','extractpo','extractsy','fdm_comp ','film     ','film_cif_', &
      'film_pdb_','film_t   ','film_roug','film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ', &
-     'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','hkl_film ', &
+     'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','helmholtz', &
+     'hkl_film ', &
      'hubbard  ','iord     ','kern_fac ','kern_fast','lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden', &
      'ldipimp  ','lmoins1  ','lplus1   ','mat_ub   ','memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism', &
      'molecule ','molecule_','muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_dft   ','no_e1e1  ', &
@@ -1757,8 +1758,6 @@ function traduction(grdat)
       traduction = 'cartesian'
     case('chlibre','freech')
       traduction = 'chlib'
-    case('extractio')
-      traduction = 'extrac'
     case('cristal_c','crystal_c','ciffile')
       traduction = 'cif_file'
     case('icheck')
@@ -1825,6 +1824,8 @@ function traduction(grdat)
       traduction = 'epsii'
     case('enrgphot','energpho')
       traduction = 'energphot'
+    case('extractio')
+      traduction = 'extrac'
     case('lapw','wien')
       traduction = 'flapw'
     case('lapw_s','wien_s','flapw_sau','lapw_sauv','wien_sauv', 'flapw_sav','lapw_save','wien_save')
@@ -1835,6 +1836,8 @@ function traduction(grdat)
       traduction = 'fprime_at'
     case('hedin_lun','hedinlund')
       traduction = 'hedin'
+    case('helm','helmoltz','helmhotz','helmotz')
+      traduction = 'helmholtz'
     case('hubard')
       traduction = 'hubbard'
     case('lmaxat','lmaxat0','lmax_at','lmax_atom')

@@ -876,7 +876,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
               npldafs_t = npldafs_t + 1
             case(8,9,10,11,12,13)
               read(itape4,*) r, r, p(:)
-              if( abs( p(2) ) < eps10 .or. ( grdat(1:6) == 'dafs_2d' .and. n < 12 ) ) then
+              if( abs( p(2) ) < eps10 .or. ( grdat(1:7) == 'dafs_2d' .and. n < 12 ) ) then
                 npldafs_t = npldafs_t + 1
               else
                 n = nint( ( p(3) - p(1) ) / p(2) ) + 1
@@ -1340,7 +1340,8 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Fichier_cif,Fichier_pdb,itape4,
     do igrdat = 1,100000
       read(itape4,'(A)') mot
       grdat = identmot(mot,9)
-      if( grdat(1:7) == 'crystal' .or. grdat(1:7) == 'molecul' .or. grdat(1:4) == 'film' ) exit
+      if( grdat(1:7) == 'crystal' .or. grdat(1:7) == 'molecul' .or. grdat(1:4) == 'film' .or. grdat(1:7) == 'surface' &
+        .or. grdat(1:7) == 'interfa' ) exit
     end do
 
     n = nnombre(itape4,132)
@@ -1503,7 +1504,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk, &
     axyz_cap,axyz_int,axyz_sur, &
     Basereel,Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free, &
-    Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density, &
+    Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Delta_helm,Density, &
     Density_comp,Dip_rel,Dipmag,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
     Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift, &
     Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
@@ -1527,7 +1528,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     roverad,RPALF,rpotmax,rydberg,rsorte_s,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Space_file,Spherical_signal,Spherical_tensor, &
     Spinorbite,state_all,state_all_out,Supermuf,Surface_shift,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef, &
-    Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_hubbard,V_intmax,Vec_orig, &
+    Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_helm,V_hubbard,V_intmax,Vec_orig, &
     Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
 
   use declarations
@@ -1618,9 +1619,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   logical, dimension(0:ntype):: Hubb
 
   real(kind=db):: Alfpot, Ang_borm, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, D_max_pot, Delta_En_conv, &
-    Delta_Epsii, Eclie, Eclie_out, Ephot_min, Film_roughness, Film_thickness, Film_zero, g1, g2, Gamma_max, Kern_fac, &
-    number_from_text, Overlap, p_self_max, p_self0, Pas_SCF, phi, phi_0, pop_nsph, pp, q, &
-    r, r_self, R_rydb, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, V_intmax, vv, z_min
+    Delta_Epsii, Delta_helm, Eclie, Eclie_out, Ephot_min, Film_roughness, Film_thickness, Film_zero, g1, g2, Gamma_max, &
+    Kern_fac, number_from_text, Overlap, p_self_max, p_self0, Pas_SCF, phi, phi_0, pop_nsph, pp, q, &
+    r, r_self, R_rydb, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, V_helm, V_intmax, vv, z_min
 
   real(kind=db), dimension(nq_nrixs):: q_nrixs
   real(kind=db), dimension(2):: f_no_res
@@ -1643,7 +1644,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   real(kind=db), dimension(3,nple):: polar, veconde
   real(kind=db), dimension(3,npldafs):: hkl_dafs
   real(kind=db), dimension(nple,2):: pdpolar
-  real(kind=db), dimension(3,0:ntype) :: Ang_base_loc
+  real(kind=db), dimension(3,0:ntype):: Ang_base_loc
   real(kind=db), dimension(n_file_dafs_exp):: Angle_dafs_exp
   real(kind=db), dimension(n_atom_cap):: Taux_cap
   real(kind=db), dimension(ngroup_taux):: Taux_oc
@@ -1707,6 +1708,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   com(:) = ' Dirac'
   Core_resolved_e = .false.
   Coupelapw = .false.
+  Delta_Helm = 0._db
   Dip_rel = .false.
   E1E1 = .true.;  E1E2e = .false.; E1E3 = .false.
   E1M1 = .false.
@@ -1885,14 +1887,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Tddft = .false.
   Temp = 0._db
   Test_dist_min = 0.7_db * bohr ! distance minimum entre 2 atomes
-  trace_format_wien = .false.
+  Trace_format_wien = .false.
   Trace_k = 0
   Trace_p(:) = 0._db
-  Veconde(:,:) = 0._db
-  V0bdcFimp(:) = 0._db
+  V_intmax = 1000000 * rydb
+  V_helm = 0._db
   V_hubbard(:) = 0._db
-  v_intmax = 1000000 * rydb
+  V0bdcFimp(:) = 0._db
   Vec_orig(1:2) = 0._db; Vec_orig(3) = 1._db
+  Veconde(:,:) = 0._db
   Ylm_comp_inp = .false.
   Z_nospinorbite = 0
 
@@ -2041,6 +2044,18 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           else
             lmax_pot = lmax_pot_default
           endif
+
+        case('helmholtz')
+          n = nnombre(itape4,132)
+          if( n < 2 ) then
+            call write_error
+            do ipr = 6,9,3
+              write(ipr,'(/A/)') ' After keyword "Helmholtz", 2 numbers must be given:'
+              write(ipr,'(/A/)') '     Helmoltz layer potential and Helmoltz layer distance'
+            end do
+            stop
+          endif
+          read(itape4,*,iostat=ier) V_helm, Delta_helm
 
         case('optic')
           Optic = .true.
@@ -4014,6 +4029,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       Bulk = .false.
       Cap_layer = .false.
     endif
+    if( .not. Film .and. Matper ) V_helm = 0._db
+
     if( n_atom_per == 0 ) Film_shift(:) = 0._db
     if( n_atom_int == 0 ) Interface_shift(:) = 0._db
     if( n_atom_sur == 0 ) Surface_shift(:) = 0._db
@@ -4691,7 +4708,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           if( Noncentre ) write(3,'(A)') '   Non centered absorbing atom'
           if( sum( abs(Centre(:)) ) > epspos ) write(3,470) Centre(:)
           if( .not. Eneg_i ) write(3,480) Eclie, Eclie_out
-          if( v_intmax < 100000._db ) write(3,490) V_intmax
+          if( V_intmax < 100000._db ) write(3,490) V_intmax
         endif
       endif
       if( Renorm ) then
@@ -5014,6 +5031,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         endif
 
 ! About potential
+        if( abs( V_helm ) > eps10 ) write(3,650) V_helm, Delta_helm
         if( Flapw ) then
           if( Hedin .or. Perdew ) then
             write(3,'(/A)') ' FLAPW potential energy dependant'
@@ -5151,6 +5169,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Dafs,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Delta_Epsii,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Delta_En_conv,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
+    call MPI_Bcast(Delta_helm,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Density,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Density_comp,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Dipmag,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
@@ -5332,6 +5351,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Taux_oc,ngroup_taux,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Vec_orig,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(V_intmax,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(V_helm,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(V_hubbard,ntype+1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(V0bdcFimp,nspin,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
     if( nple > 0 ) call MPI_Bcast(Veconde,3*nple,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
@@ -5435,6 +5455,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   D_max_pot = D_max_pot / bohr
   Delta_En_conv = Delta_En_conv / Rydb
   Delta_Epsii = Delta_Epsii / Rydb
+  Delta_helm = Delta_helm / bohr
   dpos(:) = dpos(:) / bohr
   E_adimp(:) = E_adimp(:) / Rydb
   E_max_range(:) = E_max_range(:) / Rydb
@@ -5465,6 +5486,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Surface_shift(1:3) = Surface_shift(1:3) / bohr
   Surface_shift(4) = Surface_shift(4) * radian
   Test_dist_min = Test_dist_min / bohr
+  V_helm = V_helm / Rydb
   V_intmax = V_intmax / Rydb
   if( Hubbard ) V_hubbard(:) = V_hubbard(:) / Rydb
   V0bdcFimp(:) = V0bdcFimp(:) / Rydb
@@ -5770,6 +5792,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   620 format(/1x,a5,' : '/,'   a, b, c =',3f12.7,/'   alfa, beta, gamma =',3f9.3)
   630 format(i5,3f15.10,f15.5)
   640 format(' Cap ',a9,' = ',f10.5,' A')
+  650 format(/' V_helm =',f10.5,' eV,  Delta_helm =',f10.5,' A')
   660 format(/' Xalfa potential , Xalfa =',f8.5)
   670 format(' Full potential inside the atomic spheres with lmax =',i2)
   680 format('   E_imag =',f9.3,' eV')

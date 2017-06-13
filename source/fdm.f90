@@ -78,9 +78,9 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   logical, dimension(:), allocatable:: Atom_with_axe, Atom_nsph_e, Hubb, ok, Run_done, Skip, Skip_run
 
   real(kind=db):: alfpot, Ang_borm, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, &
-     D_max_pot, Delta_edge, Delta_En_conv, Delta_Epsii, E_cut_imp, Ecent, Eclie, Eclie_out, Elarg, &
+     D_max_pot, Delta_edge, Delta_En_conv, Delta_Epsii, Delta_helm, E_cut_imp, Ecent, Eclie, Eclie_out, Elarg, &
      Ephot_min, Estart, Film_roughness, Film_thickness, Gamma_max, Kern_fac, overlap, p_self_max, p_self0, p_z1, p_z2, Pas_SCF, &
-     phi_0, R_rydb, R_self, Roverad, Rpotmax, Rtph, Temp, Test_dist_min, V_intmax, &
+     phi_0, R_rydb, R_self, Roverad, Rpotmax, Rtph, Temp, Test_dist_min, V_helm, V_intmax, &
      dwfactor, tdebye, tmeas, expntlA, expntlB, victA, victB
 
   real(kind=db), dimension(2):: f_no_res
@@ -250,7 +250,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
     Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk, &
     axyz_cap,axyz_int,axyz_sur, &
     Basereel,Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free, &
-    Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Density, &
+    Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Delta_helm,Density, &
     Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
     Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift, &
     Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
@@ -274,7 +274,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
     roverad,RPALF,rpotmax,Rydberg,Rsorte_s,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Space_file,Spherical_signal,Spherical_tensor, &
     Spinorbite,State_all,State_all_out,Supermuf,Surface_shift,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef, &
-    Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_hubbard,V_intmax,Vec_orig, &
+    Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_helm,V_hubbard,V_intmax,Vec_orig, &
     Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
 
 !*** JDB Sept. 2016
@@ -550,7 +550,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
       axyz_cap,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur, &
       Basereel,Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil, &
       Charge_free,Classic_irreg,Clementi,Com,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_edge,Delta_En_conv, &
-      Delta_Epsii,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_cut_man,E_radius, &
+      Delta_Epsii,Delta_helm,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_cut_man,E_radius, &
       E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Estart, &
       Extract,Extract_ten,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Flapw,Flapw_new, &
       Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s, &
@@ -574,7 +574,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
       roverad,RPALF,rpotmax,Rydberg,Rsorte_s,SCF_log,Self_abs,Skip, &
       Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spinorbite,State_all,State_all_out,Supermuf,Surface_shift,Symmol, &
       Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef,Temperature,Tensor_imp,Test_dist_min,Time_rout,Trace_format_wien, &
-      Trace_k,Trace_p,V_hubbard,V_intmax,Vec_orig,Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym, &
+      Trace_k,Trace_p,V_helm,V_hubbard,V_intmax,Vec_orig,Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym, &
       Wien_save,Wien_taulap,Xan_atom,xsect_file,Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
 
 ! -------------------------------------------------------------------------------------------------------------------------------------------
@@ -727,7 +727,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       axyz_cap,axyz_int,axyz_sur,Base_ortho_int, Base_ortho_sur, &
       Basereel,Bormann,Bulk,Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil, &
       Charge_free,Classic_irreg,Clementi,Com,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_edge,Delta_En_conv, &
-      Delta_Epsii,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_cut_man,E_radius, &
+      Delta_Epsii,Delta_helm,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_cut_man,E_radius, &
       E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Estart, &
       Extract,Extract_ten,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Flapw,Flapw_new, &
       Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s, &
@@ -751,7 +751,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       roverad,RPALF,rpotmax,Rydberg,Rsorte_s,SCF_log,Self_abs,Skip, &
       Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spinorbite,State_all,State_all_out,Supermuf,Surface_shift,Symmol, &
       Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef,Temperature,Tensor_imp,Test_dist_min,Time_rout,Trace_format_wien, &
-      Trace_k,Trace_p,V_hubbard,V_intmax,Vec_orig,Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym, &
+      Trace_k,Trace_p,V_helm,V_hubbard,V_intmax,Vec_orig,Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym, &
       Wien_save,Wien_taulap,Xan_atom,xsect_file,Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
 
   use declarations
@@ -786,7 +786,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     nphiato1, nphiato7, nphim, npldafs, npldafs_2d, npldafs_e, npldafs_f, nple, nplr, nplrm, npoint, npoint_ns, npr, &
     npso, npsom, nptmoy, nptmoy_out, nq_nrixs, nr, nrato_abs, nrato_dirac, nrm, nrm_self, ns_dipmag, nself, nseuil, nslapwm, &
     nso1, nsort, nsortf, nsm, nspin, nspino, nspinp, nspinorb, nstm, ntype, numat_abs, nvois, nx, &
-    nxanout, Trace_k, Wien_save, Z, Z_nospinorbite
+    nxanout, Trace_k, Trace_l, Wien_save, Z, Z_nospinorbite
 
   integer, dimension(3):: hkl_ref, ldip
   integer, dimension(12):: Tensor_imp
@@ -882,14 +882,14 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
   real(kind=db):: adimp, alfpot, Cal_Volume_maille, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, &
     Chargm, d_ecrant, D_max_pot, Delta_bulk, Delta_cap, &
-    Delta_E_conv, Delta_edge, Delta_En_conv, Delta_energ, Delta_energ_s, Delta_energ_t, Delta_Epsii, &
-    Delta_Eseuil, Delta_film, Delta_int, Delta_roughness_film, Delta_sur, delta_z_bottom_cap, delta_z_top_cap, delta_z_top_film, &
+    Delta_E_conv, Delta_edge, Delta_En_conv, Delta_energ, Delta_energ_s, Delta_energ_t, Delta_Epsii, Delta_Eseuil, &
+    Delta_film, Delta_helm, Delta_int, Delta_roughness_film, Delta_sur, delta_z_bottom_cap, delta_z_top_cap, delta_z_top_film, &
     E, E_cut, E_cut_imp, E_Fermi, E_Open_val, E_Open_val_exc, E_start, &
     E_zero, Ecent, Ecineticmax, Ecineticmax_out, Eclie, Eclie_out, Ecmax, Ecmax_out, Ei0, Eii, Elarg, Em, En_cluster, &
     En_cluster_s, Enervide, Enragr, Ephot_min, Epsii_moy, Estart, Extract_E_cut, Extract_E_Fermi, Extract_V0bdcF, Film_roughness, &
     Film_thickness, Gamma_max, Kern_fac, overlap, p_self, p_self_max, p_self0, p_z1, p_z2, Pas_SCF, phi_0, R_rydb, R_self, Rmax, &
     Rmtg_abs, Rmtsd_abs, Roverad, Rpotmax, rsbdc, rsbdc_out, Rsort, Rsorte, &
-    Temp, Test_dist_min, Time_fill, Time_tria, tp_SCF_1, tp_SCF_2, tp_XANES_1, tp_XANES_2, V_intmax, V0muf, &
+    Temp, Test_dist_min, Time_fill, Time_tria, tp_SCF_1, tp_SCF_2, tp_XANES_1, tp_XANES_2, V_helm, V_helm_t, V_intmax, V0muf, &
     Vhbdc, Vhbdc_init, Vhbdc_out, Volume_maille, Vsphere, Vsphere_cal, Workf, Workf_i, Workf_val
 
   real(kind=db), dimension(2):: chg_open_val, f_no_res, pop_open_val
@@ -1135,6 +1135,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     Bulk_step = Bulk .and.  iabsorbeur > ngroup - n_atom_bulk
     Sym_2D = iabsorbeur > n_atom_per .and. .not. Bulk_step
 
+    if( Sym_2D .or. .not. Matper ) then
+      V_helm_t = V_helm
+    else
+      V_helm_t = 0._db
+    endif
     call init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Flapw,Force_ecr,Hubb,iabsorbeur, &
       iabsorig(multi_run),icheck(4),icom,igreq,iprabs,iprabs_nonexc,itabs,itype,itype_dop,itypepr,jseuil,lcoeur,lecrantage, &
       lseuil,lvval,mpinodee0,mpirank0,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage,neqm,ngreq,ngroup,nlat,nlatm, &
@@ -1607,14 +1612,14 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
         endif
 
         call potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
-          chargat_self,drho_ex_nex,dv_ex_nex,dvc_ex_nex,Excato,Full_atom,hybrid,i_self, &
+          chargat_self,Delta_helm,drho_ex_nex,dv_ex_nex,dvc_ex_nex,Excato,Full_atom,hybrid,i_self, &
           ia_eq_inv,ia_eq_inv_self,iaabs,iaproto,iaprotoi,iapot,icheck,igreq,igroup,iprabs_nonexc,ipr1,itab,itdil, &
           itypei,itypep,itypepr,ldil,lmax_pot,lvval,Magnetic,mpirank0,n_atom_0,n_atom_0_self,n_atom_ind, &
           n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,neqm,ngreq,ngroup_m,ngroup_nonsph, &
           nhybm,nlat,nlatm,nlm_pot,Nonexc,Nonsph,norbdil,norbv,normrmt,npoint,npoint_ns,npsom,nrato,nrm,nrm_self,nspin, &
           ntype,numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self,psival,rato,rchimp,rho,rho_chg, &
           rho_self,rhoato,rhoato_init,rhoit,rhons,Rmtg,Rmtimp,Rmtg0,Rmtsd,Rot_Atom_gr,Rot_int,rs,rsato, &
-          rsort,SCF,Self_nonexc,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp(1),xyz, &
+          rsort,SCF,Self_nonexc,Sym_2D,V_helm_t,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp(1),xyz, &
           i_range)
 
 ! Initialisation de rho_self, une fois avoir calcule le nouveau potentiel en potsup.
@@ -1824,11 +1829,18 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
               Enervide = Energ(ie)
             endif
 
+            ich = min( icheck(16), icheck(27) )
+            if( ich < 2 .and. ie > 1 ) then
+              Trace_l = 0
+            else
+              Trace_l = Trace_k
+            endif
+
 ! Potentiel calculation in the excited state
             call potex(Nonsph,axyz,alfpot,dV0bdcF,Energ(ie),Enervide,Full_atom, &
-              iaabsi,iapot,iaprotoi,icheck(16),iprabs_nonexc,iprabs,itab,itypepr,Magnetic, &
+              iaabsi,iapot,iaprotoi,ich,iprabs_nonexc,iprabs,itab,itypepr,Magnetic, &
               n_atom_0,n_atom_ind,n_atom_proto,n_vr_0,n_vr_ind,natome,nlm_pot,Nonexc_g,npoint,npoint_ns,npsom,nptmoy, &
-              nptmoy_out,nrato,nrm,nspin,ntype,Optic,rato,rho,rhons,Rmtg,rs,rsato,rsbdc,rsbdc_out,Trace_k,Trace_p, &
+              nptmoy_out,nrato,nrm,nspin,ntype,Optic,rato,rho,rhons,Rmtg,rs,rsato,rsbdc,rsbdc_out,Trace_l,Trace_p, &
               V_intmax,Vcato,Vh,Vhbdc,Vhbdc_out,Vhns,Vr,Vxc,VxcbdcF,VxcbdcF_out,Vrato,Vxcato,V0bdc,V0bdc_out,xyz)
 
             do ispin = 1,nspin
@@ -1836,15 +1848,15 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
               V0bdc_out(ispin) = V0bdc(ispin)
 
               if( Muffintin ) call mdfmuf(Nonsph,Axe_Atom_gr,axyz, &
-                Full_atom,iaabs,iaproto,iaprotoi,icheck(16),igreq,igroup,ispin,itypep,n_atom_0,n_atom_ind, &
+                Full_atom,iaabs,iaproto,iaprotoi,ich,igreq,igroup,ispin,itypep,n_atom_0,n_atom_ind, &
                 n_atom_proto,natome,natomp,neqm,ngroup_m,nlm_pot,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,pos,rato,rho, &
-                rhons,Rmtg,Trace_k,Trace_p,Vhns,V0bdc(ispin),Vr,Vrato,xyz)
+                rhons,Rmtg,Trace_l,Trace_p,Vhns,V0bdc(ispin),Vr,Vrato,xyz)
 
-              if( Supermuf ) call modmuf(Full_atom,iaprotoi,itypepr,icheck(16), &
+              if( Supermuf ) call modmuf(Full_atom,iaprotoi,itypepr,ich, &
                 ispin,n_atom_0,n_atom_ind,n_atom_proto,natome,nlm_pot,nrato,nrm,nspin,ntype,rato,Rmtg,V0bdc(ispin),Vrato)
 
               if( .not. Green .and. ( Spinorbite .or. Relativiste ) ) &
-                call gradpot(Base_hexa,cgrad,gradvr,icheck(16),iord,ispin,ivois,nicm,npoint,npsom,nspin,nvois,Vr)
+                call gradpot(Base_hexa,cgrad,gradvr,ich,iord,ispin,ivois,nicm,npoint,npsom,nspin,nvois,Vr)
 
               Ecinetic_out(ispin) = Enervide - V0bdc_out(ispin)
               Ecinetic(ispin) = Enervide - V0bdc(ispin)
@@ -2687,14 +2699,14 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           if( .not. Self_cons ) allocate( posi_self(3,natome) )
 
           call potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
-            chargat_self,drho_ex_nex,dv_ex_nex,dvc_ex_nex,Excato,Full_atom,hybrid,i_self, &
+            chargat_self,Delta_helm,drho_ex_nex,dv_ex_nex,dvc_ex_nex,Excato,Full_atom,hybrid,i_self, &
             ia_eq_inv,ia_eq_inv_self,iaabs,iaproto,iaprotoi,iapot,icheck,igreq,igroup,iprabs_nonexc,ipr1,itab,itdil, &
             itypei,itypep,itypepr,ldil,lmax_pot,lvval,Magnetic,mpirank0,n_atom_0,n_atom_0_self,n_atom_ind, &
             n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,neqm,ngreq,ngroup_m,ngroup_nonsph, &
             nhybm,nlat,nlatm,nlm_pot,Nonexc,Nonsph,norbdil,norbv,normrmt,npoint,npoint_ns,npsom,nrato,nrm,nrm_self,nspin, &
             ntype,numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self,psival,rato,rchimp,rho,rho_chg, &
             rho_self,rhoato,rhoato_init,rhoit,rhons,Rmtg,Rmtimp,Rmtg0,Rmtsd,Rot_Atom_gr,Rot_int,rs,rsato, &
-            rsort,SCF,Self_nonexc,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp(1),xyz, &
+            rsort,SCF,Self_nonexc,Sym_2D,V_helm_t,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp(1),xyz, &
             i_range)
 
           if( .not. Self_cons ) deallocate( posi_self )
@@ -3010,6 +3022,12 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             Enervide = Energ(ie) + E_Fermi
           endif
 
+          if( icheck(16) < 2 .and. ie > 1 ) then
+            Trace_l = 0
+          else
+            Trace_l = Trace_k
+          endif
+
 ! Calculation of potential in the excited state
           if( Extract ) then
             call E_reading(icheck(19),Eimag(ie),Energ(ie),ie,multi_run,nom_fich_extract)
@@ -3020,7 +3038,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             call potex(Nonsph,axyz,alfpot,dV0bdcF,Energ(ie),Enervide,Full_atom, &
               iaabsi,iapot,iaprotoi,icheck(16),iprabs_nonexc,iprabs,itab,itypepr,Magnetic, &
               n_atom_0,n_atom_ind,n_atom_proto,n_vr_0,n_vr_ind,natome,nlm_pot,Nonexc_g,npoint,npoint_ns,npsom,nptmoy, &
-              nptmoy_out,nrato,nrm,nspin,ntype,Optic,rato,rho,rhons,Rmtg,rs,rsato,rsbdc,rsbdc_out,Trace_k,Trace_p, &
+              nptmoy_out,nrato,nrm,nspin,ntype,Optic,rato,rho,rhons,Rmtg,rs,rsato,rsbdc,rsbdc_out,Trace_l,Trace_p, &
               V_intmax,Vcato,Vh,Vhbdc,Vhbdc_out,Vhns,Vr,Vxc,VxcbdcF,VxcbdcF_out,Vrato,Vxcato,V0bdc,V0bdc_out,xyz)
           endif
 
@@ -3033,7 +3051,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
               if( Muffintin ) call mdfmuf(Nonsph,Axe_Atom_gr,axyz, &
                 Full_atom,iaabs,iaproto,iaprotoi,icheck(16),igreq,igroup,ispin,itypep,n_atom_0,n_atom_ind, &
                 n_atom_proto,natome,natomp,neqm,ngroup_m,nlm_pot,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,pos,rato,rho, &
-                rhons,Rmtg,Trace_k,Trace_p,Vhns,V0bdc(ispin),Vr,Vrato,xyz)
+                rhons,Rmtg,Trace_l,Trace_p,Vhns,V0bdc(ispin),Vr,Vrato,xyz)
 
               if( Supermuf ) call modmuf(Full_atom,iaprotoi,itypepr,icheck(16), &
                 ispin,n_atom_0,n_atom_ind,n_atom_proto,natome,nlm_pot,nrato,nrm,nspin,ntype,rato,Rmtg,V0bdc(ispin),Vrato)
