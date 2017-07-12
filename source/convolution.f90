@@ -563,7 +563,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         read(itape1,*,iostat=eof) num_core(1:n_selec_core)
         if( eof > 0 ) call write_err_form(itape1,keyword)
 
-      case('surface')
+      case('surface_p')
         n = nnombre(itape1,132)
         read(itape1,*,iostat=eof) hkl_S(:)
         if( eof > 0 ) call write_err_form(itape1,keyword)
@@ -2341,15 +2341,21 @@ end
       if( convolution_out(l-3:l) /= '.txt' ) convolution_out(l+1:l+4) = '.txt'  
     endif
 
-    l = len_trim( convolution_out )
-
     do ifich = 1,nfich
       if( nfich == 1 ) exit
       mot = convolution_out
-      mot(l-3:l) = '_   '
-      call ad_number(ifich,mot,132)
-      l = len_trim( mot )
-      mot(l+1:l+4) = '.txt' 
+      l = len_trim( convolution_out )
+      if( convolution_out(l-8:l) == '_conv.txt' ) then
+        mot(l-7:l) = '        '
+        call ad_number(ifich,mot,132)
+        l = len_trim( mot )
+        mot(l+1:l+9) = '_conv.txt' 
+      else
+        mot(l-3:l) = '_   '
+        call ad_number(ifich,mot,132)
+        l = len_trim( mot )
+        mot(l+1:l+4) = '.txt'
+      endif 
       convolution_out_all(ifich) = mot
     end do
     

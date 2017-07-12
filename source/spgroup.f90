@@ -378,19 +378,19 @@ subroutine findop(line,matrix)
 
     select case( line(ibegin:ifin) )
 
-      case('x')
+      case('x','+x')
         Matrix(i,1) = 1._db
 
       case('-x')
         Matrix(i,1) = -1._db
 
-      case('y')
+      case('y','+y')
         Matrix(i,2) = 1._db
 
       case('-y')
         Matrix(i,2) = -1._db
 
-      case('z')
+      case('z','+z')
         Matrix(i,3) = 1._db
 
       case('-z')

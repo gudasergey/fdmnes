@@ -11371,8 +11371,8 @@ end
 
 subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_clu,dista, &
            distai,Full_atom,Green,hubbard,i_self,ia_eq,ia_eq_inv,ia_rep,iaabs,iaabsi,iabsorbeur,iaproto,iaprotoi,icheck,igreq, &
-           igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,ipr0,is_eq,itype,itypei,itypep,itypepr,magnetic,m_hubb, &
-           m_hubb_e,mpirank0,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,nb_eq,nb_rpr, &
+           igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,ipr0,is_eq,isymeq,itype,itypei,itypep,itypepr,magnetic, &
+           m_hubb,m_hubb_e,mpirank0,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,natomsym,nb_eq,nb_rpr, &
            nb_rep_t,nb_sym_op,neqm,ngreq,ngroup,ngroup_hubb,ngroup_m,nlat,nlatm,nspin,nspinp,ntype,numat,nx,occ_hubb_e,overad, &
            popats,pos,posi,rmt,rot_atom,roverad,rsort,rsorte,Spinorbite,Symmol,V_hubb,V_hubbard,Ylm_comp)
 
@@ -11383,10 +11383,11 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
 
   integer:: i, i_self, ia, ia1, ia2, iaabs, iaabsi, iabsorbeur, iapr, ib, icheck, ie, ig, iga, igr, igrpt_nomag, igrpt0, &
      ind_rep, iord, ipr, ipr0, is, isp, isym, it, it1, it2, j, js, l, l_hubbard, m, m_hubb, mp, m_hubb_e, mpirank0, &
-     n_atom_0_self, n_atom_ind_self, n_atom_proto, na_ligne, na1, na2, natome, natomeq, natomp, &
+     n_atom_0_self, n_atom_ind_self, n_atom_proto, na_ligne, na1, na2, natome, natomeq, natomp, natomsym, &
      nb_sym_op, neqm, ngroup, ngroup_hubb, ngroup_m, nlatm, nspin, nspinp, ntype, nx
 
   integer, dimension(nopsm):: iopsyma, iopsym_abs, iopsymr
+  integer, dimension(natomsym):: isymeq
   integer, dimension(nopsm,natome):: iopsym_atom
   integer, dimension(natome):: iaprotoi, iatomp, igroupi, igrpt, itypei, nb_eq
   integer, dimension(0:n_atom_proto,neqm):: igreq
@@ -11446,19 +11447,45 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     distai(ib) = dista(ia)
   end do
 
-  do ipr = ipr0,n_atom_proto
-    if( igreq(ipr,1) == iabsorbeur ) exit
-  end do
-
-  boucle_ia: do ia = 1,natome
-    if( iaprotoi(ia) /= ipr ) cycle
+  boucle_ipr: do ipr = ipr0,n_atom_proto
     do igr = 1,ngreq(ipr)
+      if( igreq(ipr,igr) == iabsorbeur ) exit boucle_ipr
+    end do
+  end do boucle_ipr
+
+  boucle_igr: do igr = 1,ngreq(ipr)
+    do ia = 1,natome
+      if( iaprotoi(ia) /= ipr ) cycle
       if( igreq(ipr,igr) == igroupi(ia) ) then
+        if( igr > 1 .and. isymeq(1) /= isymeq(igr) ) then
+          call write_error
+          do ipr = 3,9,3
+            write(ipr,120)
+          end do
+          stop
+        endif
         iaabsi = ia
-        exit boucle_ia
+        exit boucle_igr
       endif
     end do
-  end do boucle_ia
+  end do boucle_igr
+
+!  boucle_ia: do ia = 1,natome
+!    if( iaprotoi(ia) /= ipr ) cycle
+!    do igr = 1,ngreq(ipr)
+!      if( igreq(ipr,igr) == igroupi(ia) ) then
+!        if( igr > 1 .and. isymeq(1) /= isymeq(igr) ) then
+!          call write_error
+!          do ipr = 3,9,3
+!            write(ipr,120)
+!          end do
+!          stop
+!        endif
+!        iaabsi = ia
+!        exit boucle_ia
+!      endif
+!    end do
+!  end do boucle_ia
 
   if( Atom_occ_mat .and. hubbard .and. i_self == 1 ) then
     V_hubb(:,:,:,:,:) = ( 0._db, 0._db )
@@ -11731,6 +11758,8 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
 
   return
   110 format(/' ---- Atom_selec --',100('-'))
+  120 format(/' When choosing an absorbig atom with keyword "absorber", one must choose the first one ',/ &
+              ' among the equivalent ones by symmetry, as it can be seen under "Symsite" in the bav file !',/)
   130 format(/' Atome',i4,', with working cluster sub-point group')
   140 format(/'  Rsort = ',f8.3,' A')
   150 format('  nx =',i4)

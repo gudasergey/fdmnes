@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 12th of June 2017, 24 Prairial, An 225.
+! FDMNES II program, Yves Joly, Oana Bunau, 12th of July 2017, 24 Messidor, An 225.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 12th of June 2017'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 12th of July 2017'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -310,10 +310,10 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
      'imfpin   ','elfin    ','dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
      'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/
 
-  data kw_conv / 'abs_befor','all_conv ','cal_tddft','calculati','circular ', 'conv_out ','convoluti','dafs_exp_','dead_laye', &
+  data kw_conv / 'abs_befor','all_conv ','cal_tddft','calculati','circular ','conv_out ','convoluti','dafs_exp_','dead_laye', &
      'dec      ','directory','double_co','eintmax  ','epsii    ','forbidden','fprime   ', &
-     'gamma_fix','gamma_var','gaussian ','no_extrap','nxan_lib ', 'photo_emi','s0_2     ','selec_cor','scan     ', &
-     'scan_conv','scan_file','seah     ','stokes   ','stokes_na', 'surface  ','table    ','thomson  '/
+     'gamma_fix','gamma_var','gaussian ','no_extrap','nxan_lib ','photo_emi','s0_2     ','selec_cor','scan     ', &
+     'scan_conv','scan_file','seah     ','stokes   ','stokes_na','surface_p','table    ','thomson  '/
 
   data kw_fdm/  &
      'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_conf','atom_nsph','ang_spin ','atomic_sc', &
@@ -1972,6 +1972,8 @@ function traduction(grdat)
       traduction = 'z_absorbe'
 
 ! Convolution
+    case('conv_all')
+      traduction = 'all_conv'
     case('arc')
       traduction = 'convoluti'
     case('resolutio','gaus','gauss')
