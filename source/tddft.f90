@@ -66,7 +66,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Bulk_step,
   integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
 
   character(len=132):: nomfich, nomfich_s, xsect_file
-  character(len=13), dimension(nplrm):: ltypcal
+  character(len=5), dimension(nplrm):: ltypcal
   character(len=length_word), dimension(ncolm):: nomabs
   character(len=132), dimension(n_multi_run+n_bulk_sup):: nomfich_cal_tddft_conv
 
@@ -2536,7 +2536,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
   integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
 
   character(len=132):: nomfich, nomfich_s
-  character(len=13), dimension(nplrm):: ltypcal
+  character(len=5), dimension(nplrm):: ltypcal
   character(len=length_word), dimension(ncolm):: nomabs
   character(len=132), dimension(n_multi_run+n_bulk_sup):: nomfich_cal_tddft_conv
 

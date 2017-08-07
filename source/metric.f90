@@ -36,7 +36,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
   integer, dimension(:), allocatable:: np, numcol2
   integer, dimension(:,:), allocatable:: npf, npfile, numcol, numlincom
 
-  logical Cal_D2, Cal_Rx, Cal_Rxg, Dafs_bio, detail, fit_cal, Fit_Rx, kev, Met_min_g, Print_all
+  logical:: Cal_D2, Cal_Rx, Cal_Rxg, Dafs_bio, detail, fit_cal, Fit_Rx, kev, Met_min_g, Simple_comp, Print_all
   logical, dimension(nmetricm) :: Met_min
 
   real(kind=db):: a, b, c, ci, ci00, de, E0, Emaxdec, Emindec, &
@@ -54,7 +54,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
 !--- Entrees -----------------------------------------------------
 
   ndm = 1
-  emindec = 0._db
+  Emindec = 0._db; Emaxdec = 0._db; Pas_shift = 0._db
   index_Rxg = 0
   Cal_D2 = .false.
   Cal_Rx = .true.
@@ -63,6 +63,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
 
   kev = .false.
   detail = .false.
+  Simple_comp = .false.
 
   Rewind(itape2)
 
@@ -125,6 +126,36 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
           endif
         end do
 
+      case('file_met')
+        Simple_comp = .true.
+        do i = 1,2
+          mot = ' '
+          read(itape2,'(A)') mot
+          if( mot(1:1) == ' ' ) mot = adjustl( mot )
+          l = len_trim(mot)
+          if( l > 4 ) then
+           if( mot(l-3:l-3) /= '.' ) mot(l+1:l+4) = '.txt'
+          endif
+          File_dat(1,i) = mot
+          if( i == 2 ) then
+            open(99,file = File_dat(1,i),status = 'old', iostat = istat)
+            if( istat /= 0 ) call write_open_error(File_dat(1,i),istat,1)
+            read(99,*)
+            n = nnombre(99,132000) - 1
+            if( n /= ng ) then
+              call write_error
+              do ipr = 6,9,3
+                write(ipr,115) n, ng
+              end do
+              stop
+            endif
+            Close(99)
+          endif
+          do ig = 1,ng
+            numcol(ig,:) = 1 + ig
+          end do
+        end do
+
       case('gen_shift')
 
         n = nnombre(itape2,132)
@@ -175,6 +206,10 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
         n = nnombre(itape2,132)
         read(itape2,'(A)') fdmfit_out
         fdmfit_out = adjustl( fdmfit_out )
+        l = len_trim(fdmfit_out)
+        if( l > 4 ) then
+          if( fdmfit_out(l-3:l-3) /= '.' ) fdmfit_out(l+1:l+4) = '.txt'
+        endif 
 
       case('rxg')
         Cal_Rxg = .true.
@@ -247,9 +282,9 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
   RapIntegrT(:,:) = 0
   RapMoy(:) = 0
 
-  if( ndm > 1 ) pas_shift = (emaxdec - emindec) / (ndm - 1 )
+  if( ndm > 1 ) pas_shift = ( Emaxdec - Emindec ) / (ndm - 1 )
   do id = 1,ndm
-    decalE(id) = emindec + ( id - 1 ) * pas_shift
+    decalE(id) = Emindec + ( id - 1 ) * pas_shift
   end do
 
 !--- Lecture -----------------------------------------------------
@@ -293,8 +328,13 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
           npm = max( npm, npfile(i_data,ifich) )
         else
           ig = i_data
-          npf(ig,ifich) = i - 1
-          npm = max( npm, npf(ig,ifich) )
+          if( Simple_comp ) then
+            npf(:,ifich) = i - 1
+            npm = max( npm, i - 1 )
+          else
+            npf(ig,ifich) = i - 1
+            npm = max( npm, npf(ig,ifich) )
+          endif
         endif
       endif
       if( .not. (fit_cal .and. ifich == 2) ) close(ipr)
@@ -352,7 +392,11 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
           Rewind(ipr)
         else
           ipr = 2
-          open(ipr,file=File_dat(ig,ifich),status='old', iostat=istat)
+          if( Simple_comp ) then
+            open(ipr,file = File_dat(1,ifich),status='old', iostat=istat)
+          else
+            open(ipr,file = File_dat(ig,ifich),status='old', iostat=istat)
+          endif
           if( istat /= 0 ) call write_open_error(File_dat(ig,ifich),istat,1)
         endif
         do i = 1, numlincom(ig,ifich)
@@ -875,6 +919,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
 
   return
   110 format(///' Number of column must be greater than 1, first is', ' the energy'///)
+  115 format(///' There is not the same number of columns in the 2 files:',i4,' and',i4,' !'///)
   120 format(///' Unknown keyword in the indata file :'//1x,A)
   125 format(///' In then metric calculation, there is no overlap',/ &
   ' between the energy ranges of the experiment and the', ' calculation !'/,' Check the keywords Emin, Emax, the energy', &

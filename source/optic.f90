@@ -50,7 +50,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
 
   character(len=132):: nomfich, nomfich_s
-  character(len=13), dimension(nplrm):: ltypcal
+  character(len=5), dimension(nplrm):: ltypcal
   character(len=length_word), dimension(ncolm):: nomabs
   character(len=132), dimension(n_multi_run+n_bulk_sup):: nomfich_cal_conv
 

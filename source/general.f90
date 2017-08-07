@@ -2605,7 +2605,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
   implicit none
 
   integer:: ia, ia1, ia2, iaabs, iaabsfirst, iabsorbeur, ib, igr, igr0, igr_dop, igr12, ipr, iprint, itabs, ity12, &
-    ix, iy, iz, mpirank0, multi_run, n_atom_bulk, n_atom_int, n_atom_per, n_atom_sur, n_atom_uc, n_igr, natomp, ngroup, &
+    ix, iy, iz, jgr, mpirank0, multi_run, n_atom_bulk, n_atom_int, n_atom_per, n_atom_sur, n_atom_uc, n_igr, natomp, ngroup, &
     ngroup_pdb, ngroup_taux, nxmaille, nymaille, nzmaille
   integer, dimension(ngroup):: itype
   integer, dimension(natomp):: igroup, itypep
@@ -2756,13 +2756,29 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
               ps(1:2) = ps(1:2) - Film_shift(1:2) - Surface_shift(1:2)
             endif
           endif
+
           if( .not. ATA .and. .not. Abs_case ) then
+            do jgr = igr0,n_igr
+              if( igr == jgr ) cycle
+              if( sum( abs( posg(1:3,igr) - posg(1:3,jgr) ) ) < eps6 ) then
+                if( ngroup_taux == 0 ) then
+                  call write_error
+                  do iprint = 3,9,3
+                    write(iprint,120)
+                    write(iprint,130) jgr, posn(1:3,jgr), igr, posn(1:3,igr)
+                  end do
+                  stop
+                endif
+                if( Taux_oc( jgr ) > Taux_oc( igr ) - eps10 ) cycle boucle_igr
+              endif
+            end do
             do ib = 1,ia
               if( sum( abs( pos(:,ib) - ps(:) ) ) < eps6 ) then
                 if( ngroup_taux == 0 ) then
                   call write_error
                   do iprint = 3,9,3
                     write(iprint,120)
+                    write(iprint,125)
                     write(iprint,130) igroup(ib), posn(1:3,igroup(ib)), igr, posn(1:3,igr)
                   end do
                   stop
@@ -2772,6 +2788,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
               endif
             end do
           endif
+
           if( Bulk_step .or. igr <= n_atom_per ) then
             dist = Vnorme(Base_ortho,dcosxyz,ps)
           elseif( igr <= n_atom_per + n_atom_int ) then
@@ -2905,7 +2922,8 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
 
   return
   110 format(/' There is no absorbing atom in the calculation sphere !')
-  120 format(//' Error in the indata file, two atoms are at the same position, possibly after a unit cell shift:',/)
+  120 format(//' Error in the indata file, two atoms are at the same position',/)
+  125 format(' Possibly after a unit cell shift',/)
   130 format(' Atoms',i5,' at p =',3f11.7,/'   and',i5,' at p =',3f11.7)
 end
 
@@ -3323,7 +3341,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
     end do
 
 ! Angle des liasons autour de l'absorbeur
-    write(3,'(/A)') '   ia   ib   Za   Zb   Angle(a,O,b)'
+    if( natomp > 2 ) write(3,'(/A)') '   ia   ib   Za   Zb   Angle(a,O,b)'
     rad_i = 180._db / pi
     Distm = 3.2_db / bohr
     Dist_max = Dista(iaabs) + Distm
@@ -10566,17 +10584,17 @@ end
 
 ! Sousprogramme calculant les valeurs des vecteurs polarisation et onde
 
-subroutine polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,ncolm,ncolr,nomabs,nple,nplr, &
+subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_mat_polar,ncolm,ncolr,nomabs,nple,nplr, &
         nplrm,nxanout,Octupole,Orthmatt,pdp, pdpolar,pol,polar,Polarise,Quadrupole,Veconde,Vec,Xan_atom)
 
   use declarations
   implicit none
 
-  integer:: i, icheck, ii, ipl, ipr, j, jj, jpl, k, kpl, mpirank0, ncolm, ncolr, nj, nple, nplr, nplrm, nxanout
+  integer:: i, icheck, ii, ipl, ipr, j, jj, jpl, k, kpl, mpirank0, n_mat_polar, ncolm, ncolr, nj, nple, nplr, nplrm, nxanout
 
   character(len=Length_word):: nomab
   character(len=Length_word), dimension(ncolm):: nomabs
-  character(len=13), dimension(nplrm):: ltypcal
+  character(len=5), dimension(nplrm):: ltypcal
 
   complex(kind=db), dimension(3,nplrm):: pol
 
@@ -10601,13 +10619,14 @@ subroutine polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,ncol
   pol(:,:) = 0._db
   vec(:,:) = 0._db
   pdp(:,:) = 0._db
+  ltypcal(:) = 'linear'
 
   rac_2 = sqrt( 2._db )
   jpl = 0
 
 ! Si aucune polarisation n'est definie en entree, on en construit par defaut
 ! On les definit dans le repere orthonorme interne.
-  if( nple == 0 ) then
+  if( nple - n_mat_polar == 0 ) then
 
     if( Quadrupole .or. Octupole ) then
 
@@ -10686,79 +10705,102 @@ subroutine polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,ncol
       pdp(1:nplr,2) = pdp(1:nplr,2) / pdt
     endif
 
-    ltypcal(:) = 'xanes rectil'
+  endif
 
-  else
+  do ipl = 1,nple
 
-    do ipl = 1,nple
-
-      pl(:) = 0._db
-      vo(:) = 0._db
+    pl(:) = 0._db
+    vo(:) = 0._db
 
 ! On passe en base interne (orthonormee)
-      p(:) = polar(:,ipl) / axyz(:)
-      pp = sum( p(:)**2 )
-      if( abs(pp) > eps6 ) call trvec(mpirank0,Orthmatt,p,pl)
+    p(:) = polar(:,ipl) / axyz(:)
+    pp = sum( p(:)**2 )
+    if( abs(pp) > eps6 ) call trvec(mpirank0,Orthmatt,p,pl)
 
-      v(:) = veconde(:,ipl) / axyz(:)
-      vv = sum( v(:)**2 )
-      if( vv > eps6 ) call trvec(mpirank0,Orthmatt,v,vo)
+    v(:) = veconde(:,ipl) / axyz(:)
+    vv = sum( v(:)**2 )
+    if( vv > eps6 ) call trvec(mpirank0,Orthmatt,v,vo)
 
 ! Test sur l'orthogonalite
-      if( Quadrupole .or. Octupole .or. Dipmag ) then
-        pv = abs( sum( vo(:) * pl(:) ) )
-        if( pv > eps4 ) then
-          if( mpirank0 == 0 ) then
-            call write_error
-            do ipr = 3,9,3
-              write(ipr,110) ipl, p(:), v(:)
-            end do
-          endif
-          stop
+    if( Quadrupole .or. Octupole .or. Dipmag ) then
+      pv = abs( sum( vo(:) * pl(:) ) )
+      if( pv > eps4 ) then
+        if( mpirank0 == 0 ) then
+          call write_error
+          do ipr = 3,9,3
+            write(ipr,110) ipl, p(:), v(:)
+          end do
         endif
+        stop
       endif
+    endif
 
-      jpl = jpl + 1
+    jpl = jpl + 1
 
-      if( pp > eps6 ) then
+    if( pp > eps6 ) then
 
-        pol(:,jpl) = cmplx( pl(1:3), 0._db, db)
-        vec(:,jpl) = vo(:)
-        pdp(jpl,:) = pdpolar(ipl,:)
-        ltypcal(jpl) = 'xanes rectil'
+      pol(:,jpl) = cmplx( pl(1:3), 0._db, db)
+      vec(:,jpl) = vo(:)
+      pdp(jpl,:) = pdpolar(ipl,:)
 
-      else
+      if( ipl > nple - n_mat_polar ) ltypcal(jpl) = 'ss   '
+
+    else
 
 ! Si le vecteur polarisation est nul, la polarisation est circulaire
-        do i = 1,3
-          if( abs( vo(i) ) > eps4 ) exit
-        end do
-        j = i - 1
-        if( j == 0 ) j = 3
-        v(:) = 0._db
-        v(j) = 1._db
-        call prodvec(v1,v,vo)
-        r = sqrt( sum( v1(:)**2 ) )
-        v1(:) = v1(:) / r
-        call prodvec(v2,vo,v1)
-        pol(:,jpl) = cmplx( v1(:), v2(:), db ) / rac_2
-        vec(:,jpl) = vo(:)
-        pdp(jpl,:) = 0.5_db*pdpolar(ipl,:)
-        ltypcal(jpl) = 'xanes circ g'
+      do i = 1,3
+        if( abs( vo(i) ) > eps4 ) exit
+      end do
+      j = i - 1
+      if( j == 0 ) j = 3
+      v(:) = 0._db
+      v(j) = 1._db
+      call prodvec(v1,v,vo)
+      r = sqrt( sum( v1(:)**2 ) )
+      v1(:) = v1(:) / r
+      call prodvec(v2,vo,v1)
+      pol(:,jpl) = cmplx( v1(:), v2(:), db ) / rac_2
+      vec(:,jpl) = vo(:)
+      pdp(jpl,:) = 0.5_db*pdpolar(ipl,:)
+      ltypcal(jpl) = 'left '
 
-        jpl = jpl + 1
-        pol(:,jpl) = cmplx( v1(:), - v2(:), db ) / rac_2
-        vec(:,jpl) = vo(:)
-        pdp(jpl,:) = 0.5_db*pdpolar(ipl,:)
-        ltypcal(jpl) = 'xanes circ d'
+      jpl = jpl + 1
+      pol(:,jpl) = cmplx( v1(:), - v2(:), db ) / rac_2
+      vec(:,jpl) = vo(:)
+      pdp(jpl,:) = 0.5_db*pdpolar(ipl,:)
+      ltypcal(jpl) = 'right'
 
-      endif
+    endif
 
-    end do
+    if( ipl > nple - n_mat_polar ) then
+! One calculates the pi polarization
+      call prodvec(v1,vo,pl)
+      r = sqrt( sum( v1(:)**2 ) )
+      v1(:) = v1(:) / r
 
-    nplr = jpl
+      jpl = jpl + 1
+      pol(:,jpl) = cmplx( v1(1:3), 0._db, db)
+      vec(:,jpl) = vo(:)
+      pdp(jpl,:) = pdpolar(ipl,:)
+      ltypcal(jpl) = 'sp   '
 
-  endif
+      jpl = jpl + 1
+      pol(:,jpl) = pol(:,jpl-2)
+      vec(:,jpl) = vo(:)
+      pdp(jpl,:) = pdpolar(ipl,:)
+      ltypcal(jpl) = 'ps   '
+
+      jpl = jpl + 1
+      pol(:,jpl) = pol(:,jpl-2)
+      vec(:,jpl) = vo(:)
+      pdp(jpl,:) = pdpolar(ipl,:)
+      ltypcal(jpl) = 'pp   '
+
+    endif
+
+  end do
+
+  nplr = jpl
 
 ! Determination des noms des colonnes de resultats dans les fichiers de sortie
 
@@ -10770,17 +10812,8 @@ subroutine polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,ncol
     jpl = jpl + 1
     ipl = ipl + 1
 
-    if( ltypcal(kpl) == 'xanes circ g' ) then
+    if( ltypcal(kpl) == 'left ' ) then   ! circular dichroism
 
-      nomabs(jpl) = '   left_pol  '
-      ipl = ipl - 1
-
-    elseif( ltypcal(kpl) == 'xanes circ d' ) then
-
-      nomabs(jpl) = '  right_pol  '
-
-! On ajoute la colonne difference
-      jpl = jpl + 1
       vo(:) = veconde(:,ipl)
       vomin = 1._db
       do k = 1,3
@@ -10789,11 +10822,17 @@ subroutine polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,ncol
       end do
       kpol(:) = nint( vo(:) / vomin )
 
-      nomab = ' dic('
+      nomab = ' Abs('
       j = 5
       call trnom(j,kpol,Length_word,nomab)
       j = j + 1
       if( j <= Length_word ) nomab(j:j) = ')'
+      nomabs(jpl) = nomab
+
+    elseif( ltypcal(kpl) == 'right' ) then
+
+      ipl = ipl - 1
+      nomab(2:4) = 'Dic('
       nomabs(jpl) = nomab
 
     else
@@ -10807,6 +10846,7 @@ subroutine polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,ncol
         vo = matmul( orthmati, vo)
         vo(:) = vo(:) * axyz(:)
       else
+        if( ltypcal(kpl) == 'sp   ' .or. ltypcal(kpl) == 'ps   ' .or. ltypcal(kpl) == 'pp   ') ipl = ipl - 1
         pl(:) = polar(:,ipl)
         vo(:) = veconde(:,ipl)
       endif
@@ -10824,22 +10864,54 @@ subroutine polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,ncol
       end do
       kpol(:) = nint( vo(:) / vomin )
 
-      j = 0
-      nomab = ' '
-      call trnom(j,ipol,Length_word,nomab)
-      if( ( kpol(1) /= 0 .or. kpol(2) /= 0 .or. kpol(3) /= 0 ) .and. ( Quadrupole .or. Octupole .or. Dipmag ) ) then
+      if( ltypcal(kpl) == 'ss   ' .or. ltypcal(kpl) == 'sp   ' .or. ltypcal(kpl) == 'ps   ' .or. ltypcal(kpl) == 'pp   ') then
+        j = 0
+        nomab = ' '
+        call trnom(j,ipol,Length_word,nomab)
         j = j + 1
         nomab(j:j) = ','
         call trnom(j,kpol,Length_word,nomab)
-      endif
-      nj = j
-      if( nj < Length_word-2 ) nomab(nj+1:nj+1) = ')'
-      if( nj < Length_word-1 ) then
-        nomab(1:Length_word) = '(' // nomab(1:Length_word-1)
+        nj = j
+        if( nj < Length_word-6 ) nomab(nj+1:nj+1) = ')'
+        if( nj < Length_word-5 ) then
+          nomab(1:Length_word) = '(' // nomab(1:Length_word-1)
+        else
+          nomab(1:Length_word) = ' ' // nomab(1:Length_word-1)
+        endif
+        nj = len_trim(nomab) + 1
+        nomab(nj:nj) = '_'
+        nomab(nj+1:nj+2) = ltypcal(kpl)(1:2)
+        nomabs(jpl) = nomab
+
+        if( ltypcal(kpl) == 'sp   ' .or.  ltypcal(kpl) == 'ps   ' ) then
+          nomab(nj+3:nj+4) = '_r'
+          nomabs(jpl) = nomab
+          jpl = jpl + 1
+          nomab(nj+3:nj+4) = '_i'
+          nomabs(jpl) = nomab
+        endif
+
       else
-        nomab(1:Length_word) = ' ' // nomab(1:Length_word-1)
+
+        j = 0
+        nomab = ' '
+        call trnom(j,ipol,Length_word,nomab)
+        if( ( kpol(1) /= 0 .or. kpol(2) /= 0 .or. kpol(3) /= 0 ) .and. ( Quadrupole .or. Octupole .or. Dipmag ) ) then
+          j = j + 1
+          nomab(j:j) = ','
+          call trnom(j,kpol,Length_word,nomab)
+        endif
+        nj = j
+        if( nj < Length_word-2 ) nomab(nj+1:nj+1) = ')'
+        if( nj < Length_word-1 ) then
+          nomab(1:Length_word) = '(' // nomab(1:Length_word-1)
+        else
+          nomab(1:Length_word) = ' ' // nomab(1:Length_word-1)
+        endif
+
+        nomabs(jpl) = nomab // 'pp'
+
       endif
-      nomabs(jpl) = nomab
     endif
   end do
 
@@ -10891,10 +10963,10 @@ subroutine polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,ncol
   return
   100 format(/' ---- Polond -----',100('-'))
   110 format(/' The incoming wave vector and the polarization must be perpendicular !'/, &
-              ' ipl =',i3,'   pol =',3f10.5,/ 12x,'vec =',3f10.5)
+              ' ipl =',i3,'   Pol =',3f10.5,/ 12x,'vec =',3f10.5)
   155 format(/'  Polarization and wave vectors in the internal basis R1 ( orthogonal basis, z along c crystal )',// &
-              '         pol           vec        type      weight_d weight_q')
-  160 format(2f9.5,1x,f9.5,3x,a12,2f9.5)
+              '         Pol           Vec     Type   Weight_d Weight_q')
+  160 format(2f9.5,1x,f9.5,3x,a6,2f9.5)
 end
 
 !***********************************************************************

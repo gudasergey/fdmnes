@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 12th of July 2017, 24 Messidor, An 225.
+! FDMNES II program, Yves Joly, Oana Bunau, 1st of August 2017, 14 Thermidor, An 225.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 12th of July 2017'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 1st of August 2017'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -242,10 +242,10 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 200
-  integer, parameter:: nkw_conv = 33
+  integer, parameter:: nkw_fdm = 201
+  integer, parameter:: nkw_conv = 34
   integer, parameter:: nkw_fit = 1
-  integer, parameter:: nkw_metric = 11
+  integer, parameter:: nkw_metric = 12
   integer, parameter:: nkw_mult = 4
   integer, parameter:: nkw_selec = 5
   integer, parameter:: nmetricm = 4
@@ -312,7 +312,7 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
 
   data kw_conv / 'abs_befor','all_conv ','cal_tddft','calculati','circular ','conv_out ','convoluti','dafs_exp_','dead_laye', &
      'dec      ','directory','double_co','eintmax  ','epsii    ','forbidden','fprime   ', &
-     'gamma_fix','gamma_var','gaussian ','no_extrap','nxan_lib ','photo_emi','s0_2     ','selec_cor','scan     ', &
+     'gamma_fix','gamma_var','gaussian ','no_extrap','nxan_lib ','photo_emi','s0_2     ','selec_cor','sample_th','scan     ', &
      'scan_conv','scan_file','seah     ','stokes   ','stokes_na','surface_p','table    ','thomson  '/
 
   data kw_fdm/  &
@@ -325,9 +325,9 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
      'ephot_min','etatlie  ','excited  ','extract  ','extract_t','extractpo','extractsy','fdm_comp ','film     ','film_cif_', &
      'film_pdb_','film_t   ','film_roug','film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ', &
      'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','helmholtz', &
-     'hkl_film ', &
-     'hubbard  ','iord     ','kern_fac ','kern_fast','lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden', &
-     'ldipimp  ','lmoins1  ','lplus1   ','mat_ub   ','memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism', &
+     'hkl_film ','hubbard  ','iord     ','kern_fac ','kern_fast', &
+     'lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ','mat_ub   ', &
+     'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar', &
      'molecule ','molecule_','muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_dft   ','no_e1e1  ', &
      'no_e1e2  ','no_e1e3  ','no_e2e2  ','no_e3e3  ','no_fermi ','no_renorm','no_res_ma','no_res_mo','no_solsin','normaltau', &
      'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','occupancy','octupole ','old_zero ', &
@@ -341,8 +341,8 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
 
   data kw_fit / 'parameter'/
 
-  data kw_metric/ 'd2       ','detail   ','emin     ','emax     ','experimen','fit_out  ','gen_shift','kev      ','metric_ou', &
-     'rx       ','rxg      '/
+  data kw_metric/ 'd2       ','detail   ','emin     ','emax     ','experimen','file_met ','fit_out  ','gen_shift','kev      ', &
+                  'metric_ou','rx       ','rxg      '/
 
   data kw_selec/ 'selec_inp','selec_out','energy   ','azimuth  ', 'reflectio'/
 
@@ -417,6 +417,7 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
   Fdmnes_cal = .false.
   E_cut_imp = -5._db / rydb
   E_cut_man = .false.
+  e1 = 0._db; e2 = 0._db
   Fit_cal = .false.
   Metric_cal = .false.
   Mult_cal = .false.
@@ -932,6 +933,18 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
           Close(99)
         end do boucle_i
         backspace(itape2)
+      elseif( mot9 == 'file_met' ) then
+        nb_datafile = 1
+        read(itape2,'(A)') mot
+        Fichier = Adjustl( mot )
+        l = len_trim(Fichier)
+        if( l > 4 ) then
+         if( Fichier(l-3:l-3) /= '.' ) Fichier(l+1:l+4) = '.txt'
+        endif
+        open(99, file=Fichier, status='old',iostat=istat)
+        if( istat /= 0 ) call write_open_error(Fichier,istat,1)
+        read(99,*)
+        ng = nnombre(99,132000) - 1
       endif
     end do boucle_m
   endif

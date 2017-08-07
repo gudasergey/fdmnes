@@ -532,6 +532,58 @@ subroutine findop(line,matrix)
         Matrix(i,3) = 1.
         Matrix(i,4) = 5/6._db
 
+      case('x+1/3')
+        Matrix(i,1) = 1._db
+        Matrix(i,4) = 1/3._db
+
+      case('x+2/3')
+        Matrix(i,1) = 1._db
+        Matrix(i,4) = 2/3._db
+
+      case('-x+1/3')
+        Matrix(i,1) = -1._db
+        Matrix(i,4) = 1/3._db
+
+      case('-x+2/3')
+        Matrix(i,1) = -1._db
+        Matrix(i,4) = 2/3._db
+
+      case('y+1/3')
+        Matrix(i,2) = 1._db
+        Matrix(i,4) = 1/3._db
+
+      case('y+2/3')
+        Matrix(i,2) = 1._db
+        Matrix(i,4) = 2/3._db
+
+      case('-y+1/3')
+        Matrix(i,2) = -1._db
+        Matrix(i,4) = 1/3._db
+
+      case('-y+2/3')
+        Matrix(i,2) = -1._db
+        Matrix(i,4) = 2/3._db
+
+      case('x-y+1/3')
+        Matrix(i,1) = 1._db
+        Matrix(i,2) = -1._db
+        Matrix(i,4) = 1/3._db
+
+      case('x-y+2/3')
+        Matrix(i,1) = 1._db
+        Matrix(i,2) = -1._db
+        Matrix(i,4) = 2/3._db
+
+      case('-x+y+1/3')
+        Matrix(i,1) = -1._db
+        Matrix(i,2) = 1._db
+        Matrix(i,4) = 1/3._db
+
+      case('-x+y+2/3')
+        Matrix(i,1) = -1._db
+        Matrix(i,2) = 1._db
+        Matrix(i,4) = 2/3._db
+
       case default
         call write_error
         do ipr = 6,9,3

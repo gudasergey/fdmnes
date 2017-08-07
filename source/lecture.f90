@@ -6,7 +6,7 @@
 
 subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_layer,Dafs_bio,Doping,Extract,Extract_ten,Film, &
     Flapw,Full_self_abs,Hubbard,itape4,Magnetic,Memory_save,mpinodes0,mpirank0,n_atom, &
-    n_file_dafs_exp,n_multi_run_e,nb_atom_conf_m,ncolm,neimagent,nenerg,ngamme,ngroup,nhybm, &
+    n_file_dafs_exp,n_mat_polar,n_multi_run_e,nb_atom_conf_m,ncolm,neimagent,nenerg,ngamme,ngroup,nhybm, &
     nklapw,nlatm,nlmlapwm,nmatsym,norbdil,npldafs,npldafs_2d,npldafs_e,nple,nplrm,n_adimp,n_radius,n_range,nq_nrixs, &
     NRIXS,nspin,nspino,nspinp,ntype,ntype_bulk,ntype_conf,Pdb,Readfast,Self_abs,Space_file,Taux,Temperature,Use_FDMX,Xan_atom)
 
@@ -16,8 +16,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
   integer:: eof, eoff, i, iabsm_1, ie, ier, igamme, igr, igrdat, io, ipr, ipl, istat, it, itape4, itype_1, itype_dop, j, jgr, &
     jpl, k, l, lin_gam, lmax_nrixs, mpierr, mpinodes0, mpirank0, n, n_adimp, n_atom_bulk, n_atom_cap, &
-    n_atom_int, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_uc, n_radius, n_range, n_dic, n_file_dafs_exp, &
-    n_fract_x, n_fract_y, n_fract_z, n_label, n_multi_run_e, nb, &
+    n_atom_int, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_uc, n_dic, n_file_dafs_exp, &
+    n_fract_x, n_fract_y, n_fract_z, n_label, n_mat_polar, n_mu, n_multi_run_e, n_radius, n_range, nb, &
     nb_atom_conf_m, ncolm, neimagent, nenerg, ngamme, ngc, ngroup, n_atom_neq, nhybm, nklapw, nl, &
     nlatm, nlmlapwm, nmatsym, nn, nnombre, norbdil, norbv, npldafs, npldafs_2d, npldafs_e, npldafs_t, &
     nple, nplm, nplrm, nq_nrixs, nspin, nspino, nspinp, ntype, ntype_bulk, numat_abs, ntype_conf, Wien_save, Z
@@ -77,6 +77,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   n_atom_uc = 0
   n_dic = 0
   n_file_dafs_exp = 0
+  n_mat_polar = 0
+  n_mu = 0
   n_multi_run_e = 1
   n_range = 1
   n_radius = 1
@@ -383,6 +385,15 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             if( sum( p(:) )**2 < eps10 ) n_dic = n_dic + 1
           end do
           nple = jpl - 1
+
+        case('mat_polar')
+          do jpl = 1,100000
+            n = nnombre(itape4,132)
+            if( n == 0 ) exit
+            read(itape4,*,iostat=ier) p(:), p(:)
+            if( ier > 0 ) call write_err_form(itape4,grdat)
+            n_mat_polar = n_mat_polar + 1
+          end do
 
         case('dafs','dafs_2d')
           do ipl = 1,100000
@@ -845,8 +856,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     endif
     if( npldafs == 0 ) Self_abs = .false.
     if( npldafs == 0 ) Full_self_abs = .false.
-    if( Self_abs ) n_dic = n_dic + 2 * npldafs
-    if( Full_self_abs ) n_dic = n_dic + 4 * npldafs
+    if( Self_abs ) n_mu = 2 * npldafs
+    if( Full_self_abs ) n_mu = 4 * npldafs
     if( .not. Matper ) Space_Group = ' '
     if( Pdb ) Temperature = .true.
 
@@ -976,7 +987,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     call MPI_Bcast(Magnetic,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_adimp,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_atom,8,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(n_dic,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(n_dic,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(n_mat_polar,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(n_mu,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_multi_run_e,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_radius,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_range,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
@@ -1025,12 +1038,13 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   else
     nplm = nple
   endif
+  nple = nple + n_mat_polar
 
-  nplrm = nplm + n_dic
-  ncolm = nplm + 2*npldafs + 2*n_dic + 1
+  nplrm = nplm + n_dic + n_mu + 4 * n_mat_polar
+  ncolm = nplm + n_dic + 2 * npldafs + 2 * n_mu + 6 * n_mat_polar + 1
   if( xan_atom ) ncolm = ncolm + 1
-  if( self_abs ) ncolm = ncolm  + 2*npldafs
-  if( Full_self_abs ) ncolm = ncolm  + 4*npldafs
+  if( self_abs ) ncolm = ncolm  + 2 * npldafs
+  if( Full_self_abs ) ncolm = ncolm  + 4 * npldafs
 
   return
   110 format(//'  Error in the indata file :')
@@ -1093,7 +1107,7 @@ subroutine write_err_form(irec,keyword)
   stop
 
   return
-  110 format(//' Format error when reading in the indata file under', ' the keyword:',//,5x,A)
+  110 format(//' Format error when reading in the indata file under the keyword:',//,5x,A)
   120 format(//' Check :',/ '  - How many numbers must be in the line ?',/ &
                             '  - Are there spaces between the numbers ?',/ &
                             '  - Are there unwanted characters, extra  points... ?',//)
@@ -1513,8 +1527,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,l_selec_max,lamstdens,ldil,lecrantage,lin_gam,lmax_pot, &
     lmax_tddft_inp,lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper, &
     mpinodes,mpinodes0,mpirank,mpirank0, &
-    Muffintin,Multipole,multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_uc,n_atom_proto, &
-    n_devide,n_file_dafs_exp,n_multi_run_e,n_radius,n_range,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg, &
+    Muffintin,Multipole,multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_uc,n_atom_proto,n_devide, &
+    n_file_dafs_exp,n_mat_polar,n_multi_run_e,n_radius,n_range,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent,nenerg, &
     ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw,ngroup_m,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
     ngroup_temp,nhybm,nlat,nlatm,No_DFT,No_solsing,nom_fich_Extract, &
     nomfich,nomfichbav,Noncentre, &
@@ -1541,7 +1555,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     lmaxso0, long, lseuil, m, m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank, mpirank0, &
     mpirank_in_mumps_group, multi_run, multrmax, n, n_adimp, n_atom_bulk, n_atom_cap, n_atom_int, n_atom_neq, n_atom_per, &
     n_atom_per_neq, n_atom_sur, n_atom_proto, n_atom_uc, n_devide, n_file_dafs_exp, &
-    n_fract_x, n_fract_y, n_fract_z, n_label, n_multi_run_e, n_occupancy, n_radius, n_range, n1, n2, natomsym, &
+    n_fract_x, n_fract_y, n_fract_z, n_label, n_mat_polar, n_multi_run_e, n_occupancy, n_radius, n_range, n1, n2, natomsym, &
     nb_atom_conf_m, nb_atom_nsph, nbseuil, &
     nchemin, necrantage, neimagent, nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_nonsph, &
     ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, nhybm, nlatm, nn, nnombre, non_relat, norb, norbdil, normrmt, &
@@ -2462,7 +2476,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('polarized')
           polarise = .true.
-          do ipl = 1,nple
+          do ipl = 1,nple - n_mat_polar
             n = nnombre(itape4,132)
             if( n == 0 ) exit
             select case(n)
@@ -2483,6 +2497,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 stop
             end select
             if( ier > 0 ) call write_err_form(itape4,grdat)
+          end do
+
+        case('mat_polar')
+          do ipl = nple-n_mat_polar+1,nple
+            read(itape4,*,iostat=ier) polar(:,ipl), veconde(:,ipl)
           end do
 
         case('allsite')
@@ -4724,14 +4743,17 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         if( sum( abs( pdpolar(:,:) ) ) > eps10 ) then
           write(3,'(/A)') ' XANES :    Polarization             Wave vector     Weight_dip Weight_quad'
           do ipl = 1,nple
-            write(3,510) polar(1:3,ipl), veconde(1:3,ipl), pdpolar(ipl,:)
+            write(3,505) polar(1:3,ipl), veconde(1:3,ipl), pdpolar(ipl,:)
           end do
         else
           write(3,'(/A)') ' XANES :    Polarization             Wave vector'
-          do ipl = 1,nple
-            write(3,510) polar(1:3,ipl), veconde(1:3,ipl)
+          do ipl = 1,nple - n_mat_polar
+            write(3,505) polar(1:3,ipl), veconde(1:3,ipl)
           end do
         endif
+        do ipl = nple - n_mat_polar + 1, nple
+          write(3,510) polar(1:3,ipl), veconde(1:3,ipl)
+        end do
       endif
       if( nq_nrixs >= 1 ) then
         write(3,'(/A)') ' NRIXS (X-ray Raman) calculation'
@@ -5757,7 +5779,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   480 format('   Eclie, Eclie_out =',2f7.3,' eV')
   490 format('   V_intmax =',f7.3,' eV')
   500 format(/' Temperature =',f6.1,' K')
-  510 format(6x,3f7.3,3x,3f7.3,3x,f7.3,4x,f7.3)
+  505 format(6x,3f7.3,3x,3f7.3,3x,f7.3,4x,f7.3)
+  510 format(6x,3f7.3,3x,3f7.3,3x,'Matrix')
   511 format(/' Bormann',/ '  (h, k, l) = (',i3,',',i3,',',i3,')   Azimuth =',f7.2)
   512 format(7x,5f7.3,3x,5i2,4x,3f9.3)
   513 format(6x,3f9.5,3x,3f9.5,3x,A)

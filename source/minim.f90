@@ -64,6 +64,7 @@ subroutine minim(fdmfit_out,index_Met_Fit,itape_minim,Minim_fdm_ok,minimok,ncali
       read(itape,*) ( dist, i = 1,im )
       if( dist > dmin ) cycle
       dmin = dist
+      if( ncal == 1 ) distmin_pol(im) = dist
       ical_min = ical
     end do
     index_read = ncal
@@ -305,13 +306,15 @@ subroutine minim(fdmfit_out,index_Met_Fit,itape_minim,Minim_fdm_ok,minimok,ncali
 
   end do boucle_im
 
-  do im = 1,nmetric
-    distmin_pol(im) = 0._db
-    do igr = 1,ngroup_par
-      if( nparam(igr) < 3 ) cycle
-      distmin_pol(im) = max( distmin_pol(im), distm(igr,im) )
+  if( ncal > 1 .and. ndm > 1 ) then
+    do im = 1,nmetric
+      distmin_pol(im) = 0._db
+      do igr = 1,ngroup_par
+        if( nparam(igr) < 3 ) cycle
+        distmin_pol(im) = max( distmin_pol(im), distm(igr,im) )  
+      end do
     end do
-  end do
+  endif
 
   if( ellipse ) then
     par_op(2:ngroup_par) = par_ell(2:ngroup_par,index_Met_Fit)
