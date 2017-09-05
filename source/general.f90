@@ -7557,13 +7557,14 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
             cos_c = cos( chi );  sin_c = sin( chi )
             cos_m = cos( mu );   sin_m = sin( mu )
 
-            if( abs( sin_c ) < eps10 .or. abs( sin_m ) < eps10 .or. abs( cos_c ) < eps10 .or. abs( cos_m ) < eps10 ) then
+            if( abs( sin_c ) < eps10 .or. abs( cos_m ) < eps10 ) then
+!            if( abs( sin_c ) < eps10 .or. abs( sin_m ) < eps10 .or. abs( cos_c ) < eps10 .or. abs( cos_m ) < eps10 ) then
               call write_error
               do ipr = 3,9,3
               if( ipr == 3 .and. icheck == 0 ) cycle
                 write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
                 write(ipr,'(/A//)') &
-                 '   When the reference is known, chi and mu cannot be both fixed when one of them is 0 or 90 degrees !'
+                 '   When the reference is known, chi and mu cannot be both fixed with chi = 0 and mu = 90 degrees !'
               end do
               stop
             endif
