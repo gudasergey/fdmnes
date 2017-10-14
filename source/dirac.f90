@@ -342,7 +342,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
 ! Influence par ce qu'on lui indique en entree, mais
 ! neanmoins pop etaient modifiees de ce que l'atome soit neutre
 
-  call dirac(h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn, pop,psi,ray,ray_max,rho,rqn,Z)
+  call dirac(E_total,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,ray,ray_max,rho,rqn,Z)
 
 ! Construction de l'atome excite (appel en init_run):
 
@@ -544,7 +544,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
       endif
     endif
 
-    call dirac(h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn, pop,psi,ray,ray_max,rho,rqn,Z)
+    call dirac(E_total_exc,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,ray,ray_max,rho,rqn,Z)
 
 ! Recuperation de la fonction d'onde de l'orbitale de valence excite
     do io = 1, n_orb
@@ -558,6 +558,8 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
       end if
     end do
 
+    if( icheck > 0 ) write(3,190) E_total_exc * 2 * Rydb, E_total * 2 * Rydb, &
+                                  ( E_total_exc - E_total ) * 2 * Rydb
 
   endif   ! fin de la partie appel type_work pour atome excite
 
@@ -685,6 +687,9 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
   170 format(/' Atom type',i3,',  Z =',i3, '   Relativistic atomic calculation',/'   n  l   j      pop')
   175 format(/' Excited atom, type 0',',  Z =',i3, '   Relativistic atomic calculation',/'   n  l   j      pop')
   180 format(i4,i3,f5.1,2f9.3)
+  190 format(/' Excited atom total energy =',1p,e13.5,' eV',/ &
+              '         atom total energy =',e13.5,' eV',/&
+              '                Difference =',e13.5,' eV') 
   210 format(/'  Popatc =',f9.4)
   215 format(/'  n  l  Popatv')
   220 format(2i3,f8.4)
@@ -879,7 +884,7 @@ end
 ! This was corrected by Bengt Lindgren and A. Rosen Dec 1987.
 ! Modified by Y Joly 2000-2016
 
-subroutine dirac(h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn, pop,psi,ray,ray_max,rho,rqn,Z)
+subroutine dirac(E_total,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,ray,ray_max,rho,rqn,Z)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)

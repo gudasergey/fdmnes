@@ -12,12 +12,12 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
             sec_atom,secdd_a,secdd_m_a,secdq_a,secdq_m_a,secdo_a,secdo_m_a, &
             secmd_a,secmd_m_a,secmm_a,secmm_m_a,secoo_a,secoo_m_a,secqq_a,secqq_m_a, &
             Self_abs,Spherical_signal, &
-            Spherical_tensor,Spinorbite_p,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)
+            Spherical_tensor,Spinorbite_p,Surface_ref,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)
 
   use declarations
   implicit none
 
-  real(kind=db), parameter:: quatre_mc2 = 4 * 2 / alfa_sf**2  ! en Rydberg
+  real(kind=db), parameter:: quatre_mc2 = 4 * 2 / alfa_sf**2  ! in Rydberg
   
   integer:: he, hs, i, i_bulk_z, ia, iabsorig, ib, ic1, ic2, icheck, icn1, icn2, ie, &
     ie_computer, ii, ind_mu, initlr, ip, ipl, ipldafs, iseuil, isp1, isp2, isp3, isp4, ispfg, &
@@ -76,7 +76,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
   logical, dimension(10):: Multipole
 
   real(kind=db):: ang, c_micro, c_milli, cst, conv_mbarn_nelec, dang, E_cut, &
-    eph2, Ephoton, Ephseuil, Omega, V0muf, Volume_maille
+    eph2, Ephoton, Ephseuil, Omega, Surface_ref, V0muf, Volume_maille
 
   real(kind=db), dimension(0):: rdum
   real(kind=db), dimension(ninitlr) :: ct_nelec, Epsii
@@ -394,8 +394,8 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
 
   if( Spherical_tensor ) call Spherical_tensor_cal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2, &
             Energ,Ephseuil,Epsii,Eseuil(nbseuil),First_E,icheck,ie,Int_tens,jseuil,Magn_sens,Moyenne,n_rel,n_tens_max, &
-            natomsym,nenerg,ninit1,ninitlr,nomfich_s,nphim,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdafs,phdf0t1, &
-            phdt1,pol,Poldafse,Poldafss,secddia,secdqia,secmdia,secqqia,Spherical_signal,Taux_eq,V0muf,Vec,Vecdafse,Vecdafss)
+            natomsym,nenerg,ninit1,ninitlr,nomfich_s,nphim,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdafs,phdf0t1,phdt1,pol, &
+            Poldafse,Poldafss,secddia,secdqia,secmdia,secqqia,Spherical_signal,Surface_ref,Taux_eq,V0muf,Vec,Vecdafse,Vecdafss)
 
   E_vec = E1E2 .or. E2E2 .or. E1E3 .or. E3E3 .or. E1M1 .or. M1M1
 
@@ -1363,30 +1363,30 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bulk_step,Cartesian_tensor,Core_resol
 
 ! Ecriture dans le fichier
     if( Full_self_abs .or. Self_abs ) then
-      call write_out(angxyz,axyz,Volume_maille,f_avantseuil,E_cut,Ephseuil, &
-            Epsii,Eseuil(nbseuil),First_E,Green_int,hkl_dafs,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title, &
-            npldafs,npldafs,3,npldafs,nseuil,numat_abs,phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym)
+      call write_out(angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil(nbseuil),First_E,Green_int,hkl_dafs, &
+            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,3,npldafs,nseuil,numat_abs, &
+            phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym,Surface_ref,Volume_maille)
     elseif( Bulk_step .and. ie == 1 ) then
       allocate( hkl_dafs_fake(3,npldafs) )
       hkl_dafs_fake(1,:) = Length_abs(:) 
       hkl_dafs_fake(2,:) = Length_rel(i_bulk_z) * Length_abs(:)   ! fake value used in write_out, signature of truncation 
       hkl_dafs_fake(2,1) = hkl_dafs_fake(2,1) + 10000._db   ! fake value used in write_out, signature of truncation 
       hkl_dafs_fake(3,:) = hkl_dafs(3,:) 
-      call write_out(rdum,rdum,Volume_maille,f_avantseuil,E_cut,Ephseuil, &
-            Epsii,Eseuil(nbseuil),First_E,Green_int,hkl_dafs_fake,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title, &
-            npldafs,npldafs,0,npldafs,nseuil,numat_abs,phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym)
+      call write_out(rdum,rdum,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil(nbseuil),First_E,Green_int,hkl_dafs_fake, &
+            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,0,npldafs,nseuil,numat_abs, &
+            phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym,Surface_ref,Volume_maille)
       deallocate( hkl_dafs_fake )
     else
-      call write_out(rdum,rdum,Volume_maille,f_avantseuil,E_cut,Ephseuil, &
-            Epsii,Eseuil(nbseuil),First_E,Green_int,rdum,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title, &
-            npldafs,npldafs,0,0,nseuil,numat_abs,phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym)
+      call write_out(rdum,rdum,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil(nbseuil),First_E,Green_int,rdum, &
+            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,0,0,nseuil,numat_abs, &
+            phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym,Surface_ref,Volume_maille)
 
     endif
 
 ! Ecriture a l'ecran
-    if( ia == 0 ) call write_out(rdum,rdum,Volume_maille,f_avantseuil,E_cut, Ephseuil, &
-            Epsii,Eseuil(nbseuil),First_E,Green_int,rdum,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title, &
-            npldafs,npldafs,0,0,nseuil,-1,phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym)
+    if( ia == 0 ) call write_out(rdum,rdum,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil(nbseuil),First_E,Green_int,rdum, &
+            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,0,0,nseuil,-1, &
+            phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym,Surface_ref,Volume_maille)
 
     if( Dafs .and. nphim > 1 ) then
       if( ie == 1 ) then
@@ -2006,7 +2006,7 @@ subroutine Write_nrixs(All_nrixs,Allsite,Core_resolved, &
   logical:: All_nrixs, Allsite, Core_resolved, Final_tddft, First_E, Energphot, Extract_ten, Green_int, Green_int_mag, &
     Magn_sens, Spinorbite
 
-  real(kind=db):: Volume_maille, E_cut, Ephoton, Ephseuil, q, V0muf
+  real(kind=db):: Surface_ref, E_cut, Ephoton, Ephseuil, q, V0muf, Volume_maille
 
   real(kind=db), dimension(0):: rdum
   real(kind=db), dimension(ninitlr) :: Epsii
@@ -2023,6 +2023,7 @@ subroutine Write_nrixs(All_nrixs,Allsite,Core_resolved, &
   if( icheck > 1 ) write(3,110)
   
   npldafs = 0
+  Surface_ref = 0._db
 
   Ephseuil = Energ(ie)
   Ephoton = Ephseuil + Eseuil(nbseuil)
@@ -2181,14 +2182,14 @@ subroutine Write_nrixs(All_nrixs,Allsite,Core_resolved, &
     end do
 
 ! Ecriture dans le fichier
-    call write_out(rdum,rdum,Volume_maille,f_avantseuil,E_cut,Ephseuil, &
-            Epsii,Eseuil(nbseuil),First_E,Green_int,rdum,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title, &
-            npldafs,npldafs,0,0,nseuil,numat_abs,cdum,cdum,Tens,V0muf,Core_resolved,natomsym)
+    call write_out(rdum,rdum,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil(nbseuil),First_E,Green_int,rdum, &
+            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title,npldafs,npldafs,0,0,nseuil,numat_abs, &
+            cdum,cdum,Tens,V0muf,Core_resolved,natomsym,Surface_ref,Volume_maille)
 
 ! Ecriture a l'ecran
-    if( ia == 0 ) call write_out(rdum,rdum,Volume_maille,f_avantseuil,E_cut,Ephseuil, &
-            Epsii,Eseuil(nbseuil),First_E,Green_int,rdum,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title, &
-            npldafs,npldafs,0,0,nseuil,-1,cdum,cdum,Tens,V0muf,Core_resolved,natomsym)
+    if( ia == 0 ) call write_out(rdum,rdum,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil(nbseuil),First_E,Green_int,rdum, &
+            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title,npldafs,npldafs,0,0,nseuil,-1, &
+            cdum,cdum,Tens,V0muf,Core_resolved,natomsym,Surface_ref,Volume_maille)
 
   end do
   
@@ -2250,6 +2251,7 @@ subroutine Write_cartesian_tensor(Volume_maille,E_cut,E1E2,E2E2,Ephseuil,Epsii,E
 
   logical:: Core_resolved, E1E2, E2E2, First_E, M1M1, magn_sens, tens_comp
 
+  real(kind=db):: Surface_ref
   real(kind=db), dimension(0):: rdum
   real(kind=db), dimension(ninitlr):: Epsii
   real(kind=db), dimension(n_dim):: Tens
@@ -2270,6 +2272,7 @@ subroutine Write_cartesian_tensor(Volume_maille,E_cut,E1E2,E2E2,Ephseuil,Epsii,E
   nomficht(long+1:long+4) = '.txt'
 
   index = 0
+  Surface_ref = 0._db
 
   do initlr = 1,ninitlr
 
@@ -2406,18 +2409,18 @@ subroutine Write_cartesian_tensor(Volume_maille,E_cut,E1E2,E2E2,Ephseuil,Epsii,E
 
   zero_c = (0._db, 0._db)
 
-  call write_out(rdum,rdum,Volume_maille,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
-           jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,nomtens,1,0,0,0,nseuil,numat_abs,cdum, &
-           cdum,tens,v0muf,Core_resolved,0) 
+  call Write_out(rdum,rdum,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
+           jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,nomtens,1,0,0,0,nseuil,numat_abs, &
+           cdum,cdum,Tens,V0muf,Core_resolved,0,Surface_ref,Volume_maille) 
 
   return
 end
 
 !***********************************************************************
 
-subroutine Write_out(angxyz,axyz,Volume_maille,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil,First_E,Green_int,hkl_dafs, &
-            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,np,npp,nppa,npps,nseuil,numat,ph1, &
-            ph2,tens,V0muf,Core_resolved,natomsym)
+subroutine Write_out(angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil,First_E,Green_int,hkl_dafs, &
+            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title,np,npp,nppa,npps,nseuil,numat, &
+            ph1,ph2,Tens,V0muf,Core_resolved,natomsym,Surface_ref,Volume_maille)
 
   use declarations
   implicit none
@@ -2428,7 +2431,7 @@ subroutine Write_out(angxyz,axyz,Volume_maille,f_avantseuil,E_cut,Ephseuil,Epsii
   
   character(len=132):: nomficht
   character(len=92):: mot1
-  character(len=39):: mot2
+  character(len=52):: mot2
   character(len=Length_word):: mot
   character(len=Length_word), dimension(n_dim):: title
   character(len=10+(n_tens-2*npp)*Length_word):: dummy
@@ -2438,7 +2441,7 @@ subroutine Write_out(angxyz,axyz,Volume_maille,f_avantseuil,E_cut,Ephseuil,Epsii
 
   logical:: Core_resolved, First_E, Gnuplot, Green_int, Truncature
 
-  real(kind=db):: Volume_maille, E_cut, Ephseuil, Eseuil, f0_forward, fpp_avantseuil, V0muf
+  real(kind=db):: E_cut, Ephseuil, Eseuil, f0_forward, fpp_avantseuil, Surface, Surface_ref, V0muf, Volume, Volume_maille
   
   real(kind=db), dimension(nppa):: angxyz, axyz
   real(kind=db), dimension(ninitlr):: Epsii
@@ -2497,32 +2500,35 @@ subroutine Write_out(angxyz,axyz,Volume_maille,f_avantseuil,E_cut,Ephseuil,Epsii
       if( Green_int ) icor = - icor
       
       mot1 = ' = E_edge, Z, n_edge, j_edge, Abs_before_edge, VO_interstitial, E_cut, ninitl, ninit1, Epsii'
-      mot2 = ', UnitCell_Volume, f0_forward, natomsym'
-                
+      mot2 = ', UnitCell_Volume, Surface_ref, f0_forward, natomsym'
+
+      Volume = Volume_maille * bohr**3
+      Surface = Surface_ref * bohr**2
+                       
       if( nseuil == 0 ) then
         write(ipr,120) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, 1, icor, Epsii(1)*rydb, Volume_maille, f0_forward, natomsym, mot1, mot2
+          E_cut*rydb, 1, icor, Epsii(1)*rydb, Volume, Surface, f0_forward, natomsym, mot1, mot2
       elseif( ninitlr == 1 ) then
         write(ipr,120) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, natomsym, mot1, mot2
+          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, mot2
       elseif( ninitlr == 2 ) then                   
         write(ipr,121) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, natomsym, mot1, ninitlr, mot2
+          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
       elseif( ninitlr == 4 ) then
         write(ipr,122) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, natomsym, mot1, ninitlr, mot2
+          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
       elseif( ninitlr == 6 ) then
         write(ipr,123) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, natomsym, mot1, ninitlr, mot2
+          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
       elseif( ninitlr == 8 ) then
         write(ipr,124) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, natomsym, mot1, ninitlr, mot2
+          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
       elseif( ninitlr == 10 ) then
         write(ipr,125) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, natomsym, mot1, ninitlr, mot2
+          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
       else     ! 14
         write(ipr,126) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume_maille, f0_forward, natomsym, mot1, ninitlr, mot2
+          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
       endif
 
     endif
@@ -2666,13 +2672,13 @@ subroutine Write_out(angxyz,axyz,Volume_maille,f_avantseuil,E_cut,Ephseuil,Epsii
                ' and increase to the same value the parameter n_tens_max.', / &
                ' Then you compile again.' //)
 
-  120 format(f10.3,i5,2i3,1p,3e15.7,2i3,e15.7,2e15.7,i4,a92,a39)
-  121 format(f10.3,i5,2i3,1p,3e15.7,2i3,2e15.7,2e15.7,i4,a92,'(1..',i1,')',a39)
-  122 format(f10.3,i5,2i3,1p,3e15.7,2i3,4e15.7,2e15.7,i4,a92,'(1..',i1,')',a39)
-  123 format(f10.3,i5,2i3,1p,3e15.7,2i3,6e15.7,2e15.7,i4,a92,'(1..',i1,')',a39)
-  124 format(f10.3,i5,2i3,1p,3e15.7,2i3,8e15.7,2e15.7,i4,a92,'(1..',i1,')',a39)
-  125 format(f10.3,i5,2i3,1p,3e15.7,2i3,10e15.7,2e15.7,i4,a92,'(1..',i2,')',a39)
-  126 format(f10.3,i5,2i3,1p,3e15.7,2i3,14e15.7,2e15.7,i4,a92,'(1..',i2,')',a39)
+  120 format(f10.3,i5,2i3,1p,3e15.7,2i3,e15.7,3e15.7,i4,a92,a52)
+  121 format(f10.3,i5,2i3,1p,3e15.7,2i3,2e15.7,3e15.7,i4,a92,'(1..',i1,')',a52)
+  122 format(f10.3,i5,2i3,1p,3e15.7,2i3,4e15.7,3e15.7,i4,a92,'(1..',i1,')',a52)
+  123 format(f10.3,i5,2i3,1p,3e15.7,2i3,6e15.7,3e15.7,i4,a92,'(1..',i1,')',a52)
+  124 format(f10.3,i5,2i3,1p,3e15.7,2i3,8e15.7,3e15.7,i4,a92,'(1..',i1,')',a52)
+  125 format(f10.3,i5,2i3,1p,3e15.7,2i3,10e15.7,3e15.7,i4,a92,'(1..',i2,')',a52)
+  126 format(f10.3,i5,2i3,1p,3e15.7,2i3,14e15.7,3e15.7,i4,a92,'(1..',i2,')',a52)
 
   141 format(A,1p,10000e11.3)
   142 format(A,1p,10000e12.4)
@@ -2860,8 +2866,8 @@ end
 
 subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2, &
             Energ,Ephseuil,Epsii,Eseuil,First_E,icheck,ie,Int_tens,jseuil,Magn_sens,Moyenne,n_rel,n_tens_max, &
-            natomsym,nenerg,ninit1,ninitlr,nomfich_s,nphim,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdafs,phdf0t, &
-            phdt,pol,Poldafse,Poldafss,secddia,secdqia,secmdia,secqqia,Spherical_signal,Taux_eq,V0muf,Vec,Vecdafse,Vecdafss)
+            natomsym,nenerg,ninit1,ninitlr,nomfich_s,nphim,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdafs,phdf0t,phdt,pol, &
+            Poldafse,Poldafss,secddia,secdqia,secmdia,secqqia,Spherical_signal,Surface_ref,Taux_eq,V0muf,Vec,Vecdafse,Vecdafss)
 
   use declarations
   implicit none
@@ -2897,7 +2903,7 @@ subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,
 
   logical:: Core_resolved, E1E1, E1E2, E1M1, E2E2, First_E, Magn_sens, Moyenne, Spherical_signal, Write_bav
 
-  real(kind=db):: Volume_maille, dph, E_cut, Ephseuil, Eseuil, V0muf
+  real(kind=db):: Volume_maille, dph, E_cut, Ephseuil, Eseuil, Surface_ref, V0muf
   real(kind=db), dimension(3):: Vo_i, Vo_s
   real(kind=db), dimension(ninitlr):: ct_nelec, Epsii
   real(kind=db), dimension(nenerg):: Energ
@@ -3006,8 +3012,8 @@ subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,
 
   call Write_Spherical_tensor(Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2,Energ,Ephseuil,Epsii, &
        Eseuil,First_E,icheck,ie,Int_tens,jseuil,Magn_sens,n_tens_dd,n_tens_dm,n_tens_dq,n_tens_max,n_tens_qq, &
-       natomsym,nenerg,ninit1,ninitlr,nomfich_s,nseuil,numat_abs, &
-       Sph_tensor_ia_dd,Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Sph_tensor_ia_qq,V0muf)
+       natomsym,nenerg,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,Sph_tensor_ia_dd, &
+       Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Sph_tensor_ia_qq,Surface_ref,V0muf)
 
   if( .not. Spherical_signal ) return
   
@@ -3206,7 +3212,7 @@ subroutine Spherical_tensor_cal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,
       Eseuil,First_E,0,ipl,ipldafs,jseuil,Magn_sens,n_tens_dd,n_tens_dq,n_tens_dm, &
       n_tens_qq,ninit1,ninitlr,nomfich_s,npldafs,nplt,nseuil,numat_abs,phdf0t,phdt, &
       Sph_tensor_dd,Sph_tensor_dq,Sph_tensor_dq_m,Sph_tensor_dm,Sph_tensor_dm_m,Sph_tensor_qq, &
-      Tensor_pol_dd,Tensor_pol_dq,Tensor_pol_dm,Tensor_pol_qq,V0muf)
+      Surface_ref,Tensor_pol_dd,Tensor_pol_dq,Tensor_pol_dm,Tensor_pol_qq,V0muf)
 
   end do
   
@@ -3728,8 +3734,8 @@ end
 
 subroutine Write_Spherical_tensor(Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2,Energ,Ephseuil,Epsii, &
        Eseuil,First_E,icheck,ie,Int_tens,jseuil,Magn_sens,n_tens_dd,n_tens_dm,n_tens_dq,n_tens_max,n_tens_qq, &
-       natomsym,nenerg,ninit1,ninitlr,nomfich_s,nseuil,numat_abs, &
-       Sph_tensor_ia_dd,Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Sph_tensor_ia_qq,V0muf)
+       natomsym,nenerg,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,Sph_tensor_ia_dd, &
+       Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Sph_tensor_ia_qq,Surface_ref,V0muf)
 
   use declarations
   implicit none
@@ -3750,7 +3756,7 @@ subroutine Write_Spherical_tensor(Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1
 
   logical:: Core_resolved, E1E1, E1E2, E1M1, E2E2, First_E, Magn_sens
 
-  real(kind=db):: de, Volume_maille, E_cut, Ephseuil, Eseuil, V0muf
+  real(kind=db):: de, Volume_maille, E_cut, Ephseuil, Eseuil, Surface_ref, V0muf
   real(kind=db), dimension(0):: rdum
   real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens
   real(kind=db), dimension(n_tens_max*ninitlr):: Int_tenst, Tens
@@ -3875,9 +3881,9 @@ subroutine Write_Spherical_tensor(Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1
     long = len_trim(nomficht)
     nomficht(long+1:long+4) = '.txt'
 
-    call write_out(rdum,rdum,Volume_maille,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
-          jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
-          cdum,Tens,V0muf,Core_resolved,0)
+    call write_out(rdum,rdum,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
+          jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs, &
+          cdum,cdum,Tens,V0muf,Core_resolved,0,Surface_ref,Volume_maille)
 
     if( nenerg == 1 ) cycle
 
@@ -3919,9 +3925,9 @@ subroutine Write_Spherical_tensor(Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1
     endif
 
     Int_tenst(1:n_tens) = Int_tens(1:n_tens,ia)
-    call write_out(rdum,rdum,Volume_maille,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
-          jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs,cdum, &
-          cdum,Int_tenst,v0muf,Core_resolved,0)
+    call write_out(rdum,rdum,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
+          jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs, &
+          cdum,cdum,Int_tenst,v0muf,Core_resolved,0,Surface_ref,Volume_maille)
 
   end do
 
@@ -4328,7 +4334,7 @@ subroutine Write_Signal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M
       Eseuil,First_E,ia,ipl,ipldafs,jseuil,magn_sens,n_tens_dd,n_tens_dq,n_tens_dm, &
       n_tens_qq,ninit1,ninitlr,nomfich_s,npldafs,nplt,nseuil,numat_abs,phdf0t,phdt, &
       Sph_tensor_dd_ni,Sph_tensor_dq_ni,Sph_tensor_dq_m_ni,Sph_tensor_dm_ni,Sph_tensor_dm_m_ni,Sph_tensor_qq_ni, &
-      Tensor_pol_dd,Tensor_pol_dq,Tensor_pol_dm,Tensor_pol_qq,V0muf)
+      Surface_ref,Tensor_pol_dd,Tensor_pol_dq,Tensor_pol_dm,Tensor_pol_qq,V0muf)
 
   use declarations
   implicit none
@@ -4359,7 +4365,7 @@ subroutine Write_Signal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M
 
   logical:: Core_resolved, Dafs, E1E1, E1E2, E1M1, E2E2, First_E, Magn_sens
   
-  real(kind=db):: Volume_maille, E_cut, Ephseuil, Eseuil, fac, V0muf
+  real(kind=db):: E_cut, Ephseuil, Eseuil, fac, Surface_ref, V0muf, Volume_maille
   real(kind=db), dimension(0):: rdum
   real(kind=db), dimension(ninitlr):: ct_nelec, Epsii
   real(kind=db), dimension(:), allocatable:: Tens
@@ -4613,13 +4619,13 @@ subroutine Write_Signal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M
     phtem(:) = cf
     ph0(:) = cg
     n_tens2 = n_tens / ( 2 * ninitlr )
-    call write_out(rdum,rdum,Volume_maille,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
-          jseuil,n_tens,n_tens,ninit1,ninitlr,nomficht,Tens_name,n_tens,n_tens2,0,0,nseuil,numat_abs,phtem, &
-          ph0,Tens,v0muf,Core_resolved,0)
+    call write_out(rdum,rdum,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
+          jseuil,n_tens,n_tens,ninit1,ninitlr,nomficht,Tens_name,n_tens,n_tens2,0,0,nseuil,numat_abs, &
+          phtem,ph0,Tens,v0muf,Core_resolved,0,Surface_ref,Volume_maille)
   else
-    call write_out(rdum,rdum,Volume_maille,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
-          jseuil,n_tens,n_tens,ninit1,ninitlr,nomficht,Tens_name,1,0,0,0,nseuil,numat_abs,cdum,cdum,Tens,V0muf, &
-          Core_resolved,0)
+    call write_out(rdum,rdum,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
+          jseuil,n_tens,n_tens,ninit1,ninitlr,nomficht,Tens_name,1,0,0,0,nseuil,numat_abs, &
+          cdum,cdum,Tens,V0muf,Core_resolved,0,Surface_ref,Volume_maille)
   endif
 
   deallocate( Ph0, Phtem, Resul, Tens, Tens_name )

@@ -34,7 +34,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Bulk_step,
           numat,nxanout,Octupole,Old_zero,pdp,phdafs,phdf0t,phdt,pol,poldafse,poldafss, &
           psii,q_nrixs,Quadrupole,r,Relativiste,Renorm,rhoato_abs,Rmtg,Rmtsd, &
           rof0,rot_atom_abs,Rot_int,RPALF,rsato,rsbdc,Self_abs,Solsing_only, &
-          Spherical_signal,Spherical_tensor,Spinorbite,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb,V0muf, &
+          Spherical_signal,Spherical_tensor,Spinorbite,Surface_ref,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb,V0muf, &
           Vcato,vec,vecdafse,vecdafss,Vhbdc,Volume_maille,VxcbdcF, &
           Vxcato,Workf,xsect_file,Ylm_comp_e)
 
@@ -105,7 +105,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Bulk_step,
 
   real(kind=db):: alfpot, Delta_edge, Delta_Eseuil, E_cut, E_cut_imp, E_cut_tddft, E_fermi, Eclie, &
      Ecent, Ecmax, EFermi_min, Elarg, Energ_tt, Enervide_t, Epsii_moy, Estart, &
-     Gamma_max, Kern_fac, p, Rmtg, Rmtsd, rsbdc, V_intmax, V0muf, Vhbdc, Volume_maille, Workf
+     Gamma_max, Kern_fac, p, Rmtg, Rmtsd, rsbdc, Surface_ref, V_intmax, V0muf, Vhbdc, Volume_maille, Workf
 
   real(kind=db), dimension(3):: angxyz, axyz
   real(kind=db), dimension(8):: Time_loc
@@ -513,7 +513,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Bulk_step,
             nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
             phdt,pol,poldafse,poldafss,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
             secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
-            Spherical_tensor,Spinorbite,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)
+            Spherical_tensor,Spinorbite,Surface_ref,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)
 
       if( NRIXS ) call Write_nrixs(All_nrixs,Allsite,Core_resolved,Volume_maille, &
                   E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E, &
@@ -2575,7 +2575,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
   real(kind=sg) time
 
   real(kind=db):: alfpot, Delta_E, E_cut, E_cut_imp, E_cut_tddft, Eclie, Ephot_min, &
-     Kern_fac, Rmtg, Rmtsd, V_intmax, V0muf, Vhbdc, Volume_maille, Workf
+     Kern_fac, Rmtg, Rmtsd, Surface_ref, V_intmax, V0muf, Vhbdc, Volume_maille, Workf
 
   real(kind=db), dimension(1):: Energ_u
   real(kind=db), dimension(3):: angxyz, axyz
@@ -2627,6 +2627,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
   Green = .true.
   Epsii(:) = 0._db
   n_tens_max = 0
+  Surface_ref = 0._db
 
   E1E1 = Multipole(1); E1E2 = Multipole(2); E1E3 = Multipole(3);
   E1M1 = Multipole(4); E2E2 = Multipole(6);
@@ -3063,7 +3064,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Classic_irreg,
             npldafs,nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdafs,phdf0t, &
             phdt,pol,poldafse,poldafss,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
             secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
-            Spherical_tensor,Spinorbite,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)
+            Spherical_tensor,Spinorbite,Surface_ref,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec,Volume_maille,Xan_atom)
 
       First_E = .false.
 

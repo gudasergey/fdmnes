@@ -9111,9 +9111,9 @@ end
 
 Subroutine Prep_Film(angxyz,angxyz_bulk,angxyz_cap,angxyz_int,angxyz_sur,axyz,axyz_bulk,axyz_cap,axyz_int,axyz_sur, &
                Cap_shift,Cap_roughness,Cap_thickness,Delta_bulk,Delta_cap,Delta_int,Delta_film,Delta_roughness_film,Delta_sur, &
-               delta_z_bottom_cap,delta_z_top_cap,delta_z_top_film,Film_shift,Film_roughness,Film_thickness,ich, &
+               delta_z_bottom_cap,delta_z_top_cap,delta_z_top_film,Film_shift,Film_roughness,Film_thickness,hkl_film,ich, &
                Interface_shift,itype,n_atom_bulk,n_atom_cap,n_atom_int,n_atom_per, &
-               n_atom_sur,n_atom_uc,ngroup,ntype,numat,posn,posn_bulk,posn_cap,Surface_shift)
+               n_atom_sur,n_atom_uc,ngroup,ntype,numat,posn,posn_bulk,posn_cap,Surface_ref,Surface_shift)
 
   use declarations
   implicit none
@@ -9124,10 +9124,12 @@ Subroutine Prep_Film(angxyz,angxyz_bulk,angxyz_cap,angxyz_int,angxyz_sur,axyz,ax
   integer, dimension(ngroup):: itype
   integer, dimension(0:ntype):: numat
 
+  logical:: hkl_film
+
   real(kind=db):: Atom_radius, c_cos_z, c_cos_z_b, c_cos_z_c, c_cos_z_i, c_cos_z_s, Cap_roughness, Cap_shift, Cap_thickness_used, &
     Cap_thickness, cos_z, cos_z_b, cos_z_c, cos_z_i, cos_z_s, Delta_bulk, Delta_cap, Delta_Film, Delta_int, &
-    Delta_roughness_film, Delta_sur, delta_z_bottom_cap, delta_z_top_cap, &
-    delta_z_top_film, Interface_thickness, Film_roughness, Film_thickness, Film_Thickness_used, Surface_thickness, z_max, z_pos
+    Delta_roughness_film, Delta_sur, delta_z_bottom_cap, delta_z_top_cap, delta_z_top_film, &
+    Interface_thickness, Film_roughness, Film_thickness, Film_Thickness_used, Surface_ref, Surface_thickness, z_max, z_pos
 
   real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_cap, angxyz_int, angxyz_sur, axyz, axyz_bulk, axyz_cap, axyz_int, &
@@ -9137,6 +9139,12 @@ Subroutine Prep_Film(angxyz,angxyz_bulk,angxyz_cap,angxyz_int,angxyz_sur,axyz,ax
   real(kind=db), dimension(3,n_atom_cap):: posn_cap
 
   icheck = ich
+
+  if( hkl_film ) then
+    Surface_ref = axyz(1) * axyz(2) * sin( angxyz(3) )
+  else
+    Surface_ref = axyz_bulk(1) * axyz_bulk(2) * sin( angxyz_bulk(3) )
+  endif
 
 ! Bulk
 
@@ -9309,6 +9317,7 @@ Subroutine Prep_Film(angxyz,angxyz_bulk,angxyz_cap,angxyz_int,angxyz_sur,axyz,ax
     if( n_atom_per > 0 ) write(3,190) Delta_Film * bohr
     if( n_atom_sur > 0 ) write(3,200) Delta_sur * bohr
     if( n_atom_cap > 0 ) write(3,210) Delta_cap * bohr
+    write(3,220) Surface_ref * bohr**2
   endif
 
   Film_Thickness = Film_thickness_used
@@ -9327,6 +9336,7 @@ Subroutine Prep_Film(angxyz,angxyz_bulk,angxyz_cap,angxyz_int,angxyz_sur,axyz,ax
   190 format(' Delta Film          =',f10.5,' A')
   200 format(' Delta Surface       =',f10.5,' A')
   210 format(' Delta Cap           =',f10.5,' A')
+  220 format(' Reference unit cell surface =',f10.5,' A^2')
 end
 
 !*********************************************************************************************************

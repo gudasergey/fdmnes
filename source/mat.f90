@@ -1,6 +1,6 @@
 ! FDMNES subroutines
 
-! Remplissage de la matrice FDM et resolution du systeme d'equations lineaires.
+! Filling of FDM matrix and solving of the linear system of equation.
 
 subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, &
                     clapl,Classic_irreg,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide,FDM_comp,Full_atom, &
@@ -75,7 +75,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
 
   do isp = 1,nspino
     irep = abs( irep_util(igrph,isp) )
-! Il n'y a pas de couplage up-down dans le cas suivant
+! There is no up-down coupling in the following case
     if( irep == 0 ) irep = abs( irep_util(igrph,3-isp) )
     Kar(:,isp) = real( karact(:,irep), db )
     if( Repres_comp ) then
@@ -121,6 +121,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   do isp = 1,nspin
     if( .not. Spinorbite .and. isp /= ispinin ) cycle
     jsp = jsp + 1
+! Calculation of the wave function in the outer sphere
     call phiso(Adimp,Bessel,Besselr,E_comp,Ecinetic_out(isp),Eclie_out,Eimag, &
        Eneg,Enervide,icheck,jsp,isrt,lmaxso,mpirank0,Neuman,Neumanr,npsom,nsort,nsort_c,nsort_r,nspinr,nstm, &
        R_Rydb,Rsort,Rydberg,V0bd_out(isp),xyz)
@@ -171,8 +172,6 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
     end do
   endif
 
-! Valeur des amplitudes des harmoniques spheriques
-
   ia = iaabsi
 
   if( Spinorbite ) then
@@ -184,7 +183,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   endif
 
   if( Basereel ) then
-! Si le calcul a ete fait sur la base reelle, il faut renormaliser.
+! When simulation is done using real basis, one must renormalize.
 
     allocate( norm(nlmso,nlmso) )
     allocate( norm_t(nlmso,nlmso) )
@@ -219,7 +218,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
 
   endif
 
-! Amplitude en sortie.
+! Outer sphere amplitude
   do ia = 1,natome
 
     if( ia /= iaabsi .and. .not. State_all_r .and. Cal_xanes ) cycle
@@ -288,7 +287,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   end do
 
 
-! Representation conjugue
+! Conjugate representation
   if( Repres_comp .and. .not. Spinorbite ) then
     do ia = 1,natome
 
@@ -616,7 +615,7 @@ subroutine phiso(Adimp,Bessel,Besselr,E_comp,Ecinetic_out,Eclie_out,Eimag, &
       v(ir) = max( v(ir), V0bd_out )
     end do
 
-! Pour eviter la discontinuite
+! To avoid discontinuity
     if( ee >= eps10 ) then
       pp = - v(0) / ( r(0) - r(nr) )
       do ir = 0,nr
@@ -760,7 +759,7 @@ subroutine phiso(Adimp,Bessel,Besselr,E_comp,Ecinetic_out,Eclie_out,Eimag, &
 
   else
 
-! Calcul des fonctions de Bessel et Neuman.
+! Calculation of Bessel and Neuman function
     do ib = 1,nsort
       i = isrt(ib)
       p(1:3) = xyz(1:3,i)
@@ -897,7 +896,12 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   a2s4 = 0.25_db * alfa_sf**2
 
 ! Filling of the line and od second member
+! ii is the index of line in the FDM matrix
+
   i = newinv(ii)
+! i > 0 is the index in the FDM grid of point
+! i = 0 means in the outer sphere
+! i < 0 means abs(i) = ia is the index of the atom where is the point
 
   if( Spinorbite .and. i > 0 ) then
     do ia = natome,1,-1
@@ -907,7 +911,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
     ispin = 2 - mod(ii1,2)
   endif 
 
-! Points du reseau de base
+! Points of the FDM grid
   if( i > 0 ) then
 
     ispp = min( ispin, nspin )
@@ -916,7 +920,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 
     isp = min( ispin, nspino )
 
-! Terme diagonal :
+! Diagonal term:
     VmE = Vr( i, ispp ) - Enervide
     abvr(ii) = VmE - clapl(0)
     if( E_comp ) abvi(ii) = - Eimag
@@ -924,11 +928,13 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
     if( Relativiste ) abvr(ii) = abvr(ii) - a2s4 * VmE**2
     if( Relativiste .or. Spinorbite ) bder = - a2s4 / ( 1 - a2s4 * VmE )
 
+! iv is the number of the neighboring points
     do iv = 1,nvois
 
-! Coefficient reliant le point central au voisin
+! j is the index of the neighboring point
       j = ivois(i,iv)
       ia = numia(j)
+! Coefficient connecting the central point to the neighboring point
       cfvs_r(isp) = - clapl(iv)
       if( Cal_comp ) cfvs_i(isp) = 0._db 
 
@@ -953,7 +959,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       endif
 
       if( Spinorbite ) then
-! rotationnel
+! rotationnal
         csor(:) = 0._db
         csoi(:) = 0._db
         select case(k)
@@ -1087,7 +1093,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
               abvr( jjj ) = abvr( jjj ) + real( cfv_comp(isp), db)
               abvi( jjj ) = abvi( jjj ) + aimag( cfv_comp(isp) )
             else
-      ! on est forcement en spinorbite
+      ! one is necessarily in spinorbit
               abvr( jjj ) = abvr( jjj ) + real( cfv_comp(indg),db)
               abvi( jjj ) = abvi( jjj ) + aimag( cfv_comp(indg) )
             endif
@@ -1132,7 +1138,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 
     end do ! end of the loop on the neighbor points
 
-! Developpement en sortie
+! Expansion in the outer sphere
   elseif( i == 0 ) then
 
     lm = ii - nligneso
@@ -1237,15 +1243,15 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       end do
     end do
 
-! Developpement dans un atome
-! A ce niveau isp devient l'indice solution
+! Expansion in the atom
+! Here isp becomes also the solution index
   else
     ia = -i
     lm = ii - ianew(ia)
     l = lato(lm,ia,igrph)
     ispt = iato(lm,ia,igrph)
-    m = mato(lm,ia,igrph)       ! on developpe sur le spin = isol
-    lm0 = l**2 + l + 1 + m      ! c'est le m de l'harmonique
+    m = mato(lm,ia,igrph)       ! one expand on spin = isol
+    lm0 = l**2 + l + 1 + m      ! it is the m of the harmonics
 
     do ib = 1,nbordf(ia)
       j = ibord(ib,ia)
@@ -1406,7 +1412,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 
 !***********************************************************************
 
-! Fonction donnant l'harmonique complexe en fonction des harmonique reelles
+! Function giving the complex harmonics frm the real harmonics
 
 function Yc(m,Ylm1,Ylm2)
 
@@ -1434,7 +1440,7 @@ end
 
 !***********************************************************************
 
-! Calcul du nouvel indicage des points, c'est-a-dire de leur numero de ligne dans la matrice generale.
+! Calculation of the new indexation of the FDM points, that is their line number in the general FDM matrix.
 
 subroutine newind(distai,ianew,ibord,icheck,isrt,ivois,lb1,lb2,mpirank0,natome,nbordf,nbtm,new,newinv, &
                nligne,nlmsa,nlmso,npoint,nsortf,nspino,npsom,nstm,numia,nvois,xyz)
@@ -1482,7 +1488,7 @@ subroutine newind(distai,ianew,ibord,icheck,isrt,ivois,lb1,lb2,mpirank0,natome,n
     end do
   end do
 
-! Calcul des positions des coefficients dans la matrice.
+! Calculation of the positions of the coefficients in the matrix.
   do ii = 1,nligne
     lb1(ii) = ii
     lb2(ii) = ii
@@ -1779,7 +1785,7 @@ subroutine soustract_tl(Axe_Atom_grn,Cal_xanes,Full_atom,iaabsi,iaprotoi,igreq,i
           endif
           lm2 = 0
           do l2 = 0,lmaxa(ia)
-! Meme en Hubbard, les l differents ne se melangent pas
+! Even in Hubbard, different l do not mix
             do m2 = -l2,l2
               lm2 = lm2 + 1
               if( l2 /= l1 ) cycle
@@ -1877,14 +1883,14 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
 
   Stop_job = .true.
 
-! Pour l'instant toutes les representations sont de dimension 1.
+! Actually all representation are 1 dimension, sorry.
   I_rep_dim = 1
 
-! Correspond a Ch. Brouder et al. PRB 54, 7334 (1996) pour la matrice
-! de diffusion multiple plus stable. Non programme avec spin-orbite.
+! Corresponds to Ch. Brouder et al. PRB 54, 7334 (1996) to get a more stable multiple scattering matrix.
+! Not coded with spin-orbit
   Brouder = .false.
 
-! Remplissage de la matrice
+! Filling of the MST matrix
   call CPU_TIME(time)
   tp1 = real(time,db)
 
@@ -2047,26 +2053,26 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
       allocate( ylmc(nlmc) )
       if( .not. Ylm_comp ) allocate( ylm(nlmr) )
 
-! Boucle sur les atomes n1 tels qu'il existe une symetrie S avec :
-! S(n0) = n0 et S(n1) = n', ou n' appartient a p'.
+! Loop over atom n1 such a symmetry S exists with:
+! S(n0) = n0 and S(n1) = n', where n' is not part of p'.
       do n1 = 1,nb_rpr(ia,ib)
 
-! ibb : indice cluster non symetrise
+! ibb : cluster index not symmetrized
         ibb = ia_rep(n1,ia,ib)
 
-! L'atome ne diffuse pas vers lui-meme.
+! The atom does not scatter towards itself
         w(1:3) = posi(1:3,ia) - pos(1:3,ibb)
         r = sqrt( sum( w(:)**2 ) )
         if( r < eps10 ) cycle
 
-! Recherche de l'indice "ind" correspondant au representant n1.
+! Search of the index "ind" corresponding to the representant n1.
         do ind = 1,nb_eq(ib)
           if( ibb == ia_eq(ind,ib) ) exit
         end do
 
         fac = real( nb_eq(ia) * nb_rep_t(n1,ia,ib), db ) / I_rep_dim
 
-! Calcul des fonctions de hankel
+! Calculation of Hankel functions
         do isp = 1,nspinr
           if( Spinorbite ) then
             jsp = isp
@@ -2087,7 +2093,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
           end do
         end do
 
-! Calcul des Ylm
+! Calculation of Ylm
         call cylm(lmax,w,r,Ylmc,nlmc)
         if( .not. Ylm_comp ) call ylmcr(lmax,nlmc,nlmr,Ylmc,Ylm)
 
@@ -2114,7 +2120,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
             lma = abs( l1 - l2 )
             lmb = l1 + l2
 
-! Boucles sur m et m' associes a la symetrie
+! Loop over m and m' associated with the symmetry
             gmats = (0._db, 0._db)
             do ms1 = -l1,l1
               if( nb_sym_op == 1 ) then
@@ -2141,7 +2147,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
                   endif
                   do m = -l,l
                     if( Ylm_comp ) then
-! c'est Y(l2,m2) qui est complexe conjugue
+! It is Y(l2,m2) which is complexe conjugate
                       g = gauntcp(l2,ms2,l1,ms1,l,m)
                       if( abs( g ) < eps10 ) cycle
                       lmc = lm0 + abs(m)
@@ -2174,15 +2180,15 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
                 endif
 
               end do
-            end do  ! Fin des boucles sur m, m' liees a la symetrie
+            end do  ! End of loop over m, m' associated with symmetry
 
             mat(iligne,icolone) = mat(iligne,icolone) - fac * gmats
             if( .not. ( nb_sym_op > 1 .or. normaltau .or. Ylm_comp ) ) mat(icolone,iligne) = mat(iligne,icolone)
 
           end do
-        end do  ! fin boucle sur l,m
+        end do  ! end of loop over l,m
 
-      end do ! fin de la boucle sur les atomes equivalents
+      end do ! end of loop over equivalent atoms
 
       if( Ereel ) then
         deallocate( besselr )
@@ -2198,7 +2204,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
     end do
   end do
 
-! diagonale
+! diagonal
   if( normaltau .or. Brouder ) then
     if( nchemin == - 1 ) then
       do iligne = 1,ndim
@@ -2325,17 +2331,17 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
       end do
     end do
 
-! Le remplissage de la matrice est termine, suit la resolution.
+! Filling of matrix is done. Now come the resolution, suit la resolution.
 
+! path development ( not sure it works)
   elseif( nchemin > -1 ) then
 
-! Developpement en chemin
     call dev_chemin(iaabsi,iato,igrph,lato,mat,mato,natome,nchemin,ndim,ngrph,nlmabs,nlmch,nlmagm, &
              nlmsa,nlmsam,nlmsmax,nspinp,taull,taup)
 
   else
 
-! Full multiple scattering, inversion de la matrice
+! Full multiple scattering, matrix inversion
 
     if( normaltau .or. nb_sym_op > 1 .or. Ylm_comp ) then
       call invcomp(ndim,mat,ndim,ndim,0,Stop_job)
@@ -2396,7 +2402,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
         do lm1 = 1,nlmsa(ia)
           lmd1 = lm0 + lm1
           taullp(lm1,lm1) = mat(lmd1,lmd1)
-! A cause du cas harmonique complexe, la matrice n'est plus symetrique
+! Because of complex harmonics, matrix is not symmetric
           do lm2 = 1,nlmsa(ia)
             lmd2 = lm0 + lm2
             taullp(lm1,lm2) = mat(lmd1,lmd2)
@@ -2482,7 +2488,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
         end do
       end do
 
-    end do ! fin boucle sur ia
+    end do ! end of loop over ia
 
   endif
 
@@ -2510,7 +2516,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
   deallocate( taup )
   if( tau_nondiag ) deallocate( taup_inv )
 
-  endif            ! arrivee en cas de ndim = 0
+  endif            ! arrival when ndim = 0
 
   if( recop .and. igrph == ngrph .and. ( Spinorbite .or. ispin == nspin ) ) then
     allocate( Taull_tem(nlmagm,nspinp,nlmagm,nspinp) )
@@ -2520,7 +2526,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
     deallocate( taull_tem )
   endif
 
-! Soustraction de l'amplitude de diffusion atomique
+! Substraction of the atomic scattering amplitude (for complex energy with irregular solution)
   if( Solsing .and. igrph == ngrph .and. Classic_irreg ) then
     if( icheck > 2 ) then
       nlmw = min(nlmagm,9)
@@ -2665,7 +2671,8 @@ end
 
 !***********************************************************************
 
-! Calcul des coefficients de matrice dus a la projection vers la base symetrisee.
+! Calculation of the matrix coefficients due to the projection to lower symmetry.
+
 ! Il y a peut-etre une erreur dans cette routine --> resultat different
 ! pour le cuivre cfc en symetrie 4/mmm et mmm (ou 1). A cause de ca, le
 ! groupe ponctuel est pris de symetrie plus basse en cas de green dans
@@ -3013,7 +3020,7 @@ end
 
 !***********************************************************************
 
-! Developpement en chemin
+! Path expansion
 
 subroutine dev_chemin(iaabsi,iato,igrph,lato,mat,mato,natome,nchemin,ndim,ngrph,nlmabs,nlmch,nlmagm, &
              nlmsa,nlmsam,nlmsmax,nspinp,taull,taup)
@@ -3096,9 +3103,9 @@ end
 
 !***********************************************************************
 
-! Calcul des Dlmm en fonction des matrices de rotations cartesiennes.
-! Vient de Didier Sebillaud
-! Modifie par Yves Joly en Fevrier 2008
+! Calculation of Dlmm versus cartesian rotation matrices.
+! Comes from Didier Sebillaud
+! Modified by Yves Joly in February 2008
 
 subroutine Rotation_mat(Dlmm,icheck,Mat_rot,lmax,Ylm_comp)
 
@@ -3388,7 +3395,7 @@ end
 
 ! **********************************************************************
 
-! Calcul des angles d'Euler a partir de la matrice de rotation
+! Calculation of Euler angles from the rotation matrix
 
 subroutine Euler_mat(icheck,Mat,alfa,beta,gamma)
 
@@ -3438,7 +3445,7 @@ end
 
 !***********************************************************************
 
-! Ecriture ou lecture des amplitudes de diffusion en cas de calcul en mode One run.
+! Writing or lecture of the scattering amplitudes when calculation is done using One run.
 
 subroutine Data_one_run(iabsm,iaprotoi,icheck,igreq,index_e,igroupi,ipr0,lmax_probe,lmaxa, &
                 mpinodes,multi_run,n_atom_proto,n_multi_run,natome,neqm,nge,ngreq,nlm_probe,nlmagm,nspinp, &
@@ -3503,7 +3510,7 @@ subroutine Data_one_run(iabsm,iaprotoi,icheck,igreq,index_e,igroupi,ipr0,lmax_pr
         Mat_rot = Rot_int
       endif
 
-! En ecriture, on applique la rotation inverse --> Transpose
+! When writing, one apply the inverse rotation --> Transpose
       if( multi_run == 1 ) Mat_rot = Transpose( Mat_rot )
 
       Allocate( Dlmm(-lmx:lmx,-lmx:lmx,0:lmx) )

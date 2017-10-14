@@ -81,7 +81,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   real(kind=sg):: time
 
   real(kind=db):: delta_E, E_cut, E_cut_imp, E_cut_optic, Eclie, Ecmax, Ephot_min, &
-    p, Rmtg, Rmtsd, V_intmax, V0muf, Vhbdc, Volume_maille, Workf
+    p, Rmtg, Rmtsd, Surface_ref, V_intmax, V0muf, Vhbdc, Volume_maille, Workf
 
   real(kind=db), dimension(3):: angxyz, axyz
   real(kind=db), dimension(3):: tp
@@ -119,6 +119,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
   n_Ec = 2
   ns_dipmag = 2  ! corresponds here at the 2, occupied and non-occupied state, energies, not the spin-flip in the E1M1 transition 
   ndim2 = 1
+  Surface_ref = 0._db
   
   if( Hubb_a .or. Full_potential ) then
     nlm_p_fp = nlm_probe
@@ -343,7 +344,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Cartesian_tensor,Classic_irreg,Core_re
             sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
             secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m, &
             Self_abs,Spherical_signal, &
-            Spherical_tensor,Spinorbite,Taux_eq,V0muf,vecdafse,vecdafss,vec,Volume_maille,Xan_atom) 
+            Spherical_tensor,Spinorbite,Surface_ref,Taux_eq,V0muf,vecdafse,vecdafss,vec,Volume_maille,Xan_atom) 
 
       First_E = .false.
       

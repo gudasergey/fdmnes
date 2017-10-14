@@ -666,7 +666,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             elseif( mot(1:17) == '_cell_angle_gamma' ) then
               Angz = number_from_text(1,mot)
 
-            elseif( mot(1:10) == '_atom_site') then
+            elseif( mot(1:10) == '_atom_site' .and. mot(12:16) /= 'aniso' ) then
 
               backspace(8)
               n_fract_x = -1; n_fract_y = -1; n_fract_z = -1
@@ -1301,7 +1301,7 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Fichier_cif,Fichier_pdb,itape4,
 
     do
       read(8,'(A)') mot
-      if( mot(1:10) == '_atom_site' ) exit
+      if( mot(1:10) == '_atom_site' .and. mot(12:16) /= 'aniso' ) exit
     end do
     backspace(8)
 
@@ -2313,7 +2313,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             ecrantage(1) = ecrantage(nspin)
           endif
           Force_ecr = .true.
-          Charge_free = .true.
 
         case('tddft')
           tddft = .true.
@@ -3447,7 +3446,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             elseif( mot(1:14) == '_cell_length_c') then
               axyz(3) = number_from_text(1,mot)
 
-            elseif( mot(1:10) == '_atom_site') then
+            elseif( mot(1:10) == '_atom_site' .and. mot(12:16) /= 'aniso' ) then
 
               backspace(8)
               n_fract_x = 0; n_fract_y = 0; n_fract_z = 0
