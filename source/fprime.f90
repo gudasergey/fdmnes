@@ -54,37 +54,32 @@ subroutine calc(nw, iz, xk, sumfp, sumfpp, xsect_file, wt)
   real(kind=db), dimension(nkm):: cxb, sumfp, sumfp0, sumfpp, xjensn, xk
   real(kind=db), dimension(nw,nshm):: fp, fpp
 
+  integer, dimension(103):: izdata
+  character(len=2), dimension(103):: isymdata
+  character(len=2):: not_used_padding1
+  integer, dimension(103):: irecdata
+  integer, dimension(103):: nodata
+  character(len=4):: not_used_padding2
+  real(kind=db), dimension(103):: etermdata
+  character(len=2), dimension(14450):: natomdata
+  integer, dimension(14450):: njdata
+  character(len=8), dimension(14450):: nsheldata
+  character(len=4):: not_used_padding3
+  real(kind=db), dimension(14450):: xwdata
+  real(kind=db), dimension(14450):: ewdata
+  real(kind=db), dimension(14450):: sigdata
+  real(kind=db), dimension(14450):: bedata
+  integer, dimension(14450):: iftypedata
+  common /xsectdata/ izdata,isymdata,not_used_padding1,irecdata,nodata,not_used_padding2,&
+        etermdata,natomdata,njdata,nsheldata,not_used_padding3,xwdata,ewdata,sigdata,bedata,iftypedata
   common/gaus/ cx, bb, sigg(5), rx, icount
   common/edge/ sedge
 
   data c / 137.0367 /
-  data is / 1 /
   data mx / 5 /
   data n_interp / 2 /
   data au / 2.80022e+7 /
   data c1 / 0.02721 /
-
-!-----------------------------------------------------------------------
-! Open "XSECT.DAT" File And Get # Of Orbitals, "NO", "ETERM" And
-! Starting Record For Element, "IREC"
-!-----------------------------------------------------------------------
-
-  do i = 1,3
-    select case(i)
-      case(1)
-        file_name = xsect_file
-      case(2)
-        file_name = 'C:/fdmnes/xsect.dat'
-      case(3)
-        file_name = '/Share/public/FDMNES/xsect.dat'
-    end select
-    open(is, file = file_name, status='old', iostat=istat)
-    if( istat == 0 ) exit
-  end do
-  if( istat /= 0 ) then
-    file_name = 'xsect.dat'
-    call write_open_error(file_name,istat,1)
-  endif
 
   if( iz < 1 .or. iz > 103 ) then
     call write_error
@@ -95,10 +90,11 @@ subroutine calc(nw, iz, xk, sumfp, sumfpp, xsect_file, wt)
     stop
   endif
 
-  do i = 1,iz-1
-    read(1,*)
-  end do
-  read(1,'(i4,1x,a2,i6,i3,f7.3)') iiz, isym, iirec, no, eterm
+  iiz = izdata(iz)
+  isym = isymdata(iz)
+  iirec = irecdata(iz)
+  no = nodata(iz)
+  eterm = etermdata(iz)
 
   if( iiz /= iz ) then
     call write_error
@@ -109,7 +105,7 @@ subroutine calc(nw, iz, xk, sumfp, sumfpp, xsect_file, wt)
     stop
   endif
 
-  irec = iirec
+  irec = iirec-103
   natom = isym
   nat = natom
 
@@ -133,14 +129,14 @@ subroutine calc(nw, iz, xk, sumfp, sumfpp, xsect_file, wt)
 
   boucle_orb: do j = 1, no
 
-  rewind(is)
-  do i = 1,irec-1
-    read(is,*)
-  end do
-
   do k = 1, mx
     do
-      read(unit=is, fmt=140) nat, nj, nshel(j), xw, ew(k), sig(k)
+      nat = natomdata(irec)
+      nj = njdata(irec)
+      nshel(j) = nsheldata(irec)
+      xw = xwdata(irec)
+      ew(k) = ewdata(irec)
+      sig(k) = sigdata(irec)
       irec = irec + 1
       if( nat == natom ) exit
     end do
@@ -157,7 +153,14 @@ subroutine calc(nw, iz, xk, sumfp, sumfpp, xsect_file, wt)
 ! Read 5 Energies And X-Sections For Orbital J For The GAUSS Integration
 ! Points. Binding_Energy BE and Function Type Iftype also.
   do k = 1, 5
-    read(unit=is, fmt=140) nat, nj, nshel(j), xw, eg(k), sigg(k), be, iftype
+    nat = natomdata(irec)
+    nj = njdata(irec)
+    nshel(j) = nsheldata(irec)
+    xw = xwdata(irec)
+    eg(k) = ewdata(irec)
+    sigg(k) = sigdata(irec)
+    be = bedata(irec)
+    iftype = iftypedata(irec)
     irec = irec + 1
     if( nat /= natom .or. nj /= j .or. be <= 0._db  ) then
       call write_error
@@ -176,7 +179,12 @@ subroutine calc(nw, iz, xk, sumfp, sumfpp, xsect_file, wt)
 ! Iftype = 0 So Read X-Section at Energy = 1.001*Binding_Energy
   if( iftype == 0 ) then
     nx = nx + 1
-    read(unit=is, fmt=140) nat, nj, nshel(j), xw, ew(nx), sig(nx)
+    nat = natomdata(irec)
+    nj = njdata(irec)
+    nshel(j) = nsheldata(irec)
+    xw = xwdata(irec)
+    ew(nx) = ewdata(irec)
+    sig(nx) = sigdata(irec)
     irec = irec + 1
     if( nat /= natom ) then
       call write_error
@@ -289,13 +297,10 @@ subroutine calc(nw, iz, xk, sumfp, sumfpp, xsect_file, wt)
     cxb(k) = (cxb(k) * 0.602472) / wt
   end do
 
-  close(unit=is)
-
   return
   110 format(//'  Error in fprime.f :')
   120 format(/'  Z =',i5,' < 1 or > 103',//)
   130 format(/'  iiz =',i5,' /= iz =',i5,//)
-  140 format(a2,2x,i4,a6,4e15.8,i2)
   150 format(/'  nj =',i5,' /= j =',i5,//)
   160 format(/'  nat =',i5,' /= natom =',i5,' or  nj =',i5,' /= j =',i5, /'  or be = ',1p,e13.5,' < 0',//)
   170 format(/'  nat =',i5,' /= natom =',i5,//)

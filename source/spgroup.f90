@@ -185,7 +185,7 @@ subroutine symgrp(Cif,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans,Space_file)
   use declarations
   implicit none
 
-  integer:: eof, nmaxop
+  integer:: nmaxop
 
   character(len=1):: SGTrans
   character(len=10):: sgnbcar, sgnbcar0
@@ -195,7 +195,10 @@ subroutine symgrp(Cif,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans,Space_file)
   character(len=132):: Space_file
   character(len=80), dimension(nmaxop):: lines
 
-  integer:: i, i1, i2, ipr, istat, itape, j, k, l, nbsyop, sgnb
+  character(len=80), dimension(5547):: spacegroupdata
+  common /spacegroupdata/ spacegroupdata
+
+  integer:: i, i1, i2, ipr, istat, itape, j, k, l, nbsyop, sgnb, currentLineNum
 
   logical:: Cif, pareil
 
@@ -204,12 +207,12 @@ subroutine symgrp(Cif,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans,Space_file)
   real(kind=db), dimension(3,4):: Matrix(3,4)
 
   pareil = .false.
-  itape = 7
-
-  Open(itape, file = Space_file, status='old', iostat=istat)
-  if( istat /= 0 ) call write_open_error(Space_file,istat,1)
 
   if( Cif ) then
+    itape = 7
+
+    Open(itape, file = Space_file, status='old', iostat=istat)
+    if( istat /= 0 ) call write_open_error(Space_file,istat,1)
 
     do
      read(itape,'(A)') mot
@@ -258,30 +261,22 @@ subroutine symgrp(Cif,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans,Space_file)
     nbsyop = i - 1
 
     SGTrans = ' ' ! Space_group(1:1)
-        
+
+    Close(itape)
   else
   
 ! Ask for exact definition of space group.
 ! sgnbcar0 is the detailed number of the spacegroup, specifying axis and origin conventions
 
-    call locateSG(itape,Space_file,Space_Group,sgnbcar0)
-
-    Rewind(itape)
+    call locateSG(Space_Group,sgnbcar0)
 
 ! In spacegroup.txt the name of the symmetry group follows a *<space>
 ! look for it. If a * is found, check that the following string
 ! is the name of the desired symmetry group.
 
-    do i = 1,10000
+    do i = 1,5547
 
-      Read(itape,'(a80)',iostat=istat) line
-      if( istat /= 0 ) then
-        call write_error
-        do ipr = 6,9,3
-          write(ipr,100) Space_group, Trim( Space_file )
-        end do
-        stop
-      endif
+      line = spacegroupdata(i)
       if (line(1:1) /= '*') cycle
 
 ! Analyse the line giving space group name(s)
@@ -292,13 +287,13 @@ subroutine symgrp(Cif,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans,Space_file)
       if( pareil ) exit
 
     end do
-
+    currentLineNum = i
 ! Look for nbsyop
     do i = 1,1000
-      read(itape,'(a80)',iostat=eof) line
-      if( eof /= 0 ) exit
+      line = spacegroupdata(currentLineNum+i)
       if( line(1:1) == '*' .or. line(1:1) == ' ' ) exit
       lines(i) = line
+      if( currentLineNum+i >= 5547 ) exit
     end do
     nbsyop = i - 1
 
@@ -324,8 +319,6 @@ subroutine symgrp(Cif,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans,Space_file)
       Trans(i1,i) = Matrix(i1,4)
     end do
   end do
-
-  Close(itape)
 
   return
   100 format(//' Space group name, ',a13,', not found in the file ',A//)
@@ -662,7 +655,7 @@ end
 
 !***********************************************************************
 
-subroutine locateSG(itape,Space_file,Space_Group,sgnbcar0)
+subroutine locateSG(Space_Group,sgnbcar0)
 
 !    This program locates all space groups whose names
 !    look like Space_Group and asks to choose the right one
@@ -677,22 +670,23 @@ subroutine locateSG(itape,Space_file,Space_Group,sgnbcar0)
   use declarations
   implicit none
 
+  character(len=80), dimension(5547):: spacegroupdata
+  common /spacegroupdata/ spacegroupdata
+
   character(len=10) sgnbcar, sgnbcar0, sgnbcar1
   character(len=13) sgHMlong13, sgHMshort13, sgnbcar13, sgschoenfliess, sgschoenfliess1, Space_Group
   character(len=27) sgHMshort, sgHMshort1, sgHMlong, sgHMlong1
   character(len=80) line
-  character(len=132) Space_file
 
-  integer i, ipr, istat, itape, sgnb, sgnb1, nbsol
+  integer i, ipr, sgnb, sgnb1, nbsol
 
   logical pareil
 
   nbsol = 0
 
-  do i = 1,10000
+  do i = 1,5547
 
-    read(itape,'(A)',iostat=istat) line
-    if( istat /= 0 ) exit
+    line = spacegroupdata(i)
     if( line(1:1) /= '*' ) cycle
 
     call analysename(line,sgnb,sgnbcar,sgschoenfliess,sgHMshort,sgHMlong)
@@ -732,13 +726,6 @@ subroutine locateSG(itape,Space_file,Space_Group,sgnbcar0)
     end if
 
   end do
-
-  if( nbsol > 1 ) then
-    do ipr = 6,9,3
-      write(ipr,140) Space_file
-    end do
-    stop
-  endif
 
   return
   110 format(/' Space group is ',a13)
