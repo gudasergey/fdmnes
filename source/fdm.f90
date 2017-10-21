@@ -1341,8 +1341,10 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
 ! The atoms used to describe the potential can be the non-equivalent ones of the unit cell, or the non-equivalent ones
 ! of the cluster.
+!    Full_atom = ( Full_atom_e  .or. ( Self_cons .and. .not. ( Self_nonexc .and. Proto_all ) ) &
+!                     .or. ( natome <= n_atom_proto + 1 ) .or. Full_potential .or. Hubbard ) .and. .not. Flapw
     Full_atom = ( Full_atom_e  .or. ( Self_cons .and. .not. ( Self_nonexc .and. Proto_all ) ) &
-                     .or. ( natome <= n_atom_proto + 1 ) .or. Full_potential .or. Hubbard ) .and. .not. Flapw
+                     .or. ( natome <= n_atom_proto + 1 ) ) .and. .not. Flapw
 
     if( Full_atom ) then
       n_atom_0 = 1
@@ -2541,7 +2543,9 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 ! inside the cluster
       if( i_range == 1 ) &
         Full_atom = ( Full_atom_e  .or. ( Self_cons .and. .not. ( Self_nonexc .and. Proto_all ) ) &
-                   .or. ( natome <= n_atom_proto + 1 ) .or. Full_potential .or. Hubbard ) .and. .not. Flapw
+                   .or. ( natome <= n_atom_proto + 1 ) ) .and. .not. Flapw
+!        Full_atom = ( Full_atom_e  .or. ( Self_cons .and. .not. ( Self_nonexc .and. Proto_all ) ) &
+!                   .or. ( natome <= n_atom_proto + 1 ) .or. Full_potential .or. Hubbard ) .and. .not. Flapw
 
       if( Full_atom ) then
         n_atom_0 = 1
