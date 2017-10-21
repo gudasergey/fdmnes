@@ -9,7 +9,7 @@
 subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart, &
         Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max,ical, &
         icheck,indice_par,iscratchconv,itape1,kw_conv,length_line, &
-        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,ncal,xsect_file)
+        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,ncal)
 
   use declarations
   implicit none
@@ -34,7 +34,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   character(len=1):: rep
   character(len=9):: keyword, mot9
   character(len=Length_word):: nomab
-  character(len=132):: chemin, convolution_out, fichscanout, identmot, mot, mots, nomfich, nomfichbav, xsect_file
+  character(len=132):: chemin, convolution_out, fichscanout, identmot, mot, mots, nomfich, nomfichbav
   character(len=9), dimension(nkw_conv) :: kw_conv
   character(len=9), dimension(ngroup_par,nparm) :: typepar
   character(len=Length_word), dimension(:), allocatable:: nom_col
@@ -1574,7 +1574,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
       fprime_atom = icheck > 2 .and. ifich == 1 .and. i_conv == 0 .and. ( initl == 1 .or. initl == num_core(1) )
       if( Extrap .or. fprime_atom .or. Cor_abs .or. Stokes_xan ) then
-        call extrapat(bb(nenerg),dampl,Energ,Eseuil(ifich),Extrap,fpp0,fprime_atom,icheck,nenerg,numat,xsect_file)
+        call extrapat(bb(nenerg),dampl,Energ,Eseuil(ifich),Extrap,fpp0,fprime_atom,icheck,nenerg,numat)
          dampl(:) = dampl(:) / ninitl(ifich)
          fpp0 = fpp0 / ninitl(ifich)
       endif
@@ -3454,7 +3454,7 @@ end
 
 ! Calcul de l'extrapolation atomique
 
-subroutine extrapat(bb_nenerg,dampl,Energ,Eseuil,Extrap,fpp0,fprime_atom,icheck,nenerg,numat,xsect_file)
+subroutine extrapat(bb_nenerg,dampl,Energ,Eseuil,Extrap,fpp0,fprime_atom,icheck,nenerg,numat)
 
   use declarations
   implicit none
@@ -3464,7 +3464,6 @@ subroutine extrapat(bb_nenerg,dampl,Energ,Eseuil,Extrap,fpp0,fprime_atom,icheck,
   integer:: i, icheck, ie, nenerg, ni, numat
   
   character(len=2):: Chemical_symbol
-  character(len=132):: xsect_file
 
   complex(kind=db):: dampl(nenerg)
 
@@ -3487,14 +3486,14 @@ subroutine extrapat(bb_nenerg,dampl,Energ,Eseuil,Extrap,fpp0,fprime_atom,icheck,
         Ephoton = Ephoton + 10 * dde
       endif
       if( Ephoton > Ephm ) exit
-      call fprime(numat,Ephoton,fpp,fp,xsect_file)
+      call fprime(numat,Ephoton,fpp,fp)
       write(3,'(3f13.6)') Ephoton*rydb, fp, fpp
     end do
     if( .not. Extrap ) return
   endif
 
   Ephoton = Eseuil - 2 / rydb
-  call fprime(numat,Ephoton,fpp0,fp,xsect_file)
+  call fprime(numat,Ephoton,fpp0,fp)
 
   Ephoton = Eseuil + Energ(nenerg)
   Ephm = Eseuil + 10000._db / rydb
@@ -3510,7 +3509,7 @@ subroutine extrapat(bb_nenerg,dampl,Energ,Eseuil,Extrap,fpp0,fprime_atom,icheck,
     dde = alfa * dde
     Ephoton = Ephoton + dde
     if( Ephoton > ephm ) exit
-    call fprime(numat,Ephoton,fpp,fp,xsect_file)
+    call fprime(numat,Ephoton,fpp,fp)
     Ei(i) = Ephoton
     Ei2(i) = Ei(i) + f * dde
     Ei1(i) = Ei(i) - 0.5_db * dde

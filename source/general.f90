@@ -6107,14 +6107,13 @@ end
 ! Calculation of f' and f" = absorption before the edge (in micrometer^-1)
 
   complex(kind=db) function f_cal(Bulk_step,Doping,Eseuil,icheck,itypepr,n_atom_proto,n_atom_proto_uc,nbseuil, &
-                        ngreq,ntype,numat,Z_abs,Taux_ipr,Volume_maille,xsect_file)
+                        ngreq,ntype,numat,Z_abs,Taux_ipr,Volume_maille)
 
   use declarations
   implicit none
 
   character(len=4):: elemv
   character(len=2):: Chemical_symbol
-  character(len=132):: xsect_file
 
   integer:: icheck, ipr, n_atom_proto, n_atom_proto_uc, nbseuil, ntype, Z, Z_abs
   integer, dimension(0:ntype):: numat
@@ -6143,7 +6142,7 @@ end
       if( Z == 0 ) cycle
       Ea = Eseuil(nbseuil) - 1
       Ea = max( Ea,  0.5_db )
-      call fprime(Z,Ea,fppa(ipr),fpa(ipr),xsect_file)
+      call fprime(Z,Ea,fppa(ipr),fpa(ipr))
       fpp_avantseuil = fpp_avantseuil + Taux_ipr(ipr) * ngreq(ipr) * fppa(ipr)
 
       if( Z /= Z_abs ) fp_avantseuil = fp_avantseuil + Taux_ipr(ipr) * ngreq(ipr) * fpa(ipr)
@@ -6204,7 +6203,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
           nlat,nlatm,nphi_dafs,nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nrato,nrm,nspin,ntype,numat,Operation_mode, &
           Operation_mode_used,Orthmatt,phdafs,phdf0t,phdt,phi_0,Poldafse,Poldafsem,Poldafss,Poldafssm,popatm,posn,posn_bulk, &
           posn_cap,psival,rato,Surface_shift,Taux,Taux_cap,Taux_oc,Temp,Temp_coef,Temperature,Vec_orig,Vecdafse,Vecdafsem, &
-          Vecdafss,Vecdafssm,xsect_file,Z_bulk,Z_cap)
+          Vecdafss,Vecdafssm,Z_bulk,Z_cap)
 
   use declarations
   implicit none
@@ -6222,7 +6221,6 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
 
   character(len=4):: mot4
   character(len=64):: mot64
-  character(len=132):: xsect_file
 
   complex(kind=db):: f_avantseuil, cfac, ph, ph_cjg
   complex(kind=db), dimension(3):: vec_a, vec_b, pe, ps
@@ -6525,7 +6523,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
     if( Z == 0 ) cycle
 ! We do not consider here the anomalous part of the absorbing atom because it is calculated further in the code !
     if( Z /= Z_abs ) then
-      call fprime(Z,Energy_photon,fpp(ipr),fp(ipr),xsect_file)
+      call fprime(Z,Energy_photon,fpp(ipr),fp(ipr))
     else
       fp(:) = 0._db; fpp(ipr) = 0._db
     endif
@@ -6587,7 +6585,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
     if( .not. Abs_in_bulk ) then
       call Bulk_scat(angxyz_bulk,axyz_bulk,Energy_photon,hkl_dafs,hkl_film,icheck, &
         Length_abs,Mat_bulk_i,Mult_bulk,n_atom_bulk,ngroup_temp,npldafs,phd_f_bulk,posn_bulk,Q_mod, &
-        Temp_coef,Temperature,Truncation,xsect_file,Z_abs,Z_bulk)
+        Temp_coef,Temperature,Truncation,Z_abs,Z_bulk)
 
       phd_f_bulk(:) = Phase_bulk(:) * phd_f_bulk(:)
     endif
@@ -6604,7 +6602,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
               Cap_thickness,c_cos_z,c_cos_z_b,Delta_cap,Delta_roughness_film,delta_z_bottom_cap, &
               delta_z_top_cap,Energy_photon,Film_roughness,fpp_cap_tot,hkl_dafs,hkl_film, &
               Mult_bulk,Mult_film,n_atom_cap,npldafs,phd_f_cap,posn_cap,Q_mod,Taux_cap, &
-              xsect_file,Z_cap)
+              Z_cap)
 
   do ipl = npldafs,1,-1
 
@@ -9345,7 +9343,7 @@ end
 
 subroutine Bulk_scat(angxyz_bulk,axyz_bulk,Energy_photon,hkl_dafs,hkl_film,icheck, &
         Length_abs,Mat_bulk_i,Mult_bulk,n_atom_bulk,ngroup_temp,npldafs,phd_f_bulk,posn_bulk,Q_mod, &
-        Temp_coef,Temperature,Truncation,xsect_file,Z_abs,Z_bulk)
+        Temp_coef,Temperature,Truncation,Z_abs,Z_bulk)
 
   use declarations
   implicit none
@@ -9357,7 +9355,6 @@ subroutine Bulk_scat(angxyz_bulk,axyz_bulk,Energy_photon,hkl_dafs,hkl_film,ichec
 
   character(len=4):: elemv
   character(len=2):: Chemical_symbol
-  character(len=132):: xsect_file
 
   logical:: hkl_film, Temperature
 
@@ -9383,7 +9380,7 @@ subroutine Bulk_scat(angxyz_bulk,axyz_bulk,Energy_photon,hkl_dafs,hkl_film,ichec
   do igr = 1,n_atom_bulk
     Z = Z_bulk(igr)
     if( Z == Z_abs ) cycle
-    call fprime(Z,Energy_photon,fpp_bulk(igr),fp_bulk(igr),xsect_file)
+    call fprime(Z,Energy_photon,fpp_bulk(igr),fp_bulk(igr))
     fpp_bulk_tot = fpp_bulk_tot + fpp_bulk(igr)
   end do
 ! Conversion in Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
@@ -9532,7 +9529,7 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Cap_di
               Cap_thickness,c_cos_z,c_cos_z_b,Delta_cap,Delta_roughness_film,delta_z_bottom_cap, &
               delta_z_top_cap,Energy_photon,Film_roughness,fpp_cap_tot,hkl_dafs,hkl_film, &
               Mult_bulk,Mult_film,n_atom_cap,npldafs,phd_f_cap,posn_cap,Q_mod,Taux_cap, &
-              xsect_file,Z_cap)
+              Z_cap)
 
   use declarations
   implicit none
@@ -9545,7 +9542,6 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Cap_di
 
   character(len=4):: elemv
   character(len=2):: Chemical_symbol
-  character(len=132):: xsect_file
 
   complex(kind=db):: Bragg_cap
   complex(kind=db), dimension(npldafs):: phd_f_cap
@@ -9579,7 +9575,7 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Cap_di
   fpp_cap_tot = 0._db
   do igr = 1,n_atom_cap
     Z = Z_cap(igr)
-    call fprime(Z,Energy_photon,fpp_cap(igr),fp_cap(igr),xsect_file)
+    call fprime(Z,Energy_photon,fpp_cap(igr),fp_cap(igr))
     fpp_cap_tot = fpp_cap_tot + Taux_cap(igr) * fpp_cap(igr)
   end do
 

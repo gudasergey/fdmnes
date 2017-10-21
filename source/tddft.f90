@@ -36,7 +36,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Bulk_step,
           rof0,rot_atom_abs,Rot_int,RPALF,rsato,rsbdc,Self_abs,Solsing_only, &
           Spherical_signal,Spherical_tensor,Spinorbite,Surface_ref,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb,V0muf, &
           Vcato,vec,vecdafse,vecdafss,Vhbdc,Volume_maille,VxcbdcF, &
-          Vxcato,Workf,xsect_file,Ylm_comp_e)
+          Vxcato,Workf,Ylm_comp_e)
 
   use declarations
   implicit none
@@ -65,7 +65,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Bulk_step,
   integer, dimension(n_bulk_z):: n_bulk_zc
   integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
 
-  character(len=132):: nomfich, nomfich_s, xsect_file
+  character(len=132):: nomfich, nomfich_s
   character(len=5), dimension(nplrm):: ltypcal
   character(len=length_word), dimension(ncolm):: nomabs
   character(len=132), dimension(n_multi_run+n_bulk_sup):: nomfich_cal_tddft_conv
@@ -270,7 +270,7 @@ subroutine main_tddft(alfpot,All_nrixs,angxyz,Allsite,Atomic_scr,axyz,Bulk_step,
   allocate( fppn(nenerg_s-1:nenerge,nlmsm_f,nlmsm_f,nbseuil,nbseuil,nspinp) )
   call Extrap_fpp( Core_resolved, decal_initl, Delta_edge, Energ_s, Eseuil(nbseuil), icheck(23), E_cut_tddft, EFermi_min, fppn, &
                      lmaxabs_t, lseuil, nbseuil, n_Ec, nenerg_s, nenerge, ninit1, nlmamax, nlmsm_f, nspino, &
-                     nspinp, numat, rof0, Spinorbite, Taull_tdd, xsect_file )
+                     nspinp, numat, rof0, Spinorbite, Taull_tdd )
   E_cut = EFermi_min
 
 ! Valeur eventuellement decalee vers le bas pour ne rien couper a la convolution.
@@ -702,7 +702,7 @@ end
 
 subroutine Extrap_fpp( Core_resolved, decal_initl, Delta_edge, Energ_s, Eseuil, icheck, EFermi, EFermi_min, fppn, &
                        lmaxabs_t, lseuil, nbseuil, n_Ec, nenerg_s, nenerge, ninit1, nlmamax, nlmsm_f, nspino, &
-                       nspinp, numat, rof0, Spinorbite, Taull_tdd, xsect_file )
+                       nspinp, numat, rof0, Spinorbite, Taull_tdd )
 
   use declarations
   implicit none
@@ -711,8 +711,6 @@ subroutine Extrap_fpp( Core_resolved, decal_initl, Delta_edge, Energ_s, Eseuil, 
   integer:: icheck, ie, ie_saut, ie_ph, iseuil, iso1, iso2, isp, iss1, iss2, l1, l2, lm1, lm2, lmaxabs_t, &
             lms1, lms2, lmv1, lmv2, lseuil, m1, m2, mv1, mv2, nbseuil, nenerg_s, nenerge, ninit1, n_Ec, nlmamax, &
             nlmsm_f, numat, nspino, nspinp
-
-  character(len=132):: xsect_file
 
   complex(kind=db), dimension(nenerg_s,nlmamax,nspinp,nlmamax,nspinp) :: Taull_tdd
   complex(kind=db), dimension(nenerg_s,nlmamax,nspinp,nspino,nbseuil):: rof0
@@ -732,7 +730,7 @@ subroutine Extrap_fpp( Core_resolved, decal_initl, Delta_edge, Energ_s, Eseuil, 
   fppn(:,:,:,:,:,:) = 0._db
 
   Ephoton = max( Eseuil - 2 / rydb, 0.001_db )
-  call fprime(numat,Ephoton,fpp0,fp,xsect_file)  ! fpp0 = avantseuil de f"
+  call fprime(numat,Ephoton,fpp0,fp)  ! fpp0 = avantseuil de f"
 
   Energe(1:nenerg_s) = Energ_s(1:nenerg_s)
 
@@ -757,7 +755,7 @@ subroutine Extrap_fpp( Core_resolved, decal_initl, Delta_edge, Energ_s, Eseuil, 
     Ephoton = Energe(ie) + Eseuil
 ! fpp(ie) = f'' atomique pour une energie du spectre etendu
     if( numat > 2 ) then
-      call fprime(numat,Ephoton,fpp(ie),fp,xsect_file)
+      call fprime(numat,Ephoton,fpp(ie),fp)
     elseif( ie < nenerg_s+1 ) then
       fpp(ie) = Real( Taull_tdd(ie,3,1,3,1) * rof0(ie,3,1,1,1) * rof0(ie,3,1,1,1), db )
     else

@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 12th of October 2017, 21 Vendemiaire, An 226.
+! FDMNES II program, Yves Joly, Oana Bunau, 17th of October 2017, 26 Vendemiaire, An 226.
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 12th of October 2017'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 17th of October 2017'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -241,7 +241,7 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
   implicit none
   include 'mpif.h'
 
-  integer, parameter:: nkw_all = 38
+  integer, parameter:: nkw_all = 37
   integer, parameter:: nkw_fdm = 201
   integer, parameter:: nkw_conv = 35
   integer, parameter:: nkw_fit = 1
@@ -263,8 +263,8 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
 
   character(len=9):: grdat, mot9, traduction
   character(len=13):: mot13
-  character(len=132):: comt, convolution_out, fdmfit_out, fdmnes_inp, Fichier, Folder_dat, identmot, mot, nomfich, &
-    nomfichbav, Space_file, xsect_file, imfp_infile, elf_infile
+  character(len=132):: comt, convolution_out, fdmfit_out, fdmnes_inp, Fichier, identmot, mot, nomfich, &
+    nomfichbav, imfp_infile, elf_infile
   character(len=1320):: mot1320
   character(len=2), dimension(nmetricm):: Nom_Met
   character(len=9), dimension(nkw_all):: kw_all
@@ -306,7 +306,7 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
   data kw_all /  'bormann  ','check    ','check_all','check_coa', &
      'check_con','check_pot','check_mat','check_sph','check_tdd','check_ten','comment  ', &
      'delta_edg','ecent    ','e_cut    ','elarg    ','estart   ', &
-     'filout   ','folder_da','fprime_at','gamma_hol','gamma_max','length_li','no_check ', &
+     'filout   ','fprime_at','gamma_hol','gamma_max','length_li','no_check ', &
      'imfpin   ','elfin    ','dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
      'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/
 
@@ -380,8 +380,6 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
   ngamh = 1
   nomfich = 'fdmnes_out'
   Scan_a = .false.
-  Space_file = 'spacegroup.txt'
-  xsect_file = 'xsect.dat'
 !*** JDB
   imfp_inp = .false.
   elf_inp = .false.
@@ -733,24 +731,6 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
           Bormann = .true.
           n = nnombre(1,132)
           read(1,*) hkl_borm(:), Ang_borm
-
-        case('folder_da')
-          n = nnombre(1,132)
-          read(1,'(A)') Folder_dat
-          Folder_dat = Adjustl(Folder_dat)
-          l = len_trim(Folder_dat)
-          if( Folder_dat(l:l) /= '/' .and. Folder_dat(l:l) /= '\' ) Folder_dat(l+1:l+1) = '/'
-          l = len_trim(Folder_dat)
-
-          mot = Space_file
-          m = len_trim(mot)
-          Space_file = Folder_dat
-          Space_file(l+1:l+m) = mot(1:m)
-
-          mot = xsect_file
-          m = len_trim(mot)
-          xsect_file = Folder_dat
-          xsect_file(l+1:l+m) = mot(1:m)
 
 !*** JDB
         case('imfpin')
@@ -1134,28 +1114,6 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
     call MPI_Bcast(Gamma_tddft,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Fdmnes_cal,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ngamh,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-
-    if( mpirank0 == 0 ) l = len_trim(xsect_file)
-    call MPI_Bcast(l,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-
-    do i = 1,l
-      if( mpirank0 == 0 ) j = iachar( xsect_file(i:i) )
-      call MPI_Bcast(j,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-
-      if( mpirank0 /= 0 ) xsect_file(i:i) = achar( j )
-    end do
-
-    if( mpirank0 == 0 ) l = len_trim(Space_file)
-    call MPI_Bcast(l,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-
-    do i = 1,l
-      if( mpirank0 == 0 ) j = iachar( Space_file(i:i) )
-      call MPI_Bcast(j,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-
-      if( mpirank0 /= 0 ) Space_file(i:i) = achar( j )
-    end do
-
-
   endif
 
   if( mpirank0 > 0 ) then
@@ -1479,7 +1437,7 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
       call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
           Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
           itape1,itape4,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-          nomfich,nomfichbav,npar,nparm,param,Scan_a,Space_file,typepar,xsect_file,Use_FDMX,FDMX_only, &
+          nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,Use_FDMX,FDMX_only, &
           fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
           tdebye,tmeas_inp,tmeas,expntl,expntlA,expntlB,victoreen,victA,victB,mermrank)
 
@@ -1495,7 +1453,7 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
     if( Convolution_cal ) call convolution(bav_open,Bormann,Conv_done, &
         convolution_out,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max, &
         ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,length_line, &
-        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav, npar,nparm,param,Scan_a,typepar,ncal,xsect_file)
+        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav, npar,nparm,param,Scan_a,typepar,ncal)
 
     if( Metric_cal ) then
 
@@ -1601,7 +1559,7 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
       call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
         itape1,itape4,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-        nomfich,nomfichbav,npar,nparm,param,Scan_a,Space_file,typepar,xsect_file,Use_FDMX,FDMX_only, &
+        nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,Use_FDMX,FDMX_only, &
         fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
         tdebye,tmeas_inp,tmeas,expntl,expntlA,expntlB,victoreen,victA,victB,mermrank)
 
@@ -1616,7 +1574,7 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
       if( Convolution_cal ) call convolution(bav_open,Bormann, .false., &
         convolution_out,Delta_edge,E_cut_imp,E_cut_man,Ecent, Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max, &
         ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,length_line, &
-        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,ncal,xsect_file)
+        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,ncal)
 
       call metric(comt,convolution_out,Dafs_bio,Dist_min, Dist_min_g,fdmfit_out,Fit_cal,Gen_Shift_min,ical, &
              ical_Met_min,index_Met_Fit,iscratchconv,itape_minim,itape2,length_line,Length_block,nb_datafile,ncal,ndm, &

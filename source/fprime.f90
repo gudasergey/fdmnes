@@ -2,13 +2,11 @@
 ! From B. Ravel
 ! Calculation of the anomalous atomic f' and f".
 
-subroutine fprime(numat,ephoton,fpp,fp,xsect_file)
+subroutine fprime(numat,ephoton,fpp,fp)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
   parameter( nkm = 2)
-
-  character(len=132):: xsect_file
 
   real(kind=db), dimension(nkm):: sumfp, sumfpp, xk
   real(kind=db), dimension(103):: atom_weight
@@ -30,7 +28,7 @@ subroutine fprime(numat,ephoton,fpp,fp,xsect_file)
   nw = 1
   wt = atom_weight(numat)
 
-  call calc(nw, numat, xk, sumfp, sumfpp, xsect_file, wt)
+  call calc(nw, numat, xk, sumfp, sumfpp, wt)
 
   fpp = sumfpp(1)
   fp  = sumfp(1)
@@ -39,14 +37,13 @@ end
 
 !***********************************************************************
 
-subroutine calc(nw, iz, xk, sumfp, sumfpp, xsect_file, wt)
+subroutine calc(nw, iz, xk, sumfp, sumfpp, wt)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
   parameter( nkm = 2, nshm = 24 )
 
   character(len=2):: isym, nat, natom
-  character(len=132):: File_name, xsect_file
   character(len=8), dimension(24):: nshel
 
   real(kind=db), dimension(5):: eg

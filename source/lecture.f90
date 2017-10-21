@@ -8,7 +8,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     Flapw,Full_self_abs,Hubbard,itape4,Magnetic,Memory_save,mpinodes0,mpirank0,n_atom, &
     n_file_dafs_exp,n_mat_polar,n_multi_run_e,nb_atom_conf_m,ncolm,neimagent,nenerg,ngamme,ngroup,nhybm, &
     nklapw,nlatm,nlmlapwm,nmatsym,norbdil,npldafs,npldafs_2d,npldafs_e,nple,nplrm,n_adimp,n_radius,n_range,nq_nrixs, &
-    NRIXS,nspin,nspino,nspinp,ntype,ntype_bulk,ntype_conf,Pdb,Readfast,Self_abs,Space_file,Taux,Temperature,Use_FDMX,Xan_atom)
+    NRIXS,nspin,nspino,nspinp,ntype,ntype_bulk,ntype_conf,Pdb,Readfast,Self_abs,Taux,Temperature,Use_FDMX,Xan_atom)
 
   use declarations
   implicit none
@@ -29,7 +29,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   character(len=6):: mot6
   character(len=9):: grdat
   character(len=13):: Space_Group, Spgr
-  character(len=132):: Fichier, Fichier_cif, Fichier_pdb, identmot, mot, motsb, Space_file
+  character(len=132):: Cif_file, Fichier, Fichier_pdb, identmot, mot, motsb
   character(len=132), dimension(9):: Wien_file
 
   logical:: Abs_in_bulk, Absauto, adimpin, Atom, Atom_conf, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Bulk, Cif, Cap_layer, &
@@ -631,15 +631,15 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           Matper = .true.
           Film = grdat == 'film_cif_'
 
-          Fichier_cif = ' '
-          read(itape4,'(A)') Fichier_cif
-          Fichier_cif = Adjustl(Fichier_cif)
-          l = len_trim(Fichier_cif)
+          Cif_file = ' '
+          read(itape4,'(A)') Cif_file
+          Cif_file = Adjustl(Cif_file)
+          l = len_trim(Cif_file)
           if( l > 4 ) then
-            if( Fichier_cif(l-3:l-3) /= '.' ) Fichier_cif(l+1:l+4) = '.cif'
+            if( Cif_file(l-3:l-3) /= '.' ) Cif_file(l+1:l+4) = '.cif'
           endif
-          open(8, file = Fichier_cif, status='old', iostat=istat)
-          if( istat /= 0 ) call write_open_error(Fichier_cif,istat,1)
+          open(8, file = Cif_file, status='old', iostat=istat)
+          if( istat /= 0 ) call write_open_error(Cif_file,istat,1)
 
           do
 
@@ -666,7 +666,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             elseif( mot(1:17) == '_cell_angle_gamma' ) then
               Angz = number_from_text(1,mot)
 
-            elseif( mot(1:10) == '_atom_site' .and. mot(12:16) /= 'aniso' ) then
+            elseif( mot(1:16) == '_atom_site_label' .or. mot(1:16) == '_atom_site_fract' ) then
 
               backspace(8)
               n_fract_x = -1; n_fract_y = -1; n_fract_z = -1
@@ -694,7 +694,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
                 call write_error
                 do ipr = 6,9,3
                   write(ipr,110)
-                  write(ipr,165) Fichier_cif
+                  write(ipr,165) Cif_file
                 end do
                 stop
               endif
@@ -723,7 +723,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             call write_error
             do ipr = 6,9,3
               write(ipr,110)
-              write(ipr,166) Fichier_cif
+              write(ipr,166) Cif_file
             end do
             stop
           endif
@@ -732,7 +732,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             call write_error
             do ipr = 6,9,3
               write(ipr,110)
-              write(ipr,167) Fichier_cif
+              write(ipr,167) Cif_file
             end do
             stop
           endif
@@ -948,8 +948,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
     if( Space_Group /= ' ' .or. ntype == 0 .or. Atom_conf ) then
       Very_fast = Readfast .or. Taux .or. Temperature .or. .not. ( Atom_nonsph .or. Atom_occ_hubb .or. Axe_loc)
-      call Dim_reading(Angz,Atom_conf,Cif,Doping,Fichier_cif,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per,n_atom_per_neq, &
-                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,ntype,Pdb,Space_file,Space_Group,Very_fast)
+      call Dim_reading(Angz,Atom_conf,Cif,Doping,Cif_file,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per,n_atom_per_neq, &
+                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,ntype,Pdb,Space_Group,Very_fast)
     endif
     n_atom_uc = n_atom_per + n_atom_sur + n_atom_int
 
@@ -1211,8 +1211,8 @@ end
 
 !*********************************************************************
 
-subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Fichier_cif,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per,n_atom_per_neq, &
-                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,ntype,Pdb,Space_file,Space_Group,Very_fast)
+subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Cif_file,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per,n_atom_per_neq, &
+                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,ntype,Pdb,Space_Group,Very_fast)
 
   use declarations
   implicit none
@@ -1227,7 +1227,7 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Fichier_cif,Fichier_pdb,itape4,
   character(len=6):: mot6
   character(len=9):: grdat
   character(len=13):: Space_Group
-  character(len=132):: Fichier_cif, Fichier_pdb, identmot, mot, motsb, Space_file, Word_from_text
+  character(len=132):: Cif_file, Fichier_pdb, identmot, mot, motsb, Word_from_text
 
   logical:: Atom_conf, Cif, Cylindre, Doping, Pdb, Spherique, Very_fast
 
@@ -1295,13 +1295,13 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Fichier_cif,Fichier_pdb,itape4,
 
   elseif( Cif ) then
 
-    open(8, file = Fichier_cif, status='old', iostat=istat)
+    open(8, file = Cif_file, status='old', iostat=istat)
 
     igr = 0
 
     do
       read(8,'(A)') mot
-      if( mot(1:10) == '_atom_site' .and. mot(12:16) /= 'aniso' ) exit
+      if( mot(1:16) == '_atom_site_label' .or. mot(1:16) == '_atom_site_fract' ) exit
     end do
     backspace(8)
 
@@ -1404,11 +1404,7 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Fichier_cif,Fichier_pdb,itape4,
       end do
     endif
 
-    if( Cif ) then
-      call spgroup(Cif,.false.,neq,n_atom_per,n_atom_per_neq,numat,posn,posout,Fichier_cif,Space_group)
-    else
-      call spgroup(Cif,.false.,neq,n_atom_per,n_atom_per_neq,numat,posn,posout,Space_file,Space_group)
-    endif
+    call spgroup(Cif,Cif_file,.false.,neq,n_atom_per,n_atom_per_neq,numat,posn,posout,Space_group)
 
   endif
 
@@ -1540,7 +1536,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadmag,Quadrupole,R_rydb,r_self, &
     r0_lapw,rchimp,Readfast,Relativiste,Renorm,Rlapw,Rmt,Rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,rydberg,rsorte_s,SCF_log,Self_abs, &
-    Solsing_s,Solsing_only,Space_file,Spherical_signal,Spherical_tensor, &
+    Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor, &
     Spinorbite,state_all,state_all_out,Supermuf,Surface_shift,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef, &
     Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_helm,V_hubbard,V_intmax,Vec_orig, &
     Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
@@ -1573,8 +1569,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   character(len=11):: motpol
   character(len=13):: Chemical_Name, mot13, Space_Group, Spgr
   character(len=50):: com_date, com_time
-  character(len=132):: comt, Error_message, Fichier, Fichier_cif, identmot, mot, motsb, nomfich, &
-    nom_fich_Extract, nomfichbav, Space_file, word_from_text
+  character(len=132):: comt, Error_message, Fichier, Cif_file, identmot, mot, motsb, nomfich, &
+    nom_fich_Extract, nomfichbav, word_from_text
   character(len=35), dimension(0:ntype):: com
   character(len=132), dimension(9):: Wien_file
   character(len=132), dimension(n_file_dafs_exp):: File_dafs_exp
@@ -3396,15 +3392,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           Matper = .true.
           Cif = .true.
 
-          Fichier_cif = ' '
-          read(itape4,'(A)') Fichier_cif
-          Fichier_cif = Adjustl(Fichier_cif)
-          l = len_trim(Fichier_cif)
+          Cif_file = ' '
+          read(itape4,'(A)') Cif_file
+          Cif_file = Adjustl(Cif_file)
+          l = len_trim(Cif_file)
           if( l > 4 ) then
-            if( Fichier_cif(l-3:l-3) /= '.' ) Fichier_cif(l+1:l+4) = '.cif'
+            if( Cif_file(l-3:l-3) /= '.' ) Cif_file(l+1:l+4) = '.cif'
           endif
-          open(8, file = Fichier_cif, status='old', iostat=istat)
-          if( istat /= 0 ) call write_open_error(Fichier_cif,istat,1)
+          open(8, file = Cif_file, status='old', iostat=istat)
+          if( istat /= 0 ) call write_open_error(Cif_file,istat,1)
 
           do
 
@@ -3446,7 +3442,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             elseif( mot(1:14) == '_cell_length_c') then
               axyz(3) = number_from_text(1,mot)
 
-            elseif( mot(1:10) == '_atom_site' .and. mot(12:16) /= 'aniso' ) then
+            elseif( mot(1:16) == '_atom_site_label' .or. mot(1:16) == '_atom_site_fract' ) then
 
               backspace(8)
               n_fract_x = 0; n_fract_y = 0; n_fract_z = 0
@@ -3899,11 +3895,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       do igr = 1,n_atom_per_neq
         pos(:,igr) = posn(:,igr)
       end do
-      if( Cif ) then
-        call spgroup(Cif,.true.,neq,n_atom_uc,n_atom_per_neq,itype,pos,posn,Fichier_cif,Space_group)
-      else
-        call spgroup(Cif,.true.,neq,n_atom_uc,n_atom_per_neq,itype,pos,posn,Space_file,Space_group)
-      endif
+      call spgroup(Cif,Cif_file,.true.,neq,n_atom_uc,n_atom_per_neq,itype,pos,posn,Space_group)
 
       if( Doping .and. igr_dop <= n_atom_per_neq ) then
         do igr = 1,n_atom_uc - n
