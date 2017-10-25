@@ -840,7 +840,7 @@ function Chemical_Name(Z)
              'Curium       ','Berkelium    ','Californium  ','Einsteinium  ','Fermium      ', &
              'Mendelevium  ','Nobelium     ','Lawrencium   ','Rutherfordium','Dubdium      ', &
              'Seagorgium   ','Bohrium      ','Hassium      ','Meitnerium   ','Darmstadtium ', &
-             'Roentgenium  ','Copernicium  ','Nihonium     ','Flévorium    ','Moscovium    ', &
+             'Roentgenium  ','Copernicium  ','Nihonium     ','Flevorium    ','Moscovium    ', &
              'Livermorium  ','Tennessine   ','Oganesson    '/
 
   Chemical_Name = Name(Z)
@@ -850,7 +850,7 @@ end
 
 !*********************************************************************
 
-! Table contenant l'indice l de l'orbitale sur laquelle s'applique la correction de Hubbard
+! Index l of the orbital on which the Hubbard correction applies
 
 function l_hubbard(Z)
 
@@ -915,7 +915,7 @@ end
 
 !*********************************************************************
 
-! Nombre d'orbitales atomiques (non relativistes) par defaut
+! Number of non relativistic atomic orbitals (by default)
 
 function n_orb_base(Z)
 
@@ -934,18 +934,26 @@ end
 
 !*********************************************************************
 
-! Nombre d'orbitales atomiques relativistes.
-! Sert au dimensionnement.
+! Number of relativistic atomic orbitals
+! Need for dimentionning
 
 function n_orb_rel(Z)
 
-  integer:: n_orb_rel, Z
+  integer:: ipr, n_orb_rel, Z
   integer, dimension(118):: n
 
   data n/ 1, 1, 2, 2, 4, 4, 4, 4, 4, 4, 5, 5, 7, 7, 7, 7, 7, 7, 8, 8,10,10,10,10,10,10,10,10,10,10,12,12,12,12,12,12, &
    13,13,15,15,15,15,15,15,15,15,15,15,17,17,17,17,17,17,18,18,24,24,24,24,24,24,24,24,24,24,24,24,24,24, &
          24,24,24,24,24,24,24,24,24,24,26,26,26,26,26,26,27,27,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31, &
          31,31,31,31,31,31,31,31,31,33,33,33,33,33,33/
+
+  if( Z < 1 .or. Z > 118 ) then
+    call write_error
+    do ipr = 3,9,3
+      write(ipr,'(/A)') ' Z not possible in function n_orb_rel (in tab_data.f90) !'
+    end do
+    stop
+  endif
 
   n_orb_rel = n(Z)
 
@@ -954,9 +962,9 @@ end
 
 !*********************************************************************
 
-! Indice de la derniere orbitale de coeur. Appele par dirgen.
-! Ordre d'occupation des orbitales: 1s[He]2s2p[Ne]3s3p[Ar]4s3d4p[Kr]5s4d5p[Xe]6s4f5d6p[Rn]7s6d5f
-! inversion: 6s2 4f0 5d1 puis on remplit les 4f puis les 6p
+! Index of the last core orbital.C alled by dirgen.
+! Order of the occupancy orbital: 1s[He]2s2p[Ne]3s3p[Ar]4s3d4p[Kr]5s4d5p[Xe]6s4f5d6p[Rn]7s6d5f
+! inversion: 6s2 4f0 5d1, then one fills the 4f, then the 6p
 
 function n_orb_coeur(Z)
 
@@ -974,7 +982,7 @@ end
 
 !*********************************************************************
 
-! Orbitale de valence partiellement remplie par defaut.
+! Index l of the valence orbital, by default partialy occupied
 
 function l_level_val(Z)
 
@@ -996,7 +1004,7 @@ end
 
 !*********************************************************************
 
-! Masse atomique
+! Atomic mass
 
 function Mass_atom(Z)
 

@@ -6419,7 +6419,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
           x = ( axyz_int(1) - axyz(1) ) * hkl(1) + ( axyz_int(2) - axyz(2) ) * hkl(2)
           if( abs( x ) > eps10 ) cycle
           p(3) = p(3) * c_cos_z_i / c_cos_z
-       elseif( Surface ) then
+        elseif( Surface ) then
           x = ( axyz_sur(1) - axyz(1) ) * hkl(1) + ( axyz_sur(2) - axyz(2) ) * hkl(2)
           if( abs( x ) > eps10 ) cycle
           p(3) = p(3) * c_cos_z_s / c_cos_z
@@ -6469,10 +6469,15 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
           Bragg(igr,ipl) = Bragg(igr,ipl) * axyz(1) * axyz(2) / ( axyz_sur(1) * axyz_sur(2) )
         endif
 
+! Taking into account of the ppcm betwwen bulk and film surfaces
+! For the bulk, it is done in the trucature calculation
         if( Bulk .and. .not. Bulk_step ) then
           cfac = ( 0._db, 0._db )
           do i = 0,Max( Mult_film(1)-1, 0 )
+          ! When film and bulk are not rationnal, non specular relection contains just the bulk
+            if( .not. hkl_film .and. Mult_film(1) == 0 .and. hkl(1) /= 0 ) cycle
             do j = 0,Max( Mult_film(2)-1, 0 )
+              if( .not. hkl_film .and. Mult_film(2) == 0 .and. hkl(2) /= 0 ) cycle
               arg = deux_pi * ( i * hkl(1) + j * hkl(2) )
               cfac = cfac + cmplx( cos(arg), sin(arg), db )
             end do
@@ -9056,7 +9061,7 @@ subroutine Bulk_base_tr(angxyz,angxyz_bulk,axyz,axyz_bulk,Film_shift,icheck,Mat_
   endif
 
   return
-  110 format(' Mat_',a4,' =',2i5)
+  110 format(' Mult_',a4,' =',2i5)
 end
 
 !***********************************************************************
@@ -9348,7 +9353,7 @@ subroutine Bulk_scat(angxyz_bulk,axyz_bulk,Energy_photon,hkl_dafs,hkl_film,ichec
   use declarations
   implicit none
 
-  integer:: icheck, igr, ipl, jgr, n_atom_bulk, ngroup_temp, npldafs, Z, Z_abs
+  integer:: i, icheck, igr, ipl, j, jgr, n_atom_bulk, ngroup_temp, npldafs, Z, Z_abs
 
   integer, dimension(2):: Mult_bulk
   integer, dimension(n_atom_bulk):: Z_bulk
@@ -9358,7 +9363,7 @@ subroutine Bulk_scat(angxyz_bulk,axyz_bulk,Energy_photon,hkl_dafs,hkl_film,ichec
 
   logical:: hkl_film, Temperature
 
-  complex(kind=db):: Bragg_bulk
+  complex(kind=db):: Bragg_bulk, cfac
   complex(kind=db), dimension(npldafs):: phd_f_bulk, Truncation
 
   real(kind=sg):: getf0, s
@@ -9409,9 +9414,20 @@ subroutine Bulk_scat(angxyz_bulk,axyz_bulk,Energy_photon,hkl_dafs,hkl_film,ichec
 ! Case of irrationnal unit cells
     if( ( abs( hkl(1) ) > eps10 .and. Mult_bulk(1) == 0 ) .or. ( abs( hkl(2) ) > eps10 .and. Mult_bulk(2) == 0 ) ) cycle
 
+    cfac = ( 0._db, 0._db )
+    do i = 0,Max( Mult_bulk(1)-1, 0 )
+  ! When film and bulk are not rationnal, non specular relection contains just the film (when hkl_film)
+      if( hkl_film .and. Mult_bulk(1) == 0 .and. abs( hkl(1) ) > eps10 ) cycle
+      do j = 0,Max( Mult_bulk(2)-1, 0 )
+        if( hkl_film .and. Mult_bulk(2) == 0 .and. abs( hkl(2) ) > eps10 ) cycle
+        arg = deux_pi * ( i * hkl(1) + j * hkl(2) )
+        cfac = cfac + cmplx( cos(arg), sin(arg), db )
+      end do
+    end do
+
     abs_mesh(ipl) = exp( - fpp_bulk_tot * Length_abs(ipl) )
 
-    Truncation(ipl) = 1._db / ( 1._db - abs_mesh(ipl) * exp( - img * deux_pi * hkl(3) ) )
+    Truncation(ipl) = cfac / ( 1._db - abs_mesh(ipl) * exp( - img * deux_pi * hkl(3) ) )
 
     if( Temperature ) Delta_2 = ( Q_mod(ipl) / ( quatre_pi * bohr ) )**2
 

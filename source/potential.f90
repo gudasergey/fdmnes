@@ -37,7 +37,8 @@ subroutine potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
 
   logical:: Cal_xanes, Full_atom, Magnetic, Nonexc, Nonsph, SCF, Self_nonexc, Sym_2D
 
-  real(kind=db):: alfpot, Delta_helm, f_integr3, overlap, Orig_helm, rayint, rsort, V_helm, V_intmax, v0bdcFimp, Vsphere
+  real(kind=db):: alfpot, Delta_helm, Dist, f_integr3, Overlap, Orig_helm, Rayint, Rsort, V_helm, V_intmax, v0bdcFimp, Vsphere
+  real(kind=db), dimension(3):: V_surf
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_init, chargat_self
   real(kind=db), dimension(norbdil):: cdil
   real(kind=db), dimension(npoint):: rs, Vh
@@ -127,9 +128,12 @@ subroutine potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
   Orig_helm = 0._db
   if( abs( V_helm ) > eps10 ) then
     Orig_helm = -1000000.
+! V_surf is the direction perpendicular to the surface in the rotated cluster basis
+    V_surf(1:3) = Rot_int(3,1:3)
     if( Sym_2D ) then
       do ia = 1,natomp
-        Orig_helm = max( Orig_helm, pos(3,ia) - Delta_helm )
+        Dist = sum( V_surf(1:3)*pos(1:3,ia) )
+        Orig_helm = max( Orig_helm, Dist - Delta_helm )
       end do
     else
       do ia = 1,natomp
@@ -176,12 +180,13 @@ subroutine potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
       rhoato_init_e(:,:) = rhoato_init(:,:,japr)
     endif
 
-    call pot0muffin(alfpot,Cal_xanes,chargat,chargat_init,chargat_self,Delta_helm, &
+    call Pot0muffin(alfpot,Cal_xanes,chargat,chargat_init,chargat_self,Delta_helm, &
         drho_ex_nex,drhoato_e,dvc_ex_nex,dvcato_e,exc,Full_atom,i_self,ia_eq_inv_self,iaproto,iapot,iapr, &
         icheck(13),ipr,iprabs,itypep,itypepr,lmax_pot,Magnetic,n_atom_0,n_atom_0_self, &
         n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,nlm_pot,nonexc,nrato,nrm,nrm_self, &
         nspin,ntype,numat,Orig_helm,pos,posi,rato,rho_chg_e,rho_no_sup_e,rho_self,rhoato_e,rhoato_init_e,rhoigr, &
-        rhonspr(ipr),Rmtsd(ipr),rsato_e,SCF,Self_nonexc,Sym_2D,V_helm,Vato,Vcato_e,Vcato_init_e,Vhnspr(ipr),Vsphere,Vxcato_e)
+        rhonspr(ipr),Rmtsd(ipr),rsato_e,SCF,Self_nonexc,Sym_2D,V_helm,V_surf,Vato,Vcato_e,Vcato_init_e,Vhnspr(ipr),Vsphere, &
+        Vxcato_e)
 
     if( iapr >= n_atom_0 ) then
       rsato(:,iapr) = rsato_e(:)
@@ -235,10 +240,10 @@ subroutine potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
         rmtsd,rsort,V_intmax,v0bdcFimp,Vcato,vcmft,Vxcato,Vxcmft,i_range)
 
 ! Calcul du potentiel interstitiel
-  call pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,Delta_helm,drhoato,dvcato,Full_atom,i_self, &
+  call Pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,Delta_helm,drhoato,dvcato,Full_atom,i_self, &
         ia_eq_inv,iaabs,iaproto,icheck(12),igreq,igroup,itypep,Magnetic,n_atom_0,n_atom_ind,n_atom_proto,natomeq,natomp, &
         neqm,ngroup_m,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,Orig_helm,pos,rato,rho,rhons,rs,rhoigr,rhomft,rmtg0,Rmtsd, &
-        SCF,Sym_2D,V_helm,V_intmax,Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
+        SCF,Sym_2D,V_helm,V_intmax,V_surf,Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
 
 ! Ecriture: la charge des atomes jusqu'au rmtsd, avant toute superposition
   if( i_self == 1 .and. icheck(13) > 2 ) then
@@ -1520,10 +1525,10 @@ end
 ! l'interieur d'un meme atome.
 ! Dans chaque atome les orbitales sont toutes a symetrie spherique.
 
-subroutine pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,Delta_helm,drhoato,dvcato,Full_atom,i_self, &
+subroutine Pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,Delta_helm,drhoato,dvcato,Full_atom,i_self, &
         ia_eq_inv,iaabs,iaproto,icheck,igreq,igroup,itypep,Magnetic,n_atom_0,n_atom_ind,n_atom_proto,natomeq,natomp, &
         neqm,ngroup_m,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,Orig_helm,pos,rato,rho,rhons,rs,rhoigr,rhomft,rmtg0,Rmtsd, &
-        SCF,Sym_2D,V_helm,V_intmax,Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
+        SCF,Sym_2D,V_helm,V_intmax,V_surf,Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
 
   use declarations
   implicit none
@@ -1541,10 +1546,10 @@ subroutine pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,Delta_helm,drhoato,dvcato,Full
   logical:: Full_atom, Magnetic, Nonsph, SCF, Sym_2D
   logical, dimension(npoint):: iok
 
-  real(kind=db):: alfpot, cosang, Delta_helm, Delta_V_helm, drho, dist, dist_min, dv, f, Orig_helm, p1, p2, tiers, V_helm, &
+  real(kind=db):: alfpot, cosang, Delta_helm, Delta_V_helm, drho, dist, dist_min, dv, f, Orig_helm, p1, p2, Tiers, V_helm, &
     V_intmax, Vsphere
 
-  real(kind=db), dimension(3):: v
+  real(kind=db), dimension(3):: V, V_surf
   real(kind=db), dimension(npoint):: rs, Vh
   real(kind=db), dimension(npoint_ns):: rhons, Vhns
   real(kind=db), dimension(npoint,nspin):: Vxc, rho
@@ -1687,7 +1692,7 @@ subroutine pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,Delta_helm,drhoato,dvcato,Full
   if( abs( V_helm ) > eps10 ) then
     do i = 1,npoint
       if( Sym_2D ) then
-        dist = xyz(3,i)
+        dist = sum( V_surf(1:3) * xyz(1:3,i) )
       else
         dist = xyz(4,i)
       endif
@@ -1964,12 +1969,12 @@ end
 ! potentiel d'echange-correlation total, et la densite electronique
 ! totale dans l'etat fondamental.
 
-subroutine pot0muffin(alfpot,Cal_xanes,chargat,chargat_init,chargat_self,Delta_helm, &
+subroutine Pot0muffin(alfpot,Cal_xanes,chargat,chargat_init,chargat_self,Delta_helm, &
         drho_ex_nex,drhoato,dvc_ex_nex,dvcato,exc,Full_atom,i_self,ia_eq_inv_self,iaproto,iapot,iapr, &
         icheck,ipr,iprabs,itypep,itypepr,lmax_pot,Magnetic,n_atom_0,n_atom_0_self, &
         n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,nlm_pot,nonexc,nrato,nrm,nrm_self, &
         nspin,ntype,numat,Orig_helm,pos,posi,rato,rho_chg,rho_no_sup,rho_self,rhoato,rhoato_init,rhoigr, &
-        rhonspr,Rmtsd,rsato,SCF,Self_nonexc,Sym_2D,V_helm,Vato,Vcato,Vcato_init,Vhnspr,Vsphere,Vxcato)
+        rhonspr,Rmtsd,rsato,SCF,Self_nonexc,Sym_2D,V_helm,V_surf,Vato,Vcato,Vcato_init,Vhnspr,Vsphere,Vxcato)
 
   use declarations
   implicit none
@@ -1992,7 +1997,7 @@ subroutine pot0muffin(alfpot,Cal_xanes,chargat,chargat_init,chargat_self,Delta_h
   real(kind=db):: alfpot, Cos_theta, dab, dab2, dabr, dch, Delta_helm, Delta_V_helm, dist, drhm, dt2, dtheta, dvcm, f, &
     Orig_helm, p1, p2, ra1, ra2, ra3, rayop, rhonspr, Rmtsd, rpotmin, Sin_theta, Theta, Tiers, V_helm, Vrop, Vsphere, Vhnspr
 
-  real(kind=db), dimension(3):: p
+  real(kind=db), dimension(3):: p, V_surf
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_init, chargat_self
   real(kind=db), dimension(3,natome):: posi
   real(kind=db), dimension(3,natomp):: pos
@@ -2109,12 +2114,12 @@ subroutine pot0muffin(alfpot,Cal_xanes,chargat,chargat_init,chargat_self,Delta_h
 
     if( abs( V_helm ) > eps10 ) then
       if( Sym_2D ) then
-        dist = pos(3,ia)
+        Dist = sum( V_surf(1:3) * pos(1:3,ia) )
       else
-        dist = sqrt( sum( pos(:,ia)**2 ) )
+        Dist = sqrt( sum( pos(:,ia)**2 ) )
       endif
-      if( dist > Orig_helm .and. dist < Orig_helm + 4 * Delta_helm ) then
-        Delta_V_helm = 0.5_db * V_helm * ( 1 - cos( 0.5_db * pi * ( dist - Orig_helm ) / Delta_helm ) )
+      if( dist > Orig_helm .and. Dist < Orig_helm + 4 * Delta_helm ) then
+        Delta_V_helm = 0.5_db * V_helm * ( 1 - cos( 0.5_db * pi * ( Dist - Orig_helm ) / Delta_helm ) )
         Vcato(0:nr,1) = Vcato(0:nr,1) + Delta_V_helm
         if( icheck > 0 ) write(3,115) ia, ipr, numat(itia), Delta_V_helm *rydb
       endif
@@ -2414,7 +2419,7 @@ subroutine pot0muffin(alfpot,Cal_xanes,chargat,chargat_init,chargat_self,Delta_h
 
   return
   110 format(/' ---- Pot0muffin ',98('-'))
-  115 format(/' ia =',i3,', ipr =',i3,', Z =',i3,', Delta_V_helmholtz =',f10.5,' eV')
+  115 format(' ia =',i3,', ipr =',i3,', Z =',i3,', Delta_V_helmholtz =',f10.5,' eV')
   120 format(/' ia =',i3,', iapr =',i3,', ipr =',i3,', Z =',i3, '. Avant superposition')
   132 format(/' ia =',i3,', iapr =',i3)
   140 format(4x,'Radius     4pi*r2*rho    Vcato(lm=1,..nlm_pot)')

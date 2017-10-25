@@ -488,7 +488,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
               deallocate( pop )
             endif
           end do
-          ntype = ntype_conf
+!          ntype = ntype_conf
 
         case('atom_nsph')
           do
@@ -949,7 +949,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     if( Space_Group /= ' ' .or. ntype == 0 .or. Atom_conf ) then
       Very_fast = Readfast .or. Taux .or. Temperature .or. .not. ( Atom_nonsph .or. Atom_occ_hubb .or. Axe_loc)
       call Dim_reading(Angz,Atom_conf,Cif,Doping,Cif_file,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per,n_atom_per_neq, &
-                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,ntype,Pdb,Space_Group,Very_fast)
+                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,ntype,ntype_conf,Pdb,Space_Group,Very_fast)
     endif
     n_atom_uc = n_atom_per + n_atom_sur + n_atom_int
 
@@ -1212,13 +1212,13 @@ end
 !*********************************************************************
 
 subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Cif_file,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per,n_atom_per_neq, &
-                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,ntype,Pdb,Space_Group,Very_fast)
+                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,ntype,ntype_conf,Pdb,Space_Group,Very_fast)
 
   use declarations
   implicit none
 
   integer:: i, ier, igr, igrdat, io, ipr, istat, it, itape4, itype_dop, jgr, kgr, ligne, n, n_atom_int, n_atom_per, &
-    n_atom_per_neq, n_atom_sur, n_label, n_fract_x, n_fract_y, n_fract_z, na, n_atom_neq, nnombre, norbv, ntype
+    n_atom_per_neq, n_atom_sur, n_label, n_fract_x, n_fract_y, n_fract_z, na, n_atom_neq, nnombre, norbv, ntype, ntype_conf
 
   integer, dimension(n_atom_per):: neq, numat
   integer, dimension(n_atom_neq):: igra, itype
@@ -1412,6 +1412,27 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Cif_file,Fichier_pdb,itape4,ity
 
   if( ntype == 0 ) then
 
+    ntype = ntype_conf
+
+    na = 0
+    igra(:) = 0
+    if( Atom_conf ) then
+      igra(:) = 0
+      Rewind(itape4)
+
+      do igrdat = 1,100000
+        read(itape4,'(A)') mot
+        grdat = identmot(mot,9)
+        if( grdat /= 'atom_conf' ) cycle
+
+        do it = 1,ntype_conf
+          read(itape4,*) n, igra(na+1:na+n)
+          na = na + n
+        end do
+        exit
+      end do
+    endif
+
     if( n_atom_int > 0 ) then
 
       Rewind(itape4)
@@ -1448,12 +1469,16 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Cif_file,Fichier_pdb,itape4,ity
 
     endif
 
-    if( n_atom_neq > 0 ) ntype = 1
-
-    boucle_1: do igr = 2, n_atom_neq
-      do jgr = 1,igr-1
-        if( itype(igr) == itype(jgr) ) cycle boucle_1
+    boucle_1: do igr = 1, n_atom_neq
+      do kgr = 1,na
+        if( igra(kgr) == igr ) cycle boucle_1
       end do
+      boucle_jgr: do jgr = 1,igr-1
+        do kgr = 1,na
+          if( igra(kgr) == jgr ) cycle boucle_jgr
+        end do
+        if( itype(igr) == itype(jgr) ) cycle boucle_1
+      end do boucle_jgr
       ntype = ntype + 1
     end do boucle_1
     if( Doping ) then
@@ -1465,38 +1490,38 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Cif_file,Fichier_pdb,itape4,ity
 
   endif
 
-  if( Atom_conf ) then
+!  if( Atom_conf ) then
 
-    igra(:) = 0
-    Rewind(itape4)
+!    igra(:) = 0
+!    Rewind(itape4)
 
-    do igrdat = 1,100000
-      read(itape4,'(A)') mot
-      grdat = identmot(mot,9)
-      if( grdat /= 'atom_conf' ) cycle
+!    do igrdat = 1,100000
+!      read(itape4,'(A)') mot
+!      grdat = identmot(mot,9)
+!      if( grdat /= 'atom_conf' ) cycle!!!
 
-      na = 0
-      do it = 1,ntype
-        read(itape4,*) n, igra(na+1:na+n)
-        na = na + n
-      end do
-      exit
-    end do
+!      na = 0
+!      do it = 1,ntype_conf
+!        read(itape4,*) n, igra(na+1:na+n)
+!        na = na + n
+!      end do
+!      exit
+!    end do
 
-    boucle_2: do igr = 1,n_atom_neq
-      do kgr = 1,na
-        if( igr == igra(kgr) ) cycle boucle_2
-      end do
-      boucle_3: do jgr = 1,igr-1
-        do kgr = 1,na
-          if( jgr == igra(kgr) ) cycle boucle_3
-        end do
-        if( itype(igr) == itype(jgr) ) cycle boucle_2
-      end do boucle_3
-      ntype = ntype + 1
-    end do boucle_2
+!    boucle_2: do igr = 1,n_atom_neq
+!      do kgr = 1,na
+!        if( igr == igra(kgr) ) cycle boucle_2
+!      end do
+!      boucle_3: do jgr = 1,igr-1
+!        do kgr = 1,na
+!          if( jgr == igra(kgr) ) cycle boucle_3
+!        end do
+!        if( itype(igr) == itype(jgr) ) cycle boucle_2
+!      end do boucle_3
+!      ntype = ntype + 1
+!    end do boucle_2
 
-  endif
+!  endif
 
   return
   170 format(/' Error in the Pdb file :',// &
@@ -4941,33 +4966,33 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           it = itype(jgr)
           Z = numat( abs(it) )
           if( Pdb .and. Taux .and. Temperature ) then
-            write(3,565) Z, it, posn(:,igr), Kgroup(jgr), Taux_oc(jgr), Temp_coef(jgr)
+            write(3,565) Z, posn(:,igr), it, Kgroup(jgr), Taux_oc(jgr), Temp_coef(jgr)
           elseif( Pdb .and. Taux ) then
-            write(3,565) Z, it, posn(:,igr), Kgroup(jgr), Taux_oc(jgr)
+            write(3,565) Z, posn(:,igr), it, Kgroup(jgr), Taux_oc(jgr)
           elseif( Pdb .and. Temperature ) then
-            write(3,570) Z, it, posn(:,igr), Kgroup(jgr), Temp_coef(jgr)
+            write(3,570) Z, posn(:,igr), it, Kgroup(jgr), Temp_coef(jgr)
           elseif( Pdb ) then
-            write(3,570) Z, it, posn(:,igr), Kgroup(jgr)
+            write(3,570) Z, posn(:,igr), it, Kgroup(jgr)
           elseif( norbv( min(jgr,ngroup_nonsph) ) == 0 ) then
             if( Taux .and. Temperature ) then
-              write(3,571) Z, it, posn(:,igr), Taux_oc(jgr), Temp_coef(jgr)
+              write(3,571) Z, posn(:,igr), it, Taux_oc(jgr), Temp_coef(jgr)
             elseif( Taux ) then
-              write(3,571) Z, it, posn(:,igr), Taux_oc(jgr)
+              write(3,571) Z, posn(:,igr), it, Taux_oc(jgr)
             elseif( Temperature ) then
-              write(3,572) Z, it, posn(:,igr), Temp_coef(jgr)
+              write(3,572) Z, posn(:,igr), it, Temp_coef(jgr)
             else
-              write(3,570) Z, it, posn(:,igr)
+              write(3,570) Z, posn(:,igr), it
             endif
           else
             if( Taux .and. Temperature ) then
-              write(3,575) Z, it, posn(:,igr), Taux_oc(jgr), Temp_coef(jgr), norbv(jgr), &
+              write(3,575) Z, posn(:,igr), it, Taux_oc(jgr), Temp_coef(jgr), norbv(jgr), &
                                                                        ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
             elseif( Taux ) then
-              write(3,576) Z, it, posn(:,igr), Taux_oc(jgr), norbv(jgr), ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
+              write(3,576) Z, posn(:,igr), it, Taux_oc(jgr), norbv(jgr), ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
             elseif( Temperature ) then
-              write(3,576) Z, it, posn(:,igr), Temp_coef(jgr), norbv(jgr), ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
+              write(3,576) Z, posn(:,igr), it, Temp_coef(jgr), norbv(jgr), ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
             else
-              write(3,580) Z, it, posn(:,igr), norbv(jgr), (popats(jgr,l,1:nspin), l = 1,nlat( abs(it)) )
+              write(3,580) Z, posn(:,igr), it, norbv(jgr), (popats(jgr,l,1:nspin), l = 1,nlat( abs(it)) )
             endif
             do io = 1,norbv(jgr)
               if( sum( abs( hybrid(io,10:16,jgr) ) ) < eps10 ) then
@@ -5003,29 +5028,30 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             if( abs( Surface_shift(4) ) > eps10 ) write(3,'(a17,f10.5)') ' Surface rotat  =', Interface_shift(4)
           endif
           if( hkl_film ) then
-            write(3,'(A)') ' hkl definition of the film'
+            write(3,'(A)') ' (h,k,l) coresponding to the reciprocal space of the film'
           else
-            write(3,'(A)') ' hkl definition of the bulk'
+            write(3,'(A)') ' (h,k,l) coresponding to the reciprocal space of the bulk'
           endif
         endif
         if( Bulk ) then
           write(3,620) ' Bulk', axyz_bulk(:), Angxyz_bulk(:)
           if ( Temperature ) then
-            write(3,'(A)') '     Z       P_x            P_y            P_z          Temp_coef'
+            write(3,'(A)') '    Z         x              y              z      Typ  Temp_coef'
           else
-            write(3,'(A)') '     Z       P_x            P_y            P_z'
+            write(3,'(A)') '    Z         x              y              z      Typ'
           endif
           do igr = 1,n_atom_bulk
+            it = itype( ngroup - n_atom_bulk + igr )
             if( Temperature ) then
-              write(3,630) Z_bulk(igr), posn_bulk(:,igr), Temp_coef(ngroup-n_atom_bulk+igr)
+              write(3,625) Z_bulk(igr), posn_bulk(:,igr), it, Temp_coef(ngroup-n_atom_bulk+igr)
             else
-              write(3,630) Z_bulk(igr), posn_bulk(:,igr)
+              write(3,625) Z_bulk(igr), posn_bulk(:,igr), it
             endif
           end do
         endif
         if( Cap_layer ) then
           write(3,620) '  Cap', axyz_cap(:), Angxyz_cap(:)
-          write(3,'(A)') '     Z       P_x            P_y            P_z          Taux'
+          write(3,'(A)') '    Z         x              y              z           Taux'
           do igr = 1,n_atom_cap
             write(3,630) Z_cap(igr), posn_cap(:,igr), Taux_cap(igr)
           end do
@@ -5793,17 +5819,18 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   554 format('   Space Group = ',a13)
   555 format('   a, b, c =',3f12.7)
   556 format('   alfa, beta, gamma =',3f9.3)
-  560 format('    Z  Typ       posx           posy           posz    ',A)
-  565 format(i5,i4,3f15.10,i6,2f10.5)
-  570 format(i5,i4,3f15.10,i6,f10.5)
-  571 format(i5,i4,3f15.10,2f10.5)
-  572 format(i5,i4,3f15.10,f10.5)
-  575 format(i5,i4,3f15.10,2f10.5,2x,12f8.4)
-  576 format(i5,i4,3f15.10,f10.5,2x,12f8.4)
-  580 format(i5,i4,3f15.10,i5,2x,12f8.4)
+  560 format('    Z         x              y              z      Typ ',A)
+  565 format(i5,3f15.10,i4,i6,2f10.5)
+  570 format(i5,3f15.10,i4,i6,f10.5)
+  571 format(i5,3f15.10,i4,2f10.5)
+  572 format(i5,3f15.10,i4,f10.5)
+  575 format(i5,3f15.10,i4,2f10.5,2x,12f8.4)
+  576 format(i5,3f15.10,i4,f10.5,2x,12f8.4)
+  580 format(i5,3f15.10,i4,i5,2x,12f8.4)
   600 format(9x,'Pop_nsph(',i1,') =',f7.3,', Hybrid =',f8.3,1x,3f7.3,1x,5f7.3,1x,7f7.3,1x,100f7.3)
   610 format('    Occ. matrix :', 14f5.2)
   620 format(/1x,a5,' : '/,'   a, b, c =',3f12.7,/'   alfa, beta, gamma =',3f9.3)
+  625 format(i5,3f15.10,i4,f10.5)
   630 format(i5,3f15.10,f15.5)
   640 format(' Cap ',a9,' = ',f10.5,' A')
   650 format(/' V_helm =',f10.5,' eV,  Delta_helm =',f10.5,' A')
