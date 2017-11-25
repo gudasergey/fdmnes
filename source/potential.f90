@@ -1,14 +1,15 @@
-
 ! FDMNES subroutines
-! Calculation of the potential.
+! Calculation of the potential
 
-subroutine potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
+! Potsup makes the superposition of the atomic potential and density
+
+subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
             chargat_self,Delta_helm,drho_ex_nex,dv_ex_nex,dvc_ex_nex,excato,Full_atom,Hybrid,i_self, &
             ia_eq_inv,ia_eq_inv_self,iaabs,iaproto,iaprotoi,iapot,icheck,igreq,igroup,iprabs,ipr1,itab,itdil, &
             itypei,itypep,itypepr,ldil,lmax_pot,lvval,Magnetic,mpirank,n_atom_0,n_atom_0_self,n_atom_ind, &
             n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,neqm,ngreq,ngroup_m,ngroup_nonsph, &
             nhybm,nlat,nlatm,nlm_pot,Nonexc,Nonsph,norbdil,norbv,normrmt,npoint,npoint_ns,npsom,nrato,nrm,nrm_self,nspin, &
-            ntype,numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self, psival,rato,rchimp,rho,rho_chg, &
+            ntype,numat,overlap,Per_helm,pop_nonsph,popatm,popatv,pos,posi,posi_self, psival,rato,rchimp,rho,rho_chg, &
             rho_self,rhoato,rhoato_init,rhoit,rhons,rmtg,rmtimp,rmtg0,rmtsd,Rot_Atom_gr,Rot_int,rs,rsato, &
             rsort,SCF,Self_nonexc,Sym_2D,V_helm,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp,xyz, &
             i_range)
@@ -37,7 +38,8 @@ subroutine potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
 
   logical:: Cal_xanes, Full_atom, Magnetic, Nonexc, Nonsph, SCF, Self_nonexc, Sym_2D
 
-  real(kind=db):: alfpot, Delta_helm, Dist, f_integr3, Overlap, Orig_helm, Rayint, Rsort, V_helm, V_intmax, v0bdcFimp, Vsphere
+  real(kind=db):: alfpot, Delta_helm, Dist, f_integr3, Overlap, Orig_helm, Per_helm, Rayint, Rsort, V_helm, V_intmax, v0bdcFimp, &
+                  Vsphere
   real(kind=db), dimension(3):: V_surf
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_init, chargat_self
   real(kind=db), dimension(norbdil):: cdil
@@ -122,8 +124,8 @@ subroutine potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
     iaprex = 0
   endif
 
-! A la premiere iteration, on calcule a la fois l'excite et le non excite
-  if( i_self == 1 ) iapr0 = 0
+! A the first iteration, one calculates both the excited and non excited absorbing atom potential
+  if( i_self == 1 ) iapr0 = 0   ! index for excted atom
 
   Orig_helm = 0._db
   if( abs( V_helm ) > eps10 ) then
@@ -133,11 +135,11 @@ subroutine potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
     if( Sym_2D ) then
       do ia = 1,natomp
         Dist = sum( V_surf(1:3)*pos(1:3,ia) )
-        Orig_helm = max( Orig_helm, Dist - Delta_helm )
+        Orig_helm = max( Orig_helm, Dist + ( Delta_helm - Per_helm / 2 ) )
       end do
     else
       do ia = 1,natomp
-        Orig_helm = max( Orig_helm, sqrt( sum( pos(:,ia)**2 ) ) - Delta_helm )
+        Orig_helm = max( Orig_helm, sqrt( sum( pos(:,ia)**2 ) ) + ( Delta_helm - Per_helm / 2 ) )
       end do
     endif
     if( icheck(13) > 0 .and. i_self == 1 ) write(3,'(/a12,f10.5,a2)') ' Orig_helm =',Orig_helm*bohr,' A'
@@ -145,6 +147,7 @@ subroutine potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
 
   if( icheck(13) > 2 ) write(3,110) i_self, Full_atom, iapr0, n_iapr
 
+! Loop over all the atoms
   do iapr = iapr0,n_iapr
 
     if( Full_atom ) then
@@ -166,7 +169,7 @@ subroutine potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
 
     if( i_self > 1 .and. iapr <= n_atom_ind_self ) then
       if( Cal_xanes .and. Full_atom ) then
-! Dans le calcul XANES on peut avoir un groupe de plus grande symetrie
+! In the XANES step calculation, it is possible to work with a ponctual group higher in symmetry than when making the SCF calculation
         do japr = 1,n_atom_ind_self
           if( sum( abs( posi(:,iapr) - posi_self(:,japr) ) ) < eps10 ) exit
         end do
@@ -180,11 +183,12 @@ subroutine potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
       rhoato_init_e(:,:) = rhoato_init(:,:,japr)
     endif
 
-    call Pot0muffin(alfpot,Cal_xanes,chargat,chargat_init,chargat_self,Delta_helm, &
+! Calculation of the potential inside the atoms
+    call Pot0muffin(alfpot,Cal_xanes,chargat,chargat_init,chargat_self, &
         drho_ex_nex,drhoato_e,dvc_ex_nex,dvcato_e,exc,Full_atom,i_self,ia_eq_inv_self,iaproto,iapot,iapr, &
         icheck(13),ipr,iprabs,itypep,itypepr,lmax_pot,Magnetic,n_atom_0,n_atom_0_self, &
         n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,nlm_pot,nonexc,nrato,nrm,nrm_self, &
-        nspin,ntype,numat,Orig_helm,pos,posi,rato,rho_chg_e,rho_no_sup_e,rho_self,rhoato_e,rhoato_init_e,rhoigr, &
+        nspin,ntype,numat,Orig_helm,Per_helm,pos,posi,rato,rho_chg_e,rho_no_sup_e,rho_self,rhoato_e,rhoato_init_e,rhoigr, &
         rhonspr(ipr),Rmtsd(ipr),rsato_e,SCF,Self_nonexc,Sym_2D,V_helm,V_surf,Vato,Vcato_e,Vcato_init_e,Vhnspr(ipr),Vsphere, &
         Vxcato_e)
 
@@ -234,18 +238,19 @@ subroutine potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
     endif
   endif
 
+! Calculation of the muffin-tin atomic radius
   call raymuf(Cal_xanes,chargat,Full_atom,i_self,iapot,iaproto,iaprotoi,icheck(13),iprabs, &
         ipr1,itab,itypei,itypep,itypepr,mpirank,n_atom_0,n_atom_ind,n_atom_proto,natome,natomeq,natomp,ngreq,nlm_pot, &
         normrmt,nrato,nrm,nspin,ntype,numat, overlap,pos,rato,rchimp,rhoato,rhomft,rmtg,rmtg0,rmtimp, &
         rmtsd,rsort,V_intmax,v0bdcFimp,Vcato,vcmft,Vxcato,Vxcmft,i_range)
 
-! Calcul du potentiel interstitiel
-  call Pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,Delta_helm,drhoato,dvcato,Full_atom,i_self, &
+! Calculation of the intersitial potential, on the FDM grid of points
+  call Pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,drhoato,dvcato,Full_atom,i_self, &
         ia_eq_inv,iaabs,iaproto,icheck(12),igreq,igroup,itypep,Magnetic,n_atom_0,n_atom_ind,n_atom_proto,natomeq,natomp, &
-        neqm,ngroup_m,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,Orig_helm,pos,rato,rho,rhons,rs,rhoigr,rhomft,rmtg0,Rmtsd, &
-        SCF,Sym_2D,V_helm,V_intmax,V_surf,Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
+        neqm,ngroup_m,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,Orig_helm,Per_helm,pos,rato,rho,rhons,rs,rhoigr,rhomft, &
+        rmtg0,Rmtsd,SCF,Sym_2D,V_helm,V_intmax,V_surf,Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
 
-! Ecriture: la charge des atomes jusqu'au rmtsd, avant toute superposition
+! Writing: the atom charge is integ=grated up to Rmtsd, here before any superposition
   if( i_self == 1 .and. icheck(13) > 2 ) then
     ch(:) = 0._db
     write(3,140); write(3,150)
@@ -281,7 +286,7 @@ end
 
 !***********************************************************************
 
-! Calcul du potentiel atomique.
+! Calculation of the atomic potential
 
 subroutine potato(cdil,icheck,it,itdil,itypepr,ldil,n_atom_proto,nlat,nlatm,norbdil,nrato,nrm,nspin,ntype,numat, &
         popatm,popatv,psival,rato,rhoigr,rhoit,Vato)
@@ -327,7 +332,7 @@ subroutine potato(cdil,icheck,it,itdil,itypepr,ldil,n_atom_proto,nlat,nlatm,norb
   r(0:nr) = rato(0:nr,it)
   r(0) = 0._db
 
-! Extrapolation au centre de l'atome.
+! Extrapolation at the center of the atom
   p1 = r(2) / ( r(2) - r(1) )
   p2 = 1 - p1
   rhoit(0,it) = p1 * rhoit(1,it) + p2 * rhoit(2,it)
@@ -341,15 +346,15 @@ subroutine potato(cdil,icheck,it,itdil,itypepr,ldil,n_atom_proto,nlat,nlatm,norb
     end do
   endif
 
-! En entree, les fonctions d'onde psival sont en fait sqrt(4*pi)*r*psi.
-! rhoval est la vraie densité des états de valence
+! Wave functions psival are in fact: sqrt(4*pi)*r*psi.
+! rhoval is the density of the valence orbitals
   qpi = 0.25_db / pi
   do l = 1,nl
     rhoval(1:nr,l) = qpi * ( psival(1:nr,l,it) / r(1:nr ) )**2
     rhoval(0,l) = p1 * rhoval(1,l) + p2 * rhoval(2,l)
   end do
 
-! Calcul du potentiel de Hartree atomique.
+! Calculation of the atomic Hartree potential
   do icalcul = 1,1+nl
     l = icalcul - 1
 
@@ -395,10 +400,9 @@ subroutine potato(cdil,icheck,it,itdil,itypepr,ldil,n_atom_proto,nlat,nlatm,norb
     do ispin = 1,nspin
       rhoigr(0:nr,ispin,ipr) = rhoit(0:nr,it) * facspin
     end do
-! rhoit: la vraie densité
+! rhoit: the real density
 
-! Ici, dp tient compte de l'eventuel magnétisme pour le calcul du
-! potentiel
+! Here, dp take eventualy into account the magnetism for the calculation of the potential
     do l = 1,nl
       do ispin = 1,nspin
         dp = popatm(ipr,l,ispin) - popatv(it,l) * facspin
@@ -426,7 +430,7 @@ end
 
 !***********************************************************************
 
-! Dilatation des orbitales atomiques pour simuler les atomes charges negativement
+! Dilatation of the atomic orbitals (can be usefull for anions)
 
 subroutine dilatorb(cdil,icheck,it,itdil,ldil,nlatm,norbdil,nr,nrm,ntype,popatv,psival,r,rhoit)
 
@@ -793,7 +797,7 @@ subroutine raymuf(Cal_xanes,chargat,Full_atom,i_self,iapot,iaproto,iaprotoi,iche
 
   else
 
-! Rayon de Norman
+! Norman radius
   do ipr = ipr1,n_atom_proto
     rnorm(ipr) = 0._db
     if( iapot(ipr) == 0 ) cycle
@@ -873,7 +877,7 @@ subroutine raymuf(Cal_xanes,chargat,Full_atom,i_self,iapot,iaproto,iaprotoi,iche
     rn(ipr) = rn(iprabs)
   end do
 
-! Rayon optimise
+! Optimized radius
 
   Vropmax = 0._db
 
@@ -916,7 +920,7 @@ subroutine raymuf(Cal_xanes,chargat,Full_atom,i_self,iapot,iaproto,iaprotoi,iche
       do ia = n_atom_0,n_atom_ind
         if( iaprotoi(ia) == iprb ) exit
       end do
-      if( ia > n_atom_ind ) then ! cas ou il y a un seul atome
+      if( ia > n_atom_ind ) then ! case with only 1 atom
         iaprb = iapr
       else
         iaprb = ia
@@ -1109,7 +1113,7 @@ subroutine raymuf(Cal_xanes,chargat,Full_atom,i_self,iapot,iaproto,iaprotoi,iche
     end do
   endif
 
-  endif ! arrive natomp = 1
+  endif ! arriving when natomp = 1
 
   if( i_self == 1 .or. Cal_xanes ) then
     rmtsd(:) = rmtg(:)
@@ -1128,7 +1132,7 @@ subroutine raymuf(Cal_xanes,chargat,Full_atom,i_self,iapot,iaproto,iaprotoi,iche
     end do
   endif
 
-  endif  ! point d'arrivée si i_self /= 1 et pas cal_xanes
+  endif  ! arriving when i_self /= 1 and not cal_xanes
 
   do ipr = ipr1,n_atom_proto
     it = itypepr(ipr)
@@ -1178,8 +1182,8 @@ end
 
 !***********************************************************************
 
-! Calcul du rayon de norman pris tel que
-!       integ_de(0..Rnorm)(4*pi*r2*rho*dr) = Z
+! Calculation of Norman radius such that
+!       integral(0..Rnorm)(4*pi*r2*rho*dr) = Z
 
 subroutine rnorman(r,rh,nr,rnorm,z,nrm)
 
@@ -1525,10 +1529,10 @@ end
 ! l'interieur d'un meme atome.
 ! Dans chaque atome les orbitales sont toutes a symetrie spherique.
 
-subroutine Pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,Delta_helm,drhoato,dvcato,Full_atom,i_self, &
+subroutine Pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,drhoato,dvcato,Full_atom,i_self, &
         ia_eq_inv,iaabs,iaproto,icheck,igreq,igroup,itypep,Magnetic,n_atom_0,n_atom_ind,n_atom_proto,natomeq,natomp, &
-        neqm,ngroup_m,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,Orig_helm,pos,rato,rho,rhons,rs,rhoigr,rhomft,rmtg0,Rmtsd, &
-        SCF,Sym_2D,V_helm,V_intmax,V_surf,Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
+        neqm,ngroup_m,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,Orig_helm,Per_helm,pos,rato,rho,rhons,rs,rhoigr,rhomft, &
+        rmtg0,Rmtsd,SCF,Sym_2D,V_helm,V_intmax,V_surf,Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
 
   use declarations
   implicit none
@@ -1546,8 +1550,8 @@ subroutine Pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,Delta_helm,drhoato,dvcato,Full
   logical:: Full_atom, Magnetic, Nonsph, SCF, Sym_2D
   logical, dimension(npoint):: iok
 
-  real(kind=db):: alfpot, cosang, Delta_helm, Delta_V_helm, drho, dist, dist_min, dv, f, Orig_helm, p1, p2, Tiers, V_helm, &
-    V_intmax, Vsphere
+  real(kind=db):: alfpot, cosang, Delta_V_helm, drho, dist, dist_min, dv, f, Orig_helm, Per_helm, p1, p2, Tiers, &
+    V_helm, V_intmax, Vsphere
 
   real(kind=db), dimension(3):: V, V_surf
   real(kind=db), dimension(npoint):: rs, Vh
@@ -1589,7 +1593,7 @@ subroutine Pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,Delta_helm,drhoato,dvcato,Full
     end do
   endif
 
-! Calcul du potentiel de Hartree et de la densite electronique.
+! Calculation of Hartree potential and electronic density
 
   do ia = 1,natomp
 
@@ -1683,7 +1687,7 @@ subroutine Pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,Delta_helm,drhoato,dvcato,Full
     end do
   endif
 
-! On ajoute la contribution de la sphere exterieure.
+! One adds the contribution from the outer-sphere
   do i = 1,npoint
     if( iok(i) ) cycle
     vh(i) = vh(i) + Vsphere
@@ -1696,15 +1700,14 @@ subroutine Pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,Delta_helm,drhoato,dvcato,Full
       else
         dist = xyz(4,i)
       endif
-      if( dist > Orig_helm .and. dist < Orig_helm + 4 * Delta_helm ) then
-        Delta_V_helm = 0.5_db * V_helm * ( 1 - cos( 0.5_db * pi * ( dist - Orig_helm ) / Delta_helm ) )
+      if( dist > Orig_helm .and. dist < Orig_helm + Per_helm ) then
+        Delta_V_helm = 0.5_db * V_helm * ( 1 - cos( 2 * pi * ( dist - Orig_helm ) / Per_helm ) )
         Vh(i) = Vh(i) + Delta_V_helm
       endif
     end do
   endif
 
-! Calcul du rayon de Fermi, rs et du potentiel d'echange-correlation
-! dans l'etat fondamental, Vxc.
+! Calculation of the Fermi radius, rs
   f = 0.75_db / pi
   do isp = 1,nspin
     do i = 1,npoint
@@ -1725,6 +1728,7 @@ subroutine Pot0(alfpot,Nonsph,Axe_Atom_gr,chargat,Delta_helm,drhoato,dvcato,Full
   end do
   rst(1:npoint) = rs(1:npoint)
 
+! Calculation of the exchange-correlation potential in the ground state.
   call potxc(Magnetic,npoint,nrm,nspin,alfpot,rhot,rst,Vxct,temp)
 
   do isp = 1,nspin
@@ -1969,11 +1973,11 @@ end
 ! potentiel d'echange-correlation total, et la densite electronique
 ! totale dans l'etat fondamental.
 
-subroutine Pot0muffin(alfpot,Cal_xanes,chargat,chargat_init,chargat_self,Delta_helm, &
+subroutine Pot0muffin(alfpot,Cal_xanes,chargat,chargat_init,chargat_self, &
         drho_ex_nex,drhoato,dvc_ex_nex,dvcato,exc,Full_atom,i_self,ia_eq_inv_self,iaproto,iapot,iapr, &
         icheck,ipr,iprabs,itypep,itypepr,lmax_pot,Magnetic,n_atom_0,n_atom_0_self, &
         n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,nlm_pot,nonexc,nrato,nrm,nrm_self, &
-        nspin,ntype,numat,Orig_helm,pos,posi,rato,rho_chg,rho_no_sup,rho_self,rhoato,rhoato_init,rhoigr, &
+        nspin,ntype,numat,Orig_helm,Per_helm,pos,posi,rato,rho_chg,rho_no_sup,rho_self,rhoato,rhoato_init,rhoigr, &
         rhonspr,Rmtsd,rsato,SCF,Self_nonexc,Sym_2D,V_helm,V_surf,Vato,Vcato,Vcato_init,Vhnspr,Vsphere,Vxcato)
 
   use declarations
@@ -1994,8 +1998,9 @@ subroutine Pot0muffin(alfpot,Cal_xanes,chargat,chargat_init,chargat_self,Delta_h
 
   logical:: Atom_self, Cal_xanes, Full_atom, Magnetic, Nonexc, Self_nonexc, SCF, Sym_2D
 
-  real(kind=db):: alfpot, Cos_theta, dab, dab2, dabr, dch, Delta_helm, Delta_V_helm, dist, drhm, dt2, dtheta, dvcm, f, &
-    Orig_helm, p1, p2, ra1, ra2, ra3, rayop, rhonspr, Rmtsd, rpotmin, Sin_theta, Theta, Tiers, V_helm, Vrop, Vsphere, Vhnspr
+  real(kind=db):: alfpot, Cos_theta, dab, dab2, dabr, dch, Delta_V_helm, dist, drhm, dt2, dtheta, dvcm, f, &
+    Orig_helm, p1, p2, Per_helm, ra1, ra2, ra3, rayop, rhonspr, Rmtsd, rpotmin, Sin_theta, Theta, Tiers, V_helm, Vrop, Vsphere, &
+    Vhnspr
 
   real(kind=db), dimension(3):: p, V_surf
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_init, chargat_self
@@ -2118,9 +2123,10 @@ subroutine Pot0muffin(alfpot,Cal_xanes,chargat,chargat_init,chargat_self,Delta_h
       else
         Dist = sqrt( sum( pos(:,ia)**2 ) )
       endif
-      if( dist > Orig_helm .and. Dist < Orig_helm + 4 * Delta_helm ) then
-        Delta_V_helm = 0.5_db * V_helm * ( 1 - cos( 0.5_db * pi * ( Dist - Orig_helm ) / Delta_helm ) )
+      if( dist > Orig_helm .and. Dist < Orig_helm + Per_helm ) then
+        Delta_V_helm = 0.5_db * V_helm * ( 1 - cos( 2 * pi * ( Dist - Orig_helm ) / Per_helm ) )
         Vcato(0:nr,1) = Vcato(0:nr,1) + Delta_V_helm
+        if( icheck > 1 ) write(3,*)
         if( icheck > 0 ) write(3,115) ia, ipr, numat(itia), Delta_V_helm *rydb
       endif
     endif

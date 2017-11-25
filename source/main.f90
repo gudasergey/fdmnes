@@ -1,24 +1,24 @@
-! FDMNES II program, Yves Joly, Oana Bunau, 24th of October 2017, 3 Brumaire, An 226.
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 21th of November 2017, 28 Brumaire, An 226
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
 
-! Program performing calculations of x-ray spectroscopies, XANES, RXD, dichroism, Raman X-ray scattering, 2D RXD.
-! Work using the finite difference method or the multiple scattering theory.
-! Monoelectronic approach or TD-DFT (LSDA).
+! Program performing calculations of x-ray spectroscopies, XANES, RXD, dichroism, Raman X-ray scattering, SRXRD
+! Work using the finite difference method or the multiple scattering theory
+! Monoelectronic approach or TD-DFT (LSDA)
 
-! Main routines of the FDMNES package.
-! Needs also :
-!   clemf0.f90, coabs.f90, convolution.f90, dirac.f90, fdm.f90, fprime.f90, general.f90, lecture.f90,
-!   mat.f90, metric.f90, minim.f90, optic.f90, potential.f90, scf.f90 selec.f90,
+! Main routines of the FDMNES package
+! Need also :
+!   clemf0.f90, coabs.f90, convolution.f90, diffraction.f90, dirac.f90, fdm.f90, fprime.f90, frime_data.f90, general.f90,
+!   lecture.f90, mat.f90, metric.f90, minim.f90, optic.f90, potential.f90, scf.f90 selec.f90,
 !   spgroup.f90, sphere.f90, tab_data.f90, tensor.f90, tddft.f90
 
-! When using the MUMPS library, one also needs :
+! When using the MUMPS library, one also needs:
 !   mat_solve_MUMPS.f and MUMPS (and associated SCOTCH and METIS), BLAS and LAPACK libraries.
 !   Inclusion of MUMPS library is due to S. Guda, A. Guda, M. Soldatov et al, University of Rostov-on-Don, Russia
 !   MUMPS is from P. Amestoy et al (http://mumps-solver.org/)
 
-! When using gaussian solver, one also needs :
+! When using gaussian solver, (what is less efficient) one also needs:
 !   mat_solve_gaussian.f and the BLAS and LAPACK libraries.
 !   The BLAS and LAPACK library can be replaced by sub_util.f
 
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 24th of October 2017'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 21th of November 2017'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -170,7 +170,6 @@ program fdmnes
 
   if( mpinodes0 > 1 ) then
     call MPI_Bcast(ncalcul,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-
   endif
 
   if( mpirank0 /= 0 ) allocate( fdmnes_inp(ncalcul) )
@@ -190,7 +189,7 @@ end
 
 !***********************************************************************
 
-subroutine write_error
+subroutine Write_error
 
   use declarations
   implicit none
@@ -211,7 +210,7 @@ end
 
 !***********************************************************************
 
-subroutine write_open_error(File_name,istat,istop)
+subroutine Write_open_error(File_name,istat,istop)
 
   implicit none
 
@@ -235,14 +234,22 @@ end
 
 !***********************************************************************
 
-subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
+! Contain the different steps of option of the calculation:
+! 1) Calculation of not convoluted signal
+! 2) convolution
+! 3) comparison with data using metric distances
+! 4) fitting
+! 5) Multiplication of unit cells
+! 6) Selection of scan or spectra in scan DAFS files
+
+subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
   use declarations
   implicit none
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 37
-  integer, parameter:: nkw_fdm = 201
+  integer, parameter:: nkw_fdm = 202
   integer, parameter:: nkw_conv = 35
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 12
@@ -317,7 +324,7 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
 
   data kw_fdm/  &
      'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_conf','atom_nsph','ang_spin ','atomic_sc', &
-     'axe_spin ','base_comp','base_reel','bond     ','bulk     ','cap_disor','cap_rough','cap_layer','cap_shift', &
+     'axe_spin ','base_comp','base_reel','bond     ','bulk     ','bulk_roug','cap_disor','cap_rough','cap_layer','cap_shift', &
      'cap_thick','cartesian','center   ','center_ab','chlib    ','cif_file ','classic_i','clementi ','core_reso','crystal  ', &
      'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_2d  ','dafs_exp ','debye    ','delta_en_','dip_rel  ','e1e1     ', &
      'delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ', &
@@ -348,7 +355,7 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
 
   data kw_mult / 'mult_cell','unit_cell','atomic_nu','surf_cell'/
 
-! First the convolution parameter, then the others
+! First the convolution parameters, then the others
   data param_conv / &
      'ecent    ','e_cut    ','elarg    ','gamma_hol','gamma_max','gaussian ','shift    ','aseah    ','bseah    ','vibr     ', &
      'weight   ','a        ','abc      ','anga     ','angb     ','angc     ','b        ','c        ','dposx    ','dposy    ', &
@@ -399,12 +406,12 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
 !*** JDB
 
   itape = 6
-  itape1 = 11
-  itape2 = 12
-  itape3 = 13
-  itape4 = 14
-  itape5 = 17
-  itape6 = 18
+  itape1 = 11  ! Convolution
+  itape2 = 12  ! Metric calculation
+  itape3 = 13  ! Fitting
+  itape4 = 14  ! FDM calculation
+  itape5 = 17  ! Selection in DAFS scan
+  itape6 = 18  ! Multiplication of unit cell
   itape_minim = 10
   iscratch = 15
   iscratchconv = 35
@@ -1084,6 +1091,7 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
 
   endif
   if( Mult_cal ) then
+! Multiplication of unit cell
     if( mpirank0 == 0 ) call mult_cell(itape6,nomfich)
     return
   endif
@@ -1607,6 +1615,7 @@ subroutine fit(fdmnes_inp,mpirank0,mpinodes0)
   deallocate( Dist_min_g )
   deallocate( RapIntegrT_min_g )
 
+! Selection of DAFS scan
   if( selec_cal ) call selec(itape5)
 
   if( Convolution_cal ) Close(itape1)

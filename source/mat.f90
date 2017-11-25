@@ -1377,7 +1377,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       if( Cal_comp ) then
         write(3,'(300(i5,i4,2e12.4))') ( jnzero(j), newinv(jnzero(j)), abvr(jnzero(j)), abvi(jnzero(j)), j = 1,n )
       else
-        write(3,'(300(i5,i4,e12.4))'), ( jnzero(j), newinv(jnzero(j)), abvr(jnzero(j)), j = 1,n )
+        write(3,'(300(i5,i4,e12.4))') ( jnzero(j), newinv(jnzero(j)), abvr(jnzero(j)), j = 1,n )
       endif
       deallocate( jnzero )
     endif
