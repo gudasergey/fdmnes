@@ -2653,6 +2653,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Bragg_abs,Clas
   E1M1 = Multipole(4); E2E2 = Multipole(6);
   E3E3 = Multipole(7); M1M1 = Multipole(8)
 
+! ns_dipmag corresponds to the dimension 2x2 of the 2 spins of the occupied states g.
   ns_dipmag = 4
   if( Dipmag ) then
     ip0 = 0
@@ -3519,7 +3520,7 @@ end
 ! One calculates it using complex or real spherical harmonics
 
 subroutine kernel_optic(Atomic_scr,Energ,First_E,fxc,icheck,Kern,Kern_fac,lmax,M_depend,n_Ec,nlm,nlm_fp,nlms_f,nlms_g, &
-                nomfich,nr,nspino,nspint,nspinp,r,Rmtsd,RPALF,Spinorbite,Ylm_comp,zet)
+                nomfich,nr,nspino,nspinp,nspint,r,Rmtsd,RPALF,Spinorbite,Ylm_comp,zet)
 
   use declarations
   implicit none

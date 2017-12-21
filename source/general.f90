@@ -6104,7 +6104,7 @@ end
 
 !*********************************************************************
 
-! Calculation of f' and f" = absorption before the edge (in micrometer^-1)
+! Calculation of f' and f" = absorption before the edge (output is in MBarn)
 
   complex(kind=db) function f_cal(Bulk_step,Doping,Eseuil,icheck,itypepr,n_atom_proto,n_atom_proto_uc,nbseuil, &
                         ngreq,ntype,numat,Z_abs,Taux_ipr,Volume_maille)

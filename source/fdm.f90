@@ -1146,7 +1146,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     end do
 
     Bulk_step = Bulk .and.  iabsorbeur > ngroup - n_atom_bulk
-    Sym_2D = iabsorbeur > n_atom_per .and. .not. Bulk_step
+    Sym_2D = iabsorbeur > n_atom_per .and. .not. Bulk_step .and. .not. Doping
     Abs_in_Bulk_roughness = Bulk_step .and. Bulk_roughness > eps10
 
     if( Sym_2D .or. .not. Matper ) then

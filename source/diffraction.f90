@@ -1729,9 +1729,9 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
                 write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
                 write(ipr,'(/A//)') '   chi = +/- 90 with eta = 0, is not possible !'
               end do
-            endif
+              stop
 
-            if( abs( sin_c ) < eps10 .or. abs( sin_e ) < eps10 ) then
+            elseif( abs( sin_c ) < eps10 .or. abs( sin_e ) < eps10 ) then
 
               mu = - asin( Mat(3,2) / cos_c )
 
@@ -1743,6 +1743,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
                   write(ipr,'(/A//)') '   One gets, mu = +/- 90 with chi = 0 or eta = 0, what is not possible !'
                 end do
               endif
+              stop
 
             elseif( abs( cos_c ) < eps10 ) then
 

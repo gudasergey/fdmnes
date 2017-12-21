@@ -3957,7 +3957,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       nrm = nrato_dirac
     endif
 
-    if( Green_s .or. Renorm .or. .not. ( Optic  .or. No_renorm ) ) then
+! With spinorbit, the renormalization is mandatory. I have not checked why.
+    if( Green_s .or. Renorm .or. Spinorbite .or. .not. ( Optic  .or. No_renorm ) ) then
       Renorm = .true.
     else
       Renorm = .false.

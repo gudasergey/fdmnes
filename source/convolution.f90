@@ -1842,7 +1842,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       
       if( Stokes_xan ) then
         do ie = 1,nenerg
-          fac = natomsym * 100 / ( Volume_maille * bohr**3 * Conv_mbarn_nelec(Ephoton(ie)) * pi )
+          fac = natomsym * 100 / ( Volume_maille * Conv_mbarn_nelec(Ephoton(ie)) * pi )
           Mu_m(ie,1,:) = Mu_m(ie,1,:) + fac * dampl(ie)
           Mu_m(ie,4,:) = Mu_m(ie,4,:) + fac * dampl(ie)
         end do
@@ -2861,7 +2861,10 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
 
       if( j > nxan + 1 .and. j <= nxan + 6 * n_mat_pol + 1 ) then
 
-        if( mod(j-nxan-1,6) /= 1 ) cycle
+        if( mod(j-nxan-1,6) /= 1 ) then
+          i = i - 1
+          cycle
+        endif
         l = len_trim( nomab )
         do k = 1,l
           if( nomab(k:k) == '_' ) exit
@@ -3636,16 +3639,23 @@ subroutine Cal_MuTrans(icheck,Mu_mat_comp,Mus_mat,n_stokes,n_mat_pol,nes,Sample_
         mu_sp = Mu_mat_comp(ie,2,ipl) 
         mu_ps = Mu_mat_comp(ie,3,ipl) 
         mu_pp = Mu_mat_comp(ie,4,ipl) 
-        Tau = 0.25_db * sqrt( (mu_pp - mu_ss)**2 + 4 * mu_sp * mu_ps ) 
-        exp_TS = exp( Tau * Sample_thickness )
-        exp_TS_i = 1 / exp_TS
-        Ch  = 0.5_db * ( Exp_TS + Exp_Ts_i )  
-        Sh = 0.5_db * ( Exp_TS - Exp_Ts_i ) 
-        diag = 0.25_db * Sh * ( mu_pp - mu_ss ) / Tau
-        Mu(1,1) = ch + diag
-        Mu(2,1) = - 0.5_db * Sh * mu_ps / Tau
-        Mu(1,2) = - 0.5_db * Sh * mu_sp / Tau
-        Mu(2,2) = ch - diag
+        if( abs( mu_pp - mu_ss ) < 1.e-20_db .and. abs( mu_sp * mu_ps ) < 1.e-20_db ) then
+          Mu(1,1) = 1._db
+          Mu(2,1) = 0._db
+          Mu(1,2) = 0._db
+          Mu(2,2) = 1._db
+        else 
+          Tau = 0.25_db * sqrt( (mu_pp - mu_ss)**2 + 4 * mu_sp * mu_ps )
+          exp_TS = exp( Tau * Sample_thickness )
+          exp_TS_i = 1 / exp_TS
+          Ch  = 0.5_db * ( Exp_TS + Exp_Ts_i )  
+          Sh = 0.5_db * ( Exp_TS - Exp_Ts_i ) 
+          diag = 0.25_db * Sh * ( mu_pp - mu_ss ) / Tau
+          Mu(1,1) = ch + diag
+          Mu(2,1) = - 0.5_db * Sh * mu_ps / Tau
+          Mu(1,2) = - 0.5_db * Sh * mu_sp / Tau
+          Mu(2,2) = ch - diag
+        endif
         
         Mu(:,:) =  exp( -0.25_db * ( mu_pp + mu_ss ) * Sample_thickness ) * Mu(:,:)
 
