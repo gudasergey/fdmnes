@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 20th of December 2017, 30 Frimaire, An 226
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 10th of January 2018, 21 Nivose, An 226
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 20th of December 2017'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 10th of January 2018'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -251,7 +251,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
   integer, parameter:: nkw_all = 37
   integer, parameter:: nkw_fdm = 202
-  integer, parameter:: nkw_conv = 35
+  integer, parameter:: nkw_conv = 36
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_metric = 12
   integer, parameter:: nkw_mult = 4
@@ -318,8 +318,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'imfpin   ','elfin    ','dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
      'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/
 
-  data kw_conv / 'abs_befor','all_conv ','cal_tddft','calculati','circular ','conv_out ','convoluti','dafs_exp_','dead_laye', &
-     'dec      ','directory','double_co','eintmax  ','epsii    ','forbidden','fprime   ', &
+  data kw_conv / 'abs_befor','all_conv ','no_analyz','cal_tddft','calculati','circular ','conv_out ','convoluti','dafs_exp_', &
+     'dead_laye','dec      ','directory','double_co','eintmax  ','epsii    ','forbidden','fprime   ', &
      'gamma_fix','gamma_var','gaussian ','no_extrap','nxan_lib ','photo_emi','s0_2     ','selec_cor','sample_th','scan     ', &
      'scan_conv','scan_file','seah     ','stokes   ','stokes_na','surface_p','table    ','thomson  ','transpose'/
 
@@ -1983,6 +1983,8 @@ function traduction(grdat)
       traduction = 'stokes_na'
     case('circulair')
       traduction = 'circular'
+    case('no_analys','noanalyzo','noanalyze','noanalyso','noanalyse')
+      traduction = 'no_analyz'
 
 ! Fit
     case('pop_orb')

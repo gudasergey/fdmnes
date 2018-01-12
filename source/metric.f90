@@ -490,10 +490,14 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
             if( ( Ef(j,ig,ifich) >= E(i) .and. Ef(j,ig,ifich) > Ef(j-1,ig,ifich) + 1.e-10_db ) &
              .or. (j == npf(ig,ifich) ) ) exit
           end do
-          p2 = ( E(i) - Ef(j-1,ig,ifich) ) / ( Ef(j,ig,ifich) - Ef(j-1,ig,ifich) )
+          if( abs( Ef(j,ig,ifich) - Ef(j-1,ig,ifich) ) < eps10 ) then
+            p2 = 0.5_db
+          else 
+            p2 = ( E(i) - Ef(j-1,ig,ifich) ) / ( Ef(j,ig,ifich) - Ef(j-1,ig,ifich) )
+          endif
           p1 = 1 - p2
           Y(i,ig,ifich) = p1*Yf(j-1,ig,ifich) + p2*Yf(j,ig,ifich)
-        end do
+       end do
       end do
 
 ! Normalisation

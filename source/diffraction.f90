@@ -390,9 +390,9 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   konde = 0.5_db * alfa_sf * max( Energy_photon, 1._db )
 
   if( Operation_mode_used ) then
-    call SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bulk_step,Energy_photon,hkl_dafs,hkl_film,hkl_ref, &
-                icheck,isigpi,Length_abs,Mat_UB,nphim,npl_2d,npldafs,npldafs_2d,Operation_mode,Orthmati,phi_0,Poldafse,Poldafss, &
-                Q_mod,Vecdafse,Vecdafss)
+    call SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bulk_step,Energy_photon,Film,hkl_dafs,hkl_film, &
+                hkl_ref,icheck,isigpi,Length_abs,Mat_UB,nphim,npl_2d,npldafs,npldafs_2d,Operation_mode,Orthmati,phi_0,Poldafse, &
+                Poldafss,Q_mod,Vecdafse,Vecdafss)
   else
     call Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Bormann,Bulk,Bulk_step,Dafs_bio,Energy_photon, &
             Film,hkl_dafs,hkl_film,icheck,isigpi,Length_abs,Mat_or,mpirank0,nphi_dafs,nphim,npldafs,npldafs_e,npldafs_f,Orthmatt, &
@@ -1148,9 +1148,9 @@ end
 
 ! 2D diffraction case with operation mode
 
-subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bulk_step,Energy_photon,hkl_dafs,hkl_film,hkl_ref, &
-                icheck,isigpi,Length_abs,Mat_UB,nphim,npl_2d,npldafs,npldafs_2d,Operation_mode,Orthmati,phi_0,Poldafse,Poldafss, &
-                Q_mod,Vecdafse,Vecdafss)
+subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bulk_step,Energy_photon,Film,hkl_dafs,hkl_film, &
+                hkl_ref,icheck,isigpi,Length_abs,Mat_UB,nphim,npl_2d,npldafs,npldafs_2d,Operation_mode,Orthmati,phi_0,Poldafse, &
+                Poldafss,Q_mod,Vecdafse,Vecdafss)
 
   use declarations
   implicit none
@@ -1166,7 +1166,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
   complex(kind=db), dimension(3,npldafs,nphim):: Poldafse, Poldafss
 
   logical:: Alfa_Beta, Alfa_fixed, Below, Beta_fixed, Bulk, Bulk_step, Chi_fixed, Column_reference, Column_detector, Delta_fixed, &
-            Detector_known, Eta_fixed, Eta_half_delta, hkl_film, Mat_unit, Mu_fixed, Mu_half_nu, Naz_fixed, Nu_fixed, &
+            Detector_known, Eta_fixed, Eta_half_delta, Film, hkl_film, Mat_unit, Mu_fixed, Mu_half_nu, Naz_fixed, Nu_fixed, &
             Phi_fixed, Psi_fixed, Q_par_n, Qaz_fixed, Ref_spec, Specular, UB_in
 
   real(kind=db):: a, b, alfa, Angfac, Angle, beta, c, c_cos_z, c_x, c_y, c_z, chi, cos_c, cos_d, cos_e, cos_k, &
@@ -1185,14 +1185,6 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 ! In ua and rydb : k = 0.5 * alfa * E
   konde = 0.5_db * alfa_sf * Energy_photon
 
-!  if( ( Bulk .and. .not. hkl_film ) .or. ( Bulk_step .and. hkl_film ) ) then
-! ! When bulk_step angxyz_bulk contains film data ! ( See fdm )
-!    abc(:) = axyz_bulk(:)
-!    ang(:) = angxyz_bulk(:)
-!  else
-!    abc(:) = axyz(:)
-!    ang(:) = angxyz(:)
-!  endif
   if( Bulk .and. .not. hkl_film ) then
  ! When bulk_step angxyz_bulk contains film data ! ( See fdm )
     abc(:) = axyz_bulk(:)
@@ -1202,16 +1194,18 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
     ang(:) = angxyz(:)
   endif
 
-  if( Bulk_step ) then
-    cos_z = sqrt( sin( angxyz(2) )**2 - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) / sin( angxyz(3) ) )**2 )
-    c_cos_z = axyz(3) * cos_z
-  else
-    cos_z = sqrt( sin( angxyz_bulk(2) )**2 - ( ( cos( angxyz_bulk(1) ) - cos( angxyz_bulk(3) ) * cos( angxyz_bulk(2) ) ) &
+  if( Film ) then
+    if( Bulk_step ) then
+      cos_z = sqrt( sin( angxyz(2) )**2 - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) / sin( angxyz(3) ) )**2 )
+      c_cos_z = axyz(3) * cos_z
+    else
+      cos_z = sqrt( sin( angxyz_bulk(2) )**2 - ( ( cos( angxyz_bulk(1) ) - cos( angxyz_bulk(3) ) * cos( angxyz_bulk(2) ) ) &
                                            / sin( angxyz_bulk(3) ) )**2 )
-    c_cos_z = axyz_bulk(3) * cos_z
-  endif
+      c_cos_z = axyz_bulk(3) * cos_z
+    endif
 ! The factor is to convert Length_abs en micrometer
-  c_cos_z = 0.0001_db * bohr * c_cos_z
+    c_cos_z = 0.0001_db * bohr * c_cos_z
+  endif
 
   cosdir(:) = cos( ang(:) )
   sindir(:) = sin( ang(:) )
@@ -1734,22 +1728,26 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
             elseif( abs( sin_c ) < eps10 .or. abs( sin_e ) < eps10 ) then
 
               mu = - asin( Mat(3,2) / cos_c )
+              cos_m = cos( mu )
 
-              if( abs( cos( mu ) ) < eps10 ) then
+              if( abs( cos_m ) < eps10 ) then
                 call write_error
                 do ipr = 3,9,3
                   if( ipr == 3 .and. icheck == 0 ) cycle
                   write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
                   write(ipr,'(/A//)') '   One gets, mu = +/- 90 with chi = 0 or eta = 0, what is not possible !'
                 end do
+                stop
               endif
-              stop
+              
+              sin_m = sin( mu )
 
             elseif( abs( cos_c ) < eps10 ) then
 
               cos_m = - Mat(3,1) / ( sin_c * sin_e )
               if( abs( cos_m ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,cos_m,'cos(mu) ')
               mu = acos( cos_m )
+              sin_m = sin( mu )
 
             else
 
@@ -1820,13 +1818,13 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
         delta = asin( 2 * sin_t * cos_t * sin( Qaz ) )
         if( abs( delta ) < eps10 ) then
           nu = 2 * Theta_Bragg
-        elseif( abs( Qaz ) - pi < eps10 ) then
+        elseif( abs( abs( Qaz ) - pi ) < eps10 ) then
           nu = 0._db
         else
           x = tan( delta ) / tan( Qaz )
           if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(nu) ')
           nu = asin( x )
-       endif
+        endif
 
       endif
 
@@ -2240,24 +2238,24 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
         isigpi(1,lpl) = 5
       endif
 
-      if( abs( sum( p_i(:) * p_s_s(:) ) ) > abs( sum( p_i(:) * p_s_p(:) ) ) ) then
+!      if( abs( sum( p_i(:) * p_s_s(:) ) ) > abs( sum( p_i(:) * p_s_p(:) ) ) ) then
         Poldafss(:,ipl,1) = cmplx( p_s_s(:), 0._db )
         isigpi(2,ipl) = 1
         Poldafss(:,lpl,1) = cmplx( p_s_p(:), 0._db )
         isigpi(2,lpl) = 2
-      else
-        Poldafss(:,ipl,1) = cmplx( p_s_p(:), 0._db )
-        isigpi(2,ipl) = 2
-        Poldafss(:,lpl,1) = cmplx( p_s_s(:), 0._db )
-        isigpi(2,lpl) = 1
-      endif
+!      else
+!        Poldafss(:,ipl,1) = cmplx( p_s_p(:), 0._db )
+!        isigpi(2,ipl) = 2
+!        Poldafss(:,lpl,1) = cmplx( p_s_s(:), 0._db )
+!        isigpi(2,lpl) = 1
+!      endif
 
       if( Phi_fixed ) then
         angpoldafs(3,ipl) = phi
         angpoldafs(3,lpl) = phi
       endif
 
-      if( alfa > eps10 .and. beta > eps10 ) then
+      if( Film .and. alfa > eps10 .and. beta > eps10 ) then
         Length_abs(ipl) = c_cos_z * ( 1 / sin( alfa ) + 1 / sin( beta ) )
       else
         Length_abs(ipl) = 1.e+20_db

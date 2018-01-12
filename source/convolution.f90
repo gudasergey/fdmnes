@@ -14,14 +14,15 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   use declarations
   implicit none
 
-  integer:: Dafs_exp_type, eof, i, i_conv, i_Trunc, ical, icheck, ie, ie1, ie2, ifich, ifichref, igr, ii, initl, initlref, ip, &
-    ipar, ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, j0, je, jfich, jfichref, jpl, js, jseuil, &
-    k, l, Length_line, long, mfich, n, n_col, n_energ_tr, n_mat_pol, n_selec_core, n_signal, n_Stokes, n_Trunc, n1, n2, n3, n4, &
+  integer:: Dafs_exp_type, eof, i, i_col, i_conv, i_hk, i_Trunc, i1, ical, icheck, ie, ie1, ie2, ifich, ifichref, igr, ii, &
+    index_hk, initl, initlref, ip, ipar, ipas, ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, j0, je, &
+    jfich, jfichref, jpl, js, jseuil, k, kpl, l, length_hk, Length_line, ll, long, mfich, n, n_col, n_energ_tr, n_mat_pol, &
+    n_selec_core, n_signal, n_Stokes, n_Trunc, n1, n2, n3, n4, &
     natomsym, ncal, ne2, nef, nelor, nemax, nen2, nenerg, nenerge, nes, nfich, &
     nfich_tot, ngamh, ngroup_par, ninit, ninit1, ninitlm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
-    npldafs_th, nseuil, numat, nxan, nw
+    npldafs_t, npldafs_th, nseuil, numat, nxan, nw
 
-! njp : Points byond the energy range to make the border effect less strong
+! njp : Points beyond the energy range to make the border effect less strong
   integer, parameter:: njp = 500
 
   integer, dimension(3) :: hkl_S
@@ -30,9 +31,11 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   integer, dimension(ngroup_par,nparm) :: indice_par
   integer, dimension(:), allocatable:: i_done, indf, natomsym_f, ne, ninitl, nphi
   integer, dimension(:,:), allocatable:: hkl_dafs, nsup, ne_initl
+  integer, dimension(:), allocatable:: n_index_hk
 
-  character(len=1):: rep
+  character(len=6):: mot6, mot6_b
   character(len=9):: keyword, mot9
+  character(len=15):: mot15
   character(len=Length_word):: nomab
   character(len=132):: chemin, convolution_out, fichscanout, identmot, mot, mots, nomfich, nomfichbav
   character(len=9), dimension(nkw_conv) :: kw_conv
@@ -48,7 +51,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   complex(kind=db), dimension(:,:,:), allocatable:: Ad, Adafs, As, Mu_m, Mu_mat_comp
   complex(kind=db), dimension(:,:,:,:), allocatable:: As_bulk, mu, mus
 
-  logical:: Abs_before, Abs_in_bulk, Another_one, Arc, bav_open, Bormann, Dafs, Dafs_bio, Check_conv, chem, Circular, &
+  logical:: Abs_before, Abs_in_bulk, Analyzer, Another_one, Arc, bav_open, Bormann, Dafs, Dafs_bio, Check_conv, chem, Circular, &
     Conv_done, Cor_abs, decferm, Deuxieme, Double_cor, E_cut_man, Energphot, Epsii_ref_man, Extrap, Fermip, First_E, Fit_cal, &
     Forbidden, fprim, fprime_atom, Full_self_abs, Gamma, Gamma_hole_imp, Gamma_var, Gaussian_default, Green_int, Just_total, &
     Magn, no_extrap, nxan_lib, Photoemission, Scan_a, scan_true, Seah, Self_abs, &
@@ -79,6 +82,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   do  ! end of loop at the end of the routine
 
   Abs_before = .false.
+  Analyzer = .true.
   Arc = .true.
   Asea = 0.2_db  ! Slope of Gamma at the origin in Seah Dench model
   chem = .false.
@@ -116,7 +120,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   nelor = 0
   nfich = 0
   npldafs = 0
-  no_extrap = .false.
+  npldafs_t = 0
+  no_extrap = .false. 
   nseuil = -1
   do i = 1,10
     num_core(i) = i
@@ -616,6 +621,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       case('double_co')
         Double_cor = .true.
 
+      case('no_analyz')
+        Analyzer = .false.
+
       case default
 
         call write_error
@@ -628,7 +636,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   end do boucle_lect
 
-! Test sur nom de fichier non convolue
+! Test on input file names
   do ifich = 1,nfich
     open(2, file = fichin(ifich), status='old', iostat=istat)
     if( istat /= 0 ) then
@@ -679,6 +687,15 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   call Conv_out_name(bav_open,check_conv,Chem,Chemin,convolution_out,Convolution_out_all,Dafs_bio,Deuxieme,fichin, &
                         fichscanin,fichscanout,fichscanout_all,Length_line,nfich,nomfichbav,Photoemission,Scan_a,Scan_true)
 
+  do ifich = 1,nfich
+    if( convolution_out /= fichin(ifich) ) cycle
+    call write_error
+    do ipr = 6,9,3
+      write(ipr,120) fichin(ifich), mot
+    end do
+    stop
+  end do
+
   if( .not. ( Seah .or. Arc ) .and. nelor == 0 ) then
     nelor = 1
     allocate( Elor(nelor) )
@@ -686,13 +703,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     Elor(1) = 0._db
     betalor(1) = 0._db
   endif
-
-  do ifich = 1,nfich
-    if( convolution_out /= fichin(ifich) ) cycle
-    write(6,120)
-    read(5,*) rep
-    if( rep /= 'y' .and. rep /= 'Y' .and. rep /= 'o' .and. rep /= 'O' ) stop
-  end do
 
 ! -- Table dimensions -------------------------------------
 
@@ -849,6 +859,11 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     npldafs_b = npldafs
   else
     npldafs_b = 0
+  endif
+  if( Analyzer ) then
+    npldafs_t = npldafs
+  else
+    npldafs_t = npldafs / 2
   endif
   allocate( hkl_dafs(3,npldafs_b) )
 
@@ -1166,6 +1181,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     n_col = 2*npldafs
   elseif( Bormann ) then
     n_col = nxan + n_mat_pol * n_stokes + 2*npldafs
+  elseif( .not. Analyzer ) then
+    n_col = nxan + n_mat_pol * ( n_stokes + 2 ) + npldafs / 2
   else
     n_col = nxan + n_mat_pol * ( n_stokes + 2 ) + npldafs
     if( Dafs_bio ) then
@@ -1690,13 +1707,14 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
               if( Tenseur ) then
 
-                Adafs(ie,ip,ipl) = sum( cmplx( lorr(ie1:nen2), lori(ie1:nen2),db ) * real( Ad(ie1:nen2,ip,ipl),db ) )
+ ! Here Ad is in number of electron, the convolution needs division by pi
+                Adafs(ie,ip,ipl) = sum( cmplx( lorr(ie1:nen2), lori(ie1:nen2),db ) * real( Ad(ie1:nen2,ip,ipl),db ) ) / pi
 
               else
 
                 Adafs(ie,ip,ipl) = sum( cmplx(lorr(ie1:nen2),lori(ie1:nen2),db) * Ad(ie1:nen2,ip,ipl) )
 
-! Ici la partie imaginaire devient le Kramers Koenig de la partie reelle
+! Here the imaginary part becomes the Kramers Koenig of the real part
                 if( Cor_abs ) then
                   do i = 1,2
                     jpl = ipl + i*npldafs
@@ -1738,14 +1756,15 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
               do ip = 1,nphi(ipl)
 
                 if( Tenseur .and. .not. Green_int ) then
-                  Adafs(ie,ip,ipl) = sum( lorr(ie1:nen2) * real( Ad(ie1:nen2,ip,ipl),db ) )
-                  if( ie >= ie1 ) Adafs(ie,ip,ipl) = Adafs(ie,ip,ipl) - img * pi * real( Ad(ie,ip,ipl),db )
+ ! Here Ad is in number of electron, the convolution needs division by pi
+                  Adafs(ie,ip,ipl) = sum( lorr(ie1:nen2) * real( Ad(ie1:nen2,ip,ipl),db ) ) / pi
+                  if( ie >= ie1 ) Adafs(ie,ip,ipl) = Adafs(ie,ip,ipl) - img * real( Ad(ie,ip,ipl),db )
                 else
                   if( .not. Green_int ) then
                     Adafs(ie,ip,ipl) = sum( lorr(ie1:nen2) * Ad(ie1:nen2,ip,ipl) )
                     if( ie >= ie1 ) Adafs(ie,ip,ipl) = Adafs(ie,ip,ipl) + img * pi * Ad(ie,ip,ipl)
                   endif
-! Ici pour correct d'abs, le deuxième xanes devient le Kramers Koenig du premier xanes
+! For the correction by absorption, the second xanes becomes the Kramers Koenig of the frst one
                   if( Cor_abs ) then
                     do i = 1,2
                       jpl = ipl + i*npldafs
@@ -1831,7 +1850,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       if( Cor_abs ) then
         do ipl = 1,npldafs
           if( Full_self_abs .and. ( mod(ipl,4) == 2 .or. mod(ipl,4) == 3 ) ) cycle
-          do ie = 1,nenerg ! Volume_maille is in A^3
+          do ie = 1,nenerg ! Unit cell volume is in A^3
             fac = natomsym * 100 / ( Volume_maille * Conv_mbarn_nelec(Ephoton(ie)) * pi )
             mu(ie,:,ipl,:) = mu(ie,:,ipl,:) + fac * dampl(ie)
           end do
@@ -2054,9 +2073,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   Sup_sufix = ninitl(1) > 1
    
-  call col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin(1),fprim,Full_self_abs,hkl_dafs, &
-      Length_line,n_col,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes,Stokes_name, &
-      Stokes_param,Sup_sufix,Tenseur)
+  call Col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin(1),fprim,Full_self_abs,hkl_dafs, &
+      Length_line,n_col,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes, &
+      Stokes_name,Stokes_param,Sup_sufix,Tenseur)
 
 ! Addition of the constant term corresponding to the edges of lower energy (but on dichroic terms)
   if( i_conv == 0 .and. Abs_before ) then
@@ -2083,15 +2102,71 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   zero_c = (0._db, 0._db)
 
-  if( Transpose_file ) then
-    if( Double_cor ) then
-      n_signal = 3 * nes
-    elseif( Cor_abs ) then
-      n_signal = 2*nes
-    else
-      n_signal = nes
-    endif
-    allocate( Signal(npldafs,n_signal) )
+  if( Double_cor ) then
+    n_signal = 3 * nes
+    i1 = n_col - npldafs_t - 4*npldafs + 1
+    ipas = 5
+  elseif( Cor_abs ) then
+    n_signal = 2*nes
+    i1 = n_col - npldafs_t - 3*npldafs + 1
+    ipas = 4
+  else
+    n_signal = nes
+    i1 = n_col - npldafs_t + 1
+    ipas = 1
+  endif
+  if( Transpose_file ) allocate( Signal(npldafs_t,n_signal) )
+
+  if( .not. Analyzer ) then
+
+    do j = 1,2
+    
+      i_hk = 0
+      index_hk = 0
+      mot6_b = ' '
+      do i_col = i1,n_col,ipas
+        mot15 = ' '
+        mot15 = nom_col(i_col)
+        do i = 1,15
+          if( mot15(i:i) /= '(' ) cycle
+          mot6 = ' '
+          if( mot15(i+1:i+1) == '-' .and. mot15(i+3:i+3) == '-' ) then
+            mot6(1:4) = mot15(i+1:i+4)
+          elseif( mot15(i+1:i+1) == '-' .or. mot15(i+2:i+2) == '-' ) then
+            mot6(1:3) = mot15(i+1:i+3)
+          else
+            mot6(1:2) = mot15(i+1:i+2)  
+          endif
+          length_hk = len_trim( mot6 )
+          exit
+        end do
+
+        do i = 1,14
+          if( mot15(i:i) /= ')' ) cycle
+          ll = len_trim( mot6 )
+          if( mot15(i+1:i+1) /= ' ' ) mot6(ll+1:ll+1) = mot15(i+1:i+1)
+          if( i >= 14 ) exit
+          if( mot15(i+2:i+2) /= ' ' ) mot6(ll+2:ll+2) = mot15(i+2:i+2)
+          exit
+        end do
+
+        if( mot6 == mot6_b ) then    
+          index_hk = index_hk + 1
+          if( j == 2 ) n_index_hk(i_hk) = index_hk 
+        else  
+          i_hk = i_hk + 1
+          index_hk = 1
+          mot6_b = mot6 
+        endif
+      end do
+      
+      if( j == 1 ) then
+        allocate( n_index_hk(i_hk) )
+        n_index_hk(:) = 1
+      endif
+      
+    end do
+  
   endif
   
   First_E = .true.
@@ -2151,15 +2226,33 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
     else
 
+      i_hk = 1
+      kpl = 0      
       do ipl = 1,npldafs
         if( .not. ( Tenseur .or. Bormann ) ) then
-          jpl = jpl + 1
-          if( Surface_ref > eps10 ) then
-            Tens(jpl) = abs( As(ie,1,ipl) / Surface_ref )**2  ! 2D diffraction case
+          if( Analyzer ) then
+           jpl = jpl + 1
+           if( Surface_ref > eps10 ) then
+              Tens(jpl) = abs( As(ie,1,ipl) / Surface_ref )**2  ! 2D diffraction case
+            else
+              Tens(jpl) = abs( As(ie,1,ipl) )**2
+            endif
+            if( Transpose_file ) Signal(ipl,ie) = Tens(jpl)
           else
-            Tens(jpl) = abs( As(ie,1,ipl) )**2
+            if( ipl > 2 * sum( n_index_hk(1:i_hk) ) ) i_hk = i_hk + 1
+            n = 2 * sum( n_index_hk(1:i_hk-1) )
+            if( ipl > n .and. ipl <= n + n_index_hk(i_hk) ) then
+              jpl = jpl + 1
+              kpl = kpl + 1
+              j = ipl + n_index_hk(i_hk) 
+              if( Surface_ref > eps10 ) then
+                Tens(jpl) = abs( As(ie,1,ipl) / Surface_ref )**2 + abs( As(ie,1,j) / Surface_ref )**2  ! 2D diffraction case
+              else
+                Tens(jpl) = abs( As(ie,1,ipl) )**2 + abs( As(ie,1,j) )**2
+              endif
+              if( Transpose_file ) Signal(kpl,ie) = Tens(jpl)
+            endif
           endif
-          if( Transpose_file ) Signal(ipl,ie) = Tens(jpl)
         endif
         if( fprim .or. Tenseur .or. Bormann ) then
           jpl = jpl + 1
@@ -2231,10 +2324,12 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     else
       Energ_tr(:) = Energ_tr(:) / rydb
     endif
-    call Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal,nes,nom_col,npldafs,Signal)
+    call Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal,nes,nom_col,npldafs_t,Signal)
     deallocate( Energ_tr, Signal )
   endif
 
+  if( .not. Analyzer ) deallocate( n_index_hk )
+  
   if( Scan_true .and. .not. Dafs_bio ) then
 
     Open(7, file = fichscanout)
@@ -2346,9 +2441,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   112 format(//' Error opening the file:',//3x,A,//  &
            5x,'It does not exist but the following file is found existing: ',//3x,A,// &
            5x,'Modify the input file and eventualy add other indata files with the convenient indexes !',//)
-  120 format(///' The output file has the same name than one of the input files.',/ &
-                ' This last will be overwritten !',// &
-                ' Are you sure you want to continue ? (y/n) :')
+  120 format(///' The output file has the same name than one of the input files:',/ &
+                3x,A,// &
+                ' Choose another one with keyword "Conv_out" !',//)
   145 format(///' Error under the keyword Par_',a6,'in the indata file:',// &
                 ' The wanted file is the number',i3,' !',/ &
                 ' There are only',i3,' files in the job !'//)
@@ -2793,27 +2888,28 @@ end
 
 !***********************************************************************
 
-subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_abs,hkl_dafs, &
-      Length_line,n_col,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes,Stokes_name, &
-      Stokes_param,Sup_sufix,Tenseur)
+subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_abs,hkl_dafs, &
+      Length_line,n_col,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes, &
+      Stokes_name,Stokes_param,Sup_sufix,Tenseur)
 
   use declarations
   implicit none
 
-  integer:: i, ii, ipl, istat, j, k, l, Length_line, m, n, n_col, n_col_in, n_mat_pol, n_stokes, nc, nnombre, npldafs, &
-    npldafs_b, nxan
+  integer:: i, i_hk, ii, ipl, istat, j, k, kk, l, Length_line, m, n, n_col, n_col_o, n_col_in, n_index_hk, n_mat_pol, &
+    n_stokes, nc, nnombre, npldafs, npldafs_b, nxan
 
   character(len=132):: fichin
   character(len=Length_word):: nomab, nomac
   character(len=length_line):: motl
   character(len=13), dimension(n_stokes):: Stokes_name
   character(len=Length_word), dimension(n_col):: nom_col
+  character(len=Length_word), dimension(2*n_col):: nom_col_o
   character(len=Length_word), dimension(:), allocatable:: nom_col_in
 
   integer, dimension(3,npldafs_b):: hkl_dafs
 
-  logical:: Bormann, Cor_abs, Dafs_bio, Double_cor, fprim, Full_self_abs, Photoemission, Self_abs, Signal_sph, Stokes, &
-            Sup_sufix, Tenseur
+  logical:: Analyzer, Bormann, Cor_abs, Dafs_bio, Double_cor, fprim, Full_self_abs, Photoemission, Self_abs, Signal_sph, &
+            Stokes, Sup_sufix, Tenseur
 
   real(kind=db), dimension(5,n_stokes):: Stokes_param
 
@@ -2875,10 +2971,10 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
         nomac = nomab
         l = len_trim( nomab )
         nomab(l+1:l+2) = 'ss'
-        nom_col(i) = nomab
+        nom_col_o(i) = nomab
         nomab(l+1:l+2) = 'pp'
         i = i + 1
-        nom_col(i) = nomab
+        nom_col_o(i) = nomab
         do n = 1,n_stokes
           if( Stokes_name(n) /= 'no_name' ) then
             nomab = Stokes_name(n)
@@ -2887,7 +2983,7 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
            call ad_number(n,nomab,Length_word)
           endif
           i = i + 1
-          nom_col(i) = nomab
+          nom_col_o(i) = nomab
         end do
       else 
         if( l > 4 ) then
@@ -2896,14 +2992,14 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
         if( nxan == 0 ) then
            nom_col_in(j) = nomab
         else
-          nom_col(i) = nomab
+          nom_col_o(i) = nomab
         endif
       endif
-      nomab = adjustl( nom_col(i) )
+      nomab = adjustl( nom_col_o(i) )
       if( Photoemission .and. nomab(1:7) == '<xanes>' ) then
         nomab(1:7) = '  <xes>'
         call center_word(nomab,Length_word)
-        nom_col(i) = nomab
+        nom_col_o(i) = nomab
       endif
        
     end do
@@ -2943,7 +3039,7 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
           nomab(l+1:l+1) = 'p'
         endif
         call center_word(nomab,Length_word)
-        nom_col(i) = nomab
+        nom_col_o(i) = nomab
       end do
     end do
 
@@ -2958,11 +3054,11 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
         nomab = nom_col_in(j)
         l = len_trim( nomab )
         nomab(l+1:l+1) = 'p'
-        nom_col(i) = nomab
+        nom_col_o(i) = nomab
 
         i = i + 1
         nomab(l+1:l+1) = 's'
-        nom_col(i) = nomab
+        nom_col_o(i) = nomab
 
         cycle
 
@@ -2972,18 +3068,17 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
         j = j + 2
         nomab = nom_col_in(j)
         nomab(1:1) = 'e'
-        nom_col(i) = nomab
+        nom_col_o(i) = nomab
 
         i = i + 1
         l = min( len_trim( nomab ) + 1, Length_word )
         nomab(l:l) = 'i'
-        nom_col(i) = nomab
+        nom_col_o(i) = nomab
 
         cycle
 
       endif
 
-      i = i + 1
       j = j + 2
       nomab = nom_col_in(j)
       if( Signal_sph ) then
@@ -2991,7 +3086,8 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
         nomab(2:l+1) = nomab(1:l)
       endif
       nomab(1:1) = 'I'
-      nom_col(i) = nomab
+      i = i + 1
+      nom_col_o(i) = nomab
 
       if( fprim ) then
         i = i + 1
@@ -3001,11 +3097,11 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
           nomab(k:k) = nomab(k+1:k+1)
         end do
         nomab(l:l) = 'p'
-        nom_col(i) = nomab
+        nom_col_o(i) = nomab
 
         i = i + 1
         nomab(l:l) = 's'
-        nom_col(i) = nomab
+        nom_col_o(i) = nomab
       endif
 
       if( Cor_abs ) then
@@ -3016,14 +3112,14 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
           nomab(k:k) = nomab(k-1:k-1)
         end do
         nomab(1:2) = 'Ic'
-        nom_col(i) = nomab
+        nom_col_o(i) = nomab
       endif
 
       if( Double_cor ) then
         i = i + 1
-        nomab = nom_col(i-1)
+        nomab = nom_col_o(i-1)
         nomab(2:2) = 'd'
-        nom_col(i) = nomab
+        nom_col_o(i) = nomab
       endif
 
       if( Cor_abs ) then
@@ -3031,7 +3127,7 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
           if( .not. Full_self_abs .and. ii > 2 ) exit
           i = i + 1
           j = j + 1
-          nom_col(i) = nom_col_in(j)
+          nom_col_o(i) = nom_col_in(j)
         end do
       endif
 
@@ -3085,7 +3181,7 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
 
           endif
 
-          nom_col(i) = nomab
+          nom_col_o(i) = nomab
 
           if( Cor_abs ) then
             i = i + 1
@@ -3093,13 +3189,13 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
               nomab(k:k) = nomab(k-1:k-1)
             end do
             nomab(1:2) = 'Ic'
-            nom_col(i) = nomab
+            nom_col_o(i) = nomab
           endif
 
           if( Double_cor ) then
             i = i + 1
             nomab(2:2) = 'd'
-            nom_col(i) = nomab
+            nom_col_o(i) = nomab
           endif
 
         end do
@@ -3113,6 +3209,57 @@ subroutine col_name(Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_a
   
   deallocate( nom_col_in )
 
+  if( Analyzer ) then
+   
+    nom_col(1:n_col) = nom_col_o(1:n_col)
+
+  else
+    n_col_o = i
+  
+    i_hk = 0
+    k = 0
+    kk = 0
+    do i = 1,n_col_o
+    
+      if( i <= k ) cycle
+      
+      nomab = adjustl( nom_col_o(i) )
+      if( nomab(1:2) /= 'I(' ) then
+        k = k + 1
+        kk = kk + 1 
+        nom_col(kk) = nom_col_o(i)  
+        cycle
+      endif
+      l = len_trim( nomab ) - 1
+    
+      do j = i+1,n_col_o
+        nomac = adjustl( nom_col_o(j) )
+        if( nomab(1:l) /= nomac(1:l) ) cycle
+        i_hk = i_hk + 1
+        n_index_hk = j - i
+        k = k + 2 * n_index_hk 
+        exit
+      end do
+      
+      if( j > n_col_o ) then
+        kk = kk + 1 
+        nom_col(kk) = nom_col_o(i)  
+      else
+      
+        do j = i, i + n_index_hk - 1
+          kk = kk + 1  
+          nomab = nom_col_o(j)
+          l = len_trim( nomab )
+          nomab(l-1:l) = '  '
+          nom_col(kk) = nomab
+        end do
+      
+      endif  
+
+    end do
+
+  endif
+   
   return
 end
 
@@ -4240,7 +4387,7 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
     i1 = n_col - 5*npldafs + 1
     ipas = 5
     n_cor = 3
-  elseif( n_signal == 3*nes ) then
+  elseif( n_signal == 2*nes ) then
     Cor_abs = .true.
     Double_cor = .false.
     i1 = n_col - 4*npldafs + 1

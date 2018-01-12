@@ -185,6 +185,7 @@ subroutine symgrp(Cif,Cif_file,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans)
   use declarations
   implicit none
 
+  integer, parameter:: nline_spgr = 5577
   integer:: nmaxop
 
   character(len=1):: SGTrans
@@ -195,7 +196,7 @@ subroutine symgrp(Cif,Cif_file,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans)
   character(len=132):: Cif_file
   character(len=80), dimension(nmaxop):: lines
 
-  character(len=80), dimension(5527):: spacegroupdata
+  character(len=80), dimension(nline_spgr):: spacegroupdata
   common /spacegroupdata/ spacegroupdata
 
   integer:: i, i1, i2, ipr, istat, itape, j, k, l, nbsyop, sgnb, currentLineNum
@@ -273,7 +274,7 @@ subroutine symgrp(Cif,Cif_file,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans)
 ! In spacegroupdata the name of the symmetry group follows a *<space> look for it.
 ! If a * is found, check that the following string is the name of the desired symmetry group.
 
-    do i = 1,5527
+    do i = 1,nline_spgr
 
       line = spacegroupdata(i)
       if (line(1:1) /= '*') cycle
@@ -292,7 +293,7 @@ subroutine symgrp(Cif,Cif_file,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans)
       line = spacegroupdata(currentLineNum+i)
       if( line(1:1) == '*' .or. line(1:1) == ' ' ) exit
       lines(i) = line
-      if( currentLineNum+i >= 5527 ) exit
+      if( currentLineNum+i >= nline_spgr ) exit
     end do
     nbsyop = i - 1
 
@@ -336,6 +337,8 @@ subroutine findop(line,matrix)
 
   use declarations
   implicit none
+
+  integer, parameter:: nline_spgr = 5577
 
   character(len=80) line
 
@@ -657,7 +660,9 @@ subroutine locateSG(Space_Group,sgnbcar0)
   use declarations
   implicit none
 
-  character(len=80), dimension(5527):: spacegroupdata
+  integer, parameter:: nline_spgr = 5577
+
+  character(len=80), dimension(nline_spgr):: spacegroupdata
   common /spacegroupdata/ spacegroupdata
 
   character(len=10) sgnbcar, sgnbcar0, sgnbcar1
@@ -671,7 +676,7 @@ subroutine locateSG(Space_Group,sgnbcar0)
 
   nbsol = 0
 
-  do i = 1,5527
+  do i = 1,nline_spgr
 
     line = spacegroupdata(i)
     if( line(1:1) /= '*' ) cycle
@@ -746,7 +751,9 @@ end
 
 block data spacegroupdatasubroutine
 
-  character(len=80), dimension(5527):: spacegroupdata
+  integer, parameter:: nline_spgr = 5577
+
+  character(len=80), dimension(nline_spgr):: spacegroupdata
   common /spacegroupdata/ spacegroupdata
 
   data spacegroupdata/ &
@@ -6077,6 +6084,56 @@ block data spacegroupdatasubroutine
     'x,z,y',&
     '-z+3/4,y,-x+3/4',&
     'z,y,x',&
+    '',&
+    '*227:S      Oh^7          Fd-3mS                      -F d - 3 m S',&    ! introduction 01/2018 YJ
+    'z+1/4,y+1/4,-x+1/4',&
+	'y+1/4,x+1/4,-z+1/4',&
+	'x+1/4,z+1/4,-y+1/4',&
+	'z+1/4,x+1/4,-y+1/4',&
+	'y+1/4,z+1/4,-x+1/4',&
+	'x+1/4,y+1/4,-z+1/4',&
+	'z+1/4,-y+1/4,x+1/4',&
+	'y+1/4,-x+1/4,z+1/4',&
+	'x+1/4,-z+1/4,y+1/4',&
+	'z+1/4,-x+1/4,y+1/4',&
+	'y+1/4,-z+1/4,x+1/4',&
+	'x+1/4,-y+1/4,z+1/4',&
+	'-z+1/4,y+1/4,x+1/4',&
+	'-y+1/4,x+1/4,z+1/4',&
+	'-x+1/4,z+1/4,y+1/4',&
+	'-z+1/4,x+1/4,y+1/4',&
+	'-y+1/4,z+1/4,x+1/4',&
+	'-x+1/4,y+1/4,z+1/4',&
+	'-z+1/4,-y+1/4,-x+1/4',&
+	'-y+1/4,-x+1/4,-z+1/4',&
+	'-x+1/4,-z+1/4,-y+1/4',&
+	'-z+1/4,-x+1/4,-y+1/4',&
+	'-y+1/4,-z+1/4,-x+1/4',&
+	'-x+1/4,-y+1/4,-z+1/4',&
+	'-z,-y,x',&
+	'-y,-x,z',&
+	'-x,-z,y',&
+	'-z,-x,y',&
+	'-y,-z,x',&
+	'-x,-y,z',&
+	'-z,y,-x',&
+	'-y,x,-z',&
+	'-x,z,-y',&
+	'-z,x,-y',&
+	'-y,z,-x',&
+	'-x,y,-z',&
+	'z,-y,-x',&
+	'y,-x,-z',&
+	'x,-z,-y',&
+	'z,-x,-y',&
+	'y,-z,-x',&
+	'x,-y,-z',&
+	'z,y,x',&
+	'y,x,z',&
+	'x,z,y',&
+	'z,x,y',&
+	'y,z,x',&
+	'x,y,z',&
     '',&
     '*228:1      Oh^8          Fd-3c:1                      F 4d 2 3 -1cd',&
     'x,y,z',&

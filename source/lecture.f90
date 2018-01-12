@@ -861,7 +861,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     if( .not. Matper ) Space_Group = ' '
     if( Pdb ) Temperature = .true.
 
-    if( Film .and. ( npldafs /= 0 .or. npldafs_2d /= 0 ) ) then
+ !   if( Film .and. ( npldafs /= 0 .or. npldafs_2d /= 0 ) ) then
+    if( ( npldafs /= 0 .or. npldafs_2d /= 0 ) .and. .not. Dafs_bio ) then
       Rewind(itape4)
       do igrdat = 1,100000
         read(itape4,'(A)') mot
