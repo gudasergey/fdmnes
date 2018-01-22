@@ -34,7 +34,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   integer, dimension(:), allocatable:: n_index_hk
 
   character(len=6):: mot6, mot6_b
-  character(len=9):: keyword, mot9
+  character(len=9):: keyword, mot9, Traduction
   character(len=15):: mot15
   character(len=Length_word):: nomab
   character(len=132):: chemin, convolution_out, fichscanout, identmot, mot, mots, nomfich, nomfichbav
@@ -287,6 +287,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     if( eof /= 0 ) exit boucle_lect
 
     keyword = identmot(mot,9)
+    keyword = Traduction(keyword)
 
     select case(keyword)
 
@@ -4569,6 +4570,188 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
   
   deallocate( E_string, hk, hk_length, l_value, n_index_hk, Signal_out )
 
+  return
   110 format(10000a15)
+end
+
+!***********************************************************************
+
+! Convolution by a gaussian
+
+subroutine Main_gaussian(File_in,itape,File_out)
+
+  use declarations
+  implicit none
+
+  integer:: eof, i, ier, ipr, istat, itape, l, ligne, n, n_text, ncol, nnombre, nx
+
+  character(len=9):: keyword
+  character(len=132):: File_in, File_out, identmot, mot, Title, Traduction
+
+  real(kind=8):: a, sigma
+  real(kind=8), dimension(:), allocatable:: x
+  real(kind=8), dimension(:,:), allocatable:: y, z
+ 
+  Rewind(itape)
+  
+  i = 0
+  do ligne = 1,1000
+
+    n = nnombre(itape,132)
+    read(itape,'(A)',iostat=eof) mot
+    if( eof /= 0 ) exit
+
+    keyword = identmot(mot,9)
+    keyword = Traduction(keyword)
+    
+    if( keyword == 'end' ) exit
+
+    if( keyword == 'conv_gaus' ) then
+      n = nnombre(itape,132)
+      read(itape,*,iostat=ier) sigma
+      if( ier > 0 ) call write_err_form(itape,keyword)
+      i = i + 1
+    endif
+    
+  end do
+  
+  if( i /= 1 .or. File_in == ' ' ) then
+    call write_error
+    do ipr = 6,9,3
+      write(ipr,'(A)') ' Both "File_in" and "Conv_gaus" keywords must be in the indata file !'
+    end do
+    stop
+  endif
+
+  if( sigma < -eps10 ) then
+    call write_error
+    do ipr = 6,9,3
+      write(ipr,110) sigma
+    end do
+    stop
+  endif
+  
+! Dimensions
+
+  Open(20, file = File_in, status='old', iostat=istat )
+      
+  do i = 1,10000
+    n = nnombre(20,10000)
+    if( n == 0 ) then
+      read(20,'(A)') mot
+    else
+      exit
+    endif
+  end do
+  n_text = i - 1
+  
+  ncol = n - 1
+
+  do i = 1,1000000
+    read(20,*,iostat=istat) a
+    if( istat /= 0 ) exit
+  end do
+  nx = i - 1
+
+  allocate( x(nx) ); allocate( y(nx,ncol) ); allocate( z(nx,ncol) )
+
+! Reading
+
+  Rewind(20)
+
+  do i = 1, n_text - 1
+    read(20,*)
+  end do
+  if( n_text > 0 ) read(20,'(A)') Title
+
+  do i = 1,nx
+    read(20,*,iostat=istat) x(i), y(i,:)
+    if( istat /= 0 ) then
+      call write_error
+      do ipr = 6,9,3
+        write(ipr,120) File_in
+      end do
+      stop
+    endif
+  end do
+
+  Close(20) 
+  
+  call Conv_gaussian(ncol,nx,sigma,x,y,z)
+
+! Writing
+  
+  l = len_trim( File_out )
+  if( l > 4 ) then
+    if( File_out(l-3:l-3) /= '.' ) File_out(l+1:l+4) = '.txt'
+  endif
+
+  Open(20, file = File_out )
+
+  if( n_text > 0 ) write(20,'(1x,A)') Title
+  
+  do i = 1,nx
+    write(20,130) x(i), z(i,:)
+  end do
+  
+  Close(20)
+    
+  deallocate( x, y, z )
+    
+  return
+  110 format(//' In the gaussian broadening, the width =',1p,e11.3,' is negative, what is not possible !'//)
+  120 format(//' In the file:',/A,/'  the columns must have the same number of elements',//)
+  130 format(f15.7,1p,1000e13.5) 
+end
+
+!***********************************************************************
+
+subroutine Conv_gaussian(ncol,nx,sigma,x,y,z)
+
+  use declarations
+  implicit none
+
+  integer:: i, j, ncol, nx
+  
+  real(kind=8):: alfa, f, g, g_sum, mu, sigma
+  real(kind=8), dimension(nx):: dx, x
+  real(kind=8), dimension(nx,ncol):: y, z
+
+  if( abs( sigma ) < eps10 ) then
+    z(:,:) = y(:,:)
+    return
+  endif
+   
+  alfa = 0.5_db / sigma**2
+  f = 1 / ( sigma * sqrt( 2._db * pi ) )
+  
+  z(:,:) = 0._db
+
+  dx(1) = ( x(2) - x(1) ) / 2
+  do i = 2,nx-1
+    dx(i) = ( x(i+1) - x(i-1) ) / 2
+  end do
+  dx(nx) = ( x(nx) - x(nx-1) ) / 2
+    
+  do i = 1,nx
+  
+    mu = x(i)
+    
+    g_sum = 0
+    
+    do j = 1,nx
+    
+      g = f * exp( - alfa * ( x(j) - mu )**2 ) * dx(j)
+      g_sum = g_sum + g
+      
+      z(i,:) = z(i,:) + g * y(j,:)
+      
+    end do
+    
+    z(i,:) = z(i,:) / g_sum
+    
+  end do
+
+  return
 end
 

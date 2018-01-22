@@ -1,13 +1,13 @@
 ! FDMNES subroutines
 
-! Programme de calcul des distances metriques D1 et D2 et du R-factor Rx
-! entre deux jeux de spectres.
+! Calculation of metric distances D1 and D2 and of the R-factor Rx
+! between 2 set of spectra
 
-! Calcule :
-!  * le rapport entre les integrales des spectres : "rap",
-!  * l'ecart type entre les faisceaux de ces rapports : "Ecart",
-!  * les distances metriques D1, D2 et Rx de chaque spectre,
-!  * les distances metriques totales D1t et D2t et Rxt.
+! Calculate :
+!  * the ratio between the integral of the spectra : "rap",
+!  * the standard deviation between the spectra of these ratio : "Ecart",
+!  * the metric dustances D1, D2 and Rx dfor each spectra,
+!  * the total metric distance and R-factor D1t, D2t and Rxt.
 
 subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,fit_cal,Gen_Shift_min,ical, &
              ical_Met_min,index_Met_Fit,iscratchconv,itape_minim,itape2,length_line,Length_block,nb_datafile, &
@@ -51,7 +51,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
   real(kind=db), dimension(:,:), allocatable :: Dist_Met, Integr, Poids, RapIntegrT, weig
   real(kind=db), dimension(:,:,:), allocatable :: Ef, Met, Y, Yf
 
-!--- Entrees -----------------------------------------------------
+!--- Reading -----------------------------------------------------
 
   ndm = 1
   Emindec = 0._db; Emaxdec = 0._db; Pas_shift = 0._db
@@ -287,7 +287,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
     decalE(id) = Emindec + ( id - 1 ) * pas_shift
   end do
 
-!--- Lecture -----------------------------------------------------
+!--- Lecture of the spectra -----------------------------------------------------
 
   npm = 0
   do i_data = 1,nb_datafile
@@ -349,7 +349,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
 
   if( Dafs_bio ) then
 
-! Fichiers experiences
+! Experimental spectra
     ig0 = 0
     do i_data = 1,nb_datafile
       ipr = 2
@@ -367,7 +367,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
       close(ipr)
     end do
 
-! Fichier calcul
+! Calculation file
     if( Fit_cal ) then
       ipr = iscratchconv
       Rewind(ipr)
@@ -439,7 +439,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
     do ig = 1,ng
 
       Ef(:,ig,2) = Ef(:,ig,2) + pas_shift
-! Bornes de la metrique.
+! Limits for the metrics and Rx
       E1(ig) = max(EMetrMin(ig),Ef(1,ig,1),Ef(1,ig,2))
       E2(ig) = min(EMetrMax(ig),Ef(npf(ig,1),ig,1), Ef(npf(ig,2),ig,2))
       if (E2(ig) <= E1(ig)) then
@@ -500,7 +500,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
        end do
       end do
 
-! Normalisation
+! Normalization
       E0 = E(1)
       E(:) = ( E(:) - E0 ) / ( E2(ig) - E1(ig) )
 
@@ -518,7 +518,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
       RapIntegrT(ig,id) = IntegrT(2) / IntegrT(1)
       RapMoy(id) = RapMoy(id) + Poids(ig,id) * RapIntegrT(ig,id)
 
-! Calcul de Rx., Voir Horsky et al. Phys. Rev. B 46, 7011 (1992) }
+! Calculation of Rx. See Horsky et al. Phys. Rev. B 46, 7011 (1992)
       if( Cal_Rx ) then
         siexp2(ig) = sum( Y(1:np(ig),ig,2)**2 )
 
@@ -549,32 +549,32 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
         Met(ig,id,index_Rx) = (1.5 + 2.0/3) * Met(ig,id,index_Rx)
       endif
 
-! 3) Normalisation.
+! 3) Normalization.
       do i = 1,np(ig)
         Y(i,ig,:) = Y(i,ig,:) / IntegrT(:)
         Integr(i,:) = Integr(i,:) / IntegrT(:)
       end do
 
-! Calcul de la distance metrique D1
+! Calculation of metric distance D1
       Met(ig,id,1) = 0.5 * abs( Y(1,ig,1) - Y(1,ig,2) ) + sum( abs( Y(2:np(ig)-1,ig,1) - Y(2:np(ig)-1,ig,2) ) ) &
                + 0.5 * abs( Y(np(ig),ig,1) - Y(np(ig),ig,2) )
       Met(ig,id,1) = 50 * ( E(2) - E(1) ) * Met(ig,id,1)
 
       if( Cal_D2 ) then
-! Calcul de la distance metrique D2
+! Calculation of metric distance D2
         Met(ig,id,index_D2) = 0.5 * abs( Integr(np(ig),1) - Integr(np(ig),2) ) &
          + sum( abs( Integr(2:np(ig)-1,1) - Integr(2:np(ig)-1,2) ) )
         Met(ig,id,index_D2) = 100 * ( E(2) - E(1) ) * Met(ig,id,index_D2)
       endif
 
-! 4) Denormalisation.
+! 4) Denormalization.
       do i = 1,np(ig)
         Y(i,ig,:) = Y(i,ig,:) * IntegrT(:)
       end do
 
     end do
 
-! Calcul de Rxg., Voir Horsky et al. Phys. Rev. B 46, 7011 (1992)
+! Calculation of Rxg. See Horsky et al. Phys. Rev. B 46, 7011 (1992)
     if( Cal_Rxg ) then
       Rap_init = 10 * Rapmoy(id)
       boucle_kk: do kk = 1,10
@@ -615,7 +615,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
 
   end do
 
-! Calcul des metriques totales et de l'ecart type.
+! Calculation of total metrics and total R-factor and of standrad deviation.
   do id = 1,ndm
     EcartType(id) = sum( ( RapIntegrT(1:ng,id) - RapMoy(id) )**2 )
     EcartType(id) = sqrt( EcartType(id) / ng )
@@ -626,7 +626,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
     if( Cal_Rx ) Dist_Met(id,index_Rx) = (1.5/ng + 2./3) * Dist_Met(id,index_Rx) / (1.5 + 2./3)
   end do
 
-! ---- Calcul du minimum et ecriture -----------------------------------
+! ---- Calculation of the minimum and writting -----------------------------------
 
   Met_min(:) = .false.
 

@@ -27,7 +27,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
   character(len=4):: mot4
   character(len=6):: mot6
-  character(len=9):: grdat
+  character(len=9):: keyword
   character(len=13):: Space_Group, Spgr
   character(len=132):: Cif_file, Fichier, Fichier_pdb, identmot, mot, motsb
   character(len=132), dimension(9):: Wien_file
@@ -132,11 +132,11 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
       read(itape4,'(A)',iostat=eof) mot
       if( eof /= 0 ) exit boucle_gen
 
-      grdat = identmot(mot,9)
+      keyword = identmot(mot,9)
 
-      if( grdat(1:1) == '!' ) cycle
+      if( keyword(1:1) == '!' ) cycle
 
-      select case(grdat)
+      select case(keyword)
 
         case('bulk')
           Bulk = .true.
@@ -285,7 +285,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             end do
             stop
           endif
-          if( grdat == 'rangel' ) then
+          if( keyword == 'rangel' ) then
             lin_gam = 1
             if( ngamme /= 1 ) ngamme = 3
           else
@@ -293,7 +293,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           endif
           allocate( egamme(ngamme) )
           read(itape4,*,iostat=ier) egamme(1:ngamme)
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
           do igamme = 2,ngamme,2
             if( egamme(igamme) > eps6 ) cycle
@@ -381,7 +381,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             n = nnombre(itape4,132)
             if( n == 0 ) exit
             read(itape4,*,iostat=ier) p(:)
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
             if( sum( p(:) )**2 < eps10 ) n_dic = n_dic + 1
           end do
           nple = jpl - 1
@@ -391,7 +391,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             n = nnombre(itape4,132)
             if( n == 0 ) exit
             read(itape4,*,iostat=ier) p(:), p(:)
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
             n_mat_polar = n_mat_polar + 1
           end do
 
@@ -428,7 +428,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             end select
           end do
           npldafs = ipl - 1
-          if( grdat == 'dafs_2d' ) npldafs_2d = npldafs
+          if( keyword == 'dafs_2d' ) npldafs_2d = npldafs
 
         case('dafs_exp')
           Dafs_bio = .true.
@@ -473,13 +473,13 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             nb_atom_conf_m = max( nb, nb_atom_conf_m )
             backspace(itape4)
             read(itape4,*,iostat=ier) ( nl, i = 1,nb+2 )
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
             nlatm = max( nlatm, nl )
             if( n == nb + 2 + 4*nl .and. nl > 0 .and. nspin == 1 ) then
               backspace(itape4)
               allocate( pop(nl,2) )
               read(itape4,*,iostat=ier) ( i, l = 1,nb+1 ), nl, ( i, i, pop(l,:), l = 1,nl )
-              if( ier > 0 ) call write_err_form(itape4,grdat)
+              if( ier > 0 ) call write_err_form(itape4,keyword)
               do l = 1,nl
                 if( abs( pop(l,1) - pop(l,2) ) < eps10 ) cycle
                 nspin = 2
@@ -543,17 +543,17 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
 ! Cluster, film or unit cell description
         case('crystal','molecule','crystal_t','molecule_','film','film_t','surface','surface_t','interface','interfac_')
-          if( grdat(6:6) == 't' .or.grdat(9:9) == 't' .or. grdat(9:9) == '_' ) Taux = .true.
+          if( keyword(6:6) == 't' .or.keyword(9:9) == 't' .or. keyword(9:9) == '_' ) Taux = .true.
 
-          if( grdat(1:8) /= 'molecule' ) Matper = .true.
-          if( grdat(1:1) == 'f' .or. grdat(1:1) == 's' .or. grdat(1:1) == 'i' ) Film = .true.
+          if( keyword(1:8) /= 'molecule' ) Matper = .true.
+          if( keyword(1:1) == 'f' .or. keyword(1:1) == 's' .or. keyword(1:1) == 'i' ) Film = .true.
 
           n = nnombre(itape4,132)
           if( n == 0 ) then
             call write_error
             read(itape4,'(A)') motsb
             do ipr = 6,9,3
-              write(ipr,150) grdat
+              write(ipr,150) keyword
               write(ipr,'(A)') motsb
               write(ipr,160)
             end do
@@ -586,7 +586,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
                   read(itape4,*)
                 case(5)
                   read(itape4,*,iostat=ier) i, p(:), norbv
-                  if( ier > 0 ) call write_err_form(itape4,grdat)
+                  if( ier > 0 ) call write_err_form(itape4,keyword)
                   if( norbv < 0 ) then
                     nhybm = max( nhybm, - norbv - 1 )
                   else
@@ -596,7 +596,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
                   call write_error
                   read(itape4,'(A)') motsb
                   do ipr = 6,9,3
-                    write(ipr,150) grdat
+                    write(ipr,150) keyword
                     write(ipr,'(A)') motsb
                     write(ipr,160)
                   end do
@@ -613,14 +613,14 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
               endif
             end do
           endif
-          if( grdat(1:1) == 'c' .or. grdat(1:1) == 'm' ) then
+          if( keyword(1:1) == 'c' .or. keyword(1:1) == 'm' ) then
             n_atom_uc = igr - 1
             n_atom_per = n_atom_uc
-          elseif( grdat(1:1) == 'f' ) then
+          elseif( keyword(1:1) == 'f' ) then
             n_atom_per = igr - 1
-          elseif( grdat(1:1) == 's' ) then
+          elseif( keyword(1:1) == 's' ) then
             n_atom_sur = igr - 1
-          elseif( grdat(1:1) == 'i' ) then
+          elseif( keyword(1:1) == 'i' ) then
             n_atom_int = igr - 1
           endif
 
@@ -629,7 +629,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
           Cif = .true.
           Matper = .true.
-          Film = grdat == 'film_cif_'
+          Film = keyword == 'film_cif_'
 
           Cif_file = ' '
           read(itape4,'(A)') Cif_file
@@ -713,9 +713,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
           Close(8)
 
-          if( grdat(1:1) == 'c' ) then
+          if( keyword(1:1) == 'c' ) then
             n_atom_uc = igr
-          elseif( grdat(1:1) == 'f' ) then
+          elseif( keyword(1:1) == 'f' ) then
             n_atom_per = igr
           endif
 
@@ -742,7 +742,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           Pdb = .true.
           Taux = .true.
           Matper = .true.
-          Film = grdat == 'film_pdb_'
+          Film = keyword == 'film_pdb_'
 
           Fichier_pdb = ' '
           read(itape4,'(A)') Fichier_pdb
@@ -795,7 +795,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
           Close(8)
 
-          if( grdat(1:1) == 'p' ) then
+          if( keyword(1:1) == 'p' ) then
             n_atom_uc = igr
           else
             n_atom_per = igr
@@ -806,10 +806,10 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           Flapw = .true.
           Matper = .true.
 
-          if( grdat(6:7) == '_s' ) then
+          if( keyword(6:7) == '_s' ) then
             n = nnombre(itape4,132)
             read(itape4,*)
-          elseif( grdat(6:7) == '_r' ) then
+          elseif( keyword(6:7) == '_r' ) then
             Wien_save = - 1
             n = nnombre(itape4,132)
             read(itape4,*)
@@ -866,8 +866,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
       Rewind(itape4)
       do igrdat = 1,100000
         read(itape4,'(A)') mot
-        grdat = identmot(mot,9)
-        if( grdat(1:4) /= 'dafs' ) cycle
+        keyword = identmot(mot,9)
+        if( keyword(1:4) /= 'dafs' ) cycle
         npldafs_t = 0
         do ipl = 1,npldafs
           n = nnombre(itape4,132)
@@ -888,7 +888,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
               npldafs_t = npldafs_t + 1
             case(8,9,10,11,12,13)
               read(itape4,*) r, r, p(:)
-              if( abs( p(2) ) < eps10 .or. ( grdat(1:7) == 'dafs_2d' .and. n < 12 ) ) then
+              if( abs( p(2) ) < eps10 .or. ( keyword(1:7) == 'dafs_2d' .and. n < 12 ) ) then
                 npldafs_t = npldafs_t + 1
               else
                 n = nint( ( p(3) - p(1) ) / p(2) ) + 1
@@ -900,7 +900,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
         npldafs = npldafs_t
         exit
       end do
-      if( grdat == 'dafs_2d' ) npldafs =  2 * npldafs
+      if( keyword == 'dafs_2d' ) npldafs =  2 * npldafs
     endif
 
     if( Pol_dafs_in ) npldafs_e = npldafs
@@ -1226,7 +1226,7 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Cif_file,Fichier_pdb,itape4,ity
 
   character(len=2):: Chemical_Symbol, Chemical_Symbol_c, Symbol
   character(len=6):: mot6
-  character(len=9):: grdat
+  character(len=9):: keyword
   character(len=13):: Space_Group
   character(len=132):: Cif_file, Fichier_pdb, identmot, mot, motsb, Word_from_text
 
@@ -1354,9 +1354,9 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Cif_file,Fichier_pdb,itape4,ity
 
     do igrdat = 1,100000
       read(itape4,'(A)') mot
-      grdat = identmot(mot,9)
-      if( grdat(1:7) == 'crystal' .or. grdat(1:7) == 'molecul' .or. grdat(1:4) == 'film' .or. grdat(1:7) == 'surface' &
-        .or. grdat(1:7) == 'interfa' ) exit
+      keyword = identmot(mot,9)
+      if( keyword(1:7) == 'crystal' .or. keyword(1:7) == 'molecul' .or. keyword(1:4) == 'film' .or. keyword(1:7) == 'surface' &
+        .or. keyword(1:7) == 'interfa' ) exit
     end do
 
     n = nnombre(itape4,132)
@@ -1383,7 +1383,7 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Cif_file,Fichier_pdb,itape4,ity
             read(itape4,*) numat(igr), posn(:,igr)
           case default
             read(itape4,*,iostat=ier) numat(igr), posn(:,igr), norbv
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
         end select
         if( norbv == 0 ) cycle
         do io = 1,abs(norbv)
@@ -1423,8 +1423,8 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Cif_file,Fichier_pdb,itape4,ity
 
       do igrdat = 1,100000
         read(itape4,'(A)') mot
-        grdat = identmot(mot,9)
-        if( grdat /= 'atom_conf' ) cycle
+        keyword = identmot(mot,9)
+        if( keyword /= 'atom_conf' ) cycle
 
         do it = 1,ntype_conf
           read(itape4,*) n, igra(na+1:na+n)
@@ -1440,8 +1440,8 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Cif_file,Fichier_pdb,itape4,ity
 
       do igrdat = 1,100000
         read(itape4,'(A)') mot
-        grdat = identmot(mot,9)
-        if( grdat(1:7) == 'interfa' ) exit
+        keyword = identmot(mot,9)
+        if( keyword(1:7) == 'interfa' ) exit
       end do
 
       read(itape4,*)
@@ -1458,8 +1458,8 @@ subroutine Dim_reading(Angz,Atom_conf,Cif,Doping,Cif_file,Fichier_pdb,itape4,ity
 
       do igrdat = 1,100000
         read(itape4,'(A)') mot
-        grdat = identmot(mot,9)
-        if( grdat(1:7) == 'surface' ) exit
+        keyword = identmot(mot,9)
+        if( keyword(1:7) == 'surface' ) exit
       end do
 
       read(itape4,*)
@@ -1557,7 +1557,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   character(len=5):: Solver, Struct, Struct_bulk
   character(len=6):: mot6
   character(len=8):: dat, PointGroup
-  character(len=9):: grdat
+  character(len=9):: keyword
   character(len=10):: tim
   character(len=11):: motpol
   character(len=13):: Chemical_Name, mot13, Space_Group, Spgr
@@ -1924,10 +1924,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       read(itape4,'(A)',iostat=eof) mot
       if( eof /= 0 ) exit boucle_lect
 
-      grdat = identmot(mot,9)
-      if( grdat(1:1) /= ' ' ) write(6,'(3x,A)') grdat
+      keyword = identmot(mot,9)
+      if( keyword(1:1) /= ' ' ) write(6,'(3x,A)') keyword
 
-      select case(grdat)
+      select case(keyword)
 
         case('ata')
           ATA = .true.
@@ -1940,7 +1940,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           else
             read(itape4,*,iostat=ier) axyz_bulk(1:3), angxyz_bulk(1:3)
           endif
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
           do igr = 1,n_atom_bulk
             n = nnombre(itape4,132)
             if( Temperature .and. n > 4 ) then
@@ -1952,7 +1952,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
        case('bulk_roug')
          read(itape4,*,iostat=ier) bulk_roughness
-         if( ier > 0 ) call write_err_form(itape4,grdat)
+         if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('cap_layer')
           n = nnombre(itape4,132)
@@ -1962,7 +1962,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           else
             read(itape4,*,iostat=ier) axyz_cap(1:3), angxyz_cap(1:3)
           endif
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
           do igr = 1,n_atom_cap
             n = nnombre(itape4,132)
             if( n == 4 ) then
@@ -1974,30 +1974,30 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
        case('cap_disor')
          read(itape4,*,iostat=ier) Cap_disorder
-         if( ier > 0 ) call write_err_form(itape4,grdat)
+         if( ier > 0 ) call write_err_form(itape4,keyword)
 
        case('cap_rough')
          read(itape4,*,iostat=ier) Cap_roughness
-         if( ier > 0 ) call write_err_form(itape4,grdat)
+         if( ier > 0 ) call write_err_form(itape4,keyword)
 
        case('cap_thick')
          read(itape4,*,iostat=ier) Cap_thickness
-         if( ier > 0 ) call write_err_form(itape4,grdat)
+         if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('cap_shift')
           read(itape4,*,iostat=ier) Cap_shift
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('classic_i')
           Classic_irreg = .false.
 
         case('doping')
           read(itape4,*,iostat=ier) itype_dop, igr_dop
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
        case('film_roug')
          read(itape4,*,iostat=ier) Film_roughness
-         if( ier > 0 ) call write_err_form(itape4,grdat)
+         if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('film_shif')
           n = nnombre(itape4,132)
@@ -2007,15 +2007,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             n = min(4,n)
             read(itape4,*,iostat=ier) Film_shift(1:n)
           endif
-          if(ier > 0 ) call write_err_form(itape4,grdat)
+          if(ier > 0 ) call write_err_form(itape4,keyword)
 
         case('film_zero')
           read(itape4,*,iostat=ier) Film_zero
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('film_thic')
           read(itape4,*,iostat=ier) Film_thickness
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('hkl_film')
           hkl_film = .true.
@@ -2030,7 +2030,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           else
             read(itape4,*,iostat=ier) Interface_shift(1:4)
           endif
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('surface_s')
           n = nnombre(itape4,132)
@@ -2042,7 +2042,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           else
             read(itape4,*,iostat=ier) Surface_shift(1:4)
           endif
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('dip_rel')
           Dip_rel = .true.
@@ -2055,7 +2055,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           n = nnombre(itape4,132)
           if( n > 0 ) then
             read(itape4,*,iostat=ier) lmax_pot
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
           else
             lmax_pot = lmax_pot_default
           endif
@@ -2119,12 +2119,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           n = nnombre(itape4,132)
           coupelapw = .true.
           read(itape4,*,iostat=ier) Trace_k, Trace_p(:)
-          if( ier > 0 ) call write_err_form(itape4,grdat)
-          if( grdat == 'trace_for' .or. grdat == 'trace_wie' ) trace_format_wien = .true.
+          if( ier > 0 ) call write_err_form(itape4,keyword)
+          if( keyword == 'trace_for' .or. keyword == 'trace_wie' ) trace_format_wien = .true.
 
         case('range','rangel')
           n = nnombre(itape4,1320)
-          if( grdat == 'rangel' ) then
+          if( keyword == 'rangel' ) then
             lin_gam = 1
           else
             lin_gam = 0
@@ -2163,7 +2163,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           else
             read(itape4,*,iostat=ier) Eclie, Eclie_out
           endif
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('eneg')
           Eneg_i = .true.
@@ -2181,7 +2181,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('nchemin')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) nchemin
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
           normaltau = .true.
 
         case('lmoins1')
@@ -2209,19 +2209,19 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           n = nnombre(itape4,132)
           n = min(3,n)
           read(itape4,*,iostat=ier) Ang_spin(1:n)
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
           Ang_spin(1:n) = Ang_spin(1:n) * pi / 180
 
         case('axe_spin')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) Axe_spin(1:3)
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('rot_sup')
           n = nnombre(itape4,132)
           n = min(3,n)
           read(itape4,*,iostat=ier) Ang_rotsup(1:n)
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('relativis')
           relativiste = .true.
@@ -2240,20 +2240,20 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('no_res_ma')
           read(itape4,*,iostat=ier) f_no_res(1)
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('no_res_mo')
           read(itape4,*,iostat=ier) f_no_res(2)
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('z_nospino')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) Z_nospinorbite
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('debye')
           read(itape4,*,iostat=ier) temp
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
           if(temp > 10000-eps10) then
             call write_error
@@ -2271,7 +2271,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('ephot_min')
           read(itape4,*,iostat=ier) Ephot_min
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('radius')
           n = nnombre(itape4,132)
@@ -2280,27 +2280,27 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           else
             read(itape4,*,iostat=ier) rsorte_s(1), ( E_radius(i-1), rsorte_s(i), i = 2,n_radius )
           endif
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('nrato')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) nrato_dirac
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('multrmax')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) multrmax
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('rpotmax')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) rpotmax
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('over_rad')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) roverad
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
           overad = .true.
 
         case('screening')
@@ -2339,7 +2339,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           Kern_fac_default = .false.
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) Kern_fac
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('kern_fast')
           Kern_fast = .true.
@@ -2431,13 +2431,13 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('ldipimp')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) ldipimp(1:3)
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('lquaimp')
           do i = 1,3
             n = nnombre(itape4,132)
             read(itape4,*,iostat=ier) lquaimp(i,1:3)
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
           end do
 
         case('normaltau')
@@ -2459,7 +2459,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
               read(itape4,*)
             case default
               read(itape4,*,iostat=ier) Centre(1:3)
-              if( ier > 0 ) call write_err_form(itape4,grdat)
+              if( ier > 0 ) call write_err_form(itape4,keyword)
           end select
 
         case('center_ab')
@@ -2501,7 +2501,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 call write_error_message(Error_message,6,0)
                 stop
             end select
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
           end do
 
         case('mat_polar')
@@ -2533,7 +2533,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('step_azim')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) Step_azim
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
           if( abs( Step_azim ) < eps10 ) then
             nphim = 1
           else
@@ -2544,12 +2544,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           symauto = .false.
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) n_atom_proto
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
           igr = 0
           do ipr = 1,n_atom_proto
             n = nnombre(itape4,132)
             read(itape4,*,iostat=ier) natomsym
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
             write(iscratch,*) natomsym
             do i = 1,natomsym
               n = nnombre(itape4,132)
@@ -2560,7 +2560,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
               else
                 read(itape4,*,iostat=ier) isymeq, p(:)
               endif
-              if( ier > 0 ) call write_err_form(itape4,grdat)
+              if( ier > 0 ) call write_err_form(itape4,keyword)
               write(iscratch,*) igr, p(:), isymeq
             end do
           end do
@@ -2590,7 +2590,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                     end do
                     stop
                 end select
-                if( ier > 0 ) call write_err_form(itape4,grdat)
+                if( ier > 0 ) call write_err_form(itape4,keyword)
               case(5)
                 read(itape4,*,iostat=ier) hkl_dafs(:,ipl), isigpi(:,ipl)
                 angpoldafs(3,ipl) = - 10000._db
@@ -2647,7 +2647,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 end do
                 stop
             end select
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
           end do
 
           do ipl = 1,npldafs
@@ -2680,7 +2680,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('phi_0')
           read(itape4,*,iostat=ier) phi_0
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('dafs_2d')
           Operation_mode_used = .true.
@@ -2726,19 +2726,19 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 end do
                 stop
             end select
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
           end do
 
         case('dafs_exp')
           Dafs = .true.
           do i = 1,3
             read(itape4,*,iostat=ier) Mat_or(i,:)
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
           end do
           ipl0 = 0
           do i = 1,n_file_dafs_exp
             read(itape4,*,iostat=ier) Angle_dafs_exp(i)
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
             n = nnombre(itape4,132)
             read(itape4,'(A)') Fichier
             Fichier = Adjustl(Fichier)
@@ -2751,7 +2751,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             n = nnombre(99,100000)
             n = n / 3
             read(99,*,iostat=ier) (hkl_dafs(:,ipl),ipl=ipl0+1,ipl0+n)
-            if( ier > 0 ) call write_err_form(99,grdat)
+            if( ier > 0 ) call write_err_form(99,keyword)
             Close(99)
             Angle_or(ipl0+1:ipl0+n) = Angle_dafs_exp(i)
             ipl0 = ipl0 + n
@@ -2767,7 +2767,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('zero_azim')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) Vec_orig(:)
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('solsing')
           solsing_only = .true.
@@ -2785,7 +2785,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             if( n == 0 ) exit
             if( it <= ntype ) then
               read(itape4,*,iostat=ier) rchimp(it)
-              if( ier > 0 ) call write_err_form(itape4,grdat)
+              if( ier > 0 ) call write_err_form(itape4,keyword)
             else
               read(itape4,*)
             endif
@@ -2802,7 +2802,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             n2 = min( n1+n-1, ntype )
             if( n2 >= n1 ) then
               read(itape4,*,iostat=ier) rmtimp(n1:n2)
-              if( ier > 0 ) call write_err_form(itape4,grdat)
+              if( ier > 0 ) call write_err_form(itape4,keyword)
               n1 = n2 + 1
             else
               exit
@@ -2822,7 +2822,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('overlap')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) overlap
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('muffintin')
           muffintin = .true.
@@ -2830,7 +2830,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('iord')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) iord
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('adimp')
           n = nnombre(itape4,132)
@@ -2840,18 +2840,18 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           else
             read(itape4,*,iostat=ier) adimp(1), ( E_adimp(i-1), adimp(i), i = 2,n_adimp )
           endif
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('rmt')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) rmtt
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
           rmt(:) = rmtt
 
         case('lmax')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) lmaxat0
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('lmaxfree')
           lmaxfree = .true.
@@ -2859,12 +2859,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('lmaxstden')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) lamstdens
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('lmaxso')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) lmaxso0
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('chlib')
           Charge_free = .true.
@@ -2878,17 +2878,17 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('xalpha')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) alfpot
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('flapw','flapw_s','flapw_r','flapw_s_p','flapw_psi', 'flapw_n','flapw_n_p','flapw_s_n')
 
           Matper = .true.
-          if( grdat(6:7) == '_n' ) Flapw_new = .true.
-          if( grdat(6:7) == '_s' ) then
+          if( keyword(6:7) == '_n' ) Flapw_new = .true.
+          if( keyword(6:7) == '_s' ) then
             Wien_save = 1
             n = nnombre(itape4,132)
             read(itape4,'(A)') Wien_file(9)
-          elseif( grdat(6:7) == '_r' ) then
+          elseif( keyword(6:7) == '_r' ) then
             Wien_save = - 1
             n = nnombre(itape4,132)
             read(itape4,'(A)') Wien_file(9)
@@ -2900,7 +2900,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             if( i == 2 .and. Wien_save == - 1 ) exit
             if( i == 4 .and. .not. ( Flapw_new .and. nspin == 2 ) ) cycle
             if( ( i == 6 .or. i == 7 ) .and. nspin == 1 ) cycle
-            if( i == 8 .and. ( grdat == 'flapw_s_p' .or. grdat == 'flapw_psi' .or. grdat == 'flapw_n_p' ) ) cycle
+            if( i == 8 .and. ( keyword == 'flapw_s_p' .or. keyword == 'flapw_psi' .or. keyword == 'flapw_n_p' ) ) cycle
             n = nnombre(itape4,132)
             read(itape4,'(A)') Wien_file(i)
             if( Wien_file(i)(1:1) == ' ' ) Wien_file(i) = Adjustl( Wien_file(i) )
@@ -2908,7 +2908,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('delta_en_')
           read(itape4,*,iostat=ier) Delta_En_conv
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('scf')
           ier = 0
@@ -2921,26 +2921,26 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           elseif( n > 2 ) then
             read(itape4,*,iostat=ier) nself, p_self0, Delta_En_conv
           endif
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('scf_abs')
           scf_elecabs = .true.
 
         case('p_self')
           read(itape4,*,iostat=ier) p_self0
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('p_self_ma')
           read(itape4,*,iostat=ier) p_self_max
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('n_self')
           read(itape4,*,iostat=ier) nself
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('r_self')
           read(itape4,*,iostat=ier) r_self
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
           r_self_imp = .true.
 
         case('scf_exc')
@@ -2968,7 +2968,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             n2 = min( n1+n-1, ntype)
             if( n2 >= n1 ) then
               read(itape4,*,iostat=ier) V_hubbard(n1:n2)
-              if( ier > 0 ) call write_err_form(itape4,grdat)
+              if( ier > 0 ) call write_err_form(itape4,keyword)
               do j = n1,n2
                if( abs(V_hubbard(j)) > eps10 ) Hubb(j) = .true.
               end do
@@ -2992,7 +2992,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             n = nnombre(itape4,132)
             if( n < 1 ) exit
             read(itape4,*,iostat=ier) iabsm(k+1:k+n)
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
             k = k + n
           end do
 
@@ -3007,7 +3007,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             if( n == nb_atom_conf(it) + 2 + 3*nlat(it) ) then
               read(itape4,*,iostat=ier) nb_atom_conf(it), igra(1:nb_atom_conf(it),it), nlat(it), ( nvval(it,l), lvval(it,l), &
                              popval(it,l,1), l = 1,nlat(it) )
-              if( ier > 0 ) call write_err_form(itape4,grdat)
+              if( ier > 0 ) call write_err_form(itape4,keyword)
               if( nspin == 2 ) then
                 do l = 1,nlat(it)
                   popval(it,l,1) = 0.5_db * popval(it,l,1)
@@ -3019,7 +3019,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 allocate( x(nlat(it)) )
                 read(itape4,*,iostat=ier) nb_atom_conf(it), igra(1:nb_atom_conf(it),it), nlat(it),  &
                                          ( nvval(it,l), lvval(it,l), popval(it,l,1), x(l), l = 1,nlat(it) )
-                if( ier > 0 ) call write_err_form(itape4,grdat)
+                if( ier > 0 ) call write_err_form(itape4,keyword)
                 do l = 1,nlat(it)
                   popval(it,l,1) = popval(it,l,1) + x(l)
                 end do
@@ -3027,7 +3027,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
               else
                 read(itape4,*,iostat=ier) nb_atom_conf(it), igra(1:nb_atom_conf(it),it), nlat(it), &
                                          ( nvval(it,l), lvval(it,l), popval(it,l,:), l = 1,nlat(it) )
-                if( ier > 0 ) call write_err_form(itape4,grdat)
+                if( ier > 0 ) call write_err_form(itape4,keyword)
               endif
             else
               call write_error
@@ -3049,7 +3049,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
             if( n == 3 ) then
               read(itape4,*,iostat=ier) Ang_base_loc(:,it)
-              if( ier > 0 ) call write_err_form(itape4,grdat)
+              if( ier > 0 ) call write_err_form(itape4,keyword)
               n = nnombre(itape4,132)
             endif
 
@@ -3057,11 +3057,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             if( jt <= ntype ) it = it + 1
             if( n == 1 ) then
               read(itape4,*,iostat=ier) numat(it)
-              if( ier > 0 ) call write_err_form(itape4,grdat)
+              if( ier > 0 ) call write_err_form(itape4,keyword)
               nlat(it) = 0
             else
               read(itape4,*,iostat=ier) numat(it), nlat(it)
-              if( ier > 0 ) call write_err_form(itape4,grdat)
+              if( ier > 0 ) call write_err_form(itape4,keyword)
               if( nlat(it) > 0 ) then
                 backspace(itape4)
                 n = nnombre(itape4,132)
@@ -3095,7 +3095,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                   end do
                   stop
                 endif
-                if( ier > 0 ) call write_err_form(itape4,grdat)
+                if( ier > 0 ) call write_err_form(itape4,keyword)
               endif
             endif
 
@@ -3136,20 +3136,20 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           do i = 1,norbdil
             n = nnombre(itape4,132)
             read(itape4,*,iostat=ier) itdil(i), ldil(i), cdil(i)
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
           end do
 
         case('v0imp')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) v0bdcFimp(1:min(n,nspin))
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
           if( nspin > n ) v0bdcFimp(nspin) = v0bdcFimp(1)
           korigimp = .true.
 
         case('vmax')
           n = nnombre(itape4,132)
           read(itape4,*,iostat=ier) v_intmax
-          if( ier > 0 ) call write_err_form(itape4,grdat)
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('eimag')
           do ie = 1,neimagent
@@ -3160,7 +3160,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             else
               read(itape4,*,iostat=ier) eeient(ie), eimagent(ie)
             endif
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
           end do
 
         case('pointgrou')
@@ -3195,7 +3195,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 ! Cluster, film or unit cell description
         case('crystal','molecule','crystal_t','molecule_','film','film_t','surface','surface_t','interface','interfac_')
 
-          if( grdat(1:8) /= 'molecule' ) Matper = .true.
+          if( keyword(1:8) /= 'molecule' ) Matper = .true.
 
           n = nnombre(itape4,132)
           if( n == 3 ) then
@@ -3215,11 +3215,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           else
             read(itape4,*,iostat=ier) axe(1:3), ang(1:3)
           endif
-          if( ier > 0 ) call write_err_form(itape4,grdat)
-          if( grdat(1:1) == 's' ) then
+          if( ier > 0 ) call write_err_form(itape4,keyword)
+          if( keyword(1:1) == 's' ) then
             angxyz_sur(:) = ang(:)
             axyz_sur(:) = axe(:)
-          elseif( grdat(1:1) == 'i' ) then
+          elseif( keyword(1:1) == 'i' ) then
             angxyz_int(:) = ang(:)
             axyz_int(:) = axe(:)
           else
@@ -3227,9 +3227,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             axyz(:) = axe(:)
           endif
           do igr = 1,n_atom_neq
-            if( grdat(1:1) == 'i' ) then
+            if( keyword(1:1) == 'i' ) then
               if( igr <= n_atom_per_neq .or. igr > n_atom_per_neq + n_atom_int) cycle
-            elseif( grdat(1:1) == 's' ) then
+            elseif( keyword(1:1) == 's' ) then
               if( igr <= n_atom_per_neq + n_atom_int ) cycle
             elseif( igr > n_atom_per_neq ) then
               cycle
@@ -3539,10 +3539,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           allocate( x(9) )
           do
             n = nnombre(itape4,132)
-            if( n == 0 ) call write_err_form(itape4,grdat)
+            if( n == 0 ) call write_err_form(itape4,keyword)
             n = min( m + n, 9 )
             read(itape4,*,iostat=ier) x(m+1:n)
-            if( ier > 0 ) call write_err_form(itape4,grdat)
+            if( ier > 0 ) call write_err_form(itape4,keyword)
             if( n == 9 ) exit
             m = m + 3
           end do
@@ -3578,7 +3578,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
           if( igrdat == 1 ) then
             comt = mot
-          elseif( grdat(1:1) /= ' ' ) then
+          elseif( keyword(1:1) /= ' ' ) then
             call write_error
             do ipr = 6,9,3
               write(ipr,100)
@@ -5841,7 +5841,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   709 format('   Cluster radius used for this part = ',f7.3,' A')
   710 format('  with',i3,' processors including',i3,' for the energy loop and',i3,' for MUMPS')
   720 format('  with',i3,' processors')
-  740 format(//' The mesh parameter',i2,' is zero !'//)
+  740 format(//' The unit cell parameter',i2,' is zero !'//)
   750 format(/' General Z axis =',3f9.5)
   760 format(' Euler angles   =',3f9.3)
   770 format(/6x,' local matrix rotation',7x,'local Z axis   Atom =',i3)

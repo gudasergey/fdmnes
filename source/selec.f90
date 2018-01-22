@@ -9,7 +9,7 @@ subroutine selec(itape5)
 
   integer:: eof, i, ia, iaa, iang, ibeam, ie, igrdat, indm, iref, istat, itape5, l, n, n_ang, n1, nbeam, ne, nf, nnombre
 
-  character(len=9) grdat, grdat1
+  character(len=9) keyword, keyword1
   character(len=Length_word), dimension(:), allocatable:: nombeam
   character(len=132) file_in, file_out, identmot, mots
 
@@ -34,10 +34,10 @@ subroutine selec(itape5)
     read(itape5,'(A)',iostat=eof) mots
     if( eof /= 0 ) exit
 
-    grdat = identmot(mots,9)
-    if( grdat(1:1) /= ' ' ) write(6,'(3x,A)') grdat
+    keyword = identmot(mots,9)
+    if( keyword(1:1) /= ' ' ) write(6,'(3x,A)') keyword
 
-    select case(grdat)
+    select case(keyword)
 
       case('fin','end')
         exit
@@ -68,8 +68,8 @@ subroutine selec(itape5)
           rewind(itape5)
           do i = 1,1000
             read(itape5,'(A)') mots
-            grdat1 = identmot(mots,9)
-            if( grdat1 == 'energy' ) exit
+            keyword1 = identmot(mots,9)
+            if( keyword1 == 'energy' ) exit
           end do
           n1 = 0
           do i = 1,ne
@@ -93,8 +93,8 @@ subroutine selec(itape5)
           rewind(itape5)
           do i = 1,1000
             read(itape5,'(A)') mots
-            grdat1 = identmot(mots,9)
-            if( grdat1 == 'reflectio' ) exit
+            keyword1 = identmot(mots,9)
+            if( keyword1 == 'reflectio' ) exit
           end do
           n1 = 0
           do iref = 1,nf
@@ -120,8 +120,8 @@ subroutine selec(itape5)
           rewind(itape5)
           do i = 1,1000
             read(itape5,'(A)') mots
-            grdat1 = identmot(mots,9)
-            if( grdat1 == 'azimuth' ) exit
+            keyword1 = identmot(mots,9)
+            if( keyword1 == 'azimuth' ) exit
           end do
           n1 = 0
           do iang = 1,n_ang
@@ -193,7 +193,7 @@ subroutine selec(itape5)
     end do boucle_ia
   end do boucle_i
 
-  if( nf == 0 ) then ! par defaut, on prend toutes les reflections
+  if( nf == 0 ) then ! By default one takes all reflexions
     do i = 1,nbeam
       if( n_angl(i) == 1 ) cycle
       nf = nf + 1
@@ -370,10 +370,10 @@ subroutine selec(itape5)
   Close(1)
   Close(2)
 
-  100 format(///' One has to choose azimuthal scan or spectra !'/, ' Number of energy or number of angle must not be zero', &
-         ' together !'///)
+  100 format(///' One has to choose azimuthal scan or spectra !'/, &
+                ' Number of energy or number of angle must not be zero together !'///)
   105 format(///' One has to choose azimuthal scan or spectra !'/, &
-         ' Number of energy and number of angle cannot be non zero', ' together !'///)
+                ' Number of energy and number of angle cannot be non zero together !'///)
   106 format(///' Feflection index =',i3,' > Reflection number =',i3///)
   107 format(/' nbeam =',i4)
   108 format(' ibeam =',i4,',   n_angle =',i4)

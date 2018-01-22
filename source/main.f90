@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 10th of January 2018, 21 Nivose, An 226
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 19th of January 2018, 30 Nivose, An 226
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 10th of January 2018'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 19th of January 2018'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -249,10 +249,11 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   implicit none
   include 'mpif.h'
 
-  integer, parameter:: nkw_all = 37
+  integer, parameter:: nkw_all = 38
   integer, parameter:: nkw_fdm = 202
   integer, parameter:: nkw_conv = 36
   integer, parameter:: nkw_fit = 1
+  integer, parameter:: nkw_gaus = 1
   integer, parameter:: nkw_metric = 12
   integer, parameter:: nkw_mult = 4
   integer, parameter:: nkw_selec = 5
@@ -263,22 +264,23 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   integer, parameter:: nparam_tot = nparam_conv + nparam_fdm
 
   integer:: eof, i, i1, ibl, ical, ifdm, igr, index_Met_Fit, indpar, &
-    inotskip, ip, ipar, ipbl, ipr, istat, istop, itape, itape_minim, itape1, itape2, itape3, itape4, itape5, itph, itpj, itpm, &
-    itps, itape6, iscratch, iscratchconv, j, jgr, jpar, k, l, Length_line, &
+    inotskip, ip, ipar, ipbl, ipr, istat, istop, itape, itape_minim, itape1, itape2, itape3, itape4, itape5, itape6, itape7, &
+    itph, itpj, itpm, itps, iscratch, iscratchconv, j, jgr, jpar, k, l, Length_line, &
     ligne, ligne2, m, mpierr, mpirank0, mpinodes0, n, &
     n_atom_proto_p, n_shift, n1, n2, nb_datafile, nblock, ncal, ncal_nonfdm, ndem, ndm, ng, ngamh, ngroup_par, ngroup_par_conv, &
     nmetric, nn, nnombre, nnotskip, nnotskipm, nparm, npm, mermrank
 
-  character(len=9):: grdat, mot9, traduction
+  character(len=9):: keyword, mot9, Traduction
   character(len=13):: mot13
-  character(len=132):: comt, convolution_out, fdmfit_out, fdmnes_inp, Fichier, identmot, mot, nomfich, &
-    nomfichbav, imfp_infile, elf_infile
+  character(len=132):: comt, convolution_out, elf_infile, File_in, fdmfit_out, fdmnes_inp, Fichier, identmot, imfp_infile, &
+    mot, nomfich, nomfichbav
   character(len=1320):: mot1320
   character(len=2), dimension(nmetricm):: Nom_Met
   character(len=9), dimension(nkw_all):: kw_all
   character(len=9), dimension(nkw_fdm):: kw_fdm
   character(len=9), dimension(nkw_conv):: kw_conv
   character(len=9), dimension(nkw_fit):: kw_fit
+  character(len=9), dimension(nkw_gaus):: kw_gaus
   character(len=9), dimension(nkw_metric):: kw_metric
   character(len=9), dimension(nkw_selec):: kw_selec
   character(len=9), dimension(nkw_mult):: kw_mult
@@ -293,7 +295,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   integer, dimension(:,:), allocatable:: indice_par
 
   logical:: bav_open, Bormann, Case_fdm, Check_file, Conv_done, &
-    Convolution_cal, Dafs_bio, E_cut_man, Fdmnes_cal, Fit_cal, Gamma_hole_imp, Gamma_tddft, Metric_cal, &
+    Convolution_cal, Dafs_bio, E_cut_man, Fdmnes_cal, Fit_cal, Gamma_hole_imp, Gamma_tddft, Gaus_cal, Metric_cal, &
     Minim_fdm_ok, minimok, Mult_cal, Scan_a, Selec_cal, &
     Use_FDMX, FDMX_only, cm2g, nobg, nohole, nodw, noimfp, imfp_inp, elf_inp, dwfactor_inp, tdebye_inp, tmeas_inp, &
     expntl, victoreen
@@ -311,11 +313,10 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   real(kind=sg) time
 
 ! Keywords of the indata file
-  data kw_all /  'bormann  ','check    ','check_all','check_coa', &
-     'check_con','check_pot','check_mat','check_sph','check_tdd','check_ten','comment  ', &
-     'delta_edg','ecent    ','e_cut    ','elarg    ','estart   ', &
-     'filout   ','fprime_at','gamma_hol','gamma_max','length_li','no_check ', &
-     'imfpin   ','elfin    ','dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
+  data kw_all /  'bormann  ','check    ','check_all','check_coa','check_con', &
+     'check_pot','check_mat','check_sph','check_tdd','check_ten','comment  ','delta_edg','ecent    ','e_cut    ','elarg    ', &
+     'estart   ','file_in  ','filout   ','fprime_at','gamma_hol','gamma_max','length_li','no_check ','imfpin   ','elfin    ', &
+     'dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
      'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/
 
   data kw_conv / 'abs_befor','all_conv ','no_analyz','cal_tddft','calculati','circular ','conv_out ','convoluti','dafs_exp_', &
@@ -348,6 +349,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'xalpha   ','xan_atom ','ylm_comp ','z_absorbe','z_nospino','zero_azim'/
 
   data kw_fit / 'parameter'/
+
+  data kw_gaus / 'conv_gaus'/
 
   data kw_metric/ 'd2       ','detail   ','emin     ','emax     ','experimen','file_met ','fit_out  ','gen_shift','kev      ', &
                   'metric_ou','rx       ','rxg      '/
@@ -382,6 +385,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   Gamma_hole_imp = .false.
   Gamma_max = 15._db / Rydb
   Gamma_tddft = .false.
+  Gaus_cal = .false.
   Length_line = 10 + 10001 * Length_word
   Minim_fdm_ok = .false.
   Minimok = .false.
@@ -413,6 +417,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   itape4 = 14  ! FDM calculation
   itape5 = 17  ! Selection in DAFS scan
   itape6 = 18  ! Multiplication of unit cell
+  itape7 = 19  ! Convolation by a gaussian
   itape_minim = 10
   iscratch = 15
   iscratchconv = 35
@@ -443,34 +448,34 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     read(1,'(A)',iostat=eof) mot
 
     if( eof /= 0 ) exit boucle_ligne
-    grdat = identmot(mot,9)
 
-    grdat = traduction(grdat)
+    keyword = identmot(mot,9)
+    keyword = traduction(keyword)
 
-    if( grdat(1:1) == '!' .or. grdat(1:1) == ' ' .or. grdat == 'endjump' ) cycle
+    if( keyword(1:1) == '!' .or. keyword(1:1) == ' ' .or. keyword == 'endjump' ) cycle
 
-    if( grdat == 'end' ) exit
+    if( keyword == 'end' ) exit
 
-    if( grdat == 'jump' ) then
+    if( keyword == 'jump' ) then
       do i = 1,100000
         read(1,'(A)',iostat=eof) mot
         if( eof /= 0 ) exit boucle_ligne
-        grdat = identmot(mot,9)
-        grdat = traduction(grdat)
-        if( grdat == 'endjump' ) exit
+        keyword = identmot(mot,9)
+        keyword = traduction(keyword)
+        if( keyword == 'endjump' ) exit
       end do
       read(1,'(A)',iostat=eof) mot
       if( eof /= 0 ) exit boucle_ligne
-      grdat = identmot(mot,9)
-      grdat = traduction(grdat)
+      keyword = identmot(mot,9)
+      keyword = traduction(keyword)
     endif
 
-    boucle_k: do k = 1,7
+    boucle_k: do k = 1,8
       select case(k)
 
         case(1)
           do i = 1,nkw_fdm
-            if( grdat /= kw_fdm(i) ) cycle
+            if( keyword /= kw_fdm(i) ) cycle
             itape = itape4
             if( .not. Fdmnes_cal ) then
               if( Check_file ) then
@@ -485,7 +490,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
         case(2)
           do i = 1,nkw_conv
-            if( grdat /= kw_conv(i) ) cycle
+            if( keyword /= kw_conv(i) ) cycle
             itape = itape1
             if( .not. Convolution_cal ) then
               Convolution_cal = .true.
@@ -500,7 +505,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
         case(3)
           do i = 1,nkw_metric
-            if( grdat /= kw_metric(i) ) cycle
+            if( keyword /= kw_metric(i) ) cycle
             itape = itape2
             if( .not. metric_cal ) then
               metric_cal = .true.
@@ -515,7 +520,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
         case(4)
           do i = 1,nkw_fit
-            if( grdat /= kw_fit(i) ) cycle
+            if( keyword /= kw_fit(i) ) cycle
             itape = itape3
             if( .not. Fit_cal ) then
               Fit_cal = .true.
@@ -530,7 +535,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
         case(5)
           do i = 1,nkw_selec
-            if( grdat /= kw_selec(i) ) cycle
+            if( keyword /= kw_selec(i) ) cycle
             itape = itape5
             if( .not. selec_cal ) then
               selec_cal = .true.
@@ -545,7 +550,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
         case(6)
           do i = 1,nkw_mult
-            if( grdat /= kw_mult(i) ) cycle
+            if( keyword /= kw_mult(i) ) cycle
             itape = itape6
             if( .not. Mult_cal ) then
               Mult_cal = .true.
@@ -559,19 +564,34 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
           end do
 
         case(7)
+          do i = 1,nkw_gaus
+            if( keyword /= kw_gaus(i) ) cycle
+            itape = itape7
+            if( .not. Gaus_cal ) then
+              Gaus_cal = .true.
+              if( Check_file ) then
+                Open( itape )
+              else
+                Open( itape, status='SCRATCH' )
+              endif
+            endif
+            exit boucle_k
+          end do
+
+        case(8)
           do i = 1,nkw_all
-            if( grdat /= kw_all(i) ) cycle
+            if( keyword /= kw_all(i) ) cycle
             exit boucle_k
           end do
 
       end select
     end do boucle_k
 
-    if( k /= 7 ) then
-      write(itape,'(A)') grdat
+    if( k /= 8 ) then
+      write(itape,'(A)') keyword
     else
 
-      select case(grdat)
+      select case(keyword)
 
         case('check')
           n1 = 1
@@ -684,6 +704,27 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
         case('comment')
           n = nnombre(1,132)
           read(1,'(A)') comt
+
+        case('file_in')
+          n = nnombre(1,132)
+          read(1,'(A)') mot
+          File_in = adjustl( mot )
+          mot = File_in
+          open(20, file = mot, status='old', iostat=istat)
+          if( istat /= 0 ) then
+            l = len_trim(mot)
+            if( mot(l-3:l) /= '.txt' ) then
+              mot(l+1:l+4) = '.txt'
+              open(20, file = mot, status='old', iostat=istat)
+              if( istat /= 0 ) then
+                mot(l+2:l+4) = '.dat'
+                open(20, file = mot, status='old', iostat=istat)
+              endif
+            endif
+            if( istat /= 0 ) call write_open_error(File_in,istat,1)
+          endif
+          Close(20)
+          File_in = mot
 
         case('filout')
           n = nnombre(1,132)
@@ -845,6 +886,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
       do k = 1,nkw_mult
         if( mot9 == kw_mult(k) ) exit boucle_j
       end do
+      do k = 1,nkw_gaus
+        if( mot9 == kw_gaus(k) ) exit boucle_j
+      end do
       do k = 1,nkw_all
         if( mot9 == kw_all(k) ) exit boucle_j
       end do
@@ -868,7 +912,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   Close(1)
 
   Dafs_bio = .false.
-  if( metric_cal) then
+  if( Metric_cal ) then
     Rewind(itape2)
     ngroup_par = 1
     boucle_m: do ligne = 1,100000
@@ -938,7 +982,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   endif
 
   nblock = 0
-  if( Fit_cal) then
+  if( Fit_cal ) then
     Rewind(itape3)
     boucle_f: do ligne = 1,100000
       read(itape3,'(A)',iostat=eof) mot
@@ -983,7 +1027,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     npar(:) = 0
   endif
 
-  if( Fit_cal) then
+  if( Fit_cal ) then
 
     Rewind(itape3)
     boucle_g: do ibl = 1,nblock
@@ -1091,9 +1135,14 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     call MPI_Bcast(Mult_cal,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
 
   endif
+
   if( Mult_cal ) then
 ! Multiplication of unit cell
     if( mpirank0 == 0 ) call mult_cell(itape6,nomfich)
+    return
+  elseif( Gaus_cal ) then
+! Concolution by a gaussian
+    if( mpirank0 == 0 ) call Main_gaussian(File_in,itape7,nomfich)
     return
   endif
 
@@ -1703,16 +1752,16 @@ end
 
 !*********************************************************************
 
-function traduction(grdat)
+function Traduction(keyword)
 
   use declarations
   implicit none
 
-  character(len=9) grdat, traduction
+  character(len=9) keyword, traduction
 
-  traduction = grdat
+  traduction = keyword
 
-  select case(grdat)
+  select case(keyword)
     case('iabsorbeu','absorbor','assorbito','absorber')
       traduction = 'absorbeur'
     case('interpoin','inter_poi')
@@ -1991,6 +2040,11 @@ function traduction(grdat)
       traduction = 'poporb'
     case('fit_rx')
       traduction = 'rx'
+
+! Conv_gaus
+    case('filein','filin')
+      traduction = 'file_in'
+
 ! Selec
     case('reflexion')
       traduction = 'reflectio'
@@ -2110,7 +2164,7 @@ end
 
 !***********************************************************************
 
-subroutine mult_cell(itape,nomfich)
+subroutine mult_cell(itape,File_out)
 
   use declarations
   implicit none
@@ -2131,8 +2185,8 @@ subroutine mult_cell(itape,nomfich)
   Logical:: Ang, Surface, Typ
 
   character(len=2):: Chemical_Symbol
-  character(len=9):: grdat
-  character(len=132):: identmot, nomfich, mot, mots
+  character(len=9):: keyword
+  character(len=132):: File_out, identmot, mot
 
   Ang = .false.
   Surface = .false.
@@ -2141,13 +2195,13 @@ subroutine mult_cell(itape,nomfich)
   Numat(:) = 0
   nm(:) = 1
 
-  mot = nomfich
+  mot = File_out
   l = len_trim(mot)
-  if(nomfich(l-3:l) /= '.txt' ) then
+  if( mot(l-3:l) /= '.txt' ) then
     mot(l+1:l+4) = '.txt'
-    nomfich = mot
+    File_out = mot
   endif
-  open(2,file=nomfich)
+  open(2,file = File_out)
 
 ! Lecture
 
@@ -2155,27 +2209,27 @@ subroutine mult_cell(itape,nomfich)
 
   do igrdat = 1,100000
 
-    read(itape,'(A)',iostat=eoff) mots
+    read(itape,'(A)',iostat=eoff) mot
     if( eoff /= 0 ) exit
 
-    grdat = identmot(mots,9)
-    if( grdat(1:1) == '!' ) cycle
+    keyword = identmot(mot,9)
+    if( keyword(1:1) == '!' ) cycle
 
-    select case(grdat)
+    select case(keyword)
 
       case('end')
         exit
 
       case('mult_cell')
         n = nnombre(itape,132)
-        if( n == 0 ) call write_err_form(itape,grdat)
+        if( n == 0 ) call write_err_form(itape,keyword)
         n = min(n,3)
         read(itape,*) nm(1:n)
 
       case('surf_cell')
         Surface = .true.
         n = nnombre(itape,132)
-        if( n == 0 ) call write_err_form(itape,grdat)
+        if( n == 0 ) call write_err_form(itape,keyword)
         n = min(n,3)
         if( n == 1 ) then
           read(itape,*) Thickness
@@ -2194,7 +2248,7 @@ subroutine mult_cell(itape,nomfich)
           stop
         endif
         read(itape,*,iostat=eoff)  Numat(1:ntype)
-        if( eoff /= 0 ) call write_err_form(itape,grdat)
+        if( eoff /= 0 ) call write_err_form(itape,keyword)
 
       case('unit_cell')
         n = nnombre(itape,132)
@@ -2204,7 +2258,7 @@ subroutine mult_cell(itape,nomfich)
           Ang = .true.
           read(itape,*) ax, ay, az, alfa, beta, gamma
         else
-          call write_err_form(itape,grdat)
+          call write_err_form(itape,keyword)
         endif
 
         i = 0
@@ -2238,11 +2292,11 @@ subroutine mult_cell(itape,nomfich)
 
       case default
 
-        if( grdat(1:1) /= ' ' ) then
+        if( keyword(1:1) /= ' ' ) then
           call write_error
           do ipr = 6,9,3
             write(ipr,140)
-            write(ipr,150) mots
+            write(ipr,150) mot
           end do
           stop
         endif
