@@ -42,7 +42,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,alfpot,All_nrixs,angxyz,Allsite,Atom
   implicit none
   include 'mpif.h'
 
-  integer:: cal_nenerge, iabsorig, icheck_s, ie, ie_computer, ie_e, initl, iopsymc_25, ip_max, ip0, &
+  integer:: Cal_nenerge, i_range, iabsorig, icheck_s, ie, ie_computer, ie_e, initl, iopsymc_25, ip_max, ip0, &
     ir, isp, je, jseuil, l, l0_nrixs, lmax, lmax_pot, lmax_probe, lmax_nrixs, lmaxabs_t, &
     lmaxat0, lseuil,m_hubb, mpinodes, mpirank, mpirank0, multi_0, multi_run, n_abs_rgh, n_bulk_sup, &
     n_bulk_z, n_bulk_z_max, n_Ec, n_max, n_multi_run, n_oo, n_rel, n_rout, n_tens_max, n_V, natomsym, nbseuil, &
@@ -155,6 +155,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,alfpot,All_nrixs,angxyz,Allsite,Atom
   Final_optic = Optic
   Final_tddft = .true.
   Green = .true.
+  i_range = 1
 
   if( Dipmag ) then
     ns_dipmag = 2
@@ -507,8 +508,8 @@ subroutine main_tddft(Abs_in_Bulk_roughness,alfpot,All_nrixs,angxyz,Allsite,Atom
       if( Abs_in_Bulk_roughness ) then
 
         call Write_coabs(Allsite,angxyz,axyz,Bragg_rgh_bulk_abs,.false.,Cartesian_tensor, &
-              Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E, &
-              f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer,igr_bulk_z,Int_tens, &
+              Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E,f_avantseuil, &
+              Full_self_abs,Green_int,hkl_dafs,i_range,iabsorig,icheck(21),ie,ie_computer,igr_bulk_z,Int_tens, &
               isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodes,multi_0,Multipole,n_abs_rgh,n_bulk_sup, &
               n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
               ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nphi_dafs,npldafs, &
@@ -522,8 +523,8 @@ subroutine main_tddft(Abs_in_Bulk_roughness,alfpot,All_nrixs,angxyz,Allsite,Atom
       endif
 
       call Write_coabs(Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesian_tensor, &
-              Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E, &
-              f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer,igr_bulk_z,Int_tens, &
+              Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E,f_avantseuil, &
+              Full_self_abs,Green_int,hkl_dafs,i_range,iabsorig,icheck(21),ie,ie_computer,igr_bulk_z,Int_tens, &
               isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodes,multi_0,Multipole,n_abs_rgh,n_bulk_sup, &
               n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
               ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nphi_dafs,npldafs, &
@@ -537,7 +538,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,alfpot,All_nrixs,angxyz,Allsite,Atom
 
       if( NRIXS ) call Write_nrixs(All_nrixs,Allsite,Core_resolved,Volume_maille, &
                   E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E, &
-                  f_avantseuil,Green_int,iabsorig,icheck(21),ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
+                  f_avantseuil,Green_int,i_range,iabsorig,icheck(21),ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
                   jseuil,mpinodes,n_multi_run,natomsym,nbseuil,nenerg,ninit1,ninitl_out,nomfich,nomfich_cal_tddft_conv(multi_run), &
                   nq_nrixs,nseuil,nspinp,numat,q_nrixs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Spinorbite,Taux_eq,V0muf)
 
@@ -1235,8 +1236,6 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
 
   return
   100 format(/' ---- Chi_0_int -------',100('-'))
-  102 format('   Chi_0 calculation, state =',i2,' on',i2)
-  103 format('   Chi_0 calculation, state =',i2,' on',i2,', computer,', i3)
   105 format(/' ie_ph =',i2,', iseuil =',i2,', Gamma_hole =',f7.3,' eV')
   120 format(f9.3,1p,500e11.3)
   130 format(/' Chi_0(lms,lms,lms_g,lms_g,ispf,is_dipmag) for diagonal terms, ie_ph ',i2,/ &
@@ -2015,9 +2014,6 @@ subroutine Cal_Chi(Chi, Chi_0, coef_g, Energ, First_E, icheck, iopsymc_25, Kern,
   return
   100 format(/' ---- Cal_chi -------',100('-'))
   110 format(/' Energ =',f10.3,' eV')
-  120 format(1p,9(1x,2e10.2))
-  130 format(500(7x,'(',2(i2,','),i2,')',5x))
-  135 format(500(1x,'(',2(i2,','),i2,')'))
   140 format(1p,1000e11.3)
   150 format(' l1 m1 g1 s1 l2 m2 g2 s2  lms1 lms2              chi')
   160 format(8i3,2i5,3x,1p,2e13.5)
@@ -2340,15 +2336,15 @@ function Gaunt4Y_r(l1,m1,l2,m2,l3,m3,l4,m4)
   use declarations
   implicit none
 
-  real(kind=db), parameter:: sqrt2_i = 1._db / sqrt( 2._db )
-
   complex(kind=db):: c1, c2, c3, c4
 
   integer:: l1, l2, l3, l4, m1, m2, m3, m4, n1, n2, n3, n4, s1, s2, s3, s4
 
-  real(kind=db):: Gaunt4Y, Gaunt4Y_r
+  real(kind=db):: Gaunt4Y, Gaunt4Y_r, sqrt2_i
 
   Gaunt4Y_r = 0._db
+
+  sqrt2_i = 1._db / sqrt( 2._db )
 
   n1 = m1
   do s1 = 1,-1,-2
@@ -2531,7 +2527,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Bragg_abs,Clas
   integer, parameter:: n_bulk_z_max = 0
   integer, parameter:: n_max = 0
 
-  integer:: i, iabsorig, icheck_s, ie, ie_computer, ie_e, ie_g, ief, ip_max, ip0, &
+  integer:: i, i_range, iabsorig, icheck_s, ie, ie_computer, ie_e, ie_g, ief, ip_max, ip0, &
     iso1, iso2, isp, isp1, isp2, j, je, jef, jseuil, lm1, lm2, lmax, lmax_pot, &
     lmax_probe, lmaxabs_t, lseuil, m_hubb, multi_0, mpinodes, mpirank, mpirank0, &
     n_bulk_sup, n_rel, n_Ec, n_multi_run, n_oo, n_rout, n_stk, n_tens_max, n_V, natomsym, nbseuil, &
@@ -2635,6 +2631,7 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Bragg_abs,Clas
 ! Green complet avec partie reelle et imaginaire (en cas de Gamma non nul)
 ! Si Green_int, f' et f" sont directement calcule et l'integrale sur l'energie n'est pas a faire dans convolution.
   Green_int = Gamma_tddft
+  i_range = 1
 
   Xan_atom = .false.
   Optic = .true.
@@ -3077,8 +3074,8 @@ subroutine main_tddft_optic(alfpot,angxyz,Allsite,Atomic_scr,axyz,Bragg_abs,Clas
       if( ie > nenerg ) exit
 
       call Write_coabs(Allsite,angxyz,axyz,Bragg_abs,.false.,Cartesian_tensor, &
-              Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E, &
-              f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck(21),ie,ie_computer,igr_bulk_z,Int_tens, &
+              Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E,f_avantseuil, &
+              Full_self_abs,Green_int,hkl_dafs,i_range,iabsorig,icheck(21),ie,ie_computer,igr_bulk_z,Int_tens, &
               isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodes,multi_0,Multipole,n_abs_rgh,n_bulk_sup, &
               n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
               ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nphi_dafs, &
@@ -3185,8 +3182,8 @@ subroutine Chi_0_opt(Chi_0, dChi_0, dChi_0_i, delta_E, E_cut_tddft, Energ, Energ
   implicit none
   include 'mpif.h'
 
-  integer:: icheck, ie, ie_g, ief, is1, is2, iso, iso_f1, iso_f2, iso_g1, iso_g2, isp, isp_f1, isp_f12, isp_f2, isp_g1, &
-    isp_g12, isp_g2, ispm_f1, ispm_f2, ispm_g1, ispm_g2, iss, iss_f1, iss_f2, iss_g1, iss_g2, je, l, &
+  integer:: icheck, ie, ie_g, ief, is1, is2, iso, iso_f1, iso_f2, iso_g1, iso_g2, isp, isp_f1, isp_f2, isp_g1, &
+    isp_g2, ispm_f1, ispm_f2, ispm_g1, ispm_g2, iss, iss_f1, iss_f2, iss_g1, iss_g2, je, l, &
     lm, lm_f1, lm_f2, lm_g1, lm_g2, lmax, lms, lms_g1, lms_g2, lms_f1, lms_f2, lmv_f1, lmv_g1, lmv_f2, lmv_g2, m,&
     mv, nenerg_s, nlm, nlmamax, nlms, nlms_f, nlms_g, nspinp, nspino, nspint
 
@@ -3285,8 +3282,6 @@ subroutine Chi_0_opt(Chi_0, dChi_0, dChi_0_i, delta_E, E_cut_tddft, Energ, Energ
 
       if( .not. Spinorbite .and. isp_g1 /= isp_g2 ) cycle
 
-      isp_g12 = 2 * isp_g1 - 2 + isp_g2
-
       do lms_f1 = 1,nlms
         isp_f1 = s_val(lms_f1)
         ispm_f1 = min( isp_f1, nspinp )
@@ -3306,8 +3301,6 @@ subroutine Chi_0_opt(Chi_0, dChi_0, dChi_0_i, delta_E, E_cut_tddft, Energ, Energ
           lmv_f2 = lmv_val(lms_f2)
 
           if( .not. Spinorbite .and. isp_f1 /= isp_f2 ) cycle
-
-          isp_f12 = 2 * isp_f1 - 2 + isp_f2
 
           is2 = ( iso_g2 - 1 )*nspino + iso_f2
 
@@ -3529,8 +3522,8 @@ subroutine kernel_optic(Atomic_scr,Energ,First_E,fxc,icheck,Kern,Kern_fac,lmax,M
      isp, isp_f1, isp_f2, isp_g1, isp_g2, ispv_f1, &
      ispv_f2, ispv_g1, ispv_g2, l, l_f1, l_f1_t, l_f2, l_f2_t, l_g1, l_g1_t, l_g2_t, l_g2, l0, lcut, lmax, lmp, lmp_f1, lmp_f2, &
      lmp_g1, lmp_g2, lms, lms_f1, lms_f1_t, lms_f2, lms_f2_t, lms_g1, lms_g1_t, lms_g2, lms_g2_t, &
-     lmv_f1, lmv_f2, lmv_g1, lmv_g2, lp, m, m_f1, m_f2, m_g1, m_g2, m0, mp, mv, mv_f1, mv_f1_t, mv_f2, mv_f2_t, &
-     mv_g1,  mv_g1_t, mv_g2, mv_g2_t, n_Ec, nlm, nlm_fp, nlms, nlms_f, nlms_g, nr, nspino, nspinp, nspint
+     lmv_f1, lmv_f2, lmv_g1, lmv_g2, lp, m, m_f1, m_f2, m_g1, m_g2, m0, mp, mv, mv_f1_t, mv_f2_t, &
+     mv_g1_t, mv_g2_t, n_Ec, nlm, nlm_fp, nlms_f, nlms_g, nr, nspino, nspinp, nspint
 
   integer, dimension(nlms_f):: i_val, l_val, lmp_val, lmv_val, m_val, mv_val, s_val
 
@@ -3587,8 +3580,6 @@ subroutine kernel_optic(Atomic_scr,Energ,First_E,fxc,icheck,Kern,Kern_fac,lmax,M
     end do
   end do
 
-  nlms = lms
-
 ! 1) Coulomb kernel
 
 ! Cut-off: see the selction rules for Gaunt coefficients
@@ -3603,7 +3594,6 @@ subroutine kernel_optic(Atomic_scr,Energ,First_E,fxc,icheck,Kern,Kern_fac,lmax,M
     l_g1 = l_val(lms_g1)
     m_g1 = m_val(lms_g1)
     iso_g1 = i_val(lms_g1)
-    mv_g1 = mv_val(lms_g1)
     lmv_g1 = lmv_val(lms_g1)
     lmp_g1 = lmp_val(lms_g1)
 
@@ -3617,7 +3607,6 @@ subroutine kernel_optic(Atomic_scr,Energ,First_E,fxc,icheck,Kern,Kern_fac,lmax,M
       l_g2 = l_val(lms_g2)
       m_g2 = m_val(lms_g2)
       iso_g2 = i_val(lms_g2)
-      mv_g2 = mv_val(lms_g2)
       lmv_g2 = lmv_val(lms_g2)
       lmp_g2 = lmp_val(lms_g2)
 
@@ -3631,7 +3620,6 @@ subroutine kernel_optic(Atomic_scr,Energ,First_E,fxc,icheck,Kern,Kern_fac,lmax,M
         l_f1 = l_val(lms_f1)
         m_f1 = m_val(lms_f1)
         iso_f1 = i_val(lms_f1)
-        mv_f1 = mv_val(lms_f1)
         lmv_f1 = lmv_val(lms_f1)
         lmp_f1 = lmp_val(lms_f1)
 
@@ -3647,7 +3635,6 @@ subroutine kernel_optic(Atomic_scr,Energ,First_E,fxc,icheck,Kern,Kern_fac,lmax,M
           l_f2 = l_val(lms_f2)
           m_f2 = m_val(lms_f2)
           iso_f2 = i_val(lms_f2)
-          mv_f2 = mv_val(lms_f2)
           lmv_f2 = lmv_val(lms_f2)
           lmp_f2 = lmp_val(lms_f2)
 
@@ -3763,7 +3750,6 @@ subroutine kernel_optic(Atomic_scr,Energ,First_E,fxc,icheck,Kern,Kern_fac,lmax,M
       l_g1 = l_val(lms_g1)
       m_g1 = m_val(lms_g1)
       iso_g1 = i_val(lms_g1)
-      mv_g1 = mv_val(lms_g1)
       lmv_g1 = lmv_val(lms_g1)
       lmp_g1 = lmp_val(lms_g1)
 
@@ -3776,7 +3762,6 @@ subroutine kernel_optic(Atomic_scr,Energ,First_E,fxc,icheck,Kern,Kern_fac,lmax,M
         l_g2 = l_val(lms_g2)
         m_g2 = m_val(lms_g2)
         iso_g2 = i_val(lms_g2)
-        mv_g2 = mv_val(lms_g2)
         lmv_g2 = lmv_val(lms_g2)
         lmp_g2 = lmp_val(lms_g2)
 
@@ -3789,7 +3774,6 @@ subroutine kernel_optic(Atomic_scr,Energ,First_E,fxc,icheck,Kern,Kern_fac,lmax,M
           l_f1 = l_val(lms_f1)
           m_f1 = m_val(lms_f1)
           iso_f1 = i_val(lms_f1)
-          mv_f1 = mv_val(lms_f1)
           lmv_f1 = lmv_val(lms_f1)
           lmp_f1 = lmp_val(lms_f1)
 
@@ -3804,7 +3788,6 @@ subroutine kernel_optic(Atomic_scr,Energ,First_E,fxc,icheck,Kern,Kern_fac,lmax,M
             l_f2 = l_val(lms_f2)
             m_f2 = m_val(lms_f2)
             iso_f2 = i_val(lms_f2)
-            mv_f2 = mv_val(lms_f2)
             lmv_f2 = lmv_val(lms_f2)
             lmp_f2 = lmp_val(lms_f2)
 
@@ -4309,9 +4292,6 @@ subroutine Cal_Chi_opt(B_stk, Chi, Chi_0, dChi_0, dchi_0_i, Energ, First_E, Firs
   return
   100 format(/' ---- Cal_chi -------',100('-'))
   110 format(/' Energ =',f10.3,' eV')
-  120 format(1p,9(1x,2e10.2))
-  130 format(500(7x,'(',2(i2,','),i2,')',5x))
-  135 format(500(1x,'(',2(i2,','),i2,')'))
   140 format(1p,1000(1x,2e10.3))
   145 format(1p,1000e11.3)
   150 format(/'  l_g1 m_g1 i_g1 s_g1 l_f1 m_f1 i_f1 s_f1 l_f2 m_f2 i_f2 s_f2 l_g2 m_g2 i_g2 s_g2              chi')

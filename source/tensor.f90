@@ -1263,7 +1263,7 @@ subroutine Tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m
   integer, intent(in):: icheck, ip_max, ip0, irang, jrang, l_s, m_s, &
     l_i, m_i, ndim2, nlm1g, nlm2g, nlm_probe, nlm_p_fp, ns_dipmag, nspinp, nspino
 
-  integer:: i, io1, io2, is_dipmag, is1, is12, is2, is21, iso, iso_f1, iso_f2, iso_g1, iso_g2, isp, ispm, ispm_f1, ispm_f2, &
+  integer:: i, io1, io2, is1, is12, is2, is21, iso, iso_f1, iso_f2, iso_g1, iso_g2, isp, ispm, ispm_f1, ispm_f2, &
     ispm_g1, ispm_g2, isp_f1, isp_f2, isp_g1, isp_g2, l, l_f1, l_f2, l_g1, l_g2, lm, lm_f1, lm_f2, lm_g1, lm_g2, &
     lmax, lmp_f1, lmp_f2, lmp_g1, lmp_g2, lm_i, lms_f1, lms_f2, lms_g1, lmp, lmp0, lms_g2, lmss, lmss_f1, lmss_f2, lmss_g1, &
     lmss_g2, lp, m, m_f1, m_f2, m_g1, m_g2, mp, mv, ninitlr, nlmss
@@ -1274,12 +1274,10 @@ subroutine Tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m
   complex(kind=db), dimension(ninitlr):: Ten, Ten_m
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
 
-  logical:: Core_resolved, Final_tddft, lmoins1, lplus1, M_depend, Spinorbite, Titre, Ylm_comp
+  logical:: Core_resolved, Final_tddft, lmoins1, lplus1, M_depend, Spinorbite, Ylm_comp
 
   real(kind=db):: Ro
   real(kind=db), dimension(nlm1g,nlm1g,nlm2g,nlm2g,nspinp**2,nspino**2,ip0:ip_max):: roff_rr
-
-  Titre = .true.
 
   Ten(:) = (0._db,0._db)
   Ten_m(:) = (0._db,0._db)
@@ -1527,7 +1525,7 @@ subroutine Tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m
           else
             write(3,160) l_g1, m_g1, lmp_g1, isp_g1, iso_g1, l_f1, m_f1, lmp_f1, isp_f1, iso_f1,&
                 l_f2, m_f2, lmp_f2, isp_f2, iso_f2,  l_g2, m_g2, lmp_g2, isp_g2, iso_g2, &
-                Ten(1), cf, Taull(lms_f1,lms_f2,lms_g2,lms_g1,isp_f1,isp_f2,is_dipmag), Gaunt_s, Gaunt_i, & 
+                Ten(1), cf, Taull(lms_f1,lms_f2,lms_g2,lms_g1,isp_f1,isp_f2,1), Gaunt_s, Gaunt_i, & 
                 roff_rr(lm_g1,lm_f1,lmp_g1,lmp_f1,is1,io1,irang), &
                 roff_rr(lm_g2,lm_f2,lmp_g2,lmp_f2,is2,io2,jrang)
           endif

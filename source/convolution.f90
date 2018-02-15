@@ -8,19 +8,19 @@
 
 subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart, &
         Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max,ical, &
-        icheck,indice_par,iscratchconv,itape1,kw_conv,length_line, &
+        icheck,indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,ncal)
 
   use declarations
   implicit none
 
-  integer:: Dafs_exp_type, eof, i, i_col, i_conv, i_hk, i_Trunc, i1, ical, icheck, ie, ie1, ie2, ifich, ifichref, igr, ii, &
-    index_hk, initl, initlref, ip, ipar, ipas, ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, j0, je, &
-    jfich, jfichref, jpl, js, jseuil, k, kpl, l, length_hk, Length_line, ll, long, mfich, n, n_col, n_energ_tr, n_mat_pol, &
-    n_selec_core, n_signal, n_Stokes, n_Trunc, n1, n2, n3, n4, &
-    natomsym, ncal, ne2, nef, nelor, nemax, nen2, nenerg, nenerge, nes, nfich, &
-    nfich_tot, ngamh, ngroup_par, ninit, ninit1, ninitlm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
-    npldafs_t, npldafs_th, nseuil, numat, nxan, nw
+  integer:: Dafs_exp_type, eof, i, i_col, i_conv, i_hk, i_Trunc, i1, ical, icheck, ie, ie1, ie2, ifich, igr, ii, &
+    index_hk, initl, ip, ipar, ipas, ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, &
+    jfich, jpl, js, jseuil, k, kpl, l, Length_line, ll, mfich, n, n_col, n_col_max, n_energ_tr, &
+    n_mat_pol, n_selec_core, n_signal, n_Stokes, n_Trunc, &
+    natomsym, ncal, ne2, nef, nelor, nen2, nenerg, nenerge, nes, nes_in, nfich, &
+    ngamh, ngroup_par, ninit, ninit1, ninitlm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
+    npldafs_t, npldafs_th, nseuil, nxan, nw
 
 ! njp : Points beyond the energy range to make the border effect less strong
   integer, parameter:: njp = 500
@@ -29,9 +29,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   integer, dimension(10) :: num_core
   integer, dimension(ngroup_par) :: npar
   integer, dimension(ngroup_par,nparm) :: indice_par
-  integer, dimension(:), allocatable:: i_done, indf, natomsym_f, ne, ninitl, nphi
+  integer, dimension(:), allocatable:: i_done, indf, natomsym_f, ne, ninitl, nphi, numat
   integer, dimension(:,:), allocatable:: hkl_dafs, nsup, ne_initl
-  integer, dimension(:), allocatable:: n_index_hk
+  integer, dimension(:), allocatable:: n_index_hk, n_div_fpp
 
   character(len=6):: mot6, mot6_b
   character(len=9):: keyword, mot9, Traduction
@@ -55,13 +55,13 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     Conv_done, Cor_abs, decferm, Deuxieme, Double_cor, E_cut_man, Energphot, Epsii_ref_man, Extrap, Fermip, First_E, Fit_cal, &
     Forbidden, fprim, fprime_atom, Full_self_abs, Gamma, Gamma_hole_imp, Gamma_var, Gaussian_default, Green_int, Just_total, &
     Magn, no_extrap, nxan_lib, Photoemission, Scan_a, scan_true, Seah, Self_abs, &
-    Shift_auto, Signal_Sph, Stokes, Stokes_Dafs, Stokes_xan, Sup_sufix, Tenseur, Tenseur_car, Thomson, Transpose_file
-  logical, dimension(:), allocatable:: fichdone, run_done, Skip_run, Trunc
+    Signal_Sph, Stokes, Stokes_Dafs, Stokes_xan, Sup_sufix, Tenseur, Tenseur_car, Thomson, Transpose_file
+  logical, dimension(:), allocatable:: run_done, Skip_run, Trunc
 
   real(kind=db):: a, a1, a2, a3, a4, alambda, Asea, b, b1, b2, b3, b4, bba, bbb, c, c_micro, conv_mbarn_nelec, &
-    ct_epsilon, ct_nelec, d, d_dead, de_obj, de1, de2, decal_min, Delta_edge, Deltar, &
-    E, E_cut_imp, E_obj, e1m, Ecent, E_cut, E_cut_orig, Eintmax, Emax, Emin, Elarg, Eph, Epsii_moy, Epsii_ref, Esmin, &
-    Estart, Estart_l, f0_forward, fac, fpp_avantseuil, fpp0, Gamm, Gamma_h, Gamma_max, &
+    ct_epsilon, ct_nelec, d, d_dead, de_obj, de1, de2, Delta_edge, Deltar, &
+    E, E_cut_imp, E_obj, e1m, Ecent, E_cut, E_cut_orig, Eintmax, Elarg, Eph, Epsii_ref, Esmin, &
+    Estart, f0_forward, fac, fpp0, Gamm, Gamma_h, Gamma_max, &
     Im_pi, Im_sig, Ip_pi, Ip_sig, mu_0_bulk, p1, p2, pasdeb, Pdt, Pdt_bulk, S0_2, Sample_thickness, Surface_ref, Tab_width, &
     Vibration, Volume_maille, Volume_maille_bulk
 
@@ -69,10 +69,10 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   real(kind=db), dimension(3):: angxyz, axyz
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(ngroup_par,nparm) :: param
-  real(kind=db), dimension(:), allocatable:: angle, bb, betalor, decal, e1, e2, Efermip, Elor, En_fermi, Energ, &
-        Energ_tr, Ep, Eph1, Ephoton, Es, Eseuil, fi, fr, l_dafs, Length_abs, lori, lorix, lorr, lorrx, & 
-        Pds, p1f, p2f, Tens, V0muf, Ts, Yr, Yi
-  real(kind=db), dimension(:,:), allocatable:: decal_initl, Ef, Epsii, Length_rel, mua_r, mua_i, Signal, Stokes_param, Xa, &
+  real(kind=db), dimension(:), allocatable:: angle, bb, betalor, decal, e1, e2, Efermip, Elor, En_fermi, Energ, Energe, &
+        Energ_tr, Ep, Eph1, Ephm, Ephoton, Es, Es_temp, Eseuil, fpp_avantseuil, fi, fr, l_dafs, Length_abs, lori, lorix, & 
+        lorr, lorrx, Pds, p1f, p2f, Tens, V0muf, Ts, Yr, Yi
+  real(kind=db), dimension(:,:), allocatable:: decal_initl, Epsii, Length_rel, mua_r, mua_i, Signal, Stokes_param, Xa, &
                                                Xanes, Xs
   real(kind=db), dimension(:,:,:), allocatable:: Icirc, Icirccor, Icor, Icircdcor, Idcor, Mu_mat, Mus_mat
 
@@ -105,7 +105,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Fermip = .false.
   fichscanout = ' '
   Forbidden = .false.
-  fpp_avantseuil = 0._db
   fprim = .false.
   fprime_atom = .false.
   Full_self_abs = .false.
@@ -133,7 +132,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   scan_true = .false.
   seah = .false.
   self_abs = .false.
-  Shift_auto = .true.
   Signal_Sph = .false.
   Stokes = .false.
   Stokes_dafs = .false.
@@ -261,8 +259,11 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   allocate( En_fermi(nfich) )
   allocate( Eseuil(nfich) )
   allocate( fichscanin(nfich) )
+  allocate( fpp_avantseuil(nfich) )
+  allocate( n_div_fpp(nfich) )
   allocate( ne(nfich) )
   allocate( ninitl(nfich) )
+  allocate( numat(nfich) )
   allocate( Pds(nfich) )
 
   Pds(1) = 1._db
@@ -279,7 +280,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     end do
   endif
 
-  long = 0
   boucle_lect: do ii = 1,1000
 
     n = nnombre(itape1,132)
@@ -323,11 +323,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
             decal(ifich) = 0._db
           elseif( n == 2 ) then
             read(itape1,*) Pds(ifich), decal(ifich)
-            Shift_auto = .false.
           else
             Fermip = .true.
             read(itape1,*) Pds(ifich), decal(ifich), Efermip(ifich)
-            Shift_auto = .false.
           endif
         end do
 
@@ -710,8 +708,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   ninitlm = 1
   do ifich = 1,nfich
     open(2, file = fichin(ifich), status='old', iostat=istat)
-    n = nnombre(2,13200)
-    if( n > 8 ) read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninit
+    n = nnombre(2,Length_line)
+    if( n > 8 ) read(2,*) Eseuil(ifich), numat(ifich), nseuil, jseuil, fpp_avantseuil(ifich), V0muf(ifich), En_fermi(ifich), ninit
     if( n /= ninit + 11 .and. n /= ninit + 12 .and. n /= ninit + 13 ) then
       call write_error
       do ipr = 6,9,3
@@ -723,7 +721,10 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     Close(2)
   end do
 
+  call n_div_fpp_avanseuil(Eseuil,n_div_fpp,nfich)
+
   allocate( Eph1(nfich) )
+  allocate( Ephm(nfich) )
   allocate( Epsii(ninitlm,nfich) )
   allocate( decal_initl(ninitlm,nfich) )
   allocate( natomsym_f(nfich) )
@@ -735,10 +736,10 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   decal_initl(:,:) = 0._db
   Trunc(:) = .false.
 
-  call Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Epsii,Eseuil,f0_forward,Fichin,Fichscanin,fpp_avantseuil, &
-          fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_mat_pol,n_Trunc,natomsym_f,ne,nfich,ninit1,ninitl, &
-          ninitlm,nphim,npldafs,nseuil,numat,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph,Surface_ref,Tenseur, &
-          Tenseur_car,Trunc,V0muf,Volume_maille,Volume_maille_bulk)
+  call Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm,Epsii,f0_forward,Fichin,Fichscanin, &
+          fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_col_max,n_mat_pol,n_Trunc,natomsym_f,ne,nfich, &
+          ninit1,ninitl,ninitlm,nphim,npldafs,nseuil,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph, &
+          Surface_ref,Tenseur,Tenseur_car,Trunc,V0muf,Volume_maille,Volume_maille_bulk)
 
   if( .not. Cor_abs ) Double_cor = .false.
 
@@ -791,7 +792,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
             if( .not. run_done( indice_par(igr,ipar) ) ) then
               ifich = i_done( indice_par(igr,ipar) )
               decal( ifich ) = param(igr,ipar)
-              Shift_auto = .false.
             endif
           case('weight')
             if( .not. run_done( indice_par(igr,ipar) ) ) then
@@ -804,57 +804,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   endif
 
   deallocate( i_done )
-
-  Esmin = Eseuil(1)
-  do ifich = 2,nfich
-    Esmin = min( Esmin, Eseuil(ifich) )
-  end do
-  do ifich = 1,nfich
-    decal(ifich) = decal(ifich) + Eseuil(ifich) - Esmin
-  end do
-
-  if( Epsii_ref_man ) then
-    Epsii_moy = Epsii_ref
-  elseif( Shift_auto ) then
-    Epsii_moy = 0._db
-    do ifich = 1,nfich
-      Epsii_moy = Epsii_moy + sum( Epsii(1:ninitl(ifich),ifich) )
-    end do
-    Epsii_moy = Epsii_moy / sum( ninitl(:) )
-  endif
-  if( Epsii_ref_man .or. Shift_auto ) then
-    decal_min = 0._db
-    do ifich = 1,nfich
-      decal(ifich) = decal(ifich) - Epsii_moy + sum( Epsii(1:ninitl(ifich),ifich) ) / ninitl(ifich)
-      decal_min = min( decal(ifich), decal_min ) 
-    end do
-    decal(:) = decal(:) - decal_min
-  endif
-
-  decal_initl(:,:) = 0._db
-  do ifich = 1,nfich
-    select case( ninitl(ifich) )
-      case(1)
-        Epsii_moy = Epsii(1,ifich)
-      case(2)
-         if( ninit1 == 2 ) then
-           Epsii_moy = sum( Epsii(1:ninitl(ifich),ifich) ) / ninitl(ifich)
-         else
-           Epsii_moy = Epsii(2,ifich)
-         endif
-      case(4,6,10)
-         if( ninit1 /= ninitl(ifich) ) then
-           Epsii_moy = sum( Epsii(ninit1+1:ninitl(ifich),ifich) ) / ( ninitl(ifich) - ninit1 )
-         else
-           Epsii_moy = sum( Epsii(1:ninitl(ifich),ifich) ) / ninitl(ifich)
-         endif
-    end select
-    decal_initl(1:ninitl(ifich),ifich) = Epsii(1:ninitl(ifich),ifich) - Epsii_moy + decal(ifich)
-    if( abs(Delta_edge) > eps10 .and. ( ninitl(ifich) /= ninit1 ) ) decal_initl(1:ninit1,ifich) &
-               = decal_initl(1:ninit1,ifich) + Delta_edge * Rydb
-  end do
-
-  deallocate( decal)
 
   if( Cor_abs .or. Dafs_bio ) then
     npldafs_b = npldafs
@@ -925,213 +874,31 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   deltar = deltar / sqrt( 8 * log(2._db) )
   vibration = vibration / sqrt( 8 * log(2._db) )
 
-  decal_initl(:,:) = decal_initl(:,:) / rydb
+  decal(:) = decal(:) / rydb
   En_fermi(:) = En_fermi(:) / rydb
-  Esmin = Esmin / rydb
   Eph1(:) = Eph1(:) / rydb
+  Ephm(:) = Ephm(:) / rydb
   Epsii(:,:) = Epsii(:,:) / rydb
   Eseuil(:) = Eseuil(:) / rydb
   V0muf(:) = V0muf(:) / rydb
   deltar = deltar / rydb
   if( Fermip ) Efermip(1:nfich) = Efermip(1:nfich) / rydb
-
   if( .not. Arc .and. .not. seah ) Elor(:) = Elor(:) - En_fermi(1)
 
 ! Elaboration of energy grid
 
-  Estart_l = Estart
-  do ifich = 1,nfich
-    do initl = 1,ninitl(ifich)
-      E = Eph1(ifich) + decal_initl(initl,ifich)
-      Estart_l = Min( Estart_l, E )
-    end do
-  end do
-
+  call Shift_eval(decal,decal_initl,delta_edge,Energphot,Eph1,Ephm,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Esmin,nfich, &
+                        ninit1,ninitl,ninitlm)
+ 
   pasdeb = 0.5_db / rydb
-  do ifich = 1,nfich
-    do initl = 1,ninitl(ifich)
-      E = Eph1(ifich) + decal_initl(initl,ifich)
-      if( E > Estart_l - 1.e-10_db ) then
-        nsup(initl,ifich) = nint( ( E - Estart_l ) / pasdeb )
-        ne_initl(initl,ifich) = ne(ifich) + nsup(initl,ifich)
-      else
-        ne_initl(initl,ifich) = ne(ifich)
-        nsup(initl,ifich) = 0
-      endif
-    end do
-  end do
-
-  nemax = maxval( ne_initl )
-
-  n = sum( ninitl(:) )
-  allocate( Ef(nemax,n) )
-
-  jfich = 0
-
-  do ifich = 1,nfich
-
-    open(2, file = fichin(ifich), status='old', iostat=istat)
-
-    read(2,*)
-    do i = 1,6
-      n = nnombre(2,Length_line)
-      if( n == 0 ) then
-        read(2,*)
-        exit
-      endif
-      read(2,*)
-    end do
-    
-    jfich = jfich + 1
-
-    do ie = nsup(1,ifich)+1,ne_initl(1,ifich)
-      Read(2,*) Ef(ie,jfich)
-    end do
-    j0 = jfich
-    Ef(:,j0) = Ef(:,j0) / rydb
-
-    do initl = 2,ninitl(ifich)
-      jfich = jfich + 1
-      n1 = nsup(initl,ifich) + 1
-      n2 = ne_initl(initl,ifich)
-      n3 = nsup(1,ifich) + 1
-      n4 = ne_initl(1,ifich)
-      Ef(n1:n2,jfich) = Ef(n3:n4,j0)
-    end do
-
-    jfich = j0 - 1
-    do initl = 1,ninitl(ifich)
-      jfich = jfich + 1
-      do ie = nsup(initl,ifich),1,-1
-        Ef(ie,jfich) = Ef(ie+1,jfich) - pasdeb
-      end do
-    end do
-
-    jfich = j0 - 1
-    do initl = 1,ninitl(ifich)
-      jfich = jfich + 1
-      n = ne_initl(initl,ifich)
-      Ef(1:n,jfich) = Ef(1:n,jfich) + decal_initl(initl,ifich)
-    end do
-
-    Close(2)
-  end do
-
-  Energphot = .false.
-
-  jfich = 0
-  do ifich = 1,nfich
-    do initl = 1,ninitl(ifich)
-      jfich = jfich + 1
-      n = ne_initl(initl,ifich)
-      if( Ef(n,jfich) <= Eseuil(ifich) .or. Eseuil(ifich) <= Ef(n,jfich) - Ef(1,jfich) ) cycle
-      Energphot = .true.
-      Ef(1:n,jfich) = Ef(1:n,jfich) - Eseuil(ifich)
-    end do
-  end do
-
-  Emin = Ef(1,1)
-  Emax = Ef(ne_initl(1,1),1)
-
-  jfich = 0
-  do ifich = 1,nfich
-    do initl = 1,ninitl(ifich)
-      jfich = jfich + 1
-      Emin = min( Ef(1,jfich), Emin )
-      Emax = min( Ef(ne_initl(initl,ifich),jfich), Emax )
-    end do
-  end do
-
-  nfich_tot = sum( ninitl(1:nfich) )
-  allocate( fichdone(nfich_tot) )
-
-  nes = 10000
-
-  do i = 1,2
-
-    fichdone(:) = .false.
-
-    jfich = 0
-    boucle_0: do ifich = 1,nfich
-      do initl = 1,ninitl(ifich)
-        jfich = jfich + 1
-        if( abs( Ef(1,jfich) - Emin ) < 1.e-10_db ) exit boucle_0
-      end do
-    end do boucle_0
-    ifichref = ifich
-    jfichref = jfich
-    initlref = initl
-    fichdone(jfichref) = .true.
-
-    je = 0
-    do ie = 1,nes
-      je = je + 1
-      E = Ef(je,jfichref)
-      if( i == 2 ) Es(ie) = E
-      if( E > Emax - 1.e-10_db ) exit
-
-      if( je == ne_initl(initlref,ifichref) ) then
-        jfich = 0
-        boucle_1: do ifich = 1,nfich
-          do initl = 1,ninitl(ifich)
-            jfich = jfich + 1
-
-            if( Ef(ne_initl(initl,ifich),jfich) > E+1.e-10_db ) then
-              do je = ne_initl(initl,ifich),1,-1
-                if( Ef(je,jfich) < E - 1.e-10_db ) exit
-              end do
-              ifichref = ifich
-              jfichref = jfich
-              initlref = initl
-              fichdone(jfichref) = .true.
-              exit boucle_1
-            endif
-          end do
-        end do boucle_1
-      endif
-
-      jfich = 0
-      boucle_2: do ifich = 1,nfich
-        do initl = 1,ninitl(ifich)
-          jfich = jfich + 1
-          if( fichdone(jfich) ) cycle
-          if( E > Ef(nsup(initl,ifich)+1,jfich) + 1.e-10_db ) then
-            do je = nsup(initl,ifich)+1,ne_initl(initl,ifich)
-              if( Ef(je,jfich) > E + 1.e-10_db ) exit
-            end do
-            je = je - 1
-            ifichref = ifich
-            jfichref = jfich
-            initlref = initl
-            fichdone(jfichref) = .true.
-            cycle
-          endif
-        end do
-      end do boucle_2
-
-    end do
-
-    if( i == 1 ) then
-      if( E > Emax + 1.e-10_db ) then
-        nes = ie - 1
-      else
-        nes = ie
-      endif
-      allocate( Es(nes) )
-    endif
-
-  end do
-
-  deallocate( Fichdone )
-  deallocate( Ef )
-
-  if( nes == 0 ) then
-    call write_error
-    do ipr = 6,9,3
-      write(ipr,147)
-    end do
-    stop
-  endif
+  nes_in = 100000
+  allocate( Es_temp(nes_in) )
+   
+  call Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Estart,fichin,Length_line,ne,ne_initl,nes,nes_in, &
+                              nfich,ninitl,ninitlm,nsup,pasdeb)  
+  allocate( Es(nes) )
+  Es(1:nes) = Es_temp(1:nes)
+  deallocate( Es_temp )
 
   np_stokes = n_stokes * npldafs / 4
   allocate( angle(nphim) )
@@ -1254,11 +1021,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         if( i > n_selec_core ) cycle
       endif
 
-      if( Decferm ) then
-        E_cut = E_cut_orig ! Fermi ne suit pas le decalage de la gamme
-      else
-        E_cut = E_cut_orig + decal_initl(initl,ifich)
-      endif
       nenerg = ne_initl(initl,ifich)
 
       allocate( Adafs(nenerg,nphim,npldafs) )
@@ -1282,8 +1044,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       
       n = nnombre(2,Length_line)
       if( n > 0 ) then
+        read(2,*)      ! This line has already been red
         read(2,*) ( fr(ipl), fi(ipl), ipl = 1,npldafs )
-        read(2,*) ( fr(ipl), fi(ipl), ipl = 1,npldafs)
         dph(:) = cmplx( fr(:), fi(:),db )
         dpht(:) = dpht(:) + Pds(ifich) * dph(:)
         if( Cor_abs ) then
@@ -1415,24 +1177,488 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         Energ(ie) = Energ(ie+1) - pasdeb
       end do
 
-      if( Energphot ) Energ(1:nenerg) = Energ(1:nenerg) - Eseuil(ifich)
-      Energ(1:nenerg) = Energ(1:nenerg) + decal_initl(initl,ifich)
+      if( Decferm ) then
+      ! Fermi does not follow the shift of the energy
+        if( Energphot ) then
+          E_cut = E_cut_orig - decal_initl(initl,ifich) + Eseuil(ifich) 
+        else
+          E_cut = E_cut_orig - decal_initl(initl,ifich) + Eseuil(ifich) - Esmin 
+        endif
+      elseif( Energphot ) then
+        E_cut = E_cut_orig + Eseuil(ifich) 
+      else
+        E_cut = E_cut_orig 
+      endif
 
-      do ie = 1,nes
-        E = Es(ie)
-        E = max(E ,Energ(1) )
-        E = min(E ,Energ(nenerg) )
-        do i = 2,nenerg
-          if( Energ(i) > E - 1.e-10_db ) exit
+      if( .not. ( Conv_done .or. Skip_run(ifich) ) ) then
+
+        nenerge = nenerg + njp
+
+        if( Cor_abs ) then
+          allocate( Ad(nenerg,nphim,3*npldafs) )
+        else
+          allocate( Ad(nenerg,nphim,npldafs) )
+        endif
+        allocate( Xa(nenerge,nxan) )
+        allocate( Mu_m(nenerg,4,n_mat_pol) )
+
+        if( seah .or. Arc ) then
+          nelor = nenerg
+          allocate( Elor(nelor) )
+          allocate( betalor(nelor) )
+          Elor(:) = Energ(:)
+        endif
+
+        if( Photoemission .or. Green_int ) then
+          betalor(:) = 0._db
+        elseif( seah ) then
+          call seahdench(asea,E_cut,Gamma_max,nelor,Elor,betalor)
+        elseif( Arc ) then
+          call gammarc(Ecent,Elarg,Gamma_max,E_cut,nelor,Elor,betalor)
+        endif
+
+        if( .not. Gamma_hole_imp ) then
+          if( ninitl(ifich) == 1 .or. ninit1 == ninitl(ifich) .or. initl <= ninit1 ) then
+            js = jseuil
+          else
+            js = jseuil + 1
+          endif
+          Gamma_h = Tab_width(Eseuil(ifich),js,nseuil,numat(ifich))
+        elseif( ngamh == 1 .or. ninitl(ifich) == 1 ) then
+          Gamma_h = Gamma_hole(1)
+        elseif( ngamh == ninitl(ifich) ) then
+          Gamma_h = Gamma_hole(initl)
+        elseif( initl <= ninit1 ) then
+          Gamma_h = Gamma_hole(1)
+        else
+          Gamma_h = Gamma_hole(2)
+        endif
+        betalor(:) = betalor(:) + Gamma_h
+
+        if( Check_conv ) then
+          ipr1 = 3
+        else
+          ipr1 = 6
+        endif
+        ipr2 = 6
+        do ipr = ipr1,ipr2,3
+          if( ifich == 1 .and. ( initl == 1 .or. initl == num_core(1) ) )  then
+            if( seah ) then
+              Write(ipr,'(/A)') ' Seah-Dench model'
+              Write(ipr,150) Gamma_max*rydb, asea
+            elseif( Arc ) then
+              Write(ipr,'(/A)') ' Arctangent model'
+              Write(ipr,160) Gamma_max*rydb, Ecent*rydb, Elarg*rydb
+            endif
+          endif
+          if( nfich == 1 .and. ninitl(ifich) == 1 ) then
+            Write(ipr,170) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb
+          elseif( nfich == 1 ) then
+            Write(ipr,172) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, initl
+          elseif( ninitl(ifich) == 1 ) then
+            Write(ipr,174) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, ifich
+          else
+            Write(ipr,176) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, ifich, initl
+          endif
         end do
-        p1 = ( E - Energ(i-1) ) / ( Energ(i) - Energ(i-1) )
-        p2 = 1 - p1
-        p1f(ie) = Pds(ifich) * p1
-        p2f(ie) = Pds(ifich) * p2
-        indf(ie) = i
-      end do
 
-      if( Conv_done .or. Skip_run(ifich) ) then
+        if( i_conv == 0 .and. ( ifich == 1 .or. Esmin /= Eseuil(ifich) ) &
+                .and. ( initl == 1 .or. initl == num_core(1) ) .and. Gamma_max > eps10 ) then
+          de_obj = ( Elor(nelor) - Elor(1) ) / 15
+          E_obj = Elor(1) - 0.00001_db
+          do ie = 1,nelor
+            Gamm = betalor(ie) - Gamma_h
+            if( Gamm > 0._db ) exit
+          end do
+          n = ie - 1
+          do ie = 1,nelor
+            if( ie > 1 .and. ie < n ) cycle
+            if( Energphot ) then
+              E = Elor(ie) - Eseuil(ifich) - V0muf(1)
+            else
+              E = Elor(ie) - V0muf(1)
+            endif
+            Gamm = betalor(ie) - Gamma_h
+            if( Gamm > 0._db ) then
+              alambda = sqrt( 2 / ( sqrt( E**2 + Gamm**2 ) - E ) )
+            else
+              alambda = 0._db
+            endif
+            E = E + V0muf(1)
+            do ipr = ipr1,ipr2,3
+              if( ie == 1 ) then
+                if( Energphot ) then
+                  Write(ipr,'(A)') '    E - E_edge   Width_(eV) lambda_(A)'
+                else
+                  Write(ipr,'(A)') '      E_(eV)     Width_(eV) lambda_(A)'
+                endif
+              endif
+              if( ipr == 6 ) then
+                if( Elor(ie) < E_obj .and. ie /= nelor ) cycle
+                E_obj = E_obj + de_obj
+              endif
+              if( alambda * bohr < 10000000 ) then
+                Write(ipr,180) E * Rydb, betalor(ie) * Rydb, alambda * bohr
+              else
+                Write(ipr,185) E * Rydb, betalor(ie) * Rydb, alambda * bohr
+              endif
+            end do
+          end do
+        endif
+  
+        allocate( dampl(nenerg) )
+        allocate( bb(nenerge) )
+        allocate( Energe(nenerge) )
+        allocate( Ephoton(nenerg) )
+        allocate( e1(nenerge) )
+        allocate( e2(nenerge) )
+        Ephoton(:) = 0._db
+        allocate( lori(nenerge) )
+        allocate( lorix(nenerge) )
+        allocate( lorrx(nenerge) )
+        if( Dafs ) allocate( lorr(nenerge) )
+
+! Calculation of the coefficients of the lorentzian
+        call cflor(bb,betalor,E_cut,Energe,Elor,Energ,ie1,ie2,nef,nelor,nenerg,nenerge,Photoemission)
+        if( Energphot ) then
+          Ephoton(:) = Energ(:) + decal_initl(initl,ifich)
+        else
+          Ephoton(:) = Energ(:) + decal_initl(initl,ifich) + Esmin
+        endif
+  
+        if( no_extrap ) then
+          Extrap = .false.
+        else
+          Extrap = Stokes_xan .or. Cor_abs
+          if( Dafs .and. .not. Extrap ) then
+            do ipl = 1,npldafs
+              if( abs( dph(ipl) ) < 1.e-10_db ) cycle
+              Extrap = .true.
+              exit
+            end do
+          endif
+        endif
+
+        fprime_atom = icheck > 2 .and. ifich == 1 .and. i_conv == 0 .and. ( initl == 1 .or. initl == num_core(1) )
+        if( Extrap .or. fprime_atom .or. Cor_abs .or. Stokes_xan ) then
+          call Extrapat(bb(nenerg),dampl,Ephoton,Eseuil(ifich),Extrap,fpp0,fprime_atom,icheck,nenerg,numat(ifich))
+           dampl(:) = dampl(:) / ninitl(ifich)
+           fpp0 = fpp0 / ninitl(ifich)
+        endif
+
+! Convolution par la lorentzienne
+        if( Dafs ) Ad(1:nenerg,:,1:npldafs) = Adafs(1:nenerg,:,1:npldafs)
+        if( Cor_abs ) then
+          do i = 1,2
+            do ipl = 1,npldafs
+              Ad(1:nenerg,:,i*npldafs+ipl) = mu(1:nenerg,:,ipl,i)
+            end do
+          end do
+        endif
+
+        do ipl = 1,nxan
+          Xa(1:nenerg,ipl) = Xanes(1:nenerg,ipl)
+! Extrapolation
+          do ie = nenerg+1,nenerge
+            Xa(ie,ipl) = Xa(nenerg,ipl)
+          end do
+        end do
+
+        gamma = .false.
+        do ie = nef,nenerge
+          if( abs( bb(ie) ) > 1.e-10_db ) then
+            gamma = .true.
+            exit
+          endif
+        end do
+
+        ne2 = ie2
+
+        do ie = ie1,ie2
+          if( ie == ie1 ) then
+            if( Photoemission ) then
+              e1(ie) = 1.5 * Energe(1) - 0.5 * Energe(2)
+            else
+              e1(ie) = E_cut
+              if( ie == 1 ) then
+                e1m = 1.5 * Energe(1) - 0.5 * Energe(2)
+                e1(ie) = max( e1(ie), e1m )
+              endif
+            endif
+          else
+            e1(ie) = 0.5 * ( Energe(ie) + Energe(ie-1) )
+          endif
+          if( ie == ne2 ) then
+            e2(ie) = 1.5 * Energe(ne2) - 0.5 * Energe(ne2-1)
+          else
+            e2(ie) = 0.5 * ( Energe(ie) + Energe(ie+1) )
+          endif
+        end do
+
+        if( Photoemission ) then
+          nen2 = ie2
+        else
+          nen2 = nenerg
+        endif
+   
+        if( Gamma .and. .not. Green_int ) then
+   
+          do ie = 1,nenerg
+   
+            do j = ie1,ne2
+   
+              if( .not. Gamma_var ) then
+                bba = bb(ie)
+                if( bba >= 0._db ) then
+                  bbb = max( bba, 1.E-08_db )
+                else
+                  bbb = bba
+                endif
+                de2 = ( e2(j) - Energe(ie) ) / bbb
+                de1 = ( e1(j) - Energe(ie) ) / bbb
+                lorix(j) = atan( de1 ) - atan( de2 )
+                if( ( Dafs .or. Stokes_xan ) .and. j <= nenerg ) lorrx(j) = 0.5 * log( (1 + de1**2) / (1 + de2**2) )
+              endif
+              if( Dafs .or. Gamma_var ) then
+                bba = bb(j)
+                if( bba >= 0._db ) then
+                  bbb = max( bba, 1.E-08_db )
+                else
+                  bbb = bba
+                endif
+                de2 = ( e2(j) - Energe(ie) ) / bbb
+                de1 = ( e1(j) - Energe(ie) ) / bbb
+                lori(j) = atan( de1 ) - atan( de2 )
+                if( Gamma_var ) then
+                  lorix(j) = lori(j)
+                  lorrx(j) = lorr(j)
+                endif
+                if( ( Dafs .or. Stokes_xan ) .and. j <= nenerg ) lorr(j) = 0.5 * log( (1 + de1**2) / (1 + de2**2) )
+              endif
+            end do
+
+            do ipl = 1,nxan
+              Xanes(ie,ipl) = - sum( lorix(ie1:ne2) * Xa(ie1:ne2,ipl) ) / pi
+            end do
+     
+            if( Stokes_xan ) then
+              do ipl = 1,n_mat_pol
+                Mu_m(ie,1,ipl) = sum( cmplx( lorrx(ie1:nen2), lorix(ie1:nen2), db) * Mu_mat(ie1:nen2,1,ipl) ) / pi
+                Mu_m(ie,2,ipl) = sum( cmplx( lorrx(ie1:nen2), lorix(ie1:nen2), db) &
+                                    * cmplx( Mu_mat(ie1:nen2,2,ipl), Mu_mat(ie1:nen2,3,ipl), db ) ) / pi
+                Mu_m(ie,3,ipl) = sum( cmplx( lorrx(ie1:nen2), lorix(ie1:nen2), db) &
+                                    * cmplx( Mu_mat(ie1:nen2,4,ipl), Mu_mat(ie1:nen2,5,ipl), db ) ) / pi
+                Mu_m(ie,4,ipl) = sum( cmplx( lorrx(ie1:nen2), lorix(ie1:nen2), db) * Mu_mat(ie1:nen2,6,ipl) ) / pi
+              end do
+            endif
+     
+            do ipl = 1,npldafs
+              do ip = 1,nphi(ipl)
+
+                if( Tenseur ) then
+
+ ! Here Ad is in number of electron, the convolution needs division by pi
+                  Adafs(ie,ip,ipl) = sum( cmplx( lorr(ie1:nen2), lori(ie1:nen2),db ) * real( Ad(ie1:nen2,ip,ipl),db ) ) / pi
+
+                else
+
+                  Adafs(ie,ip,ipl) = sum( cmplx(lorr(ie1:nen2),lori(ie1:nen2),db) * Ad(ie1:nen2,ip,ipl) )
+
+! Here the imaginary part becomes the Kramers Koenig of the real part
+                  if( Cor_abs ) then
+                    do i = 1,2
+                      jpl = ipl + i*npldafs
+                      mu(ie,ip,ipl,i) = sum( cmplx( lorrx(ie1:nen2), lorix(ie1:nen2), db) * Ad(ie1:nen2,ip,jpl) ) / pi
+                    end do
+                  endif
+
+                endif
+
+              end do
+            end do
+
+          end do
+
+        else
+
+          if( Dafs ) then
+
+            do ie = 1,nenerg
+
+              do j = ie1,nen2
+                de2 = e2(j) - Energe(ie)
+                de1 = e1(j) - Energe(ie)
+                if( j == ie ) then
+                  if( abs( de2 + de1 ) < 1.e-10_db ) then
+                    lorr(j) = 0._db
+                  elseif( abs( de1 ) < 1.e-10_db ) then
+                    lorr(j) = - log( 4._db )
+                  else
+                    lorr(j) = log( - de1 / de2 )
+                  endif
+                else
+                  lorr(j) = log( de1 / de2 )
+                endif
+              end do
+
+              do ipl = 1,npldafs
+                do ip = 1,nphi(ipl)
+
+                  if( Tenseur .and. .not. Green_int ) then
+ ! Here Ad is in number of electron, the convolution needs division by pi
+                    Adafs(ie,ip,ipl) = sum( lorr(ie1:nen2) * real( Ad(ie1:nen2,ip,ipl),db ) ) / pi
+                    if( ie >= ie1 ) Adafs(ie,ip,ipl) = Adafs(ie,ip,ipl) - img * real( Ad(ie,ip,ipl),db )
+                  else
+                    if( .not. Green_int ) then
+                      Adafs(ie,ip,ipl) = sum( lorr(ie1:nen2) * Ad(ie1:nen2,ip,ipl) )
+                      if( ie >= ie1 ) Adafs(ie,ip,ipl) = Adafs(ie,ip,ipl) + img * pi * Ad(ie,ip,ipl)
+                    endif
+! For the correction by absorption, the second xanes becomes the Kramers Koenig of the frst one
+                    if( Cor_abs ) then
+                      do i = 1,2
+                        jpl = ipl + i*npldafs
+                        mu(ie,ip,ipl,i) = sum( lorr(ie1:nen2) * Ad(ie1:nen2,ip,jpl)) / pi
+                        if( ie >= ie1 ) mu(ie,ip,ipl,i) = mu(ie,ip,ipl,i) - img * Ad(ie,ip,jpl)
+                      end do
+                    endif
+                  endif
+                end do
+              end do
+            end do
+
+          endif
+
+          if( Photoemission ) then
+            do ipl = 1,nxan
+              Xanes(nef+1:nenerg,ipl) = 0._db
+            end do
+          elseif( .not. Green_int ) then
+            do ipl = 1,nxan
+              Xanes(1:nef-1,ipl) = 0._db
+            end do
+          endif
+     
+          if( Stokes_xan ) then
+            do ipl = 1,n_mat_pol
+              Mu_m(ie,1,ipl) = sum( lorr(ie1:nen2) * Mu_mat(ie1:nen2,1,ipl) ) / pi
+              if( ie >= ie1 ) Mu_m(ie,1,ipl) = Mu_m(ie,1,ipl) - img * Mu_mat(ie,1,ipl)
+              Mu_m(ie,2,ipl) = sum( lorr(ie1:nen2) &
+                             * cmplx( Mu_mat(ie1:nen2,2,ipl), Mu_mat(ie1:nen2,3,ipl), db ) ) / pi
+              if( ie >= ie1 ) Mu_m(ie,2,ipl) = Mu_m(ie,2,ipl) - img * cmplx( Mu_mat(ie,2,ipl), Mu_mat(ie2,3,ipl), db )
+              Mu_m(ie,3,ipl) = sum( lorr(ie1:nen2) &
+                             * cmplx( Mu_mat(ie1:nen2,4,ipl), Mu_mat(ie1:nen2,5,ipl), db ) ) / pi
+              if( ie >= ie1 ) Mu_m(ie,3,ipl) = Mu_m(ie,3,ipl) - img * cmplx( Mu_mat(ie,4,ipl), Mu_mat(ie2,5,ipl), db )
+              Mu_m(ie,4,ipl) = sum( lorr(ie1:nen2) * Mu_mat(ie1:nen2,6,ipl) ) / pi
+              if( ie >= ie1 ) Mu_m(ie,4,ipl) = Mu_m(ie,4,ipl) - img * Mu_mat(ie,6,ipl)
+            end do
+          endif
+          
+        endif
+
+! Addition of the constant term corresponding to the edges of lower energy (but on dichroic terms)
+        if( i_conv == 0 .and. Abs_before .and. initl == 1 ) then
+          do i = 1,nxan
+            nomab = nom_col(i)
+            nomab = adjustl(nomab)
+            if( nomab(1:3) == 'dic' .or. nomab(1:3) == 'Dic' ) cycle
+            Xanes(:,i) = Xanes(:,i) + fpp_avantseuil(ifich) / n_div_fpp(ifich)
+          end do
+        endif
+    
+! Transformation to crystallo convention with f" > 0
+        if( Dafs ) then
+          Adafs(:,:,:) = conjg( Adafs(:,:,:) )
+          if( Cor_abs ) mu(:,:,:,:) = Conjg( mu(:,:,:,:) )
+        endif
+        if( Stokes_xan ) Mu_m(:,:,:) = Conjg( Mu_m(:,:,:) )
+
+! One wants f' and f" in number of electrons
+        if( Tenseur_car ) then
+          do ie = 1,nenerg
+            Eph = Ephoton(ie)
+            ct_nelec = conv_mbarn_nelec(Eph)
+            adafs(ie,:,:) = ct_nelec * adafs(ie,:,:)
+          end do
+        endif
+
+        if( Extrap ) then
+          do ipl = 1,npldafs
+            if( Signal_Sph .and. ipl > 2 ) exit
+            do ip = 1,nphi(ipl)
+              if( ip == 1 ) then
+                cf = dph(ipl)
+              else
+                cf = phdtscan(ip,ipl)
+              endif
+              if( Green_int ) then
+                do ie = 1,nenerg
+                  Adafs(ie,ip,ipl) = Adafs(ie,ip,ipl) + img * fpp0 * cf
+                end do
+              else
+                do ie = 1,nenerg
+                  Adafs(ie,ip,ipl) = Adafs(ie,ip,ipl) + ( dampl(ie) + img * fpp0 ) * cf
+                end do
+              endif
+            end do
+          end do
+        endif
+
+! One transforms to crystallo convention with f" > 0
+        if( Bormann ) Adafs(:,:,:) = conjg( Adafs(:,:,:) )
+
+        if( Cor_abs ) then
+          do ipl = 1,npldafs
+            if( Full_self_abs .and. ( mod(ipl,4) == 2 .or. mod(ipl,4) == 3 ) ) cycle
+            do ie = 1,nenerg ! Unit cell volume is in A^3
+              fac = natomsym * 100 / ( Volume_maille * Conv_mbarn_nelec(Ephoton(ie)) * pi )
+              mu(ie,:,ipl,:) = mu(ie,:,ipl,:) + fac * dampl(ie)
+            end do
+          end do
+! Real part is absorption
+          mu(:,:,:,:) = img * Conjg( mu(:,:,:,:) )
+        endif
+      
+        if( Stokes_xan ) then
+          do ie = 1,nenerg
+            fac = natomsym * 100 / ( Volume_maille * Conv_mbarn_nelec(Ephoton(ie)) * pi )
+            Mu_m(ie,1,:) = Mu_m(ie,1,:) + fac * dampl(ie)
+            Mu_m(ie,4,:) = Mu_m(ie,4,:) + fac * dampl(ie)
+          end do
+! Real part is absorption
+          Mu_m(:,:,:) = img * Conjg( Mu_m(:,:,:) )
+        endif
+   
+        if( ncal > 1 ) then
+          iscr = 100 + jfich
+          rewind( iscr )
+          do ie = 1,nenerg
+            write(iscr,*) Xanes(ie,1:nxan)
+          end do
+          if( Dafs ) then
+            do ie = 1,nenerg
+              write(iscr,*) ( ( Adafs(ie,ip,ipl), ip = 1,nphi(ipl) ), ipl = 1,npldafs )
+            end do
+          endif
+        endif
+
+        deallocate( Ad )
+        deallocate( bb )
+        deallocate( dampl )
+        deallocate( Energe )
+        deallocate( Ephoton )
+        deallocate( e1 )
+        deallocate( e2 )
+        deallocate( lori )
+        deallocate( lorix, lorrx )
+        if( Dafs ) deallocate( lorr )
+        deallocate( Mu_m )
+        deallocate( Xa )
+        if( seah .or. Arc ) then
+          deallocate( Elor )
+          deallocate( betalor )
+        endif
+ 
+      else
 
         iscr = 100 + jfich
         rewind( iscr )
@@ -1445,458 +1671,28 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           end do
         endif
 
-        do ie = 1,nes
-          i = indf(ie)
-          if( Dafs ) As(ie,:,:) = As(ie,:,:) + p2f(ie) * Adafs(i-1,:,:) + p1f(ie) * Adafs(i,:,:)
-          if( Cor_abs ) mus(ie,:,:,:) = mus(ie,:,:,:) + p2f(ie) * mu(i-1,:,:,:) + p1f(ie) * mu(i,:,:,:)
-          Xs(ie,:) = Xs(ie,:) + p2f(ie) * Xanes(i-1,:) + p1f(ie) * Xanes(i,:)
-        end do
-
-        deallocate( Adafs )
-        if( Cor_abs ) deallocate( mu )
-        deallocate( Xanes )
-        deallocate( Energ )
-
-        cycle
-
-      endif
-
-      nenerge = nenerg + njp
-
-      if( Cor_abs ) then
-        allocate( Ad(nenerg,nphim,3*npldafs) )
-      else
-        allocate( Ad(nenerg,nphim,npldafs) )
-      endif
-      allocate( Xa(nenerge,nxan) )
-      allocate( Mu_m(nenerg,4,n_mat_pol) )
-
-      if( seah .or. Arc ) then
-        nelor = nenerg
-        allocate( Elor(nelor) )
-        allocate( betalor(nelor) )
-        Elor(:) = Energ(:)
-      endif
-
-      if( Photoemission .or. Green_int ) then
-        betalor(:) = 0._db
-      elseif( seah ) then
-        call seahdench(asea,E_cut,Gamma_max,nelor,Elor,betalor)
-      elseif( Arc ) then
-        call gammarc(Ecent,Elarg,Gamma_max,E_cut,nelor,Elor,betalor)
-      endif
-
-      if( .not. Gamma_hole_imp ) then
-        if( ninitl(ifich) == 1 .or. ninit1 == ninitl(ifich) .or. initl <= ninit1 ) then
-          js = jseuil
-        else
-          js = jseuil + 1
-        endif
-        Gamma_h = Tab_width(Eseuil(1),js,nseuil,numat)
-      elseif( ngamh == 1 .or. ninitl(ifich) == 1 ) then
-        Gamma_h = Gamma_hole(1)
-      elseif( ngamh == ninitl(ifich) ) then
-        Gamma_h = Gamma_hole(initl)
-      elseif( initl <= ninit1 ) then
-        Gamma_h = Gamma_hole(1)
-      else
-        Gamma_h = Gamma_hole(2)
-      endif
-      betalor(:) = betalor(:) + Gamma_h
-
-      if( Check_conv ) then
-        ipr1 = 3
-      else
-        ipr1 = 6
-      endif
-      ipr2 = 6
-      do ipr = ipr1,ipr2,3
-        if( ifich == 1 .and. ( initl == 1 .or. initl == num_core(1) ) )  then
-          if( seah ) then
-            Write(ipr,'(/A)') ' Seah-Dench model'
-            Write(ipr,150) Gamma_max*rydb, asea
-          elseif( Arc ) then
-            Write(ipr,'(/A)') ' Arctangent model'
-            Write(ipr,160) Gamma_max*rydb, Ecent*rydb, Elarg*rydb
-          endif
-        endif
-        if( nfich == 1 .and. ninitl(ifich) == 1 ) then
-          Write(ipr,170) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb
-        elseif( nfich == 1 ) then
-          Write(ipr,172) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, initl
-        elseif( ninitl(ifich) == 1 ) then
-          Write(ipr,174) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, ifich
-        else
-          Write(ipr,176) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, ifich, initl
-        endif
-      end do
-
-      if( i_conv == 0 .and. ifich == 1 .and. ( initl == 1 .or. initl == num_core(1) ) .and. Gamma_max > eps10 ) then
-        de_obj = ( Elor(nelor) - Elor(1) ) / 15
-        E_obj = Elor(1) - 0.00001_db
-        do ie = 1,nelor
-          Gamm = betalor(ie) - Gamma_h
-          if( Gamm > 0._db ) exit
-        end do
-        n = ie - 1
-        do ie = 1,nelor
-          if( ie > 1 .and. ie < n ) cycle
-          E = Elor(ie) - V0muf(1)
-          Gamm = betalor(ie) - Gamma_h
-          if( Gamm > 0._db ) then
-            alambda = sqrt( 2 / ( sqrt( E**2 + Gamm**2 ) - E ) )
-          else
-            alambda = 0._db
-          endif
-          do ipr = ipr1,ipr2,3
-            if( ie == 1 ) Write(ipr,178)
-            if( ipr == 6 ) then
-              if( Elor(ie) < E_obj .and. ie /= nelor ) cycle
-              E_obj = E_obj + de_obj
-            endif
-            if( alambda * bohr < 10000000 ) then
-              Write(ipr,180) Elor(ie) * Rydb, betalor(ie) * Rydb, alambda * bohr
-            else
-              Write(ipr,185) Elor(ie) * Rydb, betalor(ie) * Rydb, alambda * bohr
-            endif
-          end do
-        end do
-      endif
-
-      allocate( dampl(nenerg) )
-      allocate( bb(nenerge) )
-      allocate( Ephoton(nenerge) )
-      allocate( e1(nenerge) )
-      allocate( e2(nenerge) )
-      Ephoton(:) = 0._db
-      allocate( lori(nenerge) )
-      allocate( lorix(nenerge) )
-      allocate( lorrx(nenerge) )
-      if( Dafs ) allocate( lorr(nenerge) )
-
-      call cflor(bb,betalor,E_cut,Ephoton,Elor,Energ,ie1,ie2,nef, nelor,nenerg,nenerge,Photoemission)
-      Ephoton(:) = Ephoton(:) + Eseuil(ifich)
-
-      if( no_extrap ) then
-        Extrap = .false.
-      else
-        Extrap = Stokes_xan .or. Cor_abs
-        if( Dafs .and. .not. Extrap ) then
-          do ipl = 1,npldafs
-            if( abs( dph(ipl) ) < 1.e-10_db ) cycle
-            Extrap = .true.
-            exit
-          end do
-        endif
-      endif
-
-      fprime_atom = icheck > 2 .and. ifich == 1 .and. i_conv == 0 .and. ( initl == 1 .or. initl == num_core(1) )
-      if( Extrap .or. fprime_atom .or. Cor_abs .or. Stokes_xan ) then
-        call extrapat(bb(nenerg),dampl,Energ,Eseuil(ifich),Extrap,fpp0,fprime_atom,icheck,nenerg,numat)
-         dampl(:) = dampl(:) / ninitl(ifich)
-         fpp0 = fpp0 / ninitl(ifich)
-      endif
-
-! Convolution par la lorentzienne
-      if( Dafs ) Ad(1:nenerg,:,1:npldafs) = Adafs(1:nenerg,:,1:npldafs)
-      if( Cor_abs ) then
-        do i = 1,2
-          do ipl = 1,npldafs
-            Ad(1:nenerg,:,i*npldafs+ipl) = mu(1:nenerg,:,ipl,i)
-          end do
-        end do
-      endif
-
-      do ipl = 1,nxan
-        Xa(1:nenerg,ipl) = Xanes(1:nenerg,ipl)
-! Extrapolation
-        do ie = nenerg+1,nenerge
-          Xa(ie,ipl) = Xa(nenerg,ipl)
-        end do
-      end do
-
-      gamma = .false.
-      do ie = nef,nenerge
-        if( abs( bb(ie) ) > 1.e-10_db ) then
-          gamma = .true.
-          exit
-        endif
-      end do
-
-      ne2 = ie2
-
-      do ie = ie1,ie2
-        if( ie == ie1 ) then
-          if( Photoemission ) then
-            e1(ie) = 1.5 * Ephoton(1) - 0.5 * Ephoton(2)
-          else
-            e1(ie) = E_cut + Eseuil(ifich)
-            if( ie == 1 ) then
-              e1m = 1.5 * Ephoton(1) - 0.5 * Ephoton(2)
-              e1(ie) = max( e1(ie), e1m )
-            endif
-          endif
-        else
-          e1(ie) = 0.5 * ( Ephoton(ie) + Ephoton(ie-1) )
-        endif
-        if( ie == ne2 ) then
-          e2(ie) = 1.5 * Ephoton(ne2) - 0.5 * Ephoton(ne2-1)
-        else
-          e2(ie) = 0.5 * ( Ephoton(ie) + Ephoton(ie+1) )
-        endif
-      end do
-
-      if( Photoemission ) then
-        nen2 = ie2
-      else
-        nen2 = nenerg
-      endif
-
-      if( Gamma .and. .not. Green_int ) then
-
-        do ie = 1,nenerg
-
-          do j = ie1,ne2
-
-            if( .not. Gamma_var ) then
-              bba = bb(ie)
-              if( bba >= 0._db ) then
-                bbb = max( bba, 1.E-08_db )
-              else
-                bbb = bba
-              endif
-              de2 = ( e2(j) - Ephoton(ie) ) / bbb
-              de1 = ( e1(j) - Ephoton(ie) ) / bbb
-              lorix(j) = atan( de1 ) - atan( de2 )
-              if( ( Dafs .or. Stokes_xan ) .and. j <= nenerg ) lorrx(j) = 0.5 * log( (1 + de1**2) / (1 + de2**2) )
-            endif
-            if( Dafs .or. Gamma_var ) then
-              bba = bb(j)
-              if( bba >= 0._db ) then
-                bbb = max( bba, 1.E-08_db )
-              else
-                bbb = bba
-              endif
-              de2 = ( e2(j) - Ephoton(ie) ) / bbb
-              de1 = ( e1(j) - Ephoton(ie) ) / bbb
-              lori(j) = atan( de1 ) - atan( de2 )
-              if( Gamma_var ) then
-                lorix(j) = lori(j)
-                lorrx(j) = lorr(j)
-              endif
-              if( ( Dafs .or. Stokes_xan ) .and. j <= nenerg ) lorr(j) = 0.5 * log( (1 + de1**2) / (1 + de2**2) )
-            endif
-          end do
-
-          do ipl = 1,nxan
-            Xanes(ie,ipl) = - sum( lorix(ie1:ne2) * Xa(ie1:ne2,ipl) ) / pi
-          end do
-
-          if( Stokes_xan ) then
-            do ipl = 1,n_mat_pol
-              Mu_m(ie,1,ipl) = sum( cmplx( lorrx(ie1:nen2), lorix(ie1:nen2), db) * Mu_mat(ie1:nen2,1,ipl) ) / pi
-              Mu_m(ie,2,ipl) = sum( cmplx( lorrx(ie1:nen2), lorix(ie1:nen2), db) &
-                                  * cmplx( Mu_mat(ie1:nen2,2,ipl), Mu_mat(ie1:nen2,3,ipl), db ) ) / pi
-              Mu_m(ie,3,ipl) = sum( cmplx( lorrx(ie1:nen2), lorix(ie1:nen2), db) &
-                                  * cmplx( Mu_mat(ie1:nen2,4,ipl), Mu_mat(ie1:nen2,5,ipl), db ) ) / pi
-              Mu_m(ie,4,ipl) = sum( cmplx( lorrx(ie1:nen2), lorix(ie1:nen2), db) * Mu_mat(ie1:nen2,6,ipl) ) / pi
-            end do
-          endif
-
-          do ipl = 1,npldafs
-            do ip = 1,nphi(ipl)
-
-              if( Tenseur ) then
-
- ! Here Ad is in number of electron, the convolution needs division by pi
-                Adafs(ie,ip,ipl) = sum( cmplx( lorr(ie1:nen2), lori(ie1:nen2),db ) * real( Ad(ie1:nen2,ip,ipl),db ) ) / pi
-
-              else
-
-                Adafs(ie,ip,ipl) = sum( cmplx(lorr(ie1:nen2),lori(ie1:nen2),db) * Ad(ie1:nen2,ip,ipl) )
-
-! Here the imaginary part becomes the Kramers Koenig of the real part
-                if( Cor_abs ) then
-                  do i = 1,2
-                    jpl = ipl + i*npldafs
-                    mu(ie,ip,ipl,i) = sum( cmplx( lorrx(ie1:nen2), lorix(ie1:nen2), db) * Ad(ie1:nen2,ip,jpl) ) / pi
-                  end do
-                endif
-
-              endif
-
-            end do
-          end do
-
-
-        end do
-
-      else
-
-        if( Dafs ) then
-
-          do ie = 1,nenerg
-
-            do j = ie1,nen2
-              de2 = e2(j) - Ephoton(ie)
-              de1 = e1(j) - Ephoton(ie)
-              if( j == ie ) then
-                if( abs( de2 + de1 ) < 1.e-10_db ) then
-                  lorr(j) = 0._db
-                elseif( abs( de1 ) < 1.e-10_db ) then
-                  lorr(j) = - log( 4._db )
-                else
-                  lorr(j) = log( - de1 / de2 )
-                endif
-              else
-                lorr(j) = log( de1 / de2 )
-              endif
-            end do
-
-            do ipl = 1,npldafs
-              do ip = 1,nphi(ipl)
-
-                if( Tenseur .and. .not. Green_int ) then
- ! Here Ad is in number of electron, the convolution needs division by pi
-                  Adafs(ie,ip,ipl) = sum( lorr(ie1:nen2) * real( Ad(ie1:nen2,ip,ipl),db ) ) / pi
-                  if( ie >= ie1 ) Adafs(ie,ip,ipl) = Adafs(ie,ip,ipl) - img * real( Ad(ie,ip,ipl),db )
-                else
-                  if( .not. Green_int ) then
-                    Adafs(ie,ip,ipl) = sum( lorr(ie1:nen2) * Ad(ie1:nen2,ip,ipl) )
-                    if( ie >= ie1 ) Adafs(ie,ip,ipl) = Adafs(ie,ip,ipl) + img * pi * Ad(ie,ip,ipl)
-                  endif
-! For the correction by absorption, the second xanes becomes the Kramers Koenig of the frst one
-                  if( Cor_abs ) then
-                    do i = 1,2
-                      jpl = ipl + i*npldafs
-                      mu(ie,ip,ipl,i) = sum( lorr(ie1:nen2) * Ad(ie1:nen2,ip,jpl)) / pi
-                      if( ie >= ie1 ) mu(ie,ip,ipl,i) = mu(ie,ip,ipl,i) - img * Ad(ie,ip,jpl)
-                    end do
-                  endif
-                endif
-              end do
-            end do
-          end do
-
-        endif
-
-        if( Photoemission ) then
-          do ipl = 1,nxan
-            Xanes(nef+1:nenerg,ipl) = 0._db
-          end do
-        elseif( .not. Green_int ) then
-          do ipl = 1,nxan
-            Xanes(1:nef-1,ipl) = 0._db
-          end do
-        endif
-
-        if( Stokes_xan ) then
-          do ipl = 1,n_mat_pol
-            Mu_m(ie,1,ipl) = sum( lorr(ie1:nen2) * Mu_mat(ie1:nen2,1,ipl) ) / pi
-            if( ie >= ie1 ) Mu_m(ie,1,ipl) = Mu_m(ie,1,ipl) - img * Mu_mat(ie,1,ipl)
-            Mu_m(ie,2,ipl) = sum( lorr(ie1:nen2) &
-                                * cmplx( Mu_mat(ie1:nen2,2,ipl), Mu_mat(ie1:nen2,3,ipl), db ) ) / pi
-            if( ie >= ie1 ) Mu_m(ie,2,ipl) = Mu_m(ie,2,ipl) - img * cmplx( Mu_mat(ie,2,ipl), Mu_mat(ie2,3,ipl), db )
-            Mu_m(ie,3,ipl) = sum( lorr(ie1:nen2) &
-                                * cmplx( Mu_mat(ie1:nen2,4,ipl), Mu_mat(ie1:nen2,5,ipl), db ) ) / pi
-            if( ie >= ie1 ) Mu_m(ie,3,ipl) = Mu_m(ie,3,ipl) - img * cmplx( Mu_mat(ie,4,ipl), Mu_mat(ie2,5,ipl), db )
-            Mu_m(ie,4,ipl) = sum( lorr(ie1:nen2) * Mu_mat(ie1:nen2,6,ipl) ) / pi
-            if( ie >= ie1 ) Mu_m(ie,4,ipl) = Mu_m(ie,4,ipl) - img * Mu_mat(ie,6,ipl)
-          end do
-        endif
-          
-      endif
-
-! Transformation to crystallo convention with f" > 0
-      if( Dafs ) then
-        Adafs(:,:,:) = conjg( Adafs(:,:,:) )
-        if( Cor_abs ) mu(:,:,:,:) = Conjg( mu(:,:,:,:) )
-      endif
-      if( Stokes_xan ) Mu_m(:,:,:) = Conjg( Mu_m(:,:,:) )
-
-! One wants f' and f" in number of electrons
-      if( Tenseur_car ) then
-        do ie = 1,nenerg
-          Eph = Energ(ie) + Eseuil(ifich)
-          ct_nelec = conv_mbarn_nelec(Eph)
-          adafs(ie,:,:) = ct_nelec * adafs(ie,:,:)
-        end do
-      endif
-
-      if( Extrap ) then
-        do ipl = 1,npldafs
-          if( Signal_Sph .and. ipl > 2 ) exit
-          do ip = 1,nphi(ipl)
-            if( ip == 1 ) then
-              cf = dph(ipl)
-            else
-              cf = phdtscan(ip,ipl)
-            endif
-            if( Green_int ) then
-              do ie = 1,nenerg
-                Adafs(ie,ip,ipl) = Adafs(ie,ip,ipl) + img * fpp0 * cf
-              end do
-            else
-              do ie = 1,nenerg
-                Adafs(ie,ip,ipl) = Adafs(ie,ip,ipl) + ( dampl(ie) + img * fpp0 ) * cf
-              end do
-            endif
-          end do
-        end do
-      endif
-
-! One transforms to crystallo convention with f" > 0
-      if( Bormann ) Adafs(:,:,:) = conjg( Adafs(:,:,:) )
-
-      if( Cor_abs ) then
-        do ipl = 1,npldafs
-          if( Full_self_abs .and. ( mod(ipl,4) == 2 .or. mod(ipl,4) == 3 ) ) cycle
-          do ie = 1,nenerg ! Unit cell volume is in A^3
-            fac = natomsym * 100 / ( Volume_maille * Conv_mbarn_nelec(Ephoton(ie)) * pi )
-            mu(ie,:,ipl,:) = mu(ie,:,ipl,:) + fac * dampl(ie)
-          end do
-        end do
-! Real part is absorption
-        mu(:,:,:,:) = img * Conjg( mu(:,:,:,:) )
       endif
       
-      if( Stokes_xan ) then
-        do ie = 1,nenerg
-          fac = natomsym * 100 / ( Volume_maille * Conv_mbarn_nelec(Ephoton(ie)) * pi )
-          Mu_m(ie,1,:) = Mu_m(ie,1,:) + fac * dampl(ie)
-          Mu_m(ie,4,:) = Mu_m(ie,4,:) + fac * dampl(ie)
+      Energ(1:nenerg) = Energ(1:nenerg) + decal_initl(initl,ifich)
+      
+      do ie = 1,nes
+        E = Es(ie)
+        E = max(E ,Energ(1) )
+        E = min(E ,Energ(nenerg) )
+        do i = 2,nenerg
+          if( Energ(i) > E - eps10 ) exit
         end do
-! Real part is absorption
-        Mu_m(:,:,:) = img * Conjg( Mu_m(:,:,:) )
-      endif
-
-      if( ncal > 1 ) then
-        iscr = 100 + jfich
-        rewind( iscr )
-        do ie = 1,nenerg
-          write(iscr,*) Xanes(ie,1:nxan)
-        end do
-        if( Dafs ) then
-          do ie = 1,nenerg
-            write(iscr,*) ( ( Adafs(ie,ip,ipl), ip = 1,nphi(ipl) ), ipl = 1,npldafs )
-          end do
+        p1 = ( E - Energ(i-1) ) / ( Energ(i) - Energ(i-1) )
+        p2 = 1 - p1
+        if( Es(ie) < Energ(1) - 1._db .or. Es(ie) > Energ(nenerg) + 1._db ) then
+          p1f(ie) = 0._db
+          p2f(ie) = 0._db
+        else  
+          p1f(ie) = Pds(ifich) * p1
+          p2f(ie) = Pds(ifich) * p2
         endif
-      endif
-
-      deallocate( Ad )
-      deallocate( bb )
-      deallocate( dampl )
-      deallocate( Ephoton )
-      deallocate( e1 )
-      deallocate( e2 )
-      deallocate( lori )
-      deallocate( lorix, lorrx )
-      if( Dafs ) deallocate( lorr )
-      deallocate( Xa )
-      if( seah .or. Arc ) then
-        deallocate( Elor )
-        deallocate( betalor )
-      endif
+        indf(ie) = i
+      end do
 
       do ie = 1,nes
         i = indf(ie)
@@ -1912,9 +1708,12 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         endif
       end do
 
-      deallocate( Adafs, Energ, Mu_m, Mu_mat, Xanes )
+      deallocate( Adafs )
+      deallocate( Energ )
+      deallocate( Mu_mat )
+      deallocate( Xanes )
       if( Cor_abs ) deallocate( mu )
-
+      
     end do ! end of loop over initial states (initl)
 
   end do ! end of loop over files
@@ -1993,7 +1792,11 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 !    = -16*pi  * bohr**3 / ( E^2 * Volume_maille )
   if( Bormann ) then
     do ie = 1,nes
-      Eph = Es(ie) + Esmin
+      if( Energphot ) then
+        Eph = Es(ie) + Esmin
+      else
+        Eph = Es(ie)
+      endif
       ct_epsilon = - 16 * pi * bohr**3 / ( Volume_maille * Eph**2 )
       As(ie,:,:) = ct_epsilon * As(ie,:,:)
     end do
@@ -2005,7 +1808,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 ! mus is already in micrometre -1
     do ipl = 1,npldafs
       if( Full_self_abs .and. ( mod(ipl,4) == 2 .or. mod(ipl,4) == 3 ) ) cycle
-      mus(:,:,ipl,:) = mus(:,:,ipl,:) + c_micro * cmplx( fpp_avantseuil, f0_forward )
+      mus(:,:,ipl,:) = mus(:,:,ipl,:) + c_micro * cmplx( fpp_avantseuil(ifich), f0_forward )
     end do
   endif
 
@@ -2014,11 +1817,12 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     c_micro = 100 / Volume_maille
 ! Mu_mat_comp is already in micrometre -1
     do i = 1,4,3
-      Mu_mat_comp(:,i,:) = Mu_mat_comp(:,i,:) + c_micro * cmplx( fpp_avantseuil, f0_forward )
+      Mu_mat_comp(:,i,:) = Mu_mat_comp(:,i,:) + c_micro * cmplx( fpp_avantseuil(ifich), f0_forward )
     end do
   endif
 
 ! Convolution by a Gaussian
+! la vibration ne fonctionne pas !
   if( abs(deltar) > 1.e-10_db .or. abs(vibration) > 1.e-10_db ) then
 
     allocate( Yr(nes) )
@@ -2069,7 +1873,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   endif
 
   if( Cor_abs ) &
-    call Corr_abs(angxyz,As,axyz,c_micro,d_dead,Double_cor,Eseuil(1),fpp_avantseuil,hkl_dafs,hkl_S,Icor,Icirccor, &
+    call Corr_abs(angxyz,As,axyz,c_micro,d_dead,Double_cor,Eseuil(1),fpp_avantseuil(1),hkl_dafs,hkl_S,Icor,Icirccor, &
           Icircdcor,Idcor,mus,n_stokes,nes,np_stokes,nphi,nphim,npldafs,Self_abs,Stokes_param)
 
   Sup_sufix = ninitl(1) > 1
@@ -2078,16 +1882,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       Length_line,n_col,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes, &
       Stokes_name,Stokes_param,Sup_sufix,Tenseur)
 
-! Addition of the constant term corresponding to the edges of lower energy (but on dichroic terms)
-  if( i_conv == 0 .and. Abs_before ) then
-    do i = 1,nxan
-      nomab = nom_col(i)
-      nomab = adjustl(nomab)
-      if( nomab(1:3) == 'dic' .or. nomab(1:3) == 'Dic' ) cycle
-      Xs(:,i) = Xs(:,i) + fpp_avantseuil
-    end do
-  endif
-    
 !---- Writing -------------------------------------------------
 
   allocate( Tens(n_col) )
@@ -2098,8 +1892,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       dpht(ipl) = (1._db,0._db)
     end do
   endif
-
-  if( Energphot ) Es(:) = Es(:) + Esmin
 
   zero_c = (0._db, 0._db)
 
@@ -2138,7 +1930,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           else
             mot6(1:2) = mot15(i+1:i+2)  
           endif
-          length_hk = len_trim( mot6 )
           exit
         end do
 
@@ -2310,7 +2101,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     allocate( Ep(1) )
     Ep(:) = 0._db
     call Write_out(rdum,rdum,zero_c,E_cut,Es(ie),Ep,0._db,First_E,.false.,rdum, &
-                   0,n_col,jpl,0,1,Convolution_out,nom_col,1,0,0,0,0,n,cdum,cdum,Tens,V0muf(1),.false.,0,Surface_ref,Volume_maille)
+                   1,0,n_col,jpl,0,1,Convolution_out,nom_col,1,0,0,0,0,n,cdum,cdum,Tens,V0muf(1),.false.,0, &
+                   Surface_ref,Volume_maille)
     deallocate( Ep )
     First_E = .false.
   end do
@@ -2407,13 +2199,13 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   if( Scan_true .and. .not. Dafs_bio ) Close(7)
 
   end do boucle_conv_file
-  
-  deallocate( angle, As, Convolution_out_all, decal_initl, dph, dpht )
-  deallocate( Efermip, En_fermi, Eph1, Epsii, Es, Eseuil )
-  deallocate( f0, f0scan, fi, Fichin, Fichscanin, Fichscanout_all, fr )
+ 
+  deallocate( angle, As, Convolution_out_all, decal, decal_initl, dph, dpht )
+  deallocate( Efermip, En_fermi, Eph1, Ephm, Epsii, Es, Eseuil )
+  deallocate( f0, f0scan, fi, Fichin, Fichscanin, Fichscanout_all, fpp_avantseuil, fr )
   deallocate( hkl_dafs )
   deallocate( Icirc, Icirccor, Icircdcor, Icor, Idcor, indf )
-  deallocate( Mu_mat_comp, Mus_mat, natomsym_f, ne, ne_initl, ninitl, nom_col, nphi, nsup )
+  deallocate( Mu_mat_comp, Mus_mat, n_div_fpp, natomsym_f, ne, ne_initl, ninitl, nom_col, nphi, nsup, numat )
   deallocate( p1f, p2f, Pds, phdtscan )
   deallocate( Run_done, Stokes_name, Stokes_param, Skip_run )
   deallocate( Trunc, V0muf, Xs )
@@ -2448,22 +2240,380 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   145 format(///' Error under the keyword Par_',a6,'in the indata file:',// &
                 ' The wanted file is the number',i3,' !',/ &
                 ' There are only',i3,' files in the job !'//)
-  147 format(///' Taking into account the energy shifts, there is no overlap between',/ &
-                ' the energy ranges of the different absorbing atoms !',/ &
-                ' No summation and convolution are possible !' //)
   150 format('    Gamma_max  =',f7.2,',  Aseah =',f7.2)
   160 format('    Gamma_max  =',f7.2,',  Ecent =',f7.2,', Elarg =',f7.2)
   170 format('    Gamma_hole =',f7.2,', E_cut =',f8.3,', Shift =',f8.3,' eV')
   172 format('    Gamma_hole =',f7.2,', E_cut =',f8.3,', Shift =',f8.3,' eV,  initl =',i3)
   174 format('    Gamma_hole =',f7.2,', E_cut =',f8.3,', Shift =',f8.3,' eV,  site', i3)
   176 format('    Gamma_hole =',f7.2,', E_cut =',f8.3,', Shift =',f8.3,' eV,  site', i3,', initl =',i3)
-  178 format(/'      E_(eV)    Width_(eV) lambda_(A)')
+  178 format(/'      E_(eV)      Width_(eV) lambda_(A)')
+  179 format(/' E_(eV) - E_edge  Width_(eV) lambda_(A)')
   180 format(3f12.3)
   185 format(2f12.3,1p,e12.4)
   190 format(/'   Energy   ',9(' Mu_ss_r_',i1,'    Mu_ss_i_',i1,'    Mu_sp_r_',i1,'    Mu_sp_i_',i1,'    Mu_ps_r_',i1, &
                               '    Mu_ps_i_',i1,'    Mu_pp_r_',i1,'    Mu_pp_i_',i1,'   '))
   200 format(f10.3,1p,240e13.5)
   210 format(f7.1,1p,3e13.5)
+end
+
+!***********************************************************************************************************************
+
+subroutine n_div_fpp_avanseuil(Eseuil,n_div_fpp,nfich)
+
+  use declarations
+  implicit none
+  
+  integer:: i, ifich, jfich, nfich
+
+  integer, dimension(nfich):: n_div_fpp
+  
+  logical, dimension(nfich):: ok
+  
+  real(kind=db), dimension(nfich):: Eseuil
+   
+  ok(:) = .false.
+  do ifich = 1,nfich
+    if( ok(ifich) ) cycle
+    i = 1
+    do jfich = ifich+1,nfich
+      if( ok(jfich) ) cycle
+      if( abs( Eseuil(ifich) - Eseuil(jfich) ) > 1._db ) cycle
+      i = i + 1
+    end do 
+    do jfich = ifich,nfich
+      if( ok(jfich) ) cycle
+      if( abs( Eseuil(ifich) - Eseuil(jfich) ) > 1._db ) cycle
+      n_div_fpp(jfich) =  i
+      ok(jfich) = .true.
+    end do 
+    
+  end do
+  return
+end
+
+!********************************************************************************************************************
+
+! Evaluation of relative shifts between input data
+
+  subroutine Shift_eval(decal,decal_initl,delta_edge,Energphot,Eph1,Ephm,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Esmin,nfich, &
+                        ninit1,ninitl,ninitlm)
+  
+  use declarations
+  implicit none
+
+  integer:: ifich, jfich, n, nfich, ninit1, ninitlm
+  
+  integer, dimension(nfich):: ninitl
+  
+  logical:: Energphot, Epsii_ref_man
+  logical, dimension(:), allocatable:: ok
+  
+  real(kind=db):: decal_min, delta_edge, Epsii_moy, Epsii_ref, Esmin
+  real(kind=db), dimension(nfich):: decal, decal_in, Eph1, Ephm, Eseuil 
+  real(kind=db), dimension(ninitlm,nfich):: decal_initl, Epsii 
+
+! At this stage contains only the imposed value.  
+  decal_in(:) = decal(:)
+  decal(:) = 0._db
+  
+  Esmin = Eseuil(1)
+  do ifich = 2,nfich
+    Esmin = min( Esmin, Eseuil(ifich) ) 
+  end do
+
+  Energphot = ( Ephm(1) > Eseuil(1) ) .and. ( Eseuil(1) > Ephm(1) - Eph1(1) )
+
+  if( .not. Energphot ) then
+    do ifich = 1,nfich
+      decal(ifich) = decal(ifich) + Eseuil(ifich) - Esmin
+    end do
+  endif
+
+  allocate( ok(nfich) )
+  ok(:) = .false.
+ 
+  do ifich = 1,nfich
+    if( ok(ifich) ) cycle
+    ok(ifich) = .true.
+
+    Epsii_moy = sum( Epsii(1:ninitl(ifich),ifich) )
+    n = ninitl(ifich) 
+
+    do jfich = ifich+1,nfich
+      if( abs( Eseuil(jfich) - Eseuil(ifich) ) > 1._db ) cycle
+      n = n + ninitl(jfich) 
+      ok(jfich) = .true.
+      Epsii_moy = Epsii_moy + sum( Epsii(1:ninitl(jfich),jfich) )
+    end do
+    Epsii_moy = Epsii_moy / n
+
+    if( Epsii_ref_man ) Epsii_moy = Epsii_ref
+
+    decal_min = 0._db
+    do jfich = ifich,nfich
+      if( abs( Eseuil(jfich) - Eseuil(ifich) ) > 1._db ) cycle
+      decal(jfich) = decal(jfich) - Epsii_moy + sum( Epsii(1:ninitl(jfich),jfich) ) / ninitl(jfich)
+      decal_min = min( decal(jfich), decal_min ) 
+    end do
+    do jfich = ifich,nfich
+      if( abs( Eseuil(jfich) - Eseuil(ifich) ) > 1._db ) cycle
+      decal(jfich) = decal(jfich) - decal_min
+    end do
+    
+  end do
+ 
+  deallocate( ok )
+  
+  decal(:) = decal(:) + decal_in(:)
+  
+  decal_initl(:,:) = 0._db
+  do ifich = 1,nfich
+    select case( ninitl(ifich) )
+      case(1)
+        Epsii_moy = Epsii(1,ifich)
+      case(2)
+         if( ninit1 == 2 ) then
+           Epsii_moy = sum( Epsii(1:ninitl(ifich),ifich) ) / ninitl(ifich)
+         else
+           Epsii_moy = Epsii(2,ifich)
+         endif
+      case(4,6,10)
+         if( ninit1 /= ninitl(ifich) ) then
+           Epsii_moy = sum( Epsii(ninit1+1:ninitl(ifich),ifich) ) / ( ninitl(ifich) - ninit1 )
+         else
+           Epsii_moy = sum( Epsii(1:ninitl(ifich),ifich) ) / ninitl(ifich)
+         endif
+    end select
+    decal_initl(1:ninitl(ifich),ifich) = Epsii(1:ninitl(ifich),ifich) - Epsii_moy + decal(ifich)
+    if( abs(Delta_edge) > eps10 .and. ( ninitl(ifich) /= ninit1 ) ) decal_initl(1:ninit1,ifich) &
+               = decal_initl(1:ninit1,ifich) + Delta_edge * Rydb
+  end do
+
+  return
+end
+
+!********************************************************************************************************************
+
+subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Estart,fichin,Length_line,ne,ne_initl,nes,nes_in, &
+                              nfich,ninitl,ninitlm,nsup,pasdeb)
+
+  use declarations
+  implicit none
+  
+  integer:: i, ie, ifich, ifichref, initl, initlref, ipr, je, istat, Length_line, n, &
+            nemax, nes, nes_in, nfich, ninitlm, nnombre 
+
+  integer, dimension(nfich):: ne, ninitl
+  integer, dimension(ninitlm,nfich):: ne_initl, nsup
+  
+  character(len=132), dimension(nfich):: Fichin
+  
+  logical:: Energphot
+  logical, dimension(:,:), allocatable:: Fichdone 
+  
+  real(kind=db):: E, Emax, Emin, Esmin, Estart, Estart_l, pasdeb
+  real(kind=db), dimension(nes_in):: Es_temp 
+  real(kind=db), dimension(nfich):: Eph1, Eseuil 
+  real(kind=db), dimension(ninitlm,nfich):: decal_initl 
+  real(kind=db), dimension(:), allocatable:: Energ 
+  real(kind=db), dimension(:,:,:), allocatable:: Ef 
+  
+  Estart_l = Estart
+  do ifich = 1,nfich
+    do initl = 1,ninitl(ifich)
+      if( Energphot ) then
+        E = Eph1(ifich) - Eseuil(ifich) + decal_initl(initl,ifich)
+      else
+        E = Eph1(ifich) + decal_initl(initl,ifich) - Eseuil(ifich) + Esmin
+      endif
+      Estart_l = Min( Estart_l, E )
+    end do
+  end do
+
+  do ifich = 1,nfich
+    do initl = 1,ninitl(ifich)
+      if( Energphot ) then
+        E = Eph1(ifich) - Eseuil(ifich) + decal_initl(initl,ifich)
+      else
+        E = Eph1(ifich) + decal_initl(initl,ifich) - Eseuil(ifich) + Esmin
+      endif
+      if( E > Estart_l - 1.e-10_db ) then
+        nsup(initl,ifich) = nint( ( E - Estart_l ) / pasdeb )
+        ne_initl(initl,ifich) = ne(ifich) + nsup(initl,ifich)
+      else
+        ne_initl(initl,ifich) = ne(ifich)
+        nsup(initl,ifich) = 0
+      endif
+    end do
+  end do
+
+  nemax = maxval( ne_initl )
+
+  n = sum( ninitl(:) )
+  allocate( Ef(nemax,ninitlm,nfich) )
+
+  do ifich = 1,nfich
+
+    allocate( Energ( ne(ifich) ) )
+    
+    open(2, file = fichin(ifich), status='old', iostat=istat)
+
+    read(2,*)
+    do i = 1,6
+      n = nnombre(2,Length_line)
+      if( n == 0 ) then
+        read(2,*)
+        exit
+      endif
+      read(2,*)
+    end do
+
+    do ie = 1,ne(ifich)
+      Read(2,*) Energ(ie)
+    end do
+
+    Close(2)
+    
+    Energ(:) = Energ(:) / Rydb
+    
+    do initl = 1,ninitl(ifich)
+      do ie = 1,ne(ifich)
+        je = ie + nsup(initl,ifich)
+        Ef(je,initl,ifich) = Energ(ie)
+      end do
+    end do
+
+    do initl = 1,ninitl(ifich)
+      do ie = nsup(initl,ifich),1,-1
+        Ef(ie,initl,ifich) = Ef(ie+1,initl,ifich) - pasdeb
+      end do
+    end do
+
+    do initl = 1,ninitl(ifich)
+      n = ne_initl(initl,ifich)
+      Ef(1:n,initl,ifich) = Ef(1:n,initl,ifich) + decal_initl(initl,ifich)
+    end do
+
+    deallocate( Energ )
+    
+  end do
+
+ ! When there are absorbing atom with different Z, 
+ ! the maximum energy of the convoluted spectra corresponds to the one of maximum edge energy  
+  E = Eseuil(1)
+  i = 0
+  do ifich = 2,nfich
+    if( abs( Eseuil(ifich) - E ) < 1._db ) cycle
+    if( ifich == 2 ) i = 1
+    if( Eseuil(ifich) < E ) cycle
+    E = Eseuil(ifich)
+    i = ifich
+  end do
+
+  Emin = Ef(1,1,1)
+  if( i == 0 ) then
+    Emax = Ef(ne_initl(1,1),1,1)
+  else
+    Emax = Ef(ne_initl(1,i),1,i)
+  endif
+
+  do ifich = 1,nfich
+    do initl = 1,ninitl(ifich)
+      Emin = min( Ef(1,initl,ifich), Emin )
+      if( i == 0 .or. abs( Eseuil(ifich) - Eseuil(max(i,1)) ) < 1._db ) &
+        Emax = min( Ef(ne_initl(initl,ifich),initl,ifich), Emax )
+    end do
+  end do
+
+! Grid elaboration
+
+  allocate( Fichdone(ninitlm,nfich) )
+  Fichdone(:,:) = .false.
+
+  boucle_0: do ifich = 1,nfich
+    do initl = 1,ninitl(ifich)
+      if( abs( Ef(1,initl,ifich) - Emin ) < eps10 ) exit boucle_0
+    end do
+  end do boucle_0
+  ifichref = ifich
+  initlref = initl
+  Fichdone(initlref,ifichref) = .true.
+
+  je = 0
+  do ie = 1,nes_in
+    je = je + 1
+    E = Ef(je,initlref,ifichref)
+    Es_temp(ie) = E
+    if( E > Emax - 1.e-10_db ) exit
+
+    if( je == ne_initl(initlref,ifichref) ) then
+
+      boucle_1: do ifich = 1,nfich
+        do initl = 1,ninitl(ifich)
+
+          if( Ef(ne_initl(initl,ifich),initl,ifich) > E + eps10 ) then
+            do je = ne_initl(initl,ifich),1,-1
+              if( Ef(je,initl,ifich) < E - eps10 ) exit
+            end do
+            ifichref = ifich
+            initlref = initl
+            Fichdone(initlref,ifichref) = .true.
+            exit boucle_1
+          endif
+          
+        end do
+      end do boucle_1
+    endif
+
+    boucle_2: do ifich = 1,nfich
+      do initl = 1,ninitl(ifich)
+        if( Fichdone(initl,ifich) ) cycle
+        if( E > Ef(nsup(initl,ifich)+1,initl,ifich) + eps10 ) then
+          do je = nsup(initl,ifich)+1,ne_initl(initl,ifich)
+            if( Ef(je,initl,ifich) > E + eps10 ) exit
+          end do
+          je = je - 1
+          ifichref = ifich
+          initlref = initl
+          Fichdone(initlref,ifichref) = .true.
+          cycle
+        endif
+      end do
+    end do boucle_2
+
+  end do
+  
+  if( ie > nes_in ) then
+    call write_error
+    do ipr = 6,9,3
+      write(ipr,110)
+    end do
+    stop
+  endif
+
+  if( E > Emax + 1.e-10_db ) then
+    nes = ie - 1
+  else
+    nes = ie
+  endif
+
+  deallocate( Fichdone )
+  deallocate( Ef )
+
+  if( nes == 0 ) then
+    call write_error
+    do ipr = 6,9,3
+      write(ipr,120)
+    end do
+    stop
+  endif
+
+  return
+  110 format(///' Problem in the energy grid elaboration in confolution',/ &
+                ' Too much points !' //)
+  120 format(///' Taking into account the energy shifts, there is no overlap between',/ &
+                ' the energy ranges of the different absorbing atoms !',/ &
+                ' No summation and convolution are possible !' //)
 end
 
 !********************************************************************************************************************
@@ -2662,16 +2812,16 @@ end
 
 ! Reading of dimensions
 
-subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Epsii,Eseuil,f0_forward,Fichin,Fichscanin,fpp_avantseuil, &
-          fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_mat_pol,n_Trunc,natomsym_f,ne,nfich,ninit1,ninitl, &
-          ninitlm,nphim,npldafs,nseuil,numat,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph,Surface_ref,Tenseur, &
-          Tenseur_car,Trunc,V0muf,Volume_maille,Volume_maille_bulk)
+subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm, Epsii,f0_forward,Fichin,Fichscanin, &
+          fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_col_max,n_mat_pol,n_Trunc,natomsym_f,ne,nfich, &
+          ninit1,ninitl,ninitlm,nphim,npldafs,nseuil,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph, &
+          Surface_ref,Tenseur,Tenseur_car,Trunc,V0muf,Volume_maille,Volume_maille_bulk)
 
   use declarations
   implicit none
 
-  integer:: eof, i, ie, ifich, ipl, ipr, istat, jseuil, l, Length_line, n, n_mat_pol, n_mat_pol1, n_Trunc, nfich, ninit1, &
-            ninitlm, nnombre, nphi, nphim, nphim1, npldafs, npldafs1, nseuil, numat, nxan, nxan1
+  integer:: eof, i, ie, ifich, ipl, ipr, istat, jseuil, l, Length_line, n, n_col_max, n_mat_pol, n_mat_pol1, n_Trunc, nfich, &
+            ninit1, ninitlm, nnombre, nphi, nphim, nphim1, npldafs, npldafs1, nseuil, numat, nxan, nxan1
   integer, dimension(nfich):: natomsym_f, ne, ninitl
 
   character(len=15):: nomab
@@ -2683,10 +2833,10 @@ subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Epsii,Eseuil
             Abs_in_bulk
   logical, dimension(nfich):: Trunc
 
-  real(kind=db):: Eintmax, Eph, f0_forward, fpp_avantseuil, mu_0_bulk, Sample_thickness, Surface_ref, Volume, Volume_maille, &
-                  Volume_maille_bulk  
+  real(kind=db):: Eintmax, Eph, Eseuil, f0_forward, fpp_avantseuil, mu_0_bulk, Sample_thickness, Surface_ref, Volume, &
+                  Volume_maille, Volume_maille_bulk  
   real(kind=db), dimension(ninitlm,nfich):: Epsii
-  real(kind=db), dimension(nfich):: En_Fermi, Eph1, Eseuil, V0muf
+  real(kind=db), dimension(nfich):: En_Fermi, Eph1, Ephm, V0muf
 
   n_Trunc = 0
   natomsym_f(:) = 0
@@ -2699,13 +2849,13 @@ subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Epsii,Eseuil
 
     n = nnombre(2,Length_line)
     if( n == 11 + ninitl(ifich) ) then
-      read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninitl(ifich), &
+      read(2,*) Eseuil, numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninitl(ifich), &
         ninit1, Epsii(1:ninitl(ifich),ifich), Volume, f0_forward
     elseif( n == 12 + ninitl(ifich) ) then
-      read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninitl(ifich), &
+      read(2,*) Eseuil, numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninitl(ifich), &
         ninit1, Epsii(1:ninitl(ifich),ifich), Volume, f0_forward, natomsym_f(ifich)
     else
-      read(2,*) Eseuil(ifich), numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninitl(ifich), &
+      read(2,*) Eseuil, numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninitl(ifich), &
         ninit1, Epsii(1:ninitl(ifich),ifich), Volume, Surface_ref, f0_forward, natomsym_f(ifich)
     endif
 
@@ -2717,6 +2867,15 @@ subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Epsii,Eseuil
     endif
     
     n = nnombre(2,Length_line)
+    
+    if( n >= n_col_max ) then
+      call write_error
+      do ipr = 6,9,3
+        write(ipr,110) n_mat_pol
+      end do
+      stop
+    endif
+    
     npldafs = n / 2
     if( n /= 0 ) then    
       read(2,*)
@@ -2829,6 +2988,7 @@ subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Epsii,Eseuil
       Read(2,*,iostat=eof) Eph
       if( eof /= 0 ) exit
       if( ie == 1 ) eph1(ifich) = eph
+      Ephm(ifich) = eph
       if( eph > Eintmax ) exit
     end do
     ne(ifich) = ie - 1
@@ -2874,6 +3034,9 @@ subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Epsii,Eseuil
   endif
 
   return
+  110 format(///' The maximum of number of columns =',i6,', is reached in the files to convolute.', & 
+               ' Use the keyword Length_line to increase this number.', &
+               ' Some compilers such as ftn95 does not allow higher number.',// ) 
   120 format(///'     In convolution, there is', i2,' polarization matrix to calculate',/&
                 '     A sample tickness must be given in micrometer with keyword "Sample_tickness" !',// )
   122 format(///'     In convolution, there are', i3,' polarization matrix to calculate',/&
@@ -2923,8 +3086,6 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Fu
     read(2,*)
   end do
 
-  read(2,'(A)') motl
-
   if( Dafs_bio ) then
     n_col_in = 1 + nxan
   else
@@ -2934,6 +3095,8 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Fu
   endif
 
   allocate( nom_col_in(n_col_in) )
+
+  read(2,'(A)') motl
 
   call Extract_word(Length_line,motl,nom_col_in,n_col_in,n_col_in)
 
@@ -3412,12 +3575,15 @@ end
 
 !***********************************************************************
 
-subroutine seahdench(A,E_cut,Gamma_max,nelor,Elor,betalor)
+subroutine Seahdench(A,E_cut,Gamma_max,nelor,Elor,betalor)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
+  
+  integer:: ie, nelor
 
-  real(kind=db):: Elor(nelor), betalor(nelor), lambda
+  real(kind=db):: A, E, E_cut, Ep, lambda, Gamma_max
+  real(kind=db), dimension(nelor):: Elor, betalor
 
   do ie = 1,nelor
     E = Elor(ie) - E_cut
@@ -3428,7 +3594,7 @@ subroutine seahdench(A,E_cut,Gamma_max,nelor,Elor,betalor)
       if( Gamma_max > 0._db ) lambda = lambda + sqrt(Ep) / Gamma_max
       betalor(ie) = sqrt(E) / lambda
     else
-      betalor(ie) = 0.
+      betalor(ie) = 0._db
     endif
   end do
 
@@ -3465,17 +3631,22 @@ end
 
 !***********************************************************************
 
-! Convolution par une gaussienne
+! Convolution by a gaussian
 
-subroutine gaussi(deltar,E_cut,Energ,nenerg,vibration,Y)
+subroutine Gaussi(deltar,E_cut,Energ,nenerg,vibration,Y)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
-! nj : Points au dela de la gamme pour diminuer les effets de bord de la
-! convolution
-  parameter(nj=10,n1m=1-nj)
-  real(kind=db) de(n1m:nenerg+nj), Ef(n1m:nenerg+nj), Energ(nenerg), gaus(n1m:nenerg+nj), Y(nenerg), Xa(n1m:nenerg+nj)
+! nj : Points au dela de la gamme pour diminuer les effets de bord de la convolution
+  integer, parameter:: nj = 10
+  integer, parameter:: n1m = 1 - nj
+  
+  integer:: i, ie, je, n, ne1, ne2, nenerg
+  
+  real(kind=db):: b, def, deltar, E, E_cut, Efac, fac, p, pas, pdt, vib, vibration, Yint
+  real(kind=db), dimension(nenerg):: Energ, Y
+  real(kind=db), dimension(n1m:nenerg+nj):: de, Ef, Gaus(n1m:nenerg+nj), Xa(n1m:nenerg+nj)
 
   Ef(1:nenerg) = Energ(1:nenerg)
   Xa(1:nenerg) = Y(1:nenerg)
@@ -3495,8 +3666,6 @@ subroutine gaussi(deltar,E_cut,Energ,nenerg,vibration,Y)
     de(ie) = 0.5 * ( Ef(ie+1) - Ef(ie-1) )
   end do
   de(ne2) = ( Ef(ne2) - Ef(ne2-1) )
-
-!      fnorm = 1 / ( b * sqrt( 2 * pi ) )
 
   if( abs(deltar) < 1.e-10_db .and. abs(vibration) < 1.e-10_db ) return
 
@@ -3547,16 +3716,21 @@ end
 
 !***********************************************************************
 
-! Calcul des coefficients de la lorentzienne
+! Calculation of the coefficients of the lorentzian
 
-subroutine cflor(bb,betalor,E_cut,Eph,Elor,Energ,ie1,ie2,nef, nelor,nenerg,nenerge,Photoemission)
+subroutine cflor(bb,betalor,E_cut,Eph,Elor,Energ,ie1,ie2,nef,nelor,nenerg,nenerge,Photoemission)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
+  integer:: ie, ie1, ie2, j, nef, nelor, nenerg, nenerge
+  
   logical:: Photoemission
 
-  real(kind=db):: bb(nenerge), betalor(nelor), Elor(nelor), Energ(nenerg), Eph(nenerge)
+  real(kind=db):: def, E_cut, p
+  real(kind=db), dimension(nenerge):: bb, Eph
+  real(kind=db), dimension(nenerg):: Energ
+  real(kind=db), dimension(nelor):: betalor, Elor
 
   Eph(1:nenerg) = Energ(1:nenerg)
 
@@ -3603,9 +3777,9 @@ end
 
 !***********************************************************************
 
-! Calcul de l'extrapolation atomique
+! Calculation of the extrapolation after the grid for the aromic scattering
 
-subroutine extrapat(bb_nenerg,dampl,Energ,Eseuil,Extrap,fpp0,fprime_atom,icheck,nenerg,numat)
+subroutine Extrapat(bb_nenerg,dampl,Ephoton,Eseuil,Extrap,fpp0,fprime_atom,icheck,nenerg,numat)
 
   use declarations
   implicit none
@@ -3620,36 +3794,36 @@ subroutine extrapat(bb_nenerg,dampl,Energ,Eseuil,Extrap,fpp0,fprime_atom,icheck,
 
   logical:: Extrap, fprime_atom
 
-  real(kind=db):: alfa, bb_nenerg, bb2, dde, E1, Ephi, Ephm, Ephoton, Eseuil, f, fp, fpp, fpp0
-  real(kind=db):: ei(nim), ei1(nim), ei2(nim), Energ(nenerg), fppn(nim)
+  real(kind=db):: alfa, bb_nenerg, bb2, dde, E1, Eph, Ephi, Ephm, Eseuil, f, fp, fpp, fpp0
+  real(kind=db):: ei(nim), ei1(nim), ei2(nim), Ephoton(nenerg), fppn(nim)
 
   if( fprime_atom ) then
-    Ephoton = max( Eseuil - 200 / rydb, 10 / rydb )
+    Eph = max( Eseuil - 200 / rydb, 10 / rydb )
     dde = 0.5 /rydb
     Ephm = Eseuil + 5000. / rydb
     Ephi = Eseuil + 500. / rydb
     write(3,110) Chemical_symbol(numat)
     write(3,'(/A)') '   Energy_eV       f_prim      f_second'
     do i = 1,nim
-      if( Ephoton < Ephi ) then
-        Ephoton = Ephoton + dde
+      if( Eph < Ephi ) then
+        Eph = Eph + dde
       else
-        Ephoton = Ephoton + 10 * dde
+        Eph = Eph + 10 * dde
       endif
-      if( Ephoton > Ephm ) exit
-      call fprime(numat,Ephoton,fpp,fp)
-      write(3,'(3f13.6)') Ephoton*rydb, fp, fpp
+      if( Eph > Ephm ) exit
+      call fprime(numat,Eph,fpp,fp)
+      write(3,'(3f13.6)') Eph*rydb, fp, fpp
     end do
     if( .not. Extrap ) return
   endif
 
-  Ephoton = Eseuil - 2 / rydb
-  call fprime(numat,Ephoton,fpp0,fp)
+  Eph = Eseuil - 2 / rydb
+  call fprime(numat,Eph,fpp0,fp)
 
-  Ephoton = Eseuil + Energ(nenerg)
+  Eph = Ephoton(nenerg)
   Ephm = Eseuil + 10000._db / rydb
   if( nenerg > 1 ) then
-    dde = Energ(nenerg) - Energ(nenerg-1)
+    dde = Ephoton(nenerg) - Ephoton(nenerg-1)
   else
     dde = 2 / rydb
   endif
@@ -3658,10 +3832,10 @@ subroutine extrapat(bb_nenerg,dampl,Energ,Eseuil,Extrap,fpp0,fprime_atom,icheck,
   f = 0.5_db * alfa
   do i = 1,nim
     dde = alfa * dde
-    Ephoton = Ephoton + dde
-    if( Ephoton > ephm ) exit
-    call fprime(numat,Ephoton,fpp,fp)
-    Ei(i) = Ephoton
+    Eph = Eph + dde
+    if( Eph > ephm ) exit
+    call fprime(numat,Eph,fpp,fp)
+    Ei(i) = Eph
     Ei2(i) = Ei(i) + f * dde
     Ei1(i) = Ei(i) - 0.5_db * dde
     fppn(i) = - ( fpp - fpp0 ) / pi
@@ -3671,7 +3845,7 @@ subroutine extrapat(bb_nenerg,dampl,Energ,Eseuil,Extrap,fpp0,fprime_atom,icheck,
   bb2 = bb_nenerg**2
 
   do ie = 1,nenerg
-    E1 = Energ(ie) + Eseuil
+    E1 = Ephoton(ie)
     if( abs(bb_nenerg) < 1.e-10_db ) then
       dampl(ie) = sum( fppn(1:ni) * log( ( Ei2(1:ni) - E1 ) / (Ei1(1:ni) - E1 ) ) )
     else
@@ -3683,7 +3857,7 @@ subroutine extrapat(bb_nenerg,dampl,Energ,Eseuil,Extrap,fpp0,fprime_atom,icheck,
   if( icheck > 1 ) then
     write(3,'(/A)') '  Energy      dampl_r     dampl_i'
     do ie = 1,nenerg
-      write(3,'(f10.3,1p,2e13.5)') Energ(ie)*rydb, dampl(ie)
+      write(3,'(f10.3,1p,2e13.5)') Ephoton(ie)*rydb, dampl(ie)
     end do
   endif
 
@@ -3693,28 +3867,32 @@ end
 
 !***********************************************************************
 
-subroutine extract_word(length,mot,word,n_word,n_dim)
+subroutine extract_word(Length_line,motl,word,n_word,n_dim)
 
   use declarations
+  
+  implicit none
+  
+  integer:: i, i_word, ii, j, Length_line, n_dim, n_word
 
-  character(len=length):: mot
-  character(len=length_word):: mota
+  character(len=Length_line):: motl
+  character(len=length_word):: mot
   character(len=length_word), dimension(n_dim):: word
 
   i_word = 0
   i = 0
-  do ii = 1,length
+  do ii = 1,Length_line
     i = i + 1
-    if( i > length ) exit
-    if( mot(i:i) == ' ' ) cycle
+    if( i > Length_line ) exit
+    if( motl(i:i) == ' ' ) cycle
     i_word = i_word + 1
-    mota = ' '
-    do j = i,length
-      if( mot(j:j) == ' ' ) exit
-      mota(j-i+1:j-i+1) = mot(j:j)
+    mot = ' '
+    do j = i,Length_line
+      if( motl(j:j) == ' ' ) exit
+      mot(j-i+1:j-i+1) = motl(j:j)
     end do
     i = j
-    word(i_word) = mota
+    word(i_word) = mot
     if( i_word == n_word ) exit
   end do
 
@@ -4359,7 +4537,7 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
   integer, dimension(:), allocatable:: hk_length, n_index_hk
   integer, dimension(n_energ_tr):: index_ie
 
-  logical:: Cor_abs, Double_cor
+  logical:: Double_cor
   
   character(len=6):: mot6, mot6_b
   character(len=6), dimension(:), allocatable:: hk
@@ -4369,10 +4547,10 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
   character(len=15), dimension(:,:,:,:), allocatable:: Signal_out
   character(len=132):: Convolution_out, Convolution_tr
 
-  real(kind=8):: E
-  real(kind=8), dimension(nes):: Es
-  real(kind=8), dimension(n_energ_tr):: Energ_tr, p1
-  real(kind=8), dimension(npldafs,n_signal):: Signal
+  real(kind=db):: E
+  real(kind=db), dimension(nes):: Es
+  real(kind=db), dimension(n_energ_tr):: Energ_tr, p1
+  real(kind=db), dimension(npldafs,n_signal):: Signal
  
   Convolution_tr = Convolution_out
   l = len_trim(Convolution_tr)
@@ -4383,19 +4561,16 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
   open( ipr, file = Convolution_tr )
 
   if( n_signal == 3*nes ) then
-    Cor_abs = .true.
     Double_cor = .true.
     i1 = n_col - 5*npldafs + 1
     ipas = 5
     n_cor = 3
   elseif( n_signal == 2*nes ) then
-    Cor_abs = .true.
     Double_cor = .false.
     i1 = n_col - 4*npldafs + 1
     ipas = 4
     n_cor = 2
   else
-    Cor_abs = .false.
     Double_cor = .false.
     i1 = n_col - npldafs + 1
     ipas = 1
@@ -4588,9 +4763,9 @@ subroutine Main_gaussian(File_in,itape,File_out)
   character(len=9):: keyword
   character(len=132):: File_in, File_out, identmot, mot, Title, Traduction
 
-  real(kind=8):: a, sigma
-  real(kind=8), dimension(:), allocatable:: x
-  real(kind=8), dimension(:,:), allocatable:: y, z
+  real(kind=db):: a, sigma
+  real(kind=db), dimension(:), allocatable:: x
+  real(kind=db), dimension(:,:), allocatable:: y, z
  
   Rewind(itape)
   
@@ -4713,9 +4888,9 @@ subroutine Conv_gaussian(ncol,nx,sigma,x,y,z)
 
   integer:: i, j, ncol, nx
   
-  real(kind=8):: alfa, f, g, g_sum, mu, sigma
-  real(kind=8), dimension(nx):: dx, x
-  real(kind=8), dimension(nx,ncol):: y, z
+  real(kind=db):: alfa, f, g, g_sum, mu, sigma
+  real(kind=db), dimension(nx):: dx, x
+  real(kind=db), dimension(nx,ncol):: y, z
 
   if( abs( sigma ) < eps10 ) then
     z(:,:) = y(:,:)

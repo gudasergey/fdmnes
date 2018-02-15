@@ -604,7 +604,7 @@ subroutine eps_coeur(ch_coeur,E_coeur,E_coeur_s,Full_atom,iaprotoi,icheck,itypep
   real(kind=db),dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind):: Vxcato
   real(kind=db),dimension(0:nrm,2,0:ntype):: psi_coeur
 
-! Potentiel ici garde spherique
+! Only the spherical part of the potential
   Ylm_comp = .false.
   lmax_pot_loc = 0
   nlm_pot_loc = 1
@@ -621,7 +621,7 @@ subroutine eps_coeur(ch_coeur,E_coeur,E_coeur_s,Full_atom,iaprotoi,icheck,itypep
     it = itypepr(ipr)
     nr = nrato(it)
     r(1:nrm) = rato(1:nrm,it)
-! On fait une moyenne sur les deux spins, si besoin :
+! Average on both spins if needed:
     do ir = 1,nrm
       Vxc = sum( Vxcato(ir,1,1:nspin,iapr) ) / nspin
       pot(ir,1,1) = Vcato(ir,1,iapr) + Vxc
@@ -638,10 +638,10 @@ end
 
 !***********************************************************************
 
-! Preparation de l'iteration suivante
+! Preparation of next iteration
 
 subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,Delta_energ,Delta_energ_s, &
-               Delta_energ_t,Doping,En_cluster,En_cluster_s,Energ_self,Energ_self_s,Fermi,Fermi_first,Full_atom, &
+               Doping,En_cluster,En_cluster_s,Energ_self,Energ_self_s,Fermi,Fermi_first,Full_atom, &
                Hubbard,i_self,icheck,ipr_dop,m_hubb,mpirank,n_atom_0_self,n_atom_ind_self,n_atom_proto,n_devide,natome,natomeq, &
                nb_eq,ngreq,nlm_pot,nrm_self,nself,nspin,nspinp,p_self,p_self_max,p_self0,rho_self,rho_self_s, &
                V_Hubb,V_Hubb_s) 
@@ -660,7 +660,7 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
 
   logical:: Convergence, Doping, Fermi, Fermi_first, Full_atom, Hubbard
 
-  real(kind=db):: Delta_En_conv, Delta_energ, Delta_energ_s, Delta_energ_t, Delta_lim, En_cluster, En_cluster_s, &
+  real(kind=db):: Delta_En_conv, Delta_energ, Delta_energ_s, Delta_lim, En_cluster, En_cluster_s, &
     p_self, p_self_max, p_self0
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: Energ_self, Energ_self_s
   real(kind=db), dimension(0:nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self):: rho_self, rho_self_s
@@ -676,7 +676,7 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
 
   if( mpirank == 0 ) write(6,120) i_self, En_cluster * rydb
 
-! Interpolation d'une iteration de la boucle coherente a l'autre
+! Interpolation between 2 last iterations
   if( i_self == 1 ) then
 
     Delta_energ = 1000000._db
@@ -688,8 +688,8 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
 
     if( icheck > 0 ) write(3,125)
 
-! Test convergence: sur l'energie et sur la charge de l'atome central
-! a faire avant l'interpolation
+! Test convergence: on the energy and on the charge of the absorbing atom
+! To to before interpolation
     Delta_energ = 0._db
     if( Full_atom ) then
       Delta_lim = Delta_En_conv * natomeq
@@ -741,7 +741,7 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
         write(6,'(/A)') ' Calculation has not converged !'
       else
         if( i_self == 1 .or. ( En_cluster - En_cluster_s ) > Delta_lim / 10 ) Mod_p = Mod_p + 1  
-! Si calcul divergent, ou avec trop de batement, on diminue le poids.
+! When calculation is diverging, or with too much beating, one decreases the weight.
         if( ( En_cluster - En_cluster_s  < - eps10 ) .or. Delta_energ > 3._db * abs( En_cluster - En_cluster_s ) ) then
           if( p_self0 > 0.39_db .or. i_self > 50 ) then
             p_self = max( p_self / 2, p_self0 / 8 )
@@ -767,9 +767,8 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
 
   if( Hubbard .and. i_self > 1 ) V_hubb(:,:,:,:,:) =  p_self * V_hubb(:,:,:,:,:) + ( 1 - p_self ) * V_hubb_s(:,:,:,:,:)
 
-! On stoque les valeurs de l'iteration courrante, pour les injecter dans la suivante
+! One keeps the values of the current iteration, to use them in the next one
   if( .not. convergence .and. i_self /= nself ) then
-    Delta_energ_t = Delta_energ_s
     Delta_energ_s = Delta_energ
     En_cluster_s = En_cluster
     Energ_self_s(:) = Energ_self(:)

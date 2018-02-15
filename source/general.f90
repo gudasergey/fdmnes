@@ -7,15 +7,15 @@
 subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom_gr, &
         axyz,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur,Bulk, &
         Doping,Extract,Flapw,iabsm,icheck,igr_i,igr_is,igr_proto,itype,Magnetic,Matper, &
-        Memory_save,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,n_multi_run_e,neqm, &
+        Memory_save,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,n_multi_run_e,n_Z_abs,neqm, &
         ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,numat_abs,popats,posn,Sym_2D)
 
   use declarations
   implicit none
 
   integer:: i, ia, ia_b, ib, ib_b, icheck, igr, igr_1, igr_2, igr_b, igra, igrb, io, irev, is, isp, it, ita, itb, jgr, jgr_b, &
-     js, long, n_atom_int, n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, n_multi_run_e, na, nabs, nb, nla, nlb, neq, neqm, &
-     ngroup, ngroup_m, nlatm, nspin, ntype, numat_abs, numat_it, numat_jgr
+     js, long, n_atom_int, n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, n_multi_run_e, n_Z_abs, na, nabs, nb, nla, nlb, &
+     neq, neqm, ngroup, ngroup_m, nlatm, nspin, ntype, numat_it, numat_jgr
 
   character(len=5):: struct
   character(len=9):: nomsym
@@ -27,6 +27,7 @@ subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsp
   integer, dimension(ngroup):: igreq
   integer, dimension(n_atom_uc):: itypegen
   integer, dimension(ntype):: itequ
+  integer, dimension(n_Z_abs):: numat_abs
   integer, dimension(:), allocatable:: iabsmm, isymq
 
   logical:: Atom_nonsph, absauto, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Doping, Extract, Flapw, Magnetic, Matper, &
@@ -161,15 +162,19 @@ subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsp
 ! List of absorbing atoms
   if( Absauto ) then
     nabs = 0
-    do igr = igr_1,igr_2
-      if( numat( abs( itype(igr) ) ) == numat_abs ) nabs = nabs+1
+    do i = 1,n_Z_abs
+      do igr = igr_1,igr_2
+        if( numat( abs( itype(igr) ) ) == numat_abs(i) ) nabs = nabs+1
+      end do
     end do
     allocate( iabsmm(nabs) )
     ia = 0
-    do igr = igr_1,igr_2
-      if( numat( abs( itype(igr) ) ) /= numat_abs ) cycle
-      ia = ia + 1
-      iabsmm(ia) = igr
+    do i = 1,n_Z_abs
+      do igr = igr_1,igr_2
+        if( numat( abs( itype(igr) ) ) /= numat_abs(i) ) cycle
+        ia = ia + 1
+        iabsmm(ia) = igr
+      end do
     end do
   else
     nabs = n_multi_run_e
@@ -825,10 +830,7 @@ subroutine init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Fla
     write(6,'(/3x,A)') nomfich_s
   endif
 
-  if( icheck > 0 ) then
-    write(3,100) iabsorig
-    write(3,110)
-  endif
+  if( icheck > 0 ) write(3,110)
 
   boucle_1: do iprabs_nonexc = 1,n_atom_proto
     do i = 1,ngreq(iprabs_nonexc)
@@ -866,7 +868,6 @@ subroutine init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Fla
         n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc)
 
   return
-  100 format(/' ----------',110('-'),//' Absorbing atom',i4)
   110 format(/' ---- Init_run ------',100('-'))
 end
 
@@ -2447,17 +2448,6 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
 
   return
   110 format(/' ---- Natomp_cal ----',100('-'),/)
-  120 format(//' Error in the indata file, the following atoms are too close:',/)
-  130 format(' Atoms',i5,' at p =',3f11.7,/'   and',i5,' at p =',3f11.7, ', distance =',f11.7,' A')
-  140 format(/' This can come from:'/, &
-              '  - Two atoms set at the same position,'/, &
-              '  - Two atoms too close,'/, &
-              '  - When using Spgroup keyword, the position of an atom standing on',/ &
-              '    a symmetry plane or on a rotation axis must follow precisely the convenient',/ &
-              '    ratio between x, y and z of the site (for example (h,2h,0) ),'/, &
-              '  - An unsufficient number of digits for the atom position when it is 1/3, 2/3...'/ &
-              '    One must write them with at least 10 digits,'/, &
-              '    for example 0.3333333333 and not 0.3333 !'//)
   150 format(' Cluster radius =',f5.2,' A, nb. of atom =',i4)
   160 format(' Absorption calculation   : cluster radius =',f5.2,' A, nb. of atom =',i4)
   165 format('                            cluster radius =',f5.2,' A, nb. of atom =',i4)
@@ -6731,7 +6721,8 @@ subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_ma
   use declarations
   implicit none
 
-  integer:: i, icheck, ii, ipl, ipr, j, jj, jpl, k, kpl, mpirank0, n_mat_polar, ncolm, ncolr, nj, nple, nplr, nplrm, nxanout
+  integer:: i, icheck, ii, ipl, ipr, j, jj, jpl, k, kpl, mpirank0, n_mat_polar, ncolm, ncolr, nj, nple, nplr, nplr_xan, nplrm, &
+            nxanout
 
   character(len=Length_word):: nomab
   character(len=Length_word), dimension(ncolm):: nomabs
@@ -6942,13 +6933,14 @@ subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_ma
   end do
 
   nplr = jpl
+  nplr_xan = nplr - 4 * n_mat_polar
 
 ! Determination des noms des colonnes de resultats dans les fichiers de sortie
 
   jpl = 0   ! indice de colonne
   ipl = 0
 
-  do kpl = 1,nplr
+  do kpl = 1,nplr_xan
 
     jpl = jpl + 1
     ipl = ipl + 1
@@ -6978,18 +6970,18 @@ subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_ma
 
     else
 
+      if( nple /= n_mat_polar ) then
+        pl(:) = polar(:,ipl)
+        vo(:) = veconde(:,ipl)
+      else
+        ipl = ipl - 1
 ! On se place dans la base cristallographique
-      if( nple == 0 ) then
         pl(:) = pol(:,kpl)
         pl = matmul( orthmati, pl)
         pl(:) = pl(:) * axyz(:)
         vo(:) = vec(:,kpl)
         vo = matmul( orthmati, vo)
         vo(:) = vo(:) * axyz(:)
-      else
-        if( ltypcal(kpl) == 'sp   ' .or. ltypcal(kpl) == 'ps   ' .or. ltypcal(kpl) == 'pp   ') ipl = ipl - 1
-        pl(:) = polar(:,ipl)
-        vo(:) = veconde(:,ipl)
       endif
 
       plmin = 1._db
@@ -7005,64 +6997,34 @@ subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_ma
       end do
       kpol(:) = nint( vo(:) / vomin )
 
-      if( ltypcal(kpl) == 'ss   ' .or. ltypcal(kpl) == 'sp   ' .or. ltypcal(kpl) == 'ps   ' .or. ltypcal(kpl) == 'pp   ') then
-        j = 0
-        nomab = ' '
-        call trnom(j,ipol,Length_word,nomab)
+      j = 0
+      nomab = ' '
+      call trnom(j,ipol,Length_word,nomab)
+      if( ( kpol(1) /= 0 .or. kpol(2) /= 0 .or. kpol(3) /= 0 ) .and. ( Quadrupole .or. Octupole .or. Dipmag ) ) then
         j = j + 1
         nomab(j:j) = ','
         call trnom(j,kpol,Length_word,nomab)
-        nj = j
-        if( nj < Length_word-6 ) nomab(nj+1:nj+1) = ')'
-        if( nj < Length_word-5 ) then
-          nomab(1:Length_word) = '(' // nomab(1:Length_word-1)
-        else
-          nomab(1:Length_word) = ' ' // nomab(1:Length_word-1)
-        endif
-        nj = len_trim(nomab) + 1
-        nomab(nj:nj) = '_'
-        nomab(nj+1:nj+2) = ltypcal(kpl)(1:2)
-        nomabs(jpl) = nomab
-
-        if( ltypcal(kpl) == 'sp   ' .or.  ltypcal(kpl) == 'ps   ' ) then
-          nomab(nj+3:nj+4) = '_r'
-          nomabs(jpl) = nomab
-          jpl = jpl + 1
-          nomab(nj+3:nj+4) = '_i'
-          nomabs(jpl) = nomab
-        endif
-
-      else
-
-        j = 0
-        nomab = ' '
-        call trnom(j,ipol,Length_word,nomab)
-        if( ( kpol(1) /= 0 .or. kpol(2) /= 0 .or. kpol(3) /= 0 ) .and. ( Quadrupole .or. Octupole .or. Dipmag ) ) then
-          j = j + 1
-          nomab(j:j) = ','
-          call trnom(j,kpol,Length_word,nomab)
-        endif
-        nj = j
-        if( nj < Length_word-2 ) nomab(nj+1:nj+1) = ')'
-        if( nj < Length_word-1 ) then
-          nomab(1:Length_word) = '(' // nomab(1:Length_word-1)
-        else
-          nomab(1:Length_word) = ' ' // nomab(1:Length_word-1)
-        endif
-
-        nomabs(jpl) = nomab // 'pp'
-
       endif
+      nj = j
+      if( nj < Length_word-2 ) nomab(nj+1:nj+1) = ')'
+      if( nj < Length_word-1 ) then
+        nomab(1:Length_word) = '(' // nomab(1:Length_word-1)
+      else
+        nomab(1:Length_word) = ' ' // nomab(1:Length_word-1)
+      endif
+
+      nomabs(jpl) = nomab // 'pp'
+
     endif
   end do
 
-  pp1 = sum( pdp(1:nplr,1) )
-  pp2 = sum( pdp(1:nplr,2) )
-  pp = sum( abs(pdp(1:nplr,:)) )
-  if(.not. Polarise ) jpl = nplr
-  if( nplr > 1 .and. pp > eps4 ) then
-    if( abs(pp1) > eps4 ) pdp(1:nplr,1) = pdp(1:nplr,1) / pp1
-    if( ( Quadrupole .or. Octupole ) .and. abs(pp2) > eps4 ) pdp(1:nplr,2) = pdp(1:nplr,2) / pp2
+  pp1 = sum( pdp(1:nplr_xan,1) )
+  pp2 = sum( pdp(1:nplr_xan,2) )
+  pp = sum( abs(pdp(1:nplr_xan,:)) )
+  if( .not. Polarise ) jpl = nplr_xan
+  if( nplr_xan > 1 .and. pp > eps4 ) then
+    if( abs(pp1) > eps4 ) pdp(1:nplr_xan,1) = pdp(1:nplr_xan,1) / pp1
+    if( ( Quadrupole .or. Octupole ) .and. abs(pp2) > eps4 ) pdp(1:nplr_xan,2) = pdp(1:nplr_xan,2) / pp2
     Moyenne = .true.
     jpl = jpl + 1
     if( abs(pp1+pp2) > eps4 ) then
@@ -7078,7 +7040,7 @@ subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_ma
   if( Polarise ) then
     nxanout = 1
   else
-    if( nplr == 1 ) nomabs(1) = '    <xanes>  '
+    if( nplr_xan == 1 ) nomabs(1) = '    <xanes>  '
     nxanout = jpl
   endif
 
@@ -7086,6 +7048,57 @@ subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_ma
     jpl = jpl + 1
     nomabs(jpl) = '  XANES_atom '
   endif
+
+  do kpl = nplr_xan+1,nplr
+
+    jpl = jpl + 1
+    ipl = ipl + 1
+
+ ! one stokes the "first" polarization (sigma) and wave vector
+    if( ltypcal(kpl) /= 'ss   ' ) ipl = ipl - 1
+    pl(:) = polar(:,ipl)
+    vo(:) = veconde(:,ipl)
+
+    plmin = 1._db
+    do k = 1,3
+      pp = abs( pl(k) )
+      if( pp > eps4 ) plmin = min( plmin, pp )
+    end do
+    ipol(:) = nint( pl(:) / plmin )
+    vomin = 1._db
+    do k = 1,3
+      pp = abs( vo(k) )
+      if( pp > eps4 ) vomin = min( vomin, pp)
+    end do
+    kpol(:) = nint( vo(:) / vomin )
+
+    j = 0
+    nomab = ' '
+    call trnom(j,ipol,Length_word,nomab)
+    j = j + 1
+    nomab(j:j) = ','
+    call trnom(j,kpol,Length_word,nomab)
+    nj = j
+    if( nj < Length_word-6 ) nomab(nj+1:nj+1) = ')'
+    if( nj < Length_word-5 ) then
+      nomab(1:Length_word) = '(' // nomab(1:Length_word-1)
+    else
+      nomab(1:Length_word) = ' ' // nomab(1:Length_word-1)
+    endif
+    nj = len_trim(nomab) + 1
+    nomab(nj:nj) = '_'
+    nomab(nj+1:nj+2) = ltypcal(kpl)(1:2)
+    nomabs(jpl) = nomab
+
+    if( ltypcal(kpl) == 'sp   ' .or.  ltypcal(kpl) == 'ps   ' ) then
+      nomab(nj+3:nj+4) = '_r'
+      nomabs(jpl) = nomab
+      jpl = jpl + 1
+      nomab(nj+3:nj+4) = '_i'
+      nomabs(jpl) = nomab
+    endif
+
+  end do
 
 ! ncolr correspond au nombre de colonnes ecrites pour le xanes
   ncolr = jpl
@@ -9592,10 +9605,10 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
 
       if( ip_cycle == 1 .and. ie_cycle == 1 ) then
         call coef_sch_rad(E,f2,g0,gm,gp,gso,nlm,nr,nspin,nspino,numat,r,.false.,.false.,V)
-        gpi(:,:) = 1 / gp(:,:)
+        gpi(1:nr-1,:) = 1 / gp(1:nr-1,:)
       elseif( Relativiste .or. Spinorbite ) then
         call coef_sch_rad(E,f2,g0,gm,gp,gso,nlm,nr,nspin,nspino,numat,r,Relativiste,Spinorbite,V)
-        gpi(:,:) = 1 / gp(:,:)
+        gpi(1:nr-1,:) = 1 / gp(1:nr-1,:)
       endif
 
       php = 0._db

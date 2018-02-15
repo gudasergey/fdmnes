@@ -24,16 +24,16 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,mpirank)
   
   real(kind=db):: Shift, Shift_edge
   real(kind=db), dimension(nbseuil):: Eseuil
-  real(kind=db), dimension(nassm):: ek1, el1, el2, el3
-  real(kind=db), dimension(nm1:nassm):: em1, em2, em3
-  real(kind=db), dimension(nm4:nassm):: em4, em5
-  real(kind=db), dimension(nn1:nassm):: en1, en2, en3
-  real(kind=db), dimension(nn4:nassm):: en4, en5
-  real(kind=db), dimension(nn6:nassm):: en6, en7
-  real(kind=db), dimension(no1:nassm):: eo1, eo2, eo3
-  real(kind=db), dimension(no4:nassm):: eo4, eo5
-  real(kind=db), dimension(np1:nassm):: ep1
-  real(kind=db), dimension(np2:nassm):: ep2, ep3
+  real(kind=db), dimension(Z_Mendeleiev_max):: ek1, el1, el2, el3
+  real(kind=db), dimension(nm1:Z_Mendeleiev_max):: em1, em2, em3
+  real(kind=db), dimension(nm4:Z_Mendeleiev_max):: em4, em5
+  real(kind=db), dimension(nn1:Z_Mendeleiev_max):: en1, en2, en3
+  real(kind=db), dimension(nn4:Z_Mendeleiev_max):: en4, en5
+  real(kind=db), dimension(nn6:Z_Mendeleiev_max):: en6, en7
+  real(kind=db), dimension(no1:Z_Mendeleiev_max):: eo1, eo2, eo3
+  real(kind=db), dimension(no4:Z_Mendeleiev_max):: eo4, eo5
+  real(kind=db), dimension(np1:Z_Mendeleiev_max):: ep1
+  real(kind=db), dimension(np2:Z_Mendeleiev_max):: ep2, ep3
 
 ! Compile par Gwyn Williams,
 ! http://xray.uu.se/hypertext/EBindEnergies.html
@@ -243,10 +243,10 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,mpirank)
 
   Eseuil(:) = 0._db
 
-  if( numat > nassm .and. mpirank == 0 ) then
+  if( ( numat > Z_Mendeleiev_max .or. numat <= 0 ) .and. mpirank == 0 ) then
     call write_error
     do ipr = 3,9,3
-      write(ipr,105) numat
+      write(ipr,105) numat, Z_Mendeleiev_max
     end do
     stop
   endif
@@ -424,7 +424,7 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,mpirank)
   endif
 
   return
-  105 format(//' Z =',i4,' > nassm in routine esdata !'//)
+  105 format(//' Z =',i12,' < 0 or > Z_Mendeleiev_max =',i4,' in routine Esdata !'//)
   120 format(//' Threshold non included in the data of the routine Esdata in the file tab_data.f !',// &
                ' It may be that it does not exist !'//)
   150 format(/' E_edge     =',f9.2,' eV')
@@ -441,7 +441,7 @@ function Shift_edge(icheck,Z)
   integer:: icheck, Z
 
   real(kind=db):: Shift_edge
-  real(kind=db), dimension(nassm):: Shift
+  real(kind=db), dimension(Z_Mendeleiev_max):: Shift
 
   data Shift/ -13.6_db, -24.6_db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
                 0._db,    0._db,    0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db,   0._db, &
@@ -475,7 +475,7 @@ function Workf_val(icheck,numat)
   integer:: icheck, numat
 
   real(kind=db):: Workf_val
-  real(kind=db), dimension(nassm):: Workfct
+  real(kind=db), dimension(Z_Mendeleiev_max):: Workfct
 
 ! Handbook of chemistry and physics, E-82
 ! Pour les gaz rares et H, F, N, O, Cl, les seuils sont par rapport au
@@ -968,8 +968,11 @@ end
 
 function n_orb_coeur(Z)
 
+  use declarations
+  implicit none
+  
   integer:: n_orb_coeur, Z
-  integer, dimension(103):: nc
+  integer, dimension(Z_Mendeleiev_max):: nc
 
   data nc/ 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, &
      7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10, &
@@ -1014,7 +1017,7 @@ function Mass_atom(Z)
   integer:: Z
 
   real(kind=db):: Mass_atom
-  real(kind=db), dimension(nassm):: Mass
+  real(kind=db), dimension(Z_Mendeleiev_max):: Mass
 
   data Mass /  1.0079,  4.0026,  6.941,   9.0122,  10.811,  12.0107, 14.0067, 15.9994, 18.9984,  20.1797, &
               22.9898, 24.3050, 26.9815, 28.0855,  30.9738, 32.066,  35.4527, 39.948,  39.0983,  40.078, &
@@ -1041,11 +1044,12 @@ end
 function Atom_radius(Z)
 
   use declarations
+  implicit none
 
   integer:: Z
 
   real(kind=db):: Atom_radius
-  real(kind=db), dimension(nassm):: Ray
+  real(kind=db), dimension(Z_Mendeleiev_max):: Ray
 
   data Ray/ 0.38_db,  0.32_db,  1.34_db,  0.90_db,  0.82_db,  0.77_db,  0.75_db,  0.73_db,  0.71_db,  0.69_db, &
             1.54_db,  1.30_db,  1.18_db,  1.11_db,  1.06_db,  1.02_db,  0.99_db,  0.97_db,  1.96_db,  1.74_db, &
@@ -1076,11 +1080,12 @@ end
 function RayIon(Z)
 
   use declarations
+  implicit none
 
   integer:: Z
 
   real(kind=db):: Rayion
-  real(kind=db), dimension(nassm):: Ray
+  real(kind=db), dimension(Z_Mendeleiev_max):: Ray
 
   data Ray/ 0.012_db, 0.49_db,  0.76_db,  0.45_db,  0.27_db,  0.91_db,  1.46_db,  1.40_db,  1.33_db,  0.51_db, &
             1.02_db,  0.67_db,  0.48_db,  0.40_db,  0.44_db,  1.84_db,  1.81_db,  0.88_db,  1.38_db,  1.00_db, &
@@ -1097,4 +1102,46 @@ function RayIon(Z)
   RayIon = Ray(Z)
 
   return
+end
+
+!*********************************************************************
+
+! Debye temperature
+! source: Ashcroft and Mermin; the Debye temperatures correspond to the free element
+! Unknown Debye temperatures are taken as 1
+
+function Debye_temperature(Z)
+
+  use declarations
+  implicit none
+
+  integer:: ipr, Z
+  
+  real(kind=db):: Debye_temperature 
+  real(kind=db), dimension(Z_Mendeleiev_max):: TD
+
+  data TD /  110._db,  26._db, 400._db,1000._db,1250._db,1860._db,  79._db,  46._db,   1._db,  63._db, &
+             150._db, 318._db, 394._db, 625._db,   1._db,   1._db,   1._db,  85._db, 100._db, 230._db, &
+             359._db, 380._db, 390._db, 460._db, 400._db, 420._db, 385._db, 375._db, 315._db, 234._db, &
+             240._db, 360._db, 285._db, 150._db,   1._db,  73._db,  56._db, 147._db, 256._db, 250._db, &
+             275._db, 380._db,   1._db, 382._db, 350._db, 275._db, 215._db, 120._db, 129._db, 170._db, &
+             200._db, 139._db,   1._db,  55._db,  40._db, 110._db, 132._db, 139._db, 152._db, 157._db, &
+               1._db, 160._db, 107._db, 176._db, 188._db, 186._db, 191._db, 196._db, 200._db, 118._db, &
+             207._db,   1._db, 225._db, 310._db, 416._db, 400._db, 430._db, 230._db, 170._db, 100._db, &
+              96._db,  88._db, 120._db,   1._db,   1._db,   1._db,   1._db,   1._db,   1._db, 100._db, &
+               1._db, 210._db, 188._db, 150._db,   1._db,   1._db,   1._db,   1._db,   1._db,   1._db, &
+               1._db,   1._db,   1._db/
+
+  if( Z <= 0 .or. Z > Z_Mendeleiev_max ) then
+    call write_error
+    do ipr = 3,9,3
+      write(ipr,110) Z, Z_Mendeleiev_max
+    end do
+    stop
+  endif
+
+  Debye_temperature = TD(Z)
+
+  return
+  110 format(//' Z =',i12,' < 0 or > Z_Mendeleiev_max =',i4,' in routine Esdata !'//)
 end

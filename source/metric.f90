@@ -141,7 +141,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
             open(99,file = File_dat(1,i),status = 'old', iostat = istat)
             if( istat /= 0 ) call write_open_error(File_dat(1,i),istat,1)
             read(99,*)
-            n = nnombre(99,132000) - 1
+            n = nnombre(99,Length_line) - 1
             if( n /= ng ) then
               call write_error
               do ipr = 6,9,3
@@ -354,7 +354,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
     do i_data = 1,nb_datafile
       ipr = 2
       open(ipr, file=File_dat(i_data,1), status='old', iostat=istat)
-      n = nnombre(ipr,100000)
+      n = nnombre(ipr,Length_line)
       n = n / 3
       Read(ipr,*)
       Read(ipr,*)
@@ -720,7 +720,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
   end do
   Print_all = ncal <= 3600 .or. Met_min_g .or. detail
 
-  do ipr = 4,6,3
+  do ipr = 4,6,2
 
     if( ncal > 1 ) then
       if( ical == ncal+1 ) then

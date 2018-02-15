@@ -81,6 +81,8 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
   real(kind=db), dimension(0:nrm):: drhoato_e, dvcato_e, r, rhr2, Vcato_init_e
   real(kind=db), dimension(n_atom_0:n_atom_ind):: ch
 
+  drhoato_e(:)= 0._db
+
   do it = 0,ntype
     call potato(cdil,icheck(10),it,itdil,itypepr,ldil,n_atom_proto,nlat,nlatm,norbdil,nrato,nrm,nspin,ntype,numat, &
         popatm,popatv,psival,rato,rhoigr,rhoit,vato)
@@ -4118,7 +4120,7 @@ subroutine potential_comp(Cal_xanes,distai,dV0bdcF,Ecineticmax,Ecineticmax_out, 
     Ecineticmax = max( Ecineticmax, Eclie )
     Ecineticmax_out = max( Ecineticmax_out, Eclie_out )
   endif
-  if( ( Ecineticmax < eps10 .or. Ecineticmax < eps10 ) .and. .not. Eneg .and. mpirank == 0 ) then
+  if( ( Ecineticmax < eps10 .or. Ecineticmax_out < eps10 ) .and. .not. Eneg .and. mpirank == 0 ) then
     call write_error
     do ipr = 3,9,3
       write(ipr,110) Ecineticmax * rydb, Ecineticmax_out * rydb
@@ -4128,7 +4130,7 @@ subroutine potential_comp(Cal_xanes,distai,dV0bdcF,Ecineticmax,Ecineticmax_out, 
   endif
 
   return
-  110 format(/' E_kinetic_max =',f7.3,' eV  or E_kinetic_max_ext =',f7.3,' eV< 0.',/ &
+  110 format(/' E_kinetic_max =',f7.3,' eV  or E_kinetic_max_out =',f7.3,' eV < 0.',/ &
               ' Start the calculation at higher energy !'///)
 end
 
@@ -4535,7 +4537,6 @@ subroutine potex(Nonsph,axyz,alfpot,dv0bdcF,Energ,Enervide,Full_atom, &
   127 format(/' V0bdc_out =',f10.5,' eV')
   130 format(/4x,'i     Vr_(eV)     ispin = ',i2)
   140 format(5(i5,e15.5))
-  146 format('  initl =',i3,/'     rato_(A)   Vrato(up)_(eV) Vrato(dn)_(eV)')
   150 format('  ipr =',i3,/7x,'rato_(A)    Vrato_(eV)     Vcato(eV)     Vxcato(eV)')
   155 format('  ipr =',i3,/7x,'rato_(A)   Vrato(up)_(eV) Vrato(dn)_(eV)     Vcato(eV) Vxcato(up)_(eV) Vxcato(dn)_(eV)')
   160 format(f15.6,1p,5e15.5)

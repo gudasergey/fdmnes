@@ -40,37 +40,93 @@ end
 subroutine calc(nw, iz, xk, sumfp, sumfpp, wt)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
-  parameter( nkm = 2, nshm = 24 )
+  implicit none
 
+  integer, parameter:: nkm = 2
+  integer, parameter:: nshm = 24
+
+  integer:: icount, irec, iirec, iiz, iftype, ipr, iz, j, k, m, mf, mm, mx, n_interp, n1, nj, no, nw, nx
+  integer, dimension(103):: izdata
+  integer, dimension(103):: irecdata
+  integer, dimension(103):: nodata
+  
   character(len=2):: isym, nat, natom
-  character(len=8), dimension(24):: nshel
+  character(len=2), dimension(103):: isymdata
 
-  real(kind=db), dimension(5):: eg
+  real(kind=db):: aknint, au, bb, bbrx, be, c, c1, corr, cx, deux_pi2, eterm, gauss, rx, sedge, sigedg, wt, zx
+  real(kind=db), dimension(5):: eg, sigg
   real(kind=db), dimension(11):: el, ew, sig, sl
   real(kind=db), dimension(nkm):: cxb, sumfp, sumfp0, sumfpp, xjensn, xk
   real(kind=db), dimension(nw,nshm):: fp, fpp
-
-  integer, dimension(103):: izdata
-  character(len=2), dimension(103):: isymdata
-  character(len=2):: not_used_padding1
-  integer, dimension(103):: irecdata
-  integer, dimension(103):: nodata
-  character(len=4):: not_used_padding2
   real(kind=db), dimension(103):: etermdata
-  character(len=2), dimension(14450):: natomdata
+ 
+  integer, dimension(14450):: natomdata
   integer, dimension(14450):: njdata
-  character(len=8), dimension(14450):: nsheldata
-  character(len=4):: not_used_padding3
-  real(kind=db), dimension(14450):: xwdata
   real(kind=db), dimension(14450):: ewdata
   real(kind=db), dimension(14450):: sigdata
   real(kind=db), dimension(14450):: bedata
   integer, dimension(14450):: iftypedata
-  common /xsectdata/ izdata,isymdata,not_used_padding1,irecdata,nodata,not_used_padding2,&
-        etermdata,natomdata,njdata,nsheldata,not_used_padding3,xwdata,ewdata,sigdata,bedata,iftypedata
-  common/gaus/ cx, bb, sigg(5), rx, icount
-  common/edge/ sedge
+ 
+   data izdata/ &
+     1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, &
+    21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, &
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, &
+    61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, &
+    81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99,100, &
+   101,102,103/
+
+  data isymdata/ &
+    'H', 'HE', 'LI', 'BE', 'B', 'C', 'N', 'O', 'F', 'NE', 'NA', 'MG', 'AL', 'SI', 'P', 'S', 'CL', 'AR', 'K', 'CA', &
+    'SC', 'TI', 'V', 'CR', 'MN', 'FE', 'CO', 'NI', 'CU', 'ZN', 'GA', 'GE', 'AS', 'SE', 'BR', 'KR', 'RB', 'SR', 'Y', 'ZR', &
+    'NB', 'MO', 'TC', 'RU', 'RH', 'PD', 'AG', 'CD', 'IN', 'SN', 'SB', 'TE', 'I', 'XE', 'CS', 'BA', 'LA', 'CE', 'PR', 'ND', &
+    'PM', 'SM', 'EU', 'GD', 'TB', 'DY', 'HO', 'ER', 'TM', 'YB', 'LU', 'HF', 'TA', 'W', 'RE', 'OS', 'IR', 'PT', 'AU', 'HG', &
+    'TL', 'PB', 'BI', 'PO', 'AT', 'RN', 'FR', 'RA', 'AC', 'TH', 'PA', 'U', 'NP', 'PU', 'AM', 'CM', 'BK', 'CF', 'ES', 'FM', &
+    'MD', 'NO', 'LW'/
+
+  data irecdata/ &
+    0, 0, 104, 124, 144, 174, 204, 244, 284, 324, &
+    364, 405, 446, 497, 558, 629, 700, 771, 842, 913, &
+    984, 1055, 1126, 1207, 1298, 1389, 1480, 1571, 1663, 1755, &
+    1849, 1943, 2037, 2131, 2225, 2319, 2413, 2507, 2631, 2755, &
+    2889, 3023, 3167, 3311, 3455, 3599, 3743, 3887, 4031, 4175, &
+    4319, 4463, 4608, 4753, 4898, 5074, 5251, 5428, 5615, 5802, &
+    5989, 6178, 6367, 6556, 6755, 6954, 7153, 7352, 7551, 7750, &
+    7949, 8148, 8357, 8566, 8775, 8994, 9213, 9432, 9651, 9869, &
+    10097, 10325, 10563, 10801, 11049, 11298, 11547, 11796, 12046, 12296, &
+    12546, 12797, 13048, 13299, 13550, 13801, 14052, 14303, 0, 0, &
+    0, 0, 0/
+
+  data nodata/ &
+    0, 0, 2, 2, 3, 3, 4, 4, 4, 4, 4, 4, 5, 6, 7, 7, 7, 7, 7, 7, &
+    7, 7, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 12, 12, 13, &
+    13, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 17, 17, 17, 18, 18, 18, &
+    18, 18, 18, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 21, 21, 21, 21, 21, 22, &
+    22, 23, 23, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 0, 0, &
+    0, 0, 0/
+
+  data etermdata/ &
+     0.000,  0.000, -0.001, -0.001, -0.002, -0.003, -0.005, -0.007, -0.009, -0.011, &
+    -0.014, -0.018, -0.021, -0.026, -0.030, -0.035, -0.041, -0.047, -0.053, -0.060, &
+    -0.068, -0.075, -0.084, -0.093, -0.102, -0.113, -0.123, -0.135, -0.146, -0.159, &
+    -0.172, -0.186, -0.200, -0.215, -0.231, -0.247, -0.264, -0.282, -0.300, -0.319, &
+    -0.338, -0.359, -0.380, -0.401, -0.424, -0.447, -0.471, -0.496, -0.521, -0.547, &
+    -0.575, -0.602, -0.631, -0.660, -0.690, -0.721, -0.753, -0.786, -0.819, -0.854, &
+    -0.889, -0.925, -0.962, -1.000, -1.039, -1.079, -1.119, -1.161, -1.204, -1.248, &
+    -1.293, -1.338, -1.385, -1.433, -1.482, -1.532, -1.583, -1.636, -1.689, -1.743, &
+    -1.799, -1.856, -1.914, -1.973, -2.033, -2.095, -2.157, -2.221, -2.287, -2.353, &
+    -2.421, -2.490, -2.561, -2.633, -2.707, -2.782, -2.858, -2.936,  0.000,  0.000, &
+     0.000,  0.000,  0.000/
+
+  data natomdata/ &
+    20*3,20*4,30*5,30*6,40*7,40*8,40*9,40*10,41*11,41*12,51*13,61*14,71*15,71*16,71*17, &
+    71*18,71*19,71*20,71*21,71*22,81*23,91*24,91*25,91*26,91*27,92*28,92*29,94*30,94*31,94*32, &
+    94*33,94*34,94*35,94*36,94*37,124*38,124*39,134*40,134*41,144*42,144*43,144*44,144*45,144*46, &
+    144*47,144*48,144*49,144*50,144*51,145*52,145*53,145*54,176*55,177*56,177*57,187*58,187*59, &
+    187*60,189*61,189*62,189*63,199*64,199*65,199*66,199*67,199*68,199*69,199*70,199*71,209*72, &
+    209*73,209*74,219*75,219*76,219*77,219*78,218*79,228*80,228*81,238*82,238*83,248*84,249*85, &
+    249*86,249*87,250*88,250*89,250*90,251*91,251*92,251*93,251*94,251*95,251*96,251*97,251*98/
+
+  common /xsectdata/ njdata,ewdata,sigdata,bedata,iftypedata
 
   data c / 137.0367 /
   data mx / 5 /
@@ -114,7 +170,6 @@ subroutine calc(nw, iz, xk, sumfp, sumfpp, wt)
 ! NAT     - Atomic Symbol
 ! NJ      - Orbital Sequence Number
 ! NSHEL   - Orbital Type. 1S1/2 Etc.
-! XW      - Wavelength In Angstroms
 ! EW      - Energy In KeV
 ! SIG     - Cross Section In Barns (10^-24cm^2)
 ! BE      - Binding Energy(KeV)
@@ -128,10 +183,8 @@ subroutine calc(nw, iz, xk, sumfp, sumfpp, wt)
 
   do k = 1, mx
     do
-      nat = natomdata(irec)
+      nat = isymdata( natomdata(irec) )
       nj = njdata(irec)
-      nshel(j) = nsheldata(irec)
-      xw = xwdata(irec)
       ew(k) = ewdata(irec)
       sig(k) = sigdata(irec)
       irec = irec + 1
@@ -150,10 +203,8 @@ subroutine calc(nw, iz, xk, sumfp, sumfpp, wt)
 ! Read 5 Energies And X-Sections For Orbital J For The GAUSS Integration
 ! Points. Binding_Energy BE and Function Type Iftype also.
   do k = 1, 5
-    nat = natomdata(irec)
+    nat = isymdata( natomdata(irec) )
     nj = njdata(irec)
-    nshel(j) = nsheldata(irec)
-    xw = xwdata(irec)
     eg(k) = ewdata(irec)
     sigg(k) = sigdata(irec)
     be = bedata(irec)
@@ -176,10 +227,8 @@ subroutine calc(nw, iz, xk, sumfp, sumfpp, wt)
 ! Iftype = 0 So Read X-Section at Energy = 1.001*Binding_Energy
   if( iftype == 0 ) then
     nx = nx + 1
-    nat = natomdata(irec)
+    nat = isymdata( natomdata(irec) )
     nj = njdata(irec)
-    nshel(j) = nsheldata(irec)
-    xw = xwdata(irec)
     ew(nx) = ewdata(irec)
     sig(nx) = sigdata(irec)
     irec = irec + 1
@@ -255,12 +304,12 @@ subroutine calc(nw, iz, xk, sumfp, sumfpp, wt)
     deux_pi2 = 2.0 * ( pi ** 2)
 
     if( iftype /= 0 .or. be < xk(k) ) then
-      if( iftype == 0 .or. iftype == 1 .or. iftype == 2 ) fp(k,j) = gauss(iftype,5) * c / deux_pi2
+      if( iftype == 0 .or. iftype == 1 .or. iftype == 2 ) fp(k,j) = gauss(iftype,5,icount,bb,cx,rx,sedge,sigg) * c / deux_pi2
     else
 ! SEDGE Is X-section In Atomic Units At Energy=1.001*BE
       sedge = sigedg / au
       cx = 0._db
-      fp(k,j) = gauss(3,5) * c / deux_pi2
+      fp(k,j) = gauss(3,5,icount,bb,cx,rx,sedge,sigg) * c / deux_pi2
       mf = 3
     endif
 
@@ -347,30 +396,30 @@ end
 
 !***********************************************************************
 
-function sigma(iftype, x)
+function sigma(icount,iftype,bb,cx,rx,sedge,sigg,x)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
+  
+  integer:: icount, iftype
 
-  real(kind=db) sigma
-
-  common/edge/ sedge
-  common/gaus/ cx, bb, ssg(5), rx, icount
+  real(kind=db):: bb, cx, denom, rx, sedge, sigma, x
+  real(kind=db), dimension(5):: sigg
 
   icount = icount - 1
 
   select case(iftype)
     case(0)
-      sigma = (((ssg(icount) * (bb**3)) / (x**2)) / (((rx**2) * (x**2)) - (bb**2))) - (((bb*cx) * (rx**2)) &
-             / (((rx**2) * (x**2))- (bb**2)))
+      sigma = (((sigg(icount) * (bb**3)) / (x**2)) / (((rx**2) * (x**2)) - (bb**2))) - (((bb*cx) * (rx**2)) &
+             / (( rx**2 * x**2) - bb**2))
     case(1)
-      sigma = ((0.5 * (bb**3)) * ssg(icount)) / (sqrt(x) * (((rx**2) * (x**2)) - ((bb**2) * x)))
+      sigma = ((0.5 * bb**3) * sigg(icount)) / (sqrt(x) * ((rx**2 * x**2) - (bb**2 * x)))
 
     case(2)
-      denom = ((x**3) * (rx**2)) - ((bb**2) / x)
-      sigma = (((((2.0 * bb) * ssg(icount)) * (bb**2)) / (x**4)) / denom) - ((((2.0 * bb) * cx) * (rx**2)) / denom)
+      denom = (x**3 * rx**2) - (bb**2 / x)
+      sigma = ((( 2.0 * bb * sigg(icount) * bb**2) / (x**4)) / denom) - ((2.0 * bb * cx * rx**2) / denom)
     case(3)
-      sigma = ( (bb**3) * (ssg(icount) - (sedge * (x**2))) ) / ( (x**2) * (((x**2) * (rx**2)) - (bb**2)) )
+      sigma = ( bb**3 * (sigg(icount) - (sedge * x**2)) ) / ( (x**2) * ( x**2 * rx**2 - bb**2) )
   end select
 
   return
@@ -378,20 +427,21 @@ end
 
 !***********************************************************************
 
-function gauss(iftype,m)
+function gauss(iftype,m,icount,bb,cx,rx,sedge,sigg)
 
   use declarations
   implicit none
 
-  integer:: iftype, ll, m
+  integer:: icount, iftype, ll, m
 
-  real(kind=db):: a, g, gauss, sigma, z
+  real(kind=db):: a, bb, cx, g, gauss, rx, sedge, sigma, x
+  real(kind=db), dimension(5):: sigg
 
   g = 0._db
 
   do ll = 1,m
-    call ltbl(m,ll,a,z)
-    g = g + a * sigma(iftype,z)
+    call ltbl(m,ll,a,x)
+    g = g + a * sigma(icount,iftype,bb,cx,rx,sedge,sigg,x)
   end do
 
   gauss = g
@@ -532,9 +582,13 @@ end
 subroutine ltbl(m, k, aa, z)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
-  dimension a(68), x(62)
+  integer:: i4, ia, ih, ip, is, k, kk, m
+  
+  real(kind=db):: aa, t, z
+  real(kind=db), dimension(68):: a
+  real(kind=db), dimension(62):: x
 
   data x(1) / .06943184420297 /
   data x(2) / .33000947820757 /

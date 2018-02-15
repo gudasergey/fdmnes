@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 19th of January 2018, 30 Nivose, An 226
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 10th of February 2018, 22 Pluviose, An 226
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -39,11 +39,11 @@ module declarations
 
   integer, parameter:: Length_word = 15 ! number of character in words
 
-  integer, parameter:: nassm = 103   ! Number of chemical elements in the Mendeleiev table
+  integer, parameter:: Z_Mendeleiev_max = 103   ! Number of chemical elements in the Mendeleiev table
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 19th of January 2018'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 10th of February 2018'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -66,8 +66,8 @@ module declarations
   real(kind=db), parameter:: quatre_pi = 4 * pi
   real(kind=db), parameter:: huit_pi = 8 * pi
   real(kind=db), parameter:: radian = pi / 180._db
-  real(kind=db), parameter:: sqrt3s2 = sqrt( 3._db ) / 2
-  real(kind=db), parameter:: msqrt3s2 = - sqrt( 3._db ) / 2
+  real(kind=db), parameter:: sqrt3s2 = 0.86602540378443865_db   ! = sqrt(3._db) / 2
+  real(kind=db), parameter:: msqrt3s2 = - 0.86602540378443865_db
 
   real(kind=db), parameter:: eps4 = 1.e-4_db
   real(kind=db), parameter:: eps6 = 1.e-6_db
@@ -87,8 +87,7 @@ program fdmnes
   implicit none
   include 'mpif.h'
 
-  integer:: i, ipr, istat, j, k, l, mpierr, mpinodes0, mpirank0, n, &
-            ncalcul, nnombre
+  integer:: i, ipr, istat, j, k, l, mpierr, mpinodes0, mpirank0, n, ncalcul, nnombre
 
   character(len=1):: mot1
   character(len=8):: dat
@@ -266,8 +265,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   integer:: eof, i, i1, ibl, ical, ifdm, igr, index_Met_Fit, indpar, &
     inotskip, ip, ipar, ipbl, ipr, istat, istop, itape, itape_minim, itape1, itape2, itape3, itape4, itape5, itape6, itape7, &
     itph, itpj, itpm, itps, iscratch, iscratchconv, j, jgr, jpar, k, l, Length_line, &
-    ligne, ligne2, m, mpierr, mpirank0, mpinodes0, n, &
-    n_atom_proto_p, n_shift, n1, n2, nb_datafile, nblock, ncal, ncal_nonfdm, ndem, ndm, ng, ngamh, ngroup_par, ngroup_par_conv, &
+    ligne, ligne2, m, mpierr, mpirank0, mpinodes0, n, n_atom_proto_p, n_col_max, n_shift, n1, n2, &
+    nb_datafile, nblock, ncal, ncal_nonfdm, ndem, ndm, ng, ngamh, ngroup_par, ngroup_par_conv, &
     nmetric, nn, nnombre, nnotskip, nnotskipm, nparm, npm, mermrank
 
   character(len=9):: keyword, mot9, Traduction
@@ -285,8 +284,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   character(len=9), dimension(nkw_selec):: kw_selec
   character(len=9), dimension(nkw_mult):: kw_mult
   character(len=9), dimension(nparam_tot):: param_conv
-  character(len=9), dimension(:,:), allocatable:: typepar, typeparc
-  character(len=9), dimension(:), allocatable:: typeparg
+  character(len=9), dimension(:,:), allocatable:: TypePar, TypeParc
+  character(len=9), dimension(:), allocatable:: TypeParg
 
   integer, dimension(3):: hkl_borm
   integer, dimension(30):: icheck
@@ -371,27 +370,63 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   Ang_borm = 0._db
   Bormann = .false.
   Check_file = .false.
-  hkl_borm(:) = 0
+  comt = ' '
+  Convolution_cal = .false.
+  Delta_edge = 0._db
+  E_cut_imp = -5._db / rydb
+  E_cut_man = .false.
+  E1 = 0._db; E2 = 0._db
+  Ecent = 30._db / Rydb
+  Elarg = 30._db / Rydb
+  Estart = 100000._db / Rydb
+  Fdmnes_cal = .false.
+  Fit_cal = .false.
+
   icheck(:) = 1
 ! icheck : 1: Lecture        2: Atom et Dirac    3: Symsite
 !         10: Pot0          13: Potentiel
 !         18: Sphere        19: Mat et MSM      20: Tensor
 !         21: Coabs         22: tddft - Sphere  23: tddft - Chi_0   24: tddft - Kernel
 !         25: tddft - Chi   26: Hubbard         27: SCF             28: State           29: Optic           30: convolution
-  Ecent = 30._db / Rydb
-  Elarg = 30._db / Rydb
-  Estart = 100000._db / Rydb
+
+  itape = 6
+  itape1 = 11  ! Convolution
+  itape2 = 12  ! Metric calculation
+  itape3 = 13  ! Fitting
+  itape4 = 14  ! FDM calculation
+  itape5 = 17  ! Selection in DAFS scan
+  itape6 = 18  ! Multiplication of unit cell
+  itape7 = 19  ! Convolation by a gaussian
+  itape_minim = 10
+  iscratch = 15
+  iscratchconv = 35
+
   Gamma_hole(:) = 0._db
   Gamma_hole_imp = .false.
   Gamma_max = 15._db / Rydb
   Gamma_tddft = .false.
   Gaus_cal = .false.
-  Length_line = 10 + 10001 * Length_word
+  hkl_borm(:) = 0
+  Metric_cal = .false.
+  Mult_cal = .false.
   Minim_fdm_ok = .false.
   Minimok = .false.
+! number max of columns in output files
+!  n_col_max = 2101
+  n_col_max = 10001
+!
+  n_shift = 1
+  nb_datafile = 0
+  ng = 0
   ngamh = 1
+  ngroup_par = 0
+  nparm = 1
   nomfich = 'fdmnes_out'
   Scan_a = .false.
+  Selec_cal = .false.
+
+  Length_line = 10 + n_col_max * Length_word
+
 !*** JDB
   imfp_inp = .false.
   elf_inp = .false.
@@ -409,35 +444,6 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   nodw = .false.
   noimfp = .false.
 !*** JDB
-
-  itape = 6
-  itape1 = 11  ! Convolution
-  itape2 = 12  ! Metric calculation
-  itape3 = 13  ! Fitting
-  itape4 = 14  ! FDM calculation
-  itape5 = 17  ! Selection in DAFS scan
-  itape6 = 18  ! Multiplication of unit cell
-  itape7 = 19  ! Convolation by a gaussian
-  itape_minim = 10
-  iscratch = 15
-  iscratchconv = 35
-
-  comt = ' '
-  Convolution_cal = .false.
-  Delta_edge = 0._db
-  Fdmnes_cal = .false.
-  E_cut_imp = -5._db / rydb
-  E_cut_man = .false.
-  e1 = 0._db; e2 = 0._db
-  Fit_cal = .false.
-  Metric_cal = .false.
-  Mult_cal = .false.
-  Selec_cal = .false.
-  ngroup_par = 0
-  nparm = 1
-  n_shift = 1
-  nb_datafile = 0
-  ng = 0
 
   if( mpirank0 == 0 ) then
 
@@ -687,19 +693,18 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
           endif
           icheck(:) = n
 
-         case('no_check')
+        case('no_check')
           icheck(:) = 0
 
-       case('e_cut','efermi')
+        case('e_cut','efermi')
           read(1,*) E_cut_imp
           E_cut_imp = E_cut_imp /rydb
           E_cut_man = .true.
 
         case('length_li')
           n = nnombre(1,132)
-          read(1,*) Length_line
-          n = 10 + 201 * Length_word
-          Length_line = max( Length_line, n )
+          read(1,*) n_col_max
+          Length_line = 10 + n_col_max * Length_word
 
         case('comment')
           n = nnombre(1,132)
@@ -954,7 +959,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
             endif
             open(99, file=Fichier, status='old',iostat=istat)
             if( istat /= 0 ) call write_open_error(Fichier,istat,1)
-            n = nnombre(99,100000)
+            n = nnombre(99,Length_line)
             if( n == 0 ) then
               ng = ng + 1
             else
@@ -976,7 +981,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
         open(99, file=Fichier, status='old',iostat=istat)
         if( istat /= 0 ) call write_open_error(Fichier,istat,1)
         read(99,*)
-        ng = nnombre(99,132000) - 1
+        ng = nnombre(99,Length_line) - 1
       endif
     end do boucle_m
   endif
@@ -1147,14 +1152,12 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   endif
 
   if( mpinodes0 > 1 ) then
-
     call MPI_Bcast(Ang_borm,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Bormann,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(E_cut_imp,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(E_cut_man,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(nblock,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ngroup_par,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Length_line,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(hkl_borm,3,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(e1,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(e2,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -1172,6 +1175,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     call MPI_Bcast(Gamma_tddft,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Fdmnes_cal,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ngamh,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Use_fdmx,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
   endif
 
   if( mpirank0 > 0 ) then
@@ -1186,17 +1190,18 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   allocate( parsum(ngroup_par) )
   allocate( nparam(ngroup_par) )
   allocate( indice_par(ngroup_par,nparm) )
-  allocate( typepar(ngroup_par,nparm) )
-  allocate( typeparc(ngroup_par,nparm) )
-  allocate( typeparg(ngroup_par) )
+  allocate( TypePar(ngroup_par,nparm) )
+  allocate( TypeParc(ngroup_par,nparm) )
+  allocate( TypeParg(ngroup_par) )
   if( ngroup_par > 0 ) then
     indice_par(:,:) = 0
     Length_block(:) = 0
+    param(:,:) = 0._db
     parmin(1,1) = e1
     parmax(1,1) = e2
     nparam(1) = n_shift
-    typepar(1,1) = 'Gen_Shift'
-    typeparg(1) = 'Gen_Shift'
+    TypePar(1,1) = 'Gen_Shift'
+    TypeParg(1) = 'Gen_Shift'
   endif
 
   if( mpirank0 == 0 ) then
@@ -1235,9 +1240,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
         read(itape3,'(A)') mot
         mot9 = identmot(mot,9)
         if( Block_sum(ibl) .and. ipar == 2 ) then
-          typepar(igr-npbl(ibl)+2:igr,ipar) = mot9
+          TypePar(igr-npbl(ibl)+2:igr,ipar) = mot9
         else
-          typepar(igr,ipar) = mot9
+          TypePar(igr,ipar) = mot9
         endif
         n = nnombre(itape3,132)
         select case( n )
@@ -1275,14 +1280,14 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
       do igr = 1,ngroup_par
         do ipar = 1,npar(igr)
           if( mpirank0 /= 0 ) mot = ' '
-          if( mpirank0 == 0 ) mot = typepar(igr,ipar)
+          if( mpirank0 == 0 ) mot = TypePar(igr,ipar)
           do i = 1,9
             if( mpirank0 == 0 ) j = iachar( mot(i:i) )
             call MPI_Bcast(j,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
 
             if( mpirank0 /= 0 ) mot(i:i) = achar( j )
           end do
-          if( mpirank0 /= 0 ) typepar(igr,ipar) = mot
+          if( mpirank0 /= 0 ) TypePar(igr,ipar) = mot
         end do
       end do
     endif
@@ -1306,7 +1311,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   boucle_igr: do igr = 2,ngroup_par
     do ipar = 1,npar(igr)
       do i = 1,nparam_conv
-        if( typepar(igr,ipar) == param_conv(i) ) exit
+        if( TypePar(igr,ipar) == param_conv(i) ) exit
       end do
       if( i > nparam_conv ) exit
     end do
@@ -1314,7 +1319,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     if( i <= nparam_conv ) then
 ! Test if only shift or gaus
       do ipar = 1,npar(igr)
-        if( typepar(igr,ipar) /= 'shift' .and. typepar(igr,ipar) /= 'weight' .and. typepar(igr,ipar) /= 'gaussian' ) exit
+        if( TypePar(igr,ipar) /= 'shift' .and. TypePar(igr,ipar) /= 'weight' .and. TypePar(igr,ipar) /= 'gaussian' ) exit
       end do
       if( ipar > npar(igr) ) cycle
       Case_fdm = .false.
@@ -1324,14 +1329,14 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
       if( Case_fdm ) then
         do jpar = 1,npar(jgr)
           do j = 1,nparam_conv
-            if( typepar(jgr,jpar) == param_conv(j) ) exit
+            if( TypePar(jgr,jpar) == param_conv(j) ) exit
           end do
           if( j > nparam_conv ) exit
         end do
         if( j > nparam_conv ) cycle
       else
         do jpar = 1,npar(jgr)
-          if( typepar(jgr,jpar) /= 'shift' .and. typepar(jgr,jpar) /= 'weight' .and. typepar(jgr,jpar) /= 'gaussian' ) exit
+          if( TypePar(jgr,jpar) /= 'shift' .and. TypePar(jgr,jpar) /= 'weight' .and. TypePar(jgr,jpar) /= 'gaussian' ) exit
         end do
         if( jpar <= npar(jgr) ) cycle
       endif
@@ -1353,9 +1358,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
         x = parmax(igr,ipar)
         parmax(igr,ipar) = parmax(jgr,ipar)
         parmax(jgr,ipar) = x
-        mot9 = typepar(igr,ipar)
-        typepar(igr,ipar) = typepar(jgr,ipar)
-        typepar(jgr,ipar) = mot9
+        mot9 = TypePar(igr,ipar)
+        TypePar(igr,ipar) = TypePar(jgr,ipar)
+        TypePar(jgr,ipar) = mot9
         m = indice_par(igr,ipar)
         indice_par(igr,ipar) = indice_par(jgr,ipar)
         indice_par(jgr,ipar) = m
@@ -1365,8 +1370,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
         parmin(jgr,ipar) = 0._db
         parmax(igr,ipar) = parmax(jgr,ipar)
         parmax(jgr,ipar) = 0._db
-        typepar(igr,ipar) = typepar(jgr,ipar)
-        typepar(jgr,ipar) = '         '
+        TypePar(igr,ipar) = TypePar(jgr,ipar)
+        TypePar(jgr,ipar) = '         '
         indice_par(igr,ipar) = indice_par(jgr,ipar)
         indice_par(jgr,ipar) = 0
       end do
@@ -1375,8 +1380,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
         parmin(igr,ipar) = 0._db
         parmax(jgr,ipar) = parmax(igr,ipar)
         parmax(igr,ipar) = 0._db
-        typepar(jgr,ipar) = typepar(igr,ipar)
-        typepar(igr,ipar) = '         '
+        TypePar(jgr,ipar) = TypePar(igr,ipar)
+        TypePar(igr,ipar) = '         '
         indice_par(jgr,ipar) = indice_par(igr,ipar)
         indice_par(igr,ipar) = 0
       end do
@@ -1392,7 +1397,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   boucle_ext: do igr = 2,ngroup_par
     do ipar = 1,npar(igr)
       do i = 1,nparam_conv
-        if( typepar(igr,ipar) == param_conv(i) ) exit
+        if( TypePar(igr,ipar) == param_conv(i) ) exit
       end do
       if( i > nparam_conv ) exit boucle_ext
     end do
@@ -1402,13 +1407,13 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
   do igr = 1,ngroup_par
     do ipar = 1,npar(igr)
-      typeparc(igr,ipar) = typepar(igr,ipar)
+      TypeParc(igr,ipar) = TypePar(igr,ipar)
       if( indice_par(igr,ipar) /= 0 ) then
-        mot9 = typepar(igr,ipar)
+        mot9 = TypePar(igr,ipar)
         l = len_trim(mot9) + 1
         mot9(l:l) = '_'
         call ad_number(indice_par(igr,ipar),mot9,9)
-        typeparc(igr,ipar) = mot9
+        TypeParc(igr,ipar) = mot9
       endif
     end do
   end do
@@ -1464,15 +1469,14 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
       if( indpar /= indparp(igr) ) then
 
         do ipar = 1,npar(igr)
-          if( typepar(igr,ipar) /= 'shift' .and. typepar(igr,ipar) /= 'weight' .and. &
-              typepar(igr,ipar) /= 'gaussian' ) Conv_done = .false.
+          if( TypePar(igr,ipar) /= 'weight' .and. TypePar(igr,ipar) /= 'gaussian' ) Conv_done = .false.
         end do
 
         if( ical > 1 ) then
           do ipar = 1,npar(igr)
-            if( typepar(igr,ipar) /= 'dposx' .and. typepar(igr,ipar) /= 'dposy' .and. typepar(igr,ipar) /= 'dposz' .and. &
-                typepar(igr,ipar) /= 'posx' .and. typepar(igr,ipar) /= 'posy' .and. typepar(igr,ipar) /= 'posz' .and. &
-                typepar(igr,ipar) /= 'poporb' ) cycle
+            if( TypePar(igr,ipar) /= 'dposx' .and. TypePar(igr,ipar) /= 'dposy' .and. TypePar(igr,ipar) /= 'dposz' .and. &
+                TypePar(igr,ipar) /= 'posx' .and. TypePar(igr,ipar) /= 'posy' .and. TypePar(igr,ipar) /= 'posz' .and. &
+                TypePar(igr,ipar) /= 'poporb' ) cycle
             inotskip = inotskip + 1
             ifile_notskip(inotskip) = indice_par(igr,ipar)
           end do
@@ -1494,8 +1498,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
       call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
           Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
-          itape1,itape4,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-          nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,Use_FDMX,FDMX_only, &
+          itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
+          nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,Use_FDMX,FDMX_only, &
           fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
           tdebye,tmeas_inp,tmeas,expntl,expntlA,expntlB,victoreen,victA,victB,mermrank)
 
@@ -1508,10 +1512,10 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
     if( mpirank0 /= 0 ) cycle
 
-    if( Convolution_cal ) call convolution(bav_open,Bormann,Conv_done, &
+    if( Convolution_cal ) call Convolution(bav_open,Bormann,Conv_done, &
         convolution_out,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max, &
-        ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,length_line, &
-        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav, npar,nparm,param,Scan_a,typepar,ncal)
+        ical,icheck(30),indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
+        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav, npar,nparm,param,Scan_a,TypePar,ncal)
 
     if( Metric_cal ) then
 
@@ -1526,9 +1530,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
         endif
       endif
 
-      call metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,Fit_cal,Gen_Shift_min,ical, &
-             ical_Met_min,index_Met_Fit,iscratchconv,itape_minim,itape2,length_line,Length_block,nb_datafile,ncal,ndm, &
-             ng,ngroup_par,nmetric,nmetricm,Nom_Met,npar,nparam,nparm,param,parmax,parmin, RapIntegrT_min_g,typeparc)
+      call Metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,Fit_cal,Gen_Shift_min,ical, &
+             ical_Met_min,index_Met_Fit,iscratchconv,itape_minim,itape2,Length_line,Length_block,nb_datafile,ncal,ndm, &
+             ng,ngroup_par,nmetric,nmetricm,Nom_Met,npar,nparam,nparm,param,parmax,parmin, RapIntegrT_min_g,TypeParc)
 
     endif
 
@@ -1547,7 +1551,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
     allocate( par(ngroup_par,npm) )
     do igr = 1,ngroup_par
-      typeparg(igr) = typeparc(igr,1)
+      TypeParg(igr) = TypeParc(igr,1)
       do ip = 1,nparam(igr)
         if( nparam(igr) < 2 ) then
           par(igr,ip) = parmin(igr,1)
@@ -1559,7 +1563,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     end do
 
     call minim(fdmfit_out,index_Met_Fit,itape_minim,Minim_fdm_ok,minimok,ncal,ndm,ngroup_par,ngroup_par_conv,nmetric, &
-               nmetricm,Nom_Met,nparam,npm,par,par_op,typeparg)
+               nmetricm,Nom_Met,nparam,npm,par,par_op,TypeParg)
 
     deallocate( par )
 
@@ -1591,20 +1595,20 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
         end do
       endif
 
-      if( Length_block(igr) > 0 ) then ! on est a la fin du block
+      if( Length_block(igr) > 0 ) then ! We are at the end of the block
         param_dep = parsum(igr) - sum( param(igr-Length_block(igr)+1:igr,1) )
         param(igr-Length_block(igr)+1:igr,2) = param_dep
       endif
 
       do ipar = 1,npar(igr)
-        if( typepar(igr,ipar) /= 'shift' .and. typepar(igr,ipar) /= 'weight' .and. &
-            typepar(igr,ipar) /= 'gaussian' ) Conv_done = .false.
+        if( TypePar(igr,ipar) /= 'shift' .and. TypePar(igr,ipar) /= 'weight' .and. &
+            TypePar(igr,ipar) /= 'gaussian' ) Conv_done = .false.
       end do
 
       do ipar = 1,npar(igr)
-        if( typepar(igr,ipar) /= 'dposx' .and. typepar(igr,ipar) /= 'dposy' .and. typepar(igr,ipar) /= 'dposz' .and. &
-            typepar(igr,ipar) /= 'posx' .and. typepar(igr,ipar) /= 'posy' .and. typepar(igr,ipar) /= 'posz' .and. &
-            typepar(igr,ipar) /= 'poporb') cycle
+        if( TypePar(igr,ipar) /= 'dposx' .and. TypePar(igr,ipar) /= 'dposy' .and. TypePar(igr,ipar) /= 'dposz' .and. &
+            TypePar(igr,ipar) /= 'posx' .and. TypePar(igr,ipar) /= 'posy' .and. TypePar(igr,ipar) /= 'posz' .and. &
+            TypePar(igr,ipar) /= 'poporb') cycle
         inotskip = inotskip + 1
         ifile_notskip(inotskip) = indice_par(igr,ipar)
       end do
@@ -1616,8 +1620,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
       Close(3)
       call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
-        itape1,itape4,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-        nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,Use_FDMX,FDMX_only, &
+        itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
+        nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,Use_FDMX,FDMX_only, &
         fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
         tdebye,tmeas_inp,tmeas,expntl,expntlA,expntlB,victoreen,victA,victB,mermrank)
 
@@ -1629,14 +1633,14 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     endif
 
     if( mpirank0 == 0 ) then
-      if( Convolution_cal ) call convolution(bav_open,Bormann, .false., &
+      if( Convolution_cal ) call Convolution(bav_open,Bormann, .false., &
         convolution_out,Delta_edge,E_cut_imp,E_cut_man,Ecent, Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max, &
-        ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,length_line, &
-        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,ncal)
+        ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,Length_line,n_col_max, &
+        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,ncal)
 
-      call metric(comt,convolution_out,Dafs_bio,Dist_min, Dist_min_g,fdmfit_out,Fit_cal,Gen_Shift_min,ical, &
-             ical_Met_min,index_Met_Fit,iscratchconv,itape_minim,itape2,length_line,Length_block,nb_datafile,ncal,ndm, &
-             ng,ngroup_par,nmetric,nmetricm,Nom_Met,npar,nparam,nparm,param,parmax,parmin, RapIntegrT_min_g,typeparc)
+      call Metric(comt,convolution_out,Dafs_bio,Dist_min, Dist_min_g,fdmfit_out,Fit_cal,Gen_Shift_min,ical, &
+             ical_Met_min,index_Met_Fit,iscratchconv,itape_minim,itape2,Length_line,Length_block,nb_datafile,ncal,ndm, &
+             ng,ngroup_par,nmetric,nmetricm,Nom_Met,npar,nparam,nparm,param,parmax,parmin, RapIntegrT_min_g,TypeParc)
     endif
 
   endif
@@ -1656,9 +1660,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   deallocate( parsum )
   deallocate( nparam )
   deallocate( indice_par )
-  deallocate( typepar )
-  deallocate( typeparc )
-  deallocate( typeparg )
+  deallocate( TypePar )
+  deallocate( TypeParc )
+  deallocate( TypeParg )
 
   if( mpirank0 /= 0 ) return
 
@@ -1852,7 +1856,7 @@ function Traduction(keyword)
       traduction = 'extracsy'
     case('enrgpsii','epsiia')
       traduction = 'epsii'
-    case('enrgphot','energpho')
+    case('enrgphot','energpho','energphot','ephoton')
       traduction = 'energphot'
     case('extractio')
       traduction = 'extrac'
@@ -2070,16 +2074,16 @@ end
 ! Fonction giving the number of number in the next non empty line et setting at the biginning of this line.
 ! With line starting with a character, nnombre = 0
 
-function nnombre(irec,length_line)
+function nnombre(irec,Length)
 
   use declarations
   implicit none
 
   integer, parameter:: nlet = 53
 
-  integer:: eof, i, icol, irec, j, k, l, length_line, ligne, nmots, n, nnombre
+  integer:: eof, i, icol, irec, j, k, l, Length, ligne, nmots, n, nnombre
 
-  character(len=length_line):: mot, test
+  character(len=Length):: mot, test
   character(len=1), dimension(nlet):: let
 
   real(kind=db):: x
@@ -2088,7 +2092,7 @@ function nnombre(irec,length_line)
             'k','K','l','L','m','M','n','N', 'o','O','p','P','q','Q','r','R','s','T','t','T','u','U','v','V', &
             'w','W','x','X','y','Y','z','Z','/'/
 
-  do i = 1,length_line
+  do i = 1,Length
     mot(i:i) = 'P'
   end do
 
@@ -2107,7 +2111,7 @@ function nnombre(irec,length_line)
       return
     endif
 
-    do i = 1,length_line
+    do i = 1,Length
       if( mot(i:i) /= ' ' .and. mot(i:i) /= char(9) ) exit boucle_ligne
     end do
 
@@ -2117,17 +2121,17 @@ function nnombre(irec,length_line)
 
   Open( 16, status='SCRATCH' )
 
-  do i = 1,length_line
+  do i = 1,Length
     if( mot(i:i) == char(9) ) mot(i:i) = ' '
   end do
 
   n = 0
   i = 0
-  do icol = 1,length_line
+  do icol = 1,Length
     i = i + 1
-    if( i > length_line ) exit
+    if( i > Length ) exit
     if( mot(i:i) == ' ' ) cycle
-    do j = i+1,length_line
+    do j = i+1,Length
       if( mot(j:j) == ' ' ) exit
     end do
     j = j - 1

@@ -68,7 +68,7 @@ subroutine Sphere(Axe_Atom_grn,Ecinetic,Eimag,Energ,Enervide,Full_atom, &
 
   call coef_sch_rad(Enervide,f2,g0,gm,gp,gso,nlm,nr,nspin,nspino,numat,r,Relativiste,Spinorbite,V)
 
-  gp(:,:) = 1 / gp(:,:)
+  gp(1:nr-1,:) = 1 / gp(1:nr-1,:)
 
   if( abs(Eimag) > eps10 .or. Ecinetic(1) < eps10 .or. Ecinetic(nspin) < eps10 ) then
     Ecomp = .true.
@@ -346,20 +346,21 @@ subroutine coef_sch_rad(Enervide,f2,g0,gm,gp,gso,nlm,nr,nspin,nspino,numat,r,Rel
 ! alfa_sf = constante de structure fine.
   a2s4 = 0.25_db * alfa_sf**2
 
-  do ir = 1,nr-1
+  do ir = 1,nr
     do ispin = 1,nspin
 
       Vme = V(ir,1,1,ispin) - Enervide
       g0(ir,ispin) = - clapl0(ir) + Vme
       gm(ir,ispin) = - claplm(ir)
       gp(ir,ispin) = - claplp(ir)
-      if( ir == nr ) cycle
 
       if( Relativiste .or. Spinorbite ) then
 
         bder = 1 / ( 1 - a2s4 * Vme )
         if( ir == 1 ) then
           dvr = 2 * numat / r(1)**2
+        elseif( ir == nr ) then
+          dvr = cgradm(ir) * V(ir-1,1,1,ispin) + cgrad0(ir) * V(ir,1,1,ispin) + cgradp(ir) * V(ir,1,1,ispin)
         else
           dvr = cgradm(ir) * V(ir-1,1,1,ispin) + cgrad0(ir) * V(ir,1,1,ispin) + cgradp(ir) * V(ir+1,1,1,ispin)
         endif
@@ -1520,7 +1521,7 @@ subroutine radial(Classic_irreg,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft
   call coef_sch_rad(Enervide,f2,g0,gm,gp,gso,nlm,nr,nspin,nspino,numat,r,Relativiste,Spinorbite,V)
 
   gpi(:,:) = 1 / gp(:,:)
-  if( Solsing ) gmi(:,:) = 1 / gm(:,:)
+  if( Solsing ) gmi(1:nr-1,:) = 1 / gm(1:nr-1,:)
 
   if( abs(Eimag) > eps10 .or. Ecinetic(1) < eps10 .or. Ecinetic(nspin) < eps10 ) then
     Ecomp = .true.
@@ -3169,8 +3170,11 @@ subroutine Radial_matrix_sd(Diagonale,drho,Full_potential,icheck,l,lmax,nlm_pot,
     lma2, lmax, lp1, lp2, m1, m2, m3, mp1, mp2, mr1, mr2, mv, n1, n2, nlm_pot, nlm1, nlm2, nlma, nlma2, np1, np2, nr, &
     nrmtsd, nrs, nspin, nspino, nspinp
 
+! The volatile statetement prevent for some compilation optimization.
+! On linux, at times without it, one gets segmentation fault erros message during the running with magnetic system (YJ 2018/01/25)
   integer, volatile:: nr1, nr2
-
+!  integer:: nr1, nr2
+  
   complex(kind=db):: c_harm, c_harm1, c_harm2, rof_sd, Sta_e, Sta_s
   complex(kind=db), dimension(nspinp):: rof_sd_l
   complex(kind=db), dimension(nrmtsd):: fc
@@ -4426,9 +4430,6 @@ subroutine Cal_Density(Energ,Full_atom,iaabsi,iaprotoi,icheck,ie,ie_computer,Int
   return
   110 format(/' ---- Cal_density --------',100('-'))
   120 format(15x,' Energy =',f10.3,' eV')
-  150 format(/'  Before integration:  ia = ',i3,'  charge_self = ', 2f10.5)
-  160 format(/' ia =',i3,', Z =',i3/ '   Radius_(A) 4*pi*r2*Rho_self')
-  170 format(1p,30e13.5)
   180 format(/'  l  m is  Density of states   Integral    ia =',i3)
   190 format(3i3,3f15.7)
   200 format(/'    l   sum_m(Integral)')

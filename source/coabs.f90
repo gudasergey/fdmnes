@@ -4,7 +4,7 @@
 
 subroutine Write_coabs(Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesian_tensor, &
               Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft,First_E, &
-              f_avantseuil,Full_self_abs,Green_int,hkl_dafs,iabsorig,icheck,ie,ie_computer,igr_bulk_z,Int_tens, &
+              f_avantseuil,Full_self_abs,Green_int,hkl_dafs,i_range,iabsorig,icheck,ie,ie_computer,igr_bulk_z,Int_tens, &
               isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodee,multi_0,Multipole,n_abs_rgh,n_bulk_sup, &
               n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
               ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv,nomfich_s,nphi_dafs,npldafs, &
@@ -19,7 +19,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesian_tensor,
 
   real(kind=db), parameter:: quatre_mc2 = 4 * 2 / alfa_sf**2  ! in Rydberg
   
-  integer:: he, hs, i, i_bulk_z, ia, iabsorig, ib, ic1, ic2, icheck, icn1, icn2, ie, &
+  integer:: he, hs, i, i_bulk_z, i_range, ia, iabsorig, ib, ic1, ic2, icheck, icn1, icn2, ie, &
     ie_computer, ii, ind_mu, initlr, ip, ipl, ipldafs, iseuil, isp1, isp2, isp3, isp4, ispfg, &
     isym, ixandafs, j, j1, je, jhe, jhs, jpl, js, jseuil, ke, ks, l, ll, long, mpinodee, multi_0, n_abs_rgh, &
     n_bulk_sup, n_bulk_z, n_bulk_z_max, n_dim, n_mat_cal, n_max, n_multi_run, n_oo, n_rel, n_tens, n_tens_max, n1, n2, na, &
@@ -382,7 +382,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesian_tensor,
   endif
 
   if( Spherical_tensor ) call Spherical_tensor_cal(Bragg_abs,ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2, &
-            Energ,Ephseuil,Epsii,Eseuil(nbseuil),First_E,icheck,ie,Int_tens,jseuil,Magn_sens,Moyenne,n_rel,n_tens_max, &
+            Energ,Ephseuil,Epsii,Eseuil(nbseuil),First_E,i_range,icheck,ie,Int_tens,jseuil,Magn_sens,Moyenne,n_rel,n_tens_max, &
             natomsym,nenerg,ninit1,ninitlr,nomfich_s,nphim,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdf0t1,phdt1,pol, &
             Poldafse,Poldafss,secddia,secdqia,secmdia,secqqia,Spherical_signal,Surface_ref,Taux_eq,V0muf,Vec,Vecdafse,Vecdafss)
 
@@ -1357,7 +1357,7 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesian_tensor,
 ! Writing in the output file
     if( Full_self_abs .or. Self_abs ) then
       call write_out(angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil(nbseuil),First_E,Green_int,hkl_dafs, &
-            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,3,npldafs,nseuil,numat_abs, &
+            i_range,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,3,npldafs,nseuil,numat_abs, &
             phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym,Surface_ref,Volume_maille)
     elseif( Bulk_step .and. ie == 1 ) then
       allocate( hkl_dafs_fake(3,npldafs) )
@@ -1366,19 +1366,19 @@ subroutine Write_coabs(Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesian_tensor,
       hkl_dafs_fake(2,1) = hkl_dafs_fake(2,1) + 10000._db   ! fake value used in write_out, signature of truncation 
       hkl_dafs_fake(3,:) = hkl_dafs(3,:) 
       call write_out(rdum,rdum,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil(nbseuil),First_E,Green_int,hkl_dafs_fake, &
-            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,0,npldafs,nseuil,numat_abs, &
+            i_range,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,0,npldafs,nseuil,numat_abs, &
             phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym,Surface_ref,Volume_maille)
       deallocate( hkl_dafs_fake )
     else
       call write_out(rdum,rdum,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil(nbseuil),First_E,Green_int,rdum, &
-            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,0,0,nseuil,numat_abs, &
+            i_range,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,0,0,nseuil,numat_abs, &
             phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym,Surface_ref,Volume_maille)
 
     endif
 
 ! Writing on the screen
     if( ia == 0 ) call write_out(rdum,rdum,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil(nbseuil),First_E,Green_int,rdum, &
-            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,0,0,nseuil,-1, &
+            i_range,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,0,0,nseuil,-1, &
             phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym,Surface_ref,Volume_maille)
 
     if( Dafs .and. nphim > 1 ) then
@@ -1977,14 +1977,14 @@ end
 
 subroutine Write_nrixs(All_nrixs,Allsite,Core_resolved, &
                   Volume_maille,E_cut,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft,First_E, &
-                  f_avantseuil,Green_int,iabsorig,icheck,ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
+                  f_avantseuil,Green_int,i_range,iabsorig,icheck,ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
                   jseuil,mpinodee,n_multi_run,natomsym,nbseuil,nenerg,ninit1,ninitlr,nomfich,nomfich_cal_convt, &
                   nq_nrixs,nseuil,nspinp,numat_abs,q_nrixs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Spinorbite,Taux_eq,V0muf)
                   
   use declarations
   implicit none
 
-  integer:: i, ia, iabsorig, icheck, ie, ie_computer, initlr, iq, l0_nrixs, lmax_nrixs, jseuil, l, long, &
+  integer:: i, i_range, ia, iabsorig, icheck, ie, ie_computer, initlr, iq, l0_nrixs, lmax_nrixs, jseuil, l, long, &
     mpinodee, n, n_dim, n_multi_run, n_tens, natomsym, nbseuil, nenerg, ninit1, ninitlr, npldafs, nq_nrixs, &
     nseuil, nspinp, numat_abs
 
@@ -2175,14 +2175,14 @@ subroutine Write_nrixs(All_nrixs,Allsite,Core_resolved, &
       end do
     end do
 
-! Ecriture dans le fichier
+! Writing in the output file
     call write_out(rdum,rdum,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil(nbseuil),First_E,Green_int,rdum, &
-            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title,npldafs,npldafs,0,0,nseuil,numat_abs, &
+            i_range,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title,npldafs,npldafs,0,0,nseuil,numat_abs, &
             cdum,cdum,Tens,V0muf,Core_resolved,natomsym,Surface_ref,Volume_maille)
 
-! Ecriture a l'ecran
+! Writing on the screen
     if( ia == 0 ) call write_out(rdum,rdum,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil(nbseuil),First_E,Green_int,rdum, &
-            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title,npldafs,npldafs,0,0,nseuil,-1, &
+            i_range,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title,npldafs,npldafs,0,0,nseuil,-1, &
             cdum,cdum,Tens,V0muf,Core_resolved,natomsym,Surface_ref,Volume_maille)
 
   end do
@@ -2404,7 +2404,7 @@ subroutine Write_cartesian_tensor(Volume_maille,E_cut,E1E2,E2E2,Ephseuil,Epsii,E
   zero_c = (0._db, 0._db)
 
   call Write_out(rdum,rdum,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
-           jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,nomtens,1,0,0,0,nseuil,numat_abs, &
+           i_range,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,nomtens,1,0,0,0,nseuil,numat_abs, &
            cdum,cdum,Tens,V0muf,Core_resolved,0,Surface_ref,Volume_maille) 
 
   return
@@ -2413,7 +2413,7 @@ end
 !***********************************************************************
 
 subroutine Write_out(angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil,First_E,Green_int,hkl_dafs, &
-            jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title,np,npp,nppa,npps,nseuil,numat, &
+            i_range,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,Title,np,npp,nppa,npps,nseuil,numat, &
             ph1,ph2,Tens,V0muf,Core_resolved,natomsym,Surface_ref,Volume_maille)
 
   use declarations
@@ -2421,7 +2421,7 @@ subroutine Write_out(angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil,First_
 
   integer, parameter:: n_tens_max = 10000
 
-  integer:: i, icor, ipr, jseuil, n, n_dim, n_tens, natomsym, ninit1, ninitlr, np, npp, nppa, npps, nseuil, numat 
+  integer:: i, i_range, icor, ipr, jseuil, n, n_dim, n_tens, natomsym, ninit1, ninitlr, np, npp, nppa, npps, nseuil, numat 
   
   character(len=132):: nomficht
   character(len=92):: mot1
@@ -2481,7 +2481,11 @@ subroutine Write_out(angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil,First_
 
   if( First_E ) then
     if( numat >= 0 ) then
-      open(ipr, file = nomficht)
+      if( i_range == 1 ) then !***JDB Jan 2018, added ELSE option
+        open(ipr, file = nomficht)
+      else
+        open(ipr, file = nomficht, position='append')
+      endif
     elseif( numat < -1 ) then
       open(ipr, status='scratch')
     endif
@@ -2499,30 +2503,32 @@ subroutine Write_out(angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil,First_
       Volume = Volume_maille * bohr**3
       Surface = Surface_ref * bohr**2
                        
-      if( nseuil == 0 ) then
-        write(ipr,120) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, 1, icor, Epsii(1)*rydb, Volume, Surface, f0_forward, natomsym, mot1, mot2
-      elseif( ninitlr == 1 ) then
-        write(ipr,120) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, mot2
-      elseif( ninitlr == 2 ) then                   
-        write(ipr,121) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
-      elseif( ninitlr == 4 ) then
-        write(ipr,122) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
-      elseif( ninitlr == 6 ) then
-        write(ipr,123) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
-      elseif( ninitlr == 8 ) then
-        write(ipr,124) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
-      elseif( ninitlr == 10 ) then
-        write(ipr,125) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
-      else     ! 14
-        write(ipr,126) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
-          E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
+      if( i_range == 1 ) then !***JDB Jan 2018
+        if( nseuil == 0 ) then
+          write(ipr,120) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, 1, icor, Epsii(1)*rydb, Volume, Surface, f0_forward, natomsym, mot1, mot2
+        elseif( ninitlr == 1 ) then
+          write(ipr,120) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, mot2
+        elseif( ninitlr == 2 ) then
+          write(ipr,121) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
+        elseif( ninitlr == 4 ) then
+          write(ipr,122) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
+        elseif( ninitlr == 6 ) then
+          write(ipr,123) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
+        elseif( ninitlr == 8 ) then
+          write(ipr,124) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
+        elseif( ninitlr == 10 ) then
+          write(ipr,125) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
+        else     ! 14
+          write(ipr,126) Eseuil*rydb, numat, nseuil, jseuil, fpp_avantseuil, v0muf*rydb, &
+            E_cut*rydb, ninitlr, icor, Epsii(:)*rydb, Volume, Surface, f0_forward, natomsym, mot1, ninitlr, mot2
+        endif
       endif
 
     endif
@@ -2570,10 +2576,12 @@ subroutine Write_out(angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil,First_
       call center_word( mot, Length_word )
       title(i) = mot
     end do
-    if( Gnuplot ) then
-      write(ipr,158) title(1:n)
-    else
-      write(ipr,160) title(1:n)
+    if ( i_range == 1) then !***JDB
+      if( Gnuplot ) then
+        write(ipr,158) title(1:n)
+      else
+        write(ipr,160) title(1:n)
+      endif
     endif
   elseif( numat >= 0 ) then
     open(ipr, file = nomficht, position='append')
@@ -2859,7 +2867,7 @@ end
 !***********************************************************************
 
 subroutine Spherical_tensor_cal(Bragg_abs,ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2, &
-            Energ,Ephseuil,Epsii,Eseuil,First_E,icheck,ie,Int_tens,jseuil,Magn_sens,Moyenne,n_rel,n_tens_max, &
+            Energ,Ephseuil,Epsii,Eseuil,First_E,i_range,icheck,ie,Int_tens,jseuil,Magn_sens,Moyenne,n_rel,n_tens_max, &
             natomsym,nenerg,ninit1,ninitlr,nomfich_s,nphim,npldafs,nplr,nplrm,nplt,nseuil,numat_abs,pdp,phdf0t,phdt,pol, &
             Poldafse,Poldafss,secddia,secdqia,secmdia,secqqia,Spherical_signal,Surface_ref,Taux_eq,V0muf,Vec,Vecdafse,Vecdafss)
 
@@ -2871,7 +2879,7 @@ subroutine Spherical_tensor_cal(Bragg_abs,ct_nelec,Core_resolved,Volume_maille,E
   integer, parameter:: n_tens_qq = 25 
   integer, parameter:: n_tens_dm = 9 
 
-  integer:: i, ib, icheck, ie, initlr, ipl, ipldafs, jseuil, n_rel, n_tens_max, natomsym, nenerg, &
+  integer:: i, i_range, ib, icheck, ie, initlr, ipl, ipldafs, jseuil, n_rel, n_tens_max, natomsym, nenerg, &
             ninit1, ninitlr, nphim, npldafs, nplr, nplrm, nplt, nseuil, numat_abs
   
   character(len=132):: nomfich_s
@@ -3005,7 +3013,7 @@ subroutine Spherical_tensor_cal(Bragg_abs,ct_nelec,Core_resolved,Volume_maille,E
        Sph_tensor_ia_dd,Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_qq,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Taux_eq)
 
   call Write_Spherical_tensor(Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2,Energ,Ephseuil,Epsii, &
-       Eseuil,First_E,icheck,ie,Int_tens,jseuil,Magn_sens,n_tens_dd,n_tens_dm,n_tens_dq,n_tens_max,n_tens_qq, &
+       Eseuil,First_E,i_range,icheck,ie,Int_tens,jseuil,Magn_sens,n_tens_dd,n_tens_dm,n_tens_dq,n_tens_max,n_tens_qq, &
        natomsym,nenerg,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,Sph_tensor_ia_dd, &
        Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Sph_tensor_ia_qq,Surface_ref,V0muf)
 
@@ -3203,7 +3211,7 @@ subroutine Spherical_tensor_cal(Bragg_abs,ct_nelec,Core_resolved,Volume_maille,E
     endif 
 
     call Write_Signal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2,Ephseuil,Epsii, &
-      Eseuil,First_E,0,ipl,ipldafs,jseuil,Magn_sens,n_tens_dd,n_tens_dq,n_tens_dm, &
+      Eseuil,First_E,i_range,0,ipl,ipldafs,jseuil,Magn_sens,n_tens_dd,n_tens_dq,n_tens_dm, &
       n_tens_qq,ninit1,ninitlr,nomfich_s,npldafs,nplt,nseuil,numat_abs,phdf0t,phdt, &
       Sph_tensor_dd,Sph_tensor_dq,Sph_tensor_dq_m,Sph_tensor_dm,Sph_tensor_dm_m,Sph_tensor_qq, &
       Surface_ref,Tensor_pol_dd,Tensor_pol_dq,Tensor_pol_dm,Tensor_pol_qq,V0muf)
@@ -3727,14 +3735,14 @@ end
 ! Ecriture des tenseurs spheriques et de leur integrale
 
 subroutine Write_Spherical_tensor(Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2,Energ,Ephseuil,Epsii, &
-       Eseuil,First_E,icheck,ie,Int_tens,jseuil,Magn_sens,n_tens_dd,n_tens_dm,n_tens_dq,n_tens_max,n_tens_qq, &
+       Eseuil,First_E,i_range,icheck,ie,Int_tens,jseuil,Magn_sens,n_tens_dd,n_tens_dm,n_tens_dq,n_tens_max,n_tens_qq, &
        natomsym,nenerg,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,Sph_tensor_ia_dd, &
        Sph_tensor_ia_dq,Sph_tensor_ia_dq_m,Sph_tensor_ia_dm,Sph_tensor_ia_dm_m,Sph_tensor_ia_qq,Surface_ref,V0muf)
 
   use declarations
   implicit none
   
-  integer:: i, ia, ie, icheck, initlr, j, jseuil, long, n_tens, n_tens_dd, n_tens_dq, n_tens_max, n_tens_dm, &
+  integer:: i, i_range, ia, ie, icheck, initlr, j, jseuil, long, n_tens, n_tens_dd, n_tens_dq, n_tens_max, n_tens_dm, &
       n_tens_qq, natomsym, nenerg, ninit1, ninitlr, nseuil, numat_abs
 
   character(len=Length_word):: mot
@@ -3876,7 +3884,7 @@ subroutine Write_Spherical_tensor(Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1
     nomficht(long+1:long+4) = '.txt'
 
     call write_out(rdum,rdum,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
-          jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs, &
+          i_range,jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs, &
           cdum,cdum,Tens,V0muf,Core_resolved,0,Surface_ref,Volume_maille)
 
     if( nenerg == 1 ) cycle
@@ -3920,7 +3928,7 @@ subroutine Write_Spherical_tensor(Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1
 
     Int_tenst(1:n_tens) = Int_tens(1:n_tens,ia)
     call write_out(rdum,rdum,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
-          jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs, &
+          i_range,jseuil,n_tens_max*ninitlr,n_tens,ninit1,ninitlr,nomficht,nomten,1,0,0,0,nseuil,numat_abs, &
           cdum,cdum,Int_tenst,v0muf,Core_resolved,0,Surface_ref,Volume_maille)
 
   end do
@@ -4325,7 +4333,7 @@ end
 ! Ecriture du signal par tenseur
 
 subroutine Write_Signal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M1,E2E2,Ephseuil,Epsii, &
-      Eseuil,First_E,ia,ipl,ipldafs,jseuil,magn_sens,n_tens_dd,n_tens_dq,n_tens_dm, &
+      Eseuil,First_E,i_range,ia,ipl,ipldafs,jseuil,magn_sens,n_tens_dd,n_tens_dq,n_tens_dm, &
       n_tens_qq,ninit1,ninitlr,nomfich_s,npldafs,nplt,nseuil,numat_abs,phdf0t,phdt, &
       Sph_tensor_dd_ni,Sph_tensor_dq_ni,Sph_tensor_dq_m_ni,Sph_tensor_dm_ni,Sph_tensor_dm_m_ni,Sph_tensor_qq_ni, &
       Surface_ref,Tensor_pol_dd,Tensor_pol_dq,Tensor_pol_dm,Tensor_pol_qq,V0muf)
@@ -4333,7 +4341,7 @@ subroutine Write_Signal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M
   use declarations
   implicit none
   
-  integer:: i, ia, initlr, ipl, ipldafs, is, j, j0, jdd, jdd0, jdm, jdmm, jdm0, jdmm0, &
+  integer:: i, i_range, ia, initlr, ipl, ipldafs, is, j, j0, jdd, jdd0, jdm, jdmm, jdm0, jdmm0, &
       jdq, jdq0, jdqm, jdqm0, jqq, jqq0, jseuil, jtot, jtot0, long, n_tens, n_tens_dd, n_tens_dq, n_tens_dm, &
       n_tens_qq, n_tens2, ninit1, ninitlr, npldafs, nplt, nseuil, numat_abs
 
@@ -4614,11 +4622,11 @@ subroutine Write_Signal(ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2,E1M
     ph0(:) = cg
     n_tens2 = n_tens / ( 2 * ninitlr )
     call write_out(rdum,rdum,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
-          jseuil,n_tens,n_tens,ninit1,ninitlr,nomficht,Tens_name,n_tens,n_tens2,0,0,nseuil,numat_abs, &
+          i_range,jseuil,n_tens,n_tens,ninit1,ninitlr,nomficht,Tens_name,n_tens,n_tens2,0,0,nseuil,numat_abs, &
           phtem,ph0,Tens,v0muf,Core_resolved,0,Surface_ref,Volume_maille)
   else
     call write_out(rdum,rdum,zero_c,E_cut,Ephseuil,Epsii,Eseuil,First_E,.false.,rdum, &
-          jseuil,n_tens,n_tens,ninit1,ninitlr,nomficht,Tens_name,1,0,0,0,nseuil,numat_abs, &
+          i_range,jseuil,n_tens,n_tens,ninit1,ninitlr,nomficht,Tens_name,1,0,0,0,nseuil,numat_abs, &
           cdum,cdum,Tens,V0muf,Core_resolved,0,Surface_ref,Volume_maille)
   endif
 

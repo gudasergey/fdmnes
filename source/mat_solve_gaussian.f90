@@ -8,7 +8,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
         nphiato1, nphiato7, npoint, npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
         numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, smi, smr, Spinorbite, Time_fill, Time_tria, Vr, &
         Ylm_comp, Ylmato, Ylmso)
-
+  
   use declarations
   implicit none
 
@@ -17,7 +17,10 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     nlmmax, nlmomax, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, & 
     npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, nvois
 
-  integer(kind=8):: lk, nb_not_zero_tot
+  integer(kind=db):: lk, nb_not_zero_tot
+  integer(kind=db), dimension(nligne):: lbz
+!  integer:: lk, nb_not_zero_tot
+!  integer, dimension(nligne):: lbz
    
   integer, dimension(0:npoint):: new
   integer, dimension(natome):: ianew, nbord, nbordf, nlmsa
@@ -28,8 +31,6 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   integer, dimension(nbtm,natome):: ibord, isbord
   integer, dimension(npsom,nvois):: ivois, isvois
   integer, dimension(nligne):: lb1, lb2, nb_not_zero, newinv
-
-  integer(kind=8), dimension(nligne):: lbz
 
   integer, dimension(:), allocatable:: IndColNotZero, IndColNotZero_inv
 

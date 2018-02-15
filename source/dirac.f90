@@ -36,6 +36,14 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
   real(kind=db), dimension(:,:), allocatable:: psi
 
   if( icheck > 1 ) write(3,110) it, Z
+  
+  if( Z <= 0 .or. Z > 103 ) then
+    call write_error
+    do ipr = 3,9,3
+      write(ipr,115)
+    end do
+    stop
+  endif
 
   n_ray = nrato_dirac ! Number of radius in the radial mesh
   ray_max = 20._db   ! Maximum radius (au)
@@ -676,6 +684,8 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
 
   return
   110 format(/' ---- Dirac --------',100('-')//' it =',i2,'  Z =',i4)
+  115 format(//' The atomic number must be between Z = 1 and Z = 103', / &
+               ' In n_orb_coeur, it is Z =',i12, ' !'//) 
   120 format(///'   n_ray =',i5,' > nrm =',i4,/ ' Use keyword n_ray in the indata file to decrease its value !')
   130 format(///'   n_orb > nnlm ',// ' Increase nnlm in lecture.f !')
   135 format(/'  it =',i3,// '      rato    psi_coeur(n=',i1,',l=',i1,')  ', 'psi_val(n=',i1,',l=',i1,')')
@@ -711,10 +721,10 @@ subroutine config(Z,irel,n_coeur,n_orb,nnlm,nqn,lqn,rqn,nel)
 
   real(kind=db), dimension(nnlm):: nel, rqn
 
-  if( Z > nzm) then
+  if( Z > nzm .or. Z <= 0 ) then
     call write_error
     do ipr = 3,9,3
-      write(ipr,110) Z, nzm
+      write(ipr,110) nzm, Z
     end do
     stop
   endif
@@ -848,7 +858,8 @@ subroutine config(Z,irel,n_coeur,n_orb,nnlm,nqn,lqn,rqn,nel)
   endif
 
   return
- 110  format(//' Atomic number =',i6,' > ',i3,' in routine config !'//)
+  110 format(//' The atomic number must be between Z = 1 and Z = ',i3, / &
+               ' In subroutine config, it is Z =',i12, ' !'//) 
 end
 
 

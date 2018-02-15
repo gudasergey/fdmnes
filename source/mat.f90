@@ -4,9 +4,9 @@
 
 subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, &
                     clapl,Classic_irreg,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide,FDM_comp,Full_atom, &
-                    gradvr,iaabsi,iaprotoi,iato,ibord,icheck,ie,igreq,igroupi,igrph,irep_util,isbord,iso,ispinin,isrt,ivois, &
+                    gradvr,iaabsi,iaprotoi,iato,ibord,icheck,ie,igroupi,igrph,irep_util,isbord,iso,ispinin,isrt,ivois, &
                     isvois,karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso, &
-                    natome,n_atom_0,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,neqm,ngroup_m,ngrph,nim,nicm, &
+                    natome,n_atom_0,n_atom_ind,nbm,nbord,nbordf,nbtm,ngroup_m,ngrph,nim,nicm, &
                     nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
                     nsort,nsortf,nso1,nspin,nspino,nspinp,nstm,numia,nvois,phiato,poidsa,poidso,R_rydb,Recop,Relativiste, &
                     Repres_comp,Rsort,rvol,Rydberg,Solsing,Spinorbite,State_all_r,Sym_cubic,Tau_ato,Taull, &
@@ -17,7 +17,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   
   integer:: i, i1, i2, ia, iaabsi, icheck, idir1, idir2, idir3, ie, igrph, ii, ipas, irep, is1, is2, isens, isg, isp, ispinin, &
     jj, jsp, l, l1, l2, lm, lm01, lm01c, lm02, lm02c, lm1, lm2, lmaxso, lmf, lms, lmw, m, m1, m2, mpierr, &
-    MPI_host_num_for_mumps, mpirank0, natome, n_atom_0, n_atom_ind, n_atom_proto, nbm, nbtm, neqm, ngroup_m, ngrph, nim, nicm,&
+    MPI_host_num_for_mumps, mpirank0, natome, n_atom_0, n_atom_ind, nbm, nbtm, ngroup_m, ngrph, nim, nicm,&
     nligne, nligne_i, nligneso, nlmagm, nlmmax ,nlmomax, nlmsam, nlmso, nlmso_i, nlmw, nphiato1, nphiato7, npoint, npr, &
     npsom, nsm, nsort, nsort_c, nsort_r, nsortf ,nso1, nspin, nspino, nspinp, nspinr, nstm, nvois
 
@@ -30,7 +30,6 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   integer, dimension(nbtm,natome):: ibord, isbord
   integer, dimension(nrepm,2):: irep_util
   integer, dimension(npsom,nvois):: ivois, isvois
-  integer, dimension(0:n_atom_proto,neqm):: igreq
   integer, dimension(:), allocatable:: lb1, lb2, newinv
 
   character(len=1) mot1
@@ -473,7 +472,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   endif
 
   if( Solsing .and. igrph == ngrph .and. Classic_irreg ) call soustract_tl(Axe_Atom_grn,Cal_xanes,Full_atom, &
-                iaabsi,iaprotoi,igreq,igroupi,ispinin,lmaxa,n_atom_0,n_atom_ind,n_atom_proto,natome,neqm,ngroup_m,nlmagm, &
+                iaabsi,iaprotoi,igroupi,ispinin,lmaxa,n_atom_0,n_atom_ind,natome,ngroup_m,nlmagm, &
                 nspin,nspino,nspinp,Spinorbite,State_all_r,Tau_ato,Taull)
 
   if( icheck > 1 .and. igrph == ngrph .and. ( Spinorbite .or. ispinin == nspin ) ) then
@@ -1446,7 +1445,10 @@ subroutine newind(distai,ianew,ibord,icheck,isrt,ivois,lb1,lb2,mpirank0,natome,n
                nligne,nlmsa,nlmso,npoint,nsortf,nspino,npsom,nstm,numia,nvois,xyz)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
+  
+  integer:: i, ia, ib, icheck, ii, ipr, iv, j, l, lb11, lb22, lm, mpirank0, n, natome, nbtm, nligne, nlmso, npf, npf1, &
+            npoint, nsortf, nspino, npsom, nstm, nvois 
 
   integer, dimension(natome):: ianew, nlmsa
   integer, dimension(nligne):: lb1, lb2, newinv
@@ -1598,16 +1600,19 @@ end
 
 !***********************************************************************
 
-! Sous programme d'inversion de matrices generales complexes
+! Sub routine for inversion of complex general matrix
 
 subroutine invcomp(n,mat,nm,lwork,is,Stop_job)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
-  integer:: ipiv(nm)
+  integer:: i, info, ipr, is, j, lwork, n, nm
 
-  complex(kind=db):: mat(nm,nm), work(lwork)
+  integer, dimension(nm):: ipiv
+
+  complex(kind=db), dimension(lwork):: work
+  complex(kind=db), dimension(nm,nm):: mat
 
   logical:: Stop_job
 
@@ -1717,17 +1722,16 @@ end
 
 !***********************************************************************
 
-subroutine soustract_tl(Axe_Atom_grn,Cal_xanes,Full_atom,iaabsi,iaprotoi,igreq,igroupi,ispinin,lmaxa,n_atom_0, &
-                n_atom_ind,n_atom_proto,natome,neqm,ngroup_m,nlmagm,nspin,nspino,nspinp,Spinorbite,State_all_r,Tau_ato,Taull)
+subroutine soustract_tl(Axe_Atom_grn,Cal_xanes,Full_atom,iaabsi,iaprotoi,igroupi,ispinin,lmaxa,n_atom_0, &
+                n_atom_ind,natome,ngroup_m,nlmagm,nspin,nspino,nspinp,Spinorbite,State_all_r,Tau_ato,Taull)
 
   use declarations
   implicit none
 
-  integer:: i1, i2, ia, iaabsi, iapr, iga, igr, ipr, is1, is2, isp1, isp2, ispinin, its, kgr, l1, l2, &
-     lm10, lm20, lm1, lm2, m1, m2, n_atom_0, n_atom_ind, n_atom_proto, natome, neqm, ngroup_m, nlmagm, nspin, nspino, nspinp
+  integer:: i1, i2, ia, iaabsi, iapr, iga, igr, is1, is2, isp1, isp2, ispinin, its, l1, l2, &
+     lm10, lm20, lm1, lm2, m1, m2, n_atom_0, n_atom_ind, natome, ngroup_m, nlmagm, nspin, nspino, nspinp
 
   integer, dimension(natome):: iaprotoi, igroupi, lmaxa
-  integer, dimension(0:n_atom_proto,neqm):: igreq
 
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind):: tau_ato
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: taull
@@ -1743,8 +1747,6 @@ subroutine soustract_tl(Axe_Atom_grn,Cal_xanes,Full_atom,iaabsi,iaprotoi,igreq,i
 
     if( nspin == 2 ) then
       igr = igroupi(ia)
-      ipr = iaprotoi(ia)
-      kgr = igreq(ipr,1)
       iga = igroupi(iaabsi)
 
       cosang = sum( Axe_Atom_grn(:,iga) * Axe_Atom_grn(:,igr) )
@@ -1826,16 +1828,30 @@ end
 ! Calculation of multiple scattering amplitude using the multiple scattering theory
 
 subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_eq,ia_rep,iaabsi,iaprotoi, &
-                    iato,icheck,igreq,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato,n_atom_0, &
-                    n_atom_ind,n_atom_proto,natome,natomp,nb_eq,nb_rpr,nb_rep_t,nb_sym_op,nchemin,neqm,ngroup_m, &
+                    iato,icheck,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato,n_atom_0, &
+                    n_atom_ind,natome,natomp,nb_eq,nb_rpr,nb_rep_t,nb_sym_op,nchemin,ngroup_m, &
                     ngrph,nlmagm,nlmsa,nlmsam,nlmsamax,Normaltau,nspin,nspino,nspinp,pos,posi,recop,Repres_comp, &
                     rot_atom,Solsing,Spinorbite,State_all_r,Sym_cubic,Tau_ato,Tau_nondiag,Taull,Time_fill,Time_tria,Ylm_comp)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
   integer, parameter:: nletm = 52
 
+  integer:: i, I_rep_dim, i0, i1, i2, ia, iaabsi, iapr, icheck, ib, ib1, ibb, icolone, icolone0, iga, igr, igrph, iligne, &
+    iligne0, ind, is1, is2, isg, isp, isp1, ispin, its, ival, j0, jligne, jligne0, jsp, l, letd, letu, l1, ll, lm0, lm1, lm10, &
+    lm1p, l2, lm, lm01, lm01c, lm02, lm02c, lm2, lm20, lm2p, lma, lmax, lmaxg, lmb, lmc, lmd1, lmd2, lmw, m, m1, m2, ms1, ms2, &
+    n_atom_0, n_atom_ind, n1, na, natome, natomp, nb_sym_op, nchemin, ndim, ngroup_m, &
+    ngrph, nlet, nlm, nlmabs, nlmagm, nlmc, nlmch, nlmr, nlmsam, nlmsamax, nlmsmax, nlmw, nspin, nspino, nspinp, nspinr
+
+  integer, dimension(natome):: iaprotoi, igroupi, lmaxa, nb_eq, nlmsa
+  integer, dimension(nopsm):: iopsymr
+  integer, dimension(natome,natome):: nb_rpr
+  integer, dimension(nb_sym_op,natome,natome):: ia_rep, nb_rep_t
+  integer, dimension(nb_sym_op,natome):: ia_eq, is_eq
+  integer, dimension(nrepm,2):: irep_util
+  integer, dimension(nlmsam,natome,ngrph):: lato, mato, iato
+   
   character(len=1) let(0:nletm)
   character(len=3), dimension(:), allocatable:: motval
   character(len=3), dimension(:,:,:,:), allocatable:: mot
@@ -1851,19 +1867,10 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
   complex(kind=db), dimension(:,:,:,:), allocatable :: taull_tem
   complex(kind=db), dimension(:,:,:,:,:), allocatable:: Cmat
 
-  integer, dimension(natome):: iaprotoi, igroupi, lmaxa, nb_eq, nlmsa
-  integer, dimension(nopsm):: iopsymr
-  integer, dimension(natome,natome):: nb_rpr
-  integer, dimension(nb_sym_op,natome,natome):: ia_rep, nb_rep_t
-  integer, dimension(nb_sym_op,natome):: ia_eq, is_eq
-  integer, dimension(nrepm,2):: irep_util
-  integer, dimension(0:n_atom_proto,neqm):: igreq
-  integer, dimension(nlmsam,natome,ngrph):: lato, mato, iato
-
   logical:: Brouder, Cal_xanes, Classic_irreg, Ereel, Full_atom, Normaltau, Solsing, &
     Recop, Repres_comp, Spinorbite, State_all_r, Stop_job, Sym_cubic, Tau_nondiag, Ylm_comp
 
-  real(kind=db):: Eimag, tp1, tp2, tp3, Time_fill, Time_tria
+  real(kind=db):: cosang, Eimag, fac, fnorm, g, Gaunt_r, Gauntcp, gmatr, r, rkr, tp1, tp2, tp3, Time_fill, Time_tria
 
   real(kind=db), dimension(nspin):: ecinetic
   real(kind=db), dimension(nspin):: konder
@@ -1875,7 +1882,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
   real(kind=db), dimension(3,3,natome):: rot_atom
   real(kind=db), dimension(:), allocatable :: besselr, neumanr, Ylm
 
-  real(kind=sg) time
+  real(kind=sg):: time
 
   data let/' ','a','b','c','d','e','f','g','h','i','j','k','l','m', &
    'n','o','p','q','r','s','t','u','v','w','x','y','z','A','B','C', &
@@ -1928,12 +1935,8 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
     if( nspin == 2 ) then
       igr = igroupi(ia)
       iga = igroupi(iaabsi)
-      ipr = iaprotoi(ia)
-      kgr = igreq(ipr,1)
 
       cosang = sum( Axe_Atom_grn(:,iga) * Axe_Atom_grn(:,igr) )
- !     cosang = sum( Axe_Atom_grn(:,kgr) * Axe_Atom_grn(:,igr) )
- !     cosang = cosang * abs( sum( Axe_Atom_grn(:,iga) * Axe_Atom_grn(:,igr) ) )
       if( abs( cosang - 1 ) < eps4 ) then
         its = 1
       elseif( abs( cosang + 1 ) < eps4 ) then
@@ -2136,7 +2139,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
                   if( abs( Cmat(ib,lm2,ind,ms2,is2) ) < eps10) cycle
                 endif
 
-                gmat = (0._db,0._db)
+                gmat = ( 0._db, 0._db )
                 do l = lma,lmb,2
                   ll = l**2 + l + 1
                   lm0 = ( l**2 + l ) / 2 + 1
@@ -2542,8 +2545,8 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
         end do
       end do
     end if
-    call soustract_tl(Axe_Atom_grn,Cal_xanes,Full_atom,iaabsi,iaprotoi,igreq,igroupi,ispin,lmaxa,n_atom_0, &
-                n_atom_ind,n_atom_proto,natome,neqm,ngroup_m,nlmagm,nspin,nspino,nspinp,Spinorbite,State_all_r,Tau_ato,Taull)
+    call soustract_tl(Axe_Atom_grn,Cal_xanes,Full_atom,iaabsi,iaprotoi,igroupi,ispin,lmaxa,n_atom_0, &
+                n_atom_ind,natome,ngroup_m,nlmagm,nspin,nspino,nspinp,Spinorbite,State_all_r,Tau_ato,Taull)
   end if
 
   if( icheck > 1 .and. igrph == ngrph .and. ( Spinorbite .or. ispin == nspin ) ) then
@@ -2659,8 +2662,6 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,ecinetic,Eimag,Full_atom,ia_
   160 format(/' Scattering amplitude of the central atom (taull):')
   161 format(/' Scattering amplitude of the central atom (taull) before eliminating the contribution of the singular solution:')
   162 format(/' Scattering amplitude of the atom ia =',i3,' (taull):')
-  210 format('( l, m, s)',34(8x,3i3,6x))
-  212 format('( l, m, s)',34(10x,2i3,7x))
   218 format(3i3,2x,1p,34(1x,2e11.3))
   220 format(8x,a1,2x,102i3)
   230 format(3x,2i3,2x,102a3)
@@ -2682,7 +2683,10 @@ subroutine Cmat_cal(Cmat,iato,icheck,igrph,iopsymr,irep_util,is_eq,karact,lato,l
                 nlmsamax,nlmsa,nlmsam,nspino,rot_atom,Ylm_comp)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
+  
+  integer:: ia, icheck, igrph, ind, irep, is, isp, js, ks, l, lm, lmax, lmaxg, m, mp, natome, nb_sym_op, ngrph, nlmsamax, &
+            nlmsam, nspino 
 
   complex(kind=db), dimension(nb_sym_op,nspino):: C_Gamma
   complex(kind=db), dimension(-lmaxg:lmaxg):: Ctem
@@ -2699,6 +2703,7 @@ subroutine Cmat_cal(Cmat,iato,icheck,igrph,iopsymr,irep_util,is_eq,karact,lato,l
 
   logical:: Rotation, Sym_rot, Ylm_comp
 
+  real(kind=db):: C_norm
   real(kind=db), dimension(3,3):: Mat_rot
   real(kind=db), dimension(3,3,natome):: rot_atom
 
@@ -3741,15 +3746,15 @@ end
 
 !**************************************************************************************************
 
-subroutine Tau_reading(icheck,ie,iaabsi,lmaxa,nenerg,nlmagm,nspinp,Taull)
+subroutine Tau_reading(icheck,ie,iaabsi,lmaxa,natome,nenerg,nlmagm,nspinp,Taull)
 
   use declarations
   implicit none
   include 'mpif.h'
 
-  integer:: i, iaabsi, icheck, ie, isp, jsp, l, lm, lmax, lmaxa, lmp, m, nenerg, nlm, nlma, nlmagm, nspinp
+  integer:: i, iaabsi, icheck, ie, isp, jsp, l, lm, lmax, lmaxa, lmp, m, natome, nenerg, nlm, nlma, nlmagm, nspinp
   
-  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,iaabsi:iaabsi):: Taull
+  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: Taull
 
   real(kind=db):: p
   real(kind=db), dimension(nlmagm,nspinp):: Taulli, Taullr

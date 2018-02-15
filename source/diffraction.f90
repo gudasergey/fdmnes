@@ -283,7 +283,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   use declarations
   implicit none
 
-  integer:: i_sens, i, ich, icheck, igr, ip, ipl, ipr, iprabs_nonexc, it, itabs, iwrite, j, jgr, kgr, mpirank0, n_atom_bulk, &
+  integer:: i_sens, i, ich, icheck, igr, ip, ipl, ipr, iprabs_nonexc, it, itabs, iwrite, j, jgr, mpirank0, n_atom_bulk, &
     n_atom_cap, n_atom_int, n_atom_per, n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, n_atom_sur, n_atom_uc, n_bulk_z, &
     n_bulk_z_max, n_max, n1_proto, n2_proto, &
     natomsym, nbseuil, neqm, ngrm, ngroup, ngroup_m, ngroup_taux, ngroup_temp, ni, nlatm, nphim, npldafs, npldafs_2d, npldafs_e, &
@@ -701,7 +701,6 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
       do ipl = 1,npldafs
         if( abs(f_ms(ipr,ipl)) < eps10 ) cycle
 
-        kgr = igreq(ipr,1)
         do igr = 1,ngreq(ipr)
           jgr = igreq(ipr,igr)
 ! Sign minus are to transform to crystallographic convention.
@@ -1146,7 +1145,7 @@ end
 
 !*********************************************************************
 
-! 2D diffraction case with operation mode
+! Calculation of polarization using the operation mode
 
 subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bulk_step,Energy_photon,Film,hkl_dafs,hkl_film, &
                 hkl_ref,icheck,isigpi,Length_abs,Mat_UB,nphim,npl_2d,npldafs,npldafs_2d,Operation_mode,Orthmati,phi_0,Poldafse, &
@@ -2709,13 +2708,6 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
 ! In ua and rydb : k = 0.5 * alfa * E
   konde = 0.5_db * alfa_sf * Energy_photon
 
-!  if( ( Bulk .and. .not. hkl_film ) .or. ( Bulk_step .and. hkl_film ) ) then
-! ! When bulk_step angxyz_bulk contains film data ! ( See fdm )
-!    cosdir(:) = cos( angxyz_bulk(:) )
-!  else
-!    cosdir(:) = cos( angxyz(:) )
-!  endif
-
   if( Bulk .and. .not. hkl_film ) then
  ! When bulk_step angxyz_bulk contains film data ! ( See fdm )
     cosdir(:) = cos( angxyz_bulk(:) )
@@ -2723,16 +2715,18 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
     cosdir(:) = cos( angxyz(:) )
   endif
 
-  if( Bulk_step ) then
-    cos_z = sqrt( sin( angxyz(2) )**2 - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) / sin( angxyz(3) ) )**2 )
-    c_cos_z = axyz(3) * cos_z
-  else
-    cos_z = sqrt( sin( angxyz_bulk(2) )**2 - ( ( cos( angxyz_bulk(1) ) - cos( angxyz_bulk(3) ) * cos( angxyz_bulk(2) ) ) &
-                                           / sin( angxyz_bulk(3) ) )**2 )
-    c_cos_z = axyz_bulk(3) * cos_z
-  endif
+  if( Film ) then
+    if( Bulk_step ) then
+      cos_z = sqrt( sin( angxyz(2) )**2 - ( ( cos( angxyz(1) ) - cos( angxyz(3) ) * cos( angxyz(2) ) ) / sin( angxyz(3) ) )**2 )
+      c_cos_z = axyz(3) * cos_z
+    else
+      cos_z = sqrt( sin( angxyz_bulk(2) )**2 - ( ( cos( angxyz_bulk(1) ) - cos( angxyz_bulk(3) ) * cos( angxyz_bulk(2) ) ) &
+                                             / sin( angxyz_bulk(3) ) )**2 )
+      c_cos_z = axyz_bulk(3) * cos_z
+    endif
 ! The factor is to convert Length_abs en micrometer
-  c_cos_z = 0.0001_db * bohr * c_cos_z
+    c_cos_z = 0.0001_db * bohr * c_cos_z
+  endif
 
   if( Bormann ) then
     Poldafse(:,:,:) = ( 0._db, 0._db )
@@ -3073,10 +3067,12 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
 
     endif
 
-    if( ThetaBragg < eps10 ) then
-      Length_abs(ipl) = 1.e+20_db
-    else
-      Length_abs(ipl) = c_cos_z * 2 / sin( thetabragg )
+    if( Film ) then
+      if( ThetaBragg < eps10 ) then
+        Length_abs(ipl) = 1.e+20_db
+      else
+        Length_abs(ipl) = c_cos_z * 2 / sin( thetabragg )
+      endif
     endif
 
     if( icheck > 0 ) then
@@ -3143,11 +3139,9 @@ function Roughness_erfc(z,z0,Width)
   use declarations
   implicit none
 
-  real(kind=db), parameter:: sqrt_2 = sqrt( 2._db )
-  
   real(kind=db):: Roughness_erfc, Width, z, z0
   
-  Roughness_erfc = 0.5_db * erfc( ( z - z0 ) / ( sqrt_2 * Width ) )  
+  Roughness_erfc = 0.5_db * erfc( ( z - z0 ) / ( sqrt( 2._db ) * Width ) )  
 
   return
 end
@@ -4060,73 +4054,54 @@ end
 !*********************************************************************
 
 ! Oana Bunau 15 april 2007
+! q = vecteur transfert d'impuls, en 1/A
 
-function DW(q,Z,temp)
+function DW(q,Z,Temp)
 
   use declarations
   implicit none
 
   integer:: Z
 
-  real(kind=db), dimension(nassm):: TD
-
-! source: Ashcroft and Mermin; the Debye temperatures correspond to the free element
-! Unknown Debye temperatures are taken as 1
-
-  data TD /  110._db,  26._db, 400._db,1000._db,1250._db,1860._db,  79._db,  46._db,   1._db,  63._db, &
-             150._db, 318._db, 394._db, 625._db,   1._db,   1._db,   1._db,  85._db, 100._db, 230._db, &
-             359._db, 380._db, 390._db, 460._db, 400._db, 420._db, 385._db, 375._db, 315._db, 234._db, &
-             240._db, 360._db, 285._db, 150._db,   1._db,  73._db,  56._db, 147._db, 256._db, 250._db, &
-             275._db, 380._db,   1._db, 382._db, 350._db, 275._db, 215._db, 120._db, 129._db, 170._db, &
-             200._db, 139._db,   1._db,  55._db,  40._db, 110._db, 132._db, 139._db, 152._db, 157._db, &
-               1._db, 160._db, 107._db, 176._db, 188._db, 186._db, 191._db, 196._db, 200._db, 118._db, &
-             207._db,   1._db, 225._db, 310._db, 416._db, 400._db, 430._db, 230._db, 170._db, 100._db, &
-              96._db,  88._db, 120._db,   1._db,   1._db,   1._db,   1._db,   1._db,   1._db, 100._db, &
-               1._db, 210._db, 188._db, 150._db,   1._db,   1._db,   1._db,   1._db,   1._db,   1._db, &
-               1._db,   1._db,   1._db/
-
 ! fonction de Debye, facteur de Debye Waller
-  real(kind=db) Debye_function, DW, FD, Mass_atom
-! vecteur transfert d'impuls, en 1/A
-  real(kind=db) q
-  real(kind=db) temp, x
+  real(kind=db):: Debye_function, Debye_temperature, DW, FD, Mass_atom, q, T_Debye, Temp, x
 
-  FD = Debye_function(temp,TD(Z))
+  T_Debye = Debye_temperature(Z)
+  
+  FD = Debye_function(Temp,T_Debye)
 
-  x = - 300 * (q*hbar)**2 * FD / ( Mass_atom(Z) * atom_mu * k_Boltzmann * TD(Z) )
+  x = - 300 * (q*hbar)**2 * FD / ( Mass_atom(Z) * atom_mu * k_Boltzmann * T_Debye )
 
   DW = exp(x)
 
-! Ecriture dans le fichier d'erreur
-  if( abs(TD(Z)) < eps10 ) then
-    call write_error
-    write(9,*) ' Debye temperature is not available for the element with Z =', Z
-    stop
-  end if
-
+  return
 end
 
 !*********************************************************************
 
-function Debye_function(m,n)
+function Debye_function(Temp,T_Debye)
 
   use declarations
-  real(kind=db) m,n,dx,a,x,Debye_function
-  integer i,imax
-  Debye_function = 0._db
+  implicit none
+  
+  integer:: i,imax
 
-  a = n/m
+  real(kind=db):: a, Debye_function, Temp, T_Debye, dx, x
+
+  a = Temp / T_Debye
   dx = 0.0001_db
-  imax = Nint(a/dx)
+  imax = nint(a/dx)
   dx = a/imax
   x = dx / 2
 
+  Debye_function = 0._db
+
   do i = 1,imax
    x = x + dx
-   Debye_function = Debye_function + ( dx*x /( EXP(x)-1 ) )
+   Debye_function = Debye_function + ( dx*x /( exp(x)-1 ) )
   end do
 
-  Debye_function = (m/n)**2 * Debye_function + 0.25_db
+  Debye_function = 0.25_db + ( T_Debye / Temp )**2 * Debye_function 
 
 end
 
