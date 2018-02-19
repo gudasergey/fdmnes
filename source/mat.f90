@@ -3493,11 +3493,9 @@ subroutine Data_one_run(iabsm,iaprotoi,icheck,igreq,index_e,igroupi,ipr0,lmax_pr
       if( igreq(ipr,1) == iabsm(mu) ) exit
     end do
 
-    do ia = 1,natome
+    do igr = 1,ngreq(ipr)
 
-      if( iaprotoi(ia) /= ipr ) cycle
-
-      do igr = 1,ngreq(ipr)
+      do ia = 1,natome
         if( igreq(ipr,igr) == igroupi(ia) ) then
           Found = .true.
           exit

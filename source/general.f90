@@ -5,16 +5,16 @@
 ! Looking for equivalent atoms in the unit cell and search of the relative symmetry
 
 subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom_gr, &
-        axyz,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur,Bulk, &
+        axyz,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur,Bulk,Center_s,Centre, &
         Doping,Extract,Flapw,iabsm,icheck,igr_i,igr_is,igr_proto,itype,Magnetic,Matper, &
         Memory_save,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,n_multi_run_e,n_Z_abs,neqm, &
-        ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,numat_abs,popats,posn,Sym_2D)
+        ngroup,ngroup_m,nlat,nlatm,Noncentre,nspin,ntype,numat,numat_abs,popats,posn,Sym_2D)
 
   use declarations
   implicit none
 
   integer:: i, ia, ia_b, ib, ib_b, icheck, igr, igr_1, igr_2, igr_b, igra, igrb, io, irev, is, isp, it, ita, itb, jgr, jgr_b, &
-     js, long, n_atom_int, n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, n_multi_run_e, n_Z_abs, na, nabs, nb, nla, nlb, &
+     js, kgr, long, n_atom_int, n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, n_multi_run_e, n_Z_abs, na, nabs, nb, nla, nlb, &
      neq, neqm, ngroup, ngroup_m, nlatm, nspin, ntype, numat_it, numat_jgr
 
   character(len=5):: struct
@@ -25,21 +25,21 @@ subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsp
   integer, dimension(ngroup):: igr_i, igr_is, igr_proto, itype
   integer, dimension(n_multi_run_e):: iabsm
   integer, dimension(ngroup):: igreq
-  integer, dimension(n_atom_uc):: itypegen
+  integer, dimension(n_atom_uc):: itypegen, Ordering
   integer, dimension(ntype):: itequ
   integer, dimension(n_Z_abs):: numat_abs
   integer, dimension(:), allocatable:: iabsmm, isymq
 
-  logical:: Atom_nonsph, absauto, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Doping, Extract, Flapw, Magnetic, Matper, &
-            Memory_save, mspinor, Sym_2D
+  logical:: Atom_nonsph, absauto, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Center_s, Doping, Extract, Flapw, Magnetic, &
+            Matper, Memory_save, mspinor, Noncentre, Sym_2D
   logical, dimension(ngroup):: Atom_nsph_e, ok
   logical, dimension(0:ngroup_m):: Atom_with_axe
   logical, dimension(n_atom_uc):: Far_atom
 
   real(kind=db):: dist, distm_neq, dpop, pp1, pp2, Vnorme
 
-  real(kind=db), dimension(3):: angxyz, angxyz_int, angxyz_sur, Axe_atom_c, axyz, axyz_int, axyz_sur, dcosxyz, dcosxyz_int, &
-                                dcosxyz_sur, ps, spini, vspin, wspin
+  real(kind=db), dimension(3):: angxyz, angxyz_int, angxyz_sur, Axe_atom_c, axyz, axyz_int, axyz_sur, Centre, dcosxyz, &
+                                dcosxyz_int, dcosxyz_sur, ps, spini, vspin, wspin
   real(kind=db), dimension(3,3):: Cubmat, Cubmat_int, Cubmat_sur, Cubmati, Cubmati_int, Cubmati_sur, matopsym
   real(kind=db), dimension(3,n_atom_uc):: pos, posg, posn, poss
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_gr, Axe_atom_s
@@ -230,9 +230,14 @@ subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsp
 
   endif
 
+  call Search_ordering(axyz,axyz_int,axyz_sur,Base_ortho,Base_ortho_int,Base_ortho_sur,Center_s,Centre,dcosxyz, &
+                       dcosxyz_int,dcosxyz_sur,Matper,n_atom_int,n_atom_per,n_atom_uc,Noncentre,Ordering,posn,Sym_2D)
+
   allocate( isymq(n_atom_uc) )
 
-  boucle_jgr: do jgr = 1,n_atom_uc
+  boucle_jgr: do kgr = 1,n_atom_uc
+
+    jgr = Ordering(kgr)
 
     if( Bulk ) then
       jgr_b = ngroup - n_atom_uc + jgr
@@ -273,7 +278,7 @@ subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsp
       end do
       if( Matper ) call inmesh(pos,n_atom_per,n_atom_uc,Sym_2D)
 
-! Search of symmeties making the atoms equivalent
+! Search of symmetries making the atoms equivalent
       boucle_is: do is = 1,nopsm
 
 ! For 2D diffraction, one only keeps 2D symmetries
@@ -551,6 +556,96 @@ end
 
 !*********************************************************************
 
+subroutine Search_ordering(axyz,axyz_int,axyz_sur,Base_ortho,Base_ortho_int,Base_ortho_sur,Center_s,Centre,dcosxyz, &
+                       dcosxyz_int,dcosxyz_sur,Matper,n_atom_int,n_atom_per,n_atom_uc,Noncentre,Ordering,posn,Sym_2D)
+
+  use declarations
+  implicit none
+
+  integer:: i, igr, jgr, n_atom_int, n_atom_per, n_atom_uc
+  integer, dimension(n_atom_uc):: Ordering
+
+  logical:: Base_ortho, Base_ortho_int, Base_ortho_sur, Center_s, Closer, Matper, Noncentre, Positive, Same_distance, Sym_2D
+
+  real(kind=db):: dist12, Vnorme
+  real(kind=db), dimension(3):: axyz, axyz_int, axyz_sur, Centre, dcosxyz, dcosxyz_int, dcosxyz_sur, ps
+  real(kind=db), dimension(n_atom_uc):: dist
+  real(kind=db), dimension(3,n_atom_uc):: pos, posn
+
+  do igr = 1,n_atom_uc
+    if( Noncentre ) then
+      pos(:,igr) = posn(:,igr) - Centre(:)
+    elseif( Center_s ) then
+      pos(1:2,igr) = posn(1:2,igr) - Centre(1:2)
+      pos(3,igr) = posn(3,igr)
+    else
+      pos(:,igr) = posn(:,igr)
+    endif
+  end do
+  if( Matper) call inmesh(pos,n_atom_per,n_atom_uc,Sym_2D)
+  if( Sym_2D ) then
+    do igr = 1,n_atom_uc
+      do i = 1,2
+        if( pos(i,igr) > 0.5_db + eps10 ) pos(i,igr) = pos(i,igr) - 1._db
+        if( pos(i,igr) < -0.5_db + eps10 ) pos(i,igr) = pos(i,igr) + 1._db
+      end do
+    end do
+  elseif( Matper ) then
+    where( pos > 0.5_db + eps10 ) pos = pos - 1._db
+    where( pos < -0.5_db + eps10 ) pos = pos + 1._db
+  endif
+
+  do igr = 1,n_atom_uc
+    if( igr <= n_atom_per ) then
+      ps(:) = pos(:,igr) * axyz(:)
+      dist(igr) = Vnorme(Base_ortho,dcosxyz,ps)
+    elseif( igr <= n_atom_per+n_atom_int ) then
+      ps(:) = pos(:,igr) * axyz_int(:)
+      dist(igr) = Vnorme(Base_ortho_int,dcosxyz_int,ps)
+    else
+      ps(:) = pos(:,igr) * axyz_sur(:)
+      dist(igr) = Vnorme(Base_ortho_sur,dcosxyz_sur,ps)
+    endif
+    pos(:,igr) = ps(:)
+  end do
+
+  do igr = 1,n_atom_uc
+    Ordering(igr) = igr
+  end do
+
+  do igr = 1,n_atom_uc
+    do jgr = igr+1,n_atom_uc
+      if( dist(jgr) > dist(igr) + eps10 ) cycle
+      Same_distance = abs( dist(igr) - dist(jgr) ) < eps10
+ ! When at the same distance, one puts first the atom in the positive direction versus the origin
+      ps(:) = pos(:,jgr) - pos(:,igr)
+      if( Sym_2D ) then
+        if( abs( pos(3,jgr) - pos(3,igr) ) > eps10 ) cycle
+        Positive = Same_distance .and. ( sum( ps(1:2) ) > eps10 .or. ps(1) > eps10 )
+        Closer = ( Noncentre .or. Center_s ) .and. dist(jgr) < dist(igr) - eps10
+      else
+        Positive = Same_distance .and. ( sum( ps(:) ) > eps10 .or. ps(1) > eps10 .or. ( abs( ps(1) ) < eps10 .and. ps(2) > eps10 ) )
+        Closer = ( Noncentre .or. Center_s ) .and. dist(jgr) < dist(igr) - eps10
+      endif
+      if( Positive .or. Closer ) then
+        dist12 = dist(igr)
+        dist(igr) = dist(jgr)
+        dist(jgr) = dist12
+        i = Ordering(igr)
+        Ordering(igr) = Ordering(jgr)
+        Ordering(jgr) = i
+        ps(:) = pos(:,igr)
+        pos(:,igr) = pos(:,jgr)
+        pos(:,jgr) = ps(:)
+      endif
+    end do
+  end do
+
+  return
+end
+
+!*********************************************************************
+
 subroutine inmesh(pos,n_atom_per,n_atom_uc,Sym_2D)
 
   use declarations
@@ -565,7 +660,6 @@ subroutine inmesh(pos,n_atom_per,n_atom_uc,Sym_2D)
   do igr = 1,n_atom_uc
     do k = 1,3
       if( ( Sym_2D .or. igr > n_atom_per ) .and. k == 3 ) exit
-!      if( pos(k,igr) > 1._sg - eps10 ) then
       if( pos(k,igr) > 1._db - eps10 ) then
         m = int( pos(k,igr) + eps10 )
         pos(k,igr) = pos(k,igr) - m
@@ -2131,7 +2225,7 @@ end
 ! Calculation of the number of atoms in the clusters used for potential calculation and xanes calculation
 
 subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho_int, &
-        Base_ortho_sur,Bulk,Bulk_step,Chargat,d_ecrant,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
+        Base_ortho_sur,Bulk,Bulk_step,Center_s,Centre,Chargat,d_ecrant,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
         dpos,Film_shift,Film_thickness,Flapw,iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift, &
         itabs,itype,Kgroup,Matper,mpirank0,multi_run,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur, &
         n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
@@ -2151,7 +2245,7 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
   integer, dimension(0:n_atom_proto):: ngreq
   integer, dimension(0:n_atom_proto,neqm):: igreq
 
-  logical:: ATA, Base_ortho, Base_ortho_bulk, Base_ortho_int, Base_ortho_sur,Bulk, Bulk_step, Doping, &
+  logical:: ATA, Base_ortho, Base_ortho_bulk, Base_ortho_int, Base_ortho_sur,Bulk, Bulk_step, Center_s, Doping, &
         Flapw, Matper, Noncentre, One_run, Proto_all, Self_cons, Sym_2D
   logical, dimension(n_atom_proto):: ipr_ok
 
@@ -2159,7 +2253,7 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
     Film_thickness, r_self, Rmax, Rpotmax, Rsortm, Vnorme
   real(kind=db), dimension(n_radius):: rsorte_s
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_int, angxyz_sur, axyz, axyz_bulk, axyz_int, axyz_g, axyz_sur, &
-                                dcosxyz, dcosxyz_bulk, dcosxyz_int, dcosxyz_sur, deccent, dpos, ps, v
+                                Centre, dcosxyz, dcosxyz_bulk, dcosxyz_int, dcosxyz_sur, deccent, dpos, ps, v
   real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
   real(kind=db), dimension(ngroup_taux):: Taux_oc
   real(kind=db), dimension(3,n_atom_uc):: posn
@@ -2204,16 +2298,36 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
   endif
 
 ! The absorbing atom is set at the center (in case of One_run, it is the first absorbing atom )
-  if( Noncentre .and. .not. Bulk_step ) then
-    deccent(:) = 0._db
-  elseif( Bulk_step ) then
+  deccent(:) = 0._db
+  if( Bulk_step ) then
     deccent(:) = posn_bulk(:,iabsfirst-ngroup+n_atom_bulk) * axyz_bulk(:)
-  elseif( iabsfirst <= n_atom_per ) then
-    deccent(:) = posn(:,iabsfirst) * axyz(:)
-  elseif( iabsfirst <= n_atom_per+n_atom_int ) then
-    deccent(:) = posn(:,iabsfirst) * axyz_int(:)
+  elseif( Center_s ) then
+    if( iabsfirst <= n_atom_per ) then
+      deccent(1:2) = Centre(1:2) * axyz(1:2)
+      deccent(3) = posn(3,iabsfirst) * axyz(3)
+    elseif( iabsfirst <= n_atom_per+n_atom_int ) then
+      deccent(1:2) = Centre(1:2) * axyz_int(1:2)
+      deccent(3) = posn(3,iabsfirst) * axyz_int(3)
+    else
+      deccent(1:2) = Centre(1:2) * axyz_sur(1:2)
+      deccent(3) = posn(3,iabsfirst) * axyz_sur(3)
+    endif
+  elseif( Noncentre ) then
+    if( iabsfirst <= n_atom_per ) then
+      deccent(:) = Centre(:) * axyz(:)
+    elseif( iabsfirst <= n_atom_per+n_atom_int ) then
+      deccent(:) = Centre(:) * axyz_int(:)
+    else
+      deccent(:) = Centre(:) * axyz_sur(:)
+    endif
   else
-    deccent(:) = posn(:,iabsfirst) * axyz_sur(:)
+    if( iabsfirst <= n_atom_per ) then
+      deccent(:) = posn(:,iabsfirst) * axyz(:)
+    elseif( iabsfirst <= n_atom_per+n_atom_int ) then
+      deccent(:) = posn(:,iabsfirst) * axyz_int(:)
+    else
+      deccent(:) = posn(:,iabsfirst) * axyz_sur(:)
+    endif
   endif
 
   allocate( posg(3,igr0:n_igr) )
@@ -2414,11 +2528,11 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
   if( .not. Flapw .and. Matper ) then
     rsortm = max( r_self, rsorte_s(1) )
     call Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
-            Base_ortho_sur,Bulk,Bulk_step,chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
+            Base_ortho_sur,Bulk,Bulk_step,Center_s,chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
             Doping,dpos,Film_shift, &
             Film_thickness,iabsorbeur,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0,multi_run, &
             n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb, &
-            ngroup_taux,noncentre,One_run,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
+            ngroup_taux,Noncentre,One_run,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
     natomp = natomr
   endif
 
@@ -2458,11 +2572,11 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
 !*********************************************************************
 
 subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
-            Base_ortho_sur,Bulk,Bulk_step,chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
+            Base_ortho_sur,Bulk,Bulk_step,Center_s,chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
             Doping,dpos,Film_shift, &
             Film_thickness,iabsorbeur,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0,multi_run, &
             n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb, &
-            ngroup_taux,noncentre,One_run,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
+            ngroup_taux,Noncentre,One_run,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
 
   use declarations
   implicit none
@@ -2475,7 +2589,8 @@ subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_b
   integer, dimension(0:n_atom_proto):: ngreq
   integer, dimension(0:n_atom_proto,ngroup):: igreq
 
-  logical:: ATA, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Doping, Matper, Noncentre, One_run, OK, Sym_2D
+  logical:: ATA, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Center_s, Doping, Matper, Noncentre, One_run, OK, &
+            Sym_2D
 
   real(kind=db):: Ch, Ch_min, Ch_test, Chagreg, Chg, d_ecrant, Delta_bulk, Delta_film, Delta_int, Delta_sur, &
     Film_thickness, Rmax, Rsortm
@@ -2492,10 +2607,10 @@ subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_b
   Matper = .true.
 
   call Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
-              Base_ortho_sur,Bulk,Bulk_step,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
+              Base_ortho_sur,Bulk,Bulk_step,Center_s,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
               dista,Doping,dpos,Film_shift,Film_thickness, &
               iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
-              multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre, &
+              multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
               One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
   do ia = 1,natomp
@@ -2585,10 +2700,10 @@ end
 !*********************************************************************
 
 subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
-              Base_ortho_sur,Bulk,Bulk_step,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
+              Base_ortho_sur,Bulk,Bulk_step,Center_s,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
               dista,Doping,dpos,Film_shift,Film_thickness, &
               iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
-              multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre, &
+              multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
               One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
   use declarations
@@ -2601,7 +2716,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
   integer, dimension(natomp):: igroup, itypep
   integer, dimension(ngroup_pdb):: Kgroup
 
-  logical:: Abs_case, ATA, Base_ortho, Base_ortho_bulk, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Doping, &
+  logical:: Abs_case, ATA, Base_ortho, Base_ortho_bulk, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Center_s, Doping, &
     Matper, Noncentre, One_run, Sym_2D
 
   real(kind=db):: cos_z, cos_z_b, cos_z_i, cos_z_s, Delta_bulk, Delta_film, Delta_int, Delta_sur, dist, &
@@ -2863,12 +2978,19 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
 
   if( .not. One_run .or. ( One_run .and. multi_run == 1 ) ) iaabsfirst = iaabs
 
-  if( Noncentre .and. .not. Bulk_step ) then
-    pos(:,iaabsfirst) = pos(:,iaabsfirst) + dpos(:)
-  else
-    do ia = 1,natomp
-      if( ia /= iaabsfirst ) pos(:,ia) = pos(:,ia) - dpos(:)
-    end do
+  if( .not. Bulk_step ) then
+    if( Noncentre ) then
+      pos(:,iaabsfirst) = pos(:,iaabsfirst) + dpos(:)
+    elseif( Center_s ) then
+      pos(1:2,iaabsfirst) = pos(1:2,iaabsfirst) + dpos(1:2)
+      do ia = 1,natomp
+        if( ia /= iaabsfirst ) pos(3,ia) = pos(3,ia) - dpos(3)
+      end do
+    else
+      do ia = 1,natomp
+        if( ia /= iaabsfirst ) pos(:,ia) = pos(:,ia) - dpos(:)
+      end do
+    endif
   endif
 
 ! Ordering versus distance from center
@@ -2922,7 +3044,7 @@ end
 ! Cluster building
 
 subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn, &
-          axyz,axyz_bulk,axyz_int,axyz_sur,Base_hexa,Base_ortho_int,Base_ortho_sur,Bulk,Bulk_step, &
+          axyz,axyz_bulk,axyz_int,axyz_sur,Base_hexa,Base_ortho_int,Base_ortho_sur,Bulk,Bulk_step,Center_s, &
           Chargat,Cubmat,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,dista, &
           Doping,dpos,Film_shift,Film_thickness,iaabs,iaabsfirst,iabsorbeur, &
           iaproto,iapot,icheck,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,Interface_shift,iopsymc,iopsymr,itabs,itype,itypep, &
@@ -2951,8 +3073,9 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
                      PointSubGroup_name, PointSubGroup_Sch
   character(len=5):: Struct, Struct_bulk
 
-  logical:: ATA, Atom_mag_cal, Atom_nonsph, Base_hexa, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Doping, &
-    Magnetic, Matper, Noncentre, One_run, PointGroup_Auto, Self_nonexc, Spinorbite, Sym_2D, Sym_4, Sym_cubic, Symmol, Taux
+  logical:: ATA, Atom_mag_cal, Atom_nonsph, Base_hexa, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Center_s, &
+    Doping, Magnetic, Matper, Noncentre, One_run, PointGroup_Auto, Self_nonexc, Spinorbite, Sym_2D, Sym_4, Sym_cubic, Symmol, &
+    Taux
   logical, dimension(0:ngroup_m):: Atom_with_axe
 
   real(kind=db):: Angle, Delta_bulk, Delta_film, Delta_int, Delta_sur, Dist, Dist_max, Distm, Dsa, Dsb, &
@@ -2994,10 +3117,10 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
   endif
 
   call Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
-              Base_ortho_sur,Bulk,Bulk_step,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
+              Base_ortho_sur,Bulk,Bulk_step,Center_s,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
               dista,Doping,dpos,Film_shift,Film_thickness, &
               iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
-              multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,noncentre, &
+              multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
               One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
   if( icheck > 0 ) write(3,130) iaabs
@@ -3079,8 +3202,8 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
   rotspin(:,:) = rot_un(:,:)
   rotmat(:,:) = rot_un(:,:)
 
-! On prend comme axe z, l'axe du spin de l'absorbeur
-! Faux en cas de one_run avec des spins non alignes.
+! The spin axis of the absorbing atom is taken as the z axis
+! Wrong when working in "one_run" with spiin axis not parallel.
   Axe_spin(:) = 0._db
   Atom_with_axe(0) = .false.
   if( Magnetic .or. Atom_nonsph ) then
@@ -3096,7 +3219,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
     end do
   endif
 
-! Rotation de la base interne en cas d'axe de spin n'etant pas selon Oz
+! Rotation of the internal basis when spin axis is not along z
   if( Atom_with_axe(0) ) then
 
     orthmat = matmul( rotspin, orthmat )
@@ -3117,7 +3240,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
 
   endif
 
-! Determination des symetries du groupe ponctuel (iopsymc)
+! Determination of the symmetries of the ponctual group (iopsymc)
 
   if( PointGroup_Auto ) then
 
@@ -3914,7 +4037,7 @@ end
 
 !***********************************************************************
 
-! Sous-programme calculant la symetrie ponctuelle de l'agregat
+! Calculation of the ponctual group of the cluster
 
 subroutine sym_cluster(Atom_with_axe,Axe_atom_clu,iaabs,igroup,iopsym,itype,itypep, &
              natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,Symmol)
@@ -4032,14 +4155,13 @@ subroutine sym_cluster(Atom_with_axe,Axe_atom_clu,iaabs,igroup,iopsym,itype,ityp
         endif
 
         do ib = 1,natomp
-          if( .not. Symmol ) then
+          if( .not. Symmol ) then   ! When nonexc, Symmol is automaticaly true
             if( ( ia == iaabs .and. ib /= iaabs ) .or. ( ia /= iaabs .and. ib == iaabs ) ) cycle
           endif
           v(1:3) = pos(1:3,ib) - pt(1:3)
           if( abs( v(1) ) > epspos .or. abs( v(2) ) > epspos .or. abs( v(3) ) > epspos ) cycle
           igrb = igroup(ib)
           if( abs(itypegen(igrb)) /= abs(itypegen(igra)) ) cycle
-!     &                                               cycle boucle_sym
 
           if( ngroup_m == 0 ) then
             iok = 1
@@ -7984,8 +8106,14 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
 
   return
   110 format(/' ---- Atom_selec --',100('-'))
-  120 format(/' When choosing an absorbig atom with keyword "absorber", one must choose the first one ',/ &
-              ' among the equivalent ones by symmetry, as it can be seen under "Symsite" in the bav file !',/)
+  120 format(/' The absorbing atom is not inside the area of calculation !',/ &
+              ' This can be due to the radius which is too small.',/ &
+              ' Try again increasing the radius incuding the SCF one.',// &
+              ' It can also be due to the ponctual group of the cluster of calculation.', / &
+              ' Look at under "Symsite" in the bav file, the atoms equivalent to the one giving the problem, and choose one.',/ &
+              ' - When using the keyword "Absorber", use it, instead of the previous one.' , / &
+              ' - In the other case, change the order of the atoms in the list of atoms under "Crystal",', / &
+              '   writing the chosen atom before the one giving the problem.' //)
   130 format(/' Atome',i4,', with working cluster sub-point group')
   140 format(/'  Rsort = ',f8.3,' A')
   150 format('  nx =',i4)

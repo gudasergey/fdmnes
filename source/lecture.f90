@@ -1502,7 +1502,7 @@ end
 subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_mode,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk, &
     axyz_cap,axyz_int,axyz_sur,Basereel,Bormann,Bulk,Bulk_roughness, &
-    Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free, &
+    Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Center_s,Centre,Charge_free, &
     Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Delta_helm,Density, &
     Density_comp,Dip_rel,Dipmag,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
     Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift, &
@@ -1599,7 +1599,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph):: Hybrid
 
   logical:: Absauto, adimpin, All_nrixs, Allsite, ATA, Atom, Atom_conf, Atom_nonsph, Atom_occ_hubb, Atomic_scr, Avoid, Axe_loc, &
-    Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Fcif, Classic_irreg, &
+    Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Center_s, Fcif, Classic_irreg, &
     Clementi, Core_resolved, Core_resolved_e, Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
     Dip_rel, Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Film, &
     exc_imp, Extract, Extract_ten, FDM_comp, FDMX_only, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, &
@@ -1713,6 +1713,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Centre(:) = 0._db
   Centre_auto = .false.
   Centre_auto_abs = .false.
+  Center_s = .false.
  ! The irregular solution is taken by continuity with bessel if false.
   Classic_irreg = .true.
   Clementi = .false.
@@ -2471,6 +2472,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
               read(itape4,*,iostat=ier) Centre(1:3)
               if( ier > 0 ) call write_err_form(itape4,keyword)
           end select
+
+        case('center_s')
+          Center_s = .true.
+          read(itape4,*,iostat=ier) Centre(1:2)
 
         case('center_ab')
           noncentre = .true.
@@ -4757,7 +4762,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           if( Muffintin ) write(3,'(A)') '   Muffin-tin potential'
           if( Rydberg ) write(3,460) R_rydb
           if( Noncentre ) write(3,'(A)') '   Non centered absorbing atom'
-          if( sum( abs(Centre(:)) ) > epspos ) write(3,470) Centre(:)
+          if( Center_s ) write(3,'(A)') '   No surface centering'
+          if( sum( abs(Centre(:)) ) > epspos ) then
+            if( Center_s ) then
+              write(3,470) Centre(1:2)
+            else
+              write(3,470) Centre(:)
+            endif
+          endif
           if( .not. Eneg_i ) write(3,480) Eclie, Eclie_out
           if( V_intmax < 100000._db ) write(3,490) V_intmax
         endif
@@ -5044,9 +5056,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             if( abs( Surface_shift(4) ) > eps10 ) write(3,'(a17,f10.5)') ' Surface rotat  =', Interface_shift(4)
           endif
           if( hkl_film ) then
-            write(3,'(A)') ' (h,k,l) coresponding to the reciprocal space of the film'
+            write(3,'(A)') ' (h,k,l) corresponding to the reciprocal space of the film'
           else
-            write(3,'(A)') ' (h,k,l) coresponding to the reciprocal space of the bulk'
+            write(3,'(A)') ' (h,k,l) corresponding to the reciprocal space of the bulk'
           endif
         endif
         if( Bulk ) then
@@ -5218,6 +5230,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Centre,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Centre_auto,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Centre_auto_abs,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
+    call MPI_Bcast(Center_s,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Charge_free,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Classic_irreg,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Clementi,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
@@ -5721,10 +5734,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   if( Centre_auto ) call Auto_center(axyz,Centre,Centre_auto_abs,Cubmat,icheck(1),itype,n_atom_uc,n_Z_abs,ngroup,ntype,numat, &
                                      numat_abs,posn,Rsorte_s(1),Struct)
 
-  do igr = 1,n_atom_uc
-    posn(:,igr) = posn(:,igr) - Centre(:)
-  end do
-
   Tensor_imp(1:3) = ldipimp(1:3)
   k = 3
   do i = 1,3
@@ -5736,7 +5745,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
   call Rmt_fix(icheck(1),ntype,numat,Rmt)
 
-! Stockage for shorter transmission
+! Stocking for shorter transmission
   Multipole(1) = E1E1; Multipole(2) = E1E2e; Multipole(3) = E1E3;
   Multipole(4) = E1M1; Multipole(5) = E1M2; Multipole(6) = E2E2;
   Multipole(7) = E3E3; Multipole(8) = M1M1; Multipole(9) = M1M2;

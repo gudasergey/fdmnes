@@ -59,7 +59,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   complex(kind=db), dimension(:,:,:), allocatable:: hybrid
 
   logical:: Absauto, All_nrixs, Allsite, ATA, Atom_nonsph, Atom_occ_hubb, Atomic_scr, &
-     Axe_loc, Basereel, Base_ortho_int, Base_ortho_sur, Bormann, Bulk, Clementi, Cap_layer, Cartesian_tensor, &
+     Axe_loc, Basereel, Base_ortho_int, Base_ortho_sur, Bormann, Bulk, Clementi, Cap_layer, Cartesian_tensor, Center_s,&
      Charge_free, Classic_irreg, Core_resolved, Convolution_cal, Coupelapw, Dafs, Dafs_bio, Density, Density_comp, &
      Dip_rel, Dipmag, Doping, Dyn_eg, Dyn_g, E_cut_man, Eneg_i, Eneg_n_i, Energphot, Extract, Extract_ten, FDM_comp, FDMX_only, &
      Film, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, &
@@ -85,7 +85,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
 
   real(kind=db), dimension(2):: f_no_res
   real(kind=db), dimension(3):: Ang_rotsup, angxyz, angxyz_bulk, angxyz_cap, angxyz_int, angxyz_sur, axyz, axyz_bulk, axyz_cap, &
-                                axyz_int, axyz_sur, dpos, Vec_orig
+                                axyz_int, axyz_sur, Centre, dpos, Vec_orig
   real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
   real(kind=db), dimension(6):: Trace_p
   real(kind=db), dimension(7):: Time_loc
@@ -101,7 +101,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   real(kind=db), dimension(:,:), allocatable :: Angle_mode, angpoldafs, Axe_atom_gr, &
      hkl_dafs, pdpolar, polar, pop_nonsph, posn, posn_bulk, posn_cap, &
      Vecdafsem, Vecdafssm, veconde, Wien_taulap
-  real(kind=db), dimension(:,:,:), allocatable:: popats, popval, posq, rot_atom_gr, rotloc_lapw
+  real(kind=db), dimension(:,:,:), allocatable:: popats, popval, rot_atom_gr, rotloc_lapw
   real(kind=db), dimension(:,:,:,:), allocatable:: occ_hubb_e
 
   real(kind=sg) time
@@ -250,7 +250,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   call lecture(Absauto,adimp_e,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_mode,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk, &
     axyz_cap,axyz_int,axyz_sur,Basereel,Bormann,Bulk,Bulk_roughness, &
-    Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Charge_free, &
+    Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Center_s,Centre,Charge_free, &
     Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Delta_helm,Density, &
     Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
     Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift, &
@@ -336,10 +336,10 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
 
 ! Evaluation of the symmetries of the (magnetic) space group
   call Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom_gr, &
-        axyz,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur,.false., &
+        axyz,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur,.false.,Center_s,Centre, &
         Doping,Extract,Flapw,iabsm,icheck(3),igr_i,igr_is,igr_proto,itype,Magnetic,Matper, &
         Memory_save,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,n_multi_run_e,n_Z_abs,neqm, &
-        ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,numat_abs,popats,posn,Sym_2D)
+        ngroup,ngroup_m,nlat,nlatm,Noncentre,nspin,ntype,numat,numat_abs,popats,posn,Sym_2D)
 
   n_atom_proto_uc = n_atom_proto
   if( Doping ) n_atom_proto = n_atom_proto + 1
@@ -348,10 +348,10 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   if( Bulk ) then
     Sym_2D = .false.
     call Symsite(Absauto,angxyz_bulk,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsph,Atom_nsph_e,Axe_atom_gr, &
-        axyz_bulk,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur,Bulk, &
+        axyz_bulk,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur,Bulk,.false.,Centre, &
         .false.,Extract,Flapw,iabsm,icheck(3),igr_i,igr_is,igr_proto,itype,Magnetic,.true., &
         Memory_save,n_atom_int,n_atom_bulk,n_atom_proto,n_atom_sur,n_atom_bulk,n_multi_run_e,n_Z_abs,neqm, &
-        ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,numat_abs,popats,posn_bulk,Sym_2D)
+        ngroup,ngroup_m,nlat,nlatm,.false.,nspin,ntype,numat,numat_abs,popats,posn_bulk,Sym_2D)
   endif
 
   deallocate( Atom_nsph_e )
@@ -435,9 +435,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   end do
 
   allocate( isymqa(0:n_atom_proto,natomsym_max) )
-  allocate( posq(3,n_atom_proto,natomsym_max) )
   isymqa(:,:) = 0
-  posq(:,:,:) = 0._db
 
   ipr_dop = 0
 
@@ -454,14 +452,6 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
 
       ipr = igr_proto(igr)
       i = igr_i(igr)
-      if( igr <= n_atom_uc ) then
-        posq(:,ipr,i) = posn(:,igr)
-      elseif( Doping .and. igr == n_atom_uc + 1 ) then
-        posq(:,n_atom_proto-n_atom_proto_bulk,i) = posn_bulk(:,igr_dop)
-      else
-        posq(:,ipr,i) = posn_bulk(:,igr-ngroup+n_atom_bulk)
-      endif
-
       if( Doping .and. igr == n_atom_uc + 1 ) then
         isymqa(n_atom_proto_uc+1,:) = isymqa(ipr_dop,:)
       else
@@ -559,7 +549,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   call Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mode,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
       Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_with_axe,Atomic_scr,Axe_atom_gr,axyz,axyz_bulk, &
       axyz_cap,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur,Basereel,Bormann,Bulk,Bulk_roughness, &
-      Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil, &
+      Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre, &
       Charge_free,Classic_irreg,Clementi,Com,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_edge,Delta_En_conv, &
       Delta_Epsii,Delta_helm,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_cut_man,E_radius, &
       E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Estart, &
@@ -580,7 +570,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
       nself,nseuil,nslapwm,nspin,nspino,nspinp,nsymextract,ntype,numat,numat_abs(1), &
       nvval,occ_hubb_e,Octupole,Old_zero,One_run,Operation_mode,Operation_mode_used,Optic,Overad,Overlap,p_self_max,p_self0, &
       Pas_SCF,pdpolar,Per_helm,phi_0,PointGroup,PointGroup_Auto,Polar,Polarise,poldafsem,poldafssm, &
-      pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,posq,q_nrixs,Quadrupole,R_rydb,r_self, &
+      pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadrupole,R_rydb,r_self, &
       r0_lapw,rchimp,Relativiste,Renorm,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
       roverad,RPALF,rpotmax,Rydberg,Rsorte_s,SCF_log,Self_abs,Skip, &
       Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spinorbite,State_all,State_all_out,Supermuf,Surface_shift,Symmol, &
@@ -746,7 +736,7 @@ end
 subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mode,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
       Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_with_axe,Atomic_scr,Axe_atom_gr,axyz,axyz_bulk, &
       axyz_cap,axyz_int,axyz_sur,Base_ortho_int, Base_ortho_sur,Basereel,Bormann,Bulk,Bulk_roughness, &
-      Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil, &
+      Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre, &
       Charge_free,Classic_irreg,Clementi,Com,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_edge,Delta_En_conv, &
       Delta_Epsii,Delta_helm,Density,Density_comp,Dip_rel,Dipmag,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_cut_imp,E_cut_man,E_radius, &
       E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Estart, &
@@ -767,7 +757,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       nself,nseuil,nslapwm,nspin,nspino,nspinp,nsymextract,ntype,numat,numat_abs_1, &
       nvval,occ_hubb_e,Octupole,Old_zero,One_run,Operation_mode,Operation_mode_used,Optic,Overad,Overlap,p_self_max,p_self0, &
       Pas_SCF,pdpolar,Per_helm,phi_0,PointGroup,PointGroup_Auto,Polar,Polarise,poldafsem,poldafssm, &
-      pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,posq,q_nrixs,Quadrupole,R_rydb,r_self, &
+      pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadrupole,R_rydb,r_self, &
       r0_lapw,rchimp,Relativiste,Renorm,rlapw,rmt,rmtimp,Rot_Atom_gr,rotloc_lapw, &
       roverad,RPALF,rpotmax,Rydberg,Rsorte_s,SCF_log,Self_abs,Skip, &
       Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spinorbite,State_all,State_all_out,Supermuf,Surface_shift,Symmol, &
@@ -877,8 +867,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
   logical:: Abs_in_bulk, Abs_in_Bulk_roughness, Absorbeur, All_nrixs, Allsite, ATA, Atom_comp_cal, Atom_nonsph, Atom_nonsph_loc, &
      Atom_occ_hubb, Atomic_scr, Basereel, Base_hexa, Base_ortho_int, Base_ortho_sur, Bormann, Bulk, Bulk_step, &
-     Clementi, Cal_xanes, &
-     Cap_layer, Cartesian_tensor, Charge_free, Classic_irreg, Convergence, Core_resolved, Coupelapw, Dafs, Dafs_bio, Density, &
+     Clementi, Cal_xanes, Cap_layer, Cartesian_tensor, Center_s, &
+     Charge_free, Classic_irreg, Convergence, Core_resolved, Coupelapw, Dafs, Dafs_bio, Density, &
      Density_comp, Devide_Ei, Dip_rel, Dipmag, Doping, Dyn_eg, Dyn_g, E_comp, E1E1, E1E2, E1E2e, E1E3, E1M1, E2E2, E3E3, &
      E_cut_man, Eneg, Eneg_i, Eneg_n_i, Energphot, Extract, &
      Extract_Green, Extract_ten, FDM_comp, FDM_comp_m, Fermi, Fermi_first, Film, Final_optic, &
@@ -915,7 +905,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
   real(kind=db), dimension(2):: chg_open_val, f_no_res, pop_open_val
   real(kind=db), dimension(3):: Ang_rotsup, Angxyz, angxyz_bulk, angxyz_cap, angxyz_int, angxyz_sur, axyz, axyz_bulk, axyz_cap, &
-                                axyz_int, axyz_sur, deccent, dpos, Vec_orig
+                                axyz_int, axyz_sur, Centre, deccent, dpos, Vec_orig
   real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
   real(kind=db), dimension(6):: Trace_p
   real(kind=db), dimension(7):: Time_loc
@@ -959,7 +949,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
   real(kind=db), dimension(ngroup_taux):: Taux_oc
   real(kind=db), dimension(ngroup_temp):: Temp_coef
   real(kind=db), dimension(3,nslapwm):: Wien_taulap
-  real(kind=db), dimension(3,n_atom_proto,natomsym_max):: posq
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_grn
   real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(0:nrm,2,0:ntype):: psi_coeur
@@ -974,7 +963,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
      Energ, Energ_coh, Energ_s, Energ_self, Energ_self_s, Enervide_t, Epsii, Length_rel, poidso, poidsov, poidsov_out, r, &
      rato_abs, rsato_abs, rhons, rs, rvol, sec_atom, Taux_eq, Taux_ipr, Vh, Vhns
   real(kind=db), dimension(:,:), allocatable:: coef_g, Axe_atom_clu, chargat_init, chargat_self, &
-     chargat_self_s, drho_ex_nex, Excato, Int_tens, pdp, poidsa, pop_orb_val, pos, poseq, posi, posi_self, &
+     chargat_self_s, drho_ex_nex, Excato, Int_tens, pdp, poidsa, pop_orb_val, pos, posi, posi_self, &
      rho, rhoato_abs,rsato, V_abs_i, Vcato_abs, Vcato_init, Vr, Vxc, vec, xyz, Ylmso
   real(kind=db), dimension(:,:,:), allocatable:: gradvr, Int_statedens, rho_chg, rho_self_t, rhoato, rhoato_init, rot_atom, &
      S_nrixs, S_nrixs_m, Vcato, Vecdafse, Vecdafss, Vra, Vrato_e, Vxcato_abs, Ylmato
@@ -1183,15 +1172,12 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       natomsym = ngreq(iprabs_nonexc)
     endif
 
-    allocate( poseq(3,natomsym) )
     allocate( isymeq(natomsym) )
     allocate( Taux_eq(natomsym) )
 
     if( Doping ) then
-      poseq(:,1:natomsym) = posq(:,ipr_dop,1:natomsym)
       isymeq(1:natomsym) = isymqa(ipr_dop,1:natomsym)
     else
-      poseq(:,1:natomsym) = posq(:,iprabs_nonexc,1:natomsym)
       isymeq(1:natomsym) = isymqa(iprabs_nonexc,1:natomsym)
     endif
 
@@ -1291,7 +1277,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     if( ( .not. One_run ) .or. multi_run == 1 ) then
       d_ecrant = 1 - sum( Ecrantage(:) )
       call natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho_int, &
-        Base_ortho_sur,Bulk,Bulk_step,Chargat,d_ecrant,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
+        Base_ortho_sur,Bulk,Bulk_step,Center_s,Centre,Chargat,d_ecrant,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
         dpos,Film_shift,Film_thickness,Flapw,iabsorbeur,iabsfirst,icheck(5),igr_dop,igreq,Interface_shift, &
         itabs,itype,Kgroup,Matper,mpirank0,multi_run,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur, &
         n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
@@ -1313,7 +1299,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 ! L'abaissement de symmetrie n'est effectif que si l'absorbeur est non centre
 ! De meme "Atom_nonsph" n'est utile que pour le Xanes
     call agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn, &
-          axyz,axyz_bulk,axyz_int,axyz_sur,Base_hexa,Base_ortho_int,Base_ortho_sur,Bulk,Bulk_step, &
+          axyz,axyz_bulk,axyz_int,axyz_sur,Base_hexa,Base_ortho_int,Base_ortho_sur,Bulk,Bulk_step,Center_s, &
           Chargat,Cubmat,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,dista, &
           Doping,dpos,Film_shift,Film_thickness,iaabs,iaabsfirst,iabsorbeur, &
           iaproto,iapot,ich,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,Interface_shift,iopsymc,iopsymr,itabs,itype,itypep, &
@@ -2522,7 +2508,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
       deallocate( Energ_s, Eimag_s )
       deallocate( Axe_atom_clu, dista, iaproto )
-      deallocate( igroup, isymeq, itypep, pos, poseq )
+      deallocate( igroup, isymeq, itypep, pos )
       deallocate( Taux_eq, Int_tens, poldafse, poldafss )
       deallocate( Bragg_abs, Bragg_rgh_bulk_abs, phdt, Vecdafse, Vecdafss )
       deallocate( ltypcal, nomabs, pdp, pol, vec )
@@ -3807,7 +3793,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     deallocate( Bragg_abs, Bragg_rgh_bulk_abs, karact, Axe_atom_clu, dista )
     deallocate( Epsii )
     deallocate( iaproto, igroup, isymeq, itypep )
-    deallocate( pos, poseq, Taux_eq )
+    deallocate( pos, Taux_eq )
     deallocate( poldafse, poldafss, phdt )
     deallocate( Vecdafse, Vecdafss, ltypcal, nomabs, pdp, pol, vec )
     deallocate( igr_bulk_z, Length_rel, n_bulk_zc )
