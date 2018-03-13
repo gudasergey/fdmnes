@@ -871,24 +871,25 @@ end
 
 !***********************************************************************
 
-subroutine init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Flapw,Force_ecr,Hubb,iabsorbeur, &
-      iabsorig,icheck,icom,igreq,iprabs,iprabs_nonexc,itabs,itype,itype_dop,itypepr,jseuil,lcoeur,lecrantage, &
-      lseuil,lvval,mpinodes0,mpirank0,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage,neqm,ngreq,ngroup,nlat,nlatm, &
-      nnlm,nomfich_s,Nonexc,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,numat_abs,nvval,pop_open_val, &
-      popatm,popats,popatv,popval,psi_coeur,psii,psi_open_val,psival,r0_lapw,rato,rchimp,Relativiste,rho_coeur, &
+subroutine init_run(cdil,Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Flapw,Force_ecr,Hubb,iabsorbeur, &
+      iabsorig,icheck,icom,igreq,iprabs,iprabs_nonexc,itabs,itdil,itype,itype_dop,itypepr,jseuil,lcoeur,ldil, &
+      lecrantage,lseuil,lvval,mpinodes0,mpirank0,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage,neqm,ngreq,ngroup, &
+      nlat,nlatm,nnlm,nomfich_s,Nonexc,norbdil,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,numat_abs,nvval, &
+      pop_open_val,popatm,popats,popatv,popval,psi_coeur,psii,psi_open_val,psival,r0_lapw,rato,rchimp,Relativiste,rho_coeur, &
       rhoit,rlapw,Rmt,Rmtimp,V_hubbard,nompsii)
 
   use declarations
   implicit none
   include 'mpif.h'
 
-  integer:: i, iabsorig, iabsorbeur, icheck, igr, ipr, iprabs, iprabs_nonexc, itabs, itype_dop, jseuil, l, lecrantage, lseuil, &
-      mpinodes0, mpirank0, n_atom_proto, n_multi_run, n_orbexc, nbseuil, necrantage, neqm, ngroup, nlatm, nnlm, nrato_dirac, nrm, &
-      nseuil, nspin, ntype, numat_abs
+  integer:: i, iabsorig, iabsorbeur, icheck, igr, ipr, iprabs, iprabs_nonexc, it, itabs, itype_dop, jseuil, l, lecrantage, lseuil, &
+      mpinodes0, mpirank0, n_atom_proto, n_multi_run, n_orbexc, nbseuil, necrantage, neqm, ngroup, nlatm, nnlm, norbdil, &
+      nrato_dirac, nr, nrm, nseuil, nspin, ntype, numat_abs
 
   character(len=132):: nomfich_s, nompsii
   character(len=35), dimension(0:ntype):: com
 
+  integer, dimension(norbdil):: itdil, ldil
   integer, dimension(ngroup):: itype
   integer, dimension(nnlm):: lqnexc, nqnexc
   integer, dimension(0:n_atom_proto):: itypepr, ngreq
@@ -901,6 +902,7 @@ subroutine init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Fla
   logical, dimension(0:ntype):: hubb
 
   real(kind=db):: Chargm
+  real(kind=db), dimension(norbdil):: cdil
   real(kind=db), dimension(0:n_atom_proto):: chargat
   real(kind=db), dimension(ngroup):: chargatg
   real(kind=db), dimension(0:ntype):: popatc, r0_lapw, rchimp, rlapw, rmt, rmtimp, V_hubbard
@@ -911,6 +913,7 @@ subroutine init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Fla
   real(kind=db), dimension(ngroup,nlatm,nspin):: popats
   real(kind=db), dimension(0:ntype,nlatm,nspin):: popval
   real(kind=db), dimension(nrm,nbseuil):: psii
+  real(kind=db), dimension(0:nrm):: r
   real(kind=db), dimension(0:nrm,0:ntype):: rato, rhoit, rho_coeur
   real(kind=db), dimension(0:nrm,nlatm,0:ntype):: psival
   real(kind=db), dimension(nrm,2):: psi_open_val
@@ -957,6 +960,14 @@ subroutine init_run(Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Fla
         lqnexc,lseuil,lvval,mpinodes0,mpirank0,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,Nonexc,nqnexc, &
         nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popatc,popats,popatv,popexc,popval, &
         psi_coeur,psii,psi_open_val,psival,rato,rchimp,Relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
+
+  if( norbdil /= 0 ) then
+    do it = min(itabs,1),ntype
+      nr = nrato(it)
+      r(:) = rato(:,it)
+      call dilatorb(cdil,icheck,it,itdil,ldil,nlatm,norbdil,nr,nrm,ntype,popatv,psival,r,rhoit)
+    end do
+  endif
 
   call Pop_mod(Chargat,Chargm,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,iprabs_nonexc,itype,itype_dop,itypepr,lqnexc,lvval, &
         n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc)
@@ -1864,6 +1875,86 @@ subroutine Pop_mod(chargat,chargm,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,ipr
   130 format(/'  ipr  it    charge   popatm(1)  popatm(2)')
   140 format(/'  ipr  it    charge   popatm(1,up)  popatm(1,dn) ...')
   150 format(2i4,11f11.5)
+end
+
+!***********************************************************************
+
+! Dilatation of the atomic orbitals (can be usefull for anions)
+
+subroutine dilatorb(cdil,icheck,it,itdil,ldil,nlatm,norbdil,nr,nrm,ntype,popatv,psival,r,rhoit)
+
+  use declarations
+  implicit none
+
+  integer:: icheck, io, ir, it, jr, jr1, l, nlatm, norbdil, nr, nrm, ntype
+
+  integer, dimension(norbdil):: itdil, ldil
+
+  real(kind=db):: cd, charge, dc, f_integr3, p1, p2, uns4pi
+
+  real(kind=db), dimension(norbdil):: cdil
+  real(kind=db), dimension(0:nrm):: psin, psit, r, rhn, rht, rhnr2, rn
+  real(kind=db), dimension(0:ntype,nlatm) :: popatv
+  real(kind=db), dimension(0:nrm,0:ntype):: rhoit
+  real(kind=db), dimension(0:nrm,nlatm,0:ntype):: psival
+
+  p1 = r(2) / ( r(2) - r(1) )
+  p2 = 1 - p1
+
+  do io = 1,norbdil
+
+    if( itdil(io) /= it ) cycle
+    l = ldil(io)
+
+! Orbital expansion
+    cd = 1 + cdil(io)
+    rn(0:nr) = r(0:nr) * cd
+    psit(1:nr) = psival(1:nr,l,it)
+    psit(0) = 0
+    psin(0) = 0
+    jr1 = 1
+    do ir = 1,nr
+      if( r(ir) > rn(nr) ) then
+        psin(ir:nr) = 0._db
+        exit
+      endif
+      do jr = jr1,nr
+        if( rn(jr) > r(ir) ) exit
+      end do
+      jr1 = jr
+      p1 = ( rn(jr) - r(ir) ) / ( rn(jr) - rn(jr-1) )
+      psin(ir) = p1 * psit(jr-1) + ( 1 - p1 ) * psit(jr)
+    end do
+
+! Charge calculation and renormalization
+    uns4pi = 1 / quatre_pi
+    rhn(1:nr) = uns4pi * ( psin(1:nr) / r(1:nr) )**2
+    rhnr2(1:nr) = uns4pi * psin(1:nr)**2
+    rhnr2(0) = 0._db
+    rht(1:nr) = uns4pi * ( psit(1:nr) / r(1:nr) )**2
+    rht(0) = p1*rht(1) + p2*rht(2)
+    rhn(0) = rht(0)
+    charge = quatre_pi * f_integr3(r,rhnr2,0,nrm,r(nr))
+    rhn(0:nr) = rhn(0:nr) / charge
+    dc = 1 / sqrt( charge )
+
+    psival(0:nr,l,it) = dc * psin(0:nr)
+    rhoit(0:nr,it) = rhoit(0:nr,it) + popatv(it,l) * ( rhn(0:nr) - rht(0:nr) )
+
+    if( icheck > 1 ) then
+      write(3,110)
+      write(3,120) it, l
+      do ir = 1,nr
+        write(3,130) r(ir)*bohr, psit(ir), psival(ir,l,it), rhoit(ir,it)
+      end do
+    endif
+
+  end do
+
+  return
+  110 format(/' ---- Dilat --------',100('-'))
+  120 format(/5x,'it =',i3,',  l =',i2,/ '     rato    psi_before_dil    psival          rho')
+  130 format(1p,9e13.5)
 end
 
 !***********************************************************************
@@ -6266,8 +6357,8 @@ end
     end do
 
 ! Conversion en Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
-    fpp_avantseuil = fpp_avantseuil / ( conv_mbarn_nelec(Ea) * pi )
-    fp_avantseuil = fp_avantseuil / ( conv_mbarn_nelec(Ea) * pi )
+    fpp_avantseuil = fpp_avantseuil / conv_mbarn_nelec(Ea)
+    fp_avantseuil = fp_avantseuil / conv_mbarn_nelec(Ea)
 
 ! Conversion en coefficient d'absorption lineaire en micrometre^-1
     if( Volume_maille > eps10 ) then
@@ -10608,264 +10699,6 @@ function cal_norm(Energ,Eimag)
 
   cal_norm = sqrt( rho )
 
-end
-
-!***********************************************************************
-
-! Calcul des fonctions de bessel et neuman.
-
-subroutine cbess(fnorm,z,lmax,lmaxm,bessel)
-
-  use declarations
-  implicit real(kind=db) (a-h,o-z)
-
-  complex(kind=db):: bessel(0:lmaxm), fnorm, z
-
-  if( abs( z ) < eps10 ) then
-    bessel(0) = fnorm
-  else
-    bessel(0) = fnorm * sin(z) / z
-  endif
-
-  if( lmax == 0 ) return
-
-  if( abs( z ) < eps10 ) then
-
-    bessel(1:lmax) = (0._db, 0._db)
-
-  else
-
-    bessel(1) = bessel(0) / z - fnorm * cos(z) / z
-
-    do l = 2,lmax
-      l1 = 2*l - 1
-      bessel(l) = l1 * bessel(l-1) / z - bessel(l-2)
-    end do
-
-  endif
-
-  return
-end
-
-!***********************************************************************
-
-! Calcul des fonctions de bessel et neuman (en fait, divisees par z )
-
-subroutine cbessneu(fnorm,z,lmax,lmaxm,bessel,neuman)
-
-  use declarations
-  implicit real(kind=db) (a-h,o-z)
-
-  complex(kind=db):: bessel(0:lmaxm), fnorm, neuman(0:lmaxm), z
-
-  neuman(0) = - fnorm * cos(z) / z
-  bessel(0) = fnorm * sin(z) / z
-
-  if( lmax == 0 ) return
-
-  neuman(1) = neuman(0) / z - bessel(0)
-  bessel(1) = bessel(0) / z + neuman(0)
-
-  do l = 2,lmax
-    l1 = 2*l - 1
-    neuman(l) = l1 * neuman(l-1) / z - neuman(l-2)
-    bessel(l) = l1 * bessel(l-1) / z - bessel(l-2)
-  end do
-
-  return
-end
-
-!***********************************************************************
-
-! Calculation of spherical Hankel function of first kind  ( or Riccati-Hankel(+) function, divided by z )
-! and its derivative versus r, not z
-
-subroutine Cal_Hankel(d_Hankel,Hankel,konde,lmax,r)
-
-  use declarations
-  implicit none
-
-  integer:: l, lmax
-
-  complex(kind=db):: cfac, fnorm, konde, z
-  complex(kind=db), dimension(0:lmax):: d_hankel, hankel
-  complex(kind=db), dimension(0:lmax+1):: hankel_t
-
-  real(kind=db):: r
-
-  z = konde * r
-
-  hankel_t(0) = - img
-
-  if( lmax > 0 ) hankel_t(1) = - 1._db - img / z
-
-  do l = 2,lmax+1
-    hankel_t(l) = (2*l - 1) * hankel_t(l-1) / z - hankel_t(l-2)
-  end do
-
-  do l = 0,lmax
-    d_hankel(l) = l * hankel_t(l) / z - hankel_t(l+1)
-  end do
-
-! For normalization by the squrare root of the density of state in vacuum
-  fnorm = sqrt( konde / pi )
-  cfac = fnorm * exp( img * z ) / z
-
-  hankel(0:lmax) = cfac * hankel_t(0:lmax)
-
-! Multiplication by konde, because it is the derivative versus r, not z
-  d_hankel(0:lmax) = cfac * konde * d_hankel(0:lmax)
-
-  return
-end
-
-!***********************************************************************
-
-! Calculation of spherical Bessel function ( or Riccati-Bessel function, divided by z )
-! and its derivative versus r, not z
-
-subroutine Cal_Bessel(d_Bessel,Bessel,konde,lmax,r)
-
-  use declarations
-  implicit none
-
-  integer:: l, lmax
-
-  complex(kind=db):: cfac, fnorm, konde, z
-  complex(kind=db), dimension(0:lmax):: d_Bessel, Bessel
-  complex(kind=db), dimension(0:lmax+1):: Bessel_t
-
-  real(kind=db):: r
-
-  z = konde * r
-
-  Bessel_t(0) = sin( z )
-
-  if( lmax > 0 ) Bessel_t(1) = - cos( z ) + Bessel_t(0) / z
-
-  do l = 2,lmax+1
-    Bessel_t(l) = (2*l - 1) * Bessel_t(l-1) / z - Bessel_t(l-2)
-  end do
-
-  do l = 0,lmax
-    d_Bessel(l) = l * Bessel_t(l) / z - Bessel_t(l+1)
-  end do
-
-! For normalization by the squrare root of the density of state in vacuum
-  fnorm = sqrt( konde / pi )
-  cfac = fnorm / z
-
-  Bessel(0:lmax) = cfac * Bessel_t(0:lmax)
-
-! Multiplication by konde, because it is the derivative versus r, not z
-  d_Bessel(0:lmax) = cfac * konde * d_Bessel(0:lmax)
-
-  return
-end
-
-!***********************************************************************
-
-! Calcul des fonctions de bessel et neuman ( disisees par z )
-
-subroutine cbessneur(fnorm,z,lmax,lmaxm,bessel,neuman)
-
-  use declarations
-  implicit real(kind=db) (a-h,o-z)
-
-  real(kind=db):: bessel(0:lmaxm), neuman(0:lmaxm), z
-
-  neuman(0) = - fnorm * cos(z) / z
-  bessel(0) = fnorm * sin(z) / z
-
-  neuman(1) = neuman(0) / z - bessel(0)
-  bessel(1) = bessel(0) / z + neuman(0)
-
-  do l = 2,lmax
-    l1 = 2*l - 1
-    neuman(l) = l1 * neuman(l-1) / z - neuman(l-2)
-    bessel(l) = l1 * bessel(l-1) / z - bessel(l-2)
-  end do
-
-  return
-end
-
-!***********************************************************************
-
-! Calculation of Bessel function ( Riccati-Bessel / z )
-! When Bessel < 10^(-7), one takes the origin limit: j_l = z^l / (2*l+1)!!
-! because of unstability of the recursive formula.
-
-subroutine cbessel(bess,ip0,lmax,nr,q,r)
-
-  use declarations
-  implicit none
-
-  integer:: i, ip0, j, k, l, l1, lmax, nr
-
-  real(kind=db):: fac, q, z_lim
-  real(kind=db), dimension(nr):: r, z
-  real(kind=db), dimension(nr,0:lmax):: bessel
-  real(kind=db), dimension(nr,ip0:lmax):: bess
-
-  z(:) = q * r(:)
-
-  do l = 0,lmax
-
-    select case(l)
-
-      case(0)
-
-        do i = 1,nr
-          if( z(i) < 1.e-7_db ) then
-            bessel(i,l) = 1._db - z(i)**2 / 6._db
-          else
-            bessel(i,l) = sin( z(i) ) / z(i)
-          endif
-        end do
-
-      case(1)
-
-        fac = 1._db / 3
-        z_lim = 3.e-7_db  ! = ( 1.e-7_db / fac )**( 1._db / l )
-        do i = 1,nr
-          if( z(i) < z_lim ) then
-            bessel(i,l) = fac * z(i)
-          else
-            bessel(i,l) = ( bessel(i,0) - cos( z(i) ) ) / z(i)
-          endif
-        end do
-
-      case default
-
-        k = 1
-        do j = 3,2*l+1,2
-          k = k * j
-        end do
-        fac = 1._db / k
-        z_lim = ( 1.e-7_db / fac )**( 1._db / l )
-        l1 = 2*l - 1
- ! l = 2, fac = 1/15, z_lim = 0.00122
- ! l = 3, fac = 1/105, z_lim = 0.0219
- ! l = 4, fac = 1/945, z_lim = 0.0986
- ! l = 5, fac = 1/10395, z_lim = 0.253
-
-        do i = 1,nr
-          if( z(i) < z_lim ) then
-            bessel(i,l) = fac * z(i)**l
-          else
-            bessel(i,l) = l1 * bessel(i,l-1) / z(i) - bessel(i,l-2)
-          endif
-        end do
-
-    end select
-
-  end do
-
-  do l = ip0,lmax
-    bess(:,l) = bessel(:,l)
-  end do
-
-  return
 end
 
 !***********************************************************************

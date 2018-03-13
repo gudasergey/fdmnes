@@ -4,7 +4,7 @@
 
 !***********************************************************************
 
-subroutine main_optic(angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,Classic_irreg, &
+subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,Classic_irreg, &
           Core_resolved,Dafs,Dafs_bio,dv0bdcF,E_cut,E_cut_imp,E_cut_man,Eclie,Eneg,Energ_s,Ephot_min, &
           Extract_ten,Eseuil,Full_potential,Full_self_abs,Green,hkl_dafs,Hubb_a,Hubb_d,icheck, &
           iabsorig,ip_max,ip0,isigpi,isymeq, &
@@ -81,7 +81,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,Classic_irr
 
   real(kind=sg):: time
 
-  real(kind=db):: delta_E, E_cut, E_cut_imp, E_cut_optic, Eclie, Ecmax, Ephot_min, &
+  real(kind=db):: Abs_U_iso, delta_E, E_cut, E_cut_imp, E_cut_optic, Eclie, Ecmax, Ephot_min, &
     p, Rmtg, Rmtsd, Surface_ref, V_intmax, V0muf, Vhbdc, Volume_maille, Workf
 
   real(kind=db), dimension(3):: angxyz, axyz
@@ -337,7 +337,7 @@ subroutine main_optic(angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,Classic_irr
 
       if( ie > nenerg ) exit
 
-      call Write_coabs(Allsite,angxyz,axyz,Bragg_abs,.false.,Cartesian_tensor, &
+      call Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,.false.,Cartesian_tensor, &
               Core_resolved,Dafs,Dafs_bio,E_cut_optic,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft,First_E,f_avantseuil, &
               Full_self_abs,Green_int,hkl_dafs,i_range,iabsorig,icheck_s,ie,ie_computer,igr_bulk_z,Int_tens, &
               isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodes,multi_0,Multipole,n_abs_rgh,n_bulk_sup, &

@@ -18,18 +18,18 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     index_hk, initl, ip, ipar, ipas, ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, &
     jfich, jpl, js, jseuil, k, kpl, l, Length_line, ll, mfich, n, n_col, n_col_max, n_energ_tr, &
     n_mat_pol, n_selec_core, n_signal, n_Stokes, n_Trunc, &
-    natomsym, ncal, ne2, nef, nelor, nen2, nenerg, nenerge, nes, nes_in, nfich, &
+    ncal, ne2, nef, nelor, nen2, nenerg, nenerge, nes, nes_in, nfich, &
     ngamh, ngroup_par, ninit, ninit1, ninitlm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
     npldafs_t, npldafs_th, nseuil, nxan, nw
 
 ! njp : Points beyond the energy range to make the border effect less strong
   integer, parameter:: njp = 500
 
-  integer, dimension(3) :: hkl_S
-  integer, dimension(10) :: num_core
-  integer, dimension(ngroup_par) :: npar
-  integer, dimension(ngroup_par,nparm) :: indice_par
-  integer, dimension(:), allocatable:: i_done, indf, natomsym_f, ne, ninitl, nphi, numat
+  integer, dimension(3):: hkl_S
+  integer, dimension(10):: num_core
+  integer, dimension(ngroup_par):: npar
+  integer, dimension(ngroup_par,nparm):: indice_par
+  integer, dimension(:), allocatable:: i_done, indf, ne, ninitl, nphi, numat
   integer, dimension(:,:), allocatable:: hkl_dafs, nsup, ne_initl
   integer, dimension(:), allocatable:: n_index_hk, n_div_fpp
 
@@ -46,32 +46,32 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   complex(kind=db):: cf, zero_c
   complex(kind=db), dimension(1):: cdum
-  complex(kind=db), dimension(:), allocatable:: dampl, dph, dpht, f0, f0_bulk, f0_th
+  complex(kind=db), dimension(:), allocatable:: dampl, dph, dph_t, dpht, f0, f0_bulk, f0_th
   complex(kind=db), dimension(:,:), allocatable:: f0scan, f0scan_bulk, phdtscan, Trs
-  complex(kind=db), dimension(:,:,:), allocatable:: Ad, Adafs, As, Mu_m, Mu_mat_comp
+  complex(kind=db), dimension(:,:,:), allocatable:: Ad, Adafs, As, Mu_m, Mu_mat_comp, Mu_t
   complex(kind=db), dimension(:,:,:,:), allocatable:: As_bulk, mu, mus
 
   logical:: Abs_before, Abs_in_bulk, Analyzer, Another_one, Arc, bav_open, Bormann, Dafs, Dafs_bio, Check_conv, chem, Circular, &
     Conv_done, Cor_abs, decferm, Deuxieme, Double_cor, E_cut_man, Energphot, Epsii_ref_man, Extrap, Fermip, First_E, Fit_cal, &
     Forbidden, fprim, fprime_atom, Full_self_abs, Gamma, Gamma_hole_imp, Gamma_var, Gaussian_default, Green_int, Just_total, &
     Magn, no_extrap, nxan_lib, Photoemission, Scan_a, scan_true, Seah, Self_abs, &
-    Signal_Sph, Stokes, Stokes_Dafs, Stokes_xan, Sup_sufix, Tenseur, Tenseur_car, Thomson, Transpose_file
+    Signal_Sph, Stokes, Stokes_Dafs, Stokes_xan, Sup_sufix, Tenseur, Tenseur_car, Thomson, Transpose_file, U_iso_inp
   logical, dimension(:), allocatable:: run_done, Skip_run, Trunc
 
-  real(kind=db):: a, a1, a2, a3, a4, alambda, Asea, b, b1, b2, b3, b4, bba, bbb, c, c_micro, conv_mbarn_nelec, &
-    ct_epsilon, ct_nelec, d, d_dead, de_obj, de1, de2, Delta_edge, Deltar, &
+  real(kind=db):: a, a1, a2, a3, a4, Abs_U_iso_inp, alambda, Asea, b, b1, b2, b3, b4, bba, bbb, c, c_micro, &
+    conv_mbarn_nelec, ct_epsilon, ct_nelec, d, d_dead, de_obj, de1, de2, Delta_edge, Deltar, &
     E, E_cut_imp, E_obj, e1m, Ecent, E_cut, E_cut_orig, Eintmax, Elarg, Eph, Epsii_ref, Esmin, &
     Estart, f0_forward, fac, fpp0, Gamm, Gamma_h, Gamma_max, &
-    Im_pi, Im_sig, Ip_pi, Ip_sig, mu_0_bulk, p1, p2, pasdeb, Pdt, Pdt_bulk, S0_2, Sample_thickness, Surface_ref, Tab_width, &
-    Vibration, Volume_maille, Volume_maille_bulk
+    Im_pi, Im_sig, Ip_pi, Ip_sig, mu_0_bulk, natomsym, p1, p2, pasdeb, Pdt, Pdt_bulk, S0_2, Sample_thickness, Surface_ref, &
+    Tab_width, Vibration, Volume_maille, Volume_maille_bulk
 
   real(kind=db), dimension(0):: rdum
   real(kind=db), dimension(3):: angxyz, axyz
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(ngroup_par,nparm) :: param
-  real(kind=db), dimension(:), allocatable:: angle, bb, betalor, decal, e1, e2, Efermip, Elor, En_fermi, Energ, Energe, &
-        Energ_tr, Ep, Eph1, Ephm, Ephoton, Es, Es_temp, Eseuil, fpp_avantseuil, fi, fr, l_dafs, Length_abs, lori, lorix, & 
-        lorr, lorrx, Pds, p1f, p2f, Tens, V0muf, Ts, Yr, Yi
+  real(kind=db), dimension(:), allocatable:: Abs_U_iso, angle, bb, betalor, decal, e1, e2, Efermip, Elor, En_fermi, Energ, &
+        Energe, Energ_tr, Ep, Eph1, Ephm, Ephoton, Es, Es_temp, Eseuil, fpp_avantseuil, fi, fr, l_dafs, Length_abs, lori, & 
+        lorix, lorr, lorrx, natomsym_f, Pds, p1f, p2f, Tens, V0muf, Ts, Yr, Yi
   real(kind=db), dimension(:,:), allocatable:: decal_initl, Epsii, Length_rel, mua_r, mua_i, Signal, Stokes_param, Xa, &
                                                Xanes, Xs
   real(kind=db), dimension(:,:,:), allocatable:: Icirc, Icirccor, Icor, Icircdcor, Idcor, Mu_mat, Mus_mat
@@ -82,6 +82,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   do  ! end of loop at the end of the routine
 
   Abs_before = .false.
+  Abs_in_bulk = .false.
+  Abs_U_iso_inp = 0._db
   Analyzer = .true.
   Arc = .true.
   Asea = 0.2_db  ! Slope of Gamma at the origin in Seah Dench model
@@ -141,7 +143,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Tenseur_car = .false.
   Thomson = .false.
   Transpose_file = .false.
-  Abs_in_bulk = .false.
+  U_iso_inp = .false.
   Vibration = 0._db
 
   if( bav_open .or. icheck > 1 ) Check_conv = .true.
@@ -409,6 +411,17 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         n = nnombre(itape1,132)
         read(itape1,'(A)') chemin
         chemin = chemin
+
+      case('abs_b_iso')
+        U_iso_inp = .true.
+        n = nnombre(itape1,132)
+        read(itape1,*) Abs_U_iso_inp
+        Abs_U_iso_inp = Abs_U_iso_inp / ( 8 * pi**2 ) 
+
+      case('abs_u_iso')
+        U_iso_inp = .true.
+        n = nnombre(itape1,132)
+        read(itape1,*) Abs_U_iso_inp
 
       case('seah')
 
@@ -710,7 +723,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     open(2, file = fichin(ifich), status='old', iostat=istat)
     n = nnombre(2,Length_line)
     if( n > 8 ) read(2,*) Eseuil(ifich), numat(ifich), nseuil, jseuil, fpp_avantseuil(ifich), V0muf(ifich), En_fermi(ifich), ninit
-    if( n /= ninit + 11 .and. n /= ninit + 12 .and. n /= ninit + 13 ) then
+    if( n /= ninit + 11 .and. n /= ninit + 12 .and. n /= ninit + 13 .and. n /= ninit + 14 ) then
       call write_error
       do ipr = 6,9,3
         write(ipr,'(///,A/)') ' Old format in the first line of not convoluted file !'
@@ -723,6 +736,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   call n_div_fpp_avanseuil(Eseuil,n_div_fpp,nfich)
 
+  allocate( Abs_U_iso(nfich) )
   allocate( Eph1(nfich) )
   allocate( Ephm(nfich) )
   allocate( Epsii(ninitlm,nfich) )
@@ -732,11 +746,12 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   allocate( ne_initl(ninitlm,nfich) )
   allocate( Trunc(nfich) )
 
+  Abs_U_iso(:) = 0._db
   Epsii(:,:) = 0._db
   decal_initl(:,:) = 0._db
   Trunc(:) = .false.
 
-  call Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm,Epsii,f0_forward,Fichin,Fichscanin, &
+  call Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm,Epsii,f0_forward,Fichin,Fichscanin, &
           fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_col_max,n_mat_pol,n_Trunc,natomsym_f,ne,nfich, &
           ninit1,ninitl,ninitlm,nphim,npldafs,nseuil,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph, &
           Surface_ref,Tenseur,Tenseur_car,Trunc,V0muf,Volume_maille,Volume_maille_bulk)
@@ -975,6 +990,12 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
 ! Preparation is done --------------------------------------
 
+  Sup_sufix = ninitl(1) > 1
+   
+  call Col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin(1),Fichscanin(1),fprim,Full_self_abs,hkl_dafs, &
+      Length_line,n_col,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes, &
+      Stokes_name,Stokes_param,Sup_sufix,Tenseur)
+
 ! This loop is for the case of output for all indata files  
   boucle_conv_file: do i_conv = 0,nfich
     if( i_conv > 0 ) then
@@ -1049,7 +1070,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         dph(:) = cmplx( fr(:), fi(:),db )
         dpht(:) = dpht(:) + Pds(ifich) * dph(:)
         if( Cor_abs ) then
-          read(2,*) natomsym, axyz(:), angxyz(:), ( hkl_dafs(:,ipl), ipl = 1,npldafs)
+          read(2,*) axyz(:), angxyz(:), ( hkl_dafs(:,ipl), ipl = 1,npldafs)
           angxyz(:) = angxyz(:) * radian
           axyz(:) = axyz(:) / bohr
         elseif( Trunc(ifich) ) then
@@ -1101,7 +1122,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
             elseif( self_abs ) then
               Read(2,*) Energ(ie), ( ( fr(ipl), fi(ipl), ( mua_r(ipl,i), i = 1,2 ), ipl = 1,npldafs ), j = 1,initl)
             else
-              Read(2,*) Energ(ie), ( ( fr(ipl),fi(ipl), ipl = 1,npldafs), j = 1,initl )
+              Read(2,*) Energ(ie), ( ( fr(ipl), fi(ipl), ipl = 1,npldafs), j = 1,initl )
             endif
           endif
           if( .not. scan_true ) then
@@ -1274,9 +1295,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           do ie = 1,nelor
             if( ie > 1 .and. ie < n ) cycle
             if( Energphot ) then
-              E = Elor(ie) - Eseuil(ifich) - V0muf(1)
+              E = Elor(ie) - Eseuil(ifich) - V0muf(ifich)
             else
-              E = Elor(ie) - V0muf(1)
+              E = Elor(ie) - V0muf(ifich)
             endif
             Gamm = betalor(ie) - Gamma_h
             if( Gamm > 0._db ) then
@@ -1284,7 +1305,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
             else
               alambda = 0._db
             endif
-            E = E + V0muf(1)
+            E = E + V0muf(ifich)
             do ipr = ipr1,ipr2,3
               if( ie == 1 ) then
                 if( Energphot ) then
@@ -1555,16 +1576,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           
         endif
 
-! Addition of the constant term corresponding to the edges of lower energy (but on dichroic terms)
-        if( i_conv == 0 .and. Abs_before .and. initl == 1 ) then
-          do i = 1,nxan
-            nomab = nom_col(i)
-            nomab = adjustl(nomab)
-            if( nomab(1:3) == 'dic' .or. nomab(1:3) == 'Dic' ) cycle
-            Xanes(:,i) = Xanes(:,i) + fpp_avantseuil(ifich) / n_div_fpp(ifich)
-          end do
-        endif
-    
 ! Transformation to crystallo convention with f" > 0
         if( Dafs ) then
           Adafs(:,:,:) = conjg( Adafs(:,:,:) )
@@ -1576,7 +1587,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         if( Tenseur_car ) then
           do ie = 1,nenerg
             Eph = Ephoton(ie)
-            ct_nelec = conv_mbarn_nelec(Eph)
+            ct_nelec = conv_mbarn_nelec(Eph) / pi
             adafs(ie,:,:) = ct_nelec * adafs(ie,:,:)
           end do
         endif
@@ -1610,24 +1621,74 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           do ipl = 1,npldafs
             if( Full_self_abs .and. ( mod(ipl,4) == 2 .or. mod(ipl,4) == 3 ) ) cycle
             do ie = 1,nenerg ! Unit cell volume is in A^3
-              fac = natomsym * 100 / ( Volume_maille * Conv_mbarn_nelec(Ephoton(ie)) * pi )
+              fac = natomsym * 100 / ( Volume_maille * Conv_mbarn_nelec(Ephoton(ie)) )
               mu(ie,:,ipl,:) = mu(ie,:,ipl,:) + fac * dampl(ie)
             end do
           end do
-! Real part is absorption
-          mu(:,:,:,:) = img * Conjg( mu(:,:,:,:) )
         endif
       
         if( Stokes_xan ) then
           do ie = 1,nenerg
-            fac = natomsym * 100 / ( Volume_maille * Conv_mbarn_nelec(Ephoton(ie)) * pi )
+            fac = natomsym * 100 / ( Volume_maille * Conv_mbarn_nelec(Ephoton(ie)) )
             Mu_m(ie,1,:) = Mu_m(ie,1,:) + fac * dampl(ie)
             Mu_m(ie,4,:) = Mu_m(ie,4,:) + fac * dampl(ie)
           end do
 ! Real part is absorption
-          Mu_m(:,:,:) = img * Conjg( Mu_m(:,:,:) )
         endif
-   
+
+! Temperature effect in the Debye model
+        if( ( U_iso_inp .and. Abs_U_iso_inp > eps10 ) .or. Abs_U_iso(ifich) > eps10   ) then
+
+! natomsym is real
+          fac = natomsym / ninitl(ifich)
+          
+          call Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nenerg,nfich, &
+                        nom_col,numat,nxan,U_iso_inp,V0muf,Xanes)
+
+          fac = 1 / ninitl(ifich)
+
+          if( Dafs ) call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
+                        nenerg,nfich,.true.,nphim,npldafs,numat,U_iso_inp,V0muf) 
+
+          fac = natomsym * 100 / ( ninitl(ifich) * Volume_maille )
+  
+          if( Cor_abs ) then
+            allocate( Mu_t(nenerg,nphim,npldafs) )
+            allocate( dph_t(npldafs) )
+            dph_t(:) = ( 1._db, 0._db )
+            do i = 1,2
+              Mu_t(:,:,:) = Mu(:,:,:,i) 
+              call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Mu_t,dph_t,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
+                        nenerg,nfich,.false.,nphim,npldafs,numat,U_iso_inp,V0muf)
+              Mu(:,:,:,i) = Mu_t(:,:,:) 
+            end do
+            deallocate( dph_t, Mu_t )
+          endif 
+
+          if( Stokes_xan ) then
+            allocate( dph_t(npldafs) )
+            dph_t(:) = ( 1._db, 0._db )
+            call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Mu_m,dph_t,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
+                        nenerg,nfich,.false.,nphim,npldafs,numat,U_iso_inp,V0muf)
+            deallocate( dph_t )
+          endif
+
+        endif
+
+! Real part is absorption
+        if( Cor_abs ) mu(:,:,:,:) = img * Conjg( mu(:,:,:,:) )
+        if( Stokes_xan ) Mu_m(:,:,:) = img * Conjg( Mu_m(:,:,:) )
+        
+! Addition of the constant term corresponding to the edges of lower energy (but on dichroic terms)
+        if( i_conv == 0 .and. Abs_before .and. initl == 1 ) then
+          do i = 1,nxan
+            nomab = nom_col(i)
+            nomab = adjustl(nomab)
+            if( nomab(1:3) == 'dic' .or. nomab(1:3) == 'Dic' ) cycle
+            Xanes(:,i) = Xanes(:,i) + fpp_avantseuil(ifich) / n_div_fpp(ifich)
+          end do
+        endif
+    
         if( ncal > 1 ) then
           iscr = 100 + jfich
           rewind( iscr )
@@ -1876,12 +1937,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     call Corr_abs(angxyz,As,axyz,c_micro,d_dead,Double_cor,Eseuil(1),fpp_avantseuil(1),hkl_dafs,hkl_S,Icor,Icirccor, &
           Icircdcor,Idcor,mus,n_stokes,nes,np_stokes,nphi,nphim,npldafs,Self_abs,Stokes_param)
 
-  Sup_sufix = ninitl(1) > 1
-   
-  call Col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin(1),fprim,Full_self_abs,hkl_dafs, &
-      Length_line,n_col,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes, &
-      Stokes_name,Stokes_param,Sup_sufix,Tenseur)
-
 !---- Writing -------------------------------------------------
 
   allocate( Tens(n_col) )
@@ -2100,8 +2155,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     endif
     allocate( Ep(1) )
     Ep(:) = 0._db
-    call Write_out(rdum,rdum,zero_c,E_cut,Es(ie),Ep,0._db,First_E,.false.,rdum, &
-                   1,0,n_col,jpl,0,1,Convolution_out,nom_col,1,0,0,0,0,n,cdum,cdum,Tens,V0muf(1),.false.,0, &
+    call Write_out(Abs_U_iso_inp,rdum,rdum,zero_c,E_cut,Es(ie),Ep,0._db,First_E,.false.,rdum, &
+                   1,0,n_col,jpl,0,1,Convolution_out,nom_col,1,0,0,0,0,n,cdum,cdum,Tens,V0muf(1),.false.,0._db, &
                    Surface_ref,Volume_maille)
     deallocate( Ep )
     First_E = .false.
@@ -2812,7 +2867,7 @@ end
 
 ! Reading of dimensions
 
-subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm, Epsii,f0_forward,Fichin,Fichscanin, &
+subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm, Epsii,f0_forward,Fichin,Fichscanin, &
           fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_col_max,n_mat_pol,n_Trunc,natomsym_f,ne,nfich, &
           ninit1,ninitl,ninitlm,nphim,npldafs,nseuil,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph, &
           Surface_ref,Tenseur,Tenseur_car,Trunc,V0muf,Volume_maille,Volume_maille_bulk)
@@ -2822,7 +2877,7 @@ subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm, Epsii,
 
   integer:: eof, i, ie, ifich, ipl, ipr, istat, jseuil, l, Length_line, n, n_col_max, n_mat_pol, n_mat_pol1, n_Trunc, nfich, &
             ninit1, ninitlm, nnombre, nphi, nphim, nphim1, npldafs, npldafs1, nseuil, numat, nxan, nxan1
-  integer, dimension(nfich):: natomsym_f, ne, ninitl
+  integer, dimension(nfich):: ne, ninitl
 
   character(len=15):: nomab
   character(len=132):: mot
@@ -2836,7 +2891,7 @@ subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm, Epsii,
   real(kind=db):: Eintmax, Eph, Eseuil, f0_forward, fpp_avantseuil, mu_0_bulk, Sample_thickness, Surface_ref, Volume, &
                   Volume_maille, Volume_maille_bulk  
   real(kind=db), dimension(ninitlm,nfich):: Epsii
-  real(kind=db), dimension(nfich):: En_Fermi, Eph1, Ephm, V0muf
+  real(kind=db), dimension(nfich):: Abs_U_iso, En_Fermi, Eph1, Ephm, natomsym_f, V0muf
 
   n_Trunc = 0
   natomsym_f(:) = 0
@@ -2854,9 +2909,12 @@ subroutine Dimension_file(Abs_in_bulk,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm, Epsii,
     elseif( n == 12 + ninitl(ifich) ) then
       read(2,*) Eseuil, numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninitl(ifich), &
         ninit1, Epsii(1:ninitl(ifich),ifich), Volume, f0_forward, natomsym_f(ifich)
-    else
+    elseif( n == 13 + ninitl(ifich) ) then
       read(2,*) Eseuil, numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninitl(ifich), &
         ninit1, Epsii(1:ninitl(ifich),ifich), Volume, Surface_ref, f0_forward, natomsym_f(ifich)
+    else
+      read(2,*) Eseuil, numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninitl(ifich), &
+        ninit1, Epsii(1:ninitl(ifich),ifich), Volume, Surface_ref, f0_forward, natomsym_f(ifich), Abs_U_iso(ifich)
     endif
 
     if( ninit1 < 0 ) then
@@ -3052,7 +3110,7 @@ end
 
 !***********************************************************************
 
-subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Full_self_abs,hkl_dafs, &
+subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscanin,fprim,Full_self_abs,hkl_dafs, &
       Length_line,n_col,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes, &
       Stokes_name,Stokes_param,Sup_sufix,Tenseur)
 
@@ -3061,8 +3119,9 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Fu
 
   integer:: i, i_hk, ii, ipl, istat, j, k, kk, l, Length_line, m, n, n_col, n_col_o, n_col_in, n_index_hk, n_mat_pol, &
     n_stokes, nc, nnombre, npldafs, npldafs_b, nxan
+  integer, dimension(npldafs):: nphi
 
-  character(len=132):: fichin
+  character(len=132):: fichin, Fichscanin
   character(len=Length_word):: nomab, nomac
   character(len=length_line):: motl
   character(len=13), dimension(n_stokes):: Stokes_name
@@ -3174,6 +3233,24 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Fu
 
   if( Dafs_bio ) then
 
+! When using Dafs_bio, there is necessarily a scan file with 4 polarizations value
+! We use this file to get the hkl_dafs indexes
+    open(2, file = fichscanin, status='old',iostat=istat)
+
+    do ipl = 1,npldafs
+      read(2,*) nphi(ipl)
+    end do
+        
+    read(2,*)
+    do ipl = 1,npldafs
+      read(2,*) hkl_dafs(:,ipl)
+      do k = 1,nphi(ipl)
+        read(2,*) 
+      end do
+    end do
+ 
+    Close(2)
+ 
     if( n_col == nxan + 6 * n_mat_pol + npldafs ) then
       n = 1
     else
@@ -3191,16 +3268,19 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,fprim,Fu
             call ad_number(hkl_dafs(k,ipl),nomab,Length_word)
           endif
           l = len_trim(nomab) + 1
+          if( l > Length_word ) exit
           if( k == 3 ) then
             nomab(l:l) = ')'
           else
             nomab(l:l) = ','
           endif
         end do
-        if( j == 2 .or. j == 4 ) then
-          nomab(l+1:l+1) = 's'
-        elseif( j == 3 .or. j == 5 ) then
-          nomab(l+1:l+1) = 'p'
+        if( l+1 <= Length_word ) then 
+          if( j == 2 .or. j == 4 ) then
+            nomab(l+1:l+1) = 's'
+          elseif( j == 3 .or. j == 5 ) then
+            nomab(l+1:l+1) = 'p'
+          endif
         endif
         call center_word(nomab,Length_word)
         nom_col_o(i) = nomab
@@ -3777,7 +3857,7 @@ end
 
 !***********************************************************************
 
-! Calculation of the extrapolation after the grid for the aromic scattering
+! Calculation of the extrapolation after the grid for the atomic scattering
 
 subroutine Extrapat(bb_nenerg,dampl,Ephoton,Eseuil,Extrap,fpp0,fprime_atom,icheck,nenerg,numat)
 
@@ -4424,6 +4504,156 @@ subroutine Corr_abs(angxyz,As,axyz,c_micro,d_dead,Double_cor,Eseuil,fpp_avantseu
     end do
   end do
 
+  return
+end
+
+!***********************************************************************
+
+! Effect of temperature using the Debye model
+
+subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nenerg,nfich, &
+                        nom_col,numat,nxan,U_iso_inp,V0muf,Xanes)
+
+  use declarations
+  implicit none
+
+  character(len=Length_word):: nomab
+  character(len=Length_word), dimension(n_col):: nom_col
+
+  integer:: i, ie, ifich, n_col, nenerg, nfich, nxan, Z
+  integer, dimension(nfich):: numat
+  
+  logical:: Energphot, U_iso_inp
+
+  real(kind=db):: Abs_U_iso_inp, c, Conv_Mbarn_nelec, E, Eph, f, fac, fp, fpp, fpp0, p
+  real(kind=db), dimension(nenerg):: Energ, Ephoton, Xanes_atom 
+  real(kind=db), dimension(nenerg,nxan):: Xanes 
+  real(kind=db), dimension(nfich):: Abs_U_iso, Eseuil, V0muf 
+
+  Z = numat(ifich) 
+  
+!  Abs_U_iso = <u^2> is in A^2
+  c = 0.04 * Rydb * ( m_electron * e_electron / hbar**2 )
+
+  do i = 1,nxan
+    nomab = nom_col(i)
+    nomab = adjustl(nomab)
+    if( nomab /= 'XANES_atom' ) cycle
+    Xanes_atom(:) = Xanes(:,i)
+    exit   
+  end do
+
+ ! Calculation of atomic spectra when not existing
+  if( i > nxan ) then
+
+    Eph = Eseuil(ifich) - 1
+    Eph = max( Eph,  0.5_db )
+    call fprime(Z,Eph,fpp0,fp)
+
+    do ie = 1,nenerg
+      Eph = Ephoton(ie)
+      call fprime(Z,Eph,fpp,fp)
+      f = fac / conv_mbarn_nelec(Eph)
+      Xanes_atom(ie) = f * ( fpp - fpp0 )
+    end do
+  
+  endif  
+
+  do ie = 1,nenerg
+    if( Energphot ) then
+      E = Energ(ie) - Eseuil(ifich) - V0muf(ifich)
+    else
+      E = Energ(ie) - V0muf(ifich)
+    endif
+    if( E < 0._db ) cycle
+
+    if( U_iso_inp ) then 
+      p = exp( - c * Abs_U_iso_inp * E )
+    else
+      p = exp( - c * Abs_U_iso(ifich) * E )
+    endif
+    do i = 1,nxan
+      nomab = nom_col(i)
+      nomab = adjustl(nomab)
+      if( nomab(1:3) == 'dic' .or. nomab(1:3) == 'Dic' ) then
+        Xanes(ie,i) = p * Xanes(ie,i)
+      else
+        Xanes(ie,i) = p * Xanes(ie,i) + (1 - p) * Xanes_atom(ie)
+      endif
+    end do
+  end do
+           
+  return
+end
+
+!***********************************************************************
+
+subroutine Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
+                        nenerg,nfich,Dafs_cal,nphim,npldafs,numat,U_iso_inp,V0muf) 
+  use declarations
+  implicit none
+
+  integer:: i, ie, ifich, nenerg, nfich, nphim, npldafs, Z
+  integer, dimension(nfich):: numat
+
+  complex(kind=db), dimension(nenerg,nphim,npldafs):: Adafs 
+  complex(kind=db), dimension(npldafs):: dph 
+  complex(kind=db), dimension(nenerg):: Dafs_atom 
+  
+  logical:: Dafs_cal, Energphot, U_iso_inp
+
+  real(kind=db):: Abs_U_iso_inp, c, Conv_Mbarn_nelec, E, Eph, f, fac, fp, fpp, fpp0, p
+  real(kind=db), dimension(nenerg):: Energ, Ephoton 
+  real(kind=db), dimension(nfich):: Abs_U_iso, Eseuil, V0muf 
+
+  Z = numat(ifich) 
+  
+!  Abs_U_iso = <u^2> is in A^2
+  c = 0.04 * Rydb * ( m_electron * e_electron / hbar**2 )
+
+ ! Calculation of atomic spectra when not existing
+
+  Eph = Eseuil(ifich) - 1
+  Eph = max( Eph,  0.5_db )
+  call fprime(Z,Eph,fpp0,fp)
+
+  do ie = 1,nenerg
+    Eph = Ephoton(ie)
+    call fprime(Z,Eph,fpp,fp)
+    if( Dafs_cal ) then
+      Dafs_atom(ie) = fac * cmplx( fp, fpp - fpp0 )
+    else
+      f = fac / Conv_Mbarn_nelec(Eph)
+      Dafs_atom(ie) = f * cmplx( fp, fpp - fpp0 )
+    endif
+  end do
+!  if( .not. Dafs_cal ) then
+!          write(51,'(A)') '   Energ(ie)  Atom_pa Atom_ppa mu_pa mu_ppa mu_p, mu_pp, mu_p, mu_pp, mu_p, mu_pp, mu_p, mu_pp'
+!   do ie = 1,nenerg
+!     write(51,'(f10.3,1p,100e13.5)') Energ(ie)*rydb, Dafs_atom(ie), Adafs(ie,1,:) 
+!   end do
+!    stop  
+! endif
+
+ 
+  do ie = 1,nenerg
+    if( Energphot ) then
+      E = Energ(ie) - Eseuil(ifich) - V0muf(ifich)
+    else
+      E = Energ(ie) - V0muf(ifich)
+    endif
+    if( E < 0._db ) cycle
+    
+    if( U_iso_inp ) then 
+      p = exp( - c * Abs_U_iso_inp * E )
+    else
+      p = exp( - c * Abs_U_iso(ifich) * E )
+    endif
+    do i = 1,npldafs
+      Adafs(ie,:,i) = p * Adafs(ie,:,i) + (1 - p) * dph(i) * Dafs_atom(ie)
+    end do
+  end do
+           
   return
 end
 

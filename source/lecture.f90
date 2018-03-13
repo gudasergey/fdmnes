@@ -8,7 +8,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     Flapw,Full_self_abs,Hubbard,itape4,Length_line,Magnetic,Memory_save,mpinodes0,mpirank0,n_atom, &
     n_file_dafs_exp,n_mat_polar,n_multi_run_e,n_Z_abs,nb_atom_conf_m,ncolm,neimagent,nenerg,ngamme,ngroup,nhybm, &
     nklapw,nlatm,nlmlapwm,nmatsym,norbdil,npldafs,npldafs_2d,npldafs_e,nple,nplrm,n_adimp,n_radius,n_range,nq_nrixs, &
-    NRIXS,nspin,nspino,nspinp,ntype,ntype_bulk,ntype_conf,Pdb,Readfast,Self_abs,Taux,Temperature,Use_FDMX,Xan_atom)
+    NRIXS,nspin,nspino,nspinp,ntype,ntype_bulk,ntype_conf,Occupancy_first,Pdb,Readfast,Self_abs,Taux,Temp_B_iso,Use_FDMX,Xan_atom)
 
   use declarations
   implicit none
@@ -34,8 +34,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
   logical:: Absauto, adimpin, Atom_conf, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Bulk, Fcif, Cap_layer, &
      Dafs_bio, Doping, Extract, Extract_ten, Film, Flapw, Full_self_abs, Hubbard, &
-     Magnetic, Matper, Memory_save, NRIXS, Pdb, Pol_dafs_in, Quadrupole, Readfast, Screening, Self_abs, &
-     Taux, Temperature, Use_FDMX, Very_fast, Xan_atom
+     Magnetic, Matper, Memory_save, NRIXS, Occupancy_first, Pdb, Pol_dafs_in, Quadrupole, Readfast, Screening, Self_abs, &
+     Taux, Temp_B_iso, Use_FDMX, Very_fast, Xan_atom
 
   real(kind=db):: Adimp, Angz, de, def, number_from_text, E, r, Rsorte_s
   real(kind=db), dimension(3):: p
@@ -102,6 +102,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   ntype_bulk = 0
   ntype_conf = 0
   numat_abs = 0
+  Occupancy_first = .true.
   Pdb = .false.
   Pol_dafs_in = .false.
   Quadrupole = .false.
@@ -110,7 +111,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   Self_abs = .false.
   Space_Group = ' '
   Taux = .false.
-  Temperature = .false.
+  Temp_B_iso = .false.
   Xan_atom = .false.
   Wien_save = 0
 
@@ -243,11 +244,15 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           if( mot(1:1) == ' ' ) mot = adjustl(mot)
           Space_group = mot(1:13)
 
-        case('temperatu')
-          Temperature = .true.
+        case('atom_b_is')
+          Temp_B_iso = .true.
+
+        case('atom_u_is')
+          Temp_B_iso = .true.
 
         case('occupancy')
           Taux = .true.
+          Occupancy_first = .not. Temp_B_iso  
 
         case('xan_atom')
           Xan_atom = .true.
@@ -574,7 +579,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             read(itape4,*)
           endif
 
-          if( Readfast .or. Taux .or. Temperature ) then
+          if( Readfast .or. Taux .or. Temp_B_iso ) then
             do igr = 1,100000
               read(itape4,*,iostat=ier) i, p(:)
               if( ier /= 0 ) exit
@@ -653,6 +658,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           do
 
             read(8,'(A)',iostat=eoff) mot
+            mot = adjustl(mot)
 
             if( eoff /= 0 ) exit
 
@@ -683,6 +689,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
               do n = 1,100000
                 read(8,'(A)') mot
+                mot = adjustl(mot)
                 if( mot(1:1) /= '_' ) then
                   backspace(8)
                   exit
@@ -710,7 +717,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
               igr = 0
               do
-                read(8,'(a4)',iostat=eoff) mot4
+                read(8,'(a4)',iostat=eoff) mot
+                mot = adjustl(mot)
+                mot4(1:4) = mot(1:4)
                 if( eoff /= 0 .or. mot4(1:1) == '_' .or. mot4 == 'loop' .or. mot4 == ' ' .or. mot4(1:1) == '#' ) exit
                 igr = igr + 1
               end do
@@ -865,7 +874,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     if( Self_abs ) n_mu = 2 * npldafs
     if( Full_self_abs ) n_mu = 4 * npldafs
     if( .not. Matper ) Space_Group = ' '
-    if( Pdb ) Temperature = .true.
+    if( Pdb ) Temp_B_iso = .true.
 
  !   if( Film .and. ( npldafs /= 0 .or. npldafs_2d /= 0 ) ) then
     if( ( npldafs /= 0 .or. npldafs_2d /= 0 ) .and. .not. Dafs_bio ) then
@@ -948,7 +957,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     n_atom_per_neq = n_atom_per
 
     if( Space_Group /= ' ' .or. ntype == 0 .or. Atom_conf ) then
-      Very_fast = Readfast .or. Taux .or. Temperature .or. .not. ( Atom_nonsph .or. Atom_occ_hubb .or. Axe_loc)
+      Very_fast = Readfast .or. Taux .or. Temp_B_iso .or. .not. ( Atom_nonsph .or. Atom_occ_hubb .or. Axe_loc)
       call Dim_reading(Angz,Atom_conf,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per,n_atom_per_neq, &
                        n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,ntype,ntype_conf,Pdb,Space_Group,Very_fast)
     endif
@@ -1024,7 +1033,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     call MPI_Bcast(Quadrupole,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Self_abs,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Taux,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Temperature,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
+    call MPI_Bcast(Temp_B_iso,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Xan_atom,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Wien_save,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
 
@@ -1303,6 +1312,7 @@ subroutine Dim_reading(Angz,Atom_conf,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,i
 
     do
       read(8,'(A)') mot
+      mot = adjustl(mot)
       if( mot(1:16) == '_atom_site_label' .or. mot(1:16) == '_atom_site_fract' ) exit
     end do
     backspace(8)
@@ -1311,6 +1321,7 @@ subroutine Dim_reading(Angz,Atom_conf,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,i
     do
       n = n + 1
       read(8,'(A)') mot
+      mot = adjustl(mot)
       if( mot(1:1) /= '_' ) then
         backspace(8)
         exit
@@ -1501,8 +1512,8 @@ end
 
 subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_mode,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk, &
-    axyz_cap,axyz_int,axyz_sur,Basereel,Bormann,Bulk,Bulk_roughness, &
-    Cap_layer,Cap_disorder,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,Center_s,Centre,Charge_free, &
+    axyz_cap,axyz_int,axyz_sur,Basereel,Bormann,Bulk,Bulk_roughness,Cap_B_iso, &
+    Cap_layer,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre,Charge_free, &
     Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Delta_helm,Density, &
     Density_comp,Dip_rel,Dipmag,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
     Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift, &
@@ -1520,14 +1531,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
     nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
     nself,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_bulk,ntype_conf,numat,numat_abs, &
-    nvval,occ_hubb_e,Octupole,Old_zero,One_run,Operation_mode,Operation_mode_used,Optic,Overad,Overlap,p_self_max,p_self0, &
-    param,Pas_SCF,pdpolar,Per_helm,phi_0,PointGroup,PointGroup_Auto,polar,Polarise,poldafsem,poldafssm, &
+    nvval,occ_hubb_e,Occupancy_first,Octupole,Old_zero,One_run,Operation_mode,Operation_mode_used,Optic,Overad,Overlap, &
+    p_self_max,p_self0,param,Pas_SCF,pdpolar,Per_helm,phi_0,PointGroup,PointGroup_Auto,polar,Polarise,poldafsem,poldafssm, &
     pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadmag,Quadrupole,R_rydb,r_self, &
     r0_lapw,rchimp,Readfast,Relativiste,Renorm,Rlapw,Rmt,Rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,rydberg,rsorte_s,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spinorbite,state_all, &
     state_all_out,Supermuf,Surface_shift,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef, &
-    Temperature,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_helm,V_hubbard,V_intmax,Vec_orig, &
+    Temp_B_iso,Tensor_imp,Test_dist_min,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_helm,V_hubbard,V_intmax,Vec_orig, &
     Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
 
   use declarations
@@ -1598,7 +1609,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   complex(kind=db), dimension(3,npldafs_e):: Poldafsem, Poldafssm
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph):: Hybrid
 
-  logical:: Absauto, adimpin, All_nrixs, Allsite, ATA, Atom, Atom_conf, Atom_nonsph, Atom_occ_hubb, Atomic_scr, Avoid, Axe_loc, &
+  logical:: Absauto, adimpin, All_nrixs, Allsite, ATA, Atom, Atom_B_iso, Atom_conf, Atom_nonsph, Atom_occ_hubb, Atomic_scr, &
+    Atom_U_iso, Avoid, Axe_loc, &
     Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Center_s, Fcif, Classic_irreg, &
     Clementi, Core_resolved, Core_resolved_e, Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
     Dip_rel, Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Film, &
@@ -1607,11 +1619,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Hubbard, Interface_shift_given, Kern_fac_default, Kern_fast, korigimp, lmaxfree, lmoins1, lplus1, M1M1, M1M2, M2M2, &
     Magnetic, Matper, muffintin, &
     No_DFT, no_core_resolved, no_dipquad, no_e1e3, no_e2e2, no_e3e3, No_renorm, No_solsing, noncentre, nonexc, nonexc_imp, &
-    normaltau, Octupole, Old_zero, One_run, Operation_mode_used, Optic, Overad, &
+    normaltau, Occupancy_first, Octupole, Old_zero, One_run, Operation_mode_used, Optic, Overad, &
     Pas_SCF_imp, Pdb, Perdew, PointGroup_Auto, Polarise, quadmag, Quadrupole, r_self_imp, Readfast, Relativiste, &
     Renorm, rpalf, rydberg, SCF, SCF_elecabs, SCF_mag_free, Self_abs, self_cons, SCF_exc_imp, self_nonexc, &
     self_nonexc_imp, solsing_only, solsing_s, spherical_signal, spherical_tensor, spherique, &
-    Spinorbite, State_all, State_all_out, Supermuf, Surface_shift_given, Symauto, Symmol, Taux, Tddft, Temperature, &
+    Spinorbite, State_all, State_all_out, Supermuf, Surface_shift_given, Symauto, Symmol, Taux, Tddft, Temp_B_iso, &
     Trace_format_wien, Use_FDMX, Ylm_comp_inp
 
   logical, dimension(5):: SCF_log
@@ -1619,7 +1631,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   logical, dimension(ngroup):: Atom_nsph_e
   logical, dimension(0:ntype):: Hubb
 
-  real(kind=db):: Alfpot, Ang_borm, Bulk_roughness, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, D_max_pot, &
+  real(kind=db):: Alfpot, Ang_borm, Bulk_roughness, Cap_B_iso, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, D_max_pot, &
     Delta_En_conv, Delta_Epsii, Delta_helm, Eclie, Eclie_out, Ephot_min, Film_roughness, Film_thickness, Film_zero, g1, g2, &
     Gamma_max, Kern_fac, number_from_text, Overlap, p_self_max, p_self0, Pas_SCF, Per_helm, phi, phi_0, pop_nsph, pp, q, &
     r, r_self, R_rydb, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, &
@@ -1693,7 +1705,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   angxyz_sur(:) = 0._db
   ATA = .false.
   Atom = .false.
+  Atom_B_iso = .false.
   Atom_conf = .false.
+  Atom_U_iso = .false.
   Atomic_scr = .false.
   Ang_spin(:) = 0._db
   Axe_spin(1) = 0._db; Axe_spin(2) = 0._db; Axe_spin(3) = 1._db
@@ -1943,6 +1957,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('ata')
           ATA = .true.
 
+        case('atom_b_is')
+          Atom_B_iso = .true.
+
+        case('atom_u_is')
+          Atom_U_iso = .true.
+
         case('bulk')
           n = nnombre(itape4,132)
           if( n == 3 ) then
@@ -1954,7 +1974,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           if( ier > 0 ) call write_err_form(itape4,keyword)
           do igr = 1,n_atom_bulk
             n = nnombre(itape4,132)
-            if( Temperature .and. n > 4 ) then
+            if( Temp_B_iso .and. n > 4 ) then
               read(itape4,*) Z_bulk(igr), posn_bulk(:,igr), Temp_coef(ngroup-n_atom_bulk+igr)
             else
               read(itape4,*) Z_bulk(igr), posn_bulk(:,igr)
@@ -3249,16 +3269,20 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             elseif( igr > n_atom_per_neq ) then
               cycle
             endif
-            if( Temperature .and. Taux ) then
+            if( Temp_B_iso .and. Taux ) then
               n = nnombre(itape4,132)
               if( n > 5 ) then
-                read(itape4,*) itype(igr), posn(:,igr), Taux_oc(igr), Temp_coef(igr)
+                if( Occupancy_first ) then
+                  read(itape4,*) itype(igr), posn(:,igr), Taux_oc(igr), Temp_coef(igr)
+                else
+                  read(itape4,*) itype(igr), posn(:,igr), Temp_coef(igr), Taux_oc(igr)
+                endif
               elseif( n == 5 ) then
                 read(itape4,*) itype(igr), posn(:,igr), Taux_oc(igr)
               else
                 read(itape4,*) itype(igr), posn(:,igr)
               endif
-            elseif( Temperature ) then
+            elseif( Temp_B_iso ) then
               n = nnombre(itape4,132)
               if( n > 4 ) then
                 read(itape4,*) itype(igr), posn(:,igr), Temp_coef(igr)
@@ -3371,7 +3395,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 p = Matmul( Mat, p )
                 posn(:,igr) = p(:)
                 if( Taux ) Taux_oc(igr) = t
-                if( Temperature ) Temp_coef(igr) = tc
+                if( Temp_B_iso ) Temp_coef(igr) = tc
 
                 select case(Let)
                   case(' ')
@@ -3433,22 +3457,23 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             read(8,'(A)',iostat=eof) mot
 
             if( eof /= 0 ) exit
+            mot = adjustl(mot)
 
             if( mot(1:30) == '_symmetry_space_group_name_H-M' ) then
 
-            l = len_trim(mot)
+              l = len_trim(mot)
 
-            do i = 31,l
-              if( mot(i:i) == '''' ) exit
-            end do
-            k = 0
-            j = i + 1
-            do i = j,l
-              if( mot(i:i) == ' ' ) cycle
-              if( mot(i:i) == '''' ) exit
-              k = k + 1
-              Space_group(k:k) = mot(i:i)
-            end do
+              do i = 31,l
+                if( mot(i:i) == '''' ) exit
+              end do
+              k = 0
+              j = i + 1
+              do i = j,l
+                if( mot(i:i) == ' ' ) cycle
+                if( mot(i:i) == '''' ) exit
+                k = k + 1
+                Space_group(k:k) = mot(i:i)
+              end do
 
             elseif( mot(1:17) == '_cell_angle_alpha' ) then
               angxyz(1) = number_from_text(1,mot)
@@ -3476,6 +3501,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
               do n = 1,100000
                 read(8,'(A)') mot
+                mot = adjustl(mot)
                 if( mot(1:1) /= '_' ) then
                   backspace(8)
                   exit
@@ -3496,6 +3522,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
               do igr = 1,n_atom_per_neq
 
                 read(8,'(A)') mot
+                mot = adjustl(mot)
                 motsb = word_from_text(n_label,mot)
 
 ! Reading chemical element
@@ -3593,7 +3620,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           read(itape4,*) Pas_SCF
 
 ! Parameters already red in lectdim
-        case('full_self','magnetism','memory_sa','occupancy','self_abs','readfast','temperatu')
+        case('full_self','magnetism','memory_sa','occupancy','self_abs','readfast')
 
         case default
 
@@ -3901,7 +3928,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         posn(:,ia) = posn(:,igr)
         itype(ia) = itype(igr)
         if( Taux ) Taux_oc(ia) = Taux_oc(igr)
-        if( Temperature ) Temp_coef(ia) = Temp_coef(igr)
+        if( Temp_B_iso ) Temp_coef(ia) = Temp_coef(igr)
         if( ngroup_pdb > 0 ) Kgroup(ia) = Kgroup(igr)
 
         Ang_base_loc_gr(:,ia) = Ang_base_loc_gr(:,igr )
@@ -3943,7 +3970,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           ia = ia - 1
           itype(ia) = itype(igr)
           if( Taux ) Taux_oc(ia) = Taux_oc(igr)
-          if( Temperature ) Temp_coef(ia) = Temp_coef(igr)
+          if( Temp_B_iso ) Temp_coef(ia) = Temp_coef(igr)
           if( ngroup_pdb > 0 ) Kgroup(ia) = Kgroup(igr)
 
           Ang_base_loc_gr(:,ia) = Ang_base_loc_gr(:,igr )
@@ -4781,7 +4808,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       endif
       if( Atom_nonsph ) write(3,'(/A)') ' Calculation with non spherical orbitals'
       if( Temp > eps10 ) write(3,500) Temp
-      if( Temperature ) write(3,'(/A)') ' Temperature coefficients taken into account for diffraction'
+      if( Atom_B_iso ) then
+        write(3,'(/A)') ' Debye-Waller B iso coefficients taken into account for diffraction'
+      elseif( Atom_U_iso ) then
+        write(3,'(/A)') ' Debye-Waller U iso coefficients taken into account for diffraction'
+      endif
 
       if( nple > 0 ) then
         if( sum( abs( pdpolar(:,:) ) ) > eps10 ) then
@@ -4940,31 +4971,41 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           write(3,'(a22,i5)') ' Molecule, n_atom_uc =', n_atom_uc
         endif
         if( Space_group /= ' ' .and. Matper ) write(3,554) Space_group
-        if( Pdb .and. Taux .and. Temperature ) then
-          mot = 'Kgroup  Occupancy  Temp_cf'
+        if( Pdb .and. Taux .and. Atom_B_iso ) then
+          mot = 'Kgroup  Occupancy    B_iso'
+        elseif( Pdb .and. Taux .and. Atom_U_iso ) then
+          mot = 'Kgroup  Occupancy    U_iso'
         elseif( Pdb .and. Taux ) then
           mot = 'Kgroup  Occupancy'
-        elseif( Pdb .and. Temperature ) then
-          mot = 'Kgroup   Temp_cf'
+        elseif( Pdb .and. Temp_B_iso ) then
+          mot = 'Kgroup    B_iso'
         elseif( Pdb ) then
           mot = 'Kgroup'
         elseif( Atom_nonsph ) then
-          if( Taux .and. Temperature ) then
-            mot = ' Occupancy  Temp_coef  norbv   popats'
+          if( Taux .and. Atom_B_iso ) then
+            mot = ' Occupancy    B_iso    norbv   popats'
+          elseif( Taux .and. Atom_U_iso ) then
+            mot = ' Occupancy    U_iso    norbv   popats'
           elseif( Taux ) then
             mot = ' Occupancy  norbv   popats'
-          elseif( Temperature ) then
-            mot = ' Temp_coef  norbv   popats'
+          elseif( Atom_B_iso ) then
+            mot = '   B_iso   norbv   popats'
+          elseif( Atom_U_iso ) then
+            mot = '   U_iso   norbv   popats'
           else
             mot = '  norbv  popats'
           endif
         else
-          if( Taux .and. Temperature ) then
-            mot = ' Occupancy  Temp_coef'
+          if( Taux .and. Atom_B_iso ) then
+            mot = ' Occupancy   B_iso'
+          elseif( Taux .and. Atom_U_iso ) then
+            mot = ' Occupancy   U_iso'
           elseif( Taux ) then
             mot = ' Occupancy'
-          elseif( Temperature ) then
-            mot = ' Temp_coef'
+          elseif( Atom_B_iso ) then
+            mot = '   B_iso'
+          elseif( Atom_U_iso ) then
+            mot = '   U_iso'
           else
             mot = ' '
           endif
@@ -4993,31 +5034,31 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
           it = itype(jgr)
           Z = numat( abs(it) )
-          if( Pdb .and. Taux .and. Temperature ) then
+          if( Pdb .and. Taux .and. Temp_B_iso ) then
             write(3,565) Z, posn(:,igr), it, Kgroup(jgr), Taux_oc(jgr), Temp_coef(jgr)
           elseif( Pdb .and. Taux ) then
             write(3,565) Z, posn(:,igr), it, Kgroup(jgr), Taux_oc(jgr)
-          elseif( Pdb .and. Temperature ) then
+          elseif( Pdb .and. Temp_B_iso ) then
             write(3,570) Z, posn(:,igr), it, Kgroup(jgr), Temp_coef(jgr)
           elseif( Pdb ) then
             write(3,570) Z, posn(:,igr), it, Kgroup(jgr)
           elseif( norbv( min(jgr,ngroup_nonsph) ) == 0 ) then
-            if( Taux .and. Temperature ) then
+            if( Taux .and. Temp_B_iso ) then
               write(3,571) Z, posn(:,igr), it, Taux_oc(jgr), Temp_coef(jgr)
             elseif( Taux ) then
               write(3,571) Z, posn(:,igr), it, Taux_oc(jgr)
-            elseif( Temperature ) then
+            elseif( Temp_B_iso ) then
               write(3,572) Z, posn(:,igr), it, Temp_coef(jgr)
             else
               write(3,570) Z, posn(:,igr), it
             endif
           else
-            if( Taux .and. Temperature ) then
+            if( Taux .and. Temp_B_iso ) then
               write(3,575) Z, posn(:,igr), it, Taux_oc(jgr), Temp_coef(jgr), norbv(jgr), &
                                                                        ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
             elseif( Taux ) then
               write(3,576) Z, posn(:,igr), it, Taux_oc(jgr), norbv(jgr), ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
-            elseif( Temperature ) then
+            elseif( Temp_B_iso ) then
               write(3,576) Z, posn(:,igr), it, Temp_coef(jgr), norbv(jgr), ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
             else
               write(3,580) Z, posn(:,igr), it, norbv(jgr), (popats(jgr,l,1:nspin), l = 1,nlat( abs(it)) )
@@ -5064,14 +5105,16 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         if( Bulk ) then
          if( Bulk_roughness > eps10 ) write(3,'(a17,f10.5)') ' Bulk roughness =', Bulk_roughness
          write(3,620) ' Bulk', axyz_bulk(:), Angxyz_bulk(:)
-          if ( Temperature ) then
-            write(3,'(A)') '    Z         x              y              z      Typ  Temp_coef'
+          if( Atom_B_iso ) then
+            write(3,'(A)') '    Z         x              y              z      Typ   B_iso'
+          elseif( Atom_U_iso ) then
+            write(3,'(A)') '    Z         x              y              z      Typ   U_iso'
           else
             write(3,'(A)') '    Z         x              y              z      Typ'
           endif
           do igr = 1,n_atom_bulk
             it = itype( ngroup - n_atom_bulk + igr )
-            if( Temperature ) then
+            if( Temp_B_iso ) then
               write(3,625) Z_bulk(igr), posn_bulk(:,igr), it, Temp_coef(ngroup-n_atom_bulk+igr)
             else
               write(3,625) Z_bulk(igr), posn_bulk(:,igr), it
@@ -5214,6 +5257,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Ang_base_loc_gr,3*ngroup,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Ang_rotsup,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Ang_spin,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Atom_B_iso,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Atom_U_iso,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Axe_spin,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(axyz,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(axyz_int,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -5517,6 +5562,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     if( istop == 1 ) stop
   endif
 
+  Cap_B_iso = 8 * pi**2 * Cap_disorder**2
+
 ! Conversion in atomic units (bohr and Rydberg) and in radian
   adimp(:) = adimp(:) / bohr
   Angle_mode(:,:) = Angle_mode(:,:) * radian
@@ -5532,7 +5579,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Bulk_roughness = Bulk_roughness / bohr
   if( Bulk ) axyz_bulk(1:3) = axyz_bulk(1:3) / bohr
   if( Cap_layer ) axyz_cap(1:3) = axyz_cap(1:3) / bohr
-  Cap_disorder = Cap_disorder / bohr
   Cap_roughness = Cap_roughness / bohr
   Cap_thickness = Cap_thickness / bohr
   Cap_shift = Cap_shift / bohr
@@ -5575,6 +5621,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   V_intmax = V_intmax / Rydb
   if( Hubbard ) V_hubbard(:) = V_hubbard(:) / Rydb
   V0bdcFimp(:) = V0bdcFimp(:) / Rydb
+
+  if( Atom_U_iso ) Temp_coef(:) = 8 * pi**2 * Temp_coef(:)
 
   call cal_cubmat(angxyz,Cubmat,Struct)
 

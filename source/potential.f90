@@ -3,12 +3,12 @@
 
 ! Potsup makes the superposition of the atomic potential and density
 
-subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
+subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,chargat,chargat_init, &
             chargat_self,Delta_helm,drho_ex_nex,dv_ex_nex,dvc_ex_nex,excato,Full_atom,Hybrid,i_self, &
-            ia_eq_inv,ia_eq_inv_self,iaabs,iaproto,iaprotoi,iapot,icheck,igreq,igroup,iprabs,ipr1,itab,itdil, &
-            itypei,itypep,itypepr,ldil,lmax_pot,lvval,Magnetic,mpirank,n_atom_0,n_atom_0_self,n_atom_ind, &
+            ia_eq_inv,ia_eq_inv_self,iaabs,iaproto,iaprotoi,iapot,icheck,igreq,igroup,iprabs,ipr1,itab, &
+            itypei,itypep,itypepr,lmax_pot,lvval,Magnetic,mpirank,n_atom_0,n_atom_0_self,n_atom_ind, &
             n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,neqm,ngreq,ngroup_m,ngroup_nonsph, &
-            nhybm,nlat,nlatm,nlm_pot,Nonexc,Nonsph,norbdil,norbv,normrmt,npoint,npoint_ns,npsom,nrato,nrm,nrm_self,nspin, &
+            nhybm,nlat,nlatm,nlm_pot,Nonexc,Nonsph,norbv,normrmt,npoint,npoint_ns,npsom,nrato,nrm,nrm_self,nspin, &
             ntype,numat,overlap,Per_helm,pop_nonsph,popatm,popatv,pos,posi,posi_self, psival,rato,rchimp,rho,rho_chg, &
             rho_self,rhoato,rhoato_init,rhoit,rhons,rmtg,rmtimp,rmtg0,rmtsd,Rot_Atom_gr,Rot_int,rs,rsato, &
             rsort,SCF,Self_nonexc,Sym_2D,V_helm,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp,xyz, &
@@ -19,7 +19,7 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
 
   integer:: i_range, i_self, ia, iaabs, iapr, iapr0, iaprabs, iprabs, iaprex, ipr, ipr1, ir, ispin, it, itab, &
     japr, lmax_pot, mpirank, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, n_atom_proto, n_iapr, natome,natome_self, &
-    natomeq, natomeq_self, natomp, neqm, ngroup_m, ngroup_nonsph, nhybm, nlatm, nlm_pot, norbdil, normrmt, npoint, npoint_ns, &
+    natomeq, natomeq_self, natomp, neqm, ngroup_m, ngroup_nonsph, nhybm, nlatm, nlm_pot, normrmt, npoint, npoint_ns, &
     npsom, nr, nrm, nrm_self, nspin, ntype
 
   integer, dimension(30):: icheck
@@ -27,7 +27,6 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
   integer, dimension(natome):: iaprotoi, itypei
   integer, dimension(natomeq):: ia_eq_inv
   integer, dimension(natomeq_self):: ia_eq_inv_self
-  integer, dimension(norbdil):: itdil, ldil
   integer, dimension(0:ntype):: nlat, nrato, numat
   integer, dimension(0:ngroup_nonsph):: norbv
   integer, dimension(0:n_atom_proto):: iapot, itypepr, ngreq
@@ -42,7 +41,6 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
                   Vsphere
   real(kind=db), dimension(3):: V_surf
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_init, chargat_self
-  real(kind=db), dimension(norbdil):: cdil
   real(kind=db), dimension(npoint):: rs, Vh
   real(kind=db), dimension(npoint_ns):: rhons, Vhns
   real(kind=db), dimension(0:ntype):: rchimp, rmtimp
@@ -84,7 +82,7 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,cdil,chargat,chargat_init, &
   drhoato_e(:)= 0._db
 
   do it = 0,ntype
-    call potato(cdil,icheck(10),it,itdil,itypepr,ldil,n_atom_proto,nlat,nlatm,norbdil,nrato,nrm,nspin,ntype,numat, &
+    call potato(icheck(10),it,itypepr,n_atom_proto,nlat,nlatm,nrato,nrm,nspin,ntype,numat, &
         popatm,popatv,psival,rato,rhoigr,rhoit,vato)
   end do
 
@@ -290,21 +288,19 @@ end
 
 ! Calculation of the atomic potential
 
-subroutine potato(cdil,icheck,it,itdil,itypepr,ldil,n_atom_proto,nlat,nlatm,norbdil,nrato,nrm,nspin,ntype,numat, &
+subroutine potato(icheck,it,itypepr,n_atom_proto,nlat,nlatm,nrato,nrm,nspin,ntype,numat, &
         popatm,popatv,psival,rato,rhoigr,rhoit,Vato)
 
   use declarations
   implicit none
 
-  integer:: DeuxZ, i, icalcul, icheck, ipr, ir, ispin, it, l, n_atom_proto, nl, nlatm, norbdil, nr, nrm, nspin, ntype
+  integer:: DeuxZ, icalcul, icheck, ipr, ir, ispin, it, l, n_atom_proto, nl, nlatm, nr, nrm, nspin, ntype
 
-  integer, dimension(norbdil):: itdil, ldil
   integer, dimension(0:ntype):: nlat, nrato, numat
   integer, dimension(0:n_atom_proto):: itypepr
 
   real(kind=db):: dp, facspin, p1, p2, qpi
 
-  real(kind=db), dimension(norbdil):: cdil
   real(kind=db), dimension(0:nrm):: r, rho, Vh, vhato
   real(kind=db), dimension(0:nrm,nlatm):: rhoval, vhval
   real(kind=db), dimension(0:nrm,0:n_atom_proto):: vato
@@ -339,14 +335,6 @@ subroutine potato(cdil,icheck,it,itdil,itypepr,ldil,n_atom_proto,nlat,nlatm,norb
   p2 = 1 - p1
   rhoit(0,it) = p1 * rhoit(1,it) + p2 * rhoit(2,it)
   if( nl > 0 ) psival(0,1:nl,it) = 0._db
-
-  if( norbdil /= 0 ) then
-    do i = 1,norbdil
-      if( max(itdil(i),1) /= max(it,1) ) cycle
-      call dilatorb(cdil,icheck,it,itdil,ldil,nlatm,norbdil,nr,nrm, ntype,popatv,psival,r,rhoit)
-      exit
-    end do
-  endif
 
 ! Wave functions psival are in fact: sqrt(4*pi)*r*psi.
 ! rhoval is the density of the valence orbitals
@@ -428,87 +416,6 @@ subroutine potato(cdil,icheck,it,itdil,itypepr,ldil,n_atom_proto,nlat,nlatm,norb
   130 format(1p,9e13.5)
   140 format(/5x,'rato          vhval          it =',i3,', Z =',i3,', icalcul =',i3)
   150 format(/5x,'rato        vato         rhoato(ispin=1,nspin)  it =',i3,', ipr =',i3)
-end
-
-!***********************************************************************
-
-! Dilatation of the atomic orbitals (can be usefull for anions)
-
-subroutine dilatorb(cdil,icheck,it,itdil,ldil,nlatm,norbdil,nr,nrm,ntype,popatv,psival,r,rhoit)
-
-  use declarations
-  implicit none
-
-  integer:: icheck, io, ir, it, jr, jr1, l, nlatm, norbdil, nr, nrm, ntype
-
-  integer, dimension(norbdil):: itdil, ldil
-
-  real(kind=db):: cd, charge, dc, f_integr3, p1, p2, uns4pi
-
-  real(kind=db), dimension(norbdil):: cdil
-  real(kind=db), dimension(0:nrm):: psin, psit, r, rhn, rht, rhnr2, rn
-  real(kind=db), dimension(0:ntype,nlatm) :: popatv
-  real(kind=db), dimension(0:nrm,0:ntype):: rhoit
-  real(kind=db), dimension(0:nrm,nlatm,0:ntype):: psival
-
-  p1 = r(2) / ( r(2) - r(1) )
-  p2 = 1 - p1
-
-! Calcul de la charge de l'orbitale et renormalisation
-  do io = 1,norbdil
-
-    if( max(itdil(io),1) /= max(it,1) ) cycle
-    l = ldil(io)
-
-! Dilatation de l'orbitale
-    cd = 1 + cdil(io)
-    rn(0:nr) = r(0:nr) * cd
-    psit(1:nr) = psival(1:nr,l,it)
-    psit(0) = 0
-    psin(0) = 0
-    jr1 = 1
-    do ir = 1,nr
-      if( r(ir) > rn(nr) ) then
-        psin(ir:nr) = 0._db
-        exit
-      endif
-      do jr = jr1,nr
-        if( rn(jr) > r(ir) ) exit
-      end do
-      jr1 = jr
-      p1 = ( rn(jr) - r(ir) ) / ( rn(jr) - rn(jr-1) )
-      psin(ir) = p1 * psit(jr-1) + ( 1 - p1 ) * psit(jr)
-    end do
-
-! Renormalisation et substitution de l'orbitale
-    uns4pi = 1 / quatre_pi
-    rhn(1:nr) = uns4pi * ( psin(1:nr) / r(1:nr) )**2
-    rhnr2(1:nr) = uns4pi * psin(1:nr)**2
-    rhnr2(0) = 0._db
-    rht(1:nr) = uns4pi * ( psit(1:nr) / r(1:nr) )**2
-    rht(0) = p1*rht(1) + p2*rht(2)
-    rhn(0) = rht(0)
-    charge = quatre_pi * f_integr3(r,rhnr2,0,nrm,r(nr))
-    rhn(0:nr) = rhn(0:nr) / charge
-    dc = 1 / sqrt( charge )
-
-    psival(0:nr,l,it) = dc * psin(0:nr)
-    rhoit(0:nr,it) = rhoit(0:nr,it) + popatv(it,l) * ( rhn(0:nr) - rht(0:nr) )
-
-    if( icheck > 1 ) then
-      write(3,110)
-      write(3,120) it, l
-      do ir = 1,nr
-        write(3,130) r(ir)*bohr, psit(ir), psival(ir,l,it), rhoit(ir,it)
-      end do
-    endif
-
-  end do
-
-  return
-  110 format(/' ---- Dilat --------',100('-'))
-  120 format(/5x,'it =',i3,',  l =',i2,/ '     rato    psi_before_dil    psival          rho')
-  130 format(1p,9e13.5)
 end
 
 !********************************************************************
@@ -776,6 +683,8 @@ subroutine raymuf(Cal_xanes,chargat,Full_atom,i_self,iapot,iaproto,iaprotoi,iche
   real(kind=db), dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind) :: Vxcato
   real(kind=db), dimension(0:nrm,0:ntype):: rato
   real(kind=db), dimension(3,natomp):: pos
+
+  iaproxp(:) = 0
 
   if( Cal_xanes .or. i_self == 1 ) then
 

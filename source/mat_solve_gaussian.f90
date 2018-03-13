@@ -1,3 +1,4 @@
+! FDMNES subroutines
 
 ! Routine solving the system of linear equations by Gaussian elimination
 
@@ -60,7 +61,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   real(kind=db), dimension(nlmso_i,nligne_i):: smi
   real(kind=db), dimension(nsort_r,0:lmaxso,nspinr):: Besselr, Neumanr
 
-  real(kind=db), dimension(:), allocatable:: abi, abr, abvi, abvr
+  real(kind=db), dimension(:), allocatable:: abi, abr, abvi, abvi_w, abvr, abvr_w
 
 ! Evaluation indicag des colonnes non nulles apres triangularisation
   do i_newind = 1,2
@@ -167,7 +168,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     end do
   endif
     
-! Debut remplissage
+! Begining of the filling
 
   allocate( abr(nb_not_zero_tot) )
   abr(:) = 0._db
@@ -183,6 +184,11 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     ispin = ispinin
   endif
 
+  if( icheck > 2 ) then
+    allocate( abvr_w(nligne) )
+    allocate( abvi_w(nligne) )
+  endif
+    
   boucle_ii: do ii = nligne,1,-1
 
     call CPU_TIME(time)
@@ -290,6 +296,11 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
       smr(1:nlmso,ii) = smr(1:nlmso,ii) * vnormalr
     endif
 
+    if( icheck > 2 ) then
+      abvr_w(ii) = abvr(ii)
+      abvi_w(ii) = abvi(ii)
+    endif
+
     deallocate( abvr )
     deallocate( abvi )
 
@@ -298,14 +309,24 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
     Time_tria = Time_tria + tp3 - tp2
 
-  end do boucle_ii      ! fin de la boucle sur les lignes
+  end do boucle_ii      ! end of loop over lines
 
   if( icheck > 2 ) then
-    write(3,'(/A/)') '   IndcolNotZero, abr, after triangularisation'
-    do ii = 2,nligne
-      Write(3,'(a5,i6)') ' ii =', ii
-      write(3,'(10(i6,1p,e13.5))') ( IndcolNotZero(lk), abr(lk), lk = lbz(ii)+1, lbz(ii)+nb_not_zero(ii) )
-    end do
+    if( Cal_comp ) then
+      write(3,'(/A/)') '   IndcolNotZero, abr, abi, after triangularisation'
+      do ii = 1,nligne
+        write(3,'(a5,i6)') ' ii =', ii
+        write(3,'(10(i6,1p,2e13.5))') ( IndcolNotZero(lk), abr(lk), abi(lk), lk = lbz(ii)+1, lbz(ii)+nb_not_zero(ii) ), &
+                                        ii, abvr_w(ii), abvi_w(ii)
+      end do
+    else
+      write(3,'(/A/)') '   IndcolNotZero, abr, after triangularisation'
+      do ii = 1,nligne
+        write(3,'(a5,i6)') ' ii =', ii
+        write(3,'(10(i6,1p,e13.5))') ( IndcolNotZero(lk), abr(lk), lk = lbz(ii)+1, lbz(ii)+nb_not_zero(ii) ), &
+                                        ii, abvr_w(ii)
+      end do
+    endif
 
     write(3,'(/A)') '   ii   sm(lmf = 1,nlmso) after triangularisation'
     do ii = 1,nligne

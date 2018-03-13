@@ -13,7 +13,7 @@
 !     = 1 en DFT ou optic
 
 subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
-                Eimag,Energ,Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a,Hubb_d, &
+                Eimag,Energ,Enervide,Eseuil,FDM_comp_m,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a,Hubb_d, &
                 icheck,ie,ip_max,ip0,is_g,lmax,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
                 n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe, &
@@ -58,7 +58,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   integer, dimension(3,3,3,3):: msymdo, msymdoi, msymqq, msymqqi
   integer, dimension(3,n_oo,3,n_oo):: msymoo, msymooi
 
-  logical:: Classic_irreg, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, FDM_comp, Final_optic, &
+  logical:: Classic_irreg, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, FDM_comp_m, Final_optic, &
     Final_tddft, Full_potential, Green, Green_int, Hubb_a, Hubb_d, lmoins1, lplus1, M_depend, M1M1, No_diag, NRIXS, Relativiste, &
     Renorm, Solsing, Solsing_only, Spinorbite, Tddft, Ylm_comp
 
@@ -448,7 +448,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                                 lplus1,M_depend,ns_dipmag,ndim2,ninitlr,nlm1g,nlm2g,nlm_probe,nlm_p_fp,nspinp,nspino, &
                                 roff_rr,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
                             else
-                              call tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green_int,icheck,ip_max, &
+                              call tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Green_int,icheck,ip_max, &
                                 ip0,irang,is_g,isp1,isp2,isp3,isp4,jrang,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil, &
                                 ns_dipmag,ndim2,ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul, &
                                 Solsing,Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
@@ -915,7 +915,7 @@ end
 
 !***********************************************************************
 
-subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green_int,icheck,ip_max, &
+subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Green_int,icheck,ip_max, &
                               ip0,irang,is_g,isp1,isp2,isp3,isp4,jrang,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil,ns_dipmag, &
                               ndim2,ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
                               Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
@@ -940,7 +940,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
   complex(kind=db), dimension(nlm_probe,nspinp,ip0:ip_max,ip0:ip_max,ninitlv):: Singul
 
-  logical:: Core_resolved, Dip_rel, FDM_comp, Final_tddft, Green, Green_int, lmoins1, lplus1, NRIXS, Solsing, Solsing_only, &
+  logical:: Core_resolved, Dip_rel, FDM_comp_m, Final_tddft, Green, Green_int, lmoins1, lplus1, NRIXS, Solsing, Solsing_only, &
             Spinorbite, Titre, Ylm_comp
 
   real(kind=db):: Ci_1, Ci_2, Ci2, J_initl1, J_initl2, Jz1, Jz2
@@ -1162,7 +1162,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Green,Green
                       endif
                       lms_f2 = lmp02 + (mv2 - 1) * nspino + iso2
 
-                      if( Green .or. FDM_comp ) then
+                      if( Green .or. FDM_comp_m ) then
                         dfe = rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) * rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) &
                             * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
                         dfs = rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) * rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) &

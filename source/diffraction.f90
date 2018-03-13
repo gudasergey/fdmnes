@@ -267,8 +267,8 @@ end
 !           Length_rel : fraction of length in bulk unit cell to avoid singularities ( for SRXRD )
 
 subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bulk,Angxyz_cap,Angxyz_int,Angxyz_sur,Axe_atom_gr, &
-          axyz,axyz_bulk,axyz_cap,axyz_int,axyz_sur,Bormann,Bragg_abs,Bragg_rgh_bulk_abs,Bulk,Bulk_roughness,Bulk_step, &
-          Cap_layer,Cap_disorder,Cap_roughness,Cap_thickness,Dafs_bio,Delta_bulk,Delta_cap,Delta_film,Delta_int, &
+          axyz,axyz_bulk,axyz_cap,axyz_int,axyz_sur,Bormann,Bragg_abs,Bragg_rgh_bulk_abs,Bulk,Bulk_roughness,Bulk_step,Cap_B_iso, &
+          Cap_layer,Cap_roughness,Cap_thickness,Dafs_bio,Delta_bulk,Delta_cap,Delta_film,Delta_int, &
           Delta_roughness_film,Delta_sur,delta_z_bottom_cap,delta_z_top_bulk,delta_z_top_cap,delta_z_top_film,Eseuil,f_avantseuil, &
           f_no_res,Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,hkl_ref,ich,igr_bulk_z, &
           igreq,Interface_shift, &
@@ -277,7 +277,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
           n_bulk_zc,n_max,natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp, &
           nlat,nlatm,nphi_dafs,nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nrato,nrm,nspin,ntype,numat,Operation_mode, &
           Operation_mode_used,Orthmatt,phdf0t,phdf0t_rgh_bulk,phdt,phdt_rgh_Bulk,phi_0,Poldafse,Poldafsem,Poldafss,Poldafssm, &
-          popatm,posn,posn_bulk,posn_cap,psival,rato,Surface_shift,Taux,Taux_cap,Taux_oc,Temp,Temp_coef,Temperature,Vec_orig, &
+          popatm,posn,posn_bulk,posn_cap,psival,rato,Surface_shift,Taux,Taux_cap,Taux_oc,Temp,Temp_coef,Temp_B_iso,Vec_orig, &
           Vecdafse,Vecdafsem,Vecdafss,Vecdafssm,Z_bulk,Z_cap)
 
   use declarations
@@ -327,9 +327,9 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   integer, dimension(neqm):: igr_tem
 
   logical:: Abs_in_bulk, Bulk, Bulk_step, Bormann, Cap_layer, Dafs_bio, Debye, Film, Film_periodical, hkl_film, Interlayer, &
-            Magnetic, Operation_mode_used, Surface, Taux, Temperature
+            Magnetic, Operation_mode_used, Surface, Taux, Temp_B_iso
 
-  real(kind=db):: abs_cap, arg, Bulk_roughness, c_cos_z, c_cos_z_b, c_cos_z_i, c_cos_z_s, Cal_volume_maille, Cap_disorder, &
+  real(kind=db):: abs_cap, arg, Bulk_roughness, c_cos_z, c_cos_z_b, c_cos_z_i, c_cos_z_s, Cal_volume_maille, Cap_B_iso, &
     Cap_roughness, Cap_thickness, cos_z, cos_z_b, cos_z_i, cos_z_s, Deb, Delta_2, Delta_bulk, Delta_cap, Delta_int, Delta_film, &
     Delta_roughness_film, Delta_sur, delta_z_bottom_cap, delta_z_top_bulk, delta_z_top_cap, delta_z_top_film, dpdeg, &
     DW, Energy_photon, Film_roughness, Film_thickness, fpp_bulk_tot, &
@@ -451,7 +451,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
     if( icheck > 1 ) write(3,'(/a17,1p,e13.5,a14)') ' fpp_bulk_tot   =',fpp_bulk_tot,' micrometer^-1'
   endif
 
-  if( icheck > 1 .and. ( Temperature .or. Debye ) ) write(3,'(/A)') ' ( h, k, l)   Z   Debye-Waller Attenuation'
+  if( icheck > 1 .and. ( Temp_B_iso .or. Debye ) ) write(3,'(/A)') ' ( h, k, l)   Z   Debye-Waller Attenuation'
 
   if( Magnetic ) then
     allocate( Bragg_f_mo(n1_proto:n2_proto,ngrm,npldafs) )
@@ -501,9 +501,9 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
       if( Debye ) then
         Q_mod_A = Q_mod(ipl) / bohr   ! one needs it in angstroem^-1
         Deb = DW(Q_mod_A,numat(it),tempt)
-      elseif( Temperature ) then
-! Delta_2 = ( Sin(Theta_Bragg)/Lambda )^2
-! Temp_coef = 8*pi^2 * <u>^2 is in Angtroem^2
+      elseif( Temp_B_iso ) then
+! Delta_2 = ( Sin(Theta_Bragg)/Lambda )^2 (lambda in Angstroem)
+! Temp_coef = 8*pi^2 * <u^2> is in Angtroem^2
         Delta_2 = ( Q_mod(ipl) / ( quatre_pi * bohr ) )**2
       endif
 
@@ -652,16 +652,16 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
           end do boucle_i
         endif
         if( Taux ) Bragg(igr,ipl) = Bragg(igr,ipl) * Taux_oc(jgr)
-        if( Temperature ) Deb = exp( - Temp_coef(igr) * Delta_2 )
-        if( icheck > 1 .and. ( Debye .or. Temperature ) ) write(3,165) nint( hkl_dafs(1:3,ipl) ), numat(it), Deb
-        if( Debye .or. Temperature ) Bragg(igr,ipl) = Bragg(igr,ipl) * Deb
+        if( Temp_B_iso ) Deb = exp( - Temp_coef(igr) * Delta_2 )
+        if( icheck > 1 .and. ( Debye .or. Temp_B_iso ) ) write(3,165) nint( hkl_dafs(1:3,ipl) ), numat(it), Deb
+        if( Debye .or. Temp_B_iso ) Bragg(igr,ipl) = Bragg(igr,ipl) * Deb
         if( ipr == iprabs_nonexc ) Bragg_abs(igr,ipl) = Bragg(igr,ipl)
 
         if( Bulk_step .and. Bulk_roughness > eps10 ) then
           Bragg_rgh_Bulk(igr,ipl) = Bragg_rgh_Bulk(igr,ipl) * exp( - ( z_top - p(3) ) * fpp_bulk_tot * Length_abs(ipl) )
           if( Taux ) Bragg_rgh_Bulk(igr,ipl) = Bragg_rgh_Bulk(igr,ipl) * Taux_oc(jgr)
-          if( Temperature ) Deb = exp( - Temp_coef(igr) * Delta_2 )
-          if( Debye .or. Temperature ) Bragg_rgh_Bulk(igr,ipl) = Bragg_rgh_Bulk(igr,ipl) * Deb
+          if( Temp_B_iso ) Deb = exp( - Temp_coef(igr) * Delta_2 )
+          if( Debye .or. Temp_B_iso ) Bragg_rgh_Bulk(igr,ipl) = Bragg_rgh_Bulk(igr,ipl) * Deb
           if( ipr == iprabs_nonexc ) Bragg_rgh_Bulk_abs(igr,ipl) = Bragg_rgh_Bulk(igr,ipl)
         endif
 
@@ -765,7 +765,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
  ! In the other case, it only calculates the non resonant part coming from the bulk roughness
       call Bulk_scat(Abs_in_bulk,angxyz_bulk,axyz_bulk,Bulk_roughness,c_cos_z_b,Delta_bulk,delta_z_top_bulk,Energy_photon, &
         hkl_dafs,hkl_film,icheck,Length_abs,Mat_bulk_i,Mult_bulk,n_atom_bulk,ngroup_temp,npldafs,phd_f_bulk,posn_bulk,Q_mod, &
-        Temp_coef,Temperature,Truncation,Z_abs,Z_bulk)
+        Temp_coef,Temp_B_iso,Truncation,Z_abs,Z_bulk)
 
       phd_f_bulk(:) = Phase_bulk(:) * phd_f_bulk(:)
     endif
@@ -778,7 +778,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   endif
 
   if( Cap_layer .and. .not. Bulk_step ) &
-    call Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Cap_disorder,Cap_roughness, &
+    call Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Cap_B_iso,Cap_roughness, &
               Cap_thickness,c_cos_z,c_cos_z_b,Delta_cap,Delta_roughness_film,delta_z_bottom_cap, &
               delta_z_top_cap,Energy_photon,Film_roughness,fpp_cap_tot,hkl_dafs,hkl_film, &
               Mult_bulk,Mult_film,n_atom_cap,npldafs,phd_f_cap,posn_cap,Q_mod,Taux_cap, &
@@ -3352,7 +3352,7 @@ end
 
 subroutine Bulk_scat(Abs_in_bulk,angxyz_bulk,axyz_bulk,Bulk_roughness,c_cos_z_b,Delta_bulk,delta_z_top_bulk,Energy_photon, &
         hkl_dafs,hkl_film,icheck,Length_abs,Mat_bulk_i,Mult_bulk,n_atom_bulk,ngroup_temp,npldafs,phd_f_bulk,posn_bulk,Q_mod, &
-        Temp_coef,Temperature,Truncation,Z_abs,Z_bulk)
+        Temp_coef,Temp_B_iso,Truncation,Z_abs,Z_bulk)
 
   use declarations
   implicit none
@@ -3365,7 +3365,7 @@ subroutine Bulk_scat(Abs_in_bulk,angxyz_bulk,axyz_bulk,Bulk_roughness,c_cos_z_b,
   character(len=4):: elemv
   character(len=2):: Chemical_symbol
 
-  logical:: Abs_in_bulk, hkl_film, Temperature
+  logical:: Abs_in_bulk, hkl_film, Temp_B_iso
 
   complex(kind=db):: Bragg_bulk, cfac
   complex(kind=db), dimension(npldafs):: phd_f_bulk, Truncation
@@ -3396,7 +3396,7 @@ subroutine Bulk_scat(Abs_in_bulk,angxyz_bulk,axyz_bulk,Bulk_roughness,c_cos_z_b,
     fpp_bulk_tot = fpp_bulk_tot + fpp_bulk(igr)
   end do
 ! Conversion in Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
-  fpp_bulk_tot = fpp_bulk_tot / ( conv_mbarn_nelec(Energy_photon) * pi )
+  fpp_bulk_tot = fpp_bulk_tot / conv_mbarn_nelec(Energy_photon)
 ! Conversion in linear absorption coefficient in micrometer^-1
   Volume_maille = Cal_Volume_maille(axyz_bulk,angxyz_bulk)
   fpp_bulk_tot = 100 * fpp_bulk_tot / ( Volume_maille * bohr**3 )
@@ -3425,7 +3425,7 @@ subroutine Bulk_scat(Abs_in_bulk,angxyz_bulk,axyz_bulk,Bulk_roughness,c_cos_z_b,
     end do
   end do
 
-  if( Temperature ) then
+  if( Temp_B_iso ) then
     do ipl = 1,npldafs
       Delta_2 = ( Q_mod(ipl) / ( quatre_pi * bohr ) )**2
       do igr = 1,n_atom_bulk
@@ -3455,7 +3455,7 @@ subroutine Bulk_scat(Abs_in_bulk,angxyz_bulk,axyz_bulk,Bulk_roughness,c_cos_z_b,
 ! Fraction of absorption (avoid the singularity when l close to 1)
         Bragg_bulk = Bragg_bulk * exp( - ( z_top - posn_bulk(3,igr) ) * fpp_bulk_tot * Length_abs(ipl) )
 
-        if( Temperature ) Bragg_bulk = Bragg_bulk * Abs_temp(igr,ipl)
+        if( Temp_B_iso ) Bragg_bulk = Bragg_bulk * Abs_temp(igr,ipl)
 
         phd_f_bulk(ipl) = phd_f_bulk(ipl) + Bragg_bulk * cmplx( f0_bulk(igr,ipl) + fp_bulk(igr), fpp_bulk(igr), db )
 
@@ -3505,7 +3505,7 @@ subroutine Bulk_scat(Abs_in_bulk,angxyz_bulk,axyz_bulk,Bulk_roughness,c_cos_z_b,
           end do
         end do
 
-        if( Temperature ) Bragg_bulk = Bragg_bulk * Abs_temp(igr,ipl)
+        if( Temp_B_iso ) Bragg_bulk = Bragg_bulk * Abs_temp(igr,ipl)
 
         phd_f_bulk(ipl) = phd_f_bulk(ipl) + Bragg_bulk * cmplx( f0_bulk(igr,ipl) + fp_bulk(igr), fpp_bulk(igr), db ) 
     
@@ -3609,7 +3609,7 @@ end
 
 ! Calculation of the scattering amplitude from the cap layer
 
-subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Cap_disorder,Cap_roughness, &
+subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Cap_B_iso,Cap_roughness, &
               Cap_thickness,c_cos_z,c_cos_z_b,Delta_cap,Delta_roughness_film,delta_z_bottom_cap, &
               delta_z_top_cap,Energy_photon,Film_roughness,fpp_cap_tot,hkl_dafs,hkl_film, &
               Mult_bulk,Mult_film,n_atom_cap,npldafs,phd_f_cap,posn_cap,Q_mod,Taux_cap, &
@@ -3635,7 +3635,7 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Cap_di
   real(kind=sg):: getf0, s
 
   real(kind=db):: arg, Conv_mbarn_nelec, c_cos_z, c_cos_z_b, c_cos_z_c, cos_z_c, Cap_amount, Cap_amount_ref, &
-    Cap_disorder, Cap_roughness, Cap_thickness, Cal_Volume_maille, Deb, Delta_cap, &
+    Cap_B_iso, Cap_roughness, Cap_thickness, Cal_Volume_maille, Deb, Delta_cap, &
     Delta_roughness_film, delta_z_bottom_cap, delta_z_top_cap, Energy_photon, f0_cap,  &
     Film_roughness, fpp_cap_tot, Orig_bottom_cap, Orig_top_cap, Roughness_erfc, Taux_r, Taux_r2, Volume_maille, x, z_pos
 
@@ -3668,7 +3668,7 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Cap_di
 
 ! Absorption through the layer
 ! Conversion in Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
-  fpp_cap_tot = fpp_cap_tot / ( conv_mbarn_nelec(Energy_photon) * pi )
+  fpp_cap_tot = fpp_cap_tot / conv_mbarn_nelec(Energy_photon)
 ! Conversion in linear absorption coefficient in micrometre^-1
   Volume_maille = Cal_Volume_maille(axyz_cap,angxyz_cap)
   fpp_cap_tot = 100 * fpp_cap_tot / ( Volume_maille * bohr**3 )
@@ -3684,9 +3684,10 @@ subroutine Cap_scat(angxyz,angxyz_bulk,angxyz_cap,axyz,axyz_bulk,axyz_cap,Cap_di
     x = Q_mod(ipl) / ( 4 * pi )      ! = sin(theta) / lambda
     s = x / bohr                      ! one want it in angstroem - 1
 
-! Delta_2 = ( Sin(Theta_Bragg)/Lambda )^2
-    if( Cap_disorder > eps10 ) then
-      Deb = exp( - 0.5_db * ( Cap_disorder * Q_mod(ipl) )**2 )
+! ( Q_mod(ipl) / ( quatre_pi * bohr ) )**2 = ( Sin(Theta_Bragg)/Lambda )^2   (lambda in Angstroem)
+! Cap_B_iso = 8*pi^2 * <u^2> is in Angtroem^2
+    if( Cap_B_iso > eps10 ) then
+      Deb = exp( - Cap_B_iso * ( Q_mod(ipl) / ( quatre_pi * bohr ) )**2 )
     else
       Deb = 1._db
     endif
@@ -4064,9 +4065,9 @@ function DW(q,Z,Temp)
   integer:: Z
 
 ! fonction de Debye, facteur de Debye Waller
-  real(kind=db):: Debye_function, Debye_temperature, DW, FD, Mass_atom, q, T_Debye, Temp, x
+  real(kind=db):: Debye_function, Debye_Temperature, DW, FD, Mass_atom, q, T_Debye, Temp, x
 
-  T_Debye = Debye_temperature(Z)
+  T_Debye = Debye_Temperature(Z)
   
   FD = Debye_function(Temp,T_Debye)
 

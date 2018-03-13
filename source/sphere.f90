@@ -144,6 +144,7 @@ subroutine Sphere(Axe_Atom_grn,Ecinetic,Eimag,Energ,Enervide,Full_atom, &
 
 ! Calcul les fonctions radiales phiato.
     if( .not. Green ) then
+
       do ib = 1,natome
         if( Full_atom ) then
           if( ib > 1 ) exit
@@ -179,7 +180,7 @@ subroutine Sphere(Axe_Atom_grn,Ecinetic,Eimag,Energ,Enervide,Full_atom, &
 
     deallocate( ui, ur )
 
-  end do   ! fin de la boucle sur l
+  end do   ! end of loop over l
 
   deallocate( V )
 
@@ -935,7 +936,7 @@ subroutine Renormal(Radial_comp,Full_potential,icheck,konde,ll,lmax,nlm1,nlm2,nr
 
 ! Hankel function and its derivative (versus r, not z) at Rmtg
   do isp = 1,nspin
-    call Cal_Hankel(d_hank,hank,konde(isp),lmax,Rmtg)
+    call Cal_Hankel(d_hank,hank,konde(isp),lmax,Rmtg,.false.)
     hs(1,0:lmax,isp) = hank(0:lmax)
     hs(2,0:lmax,isp) = d_hank(0:lmax)
     call Cal_Bessel(d_bess,bess,konde(isp),lmax,Rmtg)
@@ -4436,4 +4437,279 @@ subroutine Cal_Density(Energ,Full_atom,iaabsi,iaprotoi,icheck,ie,ie_computer,Int
   210 format(i5,2f15.7)
   220 format(' Total =',f12.7,f15.7)
 end
+
+!***********************************************************************
+
+! Calculation of Bessel and neuman functions.
+
+subroutine cbess(fnorm,z,lmax,lmaxm,bessel)
+
+  use declarations
+  implicit real(kind=db) (a-h,o-z)
+
+  complex(kind=db):: bessel(0:lmaxm), fnorm, z
+
+  if( abs( z ) < eps10 ) then
+    bessel(0) = fnorm
+  else
+    bessel(0) = fnorm * sin(z) / z
+  endif
+
+  if( lmax == 0 ) return
+
+  if( abs( z ) < eps10 ) then
+
+    bessel(1:lmax) = (0._db, 0._db)
+
+  else
+
+    bessel(1) = bessel(0) / z - fnorm * cos(z) / z
+
+    do l = 2,lmax
+      l1 = 2*l - 1
+      bessel(l) = l1 * bessel(l-1) / z - bessel(l-2)
+    end do
+
+  endif
+
+  return
+end
+
+!***********************************************************************
+
+! Calcul des fonctions de bessel et neuman (en fait, divisees par z )
+
+subroutine cbessneu(fnorm,z,lmax,lmaxm,bessel,neuman)
+
+  use declarations
+  implicit real(kind=db) (a-h,o-z)
+
+  complex(kind=db):: bessel(0:lmaxm), fnorm, neuman(0:lmaxm), z
+
+  neuman(0) = - fnorm * cos(z) / z
+  bessel(0) = fnorm * sin(z) / z
+
+  if( lmax == 0 ) return
+
+  neuman(1) = neuman(0) / z - bessel(0)
+  bessel(1) = bessel(0) / z + neuman(0)
+
+  do l = 2,lmax
+    l1 = 2*l - 1
+    neuman(l) = l1 * neuman(l-1) / z - neuman(l-2)
+    bessel(l) = l1 * bessel(l-1) / z - bessel(l-2)
+  end do
+
+  return
+end
+
+!***********************************************************************
+
+! Calculation of spherical Hankel function of first or second kind ( or Riccati-Hankel(+) or (-) function, divided by z )
+! and its derivative versus r, not z
+
+subroutine Cal_Hankel(d_Hankel,Hankel,konde,lmax,r,Second_kind)
+
+  use declarations
+  implicit none
+
+  integer:: l, lmax
+
+  complex(kind=db):: cfac, fnorm, konde, z
+  complex(kind=db), dimension(0:lmax):: d_hankel, hankel
+  complex(kind=db), dimension(0:lmax+1):: hankel_t
+
+  logical:: Second_kind
+  
+  real(kind=db):: r
+
+  z = konde * r
+
+  if( Second_kind ) then
+    hankel_t(0) = img
+  else
+    hankel_t(0) = - img
+  endif
+
+  if( lmax > 0 ) then
+    if( Second_kind ) then
+      hankel_t(1) = - 1._db + img / z
+    else
+      hankel_t(1) = - 1._db - img / z
+    endif
+  endif
+
+  do l = 2,lmax+1
+    hankel_t(l) = (2*l - 1) * hankel_t(l-1) / z - hankel_t(l-2)
+  end do
+
+  do l = 0,lmax
+    d_hankel(l) = l * hankel_t(l) / z - hankel_t(l+1)
+  end do
+
+! For normalization by the squrare root of the density of state in vacuum
+  fnorm = sqrt( konde / pi )
+  if( Second_kind ) then
+    cfac = fnorm * exp( - img * z ) / z
+  else
+    cfac = fnorm * exp( img * z ) / z
+  endif
+
+  hankel(0:lmax) = cfac * hankel_t(0:lmax)
+
+! Multiplication by konde, because it is the derivative versus r, not z
+  d_hankel(0:lmax) = cfac * konde * d_hankel(0:lmax)
+
+  return
+end
+
+!***********************************************************************
+
+! Calculation of spherical Bessel function ( or Riccati-Bessel function, divided by z )
+! and its derivative versus r, not z
+
+subroutine Cal_Bessel(d_Bessel,Bessel,konde,lmax,r)
+
+  use declarations
+  implicit none
+
+  integer:: l, lmax
+
+  complex(kind=db):: cfac, fnorm, konde, z
+  complex(kind=db), dimension(0:lmax):: d_Bessel, Bessel
+  complex(kind=db), dimension(0:lmax+1):: Bessel_t
+
+  real(kind=db):: r
+
+  z = konde * r
+
+  Bessel_t(0) = sin( z )
+
+  if( lmax > 0 ) Bessel_t(1) = - cos( z ) + Bessel_t(0) / z
+
+  do l = 2,lmax+1
+    Bessel_t(l) = (2*l - 1) * Bessel_t(l-1) / z - Bessel_t(l-2)
+  end do
+
+  do l = 0,lmax
+    d_Bessel(l) = l * Bessel_t(l) / z - Bessel_t(l+1)
+  end do
+
+! For normalization by the squrare root of the density of state in vacuum
+  fnorm = sqrt( konde / pi )
+  cfac = fnorm / z
+
+  Bessel(0:lmax) = cfac * Bessel_t(0:lmax)
+
+! Multiplication by konde, because it is the derivative versus r, not z
+  d_Bessel(0:lmax) = cfac * konde * d_Bessel(0:lmax)
+
+  return
+end
+
+!***********************************************************************
+
+! Calcul des fonctions de bessel et neuman ( disisees par z )
+
+subroutine cbessneur(fnorm,z,lmax,lmaxm,bessel,neuman)
+
+  use declarations
+  implicit real(kind=db) (a-h,o-z)
+
+  real(kind=db):: bessel(0:lmaxm), neuman(0:lmaxm), z
+
+  neuman(0) = - fnorm * cos(z) / z
+  bessel(0) = fnorm * sin(z) / z
+
+  neuman(1) = neuman(0) / z - bessel(0)
+  bessel(1) = bessel(0) / z + neuman(0)
+
+  do l = 2,lmax
+    l1 = 2*l - 1
+    neuman(l) = l1 * neuman(l-1) / z - neuman(l-2)
+    bessel(l) = l1 * bessel(l-1) / z - bessel(l-2)
+  end do
+
+  return
+end
+
+!***********************************************************************
+
+! Calculation of Bessel function ( Riccati-Bessel / z )
+! When Bessel < 10^(-7), one takes the origin limit: j_l = z^l / (2*l+1)!!
+! because of unstability of the recursive formula.
+
+subroutine cbessel(bess,ip0,lmax,nr,q,r)
+
+  use declarations
+  implicit none
+
+  integer:: i, ip0, j, k, l, l1, lmax, nr
+
+  real(kind=db):: fac, q, z_lim
+  real(kind=db), dimension(nr):: r, z
+  real(kind=db), dimension(nr,0:lmax):: bessel
+  real(kind=db), dimension(nr,ip0:lmax):: bess
+
+  z(:) = q * r(:)
+
+  do l = 0,lmax
+
+    select case(l)
+
+      case(0)
+
+        do i = 1,nr
+          if( z(i) < 1.e-7_db ) then
+            bessel(i,l) = 1._db - z(i)**2 / 6._db
+          else
+            bessel(i,l) = sin( z(i) ) / z(i)
+          endif
+        end do
+
+      case(1)
+
+        fac = 1._db / 3
+        z_lim = 3.e-7_db  ! = ( 1.e-7_db / fac )**( 1._db / l )
+        do i = 1,nr
+          if( z(i) < z_lim ) then
+            bessel(i,l) = fac * z(i)
+          else
+            bessel(i,l) = ( bessel(i,0) - cos( z(i) ) ) / z(i)
+          endif
+        end do
+
+      case default
+
+        k = 1
+        do j = 3,2*l+1,2
+          k = k * j
+        end do
+        fac = 1._db / k
+        z_lim = ( 1.e-7_db / fac )**( 1._db / l )
+        l1 = 2*l - 1
+ ! l = 2, fac = 1/15, z_lim = 0.00122
+ ! l = 3, fac = 1/105, z_lim = 0.0219
+ ! l = 4, fac = 1/945, z_lim = 0.0986
+ ! l = 5, fac = 1/10395, z_lim = 0.253
+
+        do i = 1,nr
+          if( z(i) < z_lim ) then
+            bessel(i,l) = fac * z(i)**l
+          else
+            bessel(i,l) = l1 * bessel(i,l-1) / z(i) - bessel(i,l-2)
+          endif
+        end do
+
+    end select
+
+  end do
+
+  do l = ip0,lmax
+    bess(:,l) = bessel(:,l)
+  end do
+
+  return
+end
+
 
