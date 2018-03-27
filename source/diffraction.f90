@@ -225,7 +225,7 @@ Subroutine Prep_Film(angxyz,angxyz_bulk,angxyz_cap,angxyz_int,angxyz_sur,axyz,ax
 
     if( n_atom_cap > 0 ) then
       write(3,150) Cap_thickness_used * bohr, Cap_shift *bohr, Cap_thickness * bohr, Cap_roughness * bohr
-      write(3,160) delta_z_bottom_cap * bohr, delta_z_top_cap * bohr
+      write(3,160) delta_z_top_cap * bohr, delta_z_bottom_cap * bohr
     endif
     if( n_atom_bulk > 0 ) write(3,170) Delta_bulk * bohr, delta_z_top_bulk * bohr, Bulk_roughness * bohr
     if( n_atom_int > 0 ) write(3,180) Delta_int * bohr
@@ -240,13 +240,18 @@ Subroutine Prep_Film(angxyz,angxyz_bulk,angxyz_cap,angxyz_int,angxyz_sur,axyz,ax
 
   return
   100 format(/'----- Prep_Film ', 100('-')/ )
-  110 format(' Film thickness used =',f10.5,', Film shift       =',f10.5,', Film thickness =',f10.5,', Film roughness =',f10.5,' A')
-  120 format(31x,' delta_z_top_film   =',f10.5,' A,  Z bottom film  =',i3,',  Z top film =',i3)
-  130 format(' Interface thickness =',f10.5,', Interface shift =',f10.5,' A,  Z bottom int   =',i3,', Z top int  =',i3)
-  140 format(' Surface thickness   =',f10.5,', Surface shift   =',f10.5,' A,  Z bottom sur   =',i3,', Z top sur =',i3)
-  150 format(' Cap thickness used  =',f10.5,', Cap shift       =',f10.5,', Cap thickness  =',f10.5,',  Cap roughness = ',f10.5,' A')
-  160 format(31x,' delta_z_bottom_cap =',f10.5,' A, delta_z_top_cap =',f8.3,' A')
-  170 format(' Delta Bulk          =',f10.5,' A, delta_z_top_bulk =',f8.3,' A,  Bulk roughness =',f10.5,' A')
+  110 format(' Film thickness used =',f10.5,' A, Film shift       =',f10.5,' A,     Film thickness =',f10.5, &
+             ' A, Film roughness =',f10.5,' A')
+  120 format(                               36x,'Delta_z_top_film =',f10.5,' A,     Z bottom film  =',i3,7x, &
+             ',       Z top film =',i3)
+  130 format(' Interface thickness =',f10.5,' A, Interface shift  =',f10.5,' A,     Z bottom int   =',i3,7x, &
+             ',        Z top int =',i3)
+  140 format(' Surface thickness   =',f10.5,' A, Surface shift    =',f10.5,' A,     Z bottom sur   =',i3,7x, &
+             ',        Z top sur =',i3)
+  150 format(' Cap thickness used  =',f10.5,' A, Cap shift        =',f10.5,' A,     Cap thickness  =',f10.5, &
+             ',    Cap roughness =',f10.5,' A')
+  160 format(                               36x,'Delta_z_top_cap  =',f10.5,' A, Delta_z_bottom_cap =',f10.5,' A')
+  170 format(' Delta Bulk          =',f10.5,' A, Delta_z_top_bulk =',f10.5,' A,     Bulk roughness =',f10.5,' A')
   180 format(' Delta Interface     =',f10.5,' A')
   190 format(' Delta Film          =',f10.5,' A')
   200 format(' Delta Surface       =',f10.5,' A')

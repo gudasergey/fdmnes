@@ -3,7 +3,7 @@
 ! Filling of FDM matrix and solving of the linear system of equation.
 
 subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, &
-                    clapl,Classic_irreg,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide,FDM_comp_m,Full_atom, &
+                    clapl,Classic_irreg,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide,Fac_tau,FDM_comp_m,Full_atom, &
                     gradvr,iaabsi,iaprotoi,iato,ibord,icheck,ie,igroupi,igrph,irep_util,isbord,iso,ispinin,isrt,ivois, &
                     isvois,karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso, &
                     natome,n_atom_0,n_atom_ind,nbm,nbord,nbordf,nbtm,ngroup_m,ngrph,nim,nicm, &
@@ -15,7 +15,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   use declarations
   implicit none
   
-  integer:: i, ia, iaabsi, icheck, ie, igrph, ii, irep, is1, is2, isg, isp, ispinin, &
+  integer:: i, ia, iaabsi, iapr, icheck, ie, igrph, ii, irep, is1, is2, isg, isp, ispinin, &
     jj, jsp, l, l1, l2, lm, lm01, lm01c, lm02, lm02c, lm1, lm2, lmaxso, lmf, lms, lmw, m, m1, m2, mpierr, &
     MPI_host_num_for_mumps, mpirank0, natome, n_atom_0, n_atom_ind, nbm, nbtm, ngroup_m, ngrph, nim, nicm,&
     nligne, nligne_i, nligneso, nlmagm, nlmmax ,nlmomax, nlmsam, nlmso, nlmso_i, nlmw, nphiato1, nphiato7, npoint, npr, &
@@ -35,7 +35,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   complex(kind=db):: ampl1, ampl2, cfac
   complex(kind=db), dimension(nopsm,nrepm):: karact
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: Taull
-  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind):: Tau_ato
+  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind):: Fac_tau, Tau_ato
   complex(kind=db), dimension(:,:), allocatable :: norm, norm_t
   complex(kind=db), dimension(:,:,:), allocatable :: Bessel, Neuman
   complex(kind=db), dimension(:,:,:,:), allocatable :: taull_tem
@@ -259,21 +259,34 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
           endif
 
           if( FDM_comp_m ) then
-            cfac = cfac + ampl1 * ampl2
+!            cfac = cfac + ampl1 * ampl2
+            if( l1 == lso(lmf,igrph) .and. m1 == mso(lmf,igrph) .and. ( nspino == 1 .or. is1 == iso(lmf,igrph) ) ) then 
+              cfac = cfac + ampl2
+            endif
           else
             cfac = cfac + conjg( ampl1 ) * ampl2
           endif
-        
         end do
 
-        if( Repres_comp .and. .not. Spinorbite .and. .not. Atom_axe(ia) ) cfac = cfac + Conjg(cfac)
+        if( FDM_comp_m ) then
+! Part under construction, not yet working 
+          if( Full_atom ) then
+            iapr = ia
+          else
+            iapr = iaprotoi(ia)
+          endif
+          Taull(lm01,is1,lm02,is2,ia) = Taull(lm01,is1,lm02,is2,ia) - Fac_tau(lm02,is1,lm02,is2,iapr) * cfac
+          if( lm01 == lm02 .and. is1 == is2 ) Taull(lm01,is1,lm02,is2,ia) = Taull(lm01,is1,lm02,is2,ia) - 0.5_db * img  
 
+        else
+
+          if( Repres_comp .and. .not. Spinorbite .and. .not. Atom_axe(ia) ) cfac = cfac + Conjg(cfac)
 ! One multiplies by -img in order -aimag(taull) is the density of state
-!          cfac = - img * cfac
 ! Conjugate to get the real part same sign that Green
-        cfac = - img * conjg( cfac )
- 
-        Taull(lm01,is1,lm02,is2,ia) = Taull(lm01,is1,lm02,is2,ia) + cfac
+          cfac = - img * conjg( cfac )
+          Taull(lm01,is1,lm02,is2,ia) = Taull(lm01,is1,lm02,is2,ia) + cfac
+
+        endif
           
       end do
     end do
@@ -324,7 +337,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
 ! With spinorbit and no magnetism Tau(m,s,m',s') = -1^(m+s-m'-s') Tau(-m',-s',-m,-s)
   do ia = 1,natome
 
-    if( E_comp ) exit
+    if( FDM_comp_m ) exit
     if( Spinorbite .and. nspin == 2 ) exit
     
     if( ia /= iaabsi .and. .not. State_all_r .and. Cal_xanes ) cycle

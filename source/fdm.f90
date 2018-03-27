@@ -16,7 +16,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   integer, parameter:: nslapw_max = 48  ! Max number of symmetry matrix for the FLAPW data
 
   integer:: i, igr, igr_dop, iord, ipr, ipr_dop, ir, is, iscratch, istat, it, itape1, itape4, itph, itpm, itps, &
-    itype_dop, j, jgr, jseuil, l, l_selec_max, lamstdens, lecrantage, Length_line, lin_gam, lmax_nrixs, lmax_pot, &
+    itype_dop, j, jgr, jseuil, l, lamstdens, lecrantage, Length_line, lin_gam, lmax_nrixs, lmax_pot, &
     lmax_tddft_inp, lmaxat0, lmaxso0, lseuil, m_hubb_e, mermrank, mpierr, mpinodes, mpinodes0, mpirank, mpirank0, &
     multi_run, multrmax, n, n_abs_rgh, n_atom_bulk, n_atom_cap, n_atom_int, n_atom_neq, n_atom_per, n_atom_per_neq, &
     n_atom_proto, n_atom_proto_bulk, n_atom_proto_p, n_atom_proto_uc, n_atom_sur, n_atom_uc, n_devide, n_file_dafs_exp, &
@@ -257,7 +257,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
     Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
     Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard, &
     hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,Interface_shift,iscratch,isigpi,itdil,its_lapw,iord,itape4,itype, &
-    itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,l_selec_max,lamstdens,ldil,lecrantage,Length_line,lin_gam, &
+    itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,Length_line,lin_gam, &
     lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper, &
     mpinodes,mpinodes0,mpirank,mpirank0, &
     Muffintin,Multipole,multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_uc,n_atom_proto,n_devide, &
@@ -860,7 +860,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
   complex(kind=db), dimension(:,:,:), allocatable:: phdt, poldafse, poldafss
   complex(kind=db), dimension(:,:,:,:), allocatable:: secmd, secmd_m, secmm, secmm_m, V_hubb_abs, &
                                                       V_hubb_t
-  complex(kind=db), dimension(:,:,:,:,:), allocatable:: secdd, secdd_m, rof0, secdq, secdq_m, Tau_ato, Taull, Taull_dft, &
+  complex(kind=db), dimension(:,:,:,:,:), allocatable:: Fac_tau, secdd, secdd_m, rof0, secdq, secdq_m, Tau_ato, Taull, Taull_dft, &
                                                         Taull_tdd, V_hubb, V_hubb_s
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: secdo, secdo_m, secoo, secoo_m, secqq, secqq_m, taull_stk
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Taull_abs
@@ -1330,9 +1330,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     if( .not. One_run .or. ( One_run .and. multi_run == 1 ) ) iaabsfirst = iaabs
 
     FDM_comp_m = FDM_comp
-!    FDM_comp_m = .false.
 ! FDM_comp_m = .false. annule l'effet FDM_comp
-!                         sur complexe conjugue dans Mat pour calcul Tau
+!                         sur traitement cas complexe sur calcul Tau_LL dans Mat
 !                         sur complexe conjugue dans Tenseur_car sur integrales radiales
 !         --> calcul classique FDM avec complexe conjuge
 !             On garde Eneg et Singul
@@ -1952,6 +1951,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             nlmagm = ( lmaxg + 1 )**2
 
             allocate( Tau_ato(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind) )
+            allocate( Fac_tau(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind) )
             if( Green ) then
               nphiato1 = 0; nphiato7 = 0
             else
@@ -1969,6 +1969,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             endif
             allocate( phiato(nphiato1,nlmagm,nspinp,nspino,natome,nphiato7) )
             allocate( Taull(nlmagm,nspinp,nlmagm,nspinp,natome) )
+            Fac_tau(:,:,:,:,:) = (0._db,0._db)
             phiato(:,:,:,:,:,:) = 0._db
             Tau_ato(:,:,:,:,:) = (0._db,0._db)
             Taull(:,:,:,:,:) = (0._db,0._db)
@@ -2020,7 +2021,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
               Vrato_e(1:nr,:,:) = Vrato(1:nr,:,:,iapr)
 
-              call Sphere(Axe_atom_grn,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
+              call Sphere(Axe_atom_grn,Ecinetic,Eimag(ie),Energ(ie),Enervide,Fac_tau,Full_atom, &
               Full_potential,Green,Hubb_a,Hubb_d,iaabsi,iapr,iaprotoi,ibord,ich,igreq,igroupi,iopsymr,lmax,lmax_pot,m_hubb, &
               n_atom_0,n_atom_ind,n_atom_proto,natome,nbord,nbtm,nbtm_fdm,neqm,ngroup_m,nlm_pot, &
               nlmagm,nlmmax,nphiato1,nphiato7,npsom,nr,nspin,nspino,nspinp,Z,phiato,posi,r,Relativiste,Renorm_SCF,Rmtg(ipr), &
@@ -2079,7 +2080,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                     call cnlmmax(lmaxso,lval,n,nlmso)
                     deallocate( lval )
                     call mat(Adimp,Atom_axe,Axe_Atom_grn,Base_hexa,Basereel,Cal_xanes,cgrad,clapl, &
-                      Classic_irreg,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,FDM_comp_m,Full_atom, &
+                      Classic_irreg,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,Fac_tau,FDM_comp_m,Full_atom, &
                       gradvr,iaabsi,iaprotoi,iato,ibord,ich,ie,igroupi,igrph,irep_util,isbord,iso,ispin,isrt,ivois,isvois, &
                       karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso, &
                       natome,n_atom_0,n_atom_ind,nbm,nbord,nbordf,nbtm,ngroup,ngrph,nim,nicm, &
@@ -2102,7 +2103,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
               Time_rout(10) = Time_rout(10) + Time_tria ! Triang
             endif
 
-            deallocate( Tau_ato )
+            deallocate( Fac_tau, Tau_ato )
             deallocate( phiato )
 
             ich = icheck(27)
@@ -3163,6 +3164,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           nlmagm = ( lmaxg + 1 )**2
 
           allocate( Tau_ato(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind) )
+          allocate( Fac_tau(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind) )
           if( Green ) then
             nphiato1 = 0; nphiato7 = 0
           else
@@ -3180,6 +3182,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           endif
           allocate( phiato(nphiato1,nlmagm,nspinp,nspino,natome,nphiato7) )
           allocate( Taull(nlmagm,nspinp,nlmagm,nspinp,natome) )
+          Fac_tau(:,:,:,:,:) = (0._db,0._db)
           phiato(:,:,:,:,:,:) = 0._db
           Tau_ato(:,:,:,:,:) = (0._db,0._db)
           Taull(:,:,:,:,:) = (0._db,0._db)
@@ -3241,7 +3244,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
             Vrato_e(1:nr,:,:) = Vrato(1:nr,:,:,iapr)
 
-            call Sphere(Axe_atom_grn,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
+            call Sphere(Axe_atom_grn,Ecinetic,Eimag(ie),Energ(ie),Enervide,Fac_tau,Full_atom, &
               Full_potential,Green,Hubb_a,Hubb_d,iaabsi,iapr,iaprotoi,ibord,icheck(18),igreq,igroupi,iopsymr,lmax,lmax_pot, &
               m_hubb,n_atom_0,n_atom_ind,n_atom_proto,natome,nbord,nbtm,nbtm_fdm,neqm,ngroup_m, &
               nlm_pot,nlmagm,nlmmax,nphiato1,nphiato7,npsom,nr,nspin,nspino,nspinp,Z,phiato,posi,r,Relativiste,Renorm, &
@@ -3269,7 +3272,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             lmaxa(ia) = lmaxat( iaprotoi(ia) )
             lmaxg = max(lmaxg,lmaxa(ia))
           end do
-
           Time_fill = 0._db; Time_tria = 0._db
 
           if( .not. ( Second_run .or. Extract ) ) then
@@ -3305,7 +3307,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                   call cnlmmax(lmaxso,lval,n,nlmso)
                   deallocate( lval )
                   call mat(Adimp,Atom_axe,Axe_Atom_grn,Base_hexa,Basereel,Cal_xanes,cgrad,clapl, &
-                    Classic_irreg,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,FDM_comp_m,Full_atom, &
+                    Classic_irreg,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,Fac_tau,FDM_comp_m,Full_atom, &
                     gradvr,iaabsi,iaprotoi,iato,ibord,ich,ie,igroupi,igrph,irep_util,isbord,iso,ispin,isrt,ivois,isvois, &
                     karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso, &
                     natome,n_atom_0,n_atom_ind,nbm,nbord,nbordf,nbtm,ngroup,ngrph,nim,nicm, &
@@ -3481,7 +3483,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
           endif
 
-          deallocate( Tau_ato )
+          deallocate( Fac_tau, Tau_ato )
           deallocate( phiato )
 
           if( mpirank0 == 0 ) then

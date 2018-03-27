@@ -4,7 +4,7 @@
 
 !***********************************************************************
 
-subroutine Sphere(Axe_Atom_grn,Ecinetic,Eimag,Energ,Enervide,Full_atom, &
+subroutine Sphere(Axe_Atom_grn,Ecinetic,Eimag,Energ,Enervide,Fac_tau,Full_atom, &
             Full_potential,Green,Hubb_a,Hubb_d,iaabsi,iapr,iaprotoi, &
             ibord,icheck,igreq,igroupi,iopsymr,lmax,lmax_pot,m_hubb, n_atom_0, &
             n_atom_ind,n_atom_proto,natome,nbord,nbtm,nbtm_fdm,neqm,ngroup_m,nlm_pot,nlmagm, &
@@ -14,7 +14,7 @@ subroutine Sphere(Axe_Atom_grn,Ecinetic,Eimag,Energ,Enervide,Full_atom, &
   use declarations
   implicit none
 
-  integer:: ia, iaabsi, iang, iapr, ib, icheck, iga, igr, kgr, l, &
+  integer:: ia, iaabsi, iang, iapr, ib, icheck, iga, igr, isp, kgr, l, &
     l_hubbard, lfin, lm, lm0, lmax, lmax_pot, lmp, m, m_hubb, mp, n, &
     n_atom_0, n_atom_ind, n_atom_proto, natome, nbtm, nbtm_fdm, neqm, ngroup_m, nlm, nlm_pot, &
     nlm1, nlm2, nlmagm, nlmmax, np, nphiato1, nphiato7, npsom, nr, nrmtg, nrmtsd, nspin, nspino, nspinp, numat
@@ -24,8 +24,8 @@ subroutine Sphere(Axe_Atom_grn,Ecinetic,Eimag,Energ,Enervide,Full_atom, &
   integer, dimension(0:n_atom_proto,neqm):: igreq
 
   complex(kind=db), dimension(nspin):: konde
-  complex(kind=db), dimension(:,:,:,:), allocatable:: Tau
-  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind):: Tau_ato
+  complex(kind=db), dimension(:,:,:,:), allocatable:: Fac_Wronsk, Tau
+  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind):: Fac_tau, Tau_ato
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
 
   logical:: Ecomp, Full_atom, Full_potential, Green, Hubb_a, Hubb_d, Hubb_m, Radial_comp, Relativiste, Renorm, &
@@ -108,6 +108,7 @@ subroutine Sphere(Axe_Atom_grn,Ecinetic,Eimag,Energ,Enervide,Full_atom, &
     allocate( ui(nr,nlm1,nlm2,nspinp,nspino) )
     allocate( ur(nr,nlm1,nlm2,nspinp,nspino) )
     allocate( Tau(nlm1,nspinp,nlm1,nspinp) )
+    allocate( Fac_Wronsk(nlm1,nlm2,nspinp,nspino) )
 
     call Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a,Hubb_d,icheck,konde,l,lmax,m_hubb, &
          nlm,nlm1,nlm2,nr,nrmtg,nspin,nspino,nspinp,numat,r,Radial_comp,Relativiste,Renorm,Rmtg,Spinorbite,Tau,ui, &
@@ -142,10 +143,56 @@ subroutine Sphere(Axe_Atom_grn,Ecinetic,Eimag,Energ,Enervide,Full_atom, &
 
     deallocate( Tau )
 
-! Calcul les fonctions radiales phiato.
     if( .not. Green ) then
 
-      do ib = 1,natome
+      call Wronsk_fac(Fac_Wronsk,Full_potential,icheck,konde,l,lmax,nlm1,nlm2,nr,nrmtg,nspin,nspino,nspinp,r, &
+                  Radial_comp,Rmtg,ui,ur)
+
+      if( Full_potential ) then
+        do lm = 1,nlm1
+          do lmp = 1,nlm2
+            if( nspino == 1 ) then
+              do isp = 1,nspinp
+                Fac_tau(lm,isp,lmp,isp,iapr) = Fac_Wronsk(lm,lmp,isp,1)
+              end do
+            else ! not very sure
+              Fac_tau(lm,:,lmp,:,iapr) = Fac_Wronsk(lm,lmp,:,:)
+            endif
+          end do
+        end do
+      else
+        lm0 = l**2 + l + 1
+        do m = -l,l
+          if( nlm1 == 1 ) then
+            n = 1
+          else
+            n = l + 1 + m
+          endif
+          do mp = -l,l
+            if( nlm1 == 1 ) then
+              if( m /= mp ) cycle
+              np = 1
+            else
+              np = l + 1 + mp
+            endif
+            if( nspino == 1 ) then
+              do isp = 1,nspinp
+                Fac_tau(lm0+m,isp,lm0+mp,isp,iapr) = Fac_Wronsk(n,np,isp,1)
+              end do
+            else ! not very sure
+              Fac_tau(lm0+m,:,lm0+mp,:,iapr) = Fac_Wronsk(n,1,:,:)
+            endif
+          end do
+        end do
+      endif
+    endif
+    
+    deallocate( Fac_Wronsk )
+
+ ! Calcul les fonctions radiales phiato.
+    if( .not. Green ) then
+
+     do ib = 1,natome
         if( Full_atom ) then
           if( ib > 1 ) exit
           ia = iapr
@@ -1426,6 +1473,155 @@ subroutine cal_ampl(Ampl,Full_potential,icheck,ll,lmax,nlm1,nlm2,nspino,nspinp,T
   230 format(2i3,1p,16(1x,2e11.3))
   240 format(3i3,1p,16(1x,2e11.3))
   250 format(/'  Off-digonal Tau higher than diagonal for', ' lm =',i3,', lmp =',i3,'. Off-diagonal potential neglected !')
+end
+
+!***********************************************************************
+
+! Calculation of Fac_tau = 0.5 * i * Wronskien(b,-i hankel^(-)) / Wronskien(b,bessel)
+! Used by Mat when Eimag not zero (or FDM_comp_m true). Under construction. 
+
+subroutine Wronsk_fac(Fac_Wronsk,Full_potential,icheck,konde,ll,lmax,nlm1,nlm2,nr,nrmtg,nspin,nspino,nspinp,r, &
+                  Radial_comp,Rmtg,ui,ur)
+
+  use declarations
+  implicit none
+
+  integer icheck, inr, isol, isp, isr, l, ll, lmax, lp, m, nlm1, nlm2, mp, n, np, nr, nrmtg, nspin, nspino, nspinp
+
+  complex(kind=db), dimension(0:lmax):: bess, d_bess, d_hank, hank
+  complex(kind=db), dimension(nspin):: e1, e2, konde, s1, s2
+  complex(kind=db), dimension(nlm1,nlm2,nspinp,nspino):: Fac_Wronsk, u1, u2, Wronske, Wronsks
+  complex(kind=db), dimension(2,0:lmax,nspin):: bs, hs
+
+  logical:: Radial_comp, Full_potential
+
+  real(kind=db):: a, ai, b, bi, c, ci, d0, d01, d02, d1, d2, d12, Rmtg
+  real(kind=db), dimension(nr):: r
+  real(kind=db), dimension(nr,nlm1,nlm2,nspinp,nspino):: ui, ur
+
+  inr = min( nrmtg, nr )
+  d12 = r(inr-1) - r(inr-2)
+  d01 = r(inr) - r(inr-1)
+  d02 = r(inr) - r(inr-2)
+  d2 = 1 / ( d12 * d02 )
+  d1 = 1 / ( d12 * d01 )
+  d0 = 1 / ( d01 * d02 )
+
+  Wronske(:,:,:,:) = (0._db, 0._db)
+  Wronsks(:,:,:,:) = (0._db, 0._db)
+  u1(:,:,:,:) = (0._db, 0._db)
+  u2(:,:,:,:) = (0._db, 0._db)
+
+! Hankel function and its derivative (versus r, not z) at Rmtg
+  do isp = 1,nspin
+    call Cal_Hankel(d_hank,hank,konde(isp),lmax,Rmtg,.true.)
+    hs(1,0:lmax,isp) = hank(0:lmax)
+    hs(2,0:lmax,isp) = d_hank(0:lmax)
+    call Cal_Bessel(d_bess,bess,konde(isp),lmax,Rmtg)
+    bs(1,0:lmax,isp) = bess(0:lmax)
+    bs(2,0:lmax,isp) = d_bess(0:lmax)
+  end do
+
+  do isp = 1,nspinp
+    do isol = 1,nspino
+      do m = 1,nlm1
+        do mp = 1,nlm2
+
+          a = ur(inr-2,m,mp,isp,isol) * d2 - ur(inr-1,m,mp,isp,isol) * d1 + ur(inr,m,mp,isp,isol) * d0
+          b = ( ur(inr-1,m,mp,isp,isol) - ur(inr-2,m,mp,isp,isol)) / d12 - a * ( r(inr-1) + r(inr-2) )
+          c = ur(inr,m,mp,isp,isol) - a * r(inr)**2 - b * r(inr)
+
+          if( Radial_comp ) then
+            ai = ui(inr-2,m,mp,isp,isol) * d2 - ui(inr-1,m,mp,isp,isol) * d1 + ui(inr,m,mp,isp,isol) * d0
+            bi = (ui(inr-1,m,mp,isp,isol) - ui(inr-2,m,mp,isp,isol)) / d12  - ai * ( r(inr-1) + r(inr-2) )
+            ci = ui(inr,m,mp,isp,isol) - ai * r(inr)**2 - bi *r(inr)
+          endif
+          
+          if( Radial_comp ) then
+            u1(m,mp,isp,isol) = cmplx( a * Rmtg**2 + b * Rmtg + c,  ai * Rmtg**2 + bi * Rmtg + ci, db )
+            u2(m,mp,isp,isol) = cmplx( 2 * a * Rmtg + b, 2 * ai * Rmtg + bi, db )
+          else
+            u1(m,mp,isp,isol) = cmplx( a * Rmtg**2 + b * Rmtg + c, 0._db, db )
+            u2(m,mp,isp,isol) = cmplx( 2 * a * Rmtg + b, 0._db, db )
+          endif
+
+        end do
+      end do
+    end do
+  end do
+
+  np = 0
+  do l = 0,lmax
+    if( .not. Full_potential .and. l /= ll ) cycle
+    e1(:) = bs(1,l,:)
+    e2(:) = bs(2,l,:)
+    s1(:) = - img * hs(1,l,:)
+    s2(:) = - img * hs(2,l,:)
+    do mp = -l,l
+      if( nlm2 == 1 .and. mp > -l ) exit
+      np = np + 1
+      do isp = 1,nspinp
+        isr = min( isp, nspin )
+        if( nlm2 == 1 ) then
+          Wronske(:,1,isp,:) = u1(:,1,isp,:) * e2(isr) - u2(:,1,isp,:) * e1(isr)
+          Wronsks(:,1,isp,:) = u1(:,1,isp,:) * s2(isr) - u2(:,1,isp,:) * s1(isr)
+        else
+! Dans ce cas le deuxieme indice de "u" est celui de l'attaque
+! c'est aussi le premier indice de Wronsk
+! et l est celui sortant
+          Wronske(:,np,isp,:) = u1(np,:,isp,:) * e2(isr) - u2(np,:,isp,:) * e1(isr)
+          Wronsks(:,np,isp,:) = u1(np,:,isp,:) * s2(isr) - u2(np,:,isp,:) * s1(isr)
+        endif
+      end do
+    end do
+  end do
+
+  do isp = 1,nspinp 
+    Fac_Wronsk(:,:,isp,:) = 0.5_db * img * Wronsks(:,:,isp,:) / Wronske(:,:,isp,:)
+  end do 
+  
+  if( icheck > 2 ) then
+    n = 0
+    do l = 0,lmax
+      if( .not. Full_potential .and. l /= ll ) cycle
+      write(3,110) l
+      write(3,120) hs(1,l,:)
+      write(3,130) hs(2,l,:)
+      if( nspino == 2 ) then
+        write(3,162)
+      elseif( nspinp == 2 ) then
+        write(3,164)
+      else
+        write(3,166)
+      endif
+      do m = -l,l
+        if( nlm1 == 1 .and. m /= 0 ) cycle
+        n = n + 1
+        np = 0
+        do lp = 0,lmax
+          if( .not. Full_potential .and. lp /= ll ) cycle
+          do mp = -lp,lp
+            if( nlm2 == 1 .and. mp /= 0 ) cycle
+            np = np + 1
+            write(3,170) l, m, lp, mp, ' Fac_Wronsk =', ( Fac_Wronsk(n,np,:,isol), isol = 1,nspino )
+            write(3,170) l, m, lp, mp, ' Wronske    =', ( Wronske(n,np,:,isol), isol = 1,nspino )
+            write(3,170) l, m, lp, mp, ' Wronsks    =', ( Wronsks(n,np,:,isol), isol = 1,nspino )
+            write(3,170) l, m, lp, mp, ' u1         =', ( u1(n,np,:,isol), isol = 1,nspino )
+            write(3,170) l, m, lp, mp, ' u2         =', ( u2(n,np,:,isol), isol = 1,nspino )
+          end do
+        end do
+      end do
+    end do
+  endif
+
+  return
+  110 format(/' Wronskian calculation, l =',i2)
+  120 format(/' hankel(-) =',1p,8e15.7)
+  130 format( '     deriv =',1p,8e15.7)
+  162 format('  l  m lp mp',21x,'up up',17x,'dn up',17x,'up dn',17x, 'dn dn')
+  164 format('  l  m lp mp',  23x,'up',19x,'dn')
+  166 format('  l  m lp mp')
+  170 format(4i3,a12,1p,16e15.7)
 end
 
 !**********************************************************************

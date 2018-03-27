@@ -252,7 +252,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
         case('occupancy')
           Taux = .true.
-          Occupancy_first = .not. Temp_B_iso  
+          Occupancy_first = .not. Temp_B_iso
 
         case('xan_atom')
           Xan_atom = .true.
@@ -662,7 +662,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
             if( eoff /= 0 ) exit
 
-            if( mot(1:30) == '_symmetry_space_group_name_H-M' ) then
+            if( mot(1:30) == '_symmetry_space_group_name_H-M' .or. mot(1:25) == '_space_group_name_H-M_alt') then
 
               l = len_trim(mot)
 
@@ -703,6 +703,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
                   n_fract_z = n - 1
                 elseif( mot(2:20) == 'atom_site_occupancy') then
                   Taux = .true.
+                elseif( mot(2:25) == 'atom_site_U_iso_or_equiv') then
+                  Temp_B_iso = .true.
                 endif
               end do
 
@@ -1520,7 +1522,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
     Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard, &
     Hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,Interface_shift,iscratch,isigpi,itdil,its_lapw,iord,itape4,itype, &
-    itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,l_selec_max,lamstdens,ldil,lecrantage,Length_line,lin_gam, &
+    itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,Length_line,lin_gam, &
     lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper, &
     mpinodes,mpinodes0,mpirank,mpirank0, &
     Muffintin,Multipole,multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_uc,n_atom_proto,n_devide, &
@@ -1547,12 +1549,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
   integer:: eof, eoff, i, i_range, ier, ia, ie, igr, igr_dop, igrdat, io, iord, ip, ipar, ipl, ipl0, ipr, ipr0, iscratch, isp, &
     ispin, istat, istop, isymeq, it, itape4, itype_dop, j, jgr, jpl, jseuil, jt, k, kgr, l, l_hubbard, l_level_val, &
-    l_selec_max, l1, l2, lamstdens, lecrantage, Length_line, lin_gam, lmax_nrixs, lmax_pot, lmax_pot_default, lmax_tddft_inp, &
+    l1, l2, lamstdens, lecrantage, Length_line, lin_gam, lmax_nrixs, lmax_pot, lmax_pot_default, lmax_tddft_inp, &
     lmaxat0, lmaxso0, long, lseuil, m, m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank, mpirank0, &
-    mpirank_in_mumps_group, multi_run, multrmax, n, n_adimp, n_atom_bulk, n_atom_cap, n_atom_int, n_atom_neq, n_atom_per, &
-    n_atom_per_neq, n_atom_sur, n_atom_proto, n_atom_uc, n_devide, n_file_dafs_exp, &
-    n_fract_x, n_fract_y, n_fract_z, n_label, n_mat_polar, n_multi_run_e, n_occupancy, n_radius, n_range, n_Z_abs, n1, n2, &
-    natomsym, nb_atom_conf_m, nb_atom_nsph, nbseuil, &
+    mpirank_in_mumps_group, multi_run, multrmax, n, n_adp_type, n_adimp, n_atom_bulk, n_atom_cap, n_atom_int, n_atom_neq, &
+    n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_proto, n_atom_uc, n_B_iso, n_devide, n_file_dafs_exp, &
+    n_fract_x, n_fract_y, n_fract_z, n_label, n_mat_polar, n_multi_run_e, n_occupancy, n_radius, n_range, n_symbol, n_Z_abs, &
+    n1, n2, natomsym, nb_atom_conf_m, nb_atom_nsph, nbseuil, &
     nchemin, necrantage, neimagent, nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_nonsph, &
     ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, nhybm, nlatm, nn, nnombre, non_relat, norb, norbdil, normrmt, &
     nparm, nphim, nphimt, npldafs, npldafs_2d, npldafs_e, npldafs_f, nple, nq_nrixs, nrato_dirac, nrm, nscan, nself, nseuil, &
@@ -1631,9 +1633,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   logical, dimension(ngroup):: Atom_nsph_e
   logical, dimension(0:ntype):: Hubb
 
-  real(kind=db):: Alfpot, Ang_borm, Bulk_roughness, Cap_B_iso, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, D_max_pot, &
-    Delta_En_conv, Delta_Epsii, Delta_helm, Eclie, Eclie_out, Ephot_min, Film_roughness, Film_thickness, Film_zero, g1, g2, &
-    Gamma_max, Kern_fac, number_from_text, Overlap, p_self_max, p_self0, Pas_SCF, Per_helm, phi, phi_0, pop_nsph, pp, q, &
+  real(kind=db):: Alfpot, Ang_borm, Bulk_roughness, Cap_B_iso, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, &
+    D_max_pot, Delta_En_conv, Delta_Epsii, Delta_helm, Eclie, Eclie_out, Ephot_min, Film_roughness, Film_thickness, Film_zero, &
+    g1, g2, Gamma_max, Kern_fac, number_from_text, Overlap, p_self_max, p_self0, Pas_SCF, Per_helm, phi, phi_0, pop_nsph, pp, q, &
     r, r_self, R_rydb, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, &
     V_helm, V_intmax, vv, z_min
 
@@ -1718,10 +1720,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   axyz_cap(1:3) = 0._db
   Basereel = .true.
   Bulk_roughness = 0._db
-  Cap_roughness = 0._db
+  Cap_B_iso = 0._db
   Cap_disorder = 0._db
-  Cap_thickness = -1000._db
+  Cap_roughness = 0._db
   Cap_shift = -1000._db
+  Cap_thickness = -1000._db
   Cartesian_tensor = .false.
   cdil(:) = 0._db
   Centre(:) = 0._db
@@ -2005,6 +2008,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
        case('cap_disor')
          read(itape4,*,iostat=ier) Cap_disorder
+         if( ier > 0 ) call write_err_form(itape4,keyword)
+
+       case('cap_b_iso')
+         read(itape4,*,iostat=ier) Cap_B_iso
+         if( ier > 0 ) call write_err_form(itape4,keyword)
+
+       case('cap_u_iso')
+         read(itape4,*,iostat=ier) Cap_B_iso
+         Cap_B_iso = 8 * pi**2 * Cap_B_iso
          if( ier > 0 ) call write_err_form(itape4,keyword)
 
        case('cap_rough')
@@ -3459,7 +3471,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             if( eof /= 0 ) exit
             mot = adjustl(mot)
 
-            if( mot(1:30) == '_symmetry_space_group_name_H-M' ) then
+            if( mot(1:30) == '_symmetry_space_group_name_H-M' .or. mot(1:25) == '_space_group_name_H-M_alt' ) then
 
               l = len_trim(mot)
 
@@ -3496,8 +3508,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             elseif( mot(1:16) == '_atom_site_label' .or. mot(1:16) == '_atom_site_fract' ) then
 
               backspace(8)
+              n_adp_type = 0
+              n_B_iso = 0
               n_fract_x = 0; n_fract_y = 0; n_fract_z = 0
               n_label = 0
+              n_symbol = 0
 
               do n = 1,100000
                 read(8,'(A)') mot
@@ -3507,6 +3522,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                   exit
                 elseif( mot(2:16) == 'atom_site_label') then
                   n_label = n - 1
+                elseif( mot(2:22) == 'atom_site_type_symbol') then
+                  n_symbol = n - 1
+                elseif( mot(2:22) == 'atom_site_adp_type') then
+                  n_adp_type = n - 1
                 elseif( mot(2:18) == 'atom_site_fract_x') then
                   n_fract_x = n - 1
                 elseif( mot(2:18) == 'atom_site_fract_y') then
@@ -3514,8 +3533,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 elseif( mot(2:18) == 'atom_site_fract_z') then
                   n_fract_z = n - 1
                 elseif( mot(2:20) == 'atom_site_occupancy') then
-                  Taux = .true.
                   n_occupancy = n - 1
+                elseif( mot(2:25) == 'atom_site_U_iso_or_equiv') then
+                  Atom_U_iso = .true.
+                  n_B_iso = n - 1
+                elseif( mot(2:25) == 'atom_site_B_iso_or_equiv') then
+                  n_B_iso = n - 1
                 endif
               end do
 
@@ -3523,9 +3546,13 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
                 read(8,'(A)') mot
                 mot = adjustl(mot)
-                motsb = word_from_text(n_label,mot)
 
 ! Reading chemical element
+                if( n_symbol == 0 ) then
+                  motsb = word_from_text(n_label,mot)
+                else
+                  motsb = word_from_text(n_symbol,mot)
+                endif
                 Symbol = motsb(1:2)
                 if( Symbol(2:2) == '1' .or. Symbol(2:2) == '2' .or. Symbol(2:2) == '3' .or. Symbol(2:2) == '4' .or. &
                     Symbol(2:2) == '5' .or. Symbol(2:2) == '6' .or. Symbol(2:2) == '7' .or. Symbol(2:2) == '8' .or. &
@@ -3539,7 +3566,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 if( i == 104 ) then
                   call write_error
                   do ipr = 6,9,3
-                    write(ipr,170) igr, Symbol
+                    write(ipr,145) igr, Symbol
                   end do
                   stop
                 endif
@@ -3548,6 +3575,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 posn(2,igr) = number_from_text(n_fract_y,mot)
                 posn(3,igr) = number_from_text(n_fract_z,mot)
                 if( Taux ) Taux_oc(igr) = number_from_text(n_occupancy,mot)
+                if( Temp_B_iso ) Temp_coef(igr) = number_from_text(n_B_iso,mot)
 
               end do
 
@@ -4041,7 +4069,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         endif
       else
         if( Atom .or. Atom_conf .or. Flapw ) then
-          numat_abs(1) = numat( abs( itype( iabsm(1) ) ) )
+          it = abs( itype( iabsm(1) ) )
+          if( it > ntype ) then
+            call write_error
+            do ipr = ipr0,9,3
+              write(ipr,176) it, ntype
+            end do
+            stop
+          endif
+          numat_abs(1) = numat( it )
         else
           numat_abs(1) = itype( iabsm(1) )
         endif
@@ -5123,7 +5159,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         endif
         if( Cap_layer ) then
           write(3,620) '  Cap', axyz_cap(:), Angxyz_cap(:)
-          write(3,'(A)') '    Z         x              y              z           Taux'
+          write(3,'(A)') '    Z         x              y              z           Occupancy'
           do igr = 1,n_atom_cap
             write(3,630) Z_cap(igr), posn_cap(:,igr), Taux_cap(igr)
           end do
@@ -5139,6 +5175,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           endif
           if( Cap_roughness > eps10 ) write(3,640) 'roughness', Cap_roughness
           if( Cap_disorder > eps10 ) write(3,640) 'disorder ', Cap_disorder
+          if( Cap_b_iso > eps10 ) write(3,640) 'b_iso    ', Cap_b_iso
         endif
 
 ! About potential
@@ -5266,8 +5303,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Basereel,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Bormann,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Bulk_roughness,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Cap_roughness,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Cap_B_iso,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Cap_disorder,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Cap_roughness,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Cap_shift,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Cap_thickness,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Cartesian_tensor,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
@@ -5562,7 +5600,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     if( istop == 1 ) stop
   endif
 
-  Cap_B_iso = 8 * pi**2 * Cap_disorder**2
+  if( Cap_disorder > eps10 ) Cap_B_iso = 8 * pi**2 * Cap_disorder**2
 
 ! Conversion in atomic units (bohr and Rydberg) and in radian
   adimp(:) = adimp(:) / bohr
@@ -5752,14 +5790,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   if( nq_nrixs >= 1 .and. lmax_nrixs > 1 ) Quadrupole = .true.
   if( nq_nrixs >= 1 .and. lmax_nrixs > 2 ) Octupole = .true.
 
-  if( Octupole) then
-    l_selec_max = lseuil + 3
-  elseif( Quadrupole ) then
-    l_selec_max = lseuil + 2
-  else
-    l_selec_max = lseuil + 1
-  endif
-
   if( Dafs_bio ) then
     nphim = 4
     nphi_dafs(:) = nphim
@@ -5819,6 +5849,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
               ' check how is written the corresponding electronic configuration !'//)
   140 format(/' Error in the Pdb file :',// &
               ' The chemical symbol of atom number',i6,' is: ',a2,', what is not known!'//)
+  145 format(/' Error in the Cif file :',// &
+              ' The chemical symbol of atom number',i6,' is: ',a2,', what is not known!'//)
   150 format(//' The following line is not understood :',/A,// &
                ' If it is a keyword, check the spelling.'/, &
                ' If the line is not supposed to be a keyword but contains numbers, check:'/ &
@@ -5843,6 +5875,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                ' supposed to be the atomic number, the simultaneous',/ &
                ' use of the keyword Atom is forbidden !'//)
   175 format(//' The atomic number given under keyword Z_absorber =',i4,' is not in the list of atoms !'//)
+  176 format(//' The first type number defined under "Crystal", "Film" or "Molecule" =',i4,',',/ &
+               ' is higher than the number of atom types defined under "Atom" or "Atom_conf" =',i4,' !'//)
   180 format(/' Edge = ',a3,' not programmed !'//)
   220 format(//' iord =',i2,' must be equal to 2 or 4 !'//)
   230 format(/' itype(igr=',i2,') =',i2,' > ntype =',i2,', forbidden !')
@@ -5920,7 +5954,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   610 format('    Occ. matrix :', 14f5.2)
   620 format(/1x,a5,' : '/,'   a, b, c =',3f12.7,/'   alfa, beta, gamma =',3f9.3)
   625 format(i5,3f15.10,i4,f10.5)
-  630 format(i5,3f15.10,f15.5)
+  630 format(i5,3f15.10,f14.5)
   640 format(' Cap ',a9,' = ',f10.5,' A')
   650 format(/' V_helm =',f10.5,' eV,  Delta_helm =',f10.5,' A,  Per_helm =',f10.5,' A')
   660 format(/' Xalfa potential , Xalfa =',f8.5)

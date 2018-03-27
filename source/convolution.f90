@@ -62,8 +62,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     conv_mbarn_nelec, ct_epsilon, ct_nelec, d, d_dead, de_obj, de1, de2, Delta_edge, Deltar, &
     E, E_cut_imp, E_obj, e1m, Ecent, E_cut, E_cut_orig, Eintmax, Elarg, Eph, Epsii_ref, Esmin, &
     Estart, f0_forward, fac, fpp0, Gamm, Gamma_h, Gamma_max, &
-    Im_pi, Im_sig, Ip_pi, Ip_sig, mu_0_bulk, natomsym, p1, p2, pasdeb, Pdt, Pdt_bulk, S0_2, Sample_thickness, Surface_ref, &
-    Tab_width, Vibration, Volume_maille, Volume_maille_bulk
+    Im_pi, Im_sig, Ip_pi, Ip_sig, mu_0_bulk, natomsym, p1, p2, pasdeb, Pdt, Pdt_bulk, S0_2, Sample_thickness, Shift_U_iso,  &
+    Surface_ref, Tab_width, Vibration, Volume_maille, Volume_maille_bulk
 
   real(kind=db), dimension(0):: rdum
   real(kind=db), dimension(3):: angxyz, axyz
@@ -72,7 +72,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   real(kind=db), dimension(:), allocatable:: Abs_U_iso, angle, bb, betalor, decal, e1, e2, Efermip, Elor, En_fermi, Energ, &
         Energe, Energ_tr, Ep, Eph1, Ephm, Ephoton, Es, Es_temp, Eseuil, fpp_avantseuil, fi, fr, l_dafs, Length_abs, lori, & 
         lorix, lorr, lorrx, natomsym_f, Pds, p1f, p2f, Tens, V0muf, Ts, Yr, Yi
-  real(kind=db), dimension(:,:), allocatable:: decal_initl, Epsii, Length_rel, mua_r, mua_i, Signal, Stokes_param, Xa, &
+  real(kind=db), dimension(:,:), allocatable:: decal_initl, Epsii, Length_rel, Mu_tt, mua_r, mua_i, Signal, Stokes_param, Xa, &
                                                Xanes, Xs
   real(kind=db), dimension(:,:,:), allocatable:: Icirc, Icirccor, Icor, Icircdcor, Idcor, Mu_mat, Mus_mat
 
@@ -135,6 +135,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   seah = .false.
   self_abs = .false.
   Signal_Sph = .false.
+  Shift_U_iso = 0._db
   Stokes = .false.
   Stokes_dafs = .false.
   Stokes_xan = .false.
@@ -415,13 +416,21 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       case('abs_b_iso')
         U_iso_inp = .true.
         n = nnombre(itape1,132)
-        read(itape1,*) Abs_U_iso_inp
+        if( n == 1 ) then
+          read(itape1,*) Abs_U_iso_inp
+        else
+          read(itape1,*) Abs_U_iso_inp, Shift_U_iso          
+        endif
         Abs_U_iso_inp = Abs_U_iso_inp / ( 8 * pi**2 ) 
 
       case('abs_u_iso')
         U_iso_inp = .true.
         n = nnombre(itape1,132)
-        read(itape1,*) Abs_U_iso_inp
+        if( n == 1 ) then
+          read(itape1,*) Abs_U_iso_inp
+        else
+          read(itape1,*) Abs_U_iso_inp, Shift_U_iso          
+        endif
 
       case('seah')
 
@@ -897,6 +906,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Eseuil(:) = Eseuil(:) / rydb
   V0muf(:) = V0muf(:) / rydb
   deltar = deltar / rydb
+  Shift_U_iso = Shift_U_iso / rydb
   if( Fermip ) Efermip(1:nfich) = Efermip(1:nfich) / rydb
   if( .not. Arc .and. .not. seah ) Elor(:) = Elor(:) - En_fermi(1)
 
@@ -1347,6 +1357,48 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           Ephoton(:) = Energ(:) + decal_initl(initl,ifich) + Esmin
         endif
   
+  ! Temperature effect in the Debye model
+        if( ( U_iso_inp .and. Abs_U_iso_inp > eps10 ) .or. Abs_U_iso(ifich) > eps10   ) then
+
+! natomsym is real
+          fac = natomsym / ninitl(ifich)
+
+          call Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nenerg,nfich, &
+                        nom_col,numat,nxan,Shift_U_iso,U_iso_inp,V0muf,Xanes)
+
+          fac = 1 / ninitl(ifich)
+
+          if( Dafs ) call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
+                        nenerg,nfich,.true.,nphim,npldafs,numat,Shift_U_iso,U_iso_inp,V0muf) 
+
+          fac = natomsym * 100 / ( ninitl(ifich) * Volume_maille )
+  
+          if( Cor_abs ) then
+            allocate( Mu_t(nenerg,nphim,npldafs) )
+            allocate( dph_t(npldafs) )
+            dph_t(:) = ( 1._db, 0._db )
+            do i = 1,2
+              Mu_t(:,:,:) = Mu(:,:,:,i) 
+              call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Mu_t,dph_t,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
+                        nenerg,nfich,.false.,nphim,npldafs,numat,Shift_U_iso,U_iso_inp,V0muf)
+              Mu(:,:,:,i) = Mu_t(:,:,:) 
+            end do
+            deallocate( dph_t, Mu_t )
+          endif 
+
+          if( Stokes_xan ) then
+            allocate( Mu_tt(nenerg,npldafs) )
+            do i = 1,6,5
+              Mu_tt(:,:) = Mu_mat(:,i,:) 
+              call Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nenerg,nfich, &
+                        nom_col,numat,npldafs,Shift_U_iso,U_iso_inp,V0muf,Mu_tt)
+              Mu_mat(:,i,:) = Mu_tt(:,:)  
+            end do  
+            deallocate( Mu_tt )
+          endif
+
+        endif
+
         if( no_extrap ) then
           Extrap = .false.
         else
@@ -1636,45 +1688,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 ! Real part is absorption
         endif
 
-! Temperature effect in the Debye model
-        if( ( U_iso_inp .and. Abs_U_iso_inp > eps10 ) .or. Abs_U_iso(ifich) > eps10   ) then
-
-! natomsym is real
-          fac = natomsym / ninitl(ifich)
-          
-          call Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nenerg,nfich, &
-                        nom_col,numat,nxan,U_iso_inp,V0muf,Xanes)
-
-          fac = 1 / ninitl(ifich)
-
-          if( Dafs ) call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
-                        nenerg,nfich,.true.,nphim,npldafs,numat,U_iso_inp,V0muf) 
-
-          fac = natomsym * 100 / ( ninitl(ifich) * Volume_maille )
-  
-          if( Cor_abs ) then
-            allocate( Mu_t(nenerg,nphim,npldafs) )
-            allocate( dph_t(npldafs) )
-            dph_t(:) = ( 1._db, 0._db )
-            do i = 1,2
-              Mu_t(:,:,:) = Mu(:,:,:,i) 
-              call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Mu_t,dph_t,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
-                        nenerg,nfich,.false.,nphim,npldafs,numat,U_iso_inp,V0muf)
-              Mu(:,:,:,i) = Mu_t(:,:,:) 
-            end do
-            deallocate( dph_t, Mu_t )
-          endif 
-
-          if( Stokes_xan ) then
-            allocate( dph_t(npldafs) )
-            dph_t(:) = ( 1._db, 0._db )
-            call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Mu_m,dph_t,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
-                        nenerg,nfich,.false.,nphim,npldafs,numat,U_iso_inp,V0muf)
-            deallocate( dph_t )
-          endif
-
-        endif
-
 ! Real part is absorption
         if( Cor_abs ) mu(:,:,:,:) = img * Conjg( mu(:,:,:,:) )
         if( Stokes_xan ) Mu_m(:,:,:) = img * Conjg( Mu_m(:,:,:) )
@@ -1869,7 +1882,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 ! mus is already in micrometre -1
     do ipl = 1,npldafs
       if( Full_self_abs .and. ( mod(ipl,4) == 2 .or. mod(ipl,4) == 3 ) ) cycle
-      mus(:,:,ipl,:) = mus(:,:,ipl,:) + c_micro * cmplx( fpp_avantseuil(ifich), f0_forward )
+      mus(:,:,ipl,:) = mus(:,:,ipl,:) + c_micro * cmplx( fpp_avantseuil(ifich), f0_forward, db )
     end do
   endif
 
@@ -1878,7 +1891,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     c_micro = 100 / Volume_maille
 ! Mu_mat_comp is already in micrometre -1
     do i = 1,4,3
-      Mu_mat_comp(:,i,:) = Mu_mat_comp(:,i,:) + c_micro * cmplx( fpp_avantseuil(ifich), f0_forward )
+      Mu_mat_comp(:,i,:) = Mu_mat_comp(:,i,:) + c_micro * cmplx( fpp_avantseuil(ifich), f0_forward, db)
     end do
   endif
 
@@ -2255,7 +2268,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   end do boucle_conv_file
  
-  deallocate( angle, As, Convolution_out_all, decal, decal_initl, dph, dpht )
+  deallocate( Abs_U_iso, angle, As, Convolution_out_all, decal, decal_initl, dph, dpht )
   deallocate( Efermip, En_fermi, Eph1, Ephm, Epsii, Es, Eseuil )
   deallocate( f0, f0scan, fi, Fichin, Fichscanin, Fichscanout_all, fpp_avantseuil, fr )
   deallocate( hkl_dafs )
@@ -4512,7 +4525,7 @@ end
 ! Effect of temperature using the Debye model
 
 subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nenerg,nfich, &
-                        nom_col,numat,nxan,U_iso_inp,V0muf,Xanes)
+                        nom_col,numat,nxan,Shift_U_iso,U_iso_inp,V0muf,Xanes)
 
   use declarations
   implicit none
@@ -4525,7 +4538,7 @@ subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,f
   
   logical:: Energphot, U_iso_inp
 
-  real(kind=db):: Abs_U_iso_inp, c, Conv_Mbarn_nelec, E, Eph, f, fac, fp, fpp, fpp0, p
+  real(kind=db):: Abs_U_iso_inp, c, Conv_Mbarn_nelec, E, Eph, f, fac, fp, fpp, fpp0, p, Shift_U_iso
   real(kind=db), dimension(nenerg):: Energ, Ephoton, Xanes_atom 
   real(kind=db), dimension(nenerg,nxan):: Xanes 
   real(kind=db), dimension(nfich):: Abs_U_iso, Eseuil, V0muf 
@@ -4551,7 +4564,7 @@ subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,f
     call fprime(Z,Eph,fpp0,fp)
 
     do ie = 1,nenerg
-      Eph = Ephoton(ie)
+      Eph = Ephoton(ie) - Shift_U_iso
       call fprime(Z,Eph,fpp,fp)
       f = fac / conv_mbarn_nelec(Eph)
       Xanes_atom(ie) = f * ( fpp - fpp0 )
@@ -4565,7 +4578,7 @@ subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,f
     else
       E = Energ(ie) - V0muf(ifich)
     endif
-    if( E < 0._db ) cycle
+    if( E < eps10 ) cycle
 
     if( U_iso_inp ) then 
       p = exp( - c * Abs_U_iso_inp * E )
@@ -4589,11 +4602,11 @@ end
 !***********************************************************************
 
 subroutine Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
-                        nenerg,nfich,Dafs_cal,nphim,npldafs,numat,U_iso_inp,V0muf) 
+                        nenerg,nfich,Dafs_cal,nphim,npldafs,numat,Shift_U_iso,U_iso_inp,V0muf) 
   use declarations
   implicit none
 
-  integer:: i, ie, ifich, nenerg, nfich, nphim, npldafs, Z
+  integer:: i, icheck, ie, ifich, nenerg, nfich, nphim, npldafs, Z
   integer, dimension(nfich):: numat
 
   complex(kind=db), dimension(nenerg,nphim,npldafs):: Adafs 
@@ -4602,7 +4615,7 @@ subroutine Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Epho
   
   logical:: Dafs_cal, Energphot, U_iso_inp
 
-  real(kind=db):: Abs_U_iso_inp, c, Conv_Mbarn_nelec, E, Eph, f, fac, fp, fpp, fpp0, p
+  real(kind=db):: Abs_U_iso_inp, c, Conv_Mbarn_nelec, E, Eph, f, fac, fp, fpp, fpp0, p, Shift_U_iso
   real(kind=db), dimension(nenerg):: Energ, Ephoton 
   real(kind=db), dimension(nfich):: Abs_U_iso, Eseuil, V0muf 
 
@@ -4617,32 +4630,32 @@ subroutine Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Epho
   Eph = max( Eph,  0.5_db )
   call fprime(Z,Eph,fpp0,fp)
 
+  f = fac / pi
+  
   do ie = 1,nenerg
-    Eph = Ephoton(ie)
+    Eph = Ephoton(ie) - Shift_U_iso
     call fprime(Z,Eph,fpp,fp)
-    if( Dafs_cal ) then
-      Dafs_atom(ie) = fac * cmplx( fp, fpp - fpp0 )
-    else
-      f = fac / Conv_Mbarn_nelec(Eph)
-      Dafs_atom(ie) = f * cmplx( fp, fpp - fpp0 )
-    endif
+    if( .not. Dafs_cal ) f = fac / ( pi * Conv_Mbarn_nelec(Eph) ) 
+    Dafs_atom(ie) = f * cmplx( fpp - fpp0, 0._db, db )
   end do
-!  if( .not. Dafs_cal ) then
-!          write(51,'(A)') '   Energ(ie)  Atom_pa Atom_ppa mu_pa mu_ppa mu_p, mu_pp, mu_p, mu_pp, mu_p, mu_pp, mu_p, mu_pp'
-!   do ie = 1,nenerg
-!     write(51,'(f10.3,1p,100e13.5)') Energ(ie)*rydb, Dafs_atom(ie), Adafs(ie,1,:) 
-!   end do
-!    stop  
-! endif
 
- 
+  icheck = 1
+  if( icheck > 1 ) then
+    open(99, file = 'Debye_out.txt')
+    write(99,'(A)') '   Energy     Dafs_r       Dafs_i      Dafs_a_r    Dafs_a_i'
+    do ie = 1,nenerg
+      write(99,'(f10.3,1p,4e13.5)') Energ(ie)*Rydb, Adafs(ie,1,5), Dafs_atom(ie)*conjg(dph(5))
+    end do
+    stop
+  endif
+
   do ie = 1,nenerg
     if( Energphot ) then
       E = Energ(ie) - Eseuil(ifich) - V0muf(ifich)
     else
       E = Energ(ie) - V0muf(ifich)
     endif
-    if( E < 0._db ) cycle
+    if( E < eps10 ) cycle
     
     if( U_iso_inp ) then 
       p = exp( - c * Abs_U_iso_inp * E )
@@ -4650,10 +4663,10 @@ subroutine Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Epho
       p = exp( - c * Abs_U_iso(ifich) * E )
     endif
     do i = 1,npldafs
-      Adafs(ie,:,i) = p * Adafs(ie,:,i) + (1 - p) * dph(i) * Dafs_atom(ie)
+      Adafs(ie,:,i) = p * Adafs(ie,:,i) + (1 - p) * conjg( dph(i) ) * Dafs_atom(ie)
     end do
   end do
-           
+   
   return
 end
 
