@@ -703,7 +703,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
                   n_fract_z = n - 1
                 elseif( mot(2:20) == 'atom_site_occupancy') then
                   Taux = .true.
-                elseif( mot(2:25) == 'atom_site_U_iso_or_equiv') then
+                elseif( mot(2:25) == 'atom_site_U_iso_or_equiv' .or. mot(2:25) == 'atom_site_B_iso_or_equiv' ) then
                   Temp_B_iso = .true.
                 endif
               end do
@@ -3538,6 +3538,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                   Atom_U_iso = .true.
                   n_B_iso = n - 1
                 elseif( mot(2:25) == 'atom_site_B_iso_or_equiv') then
+                  Atom_B_iso = .true.
                   n_B_iso = n - 1
                 endif
               end do
@@ -4724,7 +4725,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           write(3,315) Rsorte_s(1), ( E_radius(i-1), Rsorte_s(i), i = 2,n_radius )
         endif
         if( .not. Green_s .and. overad ) write(3,320) roverad
-        write(3,330) icheck(:)
         if( lin_gam == 1 ) write(3,340)
         if( abs( Egamme(1) ) < 999.999_db .and. abs( Egamme(ngamme) ) < 999.999_db ) then
           write(3,350) Egamme(1:ngamme)
@@ -4844,11 +4844,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       endif
       if( Atom_nonsph ) write(3,'(/A)') ' Calculation with non spherical orbitals'
       if( Temp > eps10 ) write(3,500) Temp
-      if( Atom_B_iso ) then
-        write(3,'(/A)') ' Debye-Waller B iso coefficients taken into account for diffraction'
-      elseif( Atom_U_iso ) then
-        write(3,'(/A)') ' Debye-Waller U iso coefficients taken into account for diffraction'
-      endif
 
       if( nple > 0 ) then
         if( sum( abs( pdpolar(:,:) ) ) > eps10 ) then
@@ -5902,8 +5897,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   310 format(' Radius =',f6.2)
   315 format(' Radius, E_radius =',100(f6.2,f6.1))
   320 format('   Roverad =',f6.2)
-  325 format('   In optic and tddft parts, expansion in spherical harmonics limited to lmax =',i2)
-  330 format(' icheck =',30i2)
+  325 format('   In optics and tddft parts, expansion in spherical harmonics limited to lmax =',i2)
   340 format(' Linear range :')
   350 format(' Range =',40f8.3,5(/8x,40f8.3))
   360 format(' Range =',40f10.3,5(/8x,40f10.3))
