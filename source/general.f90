@@ -3165,8 +3165,8 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
   character(len=5):: Struct, Struct_bulk
 
   logical:: ATA, Atom_mag_cal, Atom_nonsph, Base_hexa, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Center_s, &
-    Doping, Magnetic, Matper, Noncentre, One_run, PointGroup_Auto, Self_nonexc, Spinorbite, Sym_2D, Sym_4, Sym_cubic, Symmol, &
-    Taux
+    Doping, Magnetic, Matper, Noncentre, One_run, PointGroup_Auto, Self_nonexc, Spinorbite, Sym_2D, Sym_4, &
+    Sym_cubic, Symmol, Taux
   logical, dimension(0:ngroup_m):: Atom_with_axe
 
   real(kind=db):: Angle, Delta_bulk, Delta_film, Delta_int, Delta_sur, Dist, Dist_max, Distm, Dsa, Dsb, &
@@ -4761,7 +4761,7 @@ subroutine character_table(icheck,igrpt_nomag,karact,nb_rep)
   integer, dimension(ngrptm):: nb_cla_table, nb_rep_table
   integer, dimension(nopsm):: nb_sympcl(nclasm)
 
-  logical inversion, jexp, kexp
+  logical:: inversion, jexp, kexp
 
   common/PointGroup_name/ PointGroup_name, PointGroup_nomag_name
 
@@ -4825,7 +4825,13 @@ subroutine character_table(icheck,igrpt_nomag,karact,nb_rep)
       ch(1) = '  1  1  1'
       ch(2) = '  1  j j2'
 
-    case('-3','-6','6')            ! S6, C3h, C6   17 21 22
+    case('-6')                     ! C3h   21
+      ch(1) = '  1  1  1  1  1  1'
+      ch(2) = '  1  j j2  1  j j2'
+      ch(3) = '  1  1  1 -1 -1 -1'
+      ch(4) = '  1  j j2 -1 k5  k'
+
+    case('-3','6')            ! S6, C6   17 22
       inversion = .true.
       ch(1) = '  1  1  1'
       ch(2) = '  1  j j2'
@@ -8212,7 +8218,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   170 format(/'  ia   Z  it  igr ipr iap     posx      posy      posz   igrpt PtGrName Comp  Axe  Mag',9x,'Axe_atom')
   180 format(/'  ia   Z  it  igr ipr iap     posx      posy      posz   igrpt PtGrName Comp  Axe  Mag')
   190 format(i4,2i4,i5,2i4,3f10.5,i5,6x,a8,l1,2l5,3f10.5)
-  200 format(/'  Atom :',4x,i4,3(21x,i4))
+  200 format(/'  Atom :',4x,i4,3(21x,i3))
   210 format(4(3x,3f7.3))
   220 format(/' Atom  ia_eq  is_eq')
   230 format(i4,3x,48(1x,2i4))
@@ -10049,7 +10055,7 @@ subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,it
   integer, dimension(nso1,ngrph):: iso, lso, mso
   integer, dimension(nlmsam,natome,ngrph):: iato, lato, mato
 
-  logical green
+  logical:: green
 
   real(kind=db), dimension(3):: p
   real(kind=db), dimension(3,natome):: posi
@@ -10292,7 +10298,8 @@ subroutine clmax(Energ,r,lmax0,lmax,Z,lmaxfree)
     endif
   endif
 
-  if( lmax0 > 0 ) lmax = min( lmax, lmax0 )
+!  if( lmax0 > 0 ) lmax = min( lmax, lmax0 )
+  if( lmax0 >= 0 ) lmax = min( lmax, lmax0 )
 
   return
 end
@@ -10487,9 +10494,13 @@ end
 subroutine ylmcr(lmax,nlmc,nlmr,ylmc,ylmr)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
+
+  integer:: l, l2, lm, lm0, lmax, m, nlmc, nlmr
 
   complex(kind=db), dimension(nlmc):: ylmc
+
+  real(kind=db):: rac_2
   real(kind=db), dimension(nlmr):: ylmr
 
   rac_2 = sqrt(2._db)
@@ -10505,11 +10516,11 @@ subroutine ylmcr(lmax,nlmc,nlmr,ylmc,ylmr)
       lm0 = l2 + abs(m)
 
       if( m < 0 ) then
-        ylmr(lm) = rac_2 * aimag( ylmc(lm0) )
+        ylmr(lm) = (-1)**m * rac_2 * aimag( ylmc(lm0) )
       elseif( m == 0 ) then
         ylmr(lm) = real( ylmc(lm0), db )
       else
-        ylmr(lm) = rac_2 * real( ylmc(lm0), db )
+        ylmr(lm) = (-1)**m * rac_2 * real( ylmc(lm0), db )
       endif
 
     end do

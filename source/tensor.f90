@@ -225,8 +225,8 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
       case(1)
 ! Dipole
         c = sqrt( 4 * pi / 3 )
-        clm(irang,1,:,:,4) = - c
-        clm(irang,2,:,:,2) = - c
+        clm(irang,1,:,:,4) = c
+        clm(irang,2,:,:,2) = c
         clm(irang,3,:,:,3) = c
 
       case(2)
@@ -238,10 +238,10 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
         clm(irang,1,1,:,1) = c0
         clm(irang,1,1,:,7) = - c3;   clm(irang,1,1,:,9) = c
         clm(irang,1,2,:,5) = c
-        clm(irang,1,3,:,db) = - c
+        clm(irang,1,3,:,db) = c
         clm(irang,2,2,:,1) = c0
         clm(irang,2,2,:,7) = - c3;   clm(irang,2,2,:,9) = - c
-        clm(irang,2,3,:,6) = - c
+        clm(irang,2,3,:,6) = c
         clm(irang,3,3,:,1) = c0
         clm(irang,3,3,:,7) = 2 * c3
 
@@ -261,24 +261,24 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
         c12 = c / sqrt( 3._db )
         c120 = c / sqrt( 30._db )
 
-        clm(irang,1,1,1,4) = - 3 * c1
-        clm(irang,1,1,1,14) = 3 * c120; clm(irang,1,1,1,16) = - c8
-        clm(irang,2,2,2,2) = - 3 * c1
-        clm(irang,2,2,2,12) = 3 * c120; clm(irang,2,2,2,10) = c8
+        clm(irang,1,1,1,4) = 3 * c1
+        clm(irang,1,1,1,14) = - 3 * c120; clm(irang,1,1,1,16) = c8
+        clm(irang,2,2,2,2) = 3 * c1
+        clm(irang,2,2,2,12) = - 3 * c120; clm(irang,2,2,2,10) = - c8
         clm(irang,3,3,3,3) = 3 * c1
         clm(irang,3,3,3,13) = 2 * c5
-        clm(irang,1,1,2,2) = - c1
-        clm(irang,1,1,2,10) = - c8;      clm(irang,1,1,2,12) = c120
-        clm(irang,1,2,2,4) = - c1
-        clm(irang,1,2,2,16) = c8;        clm(irang,1,2,2,14) = c120
+        clm(irang,1,1,2,2) = c1
+        clm(irang,1,1,2,10) = c8;        clm(irang,1,1,2,12) = - c120
+        clm(irang,1,2,2,4) = c1
+        clm(irang,1,2,2,16) = - c8;      clm(irang,1,2,2,14) = - c120
         clm(irang,1,1,3,3) = c1
         clm(irang,1,1,3,13) = - c5;      clm(irang,1,1,3,15) = c12
         clm(irang,2,2,3,3) = c1
         clm(irang,2,2,3,13) = - c5;      clm(irang,2,2,3,15) = - c12
-        clm(irang,2,3,3,2) = - c1
-        clm(irang,2,3,3,12) = - 4 * c120
-        clm(irang,1,3,3,4) = - c1
-        clm(irang,1,3,3,14) = - 4 * c120
+        clm(irang,2,3,3,2) = c1
+        clm(irang,2,3,3,12) = 4 * c120
+        clm(irang,1,3,3,4) = c1
+        clm(irang,1,3,3,14) = 4 * c120
         clm(irang,1,2,3,11) = c12
 
         do i = 1,3
@@ -1795,10 +1795,10 @@ function Gaunt_xrc(l,m,lo,mo,li,mi,Ylm_comp)
       gr = gauntcp(l,m,lo,mo,li,mi)
       gi = 0._db
     elseif( mo > 0 ) then
-      gr = (   gauntcp(l,m,lo,mo,li,mi) + (-1)**mo * gauntcp(l,m,lo,-mo,li,mi) ) / sqrt( 2._db )
+      gr = ( (-1)**mo * gauntcp(l,m,lo,mo,li,mi) + gauntcp(l,m,lo,-mo,li,mi) ) / sqrt( 2._db )
       gi = 0._db
     else
-      gi = ( (-1)**mo * gauntcp(l,m,lo,mo,li,mi) - gauntcp(l,m,lo,-mo,li,mi) ) / sqrt( 2._db )
+      gi = ( gauntcp(l,m,lo,mo,li,mi) - (-1)**mo * gauntcp(l,m,lo,-mo,li,mi) ) / sqrt( 2._db )
       gr = 0._db
     endif
 
@@ -1808,11 +1808,11 @@ function Gaunt_xrc(l,m,lo,mo,li,mi,Ylm_comp)
       gr = Gaunt_r(l,m,lo,mo,li,mi)
       gi = 0._db
     elseif( mi > 0 ) then
-      gr = Gaunt_r(l,m,lo,mo,li,mi) / sqrt( 2._db )
-      gi = Gaunt_r(l,m,lo,mo,li,-mi) / sqrt( 2._db )
+      gr = (-1)**mi * Gaunt_r(l,m,lo,mo,li,mi) / sqrt( 2._db )
+      gi = (-1)**mi * Gaunt_r(l,m,lo,mo,li,-mi) / sqrt( 2._db )
     else
-      gr = (-1)**mi * Gaunt_r(l,m,lo,mo,li,-mi) / sqrt( 2._db )
-      gi = - (-1)**mi * Gaunt_r(l,m,lo,mo,li,mi) / sqrt( 2._db )
+      gr = Gaunt_r(l,m,lo,mo,li,-mi) / sqrt( 2._db )
+      gi = - Gaunt_r(l,m,lo,mo,li,mi) / sqrt( 2._db )
     endif
 
   endif
@@ -1844,10 +1844,10 @@ function Gaunt_xrx(l1,m1,l2,m2,l3,m3,Ylm_comp)
     if( m2 == 0 ) then
       Gaunt_xrx = cmplx( gauntcp(l1,m1,l2,m2,l3,m3), 0._db, db )
     elseif( m2 > 0 ) then
-      Gtot = ( Gauntcp(l1,m1,l2,m2,l3,m3) + (-1)**m2 * Gauntcp(l1,m1,l2,-m2,l3,m3) ) / sqrt( 2._db ) 
+      Gtot = ( Gauntcp(l1,m1,l2,m2,l3,m3) + Gauntcp(l1,m1,l2,-m2,l3,m3) ) / sqrt( 2._db ) 
       Gaunt_xrx = cmplx( Gtot, 0._db, db )
     else
-      Gtot = ( (-1)**m2 * Gauntcp(l1,m1,l2,m2,l3,m3) - Gauntcp(l1,m1,l2,-m2,l3,m3) ) / sqrt( 2._db )
+      Gtot = ( (-1)**m2 * Gauntcp(l1,m1,l2,m2,l3,m3) - (-1)**m2 * Gauntcp(l1,m1,l2,-m2,l3,m3) ) / sqrt( 2._db )
       Gaunt_xrx = cmplx( 0._db, Gtot, db )
     endif
 
@@ -1864,7 +1864,7 @@ end
 
 ! Calcule le coefficient de Gaunt modifie: Int ( Y_L1* Y_L2* Y_L3 dOmega )
 ! avec Y(l1,m1) complexe ou reel, Y(l2,m2) et Y(l3,m3) complexe
-! Pour Y(l2,m2), on prend Y(l2,m2)* = (-1)^m Y(l2,-m2)  
+! Pour Y(l2,m2), on prend Y(l2,m2)* = (-1)^m2 Y(l2,-m2)  
 
 function Gaunt_nrixs(l1,m1,l2,m2,l3,m3,Ylm_comp)
 
@@ -1882,10 +1882,10 @@ function Gaunt_nrixs(l1,m1,l2,m2,l3,m3,Ylm_comp)
   if( Ylm_comp .or. m1 == 0 ) then
     Gaunt_nrixs = (-1)**m2 * cmplx( gauntcp(l1,m1,l2,-m2,l3,m3), 0._db, db )
   elseif( m1 > 0 ) then
-    Gtot = (-1)**m2 * ( Gauntcp(l1,m1,l2,-m2,l3,m3) + (-1)**m1 * Gauntcp(l1,-m1,l2,-m2,l3,m3) ) / sqrt( 2._db ) 
+    Gtot = (-1)**m2 * ( (-1)**m1 * Gauntcp(l1,m1,l2,-m2,l3,m3) + Gauntcp(l1,-m1,l2,-m2,l3,m3) ) / sqrt( 2._db ) 
     Gaunt_nrixs = cmplx( Gtot, 0._db, db )
   else
-    Gtot = (-1)**m2 * ( (-1)**m1 * Gauntcp(l1,m1,l2,-m2,l3,m3) - Gauntcp(l1,-m1,l2,-m2,l3,m3) ) / sqrt( 2._db )
+    Gtot = (-1)**m2 * ( Gauntcp(l1,m1,l2,-m2,l3,m3) - (-1)**m1 * Gauntcp(l1,-m1,l2,-m2,l3,m3) ) / sqrt( 2._db )
     Gaunt_nrixs = cmplx( 0._db, Gtot, db )
   endif
 
@@ -2009,6 +2009,9 @@ function Gauntmag(l,m,isp_f,mo,l_g,m_g,isp_g,Ylm_comp,Ylm_comp_g)
   if( .not. Ylm_comp .and. m < 0 ) Gauntmag = - img * Gauntmag
 
   if( .not. Ylm_comp_g .and. m_g < 0 ) Gauntmag = img * Gauntmag
+
+  if( .not. Ylm_comp .and. mod(abs(m),2) == 1 ) Gauntmag = - Gauntmag
+  if( .not. Ylm_comp_g .and. mod(abs(m_g),2) == 1 ) Gauntmag = - Gauntmag
 
   return
 end

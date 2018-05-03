@@ -11,7 +11,7 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,chargat,chargat_init, &
             nhybm,nlat,nlatm,nlm_pot,Nonexc,Nonsph,norbv,normrmt,npoint,npoint_ns,npsom,nrato,nrm,nrm_self,nspin, &
             ntype,numat,overlap,Per_helm,pop_nonsph,popatm,popatv,pos,posi,posi_self, psival,rato,rchimp,rho,rho_chg, &
             rho_self,rhoato,rhoato_init,rhoit,rhons,rmtg,rmtimp,rmtg0,rmtsd,Rot_Atom_gr,Rot_int,rs,rsato, &
-            rsort,SCF,Self_nonexc,Sym_2D,V_helm,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp,xyz, &
+            rsort,SCF,Self_nonexc,Sym_2D,V_abs_i,V_helm,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp,xyz, &
             i_range)
 
   use declarations
@@ -52,7 +52,7 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,chargat,chargat_init, &
   real(kind=db), dimension(0:nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self):: rho_self
   real(kind=db), dimension(0:nrm_self,nspin,n_atom_0_self:n_atom_ind_self):: rho_chg, rhoato_init
   real(kind=db), dimension(nrm):: dvc_ex_nex, dv_ex_nex
-  real(kind=db), dimension(nrm,nspin):: drho_ex_nex
+  real(kind=db), dimension(nrm,nspin):: drho_ex_nex, V_abs_i
   real(kind=db), dimension(0:nrm_self, n_atom_0_self:n_atom_ind_self):: Vcato_init
   real(kind=db), dimension(npoint,nspin):: Vxc, rho
   real(kind=db), dimension(nrm):: exc
@@ -201,6 +201,10 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,chargat,chargat_init, &
       rho_no_sup(:,:,iapr) = rho_no_sup_e(:,:)
       dvcato(:,iapr) = dvcato_e(:)
       drhoato(:,iapr) = drhoato_e(:)
+    else
+      do ispin = 1,nspin
+        V_abs_i(1:nrm,ispin) = Vcato_e(1:nrm,1) + Vxcato_e(1:nrm,1,ispin)
+      end do
     endif
 
     if( i_self == 1 .and. iapr >= n_atom_0_self .and. .not. cal_xanes ) then
@@ -250,7 +254,7 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,chargat,chargat_init, &
         neqm,ngroup_m,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,Orig_helm,Per_helm,pos,rato,rho,rhons,rs,rhoigr,rhomft, &
         rmtg0,Rmtsd,SCF,Sym_2D,V_helm,V_intmax,V_surf,Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,xyz)
 
-! Writing: the atom charge is integ=grated up to Rmtsd, here before any superposition
+! Writing: the atom charge is integrated up to Rmtsd, here before any superposition
   if( i_self == 1 .and. icheck(13) > 2 ) then
     ch(:) = 0._db
     write(3,140); write(3,150)
@@ -1944,11 +1948,18 @@ subroutine Pot0muffin(alfpot,Cal_xanes,chargat,chargat_init,chargat_self, &
   if( iapr < n_atom_0 ) then
     ia = iapot(0)
   elseif( Full_atom ) then
-    do ia = 1,natomp
-      if( sum( abs( posi(:,iapr) - pos(:,ia) ) ) < eps10 ) exit
-    end do
+    if( iapr == 0 ) then
+      do ia = 1,natomp
+        if( sum( abs( posi(:,iapot(0)) - pos(:,ia) ) ) < eps10 ) exit
+      end do
+    else
+      do ia = 1,natomp
+        if( sum( abs( posi(:,iapr) - pos(:,ia) ) ) < eps10 ) exit
+      end do
+    endif
   else
     ia = iapot(iapr)
+    if( ia == 0 .and. ipr == iprabs ) ia = iapot(0)
   endif
   if( ia == 0 ) return
   itia = itypepr(ipr)

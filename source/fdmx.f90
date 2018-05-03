@@ -587,8 +587,8 @@ do ij=1,ninputs
 
 ! Dampen oscillations
       if (E(i) .GT. 0) then
-!         mu(i) = mu(i)*eu**(-2*(sigmaparam**2)*((2*pi/6.626E-34)*1E-5*(2*9.109E-31*E(i)*1E10*1.602E-19)**0.5)**2)
-         mu(i) = mu(i) * exp( -2 * 2 * E(i) * ( 1.E+09_db * sigmaparam / hme_yj )**2 )
+         mu(i) = mu(i)*eu**(-2*(sigmaparam**2)*((2*pi/6.626E-34)*1E-5*(2*9.109E-31*E(i)*1E10*1.602E-19)**0.5)**2)
+!         mu(i) = mu(i) * exp( -2 * 2 * E(i) * ( 1.E+09_db * sigmaparam / hme_yj )**2 )
       end if
 
 ! Insert new atomic BG with spline

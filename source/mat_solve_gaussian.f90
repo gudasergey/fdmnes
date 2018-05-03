@@ -298,7 +298,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
     if( icheck > 2 ) then
       abvr_w(ii) = abvr(ii)
-      abvi_w(ii) = abvi(ii)
+      if( Cal_comp ) abvi_w(ii) = abvi(ii)
     endif
 
     deallocate( abvr )

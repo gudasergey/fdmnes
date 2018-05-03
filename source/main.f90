@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 27th of March 2018, 7 Germinal, An 226
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 27th of April 2018, 8 Floreal, An 226
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 27th of March 2018'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 27th of April 2018'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -249,7 +249,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 206
+  integer, parameter:: nkw_fdm = 209
   integer, parameter:: nkw_conv = 38
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_gaus = 1
@@ -328,7 +328,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'atomic_sc','axe_spin ','atom_u_is', &
      'base_comp','base_reel','bond     ','bulk     ','bulk_roug','cap_b_iso','cap_disor','cap_layer','cap_rough','cap_shift', &
      'cap_thick','cap_u_iso','cartesian','center   ','center_ab','center_s ','chlib    ','cif_file ','classic_i','clementi ', &
-     'core_reso','crystal  ', &
+     'coop     ','coop_atom','coop_dist','core_reso','crystal  ', &
      'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_2d  ','dafs_exp ','debye    ','delta_en_','dip_rel  ','e1e1     ', &
      'delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ', &
      'edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot', &
@@ -1814,6 +1814,10 @@ function Traduction(keyword)
       traduction = 'check_pot'
     case('checksph','checksphe')
       traduction = 'check_sph'
+    case('atom_coop')
+      traduction = 'coop_atom'
+    case('dist_coop')
+      traduction = 'coop_dist'
     case('spinresol','spin_reso','coreresol')
       traduction = 'core_reso'
     case('crist','cryst','cristallo','cristal')

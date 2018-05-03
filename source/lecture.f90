@@ -5,7 +5,7 @@
 ! Reading subroutine giving the dimensions of the tables, necessary for the rest of the code, including the main reading routine 'lecture'
 
 subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_layer,Dafs_bio,Doping,Extract,Extract_ten,Film, &
-    Flapw,Full_self_abs,Hubbard,itape4,Length_line,Magnetic,Memory_save,mpinodes0,mpirank0,n_atom, &
+    Flapw,Full_self_abs,Hubbard,itape4,Length_line,Magnetic,Memory_save,mpinodes0,mpirank0,n_atom,n_atom_coop,  &
     n_file_dafs_exp,n_mat_polar,n_multi_run_e,n_Z_abs,nb_atom_conf_m,ncolm,neimagent,nenerg,ngamme,ngroup,nhybm, &
     nklapw,nlatm,nlmlapwm,nmatsym,norbdil,npldafs,npldafs_2d,npldafs_e,nple,nplrm,n_adimp,n_radius,n_range,nq_nrixs, &
     NRIXS,nspin,nspino,nspinp,ntype,ntype_bulk,ntype_conf,Occupancy_first,Pdb,Readfast,Self_abs,Taux,Temp_B_iso,Use_FDMX,Xan_atom)
@@ -16,7 +16,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
   integer:: eof, eoff, i, iabsm_1, ie, ier, igamme, igr, igrdat, io, ipr, ipl, istat, it, itape4, itype_dop, j, jgr, &
     jpl, k, l, Length_line, lin_gam, lmax_nrixs, mpierr, mpinodes0, mpirank0, n, n_adimp, n_atom_bulk, n_atom_cap, &
-    n_atom_int, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_uc, n_dic, n_file_dafs_exp, &
+    n_atom_coop, n_atom_int, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_uc, n_dic, n_file_dafs_exp, &
     n_fract_x, n_fract_y, n_fract_z, n_label, n_mat_polar, n_mu, n_multi_run_e, n_radius, n_range, n_Z_abs, nb, &
     nb_atom_conf_m, ncolm, neimagent, nenerg, ngamme, ngc, ngroup, n_atom_neq, nhybm, nklapw, nl, &
     nlatm, nlmlapwm, nmatsym, nn, nnombre, norbdil, norbv, npldafs, npldafs_2d, npldafs_e, npldafs_t, &
@@ -32,7 +32,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   character(len=132):: Fcif_file, Fichier, Fichier_pdb, identmot, mot, motsb
   character(len=132), dimension(9):: Wien_file
 
-  logical:: Absauto, adimpin, Atom_conf, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Bulk, Fcif, Cap_layer, &
+  logical:: Absauto, adimpin, Atom_conf, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Bulk, COOP, Fcif, Cap_layer, &
      Dafs_bio, Doping, Extract, Extract_ten, Film, Flapw, Full_self_abs, Hubbard, &
      Magnetic, Matper, Memory_save, NRIXS, Occupancy_first, Pdb, Pol_dafs_in, Quadrupole, Readfast, Screening, Self_abs, &
      Taux, Temp_B_iso, Use_FDMX, Very_fast, Xan_atom
@@ -50,6 +50,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   Axe_loc = .false.
   Bulk = .false.
   Cap_layer = .false.
+  COOP = .false.
   Fcif = .false.
   Dafs_bio = .false.
   Doping = .false.
@@ -66,6 +67,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   n_adimp = 1
   n_atom_bulk = 0
   n_atom_cap = 0
+  n_atom_coop = 0
   n_atom_int = 0
   n_atom_per = 0
   n_atom_per_neq = 0
@@ -167,6 +169,13 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           end do
           Backspace(itape4)
           n_atom_cap = igr - 1
+
+        case('coop','coop_dist')
+          COOP = .true.
+
+        case('coop_atom')
+          COOP = .true.
+          n_atom_coop = nnombre(itape4,132)
 
         case('doping')
           Doping = .true.
@@ -1000,6 +1009,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     call MPI_Bcast(Magnetic,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_adimp,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_atom,8,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(n_atom_coop,8,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_dic,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_file_dafs_exp,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_mat_polar,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -1515,17 +1525,17 @@ end
 subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_mode,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk, &
     axyz_cap,axyz_int,axyz_sur,Basereel,Bormann,Bulk,Bulk_roughness,Cap_B_iso, &
-    Cap_layer,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre,Charge_free, &
-    Classic_irreg,Clementi,com,comt,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Delta_helm,Density, &
-    Density_comp,Dip_rel,Dipmag,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme, &
-    Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness,Film_shift, &
-    Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
+    Cap_layer,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre,Charge_free,Classic_irreg, &
+    Clementi,com,comt,COOP,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Delta_helm,Density, &
+    Density_comp,Dip_rel,Dipmag,Dist_coop,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient, &
+    Egamme,Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness, &
+    Film_shift,Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
     Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,hkl_borm,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard, &
-    Hybrid,iabsm,iabsorig,icheck,icom,igr_dop,indice_par,Interface_shift,iscratch,isigpi,itdil,its_lapw,iord,itape4,itype, &
-    itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,Length_line,lin_gam, &
+    Hybrid,iabsm,iabsorig,icheck,icom,igr_coop,igr_dop,indice_par,Interface_shift,iscratch,isigpi,itdil,its_lapw,iord,itape4, &
+    itype,itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,Length_line,lin_gam, &
     lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper, &
     mpinodes,mpinodes0,mpirank,mpirank0, &
-    Muffintin,Multipole,multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_uc,n_atom_proto,n_devide, &
+    Muffintin,Multipole,multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_coop,n_atom_uc,n_atom_proto,n_devide, &
     n_file_dafs_exp,n_mat_polar,n_multi_run_e,n_radius,n_range,n_Z_abs,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent, &
     nenerg,ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw,ngroup_m,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
     ngroup_temp,nhybm,nlat,nlatm,No_DFT,No_solsing,nom_fich_Extract, &
@@ -1547,12 +1557,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   implicit none
   include 'mpif.h'
 
-  integer:: eof, eoff, i, i_range, ier, ia, ie, igr, igr_dop, igrdat, io, iord, ip, ipar, ipl, ipl0, ipr, ipr0, iscratch, isp, &
-    ispin, istat, istop, isymeq, it, itape4, itype_dop, j, jgr, jpl, jseuil, jt, k, kgr, l, l_hubbard, l_level_val, &
-    l1, l2, lamstdens, lecrantage, Length_line, lin_gam, lmax_nrixs, lmax_pot, lmax_pot_default, lmax_tddft_inp, &
+  integer:: eof, eoff, i, i_range, ier, ia, ie, igr, igr_dop, igrdat, io, iord, ip, ipar, ipl, ipl0, ipr, ipr0, &
+    iscratch, isp, ispin, istat, istop, isymeq, it, itape4, itype_dop, j, jgr, jpl, jseuil, jt, k, kgr, l, l_hubbard, &
+    l_level_val, l1, l2, lamstdens, lecrantage, Length_line, lin_gam, lmax_nrixs, lmax_pot, lmax_pot_default, lmax_tddft_inp, &
     lmaxat0, lmaxso0, long, lseuil, m, m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank, mpirank0, &
-    mpirank_in_mumps_group, multi_run, multrmax, n, n_adp_type, n_adimp, n_atom_bulk, n_atom_cap, n_atom_int, n_atom_neq, &
-    n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_proto, n_atom_uc, n_B_iso, n_devide, n_file_dafs_exp, &
+    mpirank_in_mumps_group, multi_run, multrmax, n, n_adp_type, n_adimp, n_atom_bulk, n_atom_cap, n_atom_coop, n_atom_int, &
+    n_atom_neq, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_proto, n_atom_uc, n_B_iso, n_devide, n_file_dafs_exp, &
     n_fract_x, n_fract_y, n_fract_z, n_label, n_mat_polar, n_multi_run_e, n_occupancy, n_radius, n_range, n_symbol, n_Z_abs, &
     n1, n2, natomsym, nb_atom_conf_m, nb_atom_nsph, nbseuil, &
     nchemin, necrantage, neimagent, nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_nonsph, &
@@ -1584,6 +1594,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   integer, dimension(12):: Tensor_imp
   integer, dimension(30):: icheck
   integer, dimension(3,3):: lquaimp
+  integer, dimension(n_atom_coop):: igr_coop
   integer, dimension(n_multi_run_e):: iabsm, iabsorig, nposextract, nsymextract
   integer, dimension(ngroup_par):: npar
   integer, dimension(n_Z_abs):: numat_abs
@@ -1612,9 +1623,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph):: Hybrid
 
   logical:: Absauto, adimpin, All_nrixs, Allsite, ATA, Atom, Atom_B_iso, Atom_conf, Atom_nonsph, Atom_occ_hubb, Atomic_scr, &
-    Atom_U_iso, Avoid, Axe_loc, &
-    Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Center_s, Fcif, Classic_irreg, &
-    Clementi, Core_resolved, Core_resolved_e, Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
+    Atom_U_iso, Avoid, Axe_loc, Basereel, Bormann, Bulk, Cartesian_tensor, &
+    Charge_free, Centre_auto, Centre_auto_abs, Center_s, Fcif, Classic_irreg, Clementi, COOP, Core_resolved, Core_resolved_e, &
+    Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
     Dip_rel, Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Film, &
     exc_imp, Extract, Extract_ten, FDM_comp, FDMX_only, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, &
     Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green_s, Green_self, Green_int, Hedin, hkl_film, &
@@ -1634,9 +1645,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   logical, dimension(0:ntype):: Hubb
 
   real(kind=db):: Alfpot, Ang_borm, Bulk_roughness, Cap_B_iso, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, &
-    D_max_pot, Delta_En_conv, Delta_Epsii, Delta_helm, Eclie, Eclie_out, Ephot_min, Film_roughness, Film_thickness, Film_zero, &
-    g1, g2, Gamma_max, Kern_fac, number_from_text, Overlap, p_self_max, p_self0, Pas_SCF, Per_helm, phi, phi_0, pop_nsph, pp, q, &
-    r, r_self, R_rydb, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, &
+    D_max_pot, Delta_En_conv, Delta_Epsii, Delta_helm, Dist_coop, Eclie, Eclie_out, Ephot_min, Film_roughness, Film_thickness, &
+    Film_zero, g1, g2, Gamma_max, Kern_fac, number_from_text, Overlap, p_self_max, p_self0, Pas_SCF, Per_helm, phi, phi_0, &
+    pop_nsph, pp, q, r, r_self, R_rydb, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, &
     V_helm, V_intmax, vv, z_min
 
   real(kind=db), dimension(nq_nrixs):: q_nrixs
@@ -1736,6 +1747,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Clementi = .false.
   Fcif = .false.
   com(:) = ' Dirac'
+  COOP = .false.
   Core_resolved_e = .false.
   Coupelapw = .false.
   Cylindre = .false.
@@ -1744,6 +1756,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Dafs = .false.
   Dip_rel = .false.
   dipmag = .false.
+  Dist_coop = 0._db
   dyn_eg = .false.
   dyn_g = .false.
   dpos(:) = 0._db
@@ -1794,6 +1807,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Charge_free = .false.
   icom(:) = 1
   igr_dop = 0
+  igr_coop(:) = 0
   iord = 4
   isigpi(:,:) = 0
   istop = 0
@@ -2033,6 +2047,19 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('classic_i')
           Classic_irreg = .false.
+
+        case('coop')
+          COOP = .true.
+
+        case('coop_atom')
+          COOP = .true.
+          n = nnombre(itape4,132)
+          if( n > 0 ) read(itape4,*,iostat=ier) igr_coop(1:n)
+
+        case('coop_dist')
+          COOP = .true.
+          n = nnombre(itape4,132)
+          if( n > 0 ) read(itape4,*,iostat=ier) Dist_coop
 
         case('doping')
           read(itape4,*,iostat=ier) itype_dop, igr_dop
@@ -3720,8 +3747,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
     i = sum( icheck(1:28) )
     if( i > 0 ) then
-      if (FDMX_only) then !*** JDB Sept. 2016 no .bav overwrite for fdmx_proc
-        open(3,status='scratch')
+      if (FDMX_only) then
+        open(3, file = nomfichbav, status='old',iostat=istat) !*** JDB March 2018 fix
       else
         open(3, file = nomfichbav, status='unknown',iostat=istat)
       endif
@@ -3954,6 +3981,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         ia = n_atom_uc - n + i
         igr = n_atom_per_neq + i
         if( igr_dop == igr ) igr_dop = ia
+        do j = 1,n_atom_coop
+          if( igr_coop(j) == igr ) igr_coop(j) = ia
+        end do
         posn(:,ia) = posn(:,igr)
         itype(ia) = itype(igr)
         if( Taux ) Taux_oc(ia) = Taux_oc(igr)
@@ -3993,6 +4023,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         end do
       endif
 
+      do j = 1,n_atom_coop
+        if( igr_coop(j) > n_atom_per_neq ) cycle
+        do igr = 1,n_atom_uc - n
+          if( sum( abs( posn(:,igr) - pos(:,igr_coop(j)) ) ) > eps10 ) cycle
+          igr_coop(j) = igr
+          exit
+        end do
+      end do
+
       ia = n_atom_uc - n + 1
       do igr = n_atom_per_neq,1,-1
         do i = 1,neq(igr)
@@ -4025,6 +4064,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
     if( Doping ) iabsm(1) = n_atom_uc + 1
     if( .not. Taux ) ATA = .FALSE.
+    if( COOP ) Normaltau = .false. ! Normaltau is used in MSM. I do not remember well when it can be usefull...
 
     if( Flapw ) then
       nrm = nrato_dirac
@@ -5312,6 +5352,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Charge_free,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Classic_irreg,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Clementi,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(COOP,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Core_resolved,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Coupelapw,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(D_max_pot,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -5325,6 +5366,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Density,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Density_comp,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Dipmag,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Dist_coop,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Doping,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(dpos,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(E_adimp,n_adimp,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -5377,6 +5419,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     endif
     call MPI_Bcast(iabsm,n_multi_run_e,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(iabsorig,n_multi_run_e,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(igr_coop,n_atom_coop,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(igr_dop,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Interface_shift,4,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(iord,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -5619,6 +5662,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Delta_En_conv = Delta_En_conv / Rydb
   Delta_Epsii = Delta_Epsii / Rydb
   Delta_helm = Delta_helm / bohr
+  Dist_coop = Dist_coop / bohr
   dpos(:) = dpos(:) / bohr
   E_adimp(:) = E_adimp(:) / Rydb
   E_max_range(:) = E_max_range(:) / Rydb
