@@ -981,6 +981,10 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
   Delta_bulk = 0._db
   Delta_energ_s = 0._db
   ia_coop(:) = 0
+! Moy_cluster is a test variable on the interatomic average potentiel calculation
+! When false (and Green), the average is calculated in the close surrounding of the absorbing atom.
+! Otherwise it is in all the area (cluster) of calculation
+! True was found better
   Moy_cluster = .true.
   iaabsfirst = 0
   E1E2e = Multipole(2)

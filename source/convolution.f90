@@ -1221,6 +1221,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         E_cut = E_cut_orig 
       endif
 
+      allocate( Mu_m(nenerg,4,n_mat_pol) )
+
       if( .not. ( Conv_done .or. Skip_run(ifich) ) ) then
 
         nenerge = nenerg + njp
@@ -1231,7 +1233,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           allocate( Ad(nenerg,nphim,npldafs) )
         endif
         allocate( Xa(nenerge,nxan) )
-        allocate( Mu_m(nenerg,4,n_mat_pol) )
 
         if( seah .or. Arc ) then
           nelor = nenerg
@@ -1725,7 +1726,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         deallocate( lori )
         deallocate( lorix, lorrx )
         if( Dafs ) deallocate( lorr )
-        deallocate( Mu_m )
         deallocate( Xa )
         if( seah .or. Arc ) then
           deallocate( Elor )
@@ -1785,6 +1785,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       deallocate( Adafs )
       deallocate( Energ )
       deallocate( Mu_mat )
+      deallocate( Mu_m )
       deallocate( Xanes )
       if( Cor_abs ) deallocate( mu )
       

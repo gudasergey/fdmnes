@@ -4028,7 +4028,7 @@ subroutine cluster_rot(iopsym,rotmat)
 
 ! Rotation de 30 degres en cas d'axe 3 selon Oz
   elseif( ( iops(58) == 1 .and. iops(22) == 0 .and. iops(57) == 0 ) .or. &
-      ( iops(49) == 1 .and. iops(41) == 1 .and. iops(22) == 1 .and. iops(57) == 0 .and. iops(58) == 0 ) .or. &
+      ( iops(49) == 1 .and. iops(41) == 1 .and. iops(22) == 1 .and. iops(57) == 0 .and. iops(58) == 0 ) .or. & ! D3h
       ( iops(57) == 0 .and. iops(61) == 0 .and. iops(59) == 1 .and. iops(63) == 1 ) .or. &
       ( iops(58) == 0 .and. iops(62) == 0 .and. iops(60) == 1 .and. iops(64) == 1 ) ) then
 
@@ -7310,10 +7310,18 @@ subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_ma
     nomabs(jpl) = nomab
 
     if( ltypcal(kpl) == 'sp   ' .or.  ltypcal(kpl) == 'ps   ' ) then
-      nomab(nj+3:nj+4) = '_r'
+      if( nj+4 < Length_word ) then
+        nomab(nj+3:nj+4) = '_r'
+      else
+        nomab(nj+3:nj+3) = 'r'
+      endif
       nomabs(jpl) = nomab
       jpl = jpl + 1
-      nomab(nj+3:nj+4) = '_i'
+      if( nj+4 < Length_word ) then
+        nomab(nj+3:nj+4) = '_i'
+      else
+        nomab(nj+3:nj+3) = 'i'
+      endif
       nomabs(jpl) = nomab
     endif
 

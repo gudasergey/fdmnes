@@ -338,10 +338,12 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
 
       do ib = ia+1,natome
 
-        do j = 1,n_atom_coop
-          if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
-        end do
-        if( j > n_atom_coop ) cycle 
+        if( n_atom_coop > 0 ) then
+          do j = 1,n_atom_coop
+            if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
+          end do
+          if( j > n_atom_coop ) cycle
+        endif
 
         iprb = iaprotoi(ib)
         Dist = sqrt( sum( ( Posi(:,ia) - Posi(:,ib) )**2 ) )
@@ -2997,10 +2999,12 @@ subroutine Cal_Tau_coop(Atom_axe,Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispi
     lmb0 = 0
     do ib = ia+1,natome
 
-      do j = 1,n_atom_coop
-        if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
-      end do
-      if( j > n_atom_coop ) cycle 
+      if( n_atom_coop > 0 ) then
+        do j = 1,n_atom_coop
+          if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
+        end do
+        if( j > n_atom_coop ) cycle
+      endif
 
       iprb = iaprotoi(ib)
       Dist = sqrt( sum( ( Posi(:,ia) - Posi(:,ib) )**2 ) )

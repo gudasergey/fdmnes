@@ -3920,10 +3920,13 @@ function nab_coop_ev(COOP,Dist_coop,ia_coop,iaprotoi,n_atom_coop,n_atom_proto,na
       ipra = iaprotoi( ia )
 
       do ib = ia+1,natome
-        do j = 1,n_atom_coop
-          if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
-        end do
-        if( j > n_atom_coop ) cycle
+
+        if( n_atom_coop > 0 ) then
+          do j = 1,n_atom_coop
+            if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
+          end do
+          if( j > n_atom_coop ) cycle
+        endif
  
         iprb = iaprotoi( ib )
         Dist = sqrt( sum( ( Posi(:,ia) - Posi(:,ib) )**2 ) )
@@ -4039,10 +4042,12 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
 
       do ib = ia+1,natome
 
-        do j = 1,n_atom_coop
-          if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
-        end do
-        if( j > n_atom_coop ) cycle 
+        if( n_atom_coop > 0 ) then
+          do j = 1,n_atom_coop
+            if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
+          end do
+          if( j > n_atom_coop ) cycle
+        endif
 
         iprb = iaprotoi( ib )
         if( Full_atom ) then
@@ -4172,10 +4177,12 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
 
     do ib = ia+1,natome
 
-      do j = 1,n_atom_coop
-        if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
-      end do
-      if( j > n_atom_coop ) cycle 
+      if( n_atom_coop > 0 ) then
+        do j = 1,n_atom_coop
+          if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
+        end do
+        if( j > n_atom_coop ) cycle
+      endif
 
       iprb = iaprotoi( ib )
 
@@ -4293,10 +4300,12 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
 
     do ib = ia+1,natome
 
-      do j = 1,n_atom_coop
-        if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
-      end do
-      if( j > n_atom_coop ) cycle 
+      if( n_atom_coop > 0 ) then
+        do j = 1,n_atom_coop
+          if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
+        end do
+        if( j > n_atom_coop ) cycle
+      endif
 
       iprb = iaprotoi( ib )
       if( Full_atom ) then
