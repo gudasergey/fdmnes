@@ -30,8 +30,8 @@ subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsp
   integer, dimension(n_Z_abs):: numat_abs
   integer, dimension(:), allocatable:: iabsmm, isymq
 
-  logical:: Atom_nonsph, absauto, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Center_s, Doping, Extract, Flapw, Magnetic, &
-            Matper, Memory_save, mspinor, Noncentre, Sym_2D
+  logical:: Atom_nonsph, Absauto, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Center_s, Doping, Extract, Flapw, &
+            Magnetic, Matper, Memory_save, mspinor, Noncentre, Sym_2D
   logical, dimension(ngroup):: Atom_nsph_e, ok
   logical, dimension(0:ngroup_m):: Atom_with_axe
   logical, dimension(n_atom_uc):: Far_atom
@@ -230,7 +230,7 @@ subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsp
 
   endif
 
-  call Search_ordering(axyz,axyz_int,axyz_sur,Base_ortho,Base_ortho_int,Base_ortho_sur,Center_s,Centre,dcosxyz, &
+  call Search_ordering(Absauto,axyz,axyz_int,axyz_sur,Base_ortho,Base_ortho_int,Base_ortho_sur,Center_s,Centre,dcosxyz, &
                        dcosxyz_int,dcosxyz_sur,Matper,n_atom_int,n_atom_per,n_atom_uc,Noncentre,Ordering,posn,Sym_2D)
 
   allocate( isymq(n_atom_uc) )
@@ -556,7 +556,7 @@ end
 
 !*********************************************************************
 
-subroutine Search_ordering(axyz,axyz_int,axyz_sur,Base_ortho,Base_ortho_int,Base_ortho_sur,Center_s,Centre,dcosxyz, &
+subroutine Search_ordering(Absauto,axyz,axyz_int,axyz_sur,Base_ortho,Base_ortho_int,Base_ortho_sur,Center_s,Centre,dcosxyz, &
                        dcosxyz_int,dcosxyz_sur,Matper,n_atom_int,n_atom_per,n_atom_uc,Noncentre,Ordering,posn,Sym_2D)
 
   use declarations
@@ -565,7 +565,8 @@ subroutine Search_ordering(axyz,axyz_int,axyz_sur,Base_ortho,Base_ortho_int,Base
   integer:: i, igr, jgr, n_atom_int, n_atom_per, n_atom_uc
   integer, dimension(n_atom_uc):: Ordering
 
-  logical:: Base_ortho, Base_ortho_int, Base_ortho_sur, Center_s, Closer, Matper, Noncentre, Positive, Same_distance, Sym_2D
+  logical:: Absauto, Base_ortho, Base_ortho_int, Base_ortho_sur, Center_s, Closer, Matper, Noncentre, Positive, Same_distance, &
+            Sym_2D
 
   real(kind=db):: dist12, Vnorme
   real(kind=db), dimension(3):: axyz, axyz_int, axyz_sur, Centre, dcosxyz, dcosxyz_int, dcosxyz_sur, ps
@@ -612,6 +613,9 @@ subroutine Search_ordering(axyz,axyz_int,axyz_sur,Base_ortho,Base_ortho_int,Base
   do igr = 1,n_atom_uc
     Ordering(igr) = igr
   end do
+
+! When Absorber keyword is used, there is a risk that the ordering make the chosen aborbing atom not first in the list
+  if( .not. Absauto ) return
 
   do igr = 1,n_atom_uc
     do jgr = igr+1,n_atom_uc

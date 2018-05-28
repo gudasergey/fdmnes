@@ -180,7 +180,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
         case('doping')
           Doping = .true.
           read(itape4,*) itype_dop
-          absauto = .false.
+          Absauto = .false.
           n_multi_run_e = 1
 
         case('absorbeur')
@@ -3061,7 +3061,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('absorbeur')
           if( Doping ) then
             Error_message = ' Absorber keyword not authorized when Doping keyword present !'
-            call write_error_message(Error_message,6,0)
+            call write_error_message(Error_message,6,istop)
             stop
           endif
           k = 0
@@ -6170,7 +6170,7 @@ function number_from_text(n_skip,mot_in)
 
   character(len=132):: mot, mot_in
 
-  integer:: i, j, length, n, n_skip
+  integer:: i, ier, j, length, n, n_skip
 
   real(kind=db):: number_from_text
 
@@ -6202,7 +6202,8 @@ function number_from_text(n_skip,mot_in)
   open(9, status='SCRATCH')
   write(9,*) mot(1:i-1)
   backspace(9)
-  read(9,*) number_from_text
+  read(9,*,iostat=ier) number_from_text
+  if( ier /= 0 ) number_from_text = 0._db
   Close(9)
 
   return

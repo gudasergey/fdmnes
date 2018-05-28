@@ -1749,6 +1749,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       
       Energ(1:nenerg) = Energ(1:nenerg) + decal_initl(initl,ifich)
       
+      fac = 1._db ! (Rydb)
+      
       do ie = 1,nes
         E = Es(ie)
         E = max(E ,Energ(1) )
@@ -1758,7 +1760,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         end do
         p1 = ( E - Energ(i-1) ) / ( Energ(i) - Energ(i-1) )
         p2 = 1 - p1
-        if( Es(ie) < Energ(1) - 1._db .or. Es(ie) > Energ(nenerg) + 1._db ) then
+        if( Es(ie) < Energ(1) - fac .or. Es(ie) > Energ(nenerg) + fac &
+                                    .or. ( Es(ie) > Energ(nenerg) + eps10 .and. Es(nes) - Es(ie) > fac ) ) then
           p1f(ie) = 0._db
           p2f(ie) = 0._db
         else  
@@ -2477,10 +2480,10 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
   
   character(len=132), dimension(nfich):: Fichin
   
-  logical:: Energphot
+  logical:: Energphot, File_change
   logical, dimension(:,:), allocatable:: Fichdone 
   
-  real(kind=db):: E, Emax, Emin, Esmin, Estart, Estart_l, pasdeb
+  real(kind=db):: d, dmin, E, Emax, Emin, Esmin, Estart, Estart_l, pasdeb
   real(kind=db), dimension(nes_in):: Es_temp 
   real(kind=db), dimension(nfich):: Eph1, Eseuil 
   real(kind=db), dimension(ninitlm,nfich):: decal_initl 
@@ -2506,7 +2509,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
       else
         E = Eph1(ifich) + decal_initl(initl,ifich) - Eseuil(ifich) + Esmin
       endif
-      if( E > Estart_l - 1.e-10_db ) then
+      if( E > Estart_l - eps10 ) then
         nsup(initl,ifich) = nint( ( E - Estart_l ) / pasdeb )
         ne_initl(initl,ifich) = ne(ifich) + nsup(initl,ifich)
       else
@@ -2586,11 +2589,18 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
     Emax = Ef(ne_initl(1,i),1,i)
   endif
 
+  Emin = Estart_l
+  
   do ifich = 1,nfich
     do initl = 1,ninitl(ifich)
-      Emin = min( Ef(1,initl,ifich), Emin )
-      if( i == 0 .or. abs( Eseuil(ifich) - Eseuil(max(i,1)) ) < 1._db ) &
-        Emax = min( Ef(ne_initl(initl,ifich),initl,ifich), Emax )
+!      Emin = min( Ef(1,initl,ifich), Emin )
+      if( i == 0 .or. abs( Eseuil(ifich) - Eseuil(max(i,1)) ) < 1._db ) then
+        if( Ef(ne_initl(initl,ifich),initl,ifich) - Emax > Emax - Emin ) then
+          Emax = Ef(ne_initl(initl,ifich),initl,ifich)
+        elseif( .not. Emax - Ef(ne_initl(initl,ifich),initl,ifich) > Ef(ne_initl(initl,ifich),initl,ifich) - Emin ) then  
+          Emax = min( Ef(ne_initl(initl,ifich),initl,ifich), Emax )
+        endif
+      endif
     end do
   end do
 
@@ -2599,68 +2609,68 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
   allocate( Fichdone(ninitlm,nfich) )
   Fichdone(:,:) = .false.
 
-  boucle_0: do ifich = 1,nfich
+  dmin = 1000000000._db
+  do ifich = 1,nfich
     do initl = 1,ninitl(ifich)
-      if( abs( Ef(1,initl,ifich) - Emin ) < eps10 ) exit boucle_0
+      if( decal_initl(initl,ifich) > dmin - eps10 ) cycle
+      ifichref = ifich
+      initlref = initl
+      dmin = decal_initl(initlref,ifichref) 
     end do
-  end do boucle_0
-  ifichref = ifich
-  initlref = initl
+  end do
   Fichdone(initlref,ifichref) = .true.
 
   je = 0
-  do ie = 1,nes_in
+  ie = 0
+  do
     je = je + 1
-    E = Ef(je,initlref,ifichref)
-    Es_temp(ie) = E
-    if( E > Emax - 1.e-10_db ) exit
+    if( je <= ne_initl(initlref,ifichref) ) then 
+      E = Ef(je,initlref,ifichref)
+      ie = ie + 1
 
-    if( je == ne_initl(initlref,ifichref) ) then
-
-      boucle_1: do ifich = 1,nfich
-        do initl = 1,ninitl(ifich)
-
-          if( Ef(ne_initl(initl,ifich),initl,ifich) > E + eps10 ) then
-            do je = ne_initl(initl,ifich),1,-1
-              if( Ef(je,initl,ifich) < E - eps10 ) exit
-            end do
-            ifichref = ifich
-            initlref = initl
-            Fichdone(initlref,ifichref) = .true.
-            exit boucle_1
-          endif
-          
+      if( ie > nes_in ) then
+        call write_error
+        do ipr = 6,9,3
+          write(ipr,110)
         end do
-      end do boucle_1
+        stop
+      endif
+
+      Es_temp(ie) = E
+      if( E > Emax - eps10 ) exit
     endif
 
-    boucle_2: do ifich = 1,nfich
+    d = decal_initl(initlref,ifichref)
+    dmin = 1000000000._db
+    File_change = .false.
+    do ifich = 1,nfich
       do initl = 1,ninitl(ifich)
         if( Fichdone(initl,ifich) ) cycle
-        if( E > Ef(nsup(initl,ifich)+1,initl,ifich) + eps10 ) then
-          do je = nsup(initl,ifich)+1,ne_initl(initl,ifich)
-            if( Ef(je,initl,ifich) > E + eps10 ) exit
-          end do
-          je = je - 1
-          ifichref = ifich
-          initlref = initl
-          Fichdone(initlref,ifichref) = .true.
+        if( decal_initl(initl,ifich) < d + eps10 ) then
+          Fichdone(initl,ifich) = .true.
           cycle
+        endif  
+        if( decal_initl(initl,ifich) > d + eps10 .and. decal_initl(initl,ifich) < dmin &
+           .and. ( E > Ef(nsup(initl,ifich)+1,initl,ifich) - eps10 .or. je > ne_initl(initlref,ifichref) ) ) then
+          File_change = .true.
+          initlref = initl
+          ifichref = ifich
+          dmin = decal_initl(initl,ifich)
         endif
       end do
-    end do boucle_2
+    end do
+    if( File_change ) then
+      Fichdone(initlref,ifichref) = .true.
+      do je = 1,ne_initl(initlref,ifichref)
+        if( Ef(je,initlref,ifichref) > Es_temp(ie-1) + eps10 ) exit
+      end do
+      if( je > ne_initl(initlref,ifichref) ) exit
+      Es_temp(ie) = Ef(je,initlref,ifichref)  
+    endif
 
   end do
   
-  if( ie > nes_in ) then
-    call write_error
-    do ipr = 6,9,3
-      write(ipr,110)
-    end do
-    stop
-  endif
-
-  if( E > Emax + 1.e-10_db ) then
+  if( E > Emax + eps10 ) then
     nes = ie - 1
   else
     nes = ie
@@ -2678,7 +2688,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
   endif
 
   return
-  110 format(///' Problem in the energy grid elaboration in confolution',/ &
+  110 format(///' Problem in the energy grid elaboration in convolution',/ &
                 ' Too much points !' //)
   120 format(///' Taking into account the energy shifts, there is no overlap between',/ &
                 ' the energy ranges of the different absorbing atoms !',/ &
