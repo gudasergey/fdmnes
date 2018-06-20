@@ -926,9 +926,9 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
   115 format(///' There is not the same number of columns in the 2 files:',i4,' and',i4,' !'///)
   120 format(///' Unknown keyword in the indata file :'//1x,A)
   125 format(///' In then metric calculation, there is no overlap',/ &
-  ' between the energy ranges of the experiment and the', ' calculation !'/,' Check the keywords Emin, Emax, the energy', &
-  ' range (photon or photoelectron energy), the unit (eV, keV', ' ...'//,' ig   Emin(1)   Emin(2)', &
-  '   Emax(1)   Emax(2)   E_met_min    E_met_max ')
+                ' between the energy ranges of the experiment and the calculation !', / &
+                ' Check the keywords Emin, Emax, the energy range (photon or photoelectron energy), the unit (eV, keV ...', // &
+                ' ig   Emin(1)   Emin(2)   Emax(1)   Emax(2)   E_met_min    E_met_max ')
   126 format(i3,4f10.3,2f13.3)
   130 format(/' Metric distance calculation between :')
   140 format(a132)

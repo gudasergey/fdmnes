@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 23th of May 2018, 4 Prairial, An 226
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 8th of June 2018, 20 Prairial, An 226
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 23th of May 2018'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 8th of June 2018'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -451,9 +451,15 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
   open(1, file=fdmnes_inp, status = 'old')
 
+  mot = ' '
+
   boucle_ligne: do ligne = 1,100000
 
-    read(1,'(A)',iostat=eof) mot
+    if( ligne == 1 ) then
+      read(1,'(3x,A)',iostat=eof) mot
+    else
+      read(1,'(A)',iostat=eof) mot
+    endif
 
     if( eof /= 0 ) exit boucle_ligne
 

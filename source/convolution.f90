@@ -1348,7 +1348,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         allocate( lori(nenerge) )
         allocate( lorix(nenerge) )
         allocate( lorrx(nenerge) )
-        if( Dafs ) allocate( lorr(nenerge) )
+        if( Dafs .or. Stokes_xan ) allocate( lorr(nenerge) )
 
 ! Calculation of the coefficients of the lorentzian
         call cflor(bb,betalor,E_cut,Energe,Elor,Energ,ie1,ie2,nef,nelor,nenerg,nenerge,Photoemission)
@@ -1555,7 +1555,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
         else
 
-          if( Dafs ) then
+          if( Dafs .or. Stokes_xan ) then
 
             do ie = 1,nenerg
 
@@ -1598,6 +1598,22 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
                   endif
                 end do
               end do
+
+              if( Stokes_xan ) then
+                do ipl = 1,n_mat_pol
+                  Mu_m(ie,1,ipl) = sum( lorr(ie1:nen2) * Mu_mat(ie1:nen2,1,ipl) ) / pi
+                  if( ie >= ie1 ) Mu_m(ie,1,ipl) = Mu_m(ie,1,ipl) - img * Mu_mat(ie,1,ipl)
+                  Mu_m(ie,2,ipl) = sum( lorr(ie1:nen2) &
+                             * cmplx( Mu_mat(ie1:nen2,2,ipl), Mu_mat(ie1:nen2,3,ipl), db ) ) / pi
+                  if( ie >= ie1 ) Mu_m(ie,2,ipl) = Mu_m(ie,2,ipl) - img * cmplx( Mu_mat(ie,2,ipl), Mu_mat(ie,3,ipl), db )
+                  Mu_m(ie,3,ipl) = sum( lorr(ie1:nen2) &
+                             * cmplx( Mu_mat(ie1:nen2,4,ipl), Mu_mat(ie1:nen2,5,ipl), db ) ) / pi
+                  if( ie >= ie1 ) Mu_m(ie,3,ipl) = Mu_m(ie,3,ipl) - img * cmplx( Mu_mat(ie,4,ipl), Mu_mat(ie,5,ipl), db )
+                  Mu_m(ie,4,ipl) = sum( lorr(ie1:nen2) * Mu_mat(ie1:nen2,6,ipl) ) / pi
+                  if( ie >= ie1 ) Mu_m(ie,4,ipl) = Mu_m(ie,4,ipl) - img * Mu_mat(ie,6,ipl)
+                end do
+              endif
+          
             end do
 
           endif
@@ -1611,22 +1627,12 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
               Xanes(1:nef-1,ipl) = 0._db
             end do
           endif
-     
           if( Stokes_xan ) then
             do ipl = 1,n_mat_pol
-              Mu_m(ie,1,ipl) = sum( lorr(ie1:nen2) * Mu_mat(ie1:nen2,1,ipl) ) / pi
-              if( ie >= ie1 ) Mu_m(ie,1,ipl) = Mu_m(ie,1,ipl) - img * Mu_mat(ie,1,ipl)
-              Mu_m(ie,2,ipl) = sum( lorr(ie1:nen2) &
-                             * cmplx( Mu_mat(ie1:nen2,2,ipl), Mu_mat(ie1:nen2,3,ipl), db ) ) / pi
-              if( ie >= ie1 ) Mu_m(ie,2,ipl) = Mu_m(ie,2,ipl) - img * cmplx( Mu_mat(ie,2,ipl), Mu_mat(ie2,3,ipl), db )
-              Mu_m(ie,3,ipl) = sum( lorr(ie1:nen2) &
-                             * cmplx( Mu_mat(ie1:nen2,4,ipl), Mu_mat(ie1:nen2,5,ipl), db ) ) / pi
-              if( ie >= ie1 ) Mu_m(ie,3,ipl) = Mu_m(ie,3,ipl) - img * cmplx( Mu_mat(ie,4,ipl), Mu_mat(ie2,5,ipl), db )
-              Mu_m(ie,4,ipl) = sum( lorr(ie1:nen2) * Mu_mat(ie1:nen2,6,ipl) ) / pi
-              if( ie >= ie1 ) Mu_m(ie,4,ipl) = Mu_m(ie,4,ipl) - img * Mu_mat(ie,6,ipl)
+              Mu_m(1:nef-1,1:4,ipl) = 0._db
             end do
           endif
-          
+     
         endif
 
 ! Transformation to crystallo convention with f" > 0
@@ -1725,9 +1731,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         deallocate( e2 )
         deallocate( lori )
         deallocate( lorix, lorrx )
-        if( Dafs ) deallocate( lorr )
+        if( Dafs .or. Stokes_xan ) deallocate( lorr )
         deallocate( Xa )
-        if( seah .or. Arc ) then
+        if( Seah .or. Arc ) then
           deallocate( Elor )
           deallocate( betalor )
         endif
@@ -2639,6 +2645,8 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
       Es_temp(ie) = E
       if( E > Emax - eps10 ) exit
     endif
+
+    if( ie == 1 ) cycle 
 
     d = decal_initl(initlref,ifichref)
     dmin = 1000000000._db

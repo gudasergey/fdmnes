@@ -341,7 +341,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
         axyz,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur,.false.,Center_s,Centre, &
         Doping,Extract,Flapw,iabsm,icheck(3),igr_i,igr_is,igr_proto,itype,Magnetic,Matper, &
         Memory_save,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,n_multi_run_e,n_Z_abs,neqm, &
-        ngroup,ngroup_m,nlat,nlatm,Noncentre,nspin,ntype,numat,numat_abs,popats,posn,Sym_2D)
+        ngroup,ngroup_m,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat,numat_abs,popats,posn,Sym_2D,Taux_oc)
 
   n_atom_proto_uc = n_atom_proto
   if( Doping ) n_atom_proto = n_atom_proto + 1
@@ -353,7 +353,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
         axyz_bulk,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur,Bulk,.false.,Centre, &
         .false.,Extract,Flapw,iabsm,icheck(3),igr_i,igr_is,igr_proto,itype,Magnetic,.true., &
         Memory_save,n_atom_int,n_atom_bulk,n_atom_proto,n_atom_sur,n_atom_bulk,n_multi_run_e,n_Z_abs,neqm, &
-        ngroup,ngroup_m,nlat,nlatm,.false.,nspin,ntype,numat,numat_abs,popats,posn_bulk,Sym_2D)
+        ngroup,ngroup_m,ngroup_taux,nlat,nlatm,.false.,nspin,ntype,numat,numat_abs,popats,posn_bulk,Sym_2D,Taux_oc)
   endif
 
   deallocate( Atom_nsph_e )

@@ -8,14 +8,14 @@ subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsp
         axyz,axyz_int,axyz_sur,Base_ortho_int,Base_ortho_sur,Bulk,Center_s,Centre, &
         Doping,Extract,Flapw,iabsm,icheck,igr_i,igr_is,igr_proto,itype,Magnetic,Matper, &
         Memory_save,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,n_multi_run_e,n_Z_abs,neqm, &
-        ngroup,ngroup_m,nlat,nlatm,Noncentre,nspin,ntype,numat,numat_abs,popats,posn,Sym_2D)
+        ngroup,ngroup_m,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat,numat_abs,popats,posn,Sym_2D,Taux_oc)
 
   use declarations
   implicit none
 
   integer:: i, ia, ia_b, ib, ib_b, icheck, igr, igr_1, igr_2, igr_b, igra, igrb, io, irev, is, isp, it, ita, itb, jgr, jgr_b, &
      js, kgr, long, n_atom_int, n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, n_multi_run_e, n_Z_abs, na, nabs, nb, nla, nlb, &
-     neq, neqm, ngroup, ngroup_m, nlatm, nspin, ntype, numat_it, numat_jgr
+     neq, neqm, ngroup, ngroup_m, ngroup_taux, nlatm, nspin, ntype, numat_it, numat_jgr
 
   character(len=5):: struct
   character(len=9):: nomsym
@@ -41,6 +41,7 @@ subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsp
   real(kind=db), dimension(3):: angxyz, angxyz_int, angxyz_sur, Axe_atom_c, axyz, axyz_int, axyz_sur, Centre, dcosxyz, &
                                 dcosxyz_int, dcosxyz_sur, ps, spini, vspin, wspin
   real(kind=db), dimension(3,3):: Cubmat, Cubmat_int, Cubmat_sur, Cubmati, Cubmati_int, Cubmati_sur, matopsym
+  real(kind=db), dimension(ngroup_taux):: Taux_oc
   real(kind=db), dimension(3,n_atom_uc):: pos, posg, posn, poss
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_gr, Axe_atom_s
   real(kind=db), dimension(ngroup,nlatm,nspin):: popats
@@ -272,6 +273,10 @@ subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsp
       if( ok(igr) .or. Far_atom(igr) ) cycle boucle_igr
 
       if( abs(itypegen(igr)) /= abs(itypegen(jgr))) cycle boucle_igr
+
+      if( .not. Bulk .and. ngroup_taux > 0 ) then
+        if( abs( Taux_oc(igr) - Taux_oc(jgr) ) > eps6 ) cycle boucle_igr
+      endif
 
       do ia = 1,n_atom_uc
         pos(:,ia) = posn(:,ia) - posn(:,igr)
@@ -3600,14 +3605,23 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
     do ib = ia + 1,natomp
       dist = sqrt( sum( ( pos(:,ia) - pos(:,ib) )**2 ) )
       if( dist < Test_dist_min ) then
-        if( istop == 0 ) then
-          call write_error
-          write(ipr,'(/A/)') '  The following atoms are too close :'
-          istop = 1
+        if( istop == 0 ) call write_error
+        if( ia > ngroup ) then
+          Za = iaproto(ia)
+        else
+          Za = numat(itypep(ia))
+        endif
+        if( ib > ngroup ) then
+          Zb = iaproto(ib)
+        else
+          Zb = numat(itypep(ib))
         endif
         do ipr = 3,9,3
-          write(ipr,260) ia, igroup(ia), pos(1:3,ia)*bohr, ib, igroup(ib), pos(1:3,ib)*bohr, dist*bohr
+          if( istop == 0 ) write(ipr,'(/A/)') '  The following atoms are too close :'
+          write(ipr,260) iaproto(ia), ia, igroup(ia), Za, pos(1:3,ia)*bohr, &
+                         iaproto(ib), ib, igroup(ib), Zb, pos(1:3,ib)*bohr, dist*bohr
         end do
+        istop = 1
       endif
     end do
   end do
@@ -3649,9 +3663,17 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
   230 format(/' ipr   iapot')
   240 format(i4,i6)
   250 format(4i5,f13.3)
-  260 format(' Atom ia =',i5,', igr =',i5,', pos =',3f10.5,/ &
-             '  and ia =',i5,', igr =',i5,', pos =',3f10.5,', dist =',f10.5,' A')
-  270 format('  Minimal distance is set at =',f10.5,' A')
+  260 format(' Atoms ipr = ',i4,', ia =',i5,', igr =',i5,', Z =',i3,', pos =',3f12.7,/ &
+             '   and ipr = ',i4,', ia =',i5,', igr =',i5,', Z =',i3,', pos =',3f12.7,// &
+             '  Distance =',f10.5,' A')
+  270 format(/'  Minimal distance is set at =',f10.5,' A', // &
+              '  The positions are the one in the cluster.', / &
+              '  ipr is the index of the non equivalent atoms in the unit cell, ia is the index in the cluster,',/ &
+              '  igr is the index in the unit cell.', // &
+              '  Note that this can come from structure obtained by crystallographic refinement giving', / &
+              '  the same atom at 2 different positions with partial occupancy.', / &
+              '  Check your cif or pdb file if you use one !', // &
+              '  For calculations with surfaces, it can comes from a bad surface-bulk shift.')
 end
 
 ! **********************************************************************

@@ -17,7 +17,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   integer:: eof, eoff, i, iabsm_1, ie, ier, igamme, igr, igrdat, io, ipr, ipl, istat, it, itape4, itype_dop, j, jgr, &
     jpl, k, l, Length_line, lin_gam, lmax_nrixs, mpierr, mpinodes0, mpirank0, n, n_adimp, n_atom_bulk, n_atom_cap, &
     n_atom_coop, n_atom_int, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_uc, n_dic, n_file_dafs_exp, &
-    n_fract_x, n_fract_y, n_fract_z, n_label, n_mat_polar, n_mu, n_multi_run_e, n_radius, n_range, n_Z_abs, nb, &
+    n_fract_x, n_fract_y, n_fract_z, n_label, n_mat_polar, n_mu, n_multi_run_e, n_radius, n_range, n_symbol, n_Z_abs, nb, &
     nb_atom_conf_m, ncolm, neimagent, nenerg, ngamme, ngc, ngroup, n_atom_neq, nhybm, nklapw, nl, &
     nlatm, nlmlapwm, nmatsym, nn, nnombre, norbdil, norbv, npldafs, npldafs_2d, npldafs_e, npldafs_t, &
     nple, nplm, nplrm, nq_nrixs, nspin, nspino, nspinp, ntype, ntype_bulk, numat_abs, ntype_conf, Wien_save, Z
@@ -154,10 +154,10 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           end do
           ntype_bulk = 1
           do igr = 2,n_atom_bulk
-            do jgr = 1,igr
+            do jgr = 1,igr-1
               if( Z_bulk(igr) == Z_bulk(jgr) ) exit
             end do
-            if( jgr > igr ) ntype_bulk = ntype_bulk + 1
+            if( jgr >= igr ) ntype_bulk = ntype_bulk + 1
           end do
 
         case('cap_layer')
@@ -690,11 +690,12 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             elseif( mot(1:17) == '_cell_angle_gamma' ) then
               Angz = number_from_text(1,mot)
 
-            elseif( mot(1:16) == '_atom_site_label' .or. mot(1:16) == '_atom_site_fract' ) then
+            elseif( mot(2:16) == 'atom_site_label' .or. mot(2:22) == 'atom_site_symbol' .or. &
+                    mot(2:16) == 'atom_site_fract' ) then
 
               backspace(8)
               n_fract_x = -1; n_fract_y = -1; n_fract_z = -1
-              n_label = -1
+              n_label = -1; n_symbol = -1
 
               do n = 1,100000
                 read(8,'(A)') mot
@@ -704,6 +705,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
                   exit
                 elseif( mot(2:16) == 'atom_site_label') then
                   n_label = n - 1
+                elseif( mot(2:22) == 'atom_site_type_symbol') then
+                  n_symbol = n - 1
                 elseif( mot(2:18) == 'atom_site_fract_x') then
                   n_fract_x = n - 1
                 elseif( mot(2:18) == 'atom_site_fract_y') then
@@ -717,7 +720,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
                 endif
               end do
 
-              if( n_fract_x == -1 .or. n_fract_y == -1 .or. n_fract_z == -1 .or. n_label == -1 ) then
+              if( n_fract_x == -1 .or. n_fract_y == -1 .or. n_fract_z == -1 .or. ( n_label == -1 .and. n_symbol == -1 ) ) then
                 call write_error
                 do ipr = 6,9,3
                   write(ipr,110)
@@ -970,7 +973,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     if( Space_Group /= ' ' .or. ntype == 0 .or. Atom_conf ) then
       Very_fast = Readfast .or. Taux .or. Temp_B_iso .or. .not. ( Atom_nonsph .or. Atom_occ_hubb .or. Axe_loc)
       call Dim_reading(Angz,Atom_conf,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per,n_atom_per_neq, &
-                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,ntype,ntype_conf,Pdb,Space_Group,Very_fast)
+                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,n_symbol,ntype,ntype_conf,Pdb,Space_Group, &
+                       Very_fast)
     endif
     n_atom_uc = n_atom_per + n_atom_sur + n_atom_int
 
@@ -1235,13 +1239,15 @@ end
 !*********************************************************************
 
 subroutine Dim_reading(Angz,Atom_conf,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per,n_atom_per_neq, &
-                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,ntype,ntype_conf,Pdb,Space_Group,Very_fast)
+                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,n_symbol,ntype,ntype_conf,Pdb,Space_Group, &
+                       Very_fast)
 
   use declarations
   implicit none
 
-  integer:: i, ier, igr, igrdat, io, ipr, istat, it, itape4, itype_dop, jgr, kgr, ligne, n, n_atom_int, n_atom_per, &
-    n_atom_per_neq, n_atom_sur, n_label, n_fract_x, n_fract_y, n_fract_z, na, n_atom_neq, nnombre, norbv, ntype, ntype_conf
+  integer:: i, ier, igr, igrdat, io, ipr, istat, it, itape4, itype_dop, jgr, kgr, ligne, n, n_atom_neq, n_atom_int, n_atom_per, &
+    n_atom_per_neq, n_atom_sur, n_label, n_fract_x, n_fract_y, n_fract_z, na, n_symbol, nnombre, norbv, ntype, &
+    ntype_conf
 
   integer, dimension(n_atom_per):: neq, numat
   integer, dimension(n_atom_neq):: igra, itype
@@ -1325,7 +1331,7 @@ subroutine Dim_reading(Angz,Atom_conf,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,i
     do
       read(8,'(A)') mot
       mot = adjustl(mot)
-      if( mot(1:16) == '_atom_site_label' .or. mot(1:16) == '_atom_site_fract' ) exit
+      if( mot(2:16) == 'atom_site_label' .or. mot(2:22) == 'atom_site_type_symbol' .or. mot(2:16) == 'atom_site_fract' ) exit
     end do
     backspace(8)
 
@@ -1343,7 +1349,11 @@ subroutine Dim_reading(Angz,Atom_conf,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,i
     do igr = 1,n_atom_per
 
       read(8,'(A)') mot
-      motsb = word_from_text(n_label,mot)
+      if( n_symbol == 0 ) then
+        motsb = word_from_text(n_label,mot)
+      else
+        motsb = word_from_text(n_symbol,mot)
+      endif
 
 ! Lecture element chimique
       Symbol = motsb(1:2)
@@ -3501,7 +3511,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             if( eof /= 0 ) exit
             mot = adjustl(mot)
 
-            if( mot(1:30) == '_symmetry_space_group_name_H-M' .or. mot(1:25) == '_space_group_name_H-M_alt' ) then
+            if( mot(2:30) == 'symmetry_space_group_name_H-M' .or. mot(2:25) == 'space_group_name_H-M_alt' ) then
 
               l = len_trim(mot)
 
@@ -3517,25 +3527,26 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 Space_group(k:k) = mot(i:i)
               end do
 
-            elseif( mot(1:17) == '_cell_angle_alpha' ) then
+            elseif( mot(2:17) == 'cell_angle_alpha' ) then
               angxyz(1) = number_from_text(1,mot)
 
-            elseif( mot(1:16) == '_cell_angle_beta' ) then
+            elseif( mot(2:16) == 'cell_angle_beta' ) then
               angxyz(2) = number_from_text(1,mot)
 
-            elseif( mot(1:17) == '_cell_angle_gamma' ) then
+            elseif( mot(2:17) == 'cell_angle_gamma' ) then
               angxyz(3) = number_from_text(1,mot)
 
-            elseif( mot(1:14) == '_cell_length_a') then
+            elseif( mot(2:14) == 'cell_length_a') then
               axyz(1) = number_from_text(1,mot)
 
-            elseif( mot(1:14) == '_cell_length_b') then
+            elseif( mot(2:14) == 'cell_length_b') then
               axyz(2) = number_from_text(1,mot)
 
-            elseif( mot(1:14) == '_cell_length_c') then
+            elseif( mot(2:14) == 'cell_length_c') then
               axyz(3) = number_from_text(1,mot)
 
-            elseif( mot(1:16) == '_atom_site_label' .or. mot(1:16) == '_atom_site_fract' ) then
+            elseif( mot(2:16) == 'atom_site_label' .or. mot(2:22) == 'atom_site_type_symbol' &
+               .or. mot(2:16) == 'atom_site_fract' ) then
 
               backspace(8)
               n_adp_type = 0
@@ -4391,6 +4402,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         end do
         if( jgr > igr - 1 ) then
           it = it + 1
+          itype( ngroup - n_atom_bulk + igr ) = it
           numat(it) = Z_bulk(igr)
         endif
       end do

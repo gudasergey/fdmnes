@@ -1688,6 +1688,52 @@ subroutine invcomp(n,mat,nm,lwork,is,Stop_job)
   120 format(/' CGETRI : info =',i5)
 end
 
+!***********************************************************************
+
+! Sub routine for inversion of a symetric real matrix
+
+subroutine invreel(n,mat,nm,lwork)
+
+  use declarations
+  implicit none
+
+  integer:: i, info, ipr, j, lwork, n, nm
+
+  integer, dimension(nm):: ipiv
+
+  real(kind=db), dimension(lwork):: work
+  real(kind=db), dimension(nm,nm):: mat
+
+  call dsytrf('u',n,mat,nm,ipiv,work,lwork,info)
+
+  if( info /= 0 ) then
+    call write_error
+    do ipr = 3,9,3
+      write(ipr,110) info
+    end do
+    stop
+  endif
+
+  call dsytri('u',n,mat,nm,ipiv,work,info)
+  do i = 1,nm
+    do j = i + 1,nm
+      mat(j,i) = mat(i,j)
+   end do
+  end do
+
+  if( info /= 0 ) then
+    call write_error
+    do ipr = 3,9,3
+      write(ipr,120) info
+    end do
+    stop
+  endif
+
+  return
+  110 format(/' DSYTRF : info =',i5)
+  120 format(/' DSYTRI : info =',i5)
+end
+
 !**************************************************************************************************
 
 subroutine Write_ampl(Atom_axe,Basereel,Cal_comp,iaabsi,ianew,iato,igrph,irep_util,iso,ispinin,lato,lso, &

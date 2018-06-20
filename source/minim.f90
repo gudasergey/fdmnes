@@ -6,23 +6,27 @@ subroutine minim(fdmfit_out,index_Met_Fit,itape_minim,Minim_fdm_ok,minimok,ncali
                nmetricm,Nom_Met,nparam,npm,par,par_op,typepar)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
   character(len=132) :: fdmfit_out
   character(len=2), dimension(nmetricm) :: Nom_Met
   character(len=9), dimension(ngroup_par) :: typepar
 
+  integer:: i, ical, ical_min, icalical, ifac, igr, iligne, im, index_Met_Fit, index_read, ip, ipr, itape, itape_minim, j, jgr, &
+    k, l, n_dim, ncal, ncali, ndem, ndm, ngr_par, ngroup_par, ngroup_par_conv, nmetric, nmetricm, npm
   integer, dimension(ngroup_par) :: ic, nparam
   integer, dimension(ngroup_par,nmetric) :: ia
 
-  logical ellipse, Minim_fdm_ok, minimok, polynome, polynomefdm
+  logical:: ellipse, Minim_fdm_ok, minimok, polynome, polynomefdm
 
-  real(kind=db), dimension(nmetric) :: distmin_ell, distmin_pol
-  real(kind=db), dimension(ngroup_par) :: a, b, parm_ext, par_op, parp_ext, sol, sm
-  real(kind=db), dimension(ngroup_par,nmetric) :: distm, par_pol, par_ell
-  real(kind=db), dimension(ngroup_par,ngroup_par) :: ab, mat
-  real(kind=db), dimension(ngroup_par,npm) :: par
-  real(kind=db), dimension(ngroup_par,npm,nmetric) :: dist_cut
+  real(kind=db):: dd, dist, dm, dmin, dp, p, fac, pp1, pp2, Read_dist, xi, xj, xm, xp
+  real(kind=db), dimension(nmetric):: distmin_ell, distmin_pol
+  real(kind=db), dimension(ngroup_par):: a, b, parm_ext, par_op, parp_ext, sol, sm
+  real(kind=db), dimension(ngroup_par,nmetric):: distm, par_pol, par_ell
+  real(kind=db), dimension(ngroup_par,ngroup_par):: ab, mat
+  real(kind=db), dimension(ngroup_par,npm):: par
+  real(kind=db), dimension(ngroup_par,npm,nmetric):: dist_cut
+!  real(kind=db), dimension(:,:), allocatable:: Mat_A
 
   itape = itape_minim
   ellipse = .true.
@@ -58,7 +62,7 @@ subroutine minim(fdmfit_out,index_Met_Fit,itape_minim,Minim_fdm_ok,minimok,ncali
   boucle_im: do im = 1,nmetric
 
 ! Recherche du minima des distances metriques dans la grille d'entrees.
-    dmin = 10000000.
+    dmin = 10000000._db
     Rewind(itape)
     do ical = 1,ncal
       read(itape,*) ( dist, i = 1,im )
@@ -84,7 +88,7 @@ subroutine minim(fdmfit_out,index_Met_Fit,itape_minim,Minim_fdm_ok,minimok,ncali
           ic(:) = ia(:,im)
           ic(igr) = ip
           iligne = icalical(ic,nparam,ngroup_par)
-          dist_cut(igr,ip,im) =read_dist(iligne,index_read,itape,im)
+          dist_cut(igr,ip,im) = Read_dist(iligne,index_read,itape,im)
           index_read = iligne
         end do
       end do
@@ -142,7 +146,7 @@ subroutine minim(fdmfit_out,index_Met_Fit,itape_minim,Minim_fdm_ok,minimok,ncali
           par_pol(igr,im) = parp_ext(igr) - par(igr,ia(igr,im))
         endif
         distm(igr,im) = a(igr) * par_pol(igr,im)**2 + b(igr) * par_pol(igr,im) + dmin
-        if( distm(igr,im) < 0.5 * dmin ) then
+        if( distm(igr,im) < 0.5_db * dmin ) then
           distm(igr,im) = dmin
           par_pol(igr,im) = par(igr,ia(igr,im))
         else
@@ -191,6 +195,14 @@ subroutine minim(fdmfit_out,index_Met_Fit,itape_minim,Minim_fdm_ok,minimok,ncali
 
 ! Remplissage de la matrice
 
+    n_dim = 0
+    do igr = 1,ngroup_par
+      if( nparam(igr) < 3 ) cycle
+      n_dim = n_dim + 1
+    end do
+    
+!    allocate( Mat_A(n_dim,n_dim) )
+
     i = 0
     do igr = 1,ngroup_par
       if( nparam(igr) < 3 ) cycle
@@ -204,10 +216,11 @@ subroutine minim(fdmfit_out,index_Met_Fit,itape_minim,Minim_fdm_ok,minimok,ncali
         else
           mat(i,j) = 2 * a(igr)
         endif
+!        Mat_A(i,j) = mat(i,j)
       end do
       sm(i) = - b(igr)
     end do
-
+    
 ! Triangularisation
     l = ngr_par
     if( abs( mat(l,l) ) < 0.0000000001_db ) then
@@ -303,6 +316,39 @@ subroutine minim(fdmfit_out,index_Met_Fit,itape_minim,Minim_fdm_ok,minimok,ncali
         par_ell(igr,im) = par(igr,ia(igr,im))
       end do
     endif
+    
+! Part in test
+!    open( 4, file = fdmfit_out, position='append')
+
+! Determination of A matrix for the deviation calculation
+
+!    write(4,'(/A)' ) ' Mat_A'
+!    do i = 1,n_dim
+!      write(4,'(1p,10e13.5)') Mat_A(i,:)
+!    end do
+
+! Inversion
+!    call invreel(n_dim,Mat_A,n_dim,n_dim)
+
+!    write(4,'(/A)' ) ' Mat_A inv'
+!    do i = 1,n_dim
+!      write(4,'(1p,10e13.5)') Mat_A(i,:)
+!    end do
+    
+!    Close(4)
+    
+!    Sigma(:,im) = 0._db
+    
+! In place of Rexp = sqrt( N - ngroup_par + C )*100: 
+!    Rexp = 10._db
+!    i = 0
+!    do igr = 1,ngroup_par
+!      if( nparam(igr) < 3 ) cycle
+!      i = i + 1
+!      Sigma(igr,im) = sqrt( Mat_A(i,i) ) * distmin_ell(im) / Rexp  
+!    end do
+    
+!    deallocate( Mat_A )
 
   end do boucle_im
 
@@ -339,6 +385,7 @@ subroutine minim(fdmfit_out,index_Met_Fit,itape_minim,Minim_fdm_ok,minimok,ncali
       write(ipr,135) distmin_ell(1:nmetric)
       do igr = 1,ngroup_par
         write(ipr,120) adjustr(typepar(igr)), par_ell(igr,:)
+!        write(ipr,120) adjustr(typepar(igr)), ( par_ell(igr,im), sigma(igr,im), im = 1,nmetric )
       end do
     endif
 
@@ -373,9 +420,11 @@ subroutine minim(fdmfit_out,index_Met_Fit,itape_minim,Minim_fdm_ok,minimok,ncali
   return
   110 format(//'  Minimum for the second order polynomia :', /18x,4(3x,a2,'min',3x))
   115 format(16x,2f11.5,2f11.6)
-  120 format(5x,a9,' =',4f11.5)
+  120 format(5x,a9,' =',8f11.5)
   130 format(/'  Minimum for the hyperellipsoid :', /18x,4(3x,a2,'min',3x))
-  135 format(16x,2f11.5,2f11.6)
+  135 format(16x,f11.5,f11.6)
+!  130 format(/'  Minimum for the hyperellipsoid :', /18x,4(3x,a2,'min',3x,'   sigma   '))
+!  135 format(16x,2(f11.5,11x),2(f11.6,11x))
   140 format(/'  Cut along the parameter ',a9/,7x,a9,4(7x,a2,2x))
   150 format(1x,f15.5,2f11.5,2f11.6)
   160 format(/16x,2f11.5,f11.6,' : minimum')
