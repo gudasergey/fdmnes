@@ -2021,7 +2021,7 @@ subroutine Write_nrixs(Abs_U_iso,All_nrixs,Allsite,Core_resolved, &
   real(kind=db), dimension(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:mpinodee-1):: S_nrixs_l, S_nrixs_l_m
   real(kind=db), dimension(nq_nrixs,ninitlr,0:natomsym):: S_nrixs_T
   real(kind=db), dimension(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:natomsym):: S_nrixs_T_l
-  real(kind=db), dimension(nq_nrixs):: q_nrixs
+  real(kind=db), dimension(4,nq_nrixs):: q_nrixs
   real(kind=db), dimension(:), allocatable:: Tens
 
   if( icheck > 1 ) write(3,110)
@@ -2123,7 +2123,7 @@ subroutine Write_nrixs(Abs_U_iso,All_nrixs,Allsite,Core_resolved, &
         do iq = 1, nq_nrixs 
           i = i + 1
           nomab = 'q='
-          q = q_nrixs(iq) / bohr
+          q = q_nrixs(4,iq) / bohr
           n = int( q + eps10 )   
           call ad_number(n,nomab,length_word)
           long = len_trim( nomab )

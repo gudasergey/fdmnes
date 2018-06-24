@@ -229,20 +229,24 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
         case('lmax_nrix')
           read(itape4,*,iostat=ier) lmax_nrixs
 
-        case('nrixs')
+        case('nrixs','nrixs_mon')
           NRIXS = .true.
           nq_nrixs = 0
           do
             n = nnombre(itape4,132)
-            nq_nrixs = nq_nrixs + n
             if( n == 0 ) exit
+            if( keyword == 'nrixs_mon' ) then
+              nq_nrixs = nq_nrixs + 1
+            else
+              nq_nrixs = nq_nrixs + n
+            endif
             read(itape4,*)
           end do
           if( nq_nrixs == 0 ) then
             call write_error
             do ipr = 6,9,3
               write(ipr,110)
-              write(ipr,'(/A/)') ' After keyword "NRIXS" the q values'
+              write(ipr,'(/A/)') ' After keyword "NRIXS" there is no q values'
             end do
             stop
           endif
@@ -1641,7 +1645,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     exc_imp, Extract, Extract_ten, FDM_comp, FDMX_only, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, &
     Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green_s, Green_self, Green_int, Hedin, Helm_cos, hkl_film, &
     Hubbard, Interface_shift_given, Kern_fac_default, Kern_fast, korigimp, lmaxfree, lmoins1, lplus1, M1M1, M1M2, M2M2, &
-    Magnetic, Matper, muffintin, &
+    Magnetic, Matper, Monocrystal, muffintin, &
     No_DFT, no_core_resolved, no_dipquad, no_e1e3, no_e2e2, no_e3e3, No_renorm, No_solsing, noncentre, nonexc, nonexc_imp, &
     normaltau, Occupancy_first, Octupole, Old_zero, One_run, Operation_mode_used, Optic, Overad, &
     Pas_SCF_imp, Pdb, Perdew, PointGroup_Auto, Polarise, quadmag, Quadrupole, r_self_imp, Readfast, Relativiste, &
@@ -1661,7 +1665,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     pop_nsph, pp, q, r, r_self, R_rydb, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, &
     V_helm, V_intmax, vv, Width_helm, z_min
 
-  real(kind=db), dimension(nq_nrixs):: q_nrixs
+  real(kind=db), dimension(4,nq_nrixs):: q_nrixs
   real(kind=db), dimension(2):: f_no_res
   real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
   real(kind=db), dimension(3):: Ang, Ang_rotsup, Ang_spin, Angxyz, Angxyz_bulk, Angxyz_cap, Angxyz_int, Angxyz_sur, Axe, Axe_spin, &
@@ -1846,6 +1850,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   M2M2 = .false.
   Mat_UB(:,:) = 0._db
   Matper = .false.
+  Monocrystal = .false.
   muffintin = .false.
   multrmax = 1
   n_devide = 2
@@ -1900,6 +1905,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   polar(:,:) = 0._db
   polarise = .false.
   popats(:,:,:) = 0._db
+  q_nrixs(:,:) = 0._db
   Quadmag = .false.
   Quadrupole = .false.
   R_self_imp = .false.
@@ -2613,8 +2619,26 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           do
             n = nnombre(itape4,132)
             if( n == 0 ) exit
-            read(itape4,*,iostat=ier) q_nrixs(i+1:i+n)
+            read(itape4,*,iostat=ier) q_nrixs(4,i+1:i+n)
             i = i + n
+          end do
+
+        case('nrixs_mon')
+          do i = 1,nq_nrixs
+            n = nnombre(itape4,132)
+            if( n == 1 ) then
+              read(itape4,*,iostat=ier) q_nrixs(4,i)
+            elseif( n == 2 .or. n == 3 ) then
+              call write_error
+              do ipr = 6,9,3
+                write(ipr,100)
+                write(ipr,'(/A)') ' After keyword "nrixs_mono" 4 numbers per line are needed to define modulus and direction of q !'
+              end do
+              stop
+            else
+              Monocrystal = .true.
+              read(itape4,*,iostat=ier) q_nrixs(4,i), q_nrixs(1:3,i)
+            endif
           end do
 
         case('step_azim')
@@ -4919,7 +4943,13 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       if( nq_nrixs >= 1 ) then
         write(3,'(/A)') ' NRIXS (X-ray Raman) calculation'
         write(3,'(a15,i2)') '   lmax_nrixs =' ,lmax_nrixs
-        write(3,'(a6,1000f8.5)') '   q =' , q_nrixs(:)
+        if( Monocrystal ) then
+          do i = 1,nq_nrixs
+            write(3,'(a6,f10.5,2x,3f10.5)') '   q =' , q_nrixs(4,i), q_nrixs(1:3,i)
+          end do
+        else
+          write(3,'(a6,1000f10.5)') '   q =' , q_nrixs(4,:)
+        endif
       endif
 
       if( Dafs_bio ) then
@@ -5565,7 +5595,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Tddft,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Atomic_scr,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Test_dist_min,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
-    call MPI_Bcast(q_nrixs,nq_nrixs,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(q_nrixs,4*nq_nrixs,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Rpalf,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Temp,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Taux_cap,n_atom_cap,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
@@ -5702,7 +5732,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Mat_UB(:,:) = Mat_UB(:,:) * bohr  ! Mat_UB in A^-1 in inpout
   Pas_SCF = Pas_SCF / rydb
   phi_0 = phi_0 * radian
-  q_nrixs(:) = q_nrixs(:) * bohr  ! q_nrxis in A^-1 in inpout
+  q_nrixs(4,:) = q_nrixs(4,:) * bohr  ! q_nrxis in A^-1 in inpout
   R_rydb = R_rydb / bohr
   r_self = r_self / bohr
   rchimp(:) = rchimp(:) / bohr
@@ -6542,44 +6572,37 @@ end
 
 !***********************************************************************
 
-! Calcule la matrice de rotation en fonction des angles d'Euler.
+! Calculation of the rotation matrix versus the Euler angles
+! First rotation about z
+! second rotation about y' (new y)  ( and not x' )
+! third rotation about z' (new z)
 
-subroutine mat_euler(Ang,Rot)
+subroutine Mat_Euler(Ang,Rot)
 
   use declarations
   implicit none
 
-  integer:: i, j, k, l
-
-  real(kind=db):: Angr, cs, ss
+  real(kind=db):: c1, c2, c3, s1, s2, s3
   real(kind=db), dimension(3):: Ang
-  real(kind=db), dimension(3,3):: Mat, Rot
+  real(kind=db), dimension(3,3):: Rot
 
-  do l = 1,3
+  c1 = cos( Ang(1) )
+  s1 = sin( Ang(1) )
+  c2 = cos( Ang(2) )
+  s2 = sin( Ang(2) )
+  c3 = cos( Ang(3) )
+  s3 = sin( Ang(3) )
 
-    Angr = Ang(4-l)
-
-    cs = cos( Angr )
-    ss = sin( Angr )
-    i = mod(l,3) + 1
-    j = mod(l+1,3) + 1
-    k = mod(l-1,3) + 1
-    mat(i,i) = cs;    mat(i,j) = -ss;   mat(i,k) = 0._db
-    mat(j,i) = ss;    mat(j,j) = cs;    mat(j,k) = 0._db
-    mat(k,i) = 0._db;  mat(k,j) = 0._db;  mat(k,k) = 1._db
-    if( l == 1 ) then
-      rot = mat
-    else
-      rot = matmul( mat, rot )
-    endif
-  end do
+  Rot(1,1) = c1*c2*c3 - s1*s3; Rot(1,2) = - c1*c2*s3 - s1*c3; Rot(1,3) = c1*s2
+  Rot(2,1) = s1*c2*c3 + c1*s3; Rot(2,2) = - s1*c2*s3 + c1*c3; Rot(2,3) = s1*s2
+  Rot(3,1) = - s2*c3;          Rot(3,2) = s2*s3;              Rot(3,3) = c2
 
   return
 end
 
 !***********************************************************************
 
-! Calcul du centre de l'agregat.
+! Calculation of the center of the cluster
 
 subroutine Auto_center(axyz,Centre,Centre_auto_abs,Cubmat,icheck,itype,n_atom_uc,n_Z_abs,ngroup,ntype,numat, &
                        numat_abs,posn,Rsorte_s,Struct)

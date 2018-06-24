@@ -326,9 +326,9 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
 
   endif
 
-  if( icheck > 1 ) call Write_ampl(Atom_axe,Basereel,Cal_comp,iaabsi,ianew,iato,igrph,irep_util,iso,ispinin,lato,lso, &
+  if( icheck > 1 ) call Write_ampl(Basereel,Cal_comp,iaabsi,ianew,iato,igrph,irep_util,iso,ispinin,lato,lso, &
                       mato,mso,natome,newinv,ngrph,nim,nligne,nlmsa,nlmsam,nlmso,norm,norm_t,npsom, &
-                      nso1,nspino,rvol,Repres_comp,smi,smr,Spinorbite,xyz)
+                      nso1,nspino,rvol,smi,smr,Spinorbite,xyz)
   
   if( nab_coop > 0 ) then
     iab = 0
@@ -1736,9 +1736,9 @@ end
 
 !**************************************************************************************************
 
-subroutine Write_ampl(Atom_axe,Basereel,Cal_comp,iaabsi,ianew,iato,igrph,irep_util,iso,ispinin,lato,lso, &
+subroutine Write_ampl(Basereel,Cal_comp,iaabsi,ianew,iato,igrph,irep_util,iso,ispinin,lato,lso, &
                       mato,mso,natome,newinv,ngrph,nim,nligne,nlmsa,nlmsam,nlmso,norm,norm_t,npsom, &
-                      nso1,nspino,rvol,Repres_comp,smi,smr,Spinorbite,xyz)
+                      nso1,nspino,rvol,smi,smr,Spinorbite,xyz)
 
   use declarations
   implicit none
@@ -1759,8 +1759,7 @@ subroutine Write_ampl(Atom_axe,Basereel,Cal_comp,iaabsi,ianew,iato,igrph,irep_ut
   complex(kind=db), dimension(:), allocatable:: Tau_out
   complex(kind=db), dimension(nlmso,nlmso):: norm, norm_t
   
-  logical:: Basereel, Cal_comp, Repres_comp, Spinorbite
-  logical, dimension(natome):: Atom_axe
+  logical:: Basereel, Cal_comp, Spinorbite
 
   real(kind=db), dimension(nim):: rvol
   real(kind=db), dimension(4,npsom):: xyz

@@ -2867,27 +2867,28 @@ end
 ! Calculation of S = Sum_if | <f| exp( iq.r ) |i> |^2
 ! exp(iqr) = 4 * pi * Sum_L ( i^l * j_l(qr) * Y_L^*(Omega_r) * Y_L^*(Omega_q) )
 
-subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
-                Eimag,Energ,Enervide,Eseuil,FDM_comp,Final_tddft,Full_potential,Green,Green_int,Hubb_a,Hubb_d, &
-                icheck,l0_nrixs,lmax_nrixs,is_g,lmax,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
-                mpinodes,mpirank, &
-                n_Ec,n_V,nbseuil,ns_dipmag,ndim2,ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe, &
-                nlm_p_fp,nq_nrixs,nr,nrm,nspin,nspino,nspinp,numat,psii,q_nrixs,r,Relativiste,Renorm,Rmtg, &
-                Rmtsd,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Taull, &
-                V_hubb,V_intmax,V0bd,Vrato,Ylm_comp)
+subroutine S_nrixs_cal(axyz,Classic_irreg,coef_g,Core_resolved,Ecinetic, &
+                    Eimag,Energ,Enervide,Eseuil,FDM_comp,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
+                    Hubb_d,icheck,l0_nrixs,lmax_nrixs,is_g,lmax,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
+                    mpinodes,mpirank,n_Ec,n_V,nbseuil,ns_dipmag,ndim2, &
+                    ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe,nlm_p_fp,nq_nrixs,nr,nrm,nspin,nspino,nspinp, &
+                    numat,Orthmatt,psii,q_nrixs,r,Relativiste,Renorm,Rmtg,Rmtsd,Rot_atom_abs,Rot_int, &
+                    S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Taull, &
+                    V_hubb,V_intmax,V0bd,Vrato,Ylm_comp)
 
   use declarations
   implicit none
 
-  integer:: icheck, initlt, iq, isp, l, l0_nrixs, le, lmax, lmax_nrixs, lmax_pot, lme, lms, &
-    ls, lseuil, m_hubb, me, mpinodes, mpirank, &
-    ms, n_Ec ,n_V, nbseuil, ndim2, ninit1, ninitl, ninitlr, ninitlv, nlm_pot, nlm_probe, &
+  integer:: icheck, initlr, initlt, iq, isp, l_i, l_s, l0_nrixs, lmax, lmax_nrixs, lmax_pot, lm_i, lm_s, &
+    lseuil, m_hubb, m_i, m_s, mpinodes, mpirank, &
+    n_Ec ,n_V, nbseuil, ndim2, ninit1, ninitl, ninitlr, ninitlv, nlmc, nlm_pot, nlm_probe, &
     nlm_p_fp, nq_nrixs, nr, nrm, ns_dipmag, nspin, nspino, nspinp, numat
 
-  complex(kind=db):: cfac  
+  complex(kind=db):: cfac, dfac, Ylm_q_i, Ylm_q_s  
   complex(kind=db), dimension(ninitlr):: Ten, Ten_m
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
+  complex(kind=db), dimension(:), allocatable:: Ylm_q
   complex(kind=db), dimension(:,:,:,:,:), allocatable:: Singul
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: rof
 
@@ -2895,10 +2896,12 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   integer, dimension(ninitl):: is_g
 
   logical:: Classic_irreg, Core_resolved, FDM_comp, Final_tddft, Full_potential, Green, Green_int, &
-    Hubb_a, Hubb_d, lmoins1, lplus1, NRIXS, Relativiste, Renorm, Solsing, Solsing_only, Spinorbite, &
+    Hubb_a, Hubb_d, lmoins1, lplus1, Monocrystal, NRIXS, Relativiste, Renorm, Solsing, Solsing_only, Spinorbite, &
     Ylm_comp
 
   real(kind=db):: Eimag, Energ, Enervide_t, Rmtg, Rmtsd, V_intmax
+  real(kind=db), dimension(3):: axyz, q_vec
+  real(kind=db), dimension(3,3):: Orthmatt, Rot_atom_abs, Rot_int
   real(kind=db), dimension(nspin):: Ecinetic_e, V0bd_e
   real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(ninitl,2):: coef_g
@@ -2910,7 +2913,7 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   real(kind=db), dimension(nrm,nbseuil):: psii
   real(kind=db), dimension(nr,nlm_pot,nspin,n_V):: Vrato
   real(kind=db), dimension(nr,l0_nrixs:lmax_nrixs):: bessel
-  real(kind=db), dimension(nq_nrixs):: q_nrixs
+  real(kind=db), dimension(4,nq_nrixs):: q_nrixs
   real(kind=db), dimension(nq_nrixs,ninitlr,0:mpinodes-1):: S_nrixs, S_nrixs_m
   real(kind=db), dimension(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:mpinodes-1):: S_nrixs_l, S_nrixs_l_m
 
@@ -2925,12 +2928,12 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
   do iq = 1,nq_nrixs
 
-    if( icheck > 1 ) write(3,100) iq, q_nrixs / bohr
+    if( icheck > 1 ) write(3,100) iq, q_nrixs(4,iq) / bohr
     
     rof(:,:,:,:,:,:) = (0._db, 0._db)
     Singul(:,:,:,:,:) = (0._db, 0._db)
 
-    call cbessel(bessel,l0_nrixs,lmax_nrixs,nr,q_nrixs(iq),r)
+    call cbessel(bessel,l0_nrixs,lmax_nrixs,nr,q_nrixs(4,iq),r)
   
     do initlt = 1,n_Ec
       if( Final_tddft ) then
@@ -2955,62 +2958,110 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
     end do
 
-    if( icheck > 1 ) write(3,110) iq
+    if( icheck > 1 ) write(3,110) 
     
-    lme = 0
-    do le = l0_nrixs,lmax_nrixs
-      do me = -le,le
-        lme = lme + 1
+    q_vec(:) = q_nrixs(1:3,iq)
+    Monocrystal = sum( abs(q_vec(:)) ) > eps10
 
-        lms = 0
-        do ls = l0_nrixs,lmax_nrixs
-
-          if( le /= ls ) cycle
-
-          l = mod(le + ls,4)
-          select case(l)
-            case(0)
-              cfac = ( 1._db, 0._db )
-            case(1)
-              cfac = ( 0._db, 1._db )
-            case(2)
-              cfac = ( -1._db, 0._db )
-            case(3)
-              cfac = ( 0._db, -1._db )
-          end select
-          if( mod(le,2) == 1 ) cfac = - cfac 
-          cfac = cfac * quatre_pi**2
-
-          do ms = -ls,ls
-            lms = lms + 1
+    if( Monocrystal ) then    
+ 
+      if( icheck > 1 ) write(3,120) iq, q_nrixs(4,iq), q_vec(:) 
     
-            if( icheck > 1 ) write(3,120) le, me, ls, ms
+! Conversion to internal orthonormalized basis
+      q_vec(:) = q_vec(:) / axyz(:)
+      q_vec = matmul( Orthmatt, q_vec )
+      q_vec(:) = q_vec(:) / sqrt( sum( q_vec(:)**2 ) )
+
+! Rotation to the absorbing atom basis
+      q_vec = matmul( Rot_atom_abs, matmul( transpose( Rot_int ), q_vec ) )
+
+      if( icheck > 1 ) write(3,130) q_vec(:) 
+
+      nlmc = ( ( lmax_nrixs + 1 ) * ( lmax_nrixs + 2 ) ) / 2
+      allocate( Ylm_q(nlmc) )
+      call cYlm(lmax_nrixs,q_vec,1._db,Ylm_q,nlmc)
+    
+    else
+
+      if( icheck > 1 ) write(3,140) iq, q_nrixs(4,iq)
+        
+    endif
+
+    do l_s = l0_nrixs,lmax_nrixs
+      do m_s = -l_s,l_s
+
+        if( Monocrystal ) then    
+          lm_s = l_s * ( l_s + 1 ) / 2 + 1 + abs(m_s)
+          if( m_s >= 0 ) then
+            Ylm_q_s = Ylm_q(lm_s)
+          else
+            Ylm_q_s = (-1)**m_s * conjg( Ylm_q(lm_s) )
+          endif
+        endif
+        
+        do l_i = l0_nrixs,lmax_nrixs
+
+          if( l_s == l_i ) then
+            dfac = cmplx( quatre_pi**2, 0._db, db )
+          else 
+            dfac = img**(l_s - l_i) * quatre_pi**2
+          endif
+
+          do m_i = -l_i,l_i
+    
+            if( ( l_s /= l_i .or. m_s /= m_i ) .and. .not. Monocrystal ) cycle
+
+            if( Monocrystal ) then    
+              lm_i = l_i * ( l_i + 1 ) / 2 + 1 + abs(m_i)
+              if( m_i >= 0 ) then
+                Ylm_q_i = Ylm_q(lm_i)
+              else
+                Ylm_q_i = (-1)**m_i * conjg( Ylm_q(lm_i) )
+              endif
+            endif
+        
+            if( icheck > 1 ) write(3,150) l_s, m_s, l_i, m_i
 
             call tens_ab(coef_g,Core_resolved,.false.,FDM_comp,Final_tddft,Green,Green_int,icheck,lmax_nrixs, &
-                                l0_nrixs,le,is_g,1,1,1,1,ls,le,me,ls,m_g,ms,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2, &
+                                l0_nrixs,l_s,is_g,1,1,1,1,l_i,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2, &
                                 ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
                                 Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
 
-            if( le == ls ) then
-              S_nrixs_l(iq,le,:,mpirank) = S_nrixs_l(iq,le,:,mpirank) + real( cfac * Ten(:), db )
-              if( Green_int ) S_nrixs_l_m(iq,le,:,mpirank) = S_nrixs_l_m(iq,le,:,mpirank) + real( cfac * Ten_m(:) )
+            if( Monocrystal ) then
+              cfac = conjg( Ylm_q_s ) * Ylm_q_i * dfac
+            else
+              cfac = dfac / quatre_pi  ! 4 pi is for the average 
             endif
-            S_nrixs(iq,:,mpirank) = S_nrixs(iq,:,mpirank) + real( cfac * Ten(:) )
-            if( Green_int ) S_nrixs_m(iq,:,mpirank) = S_nrixs_m(iq,:,mpirank) + real( cfac * Ten_m(:) )
             
+            if( l_s == l_i ) then
+              S_nrixs_l(iq,l_s,:,mpirank) = S_nrixs_l(iq,l_s,:,mpirank) + real( cfac * Ten(:), db ) 
+              if( Green_int ) S_nrixs_l_m(iq,l_s,:,mpirank) = S_nrixs_l_m(iq,l_s,:,mpirank) + real( cfac * Ten_m(:), db  )
+            endif
+            S_nrixs(iq,:,mpirank) = S_nrixs(iq,:,mpirank) + real( cfac * Ten(:), db ) 
+            if( Green_int ) S_nrixs_m(iq,:,mpirank) = S_nrixs_m(iq,:,mpirank) + real( cfac * Ten_m(:), db  )
+
+            if( icheck > 1 ) write(3,160) l_s, m_s, l_i, m_i, cfac, &
+                                         ( real( cfac * Ten(:), db ), S_nrixs(iq,initlr,mpirank), initlr = 1,ninitlr )  
+
           end do
         end do
       end do
-    end do ! fin boucle le
+    end do ! end of loop over l_s
 
+    if( Monocrystal ) deallocate( Ylm_q )
+            
   end do
 
   deallocate( rof, Singul )
   
   return
   100 format(/' ---- S_nrixs_cal Radial ---------',100('-'),//'  iq =',i3,', q =',f6.3)
-  110 format(/' ---- S_nrixs_cal Tens_ab --------',100('-'),//'  iq =',i3,', q =',f6.3)
-  120 format(/' le, me =',2i3,',  ls, ms =',2i3)
+  110 format(/' ---- S_nrixs_cal Tens_ab --------',100('-'))
+  120 format(/'  iq =',i3,', q =',f6.3,', q_vec =',3f10.5)
+  130 format(/' Normalized q_vec in the absorbing atom local basis =',3f10.5)
+  140 format(/'  iq =',i3,', q =',f6.3)
+  150 format(/' l_s, m_s =',2i3,',  l_i, m_i =',2i3)
+  160 format(/' l_s, m_s =',2i3,',  l_i, m_i =',2i3,', cfac =',1p,2e15.7,', dS_nrixs, S_nrixs(1..ninitlr) =',28e15.7)
 
 end
 

@@ -31,7 +31,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
           natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ngamh,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlmamax, &
           nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s, &
           nphi_dafs,nphim,npldafs,nplr,nplrm,nq_nrixs,nr,NRIXS,nrm,nseuil,nspin,nspino,nspinp, &
-          numat,nxanout,Octupole,Old_zero,pdp,phdf0t,phdf0t_rgh_bulk,phdt,phdt_rgh_Bulk,pol,poldafse,poldafss, &
+          numat,nxanout,Octupole,Old_zero,Orthmatt,pdp,phdf0t,phdf0t_rgh_bulk,phdt,phdt_rgh_Bulk,pol,poldafse,poldafss, &
           psii,q_nrixs,Quadrupole,r,Relativiste,Renorm,rhoato_abs,Rmtg,Rmtsd, &
           rof0,rot_atom_abs,Rot_int,RPALF,rsato,rsbdc,Self_abs,Solsing_only, &
           Spherical_signal,Spherical_tensor,Spinorbite,Surface_ref,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb,V0muf, &
@@ -118,7 +118,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
   real(kind=db), dimension(ninitl_out):: Epsii, sec_atom
   real(kind=db), dimension(nr):: r, rsato
   real(kind=db), dimension(natomsym) :: Taux_eq
-  real(kind=db), dimension(3,3):: rot_atom_abs, Rot_int
+  real(kind=db), dimension(3,3):: Orthmatt, Rot_atom_abs, Rot_int
   real(kind=db), dimension(nplrm,2) :: pdp
   real(kind=db), dimension(3,nplrm) :: vec
   real(kind=db), dimension(ninitl,2):: coef_g
@@ -132,7 +132,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
   real(kind=db), dimension(npldafs):: Length_abs
   real(kind=db), dimension(n_bulk_z):: Length_rel
   real(kind=db), dimension(nr,nlm_pot,nspin) :: Vxcato
-  real(kind=db), dimension(nq_nrixs):: q_nrixs
+  real(kind=db), dimension(4,nq_nrixs):: q_nrixs
   real(kind=db), dimension(nq_nrixs,ninitl_out,0:mpinodes-1):: S_nrixs, S_nrixs_m
   real(kind=db), dimension(nq_nrixs,l0_nrixs:lmax_nrixs,ninitl_out,0:mpinodes-1):: S_nrixs_l, S_nrixs_l_m
 
@@ -461,14 +461,14 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
 
       icheck_s = icheck(20)
 
-      if( NRIXS ) call S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
-                      Eimag(ie),Energ(ie),Enervide,Eseuil,FDM_comp,Final_tddft,Full_potential,Green,Green_int,Hubb_a,Hubb_d, &
-                      icheck_s,l0_nrixs,lmax_nrixs,is_g,lmax_probe,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
-                      mpinodes,mpirank, &
-                      n_Ec,n_V,nbseuil,ns_dipmag,nd3,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlm_probe, &
-                      nlm_p_fp,nq_nrixs,nr,nrm,nspin,nspino,nspinp,numat,psii,q_nrixs,r,Relativiste,Renorm,Rmtg, &
-                      Rmtsd,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Chi, &
-                      V_hubb_t,V_intmax,V0bdc,Vrato,Ylm_comp)
+      if( NRIXS ) call S_nrixs_cal(axyz,Classic_irreg,coef_g,Core_resolved,Ecinetic, &
+                    Eimag(ie),Energ(ie),Enervide,Eseuil,FDM_comp,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
+                    Hubb_d,icheck_s,l0_nrixs,lmax_nrixs,is_g,lmax_probe,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
+                    mpinodes,mpirank,n_Ec,n_V,nbseuil,ns_dipmag,nd3, &
+                    ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlm_probe,nlm_p_fp,nq_nrixs,nr,nrm,nspin,nspino,nspinp, &
+                    numat,Orthmatt,psii,q_nrixs,r,Relativiste,Renorm,Rmtg,Rmtsd,Rot_atom_abs,Rot_int, &
+                    S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Chi, &
+                    V_hubb_t,V_intmax,V0bdc,Vrato,Ylm_comp)
 
       call tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                 Eimag(ie),Energ(ie),Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &

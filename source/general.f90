@@ -6961,7 +6961,7 @@ end
 ! Sousprogramme calculant les valeurs des vecteurs polarisation et onde
 
 subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_mat_polar,ncolm,ncolr,nomabs,nple,nplr, &
-        nplrm,nxanout,Octupole,Orthmatt,pdp, pdpolar,pol,polar,Polarise,Quadrupole,Veconde,Vec,Xan_atom)
+        nplrm,nxanout,Octupole,Orthmatt,pdp,pdpolar,pol,polar,Polarise,Quadrupole,Veconde,Vec,Xan_atom)
 
   use declarations
   implicit none
@@ -8272,12 +8272,148 @@ end
 
 !***********************************************************************
 
-! Cherche le point equivalent a l'interieur de la zone de calcul compte tenu des symmetries.
+! Calculation of the couples of atoms where one calculates the Crystal Orbital Overlap
+
+subroutine Atom_coop_selec(COOP,Dist_coop,ia_coop,iaprotoi,icheck,igr_coop,igreq,igroupi,itypei,n_atom_coop,n_atom_proto,nab_coop, &
+                         natome,neqm,ngreq,ntype,numat,Posi,Rmtg)
+
+  use declarations
+  implicit none
+
+  integer:: i, ia, icheck, ipr, j, n_atom_coop, nab_coop, nab_coop_ev, natome, neqm, n_atom_proto, ntype
+
+  integer, dimension(0:ntype):: numat
+  integer, dimension(n_atom_coop):: ia_coop, igr_coop
+  integer, dimension(natome):: iaprotoi, igroupi, itypei
+  integer, dimension(0:n_atom_proto):: ngreq
+  integer, dimension(0:n_atom_proto,neqm):: igreq
+
+  logical:: COOP
+
+  real(kind=db):: Dist_coop
+  real(kind=db), dimension(0:n_atom_proto):: Rmtg
+  real(kind=db), dimension(3,natome):: Posi
+
+  nab_coop = 0
+  if( .not. COOP ) return
+
+  if( icheck > 0 ) write(3,110)
+
+  do j = 1,n_atom_coop
+    boucle_ipr: do ipr = 1,n_atom_proto
+      do i = 1,ngreq(ipr)
+        if( igreq(ipr,i) == igr_coop(j) ) exit boucle_ipr
+      end do
+    end do boucle_ipr
+    ia_coop(j) = 100000
+    do i = 1,ngreq(ipr)
+      do ia = 1,natome
+        if( igroupi(ia) == igreq(ipr,i) ) then
+          ia_coop(j) = min( ia_coop(j), ia )
+          exit
+        endif
+      end do
+    end do
+    if( ia_coop(j) > natome ) ia_coop(j) = 0
+  end do
+
+  if( n_atom_coop > 0 .and. icheck > 0 ) then
+    write(3,120)
+    do i = 1,n_atom_coop
+      write(3,'(2i5,3f10.5)') igr_coop(i), ia_coop(i), Posi(:,ia_coop(i))*bohr
+    end do
+    write(3,130)
+  endif
+
+  nab_coop = nab_coop_ev(Dist_coop,ia_coop,iaprotoi,icheck,igroupi,itypei,n_atom_coop,n_atom_proto,natome,ntype,numat,Posi,Rmtg)
+
+  return
+  110 format(/' ---- Atom_coop_selec --',100('-'))
+  120 format(/' Equivalence between COOP atom index in the indata file and index in the output file names:', // &
+              '  igr   ia       Position in cluster')
+  130 format(/'   igr: input index corresponding to the atom index in the unit cell as seen under Symsite', / &
+              '   ia: ouput index corresponding to the atom index in the symmetrized cluster as seen under Atom_selec', / &
+              '       an equivalent atom closer to the center of the cluster can have been chosen')
+end
+
+!***********************************************************************
+
+! Calculation of the number of couple of atoms where one calculate the Crystal Orbital Overlap
+
+function nab_coop_ev(Dist_coop,ia_coop,iaprotoi,icheck,igroupi,itypei,n_atom_coop,n_atom_proto,natome,ntype,numat,Posi,Rmtg)
+
+  use declarations
+  implicit none
+
+  integer:: ia, iab, ib, icheck, ipra, iprb, j, n_atom_coop, nab_coop_ev, natome, n_atom_proto, ntype
+
+  integer, dimension(0:ntype):: numat
+  integer, dimension(n_atom_coop):: ia_coop
+  integer, dimension(natome):: iaprotoi, igroupi, itypei
+
+  real(kind=db):: Dist, Dist_coop
+  real(kind=db), dimension(0:n_atom_proto):: Rmtg
+  real(kind=db), dimension(3,natome):: Posi
+
+  if( icheck > 0 ) then
+    if( Dist_coop > eps10 ) then
+      write(3,'(/a62,f10.5,a2)') ' The maximum interatomic distance for the COOP calculation is:', Dist_coop*bohr,' A'
+    else
+      write(3,'(/A)') ' The maximum interatomic distance for the COOP calculation is the sum of the atomic radii'
+    endif
+  endif
+
+  iab = 0
+
+  do ia = 1,natome
+    ipra = iaprotoi( ia )
+
+    do ib = ia+1,natome
+
+      if( n_atom_coop > 0 ) then
+        do j = 1,n_atom_coop
+          if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
+        end do
+        if( j > n_atom_coop ) cycle
+      endif
+
+      iprb = iaprotoi( ib )
+      Dist = sqrt( sum( ( Posi(:,ia) - Posi(:,ib) )**2 ) )
+      if( Dist_coop > eps10 ) then
+        if( Dist > Dist_coop + eps10 ) cycle
+      else
+        if( Dist > Rmtg( ipra ) + Rmtg( iprb ) ) cycle
+      endif
+      iab = iab + 1
+      if( icheck > 0 ) then
+        if( iab == 1 ) write(3,100)
+        write(3,110) ia, igroupi(ia), iaprotoi(ia), numat(itypei(ia)), Posi(:,ia)*bohr, ib, igroupi(ib), iaprotoi(ib), &
+                     numat(itypei(ib)), Posi(:,ib)*bohr, Dist*bohr
+      endif
+    end do
+  end do
+
+  nab_coop_ev = iab
+
+  if( iab == 0 .and. icheck > 0 ) write(3,'(/A)') ' No couple of atoms found'
+
+  return
+  100 format(/' List of the couples of atoms:', // &
+             '   ia  igr  ipr    Z       Position in cluster         ia  igr  ipr    Z       Position in cluster', &
+             '        Distance')
+  110 format(4i5,3f10.5,2x,4i5,3f10.5,f12.5)
+end
+
+!***********************************************************************
+
+! Search of the equivalent point inside the calculation area taking into account the symmetries of the cluster.
 
 subroutine posequiv(mpirank0,pos,iopsym,isym,igrpt_nomag)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
+
+  integer:: ipr, is, igrpt_nomag, isym, isym_inv, k, k2, k3, mpirank0
 
   integer, dimension(nopsm):: iopsym
 
@@ -8285,6 +8421,7 @@ subroutine posequiv(mpirank0,pos,iopsym,isym,igrpt_nomag)
   logical, dimension(3):: pnul, ppn, ppos
   logical, dimension(2):: p3nul, p3pn, p3pos
 
+  real(kind=db):: a3, f, r3
   real(kind=db), dimension(3):: p, pos, v
   real(kind=db), dimension(3,3):: matopsym
 
@@ -8309,7 +8446,7 @@ subroutine posequiv(mpirank0,pos,iopsym,isym,igrpt_nomag)
     dp13 = v(1) > v(3) + epspos
     gdiag = ppn(1) .and. ( abs(v(1)-v(2)) < epspos ) .and. ( abs(v(1)-v(3)) < epspos )
 
-! Cas des groupes trigo et hexagonal
+! Case of trigo and hexagonal groups
 
     d3p12 = .false.; d3pn12 = .false.; d6 = .false.; d6p = .false.
     if( igrpt_nomag > 15 .and. igrpt_nomag < 28 ) then
@@ -8459,17 +8596,17 @@ subroutine posequiv(mpirank0,pos,iopsym,isym,igrpt_nomag)
             k3 = 1 + mod(k+1,3)
             if( ppos(k2) .or. ( pnul(k2) .and. ppn(k3) ) ) symok = .true.
 
-          case(25)        ! Centrosymetrie
+          case(25)        ! Centro-symmetry
             if( ppos(3) .or. ( pnul(3) .and.  ppos(1) ) .or. ( pnul(3) .and.  pnul(1) .and. ppn(2) ) ) symok = .true.
 
-          case(40,41,42)  ! Plans de symetrie principaux
+          case(40,41,42)  ! Main plane symmetries
             k = is - 39
             if( ppn(k) ) symok = .true.
 
-          case(45)        ! Plan diagonal
+          case(45)        ! Diagonal plane
             if( dpn12 ) symok = .true.
 
-          case(48)        ! Plan diagonal
+          case(48)        ! Diagonal plane
             if( pos(2) < -pos(1)+epspos ) symok = .true.
 
         end select
@@ -8496,14 +8633,19 @@ subroutine posequiv(mpirank0,pos,iopsym,isym,igrpt_nomag)
   isym = iopsym(is) * isym_inv(is)
 
   return
-  120 format(/' Probleme dans posequiv : symetrie mal programmee !'/ ' igrpt_nomag =',i4,', pos =',3f7.3,//' iopsym =')
+  120 format(/' Problem in posequiv : symmetry wrongly programmed !', / &
+              ' igrpt_nomag =',i4,', pos =',3f7.3,//' iopsym =')
 end
 
 !***********************************************************************
 
-! Determination de l'operation de symmetrie inverse.
+! Determination of the inverse symmetry operation
 
 function isym_inv(is)
+
+  implicit none
+
+  integer:: is, isym_inv
 
   select case(is)
     case(2,4,6,8,32,34,36,38,49,51,53,55)
@@ -10441,6 +10583,8 @@ end
 !***********************************************************************
 
 ! Calculation of complex Ylm
+! Only m >= 0 are calculated
+! The index of Ylm is lm = l(l+1)/2 + 1 + m
 
 subroutine cylm(lmax,v,r,ylmc,nlm)
 

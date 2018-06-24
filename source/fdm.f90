@@ -96,10 +96,10 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
 
   real(kind=db), dimension(:), allocatable:: Adimp_e, Angle_or, cdil, &
      E_adimp, E_max_range, E_radius, Ecrantage, &
-     Eeient, Egamme, Eimagent, q_nrixs, r0_lapw, rchimp, &
+     Eeient, Egamme, Eimagent, r0_lapw, rchimp, &
      rlapw, rmt, rmtimp, Rsorte_s, Taux_cap, Taux_oc, Temp_coef, V_hubbard, V0bdcFimp
   real(kind=db), dimension(:,:), allocatable :: Angle_mode, angpoldafs, Axe_atom_gr, &
-     hkl_dafs, pdpolar, polar, pop_nonsph, posn, posn_bulk, posn_cap, &
+     hkl_dafs, pdpolar, polar, pop_nonsph, posn, posn_bulk, posn_cap, q_nrixs, &
      Vecdafsem, Vecdafssm, veconde, Wien_taulap
   real(kind=db), dimension(:,:,:), allocatable:: popats, popval, rot_atom_gr, rotloc_lapw
   real(kind=db), dimension(:,:,:,:), allocatable:: occ_hubb_e
@@ -226,7 +226,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   allocate( posn(3,n_atom_uc) )
   allocate( posn_bulk(3,n_atom_bulk) )
   allocate( posn_cap(3,n_atom_cap) )
-  allocate( q_nrixs(nq_nrixs) )
+  allocate( q_nrixs(4,nq_nrixs) )
   allocate( r0_lapw(0:ntype) )
   allocate( rchimp(0:ntype) )
   allocate( rlapw(0:ntype) )
@@ -789,7 +789,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     n_atom_cap, n_atom_coop, n_atom_ind, n_atom_ind_self, n_atom_int, n_atom_per, n_atom_proto, n_atom_proto_bulk, &
     n_atom_proto_uc, n_atom_sur, n_atom_uc, n_bulk_sup, n_bulk_z, n_bulk_z_max, n_devide, n_Ec, n_mat_polar, n_max, &
     n_multi_run, n_oo, n_orb_rel, n_orbexc, n_radius, n_range, n_rel, n_rout, n_tens_max, n_V, n_vr_0, n_vr_ind, &
-    n1, nab_coop, nab_coop_ev, natome, natome_cal, natome_self, natomsym_max, natomeq, natomeq_coh, natomeq_self, &
+    n1, nab_coop, natome, natome_cal, natome_self, natomsym_max, natomeq, natomeq_coh, natomeq_self, &
     natomp, natomsym, nb_rep, nb_sym_op, nbbseuil, nbm, nbseuil, nbtm, nbtm_fdm, nchemin, ncolm, ncolr, ncolt, &
     ndim2, necrantage, neimagent, nenerg, nenerg_coh, nenerg_s, nenerg_tddft, nenerg0, neqm, ngamh, ngamme, nge, &
     ngrm, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_nonsph, ngroup_pdb, &
@@ -874,7 +874,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
      Charge_free, Classic_irreg, Convergence, COOP, Core_resolved, Coupelapw, Dafs, Dafs_bio, Density, &
      Density_comp, Devide_Ei, Dip_rel, Dipmag, Doping, Dyn_eg, Dyn_g, E_comp, E1E1, E1E2, E1E2e, E1E3, E1M1, E2E2, E3E3, &
      E_cut_man, Eneg, Eneg_i, Eneg_n_i, Energphot, Extract, &
-     Extract_Green, Extract_ten, FDM_comp, FDM_comp_m, Fermi, Fermi_first, Film, Final_optic, &
+     Extract_ten, FDM_comp, FDM_comp_m, Fermi, Fermi_first, Film, Final_optic, &
      Final_tddft, First_E, Flapw, Flapw_new, Force_ecr, Full_atom, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, &
      Gamma_tddft, Green, Green_i, Green_int, Green_s, Green_self, Helm_cos, hkl_film, Hubb_a, Hubb_abs, Hubb_d, Hubb_diag_abs, &
      Hubbard, Kern_fast, korigimp, Level_val_abs, Level_val_exc, lmaxfree, lmoins1, lplus1, M1M1, Magnetic, Matper, Moy_cluster, &
@@ -943,7 +943,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
   real(kind=db), dimension(3,n_atom_uc):: posn
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
   real(kind=db), dimension(3,n_atom_cap):: posn_cap
-  real(kind=db), dimension(nq_nrixs):: q_nrixs
+  real(kind=db), dimension(4,nq_nrixs):: q_nrixs
   real(kind=db), dimension(0:ntype):: r0_lapw, rchimp, rlapw, rmt, rmtimp, V_hubbard
   real(kind=db), dimension(3,3,ngroup_m):: Rot_Atom_gr
   real(kind=db), dimension(3,3,ngroup_lapw):: Rotloc_lapw
@@ -2576,7 +2576,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       adimp = adimp_e(i_adimp)
 
 ! Calculation of the non-equivalent atoms inside the cluster of calculation
-       natome = natome_cal(igrpt_nomag,iopsymr,mpirank0,natomeq,natomp,pos)
+      natome = natome_cal(igrpt_nomag,iopsymr,mpirank0,natomeq,natomp,pos)
 
 ! The atoms used to describe the potential can be only the non-equivalent atoms of the unit cell, or the non-equivalent atoms
 ! inside the cluster
@@ -2630,23 +2630,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
         nb_rep_t,nb_sym_op,neqm,ngreq,ngroup,ngroup_hubb,ngroup_m,nlat,nlatm,nspin,nspinp,ntype,numat,nx,occ_hubb_e,Overad, &
         popats,pos,posi,rmt,rot_atom,roverad,Rsort,Rsorte,Spinorbite,Symmol,V_hubb,V_hubbard,Ylm_comp)
 
-      do j = 1,n_atom_coop
-        boucle_ipr: do ipr = 1,n_atom_proto
-          do i = 1,ngreq(ipr)
-            if( igreq(ipr,i) == igr_coop(j) ) exit boucle_ipr
-          end do
-        end do boucle_ipr
-        ia_coop(j) = 100000
-        do i = 1,ngreq(ipr)
-          do ia = 1,natome
-            if( igroupi(ia) == igreq(ipr,i) ) then
-              ia_coop(j) = min( ia_coop(j), ia )
-              exit
-            endif
-          end do
-        end do
-        if( ia_coop(j) > natome ) ia_coop(j) = 0
-      end do
+      call Atom_coop_selec(COOP,Dist_coop,ia_coop,iaprotoi,ich,igr_coop,igreq,igroupi,itypei,n_atom_coop,n_atom_proto,nab_coop, &
+                         natome,neqm,ngreq,ntype,numat,Posi,Rmtg)
 
       if( Hubb(itabs) .and. i_range == 1 ) then
         if( Full_atom ) then
@@ -3220,8 +3205,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             endif
           endif
 
-          nab_coop = nab_coop_ev(COOP,Dist_coop,ia_coop,iaprotoi,n_atom_coop,n_atom_proto,natome,Posi,Rmtg)
-
           allocate( phiato(nphiato1,nlmagm,nspinp,nspino,natome,nphiato7) )
           allocate( Taull(nlmagm,nspinp,nlmagm,nspinp,natome) )
           allocate( Tau_coop(nlmagm,nspinp,nlmagm,nspinp,nab_coop) )
@@ -3490,13 +3473,13 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
               Enervide_t(1) = Enervide
               if( mpirank_in_mumps_group == 0 ) then
                 if( NRIXS ) &
-                  call S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
+                  call S_nrixs_cal(axyz,Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                     Eimag(ie),Energ(ie),Enervide_t,Eseuil,FDM_comp_m,Final_tddft,Full_potential,Green,Green_i,Hubb_abs, &
                     Hubb_diag_abs,icheck(20),l0_nrixs,lmax_nrixs,is_g,lmax_probe,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
-                    mpinodee,mpirank, &
-                    n_Ec,n_V,nbseuil,ns_dipmag,ndim2,ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe,nlm_p_fp, &
-                    nq_nrixs,nrato_abs,nrm,nspin,nspino,nspinp,numat(itabs),psii,q_nrixs,rato_abs,Relativiste,Renorm,Rmtg_abs, &
-                    Rmtsd_abs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Taull_abs, &
+                    mpinodee,mpirank,n_Ec,n_V,nbseuil,ns_dipmag,ndim2, &
+                    ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe,nlm_p_fp,nq_nrixs,nrato_abs,nrm,nspin,nspino,nspinp, &
+                    numat(itabs),Orthmatt,psii,q_nrixs,rato_abs,Relativiste,Renorm,Rmtg_abs,Rmtsd_abs,Rot_atom_abs,Rot_int, &
+                    S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Taull_abs, &
                     V_hubb_abs,V_intmax,V0bdc,Vra,Ylm_comp)
 
                 call tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic,Eimag(ie), &
@@ -3562,8 +3545,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           endif
 
           if( COOP ) call Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom,Full_potential,Hubb, &
-            Hubb_diag,ia_coop,iabsorig(multi_run),iaprotoi,icheck(28),ie,itypepr,lmax_pot,lmaxat,m_hubb,n_atom_0,n_atom_0_self, &
-            n_atom_coop,n_atom_ind,n_atom_ind_self,n_atom_proto,n_multi_run,nab_coop,natome,nlm_pot,nlmagm,nomfich_s,nrato,nrm, &
+            Hubb_diag,ia_coop,iaprotoi,icheck(28),ie,itypepr,lmax_pot,lmaxat,m_hubb,n_atom_0,n_atom_0_self, &
+            n_atom_coop,n_atom_ind,n_atom_ind_self,n_atom_proto,nab_coop,natome,nlm_pot,nlmagm,nomfich_s,nrato,nrm, &
             nspin,nspino,nspinp,ntype,numat,Posi,rato,Relativiste,Renorm,Rmtg,Rmtg0,Rmtsd,Rot_atom,Spinorbite,Tau_coop,V_hubb, &
             V_intmax,V0bdc,Vrato,Ylm_comp,Z_nospinorbite)
 
@@ -3803,9 +3786,9 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ngamh,ninit1,ninitl,ninitl_out,ninitlr,nlm_pot,nlmamax, &
           nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s, &
           nphi_dafs,nphim,npldafs,nplr,nplrm,nq_nrixs,nrato_abs,NRIXS,nrm,nseuil,nspin,nspino,nspinp, &
-          numat_abs,nxanout,Octupole,Old_zero,pdp,phdf0t,phdf0t_rgh_bulk,phdt,phdt_rgh_Bulk,pol,poldafse,poldafss, &
+          numat_abs,nxanout,Octupole,Old_zero,Orthmatt,pdp,phdf0t,phdf0t_rgh_bulk,phdt,phdt_rgh_Bulk,pol,poldafse,poldafss, &
           psii,q_nrixs,Quadrupole,rato_abs,Relativiste,Renorm,rhoato_abs,Rmtg_abs,Rmtsd_abs, &
-          rof0,rot_atom_abs,Rot_int,RPALF,rsato_abs,rsbdc,Self_abs,Solsing_only, &
+          rof0,Rot_atom_abs,Rot_int,RPALF,rsato_abs,rsbdc,Self_abs,Solsing_only, &
           Spherical_signal,Spherical_tensor,Spinorbite,Surface_ref,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb_abs,V0muf, &
           Vcato_abs,Vec,Vecdafse,Vecdafss,Vhbdc,Volume_maille,VxcbdcF, &
           Vxcato_abs,Workf,Ylm_comp)

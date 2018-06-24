@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 8th of June 2018, 20 Prairial, An 226
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 21st of June 2018, 3 Messidor, An 226
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,7 +43,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 8th of June 2018'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 21st of June 2018'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -249,7 +249,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 210
+  integer, parameter:: nkw_fdm = 211
   integer, parameter:: nkw_conv = 38
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_gaus = 1
@@ -269,6 +269,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     nb_datafile, nblock, ncal, ncal_nonfdm, ndem, ndm, ng, ngamh, ngroup_par, ngroup_par_conv, &
     nmetric, nn, nnombre, nnotskip, nnotskipm, nparm, npm, mermrank
 
+  character(len=1):: mot1
   character(len=9):: keyword, mot9, Traduction
   character(len=13):: mot13
   character(len=132):: comt, convolution_out, elf_infile, File_in, fdmfit_out, fdmnes_inp, Fichier, identmot, imfp_infile, &
@@ -340,9 +341,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar', &
      'molecule ','molecule_','muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_dft   ','no_e1e1  ', &
      'no_e1e2  ','no_e1e3  ','no_e2e2  ','no_e3e3  ','no_fermi ','no_renorm','no_res_ma','no_res_mo','no_solsin','normaltau', &
-     'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','occupancy','octupole ','old_zero ', &
-     'one_run  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ','pointgrou','polarized', &
-     'quadmag  ','quadrupol','radius   ','range    ','rangel   ','raydem   ','rchimp   ','readfast ','relativis', &
+     'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','nrixs_mon','occupancy','octupole ', &
+     'old_zero ','one_run  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ','pointgrou', &
+     'polarized','quadmag  ','quadrupol','radius   ','range    ','rangel   ','raydem   ','rchimp   ','readfast ','relativis', &
      'rmt      ','rmtg     ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ', &
      'self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
      'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spinorbit','step_azim','supermuf ','surface  ', &
@@ -455,10 +456,15 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
   boucle_ligne: do ligne = 1,100000
 
+    read(1,'(A)',iostat=eof) mot
+! in some files the 3 first characters are special...
     if( ligne == 1 ) then
-      read(1,'(3x,A)',iostat=eof) mot
-    else
-      read(1,'(A)',iostat=eof) mot
+      mot1 = mot(3:3)
+      do i = 66,123
+        if( ( i >= 92 .and. i <= 95 ) .or. i == 97 ) cycle
+        if( achar( i ) == mot1 ) exit
+      end do
+      if( i > 123 ) mot(1:3) = '   '
     endif
 
     if( eof /= 0 ) exit boucle_ligne

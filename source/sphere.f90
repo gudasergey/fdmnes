@@ -3895,63 +3895,11 @@ end
 
 !***********************************************************************
 
-! Calculation of the number of couple of atoms where one calculate the Crystal Orbital Overlap 
-
-function nab_coop_ev(COOP,Dist_coop,ia_coop,iaprotoi,n_atom_coop,n_atom_proto,natome,Posi,Rmtg)
-
-  use declarations
-  implicit none
-
-  integer:: ia, iab, ib, j, n_atom_coop, nab_coop_ev, natome, ipra, iprb, n_atom_proto
-
-  integer, dimension(n_atom_coop):: ia_coop
-  integer, dimension(natome):: iaprotoi
-  
-  logical:: COOP
-  
-  real(kind=db):: Dist, Dist_coop
-  real(kind=db), dimension(0:n_atom_proto):: Rmtg
-  real(kind=db), dimension(3,natome):: Posi
-  
-  iab = 0
-  
-  if( COOP ) then
-    do ia = 1,natome
-      ipra = iaprotoi( ia )
-
-      do ib = ia+1,natome
-
-        if( n_atom_coop > 0 ) then
-          do j = 1,n_atom_coop
-            if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
-          end do
-          if( j > n_atom_coop ) cycle
-        endif
- 
-        iprb = iaprotoi( ib )
-        Dist = sqrt( sum( ( Posi(:,ia) - Posi(:,ib) )**2 ) )
-        if( Dist_coop > eps10 ) then
-          if( Dist > Dist_coop + eps10 ) cycle
-        else
-          if( Dist > Rmtg( ipra ) + Rmtg( iprb ) ) cycle
-        endif  
-        iab = iab + 1
-      end do
-    end do
-  endif
-  
-  nab_coop_ev = iab
-
-  return
-end
-
-!***********************************************************************
-
 ! Calculation of the Crystal Orbital Overlap Population
 
 subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_atom,Full_potential,Hubb, &
-            Hubb_diag,ia_coop,iabsorig,iaprotoi,icheck,ie,itypepr,lmax_pot,lmaxat,m_hubb,n_atom_0,n_atom_0_self, &
-            n_atom_coop,n_atom_ind,n_atom_ind_self,n_atom_proto,n_multi_run,nab_coop,natome,nlm_pot,nlmagm,nomfich_s,nrato,nrm, &
+            Hubb_diag,ia_coop,iaprotoi,icheck,ie,itypepr,lmax_pot,lmaxat,m_hubb,n_atom_0,n_atom_0_self, &
+            n_atom_coop,n_atom_ind,n_atom_ind_self,n_atom_proto,nab_coop,natome,nlm_pot,nlmagm,nomfich_s,nrato,nrm, &
             nspin,nspino,nspinp,ntype,numat,Posi,rato,Relativiste,Renorm,Rmtg,Rmtg0,Rmtsd,Rot_atom,Spinorbite,Tau_coop,V_hubb, &
             V_intmax,V0bd,Vrato,Ylm_comp,Z_nospinorbite)
 
@@ -3960,10 +3908,10 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
 
   integer, parameter:: Zmax = 103
   
-  integer:: i, i_rad, ia, iab, iabsorig, iapr, iapra, iaprb, ib, icheck, ie, ipr, ipra, iprb, ira, irb, isa, isb, &
+  integer:: i, i_rad, ia, iab, iapr, iapra, iaprb, ib, icheck, ie, ipr, ipra, iprb, ira, irb, isa, isb, &
     isoa, isob, ispa, ispb, it, j, l, la, lam, lb, lbm, lm, lm0a, lm0b, lma, lmax, lmaxa, lmaxb, lmaxm, lmax_pot, lmb, lmm, lmp, &
     m_hubb, ma, mb, mpa, mpb, mva, mvb, n, n_angle, n_atom_0, n_atom_0_self, n_atom_coop, n_atom_ind, n_atom_ind_self, &
-    n_atom_proto, n_multi_run, n_rad, n_rad_m, nab_coop, natome, nlm_pot, nlmagm, nlmc, nlmr, nr, nrm, nspin, nspino, nspinp, &
+    n_atom_proto, n_rad, n_rad_m, nab_coop, natome, nlm_pot, nlmagm, nlmc, nlmr, nr, nrm, nspin, nspino, nspinp, &
     ntype, Z, Z_nospinorbite, Za, Zb
 
   integer, dimension(n_atom_coop):: ia_coop
@@ -4478,11 +4426,8 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
  ! Writing
   do iab = 1,nab_coop
     nomfich_coop = nomfich_s
-    if( n_multi_run > 1 ) then
-      l = len_trim(nomfich_coop)
-      nomfich_coop(l+1:l+1) = '_'
-      call ad_number(iabsorig,nomfich_coop,132)
-    endif
+    l = len_trim(nomfich_coop)
+    nomfich_coop(l+1:l+5) = '_coop'
     l = len_trim(nomfich_coop)
     nomfich_coop(l+1:l+1) = '_'
     call ad_number(indexa(iab),nomfich_coop,132)
@@ -4490,7 +4435,7 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
     nomfich_coop(l+1:l+1) = '_'
     call ad_number(indexb(iab),nomfich_coop,132)
     l = len_trim(nomfich_coop)
-    nomfich_coop(l+1:l+9) = '_coop.txt'
+    nomfich_coop(l+1:l+4) = '.txt'
  
     ia = indexa(iab)
     ib = indexb(iab)
