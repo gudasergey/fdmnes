@@ -65,10 +65,10 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
   integer, dimension(n_bulk_z):: n_bulk_zc
   integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
 
-  character(len=132):: nomfich, nomfich_s
+  character(len=Length_name):: nomfich, nomfich_s
   character(len=5), dimension(nplrm):: ltypcal
   character(len=length_word), dimension(ncolm):: nomabs
-  character(len=132), dimension(n_multi_run+n_bulk_sup+n_abs_rgh):: nomfich_cal_tddft_conv
+  character(len=Length_name), dimension(n_multi_run+n_bulk_sup+n_abs_rgh):: nomfich_cal_tddft_conv
 
   complex(kind=db):: f_avantseuil
   complex(kind=db), dimension(3,nplrm):: pol
@@ -920,7 +920,7 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
   logical:: Core_resolved, Gamma_hole_imp, Gamma_tddft, Spinorbite
 
   character(len=2):: ch2
-  character(len=132):: nomfich
+  character(len=Length_name):: nomfich
 
   complex(kind=db):: dch, y1_c
   complex(kind=db), dimension(nenerg_s,nlmamax,nspinp,nspino,nbseuil):: rof0
@@ -1256,7 +1256,7 @@ subroutine write_Chi_0(Chi_0,Energ,i_val,je,l_val,m_val,nlms_f,nlms_g,nomfich,ns
   use declarations
   implicit none
 
-  character(len=132):: chi_conv, nomfich
+  character(len=Length_name):: chi_conv, nomfich
   character(len=1), dimension(nlms_f,2):: sgn
 
   integer:: is_dipmag, isp, je, l, lms, lms1, lms2, nlms_f, nlms_g, ns_dipmag
@@ -1355,7 +1355,7 @@ subroutine kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ,fxc,
   integer, dimension(ninitl,2):: m_g
   integer, dimension(nlms_f,2):: i_val, l_val, m_val
 
-  character(len=132):: nomfich
+  character(len=Length_name):: nomfich
 
   complex(kind=db):: Gaunt_xcc
 
@@ -1611,7 +1611,7 @@ subroutine write_Kern(Kern,Energ,i_val,je,l_val,m_val,nlms_f,nlms_g,nomfich,ns_d
   use declarations
   implicit none
 
-  character(len=132):: chi_conv, nomfich
+  character(len=Length_name):: chi_conv, nomfich
   character(len=1), dimension(nlms_f,2):: sgn
 
   integer:: is_dipmag, isp, isp1, isp2, je, l, lms, lms1, lms2, nlms_f, nlms_g, ns_dipmag
@@ -1731,7 +1731,7 @@ subroutine Cal_Chi(Chi, Chi_0, coef_g, Energ, First_E, icheck, iopsymc_25, Kern,
   use declarations
   implicit none
 
-  character(len=132), intent(in):: nomfich
+  character(len=Length_name), intent(in):: nomfich
 
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,nd3,nd3,2,2,ns_dipmag), intent(out):: Chi
   complex(kind=db), dimension(nlms_f,nlms_f,nlms_g,nlms_g,2,ns_dipmag):: Chi_0
@@ -2027,19 +2027,17 @@ subroutine Write_Chi(Chi,Energ,First,ninitl,icheck,nlm_probe,nomfich,ns_dipmag,n
   use declarations
   implicit none
 
-  character(len=132),intent(in)::  nomfich
-
   integer,intent(in):: ninitl, icheck, nlm_probe, ns_dipmag, nspino
+  integer l, isp1, isp2, ist1, ist2, lm1, lm2
+
+  character(len=Length_name),intent(in)::  nomfich
+  character(len=Length_name):: chi_conv
 
   complex(kind=db),dimension(nlm_probe*nspino,nlm_probe*nspino,ninitl,ninitl,2,2,ns_dipmag),intent(in):: Chi
 
   logical:: Diag, First
 
   real(kind=db),intent(in):: Energ
-
-  character(len=132)::  chi_conv
-
-  integer l, isp1, isp2, ist1, ist2, lm1, lm2
 
   if( icheck > 2 ) then
     Diag = .false.
@@ -2550,10 +2548,10 @@ subroutine main_tddft_optic(Abs_U_iso,alfpot,angxyz,Allsite,Atomic_scr,axyz,Brag
   integer, dimension(n_bulk_z):: n_bulk_zc
   integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
 
-  character(len=132):: nomfich, nomfich_s
+  character(len=Length_name):: nomfich, nomfich_s
   character(len=5), dimension(nplrm):: ltypcal
   character(len=length_word), dimension(ncolm):: nomabs
-  character(len=132), dimension(n_multi_run+n_bulk_sup):: nomfich_cal_tddft_conv
+  character(len=Length_name), dimension(n_multi_run+n_bulk_sup):: nomfich_cal_tddft_conv
 
   complex(kind=db):: f_avantseuil
   complex(kind=db), dimension(3,nplrm):: pol
@@ -3191,7 +3189,7 @@ subroutine Chi_0_opt(Chi_0, dChi_0, dChi_0_i, delta_E, E_cut_tddft, Energ, Energ
 
   logical:: Gamma_tddft, M_depend, Spinorbite, Ylm_comp
 
-  character(len=132):: nomfich
+  character(len=Length_name):: nomfich
 
   complex(kind=db):: dch, dch1
   complex(kind=db), dimension(nenerg_s,nlmamax,nspinp,nlmamax,nspinp) :: Taull_tdd
@@ -3413,7 +3411,7 @@ subroutine Write_Chi_0_opt(Chi_0,Energ,Energ_s,i_val,icheck,je,l_val,lmax,m_val,
   use declarations
   implicit none
 
-  character(len=132):: chi_conv, nomfich
+  character(len=Length_name):: chi_conv, nomfich
   character(len=1), dimension(nlms_f):: sgn
 
   integer:: icheck, ie, isp1, isp2, je, l, l1, l2, lm1, lm2, lmax, lms_f1, lms_f2, lms_g1, lms_g2, m1, m2, nenerg_s, &
@@ -3527,7 +3525,7 @@ subroutine kernel_optic(Atomic_scr,Energ,First_E,fxc,icheck,Kern,Kern_fac,lmax,M
 
   integer, dimension(nlms_f):: i_val, l_val, lmp_val, lmv_val, m_val, mv_val, s_val
 
-  character(len=132):: nomfich
+  character(len=Length_name):: nomfich
 
   complex(kind=db):: Gaunt_1, Gaunt_12, Gaunt_2, Gaunt_xcc, Gaunt_xrc
 
@@ -3877,11 +3875,11 @@ subroutine Write_Kern_opt(icheck,Kern,Energ,First_E,i_val,l_val,m_val,nlms_f,nlm
   use declarations
   implicit none
 
-  character(len=132):: chi_conv, nomfich
-  character(len=1), dimension(nlms_f):: sgn
-
   integer:: icheck, l, lms_g1, lms_g2, lms_f1, lms_f2, nlms_f, nlms_g
   integer, dimension(nlms_f):: i_val, l_val, m_val, s_val
+
+  character(len=Length_name):: chi_conv, nomfich
+  character(len=1), dimension(nlms_f):: sgn
 
   real(kind=db), dimension(nlms_f,nlms_f,nlms_g,nlms_g):: Kern
 
@@ -3975,7 +3973,14 @@ subroutine Cal_Chi_opt(B_stk, Chi, Chi_0, dChi_0, dchi_0_i, Energ, First_E, Firs
   use declarations
   implicit none
 
-  character(len=132), intent(in):: nomfich
+  integer:: i, i1, i2, icheck, ie_g, ief, is_dipmag, iso, iso_f1, iso_f2, iso_g1, iso_g2, isp, &
+    isp_f1, isp_f1_t, isp_f2, isp_f2_t, isp_g1, isp_g1_t, isp_g2, isp_g2_t, j, l, l_f1, l_f2, l_g1, l_g2, lm, lmax, &
+    lmax_probe, lms, lms_f1, lms_f2, lms_g1, lms_g2, lmsv_f1, lmsv_f2, lmsv_g1, lmsv_g2, m, &
+    m_f1, m_f2, m_g1, m_g2, n_stk, nd3, ndim, ninitl, nlm_fp, nlm_probe, nlms, nlms_f, nlms_g, ns_dipmag, nspino, nspint
+
+  integer, dimension(nlms_f):: i_val, l_val, lmsv_val, m_val, s_val
+
+  character(len=Length_name), intent(in):: nomfich
 
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,nd3,nd3,2,2,ns_dipmag), intent(out):: Chi
   complex(kind=db), dimension(nlms_f,nlms_f,nlms_g,nlms_g):: Chi_0
@@ -3983,13 +3988,6 @@ subroutine Cal_Chi_opt(B_stk, Chi, Chi_0, dChi_0, dchi_0_i, Energ, First_E, Firs
   complex(kind=db), dimension(n_stk,n_stk):: B_stk
   complex(kind=db), dimension(:), allocatable:: V
   complex(kind=db), dimension(:,:), allocatable:: B, B2, B2_i, B_i, C, dC, dC_i
-
-  integer:: i, i1, i2, icheck, ie_g, ief, is_dipmag, iso, iso_f1, iso_f2, iso_g1, iso_g2, isp, &
-    isp_f1, isp_f1_t, isp_f2, isp_f2_t, isp_g1, isp_g1_t, isp_g2, isp_g2_t, j, l, l_f1, l_f2, l_g1, l_g2, lm, lmax, &
-    lmax_probe, lms, lms_f1, lms_f2, lms_g1, lms_g2, lmsv_f1, lmsv_f2, lmsv_g1, lmsv_g2, m, &
-    m_f1, m_f2, m_g1, m_g2, n_stk, nd3, ndim, ninitl, nlm_fp, nlm_probe, nlms, nlms_f, nlms_g, ns_dipmag, nspino, nspint
-
-  integer, dimension(nlms_f):: i_val, l_val, lmsv_val, m_val, s_val
 
   logical:: First_E, First_K, Full_Kern, Kern_fast, Spinorbite, Stop_job, Ylm_comp
 

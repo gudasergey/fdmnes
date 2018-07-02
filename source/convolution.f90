@@ -36,12 +36,13 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   character(len=6):: mot6, mot6_b
   character(len=9):: keyword, mot9, Traduction
   character(len=15):: mot15
-  character(len=Length_word):: nomab
-  character(len=132):: chemin, convolution_out, fichscanout, identmot, mot, mots, nomfich, nomfichbav
+  character(len=132):: identmot, mot, mots
+  character(len=Length_word):: nomab   
+  character(len=Length_name):: chemin, convolution_out, fichscanout, nomfich, nomfichbav
   character(len=9), dimension(nkw_conv) :: kw_conv
   character(len=9), dimension(ngroup_par,nparm) :: typepar
   character(len=Length_word), dimension(:), allocatable:: nom_col
-  character(len=132), dimension(:), allocatable:: Convolution_out_all, fichin, fichscanin, fichscanout_all
+  character(len=Length_name), dimension(:), allocatable:: Convolution_out_all, fichin, fichscanin, fichscanout_all
   character(len=13), dimension(:), allocatable:: Stokes_name
 
   complex(kind=db):: cf, zero_c
@@ -411,7 +412,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         chem = .true.
         n = nnombre(itape1,132)
         read(itape1,'(A)') chemin
-        chemin = chemin
 
       case('abs_b_iso')
         U_iso_inp = .true.
@@ -2484,7 +2484,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
   integer, dimension(nfich):: ne, ninitl
   integer, dimension(ninitlm,nfich):: ne_initl, nsup
   
-  character(len=132), dimension(nfich):: Fichin
+  character(len=Length_name), dimension(nfich):: Fichin
   
   logical:: Energphot, File_change
   logical, dimension(:,:), allocatable:: Fichdone 
@@ -2718,8 +2718,8 @@ end
   character(len=8):: dat
   character(len=10):: tim
   character(len=50):: com_date, com_time
-  character(len=132):: chemin, convolution_out, fichscanout, mot, mots, nomfichbav
-  character(len=132), dimension(nfich):: convolution_out_all, fichin, fichscanin, fichscanout_all
+  character(len=Length_name):: chemin, convolution_out, fichscanout, mot, mots, nomfichbav
+  character(len=Length_name), dimension(nfich):: convolution_out_all, fichin, fichscanin, fichscanout_all
 
   logical:: bav_open, check_conv, Chem, Dafs_bio, Deuxieme, Photoemission, Scan_a, Scan_true
   
@@ -2772,7 +2772,7 @@ end
       l = len_trim( convolution_out )
       if( convolution_out(l-8:l) == '_conv.txt' ) then
         mot(l-7:l) = '        '
-        call ad_number(ifich,mot,132)
+        call ad_number(ifich,mot,Length_name)
         l = len_trim( mot )
         if( Photoemission ) then
           mot(l+1:l+16) = '_xes_conv.txt'
@@ -2785,7 +2785,7 @@ end
         else
           mot(l-3:l) = '_   '
         endif
-        call ad_number(ifich,mot,132)
+        call ad_number(ifich,mot,Length_name)
         l = len_trim( mot )
         mot(l+1:l+4) = '.txt'
       endif 
@@ -2913,7 +2913,7 @@ subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ep
 
   character(len=15):: nomab
   character(len=132):: mot
-  character(len=132), dimension(nfich):: fichin, Fichscanin
+  character(len=Length_name), dimension(nfich):: fichin, Fichscanin
   character(len=15), dimension(:), allocatable:: nomcol
 
   logical:: Cor_abs, fprim, Full_self_abs, Green_int, Magn, nxan_lib, Scan_true, Self_abs, Signal_Sph, Tenseur, Tenseur_car, &
@@ -3153,7 +3153,7 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
     n_stokes, nc, nnombre, npldafs, npldafs_b, nxan
   integer, dimension(npldafs):: nphi
 
-  character(len=132):: fichin, Fichscanin
+  character(len=Length_name):: fichin, Fichscanin
   character(len=Length_word):: nomab, nomac
   character(len=length_line):: motl
   character(len=13), dimension(n_stokes):: Stokes_name
@@ -4807,7 +4807,7 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
   character(len=15), dimension(n_col):: nom_col
   character(len=15), dimension(:,:,:), allocatable:: E_string, l_value
   character(len=15), dimension(:,:,:,:), allocatable:: Signal_out
-  character(len=132):: Convolution_out, Convolution_tr
+  character(len=Length_name):: Convolution_out, Convolution_tr
 
   real(kind=db):: E
   real(kind=db), dimension(nes):: Es
@@ -5023,7 +5023,8 @@ subroutine Main_gaussian(File_in,itape,File_out)
   integer:: eof, i, ier, ipr, istat, itape, l, ligne, n, n_text, ncol, nnombre, nx
 
   character(len=9):: keyword
-  character(len=132):: File_in, File_out, identmot, mot, Title, Traduction
+  character(len=132):: identmot, mot, Title, Traduction
+  character(len=Length_name):: File_in, File_out
 
   real(kind=db):: a, sigma
   real(kind=db), dimension(:), allocatable:: x

@@ -36,8 +36,8 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
   character(len=length_word), dimension(ncolm):: nomabs
   character(len=length_word), dimension(ncolm*ninitlr):: title
   character(len=5), dimension(nplrm):: ltypcal
-  character(len=132):: nomfich, nomfich_s, nomfichdafst, nomficht
-  character(len=132), dimension(n_multi_run+n_bulk_sup+n_abs_rgh):: nomfich_cal_conv
+  character(len=Length_name):: nomfich, nomfich_s, nomfichdafst, nomficht
+  character(len=Length_name), dimension(n_multi_run+n_bulk_sup+n_abs_rgh):: nomfich_cal_conv
   character(len=2310):: mot
 
   complex(kind=db):: cf, f_avantseuil, matpole, matpols, ph, ph_m, sec
@@ -529,8 +529,8 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
               ia = ib
             endif
             if( ia /= 0 .and. ( ipl > 1 .and. .not. idafs ) ) cycle
-            call Write_cartesian_tensor(Abs_U_iso,Volume_maille,E_cut,E1E2,E2E2,Ephseuil,Epsii,Eseuil(nbseuil),First_E,ia, &
-               ipldafs,jseuil,M1M1,Magn_sens,n_rel,natomsym,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,secddia,secdqia, &
+            call Write_cartesian_tensor(Abs_U_iso,Volume_maille,E_cut,E1E2,E2E2,Ephseuil,Epsii,Eseuil(nbseuil),First_E,i_range, &
+               ia,ipldafs,jseuil,M1M1,Magn_sens,n_rel,natomsym,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,secddia,secdqia, &
                secdqia_m,secqqia,secmdia,Tens_comp,V0muf,Core_resolved)
           end do
         endif
@@ -1238,9 +1238,9 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
     if( ia > 0 ) then
       long = len_trim(nomficht)
       nomficht(long+1:long+5) = '_atom'
-      call ad_number(ia,nomficht,132)
+      call ad_number(ia,nomficht,Length_name)
       nomfichdafst(long+1:long+5) = '_atom'
-      call ad_number(ia,nomfichdafst,132)
+      call ad_number(ia,nomfichdafst,Length_name)
     endif
     long = len_trim(nomficht)
 
@@ -1254,18 +1254,18 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
     if( n_multi_run > 1 ) then
       l = len_trim(nomficht)
       nomficht(l+1:l+1) = '_'
-      call ad_number(iabsorig,nomficht,132)
+      call ad_number(iabsorig,nomficht,Length_name)
       l = len_trim(nomfichdafst)
       nomfichdafst(l+1:l+1) = '_'
-      call ad_number(iabsorig,nomfichdafst,132)
+      call ad_number(iabsorig,nomfichdafst,Length_name)
     endif
     if( n_bulk_z > 1 .and. .not. Bulk_roughness_case ) then
       l = len_trim(nomficht)
       nomficht(l+1:l+1) = '_'
-      call ad_number(i_bulk_z,nomficht,132)
+      call ad_number(i_bulk_z,nomficht,Length_name)
       l = len_trim(nomfichdafst)
       nomfichdafst(l+1:l+1) = '_'
-      call ad_number(i_bulk_z,nomfichdafst,132)
+      call ad_number(i_bulk_z,nomfichdafst,Length_name)
     elseif( Bulk_roughness_case ) then ! bulk roughness case
       l = len_trim(nomficht)
       nomficht(l+1:l+2) = '_0'
@@ -1999,7 +1999,7 @@ subroutine Write_nrixs(Abs_U_iso,All_nrixs,Allsite,Core_resolved, &
     nseuil, nspinp, numat_abs
 
   character(len=length_word):: nomab
-  character(len=132) nomfich, nomfich_cal_convt, nomficht
+  character(len=Length_name) nomfich, nomfich_cal_convt, nomficht
   character(len=length_word), dimension(:), allocatable:: title
 
   complex(kind=db):: f_avantseuil
@@ -2096,7 +2096,7 @@ subroutine Write_nrixs(Abs_U_iso,All_nrixs,Allsite,Core_resolved, &
     if( ia > 0 ) then
       long = len_trim(nomficht)
       nomficht(long+1:long+5) = '_atom'
-      call ad_number(ia,nomficht,132)
+      call ad_number(ia,nomficht,Length_name)
     endif
     long = len_trim(nomficht)
 
@@ -2105,7 +2105,7 @@ subroutine Write_nrixs(Abs_U_iso,All_nrixs,Allsite,Core_resolved, &
     if( n_multi_run > 1 ) then
       long = len_trim(nomficht)
       nomficht(long+1:long+1) = '_'
-      call ad_number(iabsorig,nomficht,132)
+      call ad_number(iabsorig,nomficht,Length_name)
     endif
 
     long = len_trim(nomficht)
@@ -2224,20 +2224,20 @@ end
 
 !***********************************************************************
 
-subroutine Write_cartesian_tensor(Abs_U_iso,Volume_maille,E_cut,E1E2,E2E2,Ephseuil,Epsii,Eseuil,First_E,ia,ipldafs,jseuil, &
-                 M1M1,magn_sens,n_rel,natomsym,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,secddia,secdqia,secdqia_m, &
-                 secqqia,secmdia,tens_comp,v0muf,Core_resolved)
+subroutine Write_cartesian_tensor(Abs_U_iso,Volume_maille,E_cut,E1E2,E2E2,Ephseuil,Epsii,Eseuil,First_E,i_range, &
+                 ia,ipldafs,jseuil,M1M1,magn_sens,n_rel,natomsym,ninit1,ninitlr,nomfich_s,nseuil,numat_abs,secddia,secdqia, &
+                 secdqia_m,secqqia,secmdia,tens_comp,v0muf,Core_resolved)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
 
   parameter( n_dim=10*(168+12) )
 
-  character(len=132) nomficht, nomfich_s
+  character(len=Length_name) nomficht, nomfich_s
   character(len=Length_word) mot
   character(len=Length_word), dimension(n_dim):: nomtens
 
-  integer:: n_rel
+  integer:: i_range, n_rel
   
   complex(kind=db):: zero_c
   complex(kind=db), dimension(1):: cdum
@@ -2257,13 +2257,14 @@ subroutine Write_cartesian_tensor(Abs_U_iso,Volume_maille,E_cut,E1E2,E2E2,Ephseu
   long = len_trim(nomficht)
   if( ia == 0 ) then
     nomficht(long+1:long+9) = '_car_xtal'
-    if( ipldafs > 0 ) then
-      nomficht(long+10:long+13) = '_rxs'
-      call ad_number(ipldafs,nomficht,132)
-    endif
   else
     nomficht(long+1:long+9) = '_car_atom'
-    call ad_number(ia,nomficht,132)
+    call ad_number(ia,nomficht,Length_name)
+  endif
+  if( ipldafs > 0 ) then
+    long = len_trim(nomficht)
+    nomficht(long+1:long+4) = '_rxs'
+    call ad_number(ipldafs,nomficht,Length_name)
   endif
   long = len_trim(nomficht)
   nomficht(long+1:long+4) = '.txt'
@@ -2426,7 +2427,7 @@ subroutine Write_out(Abs_U_iso,angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Ese
 
   integer:: i, i_range, icor, ipr, jseuil, n, n_dim, n_tens, ninit1, ninitlr, np, npp, nppa, npps, nseuil, numat 
   
-  character(len=132):: nomficht
+  character(len=Length_name):: nomficht
   character(len=92):: mot1
   character(len=63):: mot2
   character(len=Length_word):: mot
@@ -2886,7 +2887,7 @@ subroutine Spherical_tensor_cal(Abs_U_iso,Bragg_abs,ct_nelec,Core_resolved,Volum
   integer:: i, i_range, ib, icheck, ie, initlr, ipl, ipldafs, jseuil, n_rel, n_tens_max, natomsym, nenerg, &
             ninit1, ninitlr, nphim, npldafs, nplr, nplrm, nplt, nseuil, numat_abs
   
-  character(len=132):: nomfich_s
+  character(len=Length_name):: nomfich_s
   character(len=58), dimension(9):: Com_dd, com_dm, Com_dm_m
   character(len=58), dimension(15):: Com_dq, Com_dq_m
   character(len=58), dimension(25):: Com_qq
@@ -3750,7 +3751,7 @@ subroutine Write_Spherical_tensor(Abs_U_iso,Core_resolved,Volume_maille,E_cut,E1
       n_tens_qq, natomsym, nenerg, ninit1, ninitlr, nseuil, numat_abs
 
   character(len=Length_word):: mot
-  character(len=132):: nomfich_s, nomficht
+  character(len=Length_name):: nomfich_s, nomficht
   character(len=8), dimension(9):: Tens_name_D
   character(len=8), dimension(15):: Tens_name_I, Tens_name_I_m 
   character(len=8), dimension(25):: Tens_name_Q 
@@ -3880,7 +3881,7 @@ subroutine Write_Spherical_tensor(Abs_U_iso,Core_resolved,Volume_maille,E_cut,E1
     nomficht(long+1:long+4) = '_sph'
     if( ia > 0 ) then
       nomficht(long+5:long+9) = '_atom'
-      call ad_number(ia,nomficht,132)
+      call ad_number(ia,nomficht,Length_name)
     else
       nomficht(long+5:long+9) = '_xtal'
     endif
@@ -3900,7 +3901,7 @@ subroutine Write_Spherical_tensor(Abs_U_iso,Core_resolved,Volume_maille,E_cut,E1
     nomficht(long+1:long+4) = '_sph'
     if( ia > 0 ) then
       nomficht(long+5:long+9) = '_atom'
-      call ad_number(ia,nomficht,132)
+      call ad_number(ia,nomficht,Length_name)
     else
       nomficht(long+5:long+9) = '_xtal'
     endif
@@ -4348,7 +4349,7 @@ subroutine Write_Signal(Abs_U_iso,ct_nelec,Core_resolved,Volume_maille,E_cut,E1E
       jdq, jdq0, jdqm, jdqm0, jqq, jqq0, jseuil, jtot, jtot0, long, n_tens, n_tens_dd, n_tens_dq, n_tens_dm, &
       n_tens_qq, n_tens2, ninit1, ninitlr, npldafs, nplt, nseuil, numat_abs
 
-  character(len=132):: nomfich_s, nomficht
+  character(len=Length_name):: nomfich_s, nomficht
   character(len=Length_word), dimension(:), allocatable:: Tens_name
 
   complex(kind=db):: cf, cg, zero_c
@@ -4598,17 +4599,17 @@ subroutine Write_Signal(Abs_U_iso,ct_nelec,Core_resolved,Volume_maille,E_cut,E1E
   nomficht(long+1:long+11) = '_sph_signal'
   if( ia > 0 ) then
     nomficht(long+12:long+16) = '_atom'
-    call ad_number(ia,nomficht,132)
+    call ad_number(ia,nomficht,Length_name)
   endif
   long = len_trim(nomficht)
   if( ipldafs > 0 ) then
     nomficht(long+1:long+4) = '_rxs'
-    call ad_number(ipldafs,nomficht,132)
+    call ad_number(ipldafs,nomficht,Length_name)
   elseif( ipl == 0 ) then
     nomficht(long+1:long+4) = '_xan'
   else
     nomficht(long+1:long+4) = '_pol'
-    call ad_number(ipl,nomficht,132)
+    call ad_number(ipl,nomficht,Length_name)
   endif
   long = len_trim(nomficht)
   nomficht(long+1:long+4) = '.txt'

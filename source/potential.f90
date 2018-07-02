@@ -2464,7 +2464,7 @@ subroutine potlapw(axyz,chargat,Coupelapw,deccent,Flapw_new,Full_atom,iapot, &
     ngroup_lapw, nklapw, nlm_pot, nlmlapwm, nmatsym, normrmt, np, npoint, npsom, nr, nrm, ns, nslapwm, nspin, ntype, &
     Trace_k, Wien_save
 
-  character(len=132), dimension(9):: Wien_file
+  character(len=Length_name), dimension(9):: Wien_file
 
   complex(kind=db), dimension(nslapwm) :: taupp
   complex(kind=db), dimension(nklapw,nmatsym) :: tauk
@@ -2987,8 +2987,8 @@ subroutine lect_pot_lapw(flapw_new,kxyz,llapw,magnetic,mlapw,nklapw,nlmlapw,nlml
 
   integer:: eof, nslapwm
 
-  character(len=132):: nomvcoul, nomr2v, nomr2vdn, nomclm(2*nspin-1)
-  character(len=132), dimension(9):: Wien_file
+  character(len=Length_name):: nomvcoul, nomr2v, nomr2vdn, nomclm(2*nspin-1)
+  character(len=Length_name), dimension(9):: Wien_file
 
 ! modif delphine 8/06/01 pour les structures sans centre d'inversion
 ! il faut alors absolument lire la partie imaginaire des coeff de Fourier.

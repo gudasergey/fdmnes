@@ -4143,7 +4143,7 @@ subroutine E_reading(icheck,Eimag,Energ,ie,multi_run,nom_fich_extract)
   integer:: i, icheck, ie, istat, multi_run
   
   character(len=32):: mot32
-  character(len=132):: nom_fich_extract
+  character(len=Length_name):: nom_fich_extract
  
   real(kind=db):: Energ, Eimag
 

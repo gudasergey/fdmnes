@@ -29,8 +29,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   character(len=6):: mot6
   character(len=9):: keyword
   character(len=13):: Space_Group, Spgr
-  character(len=132):: Fcif_file, Fichier, Fichier_pdb, identmot, mot, motsb
-  character(len=132), dimension(9):: Wien_file
+  character(len=132):: identmot, mot132, mot
+  character(len=Length_name):: Fcif_file, Fichier, Fichier_pdb
+  character(len=Length_name), dimension(9):: Wien_file
 
   logical:: Absauto, adimpin, Atom_conf, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Bulk, COOP, Fcif, Cap_layer, &
      Dafs_bio, Doping, Extract, Extract_ten, Film, Flapw, Full_self_abs, Hubbard, &
@@ -578,10 +579,10 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           n = nnombre(itape4,132)
           if( n == 0 ) then
             call write_error
-            read(itape4,'(A)') motsb
+            read(itape4,'(A)') mot132
             do ipr = 6,9,3
               write(ipr,150) keyword
-              write(ipr,'(A)') motsb
+              write(ipr,'(A)') mot132
               write(ipr,160)
             end do
             stop
@@ -621,10 +622,10 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
                   endif
                 case default
                   call write_error
-                  read(itape4,'(A)') motsb
+                  read(itape4,'(A)') mot132
                   do ipr = 6,9,3
                     write(ipr,150) keyword
-                    write(ipr,'(A)') motsb
+                    write(ipr,'(A)') mot132
                     write(ipr,160)
                   end do
                   stop
@@ -1154,7 +1155,7 @@ subroutine lectpot_dim(n_atom_uc,nklapw,nlmlapwm,nmatsym,nomstruct,nomvcoul,ntyp
   implicit real(kind=db) (a-h,o-z)
 
   character(len=1) Trans
-  character(len=132) nomstruct, nomvcoul
+  character(len=Length_name) nomstruct, nomvcoul
 
   integer:: Wien_save
   integer, dimension(:), allocatable :: nrato_lapw
@@ -1260,7 +1261,8 @@ subroutine Dim_reading(Angz,Atom_conf,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,i
   character(len=6):: mot6
   character(len=9):: keyword
   character(len=13):: Space_Group
-  character(len=132):: Fcif_file, Fichier_pdb, identmot, mot, motsb, Word_from_text
+  character(len=132):: identmot, mot, mot132, Word_from_text
+  character(len=Length_name):: Fcif_file, Fichier_pdb
 
   logical:: Atom_conf, Fcif, Doping, Pdb, Very_fast
 
@@ -1354,13 +1356,13 @@ subroutine Dim_reading(Angz,Atom_conf,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,i
 
       read(8,'(A)') mot
       if( n_symbol == 0 ) then
-        motsb = word_from_text(n_label,mot)
+        mot132 = word_from_text(n_label,mot)
       else
-        motsb = word_from_text(n_symbol,mot)
+        mot132 = word_from_text(n_symbol,mot)
       endif
 
 ! Lecture element chimique
-      Symbol = motsb(1:2)
+      Symbol = mot132(1:2)
       if( Symbol(2:2) == '1' .or. Symbol(2:2) == '2' .or. Symbol(2:2) == '3' .or. Symbol(2:2) == '4' .or.  &
           Symbol(2:2) == '5' .or. Symbol(2:2) == '6' .or. Symbol(2:2) == '7' .or. Symbol(2:2) == '8' .or.  &
           Symbol(2:2) == '9' ) Symbol(2:2) = ' '
@@ -1596,11 +1598,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   character(len=11):: motpol
   character(len=13):: Chemical_Name, mot13, Space_Group, Spgr
   character(len=50):: com_date, com_time
-  character(len=132):: comt, Error_message, Fichier, Fcif_file, identmot, mot, motsb, nomfich, &
-    nom_fich_Extract, nomfichbav, word_from_text
+  character(len=132):: comt, Error_message, identmot, mot, mot132, Word_from_text
+  character(len=Length_name):: Fichier, Fcif_file, nomfich, nom_fich_Extract, nomfichbav
   character(len=35), dimension(0:ntype):: com
-  character(len=132), dimension(9):: Wien_file
-  character(len=132), dimension(n_file_dafs_exp):: File_dafs_exp
+  character(len=Length_name), dimension(9):: Wien_file
+  character(len=Length_name), dimension(n_file_dafs_exp):: File_dafs_exp
   character(len=9), dimension(ngroup_par,nparm):: typepar
 
   integer, dimension(2):: Mult_bulk, Mult_film
@@ -2441,8 +2443,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('edge')
           n = nnombre(itape4,132)
-          read(itape4,'(A)') motsb
-          seuil = identmot(motsb,3)
+          read(itape4,'(A)') mot132
+          seuil = identmot(mot132,3)
           select case( seuil(1:1) )
             case('k')
               seuil = 'K1'
@@ -3276,8 +3278,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('pointgrou')
           n = nnombre(itape4,132)
-          read(itape4,'(A)') motsb
-          PointGroup = identmot(motsb,8)
+          read(itape4,'(A)') mot132
+          PointGroup = identmot(mot132,8)
           select case( PointGroup(1:1) )
             Case('_')
               PointGroup(1:1) = '-'
@@ -3299,9 +3301,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('spgroup')
           n = nnombre(itape4,132)
-          read(itape4,'(A)') motsb
-          if( motsb(1:1) == ' ' ) motsb = adjustl(motsb)
-          Space_group = motsb(1:13)
+          read(itape4,'(A)') mot132
+          if( mot132(1:1) == ' ' ) mot132 = adjustl(mot132)
+          Space_group = mot132(1:13)
 
 ! Cluster, film or unit cell description
         case('crystal','molecule','crystal_t','molecule_','film','film_t','surface','surface_t','interface','interfac_')
@@ -3615,11 +3617,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
 ! Reading chemical element
                 if( n_symbol == 0 ) then
-                  motsb = word_from_text(n_label,mot)
+                  mot132 = word_from_text(n_label,mot)
                 else
-                  motsb = word_from_text(n_symbol,mot)
+                  mot132 = word_from_text(n_symbol,mot)
                 endif
-                Symbol = motsb(1:2)
+                Symbol = mot132(1:2)
                 if( Symbol(2:2) == '1' .or. Symbol(2:2) == '2' .or. Symbol(2:2) == '3' .or. Symbol(2:2) == '4' .or. &
                     Symbol(2:2) == '5' .or. Symbol(2:2) == '6' .or. Symbol(2:2) == '7' .or. Symbol(2:2) == '8' .or. &
                     Symbol(2:2) == '9' ) Symbol(2:2) = ' '
@@ -5645,7 +5647,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       call MPI_Bcast(rotloc_lapw,9*ngroup_lapw,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
       call MPI_Bcast(Wien_matsym,9*nslapwm,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
       call MPI_Bcast(Wien_taulap,3*nslapwm,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-      do i = 1,132
+      do i = 1,Length_name
         if( mpirank0 == 0 ) j = iachar( Wien_file(8)(i:i) )
         call MPI_Bcast(j,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
 
@@ -6095,7 +6097,8 @@ subroutine Extract_log(Core_resolved,Green_s,nom_fich_extract,Optic,Renorm,Seuil
   integer:: i, istat, l
 
   character(len=3):: Seuil
-  character(len=132):: mot, nom_fich_extract
+  character(len=132):: mot
+  character(len=Length_name):: nom_fich_extract
 
   logical:: Core_resolved, Green_s, Optic, Renorm
 
@@ -6305,7 +6308,7 @@ subroutine lect_struct_lapw(angxyz,axyz,iabsm,iabsorig,icheck,its_lapw,itype,n_m
 
   character(len=1) Trans
   character(len=2) Plan
-  character(len=132) nomstruct
+  character(len=Length_name) nomstruct
 
   integer:: i, ia, icheck, igr, index, ipr, iprot, is, istat, it, itr, its, ittt, j, jatom, mu, mult, multi_run, n_multi_run_e, &
     n_atom_per, ngroup_lapw, nrm, nmatsym, nslapwm, nt, ntrans, ntype, ntype_bulk

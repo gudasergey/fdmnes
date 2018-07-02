@@ -45,15 +45,15 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
 
   character(len=8):: PointGroup
   character(len=9):: keyword
-  character(len=132):: comt, identmot, mot, nomfich, nom_fich_extract, nomfichbav, &
-    fdmnes_inp, imfp_infile, elf_infile
+  character(len=132):: comt, identmot, imfp_infile, elf_infile, fdmnes_inp132, mot, nomfich132
+  character(len=Length_name):: nomfich, nom_fich_extract, nomfichbav, fdmnes_inp
 
   character(len=6), dimension(n_rout):: Name_rout
   character(len=9), dimension(ngroup_par,nparm):: typepar
-  character(len=132), dimension(9):: Wien_file
+  character(len=Length_name), dimension(9):: Wien_file
 
   character(len=35), dimension(:), allocatable:: com
-  character(len=132), dimension(:), allocatable:: nomfich_cal_conv, nomfich_cal_tddft_conv
+  character(len=Length_name), dimension(:), allocatable:: nomfich_cal_conv, nomfich_cal_tddft_conv
 
   complex(kind=db), dimension(:,:), allocatable:: poldafsem, poldafssm
   complex(kind=db), dimension(:,:,:), allocatable:: hybrid
@@ -290,7 +290,9 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
         write(*,*) ' n_atom_uc /= ngroup,   contact Yves !'
         stop
       endif
-      call fdmx(fdmnes_inp,nomfich,cm2g,nobg,nohole,nodw,noimfp,Gamma_hole,Gamma_hole_imp,E_cut_imp*rydb,E_cut_man, &
+      fdmnes_inp132 = fdmnes_inp
+      nomfich132 = nomfich
+      call fdmx(fdmnes_inp132,nomfich132,cm2g,nobg,nohole,nodw,noimfp,Gamma_hole,Gamma_hole_imp,E_cut_imp*rydb,E_cut_man, &
         imfp_inp, imfp_infile, elf_inp, elf_infile, dwfactor_inp, dwfactor, tdebye_inp, tdebye, tmeas_inp, tmeas, Energphot, &
         expntl, expntlA, expntlB, victoreen, victA, victB, mermrank, ngroup, posn, itype, ntype, numat)
     endif
@@ -693,7 +695,9 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
         write(*,*) ' n_atom_uc /= ngroup, contact Yves !'
         stop
       endif
-      call fdmx(fdmnes_inp,nomfich,cm2g,nobg,nohole,nodw,noimfp,Gamma_hole,Gamma_hole_imp,E_cut_imp*rydb,E_cut_man, &
+      fdmnes_inp132 = fdmnes_inp
+      nomfich132 = nomfich
+      call fdmx(fdmnes_inp132,nomfich132,cm2g,nobg,nohole,nodw,noimfp,Gamma_hole,Gamma_hole_imp,E_cut_imp*rydb,E_cut_man, &
         imfp_inp, imfp_infile, elf_inp, elf_infile, dwfactor_inp, dwfactor, tdebye_inp, tdebye, tmeas_inp, tmeas, Energphot, &
         expntl, expntlA, expntlB, victoreen, victA, victB, mermrank, ngroup, posn, itype, ntype, numat)
     endif
@@ -845,11 +849,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
   character(len=5):: Struct
   character(len=8):: PointGroup
-  character(len=132):: nomfich, nom_fich_extract, nomfich_s
+  character(len=Length_name):: nomfich, nom_fich_extract, nomfich_s
 
   character(len=35), dimension(0:ntype):: Com
-  character(len=132), dimension(9):: Wien_file
-  character(len=132), dimension(n_multi_run+n_bulk_sup+n_abs_rgh):: nomfich_cal_conv, nomfich_cal_tddft_conv
+  character(len=Length_name), dimension(9):: Wien_file
+  character(len=Length_name), dimension(n_multi_run+n_bulk_sup+n_abs_rgh):: nomfich_cal_conv, nomfich_cal_tddft_conv
 
   character(len=5), dimension(:), allocatable:: ltypcal
   character(len=Length_word), dimension(:), allocatable:: nomabs
@@ -3885,10 +3889,10 @@ subroutine Extract_write_coabs(Abs_in_Bulk_roughness,Abs_U_iso,Allsite,Ang_rotsu
   integer, dimension(n_bulk_z):: n_bulk_zc
   integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
 
-  character(len=132):: nomfich, nom_fich_extract, nomfich_s
+  character(len=Length_name):: nomfich, nom_fich_extract, nomfich_s
   character(len=5), dimension(nplrm):: ltypcal
   character(len=Length_word), dimension(ncolm):: nomabs
-  character(len=132), dimension(n_multi_run+n_bulk_sup+n_abs_rgh):: nomfich_cal_conv
+  character(len=Length_name), dimension(n_multi_run+n_bulk_sup+n_abs_rgh):: nomfich_cal_conv
 
   complex(kind=db):: f_avantseuil
   complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdf0t_rgh_bulk, phdt_rgh_Bulk
@@ -4433,7 +4437,7 @@ subroutine Potential_reading(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsi
             nspin, nspinp
 
   character(len=15):: mot
-  character(len=132):: nom_fich_extract
+  character(len=Length_name):: nom_fich_extract
 
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb_abs
 

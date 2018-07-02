@@ -810,7 +810,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
     n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, n_atom_proto, natome, nenerg, nlm_pot, nr, nrm, nrm_self, nspin, &
     nspinp, ntype, Numat_tot, Z
 
-  character(len=132) nomfich_s
+  character(len=Length_name) nomfich_s
 
   integer, dimension(0:ntype):: nrato, numat
   integer, dimension(0:n_atom_proto):: itypepr, la_ipr, ll_ipr, lmaxat, ngreq
@@ -1590,7 +1590,7 @@ subroutine write_stdens(Abs_exc,Cal_xanes,Energ,i_self,iapr,ie_computer,la,Int_s
   character(len=13), dimension(nspinp):: nomtIn
   character(len=13), dimension(0:lla_state,nspinp):: nomln, nomlIn
   character(len=13), dimension(0:lla_state,-lla_state:lla_state,nspinp):: nomn, nomIn
-  character(len=132) nomfich_s, nomficht
+  character(len=Length_name) nomfich_s, nomficht
 
   logical:: Abs_exc, Cal_xanes, Open_file
 
@@ -1606,11 +1606,11 @@ subroutine write_stdens(Abs_exc,Cal_xanes,Energ,i_self,iapr,ie_computer,la,Int_s
   nomficht(long+1:long+3) = '_sd'
 
   if( Abs_exc ) then
-    call ad_number(0,nomficht,132)
+    call ad_number(0,nomficht,Length_name)
   elseif( Cal_xanes ) then
-    call ad_number(iapr,nomficht,132)
+    call ad_number(iapr,nomficht,Length_name)
   else
-    call ad_number(i_self,nomficht,132)
+    call ad_number(i_self,nomficht,Length_name)
   endif
   long = len_trim(nomficht)
   nomficht(long+1:long+4) = '.txt'

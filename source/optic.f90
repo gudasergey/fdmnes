@@ -49,10 +49,10 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
   integer, dimension(n_bulk_z):: n_bulk_zc
   integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
 
-  character(len=132):: nomfich, nomfich_s
+  character(len=Length_name):: nomfich, nomfich_s
   character(len=5), dimension(nplrm):: ltypcal
   character(len=length_word), dimension(ncolm):: nomabs
-  character(len=132), dimension(n_multi_run+n_bulk_sup):: nomfich_cal_conv
+  character(len=Length_name), dimension(n_multi_run+n_bulk_sup):: nomfich_cal_conv
 
   complex(kind=db):: f_avantseuil
   complex(kind=db), dimension(3,nplrm):: pol

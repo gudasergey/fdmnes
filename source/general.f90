@@ -895,7 +895,7 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantag
       mpinodes0, mpirank0, n_atom_proto, n_multi_run, n_orbexc, nbseuil, necrantage, neqm, ngroup, nlatm, nnlm, norbdil, &
       nrato_dirac, nr, nrm, nseuil, nspin, ntype, numat_abs
 
-  character(len=132):: nomfich_s, nompsii
+  character(len=Length_name):: nomfich_s, nompsii
   character(len=35), dimension(0:ntype):: com
 
   integer, dimension(norbdil):: itdil, ldil
@@ -932,8 +932,9 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantag
   if( n_multi_run > 1 .and. mpirank0 == 0 ) then
     l = len_trim(nomfich_s)
     nomfich_s(l+1:l+1) = '_'
-    call ad_number(iabsorig,nomfich_s,132)
-    write(6,'(/3x,A)') nomfich_s
+    call ad_number(iabsorig,nomfich_s,Length_name)
+    l = len_trim(nomfich_s)
+    write(6,'(/3x,A)') nomfich_s(1:l)
   endif
 
   if( icheck > 0 ) write(3,110)
@@ -1413,7 +1414,7 @@ subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
   include 'mpif.h'
 
   character(len=35), dimension(0:ntype) :: com
-  character(len=132) :: nompsii
+  character(len=Length_name):: nompsii
 
   integer, dimension(ngroup):: itype
   integer, dimension(nnlm):: lqnexc, nqnexc
@@ -1975,7 +1976,8 @@ function extract_E_Fermi(multi_run,nom_fich_extract)
 
   integer:: eof, i, istat, multi_run
 
-  character(len=132) mot, nom_fich_extract
+  character(len=132):: mot
+  character(len=Length_name):: nom_fich_extract
 
   real(kind=db):: E_Fermi, extract_E_Fermi
 
@@ -2017,7 +2019,8 @@ function extract_E_cut(multi_run,nom_fich_extract)
 
   integer:: eof, i, istat, multi_run
 
-  character(len=132) mot, nom_fich_extract
+  character(len=132) mot
+  character(len=Length_name) nom_fich_extract
 
   real(kind=db):: E_cut, extract_E_cut
 
@@ -2201,7 +2204,8 @@ function extract_nenerg(multi_run,nom_fich_extract,Optic,Tddft)
 
   integer:: extract_nenerg, eof, i, ipr, istat, multi_run, nenerg
 
-  character(len=132):: mot, nom_fich_extract
+  character(len=132):: mot
+  character(len=Length_name):: nom_fich_extract
 
   logical:: Optic, Tddft
 
@@ -2266,7 +2270,8 @@ subroutine extract_energ(Energ_s,Eseuil,multi_run,nbbseuil,nbseuil,nenerg_s,nom_
   use declarations
   implicit real(kind=db) (a-h,o-z)
 
-  character(len=132) mot, nom_fich_extract
+  character(len=132):: mot
+  character(len=Length_name):: nom_fich_extract
 
   logical:: Optic, Tddft
 

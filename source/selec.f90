@@ -9,14 +9,15 @@ subroutine selec(itape5)
 
   integer:: eof, i, ia, iaa, iang, ibeam, ie, igrdat, indm, iref, istat, itape5, l, n, n_ang, n1, nbeam, ne, nf, nnombre
 
-  character(len=9) keyword, keyword1
+  character(len=9):: keyword, keyword1
   character(len=Length_word), dimension(:), allocatable:: nombeam
-  character(len=132) file_in, file_out, identmot, mots
+  character(len=132):: identmot, mots
+  character(len=Length_name) file_in, file_out
 
   integer,dimension(1000):: n_angl
   integer, dimension(:), allocatable:: ind
 
-  logical scan_true
+  logical:: scan_true
 
   real(kind=db):: aa, aa1, e, ff, ff1, p, x
   real(kind=db), dimension(:), allocatable:: ang, energ

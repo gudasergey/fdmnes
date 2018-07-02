@@ -25,11 +25,12 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
   character(len=10):: tim
   character(len=9):: keyword
   character(len=50):: com_date, com_time
-  character(len=132):: comt, convolution_out, fdmfit_out, identmot, mot
+  character(len=132):: comt, identmot, mot
+  character(len=Length_name):: convolution_out, fdmfit_out, File_name
   character(len=length_line):: motl
   character(len=2), dimension(nmetricm) :: Nom_Met
   character(len=9), dimension(ngroup_par,nparm) :: typepar
-  character(len=132), dimension(nb_datafile,2):: File_dat
+  character(len=Length_name), dimension(nb_datafile,2):: File_dat
 
   integer, dimension(nmetricm) :: ical_Met_min, i_Shift_Met, indparMet, jMet
   integer, dimension(ngroup_par) :: Length_block, npar, nparam
@@ -94,10 +95,10 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
 
         do i_data = 1,nb_datafile
           n = nnombre(itape2,132)
-          mot = ' '
-          read(itape2,'(A)') mot
-          if( mot(1:1) == ' ' ) mot = adjustl( mot )
-          File_dat(i_data,1) = mot
+          File_name = ' '
+          read(itape2,'(A)') File_name
+          if( File_name(1:1) == ' ' ) File_name = adjustl( File_name )
+          File_dat(i_data,1) = File_name
           File_dat(i_data,2) = convolution_out
           n = nnombre(itape2,132)
           if( Dafs_bio ) then
@@ -129,14 +130,14 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
       case('file_met')
         Simple_comp = .true.
         do i = 1,2
-          mot = ' '
-          read(itape2,'(A)') mot
-          if( mot(1:1) == ' ' ) mot = adjustl( mot )
-          l = len_trim(mot)
+          File_name = ' '
+          read(itape2,'(A)') File_name
+          if( File_name(1:1) == ' ' ) File_name = adjustl( File_name )
+          l = len_trim(File_name)
           if( l > 4 ) then
-           if( mot(l-3:l-3) /= '.' ) mot(l+1:l+4) = '.txt'
+           if( File_name(l-3:l-3) /= '.' ) File_name(l+1:l+4) = '.txt'
           endif
-          File_dat(1,i) = mot
+          File_dat(1,i) = File_name
           if( i == 2 ) then
             open(99,file = File_dat(1,i),status = 'old', iostat = istat)
             if( istat /= 0 ) call write_open_error(File_dat(1,i),istat,1)
@@ -682,12 +683,12 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
     if( fit_cal ) then
       write(4,144)
       do ig = 1,ng
-        write(4,140) File_dat(ig,1)
+        write(4,'(A)') File_dat(ig,1)
       end do
     else
       do ifich = 1,2
         do i_data = 1,nb_datafile
-          write(4,140) File_dat(i_data,ifich)
+          write(4,'(A)') File_dat(i_data,ifich)
         end do
         if( ifich == 1 ) write(4,150)
       end do
@@ -808,13 +809,13 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
         if( ig == 1 ) then
           i_data = 1
           do ifich = 1,2
-            write(4,140) File_dat(i_data,ifich)
+            write(4,'(A)') File_dat(i_data,ifich)
           end do
         endif
       else
         i_data = ig
         do ifich = 1,2
-          write(4,140) File_dat(i_data,ifich)
+          write(4,'(A)') File_dat(i_data,ifich)
         end do
       endif
       if( Cal_D2 ) then
@@ -931,7 +932,6 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
                 ' ig   Emin(1)   Emin(2)   Emax(1)   Emax(2)   E_met_min    E_met_max ')
   126 format(i3,4f10.3,2f13.3)
   130 format(/' Metric distance calculation between :')
-  140 format(a132)
   144 format('  the actual calculation and the experimental files :')
   145 format(/' Number of parameter =',i3)
   146 format(/' Parameter',i2,' / first value / last value /', ' number of value',/,3x,100(2x,a9))

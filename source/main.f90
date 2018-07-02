@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 21st of June 2018, 3 Messidor, An 226
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 29th of June 2018, 11 Messidor, An 226
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -38,12 +38,13 @@ module declarations
   integer:: MPI_COMM_MUMPS, MPI_COMM_GATHER
 
   integer, parameter:: Length_word = 15 ! number of character in words
+  integer, parameter:: Length_name = 264 ! max number of character in the file names
 
   integer, parameter:: Z_Mendeleiev_max = 103   ! Number of chemical elements in the Mendeleiev table
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 21st of June 2018'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 29th of June 2018'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -95,7 +96,8 @@ program fdmnes
   character(len=11):: fdmfile
   character(len=50):: com_date, com_time
   character(len=132):: identmot, mot
-  character(len=132), dimension(:), allocatable:: fdmnes_inp
+  character(len=Length_name):: File_name
+  character(len=Length_name), dimension(:), allocatable:: fdmnes_inp
 
 ! mpinodes0 is the total number of nodes for parallel computing
 ! mpinodes is the number of nodes for the energy loop for parallel computing
@@ -129,7 +131,7 @@ program fdmnes
     do i = 1,ncalcul
       do k = 1,100
         n = nnombre(1,132)
-        read(1,'(A)',iostat=istat) mot
+        read(1,'(A)',iostat=istat) File_name
         if( istat /= 0 ) then
           call write_error
           do ipr = 6,9,3
@@ -137,29 +139,33 @@ program fdmnes
           end do
           stop
         endif
+        mot = File_name(1:132)
         mot1 = identmot(mot,1)
-        if( mot1 == ' ' ) mot = adjustl( mot )
+        if( mot1 == ' ' ) then
+          mot = adjustl( mot )
+          File_name = adjustl( File_name )
+        endif
         mot1 = identmot(mot,1)
         if( mot1 == '!' ) cycle
         exit
       end do
-      Open(2,file=mot,status='old',iostat=istat)
+      Open(2, file = File_name, status='old', iostat=istat)
       if( istat /= 0 ) then
-        l = len_trim(mot)
+        l = len_trim(File_name)
         if( l > 4 ) then
-          if( mot(l-3:l-3) /= '.') then
-            mot(l+1:l+4) = '.txt'
-            Open(2,file=mot,status='old',iostat=istat)
-            if( istat /= 0 ) mot(l+1:l+4) = '    '
+          if( File_name(l-3:l-3) /= '.') then
+            File_name(l+1:l+4) = '.txt'
+            Open(2,file = File_name, status='old', iostat=istat)
+            if( istat /= 0 ) File_name(l+1:l+4) = '    '
           endif
         endif
       endif
       if( istat /= 0 ) then
-        call write_open_error(mot,istat,0)
+        call Write_open_error(File_name,istat,0)
         close(9)
       else
         j = j + 1
-        fdmnes_inp(j) = mot
+        fdmnes_inp(j) = File_name
       endif
       Close(2)
     end do
@@ -272,8 +278,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   character(len=1):: mot1
   character(len=9):: keyword, mot9, Traduction
   character(len=13):: mot13
-  character(len=132):: comt, convolution_out, elf_infile, File_in, fdmfit_out, fdmnes_inp, Fichier, identmot, imfp_infile, &
-    mot, nomfich, nomfichbav
+  character(len=132):: comt, identmot, mot, imfp_infile, elf_infile
+  character(len=Length_name):: Convolution_out, File_in, File_name, fdmfit_out, fdmnes_inp, Fichier, nomfich, nomfichbav
   character(len=1320):: mot1320
   character(len=2), dimension(nmetricm):: Nom_Met
   character(len=9), dimension(nkw_all):: kw_all
@@ -726,29 +732,29 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
         case('file_in')
           n = nnombre(1,132)
-          read(1,'(A)') mot
-          File_in = adjustl( mot )
-          mot = File_in
-          open(20, file = mot, status='old', iostat=istat)
+          read(1,'(A)') File_name
+          File_in = adjustl( File_name )
+          File_name = File_in
+          open(20, file = File_name, status='old', iostat=istat)
           if( istat /= 0 ) then
-            l = len_trim(mot)
-            if( mot(l-3:l) /= '.txt' ) then
-              mot(l+1:l+4) = '.txt'
-              open(20, file = mot, status='old', iostat=istat)
+            l = len_trim(File_name)
+            if( File_name(l-3:l) /= '.txt' ) then
+              File_name(l+1:l+4) = '.txt'
+              open(20, file = File_name, status='old', iostat=istat)
               if( istat /= 0 ) then
-                mot(l+2:l+4) = '.dat'
-                open(20, file = mot, status='old', iostat=istat)
+                File_name(l+2:l+4) = '.dat'
+                open(20, file = File_name, status='old', iostat=istat)
               endif
             endif
             if( istat /= 0 ) call write_open_error(File_in,istat,1)
           endif
           Close(20)
-          File_in = mot
+          File_in = File_name
 
         case('filout')
           n = nnombre(1,132)
-          read(1,'(A)') mot
-          nomfich = adjustl( mot )
+          read(1,'(A)') File_name
+          nomfich = adjustl(File_name )
           l = len_trim(nomfich)
           if( l > 3 ) then
             if( nomfich(l-3:l) == '.txt') nomfich(l-3:l) = '    '
@@ -944,8 +950,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
       elseif( mot9 == 'experimen' ) then
         boucle_i: do i = 1,100000
           n = nnombre(itape2,132)
-          read(itape2,'(A)',iostat=eof) mot
+          read(itape2,'(A)',iostat=eof) File_name
           if( eof /= 0 ) exit boucle_m
+          mot = File_name(1:132)
           mot9 = identmot(mot,9)
           do j = 1,nkw_fdm
             if( mot9 == kw_fdm(j) ) exit boucle_i
@@ -966,7 +973,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
           end do
           if( n == 0 ) then
             nb_datafile = nb_datafile + 1  ! number of files
-            Fichier = Adjustl( mot )
+            Fichier = Adjustl( File_name )
             l = len_trim(Fichier)
             if( l > 4 ) then
              if( Fichier(l-3:l-3) /= '.' ) Fichier(l+1:l+4) = '.txt'
@@ -986,8 +993,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
         backspace(itape2)
       elseif( mot9 == 'file_met' ) then
         nb_datafile = 1
-        read(itape2,'(A)') mot
-        Fichier = Adjustl( mot )
+        read(itape2,'(A)') File_name
+        Fichier = Adjustl( File_name )
         l = len_trim(Fichier)
         if( l > 4 ) then
          if( Fichier(l-3:l-3) /= '.' ) Fichier(l+1:l+4) = '.txt'
@@ -1537,10 +1544,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
         if( nomfich == 'fdmnes_out' ) then
           fdmfit_out = 'fdmfit_out.txt'
         else
-          mot = nomfich
-          l = len_trim(mot)
-          mot(l+1:l+8) = '_fit.txt'
-          fdmfit_out = mot
+          fdmfit_out = nomfich
+          l = len_trim(fdmfit_out)
+          fdmfit_out(l+1:l+8) = '_fit.txt'
         endif
       endif
 
@@ -2210,7 +2216,8 @@ subroutine mult_cell(itape,File_out)
 
   character(len=2):: Chemical_Symbol
   character(len=9):: keyword
-  character(len=132):: File_out, identmot, mot
+  character(len=132):: identmot, mot
+  character(len=Length_name):: File_out
 
   Ang = .false.
   Surface = .false.
@@ -2219,12 +2226,8 @@ subroutine mult_cell(itape,File_out)
   Numat(:) = 0
   nm(:) = 1
 
-  mot = File_out
-  l = len_trim(mot)
-  if( mot(l-3:l) /= '.txt' ) then
-    mot(l+1:l+4) = '.txt'
-    File_out = mot
-  endif
+  l = len_trim(File_out)
+  if( File_out(l-3:l) /= '.txt' ) File_out(l+1:l+4) = '.txt'
   open(2,file = File_out)
 
 ! Lecture

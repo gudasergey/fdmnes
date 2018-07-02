@@ -17,7 +17,7 @@ subroutine spgroup(Cif,Cif_file,Do_exp,neq,ngroup,ngroup_neq,itype,posn,posout,S
   
   character(len=1):: SGTrans
   character(len=13):: Space_Group
-  character(len=132):: Cif_file
+  character(len=Length_name):: Cif_file
 
   integer, dimension(ngroup):: itype
   integer, dimension(ngroup_neq):: neq
@@ -193,7 +193,7 @@ subroutine symgrp(Cif,Cif_file,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans)
   character(len=13):: sgschoenfliess, Space_Group
   character(len=27):: sgHMshort, sgHMlong
   character(len=80):: line, mot, motb
-  character(len=132):: Cif_file
+  character(len=Length_name):: Cif_file
   character(len=80), dimension(nmaxop):: lines
 
   character(len=80), dimension(nline_spgr):: spacegroupdata

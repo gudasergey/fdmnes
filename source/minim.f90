@@ -8,7 +8,7 @@ subroutine minim(fdmfit_out,index_Met_Fit,itape_minim,Minim_fdm_ok,minimok,ncali
   use declarations
   implicit none
 
-  character(len=132) :: fdmfit_out
+  character(len=Length_name) :: fdmfit_out
   character(len=2), dimension(nmetricm) :: Nom_Met
   character(len=9), dimension(ngroup_par) :: typepar
 

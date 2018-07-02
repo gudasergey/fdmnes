@@ -2188,7 +2188,8 @@ subroutine extract_coabs(Ang_rotsup,Core_resolved,Green_int,icheck,ie,isymext,mu
 
   integer:: eof, he, hs, ispfg, je, js, jhe, jhs, n_oo, n_rel
 
-  character(len=132) mot, nom_fich_extract
+  character(len=132) mot
+  character(len=Length_name) nom_fich_extract
 
   complex(kind=db), dimension(3,3,n_rel,ninitlr,0:0):: secdd, secdd_m
   complex(kind=db), dimension(3,3,ninitlr,0:0):: secmd, secmd_m, secmm, secmm_m
@@ -2424,15 +2425,16 @@ end
 
 !***********************************************************************
 
-subroutine extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,Green_int,isymext,M1M1,n_oo,n_rel,ninit1, &
+subroutine Extract_tens(Comp,Core_resolved,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,Green_int,isymext,M1M1,n_oo,n_rel,ninit1, &
       ninitlr,secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m)
 
   use declarations
   implicit none
 
-  integer:: he, hs, i_g, ipr, istat, isym, ispfg, isymext, j_g, j1, je, &
-    jhe, jhs, js, k, ke, ks, Multipole, n, n_g, n_oo, n_rel, ninit1, ninitlr, nnombre
-  character(len=132) mot
+  integer:: he, hs, i_g, ipr, istat, isym, ispfg, isymext, j_g, j1, je, jhe, jhs, js, &
+    k, ke, ks, Multipole, n, n_g, n_oo, n_rel, ninit1, ninitlr, nnombre
+
+  character(len=132):: mot
 
   logical:: comp, Core_resolved_e, Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Green_int, M1M1
 

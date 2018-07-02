@@ -3922,7 +3922,7 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
   integer, dimension(Zmax):: lmax_coop
   integer, dimension(:), allocatable:: indexa, indexb
 
-  character(len=132):: nomfich_coop, nomfich_s
+  character(len=Length_name):: nomfich_coop, nomfich_s
   character(len=2), dimension(-7:99):: ch
 
   complex(kind=db):: Yc, Ycompa, Ycompb, YlmaYlmb, YuaYub
@@ -4430,10 +4430,10 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
     nomfich_coop(l+1:l+5) = '_coop'
     l = len_trim(nomfich_coop)
     nomfich_coop(l+1:l+1) = '_'
-    call ad_number(indexa(iab),nomfich_coop,132)
+    call ad_number(indexa(iab),nomfich_coop,Length_name)
     l = len_trim(nomfich_coop)
     nomfich_coop(l+1:l+1) = '_'
-    call ad_number(indexb(iab),nomfich_coop,132)
+    call ad_number(indexb(iab),nomfich_coop,Length_name)
     l = len_trim(nomfich_coop)
     nomfich_coop(l+1:l+4) = '.txt'
  
@@ -5305,7 +5305,7 @@ subroutine Cal_Density(Energ,Full_atom,iaabsi,iaprotoi,icheck,ie,ie_computer,Int
     la, lamstdens, ll, lla_state, lla2_state, lm,lm1, lm2, lma, m, mpinodes, &
     n_atom_0, n_atom_ind, n_atom_proto, natome, nenerg, nr, nrm, nspinp, ntype, Z
 
-  character(len=132) nomfich_s
+  character(len=Length_name) nomfich_s
 
   integer, dimension(0:ntype):: nrato, numat
   integer, dimension(0:n_atom_proto):: itypepr, la_ipr, ll_ipr, lmaxat
