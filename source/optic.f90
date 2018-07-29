@@ -68,7 +68,7 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:mpinodes-1):: secoo, secoo_m, secoo_t, secoo_m_t
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
   complex(kind=db), dimension(nenerg_s,nlmamax,nspinp,nlmamax,nspinp):: Taull_tdd
-  complex(kind=db), dimension(:,:,:,:,:), allocatable:: rof0
+  complex(kind=db), dimension(:,:,:,:,:), allocatable:: rof0, S_nrixs
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Taull_abs
 
   logical:: Allsite, Cartesian_tensor, Classic_irreg, Core_resolved, Dafs, Dafs_bio, E_cut_man, &
@@ -108,8 +108,7 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
 
   real(kind=db), dimension(:), allocatable:: Eimag, En, Energ, Enervide
   real(kind=db), dimension(:,:), allocatable:: Ecinetic, V0bdc
-  real(kind=db), dimension(:,:,:), allocatable:: S_nrixs
-  real(kind=db), dimension(:,:,:,:), allocatable:: Vrato, S_nrixs_l
+  real(kind=db), dimension(:,:,:,:), allocatable:: Vrato
 
   if( icheck(1) > 0 ) write(3,100)
 
@@ -318,11 +317,10 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
 
     if( mpinodes > 1 ) then
       l0_nrixs = 0; lmax_nrixs = 0; nq_nrixs = 0
-      allocate( S_nrixs(nq_nrixs,ninitlr,0:mpinodes-1) )
-      allocate( S_nrixs_l(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:mpinodes-1) )
+      allocate( S_nrixs(nq_nrixs,(lmax_nrixs+1)**2,(lmax_nrixs+1)**2,ninitlr,0:mpinodes-1) )
       call MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,n_oo,n_rel,ninitlr, &
-                       nq_nrixs,S_nrixs,S_nrixs_l,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
-      deallocate( S_nrixs, S_nrixs_l )
+                       nq_nrixs,S_nrixs,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
+      deallocate( S_nrixs )
     endif
 
     if( mpirank0 /= 0 ) cycle

@@ -966,7 +966,7 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantag
   end do
 
 ! Absorbing atom electron density
-  call type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,itabs,itype,itype_dop,jseuil,lcoeur,lecrantage, &
+  call Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,itabs,itype,itype_dop,jseuil,lcoeur,lecrantage, &
         lqnexc,lseuil,lvval,mpinodes0,mpirank0,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,Nonexc,nqnexc, &
         nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popatc,popats,popatv,popexc,popval, &
         psi_coeur,psii,psi_open_val,psival,rato,rchimp,Relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
@@ -1072,6 +1072,7 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
         if( nrato(it) > nrm .and. mpirank0 == 0 ) then
           call write_error
           do ipr = 3,9,3
+            if( ipr == 3 .and. icheck == 0 ) cycle
             write(ipr,110) nrato(it), nrm
           end do
           stop
@@ -1107,6 +1108,7 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
           n = 1 + Int( ( rmax - rato(nrato(it),it) ) / drmax )
           call write_error
           do ipr = 3,9,3
+            if( ipr == 3 .and. icheck == 0 ) cycle
             write(ipr,120) nrm + n, nrm
           end do
           stop
@@ -1190,6 +1192,7 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,Nonexc,
   if( nr > nrm .and. mpirank0 == 0 ) then
     call write_error
     do ipr = 3,9,3
+      if( ipr == 3 .and. icheck == 0 ) cycle
       write(ipr,105) nr, nrm
     end do
     stop
@@ -1283,6 +1286,7 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,Nonexc,
     if( i == norb+1 .and. mpirank0 == 0 ) then
       call write_error
       do ipr = 3,9,3
+        if( ipr == 3 .and. icheck == 0 ) cycle
         write(ipr,110) it, nvval(it,io), lvval(it,io)
       end do
       stop
@@ -1343,7 +1347,7 @@ subroutine pop_group(chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,ngr
   use declarations
   implicit none
 
-  integer:: icheck, igr, it, l, mpirank0, ngroup, nlatm, nspin, ntype
+  integer:: icheck, igr, ipr, it, l, mpirank0, ngroup, nlatm, nspin, ntype
   integer, dimension(0:ntype) :: nlat, numat
   integer, dimension(ngroup):: itype
 
@@ -1389,7 +1393,10 @@ subroutine pop_group(chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,ngr
     write(6,120) Chargm
     if( .not. Charge_free ) then
       call write_error
-      write(9,120) Chargm
+      do ipr = 3,9,3
+        if( ipr == 3 .and. icheck == 0 ) cycle
+        write(9,120) Chargm
+      end do
       stop
     endif
   endif
@@ -1404,7 +1411,7 @@ end
 
 !*********************************************************************
 
-subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,itabs,itype,itype_dop,jseuil,lcoeur,lecrantage, &
+subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,itabs,itype,itype_dop,jseuil,lcoeur,lecrantage, &
         lqnexc,lseuil,lvval,mpinodes0,mpirank0,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,nonexc,nqnexc, &
         nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popatc,popats,popatv,popexc,popval, &
         psi_coeur,psii,psi_open_val,psival,rato,rchimp,relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
@@ -1448,6 +1455,7 @@ subroutine type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
   if( numat(itabs) == 0 .and. mpirank0 == 0 ) then
     call write_error
     do ipr = 3,9,3
+      if( ipr == 3 .and. icheck == 0 ) cycle
       write(ipr,110) iabsorbeur
     end do
     stop
@@ -1686,6 +1694,7 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
     if( n_orbexc > nnlm .and. mpirank0 == 0 ) then
       call write_error
       do ipr = 3,9,3
+        if( ipr == 3 .and. icheck == 0 ) cycle
         write(ipr,103)
       end do
       close(9)
@@ -1797,7 +1806,7 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
   endif
 
   return
-  103 format(///'   n_orb < nnlm ',// ' Increase nnlm in routine lecture.f !')
+  103 format(///'   n_orb < nnlm ',// ' See the authors of the code !')
   120 format(/'  n  l popexc')
   130 format(2i3,2f7.3)
 end
@@ -2236,7 +2245,7 @@ function extract_nenerg(multi_run,nom_fich_extract,Optic,Tddft)
 
     if( eof /= 0 ) then
       call write_error
-      do ipr = 3,9,3
+      do ipr = 6,9,3
         write(ipr,110)
       end do
       stop
@@ -2973,7 +2982,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
               if( sum( abs( posg(1:3,igr) - posg(1:3,jgr) ) ) < eps6 ) then
                 if( ngroup_taux == 0 ) then
                   call write_error
-                  do iprint = 3,9,3
+                  do iprint = 6,9,3
                     write(iprint,120)
                     write(iprint,130) jgr, posn(1:3,jgr), igr, posn(1:3,igr)
                   end do
@@ -2986,7 +2995,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
               if( sum( abs( pos(:,ib) - ps(:) ) ) < eps6 ) then
                 if( ngroup_taux == 0 ) then
                   call write_error
-                  do iprint = 3,9,3
+                  do iprint = 6,9,3
                     write(iprint,120)
                     write(iprint,125)
                     write(iprint,130) igroup(ib), posn(1:3,igroup(ib)), igr, posn(1:3,igr)
@@ -3075,7 +3084,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
 
   if( iaabs == 0 .and. mpirank0 == 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,110)
     end do
     stop
@@ -3622,6 +3631,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
           Zb = numat(itypep(ib))
         endif
         do ipr = 3,9,3
+          if( ipr == 3 .and. icheck == 0 ) cycle
           if( istop == 0 ) write(ipr,'(/A/)') '  The following atoms are too close :'
           write(ipr,260) iaproto(ia), ia, igroup(ia), Za, pos(1:3,ia)*bohr, &
                          iaproto(ib), ib, igroup(ib), Zb, pos(1:3,ib)*bohr, dist*bohr
@@ -3632,6 +3642,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
   end do
   if( istop /= 0 ) then
     do ipr = 3,9,3
+      if( ipr == 3 .and. icheck == 0 ) cycle
       write(ipr,270) Test_dist_min*bohr
     end do
     stop
@@ -4618,7 +4629,7 @@ subroutine numgrpt(iopsym,igrpt,igrpt_nomag,mpirank0,Sgrp)
 
   if( mpirank0 == 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,'(/A)') ' Point group not found !'
       write(ipr,170)
       call write_iopsym(iopsym,ipr)
@@ -4696,7 +4707,7 @@ subroutine grp_opsym_imp(iopsymc,igrpt,igrpt_nomag,mpirank0,PointGroup)
 
   if( mpirank0 == 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,'(/A)') ' Point group not found !'
     end do
     stop
@@ -7110,6 +7121,7 @@ subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_ma
         if( mpirank0 == 0 ) then
           call write_error
           do ipr = 3,9,3
+            if( ipr == 3 .and. icheck == 0 ) cycle
             write(ipr,110) ipl, p(:), v(:)
           end do
         endif
@@ -7450,7 +7462,7 @@ subroutine trvec(mpirank0,Orthmat,ve,vs)
     w(:) = w(:) / pp
   elseif( mpirank0 == 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,110)
     end do
     stop
@@ -7944,6 +7956,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
         if( igr > 1 .and. isymeq(1) /= isymeq(igr) ) then
           call write_error
           do ipr = 3,9,3
+            if( ipr == 3 .and. icheck == 0 ) cycle
             write(ipr,120)
           end do
           stop
@@ -7953,23 +7966,6 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
       endif
     end do
   end do boucle_igr
-
-!  boucle_ia: do ia = 1,natome
-!    if( iaprotoi(ia) /= ipr ) cycle
-!    do igr = 1,ngreq(ipr)
-!      if( igreq(ipr,igr) == igroupi(ia) ) then
-!        if( igr > 1 .and. isymeq(1) /= isymeq(igr) ) then
-!          call write_error
-!          do ipr = 3,9,3
-!            write(ipr,120)
-!          end do
-!          stop
-!        endif
-!        iaabsi = ia
-!        exit boucle_ia
-!      endif
-!    end do
-!  end do boucle_ia
 
   if( Atom_occ_mat .and. hubbard .and. i_self == 1 ) then
     V_hubb(:,:,:,:,:) = ( 0._db, 0._db )
@@ -8223,6 +8219,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
         if( dist < rmt(it1) + rmt(it2) - Adimp .and. mpirank0 == 0) then
           call write_error
           do ipr = 3,9,3
+            if( ipr == 3 .and. icheck == 0 ) cycle
             write(ipr,280) ia1, numat(itypei(ia1)), igroupi(ia1), ia2, numat(itypei(ia2)), igroupi(ia2), dist*bohr, &
                    rmt(it1)*bohr, rmt(it2)*bohr, Adimp*bohr
           end do
@@ -8235,6 +8232,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   if( iaabsi == 0 .and. mpirank0 == 0 ) then
     call write_error
     do ipr = 3,9,3
+      if( ipr == 3 .and. icheck == 0 ) cycle
       write(ipr,290)
     end do
     stop
@@ -8626,7 +8624,7 @@ subroutine posequiv(mpirank0,pos,iopsym,isym,igrpt_nomag)
 
   if( is > nopsm .and. mpirank0 == 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,120) igrpt_nomag, pos(1:3)
       call write_iopsym(iopsym,ipr)
     end do
@@ -9151,6 +9149,7 @@ subroutine reseau(Adimp,Base_hexa,D_max_pot,Green,iaabs,icheck, &
         if( i == 0 .and. mpirank0 == 0 ) then
           call write_error
           do ipr = 3,9,3
+            if( ipr == 3 .and. icheck == 0 ) cycle
             write(ipr,130) ix, iy, iz, ix1, iy1, iz1
           end do
           istop = 1
@@ -9470,6 +9469,7 @@ subroutine bordure(Green,icheck,iopsymr,iord,iscratch,ivois,mpirank0,natome,nbm,
         if( j == 0 .and. mpirank0 == 0 ) then
           call write_error
           do ipr = 3,9,3
+            if( ipr == 3 .and. icheck == 0 ) cycle
             write(ipr,110) i, ia, iv, xyz(:,i)
           end do
           stop
@@ -9551,7 +9551,8 @@ subroutine bordure(Green,icheck,iopsymr,iord,iscratch,ivois,mpirank0,natome,nbm,
         if( j == 0 .and. mpirank0 == 0 ) then
           call write_error
           do ipr = 3,9,3
-            write(ipr,110) i, ia, iv, xyz(:,i)
+           if( ipr == 3 .and. icheck == 0 ) cycle
+           write(ipr,110) i, ia, iv, xyz(:,i)
           end do
           stop
         endif
@@ -10348,6 +10349,7 @@ subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,it
       if( nlmso0(igrph) > nsp .and. mpirank0 == 0 ) then
         if( istop == 0 ) call write_error
         do ipr = 3,9,3
+          if( ipr == 3 .and. icheck == 0 ) cycle
           write(ipr,200) nlmso0(igrph), nsp
         end do
         istop = 1
@@ -10359,6 +10361,7 @@ subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,it
         if( nlmsa0(ia,igrph) > nsp .and. mpirank0 == 0 ) then
           if( istop == 0 ) call write_error
           do ipr = 3,9,3
+            if( ipr == 3 .and. icheck == 0 ) cycle
             write(ipr,210) ia, nlmsa0(ia,igrph), nsp
           end do
           istop = 1
@@ -10828,7 +10831,7 @@ subroutine ylmsym(iopsym,lmax,lv,mpirank0,mv,nlms,nlmtot)
 ! Axes 4 selon 0x ou 0y
       if( mpirank0 == 0 .and. ( iops(16) == 1 .or. iops(17) == 1 .or. iops(26) == 1 .or. iops(27) == 1 ) ) then
         call write_error
-        do ipr = 3,9,3
+        do ipr = 6,9,3
           write(ipr,110)
         end do
         stop
@@ -10837,7 +10840,7 @@ subroutine ylmsym(iopsym,lmax,lv,mpirank0,mv,nlms,nlmtot)
       lm = lm + 1
       if( lm > nlms .and. mpirank0 == 0 ) then
         call write_error
-        do ipr = 3,9,3
+        do ipr = 6,9,3
           write(ipr,120) lm, nlms
         end do
         stop

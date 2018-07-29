@@ -1985,40 +1985,42 @@ end
       
 !******************************************************************************************************************************
 
-subroutine Write_nrixs(Abs_U_iso,All_nrixs,Allsite,Core_resolved, &
-                  Volume_maille,E_cut,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft,First_E, &
-                  f_avantseuil,Green_int,i_range,iabsorig,icheck,ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
-                  jseuil,mpinodee,n_multi_run,natomsym,nbseuil,nenerg,ninit1,ninitlr,nomfich,nomfich_cal_convt, &
-                  nq_nrixs,nseuil,nspinp,numat_abs,q_nrixs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Spinorbite,Taux_eq,V0muf)
+subroutine Write_nrixs(Abs_U_iso,All_nrixs,Allsite,axyz,Core_resolved,E_cut,Energ,Energphot,Extract_ten, &
+                  Epsii,Eseuil,f_avantseuil,Final_tddft,First_E,Green_int,i_range, &
+                  iabsorig,icheck,ie,ie_computer,isymeq,jseuil,l0_nrixs,lmax_nrixs,mpinodee,n_multi_run, &
+                  natomsym,nbseuil,nenerg,ninit1,ninitlr,nomfich,nomfich_cal_convt,nq_nrixs,nseuil,nspinp, &
+                  numat_abs,Orthmatt,q_nrixs,Rot_atom_abs,Rot_int,S_nrixs,S_nrixs_m,Spinorbite,Taux_eq,V0muf,Volume_maille)
                   
   use declarations
   implicit none
 
-  integer:: i, i_range, ia, iabsorig, icheck, ie, ie_computer, initlr, iq, l0_nrixs, lmax_nrixs, jseuil, l, long, &
-    mpinodee, n, n_dim, n_multi_run, n_tens, natomsym, nbseuil, nenerg, ninit1, ninitlr, npldafs, nq_nrixs, &
-    nseuil, nspinp, numat_abs
+  integer:: i, i_range, ia, iabsorig, icheck, ie, ie_computer, initlr, iq, isym, jseuil, l, l_i, l_s, l0_nrixs, &
+    lm, lm_i, lm_s, lmax_nrixs, long, m_i, m_s, mpinodee, n, n_dim, n_multi_run, n_tens, natomsym, nbseuil, nenerg, ninit1, &
+    ninitlr, nlmc, npldafs, nq_nrixs, nseuil, nspinp, numat_abs
+
+  integer, dimension(natomsym):: isymeq
 
   character(len=length_word):: nomab
   character(len=Length_name) nomfich, nomfich_cal_convt, nomficht
   character(len=length_word), dimension(:), allocatable:: title
 
-  complex(kind=db):: f_avantseuil
+  complex(kind=db):: cfac, f_avantseuil, Ylm_q_i, Ylm_q_s
   complex(kind=db), dimension(0):: cdum
-
-  integer, dimension(natomsym):: isymeq
-
+  complex(kind=db), dimension(nq_nrixs,(1+lmax_nrixs)**2,(1+lmax_nrixs)**2,ninitlr,0:mpinodee-1):: S_nrixs, S_nrixs_m
+  complex(kind=db), dimension(:), allocatable:: Ylm_q
+  
   logical:: All_nrixs, Allsite, Core_resolved, Final_tddft, First_E, Energphot, Extract_ten, Green_int, Green_int_mag, &
-    Magn_sens, Spinorbite
+    Magn_sens, Monocrystal, Spinorbite
 
   real(kind=db):: Abs_U_iso, Surface_ref, E_cut, Ephoton, Ephseuil, natomsym_f, q, V0muf, Volume_maille
 
   real(kind=db), dimension(0):: rdum
+  real(kind=db), dimension(3):: axyz, q_vec, q_vec_a
+  real(kind=db), dimension(3,3):: Matopsym, Orthmatt, Rot_atom_abs, Rot_int
   real(kind=db), dimension(ninitlr) :: Epsii
   real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(nenerg):: Energ
   real(kind=db), dimension(natomsym):: Taux_eq
-  real(kind=db), dimension(nq_nrixs,ninitlr,0:mpinodee-1):: S_nrixs, S_nrixs_m
-  real(kind=db), dimension(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:mpinodee-1):: S_nrixs_l, S_nrixs_l_m
   real(kind=db), dimension(nq_nrixs,ninitlr,0:natomsym):: S_nrixs_T
   real(kind=db), dimension(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:natomsym):: S_nrixs_T_l
   real(kind=db), dimension(4,nq_nrixs):: q_nrixs
@@ -2051,26 +2053,109 @@ subroutine Write_nrixs(Abs_U_iso,All_nrixs,Allsite,Core_resolved, &
   S_nrixs_T(:,:,:) = 0._db
   S_nrixs_T_l(:,:,:,:) = 0._db
 
-  do initlr = 1,ninitlr
+  do iq = 1,nq_nrixs
+
+    q_vec(:) = q_nrixs(1:3,iq)
+    Monocrystal = sum( abs(q_vec(:)) ) > eps10
+
+    if( icheck > 1 ) write(3,120) iq, q_nrixs(4,iq) / bohr
+
+    if( Monocrystal ) then    
+ 
+      if( icheck > 1 ) write(3,130) iq, q_nrixs(4,iq), q_vec(:) 
+    
+! Conversion to internal orthonormalized basis
+      q_vec(:) = q_vec(:) / axyz(:)
+      q_vec = matmul( Orthmatt, q_vec )
+      q_vec(:) = q_vec(:) / sqrt( sum( q_vec(:)**2 ) )
+
+! Rotation to the absorbing atom basis
+      q_vec = matmul( Rot_atom_abs, matmul( transpose( Rot_int ), q_vec ) )
+
+      if( icheck > 1 ) write(3,140) q_vec(:) 
+
+      nlmc = ( ( lmax_nrixs + 1 ) * ( lmax_nrixs + 2 ) ) / 2
+      allocate( Ylm_q(nlmc) )
+    
+    else
+
+      if( icheck > 1 ) write(3,140) iq, q_nrixs(4,iq)
+        
+    endif
 
     do ia = 1,natomsym
-      S_nrixs_T(:,initlr,ia) = Taux_eq(ia) * S_nrixs(:,initlr,ie_computer)
-      S_nrixs_T_l(:,:,initlr,ia) = Taux_eq(ia) * S_nrixs_l(:,:,initlr,ie_computer)
-      
-      if( Green_int_mag ) then
-        if( isymeq(ia) < 0 ) then
-          S_nrixs_T(:,initlr,ia) = S_nrixs_T(:,initlr,ia) - Taux_eq(ia) * S_nrixs_m(:,initlr,ie_computer)
-          S_nrixs_T_l(:,:,initlr,ia) = S_nrixs_T_l(:,:,initlr,ia) - Taux_eq(ia) * S_nrixs_l_m(:,:,initlr,ie_computer)
-        else
-          S_nrixs_T(:,initlr,ia) = S_nrixs_T(:,initlr,ia) + Taux_eq(ia) * S_nrixs_m(:,initlr,ie_computer)
-          S_nrixs_T_l(:,:,initlr,ia) = S_nrixs_T_l(:,:,initlr,ia) + Taux_eq(ia) * S_nrixs_l_m(:,:,initlr,ie_computer)
-        endif
+
+      if( Monocrystal ) then
+        isym = abs( isymeq(ia) )
+        call opsym(isym,Matopsym)
+        q_vec_a = Matmul( Matopsym, q_vec ) ! No Transpose like Rot_Atom_abs
+        call cYlm(lmax_nrixs,q_vec_a,1._db,Ylm_q,nlmc)
       endif
+
+      lm_s = 0   
+      do l_s = l0_nrixs,lmax_nrixs
+        do m_s = -l_s,l_s
+          lm_s = lm_s + 1
+
+          if( Monocrystal ) then    
+            lm = l_s * ( l_s + 1 ) / 2 + 1 + abs(m_s)
+            if( m_s >= 0 ) then
+              Ylm_q_s = Ylm_q(lm)
+            else
+              Ylm_q_s = (-1)**m_s * conjg( Ylm_q(lm) )
+            endif
+          endif
+        
+          lm_i = 0
+          do l_i = l0_nrixs,lmax_nrixs
+            do m_i = -l_i,l_i
+              lm_i = lm_i + 1
+    
+              if( ( l_s /= l_i .or. m_s /= m_i ) .and. .not. Monocrystal ) cycle
+
+              if( Monocrystal ) then    
+                lm = l_i * ( l_i + 1 ) / 2 + 1 + abs(m_i)
+                if( m_i >= 0 ) then
+                  Ylm_q_i = Ylm_q(lm)
+                else
+                  Ylm_q_i = (-1)**m_i * conjg( Ylm_q(lm) )
+                endif
+              endif
+
+              if( Monocrystal ) then
+                cfac = Taux_eq(ia) * conjg( Ylm_q_s ) * Ylm_q_i 
+              else
+                cfac = cmplx( Taux_eq(ia) / quatre_pi, 0._db, db )  ! 4 pi is for the average  
+              endif
+              
+              S_nrixs_T(iq,:,ia) = S_nrixs_T(iq,:,ia) + real( cfac * S_nrixs(iq,lm_s,lm_i,:,ie_computer), db ) 
+              if( l_i == l_s ) &
+                S_nrixs_T_l(iq,l_i,:,ia) = S_nrixs_T_l(iq,l_i,:,ia) + real( cfac * S_nrixs(iq,lm_s,lm_i,:,ie_computer), db )  
+            
+              if( Green_int_mag ) then
+                if( isymeq(ia) < 0 ) then
+                  S_nrixs_T(iq,:,ia) = S_nrixs_T(iq,:,ia) - real( cfac * S_nrixs_m(iq,lm_s,lm_i,:,ie_computer), db )
+                  if( l_i == l_s ) &
+                    S_nrixs_T_l(iq,l_i,:,ia) = S_nrixs_T_l(iq,l_i,:,ia) - real( cfac * S_nrixs_m(iq,lm_s,lm_i,:,ie_computer), db )
+                else
+                  S_nrixs_T(iq,:,ia) = S_nrixs_T(iq,:,ia) + real( cfac * S_nrixs_m(iq,lm_s,lm_i,:,ie_computer), db )
+                  if( l_i == l_s ) &
+                    S_nrixs_T_l(iq,l_i,:,ia) = S_nrixs_T_l(iq,l_i,:,ia) + real( cfac * S_nrixs_m(iq,lm_s,lm_i,:,ie_computer), db )
+                endif
+              endif
+              
+            end do
+          end do
+        end do
+      end do
       
-      S_nrixs_T(:,initlr,0) =  S_nrixs_T(:,initlr,0) + S_nrixs_T(:,initlr,ia)
-      S_nrixs_T_l(:,:,initlr,0) =  S_nrixs_T_l(:,:,initlr,0) + S_nrixs_T_l(:,:,initlr,ia)
+      S_nrixs_T(iq,:,0) =  S_nrixs_T(iq,:,0) + S_nrixs_T(iq,:,ia)
+      S_nrixs_T_l(iq,:,:,0) =  S_nrixs_T_l(iq,:,:,0) + S_nrixs_T_l(iq,:,:,ia)
+    
     end do
 
+    if( Monocrystal ) deallocate( Ylm_q )
+            
   end do
 
   nomficht = nomfich
@@ -2202,6 +2287,9 @@ subroutine Write_nrixs(Abs_U_iso,All_nrixs,Allsite,Core_resolved, &
    
   return
   110 format(/' ---- Write_nrixs --------',100('-'))
+  120 format(/'  iq =',i3,', q =',f6.3)
+  130 format(/'  iq =',i3,', q =',f6.3,', q_vec =',3f10.5)
+  140 format(/' Normalized q_vec in the absorbing atom local basis =',3f10.5)
 end
 
 !***********************************************************************

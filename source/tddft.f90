@@ -84,6 +84,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitl_out,0:mpinodes-1):: secoo, secoo_m
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
   complex(kind=db), dimension(nenerg_s,nlmamax,nspinp,nlmamax,nspinp) :: Taull_tdd
+  complex(kind=db), dimension(nq_nrixs,(lmax_nrixs+1)**2,(lmax_nrixs+1)**2,ninitl_out,0:mpinodes-1):: S_nrixs, S_nrixs_m
 
   complex(kind=db), dimension(:,:), allocatable:: Trans, V
   complex(kind=db), dimension(:,:,:,:), allocatable:: rof_ph, V_hubb_t
@@ -133,8 +134,6 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
   real(kind=db), dimension(n_bulk_z):: Length_rel
   real(kind=db), dimension(nr,nlm_pot,nspin) :: Vxcato
   real(kind=db), dimension(4,nq_nrixs):: q_nrixs
-  real(kind=db), dimension(nq_nrixs,ninitl_out,0:mpinodes-1):: S_nrixs, S_nrixs_m
-  real(kind=db), dimension(nq_nrixs,l0_nrixs:lmax_nrixs,ninitl_out,0:mpinodes-1):: S_nrixs_l, S_nrixs_l_m
 
   real(kind=db), dimension(:), allocatable:: Decal_initl, Ecinetic_e, Eimag, Energ, Enervide, rst, Vct, Vrt, Vxct
   real(kind=db), dimension(:,:), allocatable:: Ecinetic, V0bdc
@@ -461,13 +460,13 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
 
       icheck_s = icheck(20)
 
-      if( NRIXS ) call S_nrixs_cal(axyz,Classic_irreg,coef_g,Core_resolved,Ecinetic, &
+      if( NRIXS ) call S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                     Eimag(ie),Energ(ie),Enervide,Eseuil,FDM_comp,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
                     Hubb_d,icheck_s,l0_nrixs,lmax_nrixs,is_g,lmax_probe,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
                     mpinodes,mpirank,n_Ec,n_V,nbseuil,ns_dipmag,nd3, &
                     ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlm_probe,nlm_p_fp,nq_nrixs,nr,nrm,nspin,nspino,nspinp, &
-                    numat,Orthmatt,psii,q_nrixs,r,Relativiste,Renorm,Rmtg,Rmtsd,Rot_atom_abs,Rot_int, &
-                    S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Chi, &
+                    numat,psii,q_nrixs,r,Relativiste,Renorm,Rmtg,Rmtsd, &
+                    S_nrixs,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Chi, &
                     V_hubb_t,V_intmax,V0bdc,Vrato,Ylm_comp)
 
       call tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
@@ -491,9 +490,9 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
     if( mpinodes > 1 ) then
 
       call MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,n_oo,n_rel,ninitl_out, &
-                        nq_nrixs,S_nrixs,S_nrixs_l,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
+                        nq_nrixs,S_nrixs,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
       if( Green_int ) call MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,n_oo, &
-                        n_rel,ninitl_out,nq_nrixs,S_nrixs_m,S_nrixs_l_m,secdd_m,secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
+                        n_rel,ninitl_out,nq_nrixs,S_nrixs_m,secdd_m,secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
 
     endif
 
@@ -536,11 +535,11 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
 
       if( Abs_in_Bulk_roughness ) multi_0 = multi_0 - 1
 
-      if( NRIXS ) call Write_nrixs(Abs_U_iso,All_nrixs,Allsite,Core_resolved,Volume_maille, &
-                  E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E, &
-                  f_avantseuil,Green_int,i_range,iabsorig,icheck(21),ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
-                  jseuil,mpinodes,n_multi_run,natomsym,nbseuil,nenerg,ninit1,ninitl_out,nomfich,nomfich_cal_tddft_conv(multi_run), &
-                  nq_nrixs,nseuil,nspinp,numat,q_nrixs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Spinorbite,Taux_eq,V0muf)
+      if( NRIXS ) call Write_nrixs(Abs_U_iso,All_nrixs,Allsite,axyz,Core_resolved,E_cut,Energ,Energphot,.false., &
+                  Epsii,Eseuil,f_avantseuil,Final_tddft,First_E,Green_int,i_range, &
+                  iabsorig,icheck(21),ie,ie_computer,isymeq,jseuil,l0_nrixs,lmax_nrixs,mpinodes,n_multi_run, &
+                  natomsym,nbseuil,nenerg,ninit1,ninitl_out,nomfich,nomfich_cal_tddft_conv(multi_run),nq_nrixs,nseuil,nspinp, &
+                  numat,Orthmatt,q_nrixs,Rot_atom_abs,Rot_int,S_nrixs,S_nrixs_m,Spinorbite,Taux_eq,V0muf,Volume_maille)
 
       First_E = .false.
 
@@ -2568,6 +2567,7 @@ subroutine main_tddft_optic(Abs_U_iso,alfpot,angxyz,Allsite,Atomic_scr,axyz,Brag
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitl_out,0:mpinodes-1):: secoo, secoo_m, secoo_t, secoo_m_t
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
   complex(kind=db), dimension(nenerg_s,nlmamax,nspinp,nlmamax,nspinp) :: Taull_tdd
+  complex(kind=db), dimension(nq_nrixs,(lmax_nrixs+1)**2,(lmax_nrixs+1)**2,ninitl_out,0:mpinodes-1):: S_nrixs, S_nrixs_m
 
   complex(kind=db), dimension(:,:), allocatable:: B_stk
   complex(kind=db), dimension(:,:,:,:), allocatable:: V_hubb_t
@@ -2615,8 +2615,6 @@ subroutine main_tddft_optic(Abs_U_iso,alfpot,angxyz,Allsite,Atomic_scr,axyz,Brag
   real(kind=db), dimension(nr,2,2):: fxc
   real(kind=db), dimension(3,npldafs,nphim):: Vecdafse, Vecdafss
   real(kind=db), dimension(nr,nlm_pot,nspin) :: Vxcato
-  real(kind=db), dimension(nq_nrixs,ninitl_out,0:mpinodes-1):: S_nrixs, S_nrixs_m
-  real(kind=db), dimension(nq_nrixs,l0_nrixs:lmax_nrixs,ninitl_out,0:mpinodes-1):: S_nrixs_l, S_nrixs_l_m
 
   real(kind=db), dimension(:), allocatable:: Ecinetic_e, Eimag, Eimag_t, En, Energ, Enervide
   real(kind=db), dimension(:,:), allocatable:: Ecinetic, V0bdc
@@ -3058,9 +3056,9 @@ subroutine main_tddft_optic(Abs_U_iso,alfpot,angxyz,Allsite,Atomic_scr,axyz,Brag
 
     if( mpinodes > 1 ) then
       call MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,n_oo,n_rel,ninitl_out, &
-                        nq_nrixs,S_nrixs,S_nrixs_l,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
+                        nq_nrixs,S_nrixs,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
       if( Green_int ) call MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,n_oo, &
-                        n_rel,ninitl_out,nq_nrixs,S_nrixs_m,S_nrixs_l_m,secdd_m,secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
+                        n_rel,ninitl_out,nq_nrixs,S_nrixs_m,secdd_m,secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
     endif
 
     if( mpirank0 /= 0 ) cycle

@@ -867,8 +867,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
   complex(kind=db), dimension(:,:,:), allocatable:: phdt, poldafse, poldafss
   complex(kind=db), dimension(:,:,:,:), allocatable:: secmd, secmd_m, secmm, secmm_m, V_hubb_abs, &
                                                       V_hubb_t
-  complex(kind=db), dimension(:,:,:,:,:), allocatable:: Fac_tau, secdd, secdd_m, rof0, secdq, secdq_m, Tau_ato, Taull, Tau_coop, &
-                                                        Taull_dft, Taull_tdd, V_hubb, V_hubb_s
+  complex(kind=db), dimension(:,:,:,:,:), allocatable:: Fac_tau, S_nrixs, S_nrixs_m, secdd, secdd_m, rof0, secdq, secdq_m, &
+                                                        Tau_ato, Taull, Tau_coop, Taull_dft, Taull_tdd, V_hubb, V_hubb_s
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: secdo, secdo_m, secoo, secoo_m, secqq, secqq_m, taull_stk
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Taull_abs
 
@@ -973,9 +973,9 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
      chargat_self_s, drho_ex_nex, Excato, Int_tens, pdp, poidsa, pop_orb_val, pos, posi, posi_self, &
      rho, rhoato_abs,rsato, V_abs_i, Vcato_abs, Vcato_init, Vr, Vxc, vec, xyz, Ylmso
   real(kind=db), dimension(:,:,:), allocatable:: gradvr, Int_statedens, rho_chg, rho_self_t, rhoato, rhoato_init, rot_atom, &
-     S_nrixs, S_nrixs_m, Vcato, Vecdafse, Vecdafss, Vra, Vrato_e, Vxcato_abs, Ylmato
-  real(kind=db), dimension(:,:,:,:), allocatable:: rho_self, rho_self_s, S_nrixs_l, S_nrixs_l_m, Vrato, Vxcato
-  real(kind=db), dimension(:,:,:,:,:), allocatable:: drho_self, Occ_hubb,  Occ_hubb_i
+     Vcato, Vecdafse, Vecdafss, Vra, Vrato_e, Vxcato_abs, Ylmato
+  real(kind=db), dimension(:,:,:,:), allocatable:: rho_self, rho_self_s, Vrato, Vxcato
+  real(kind=db), dimension(:,:,:,:,:), allocatable:: drho_self, Occ_hubb, Occ_hubb_i
   real(kind=db), dimension(:,:,:,:,:,:), allocatable:: phiato, Statedens, Statedens_i
 
   real(kind=sg):: time
@@ -2996,10 +2996,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
         allocate( secdo_m(3,3,3,3,ninitlr,0:mpinodee-1) )
         allocate( secoo_m(3,n_oo,3,n_oo,ninitlr,0:mpinodee-1) )
         allocate( secqq_m(3,3,3,3,ninitlr,0:mpinodee-1) )
-        allocate( S_nrixs(nq_nrixs,ninitlr,0:mpinodee-1) )
-        allocate( S_nrixs_l(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:mpinodee-1) )
-        allocate( S_nrixs_l_m(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:mpinodee-1) )
-        allocate( S_nrixs_m(nq_nrixs,ninitlr,0:mpinodee-1) )
+        allocate( S_nrixs(nq_nrixs,(lmax_nrixs+1)**2,(lmax_nrixs+1)**2,ninitlr,0:mpinodee-1) )
+        allocate( S_nrixs_m(nq_nrixs,(lmax_nrixs+1)**2,(lmax_nrixs+1)**2,ninitlr,0:mpinodee-1) )
 !  nlmmax = (lmaxmax + 1 )**2   max dimension
         allocate( Taull_dft(nlmmax,nspinp,nlmmax,nspinp,0:mpinodee-1) )
         Taull_dft(:,:,:,:,:) = ( 0._db, 0._db )
@@ -3477,13 +3475,13 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
               Enervide_t(1) = Enervide
               if( mpirank_in_mumps_group == 0 ) then
                 if( NRIXS ) &
-                  call S_nrixs_cal(axyz,Classic_irreg,coef_g,Core_resolved,Ecinetic, &
+                  call S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                     Eimag(ie),Energ(ie),Enervide_t,Eseuil,FDM_comp_m,Final_tddft,Full_potential,Green,Green_i,Hubb_abs, &
                     Hubb_diag_abs,icheck(20),l0_nrixs,lmax_nrixs,is_g,lmax_probe,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
                     mpinodee,mpirank,n_Ec,n_V,nbseuil,ns_dipmag,ndim2, &
                     ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe,nlm_p_fp,nq_nrixs,nrato_abs,nrm,nspin,nspino,nspinp, &
-                    numat(itabs),Orthmatt,psii,q_nrixs,rato_abs,Relativiste,Renorm,Rmtg_abs,Rmtsd_abs,Rot_atom_abs,Rot_int, &
-                    S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Taull_abs, &
+                    numat(itabs),psii,q_nrixs,rato_abs,Relativiste,Renorm,Rmtg_abs,Rmtsd_abs, &
+                    S_nrixs,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Taull_abs, &
                     V_hubb_abs,V_intmax,V0bdc,Vra,Ylm_comp)
 
                 call tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic,Eimag(ie), &
@@ -3575,10 +3573,10 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
           if( .not. Optic ) &
             call MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodee,mpirank,mpirank0,Multipole,n_oo,n_rel, &
-                              ninitlr,nq_nrixs,S_nrixs,S_nrixs_l,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
+                              ninitlr,nq_nrixs,S_nrixs,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
           if( Green_i ) &
             call MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodee,mpirank,mpirank0,Multipole,n_oo,n_rel, &
-                              ninitlr,nq_nrixs,S_nrixs_m,S_nrixs_l_m,secdd_m,secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
+                              ninitlr,nq_nrixs,S_nrixs_m,secdd_m,secdo_m,secdq_m,secmd_m,secmm_m,secoo_m,secqq_m)
 
           if( Tddft_xanes .or. Optic_xanes ) then
 
@@ -3637,11 +3635,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
               if( Abs_in_Bulk_roughness ) multi_0 = multi_0 - 1
 
-              if( NRIXS ) call Write_nrixs(Abs_U_iso,All_nrixs,Allsite,Core_resolved,Volume_maille, &
-                E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E, &
-                f_avantseuil,Green_i,i_range,iabsorig(multi_run),icheck(21),ie,ie_computer,l0_nrixs,lmax_nrixs,isymeq, &
-                jseuil,mpinodee,n_multi_run,natomsym,nbseuil,nenerg,ninit1,ninitlr,nomfich,nomfich_cal_conv(multi_run), &
-                nq_nrixs,nseuil,nspinp,numat_abs,q_nrixs,S_nrixs,S_nrixs_l,S_nrixs_l_m,S_nrixs_m,Spinorbite,Taux_eq,V0muf)
+              if( NRIXS ) call Write_nrixs(Abs_U_iso,All_nrixs,Allsite,axyz,Core_resolved,E_cut,Energ,Energphot,.false., &
+                Epsii,Eseuil,f_avantseuil,Final_tddft,First_E,Green_i,i_range, &
+                iabsorig(multi_run),icheck(21),ie,ie_computer,isymeq,jseuil,l0_nrixs,lmax_nrixs,mpinodee,n_multi_run, &
+                natomsym,nbseuil,nenerg,ninit1,ninitlr,nomfich,nomfich_cal_conv(multi_run),nq_nrixs,nseuil,nspinp, &
+                numat_abs,Orthmatt,q_nrixs,Rot_atom_abs,Rot_int,S_nrixs,S_nrixs_m,Spinorbite,Taux_eq,V0muf,Volume_maille)
 
               First_E = .false.
             endif
@@ -3686,7 +3684,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
     if( One_run .and. multi_run == n_multi_run ) deallocate( taull_stk )
 
-    deallocate( S_nrixs, S_nrixs_l, S_nrixs_l_m, S_nrixs_m )
+    deallocate( S_nrixs, S_nrixs_m )
     deallocate( secdd, secmd, secmm, secdq, secdo, secoo, secqq )
     deallocate( secdd_m, secmd_m, secmm_m, secdq_m, secdo_m, secoo_m, secqq_m )
     deallocate( sec_atom )
@@ -4023,7 +4021,7 @@ end
 !***********************************************************************
 
 subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,n_oo,n_rel,ninitlr, &
-                  nq_nrixs,S_nrixs,S_nrixs_l,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
+                  nq_nrixs,S_nrixs,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -4037,13 +4035,13 @@ subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,
   complex(kind=db), dimension(3,3,3,ninitlr,0:mpinodes-1):: secdq
   complex(kind=db), dimension(3,3,3,3,ninitlr,0:mpinodes-1):: secdo, secqq
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:mpinodes-1):: secoo
+  complex(kind=db), dimension(nq_nrixs,(lmax_nrixs+1)**2,(lmax_nrixs+1)**2,ninitlr,0:mpinodes-1):: S_nrixs
 
   logical:: E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, M1M1
 
   logical, dimension(10):: Multipole
 
-  real(kind=db), dimension(nq_nrixs,ninitlr,0:mpinodes-1):: S_nrixs
-  real(kind=db), dimension(nq_nrixs,l0_nrixs:lmax_nrixs,ninitlr,0:mpinodes-1):: S_nrixs_l
+  real(kind=db), dimension(nq_nrixs,(lmax_nrixs+1)**2,(lmax_nrixs+1)**2,ninitlr,0:mpinodes-1):: S_nrixs_ei, S_nrixs_er
   real(kind=db), dimension(3,3,n_rel,ninitlr,0:mpinodes-1):: secdd_er, secdd_ei
   real(kind=db), dimension(3,3,ninitlr,0:mpinodes-1):: secmd_er, secmm_er, secmd_ei, secmm_ei
   real(kind=db), dimension(3,3,3,ninitlr,0:mpinodes-1):: secdq_er, secdq_ei
@@ -4060,8 +4058,7 @@ subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,
   idim2 = 3 * idim1
   idim3 = 3 * idim2
   idim4 = ( n_oo**2 ) * idim2
-  idim5 = nq_nrixs * ninitlr
-  idim6 = idim5 * ( lmax_nrixs - l0_nrixs + 1 )
+  idim5 = nq_nrixs * ninitlr * (lmax_nrixs+1)**4
 
 ! Copies to store the real and imaginary part
 ! The processor index is the last index
@@ -4101,7 +4098,8 @@ subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,
     secqq_ei(:,:,:,:,:,mpirank) = aimag( secqq(:,:,:,:,:,mpirank) )
   endif
 
-
+  S_nrixs_er(:,:,:,:,mpirank) = real( S_nrixs(:,:,:,:,mpirank),db)
+  S_nrixs_ei(:,:,:,:,mpirank) = aimag( S_nrixs(:,:,:,:,mpirank) )
 
   if( mpirank0 == 0 ) then
     if( E1E1 )  then
@@ -4134,11 +4132,8 @@ subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,
     end if
 
     if( idim5 > 0 ) then
-      call MPI_GATHER(MPI_IN_PLACE,idim5,MPI_REAL8,S_nrixs,idim5,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
-    endif
-
-    if( idim6 > 0 ) then
-      call MPI_GATHER(MPI_IN_PLACE,idim6,MPI_REAL8,S_nrixs_l,idim6,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
+      call MPI_GATHER(MPI_IN_PLACE,idim5,MPI_REAL8,S_nrixs_er,idim5,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
+      call MPI_GATHER(MPI_IN_PLACE,idim5,MPI_REAL8,S_nrixs_ei,idim5,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
     endif
 
   elseif( mpirank_in_mumps_group == 0 ) then
@@ -4178,16 +4173,11 @@ subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,
 	  end if
 
       if( idim5 > 0 ) then
-	    call MPI_GATHER(S_nrixs(1,1,mpirank),idim5,MPI_REAL8,S_nrixs,idim5,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
-      endif
-
-      if( idim6 > 0 ) then
-	    call MPI_GATHER(S_nrixs_l(1,l0_nrixs,1,mpirank),idim6,MPI_REAL8,S_nrixs_l,idim6,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
+	    call MPI_GATHER(S_nrixs_er(1,1,1,1,mpirank),idim5,MPI_REAL8,S_nrixs_er,idim5,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
+	    call MPI_GATHER(S_nrixs_ei(1,1,1,1,mpirank),idim5,MPI_REAL8,S_nrixs_ei,idim5,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
       endif
 
   end if
-
-
 
 ! One rebuilds the secXX; Now the central processor has the results from all the others
   if( mpirank0 == 0 ) then
@@ -4199,6 +4189,7 @@ subroutine MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,
       if( E2E2 ) secqq(:,:,:,:,:,rang) = cmplx( secqq_er(:,:,:,:,:,rang), secqq_ei(:,:,:,:,:,rang),db )
       if( E1E3 ) secdo(:,:,:,:,:,rang) = cmplx( secdo_er(:,:,:,:,:,rang), secdo_ei(:,:,:,:,:,rang),db )
       if( E3E3 ) secdo(:,:,:,:,:,rang) = cmplx( secoo_er(:,:,:,:,:,rang), secoo_ei(:,:,:,:,:,rang),db )
+      S_nrixs(:,:,:,:,rang) = cmplx( S_nrixs_er(:,:,:,:,rang), S_nrixs_ei(:,:,:,:,rang),db )
     end do
   end if
 
