@@ -33,7 +33,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   character(len=Length_name):: Fcif_file, Fichier, Fichier_pdb
   character(len=Length_name), dimension(9):: Wien_file
 
-  logical:: Absauto, adimpin, Atom_conf, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Bulk, COOP, Fcif, Cap_layer, &
+  logical:: Absauto, adimpin, Atom_conf, Atom_conf_dop, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Bulk, COOP, Fcif, Cap_layer, &
      Dafs_bio, Doping, Extract, Extract_ten, Film, Flapw, Full_self_abs, Hubbard, &
      Magnetic, Matper, Memory_save, NRIXS, Occupancy_first, Pdb, Pol_dafs_in, Quadrupole, Readfast, Screening, Self_abs, &
      Taux, Temp_B_iso, Use_FDMX, Very_fast, Xan_atom
@@ -46,6 +46,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   Absauto = .true.
   Angz = 0._db
   Atom_conf = .false.
+  Atom_conf_dop = .false.
   Atom_nonsph = .false.
   Atom_occ_hubb = .false.
   Axe_loc = .false.
@@ -498,7 +499,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             n = nnombre(itape4,132)
             if( n == 0 ) exit
             ntype_conf = ntype_conf + 1
-            read(itape4,*) nb
+            read(itape4,*) nb, nn
+            if( nn == 0 ) Atom_conf_dop = .true.
             nb_atom_conf_m = max( nb, nb_atom_conf_m )
             backspace(itape4)
             read(itape4,*,iostat=ier) ( nl, i = 1,nb+2 )
@@ -977,9 +979,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
     if( Space_Group /= ' ' .or. ntype == 0 .or. Atom_conf ) then
       Very_fast = Readfast .or. Taux .or. Temp_B_iso .or. .not. ( Atom_nonsph .or. Atom_occ_hubb .or. Axe_loc)
-      call Dim_reading(Angz,Atom_conf,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per,n_atom_per_neq, &
-                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,n_symbol,ntype,ntype_conf,Pdb,Space_Group, &
-                       Very_fast)
+      call Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per, &
+                       n_atom_per_neq,n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,n_symbol,ntype,ntype_conf,Pdb, &
+                       Space_Group,Very_fast)
     endif
     n_atom_uc = n_atom_per + n_atom_sur + n_atom_int
 
@@ -991,7 +993,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 ! ngroup is the total number of atoms including the bulk atoms when existing
     ngroup = n_atom_uc + n_atom_bulk
     if( Doping ) ngroup = ngroup + 1
-    if( Doping .and. Atom_conf ) ntype = ntype + 1
+    if( Doping .and. Atom_conf .and. .not. Atom_conf_dop ) ntype = ntype + 1
 
     n_atom(1) = n_atom_bulk; n_atom(2) = n_atom_cap; n_atom(3) = n_atom_int; n_atom(4) = n_atom_neq; n_atom(5) = n_atom_per
     n_atom(6) = n_atom_per_neq; n_atom(7) = n_atom_sur; n_atom(8) = n_atom_uc
@@ -1243,9 +1245,9 @@ end
 
 !*********************************************************************
 
-subroutine Dim_reading(Angz,Atom_conf,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per,n_atom_per_neq, &
-                       n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,n_symbol,ntype,ntype_conf,Pdb,Space_Group, &
-                       Very_fast)
+subroutine Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per, &
+                       n_atom_per_neq,n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,n_symbol,ntype,ntype_conf,Pdb, &
+                       Space_Group,Very_fast)
 
   use declarations
   implicit none
@@ -1264,7 +1266,7 @@ subroutine Dim_reading(Angz,Atom_conf,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,i
   character(len=132):: identmot, mot, mot132, Word_from_text
   character(len=Length_name):: Fcif_file, Fichier_pdb
 
-  logical:: Atom_conf, Fcif, Doping, Pdb, Very_fast
+  logical:: Atom_conf, Atom_conf_dop, Fcif, Doping, Pdb, Very_fast
 
   real(kind=db):: Angz, number_from_text
   real(kind=db), dimension(3):: p
@@ -1517,7 +1519,7 @@ subroutine Dim_reading(Angz,Atom_conf,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,i
       end do boucle_jgr
       ntype = ntype + 1
     end do boucle_1
-    if( Doping ) then
+    if( Doping .and. .not. Atom_conf_dop ) then
       do igr = 1,n_atom_neq
         if( itype(igr) == itype_dop ) exit
       end do
@@ -3810,9 +3812,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       n = ngroup - n_atom_bulk ! the doping element is set at the end of crystal atoms but before the bulk atoms when existing
       Ang_base_loc_gr(:,n) = Ang_base_loc_gr(:,igr_dop)
       Atom_nsph_e(n) = Atom_nsph_e(igr_dop)
-      if( Atom ) then
+      if( Atom .or. Atom_conf ) then
         itype(n) = itype_dop
-        if( itype_dop > ntype ) then
+        if( Atom .and. itype_dop > ntype ) then
           call write_error
           do ipr = ipr0,9,3
             write(ipr,100)
@@ -3820,7 +3822,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           end do
           stop
         endif
-        popats(n,:,:) =  popval(itype_dop,:,:)
+        if( Atom ) then
+          popats(n,:,:) =  popval(itype_dop,:,:)
+        else
+          popats(n,:,:) =  popval(1,:,:)
+        endif
       else
         itype(n) = ntype - ntype_bulk
         popats(n,:,:) =  popval(itype(n),:,:)
@@ -3948,7 +3954,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     if( Atom_conf ) then
 
       do it = 1,ntype_conf
-        numat(it) = itype(igra(1,it))
+        if( igra(1,it) == 0 ) then
+          numat(it) = itype(ngroup)    ! Case of atom_cong on doping atom
+          itype_dop = 1
+        else
+          numat(it) = itype(igra(1,it))
+        endif
       end do
 
       allocate( itZ(103) )
@@ -3956,7 +3967,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       jt = ntype_conf
 
       boucle_2: do igr = 1,n_atom_neq+1
-        if( .not. Doping .and. igr == n_atom_neq+1 ) cycle
+        if( ( .not. Doping .or. ( Doping .and. itype_dop == 1 ) ) .and. igr == n_atom_neq+1 ) cycle
         do it = 1,ntype_conf
           do kgr = 1,nb_atom_conf(it)
             if( igr == igra(kgr,it) ) cycle boucle_2
@@ -3989,7 +4000,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           end do
         end do
         if( Doping .and. igr == n_atom_neq+1 ) then
-          itype(igr) = itZ( itype_dop )
+          if( itype_dop == 1 ) then
+            itype(igr) = itype_dop
+          else
+            itype(igr) = itZ( itype_dop )
+          endif
         else
           itype(igr) = itZ( itype(igr) )
         endif
@@ -4005,7 +4020,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         numat(jt) = Z_bulk(igr)
       end do boucle_ig
 
-      itype_dop = ntype - ntype_bulk
+      if( itype_dop /= 1 ) itype_dop = ntype - ntype_bulk
 
     endif
 

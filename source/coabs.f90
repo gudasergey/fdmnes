@@ -2069,9 +2069,6 @@ subroutine Write_nrixs(Abs_U_iso,All_nrixs,Allsite,axyz,Core_resolved,E_cut,Ener
       q_vec = matmul( Orthmatt, q_vec )
       q_vec(:) = q_vec(:) / sqrt( sum( q_vec(:)**2 ) )
 
-! Rotation to the absorbing atom basis
-      q_vec = matmul( Rot_atom_abs, matmul( transpose( Rot_int ), q_vec ) )
-
       if( icheck > 1 ) write(3,140) q_vec(:) 
 
       nlmc = ( ( lmax_nrixs + 1 ) * ( lmax_nrixs + 2 ) ) / 2
@@ -2088,7 +2085,10 @@ subroutine Write_nrixs(Abs_U_iso,All_nrixs,Allsite,axyz,Core_resolved,E_cut,Ener
       if( Monocrystal ) then
         isym = abs( isymeq(ia) )
         call opsym(isym,Matopsym)
-        q_vec_a = Matmul( Matopsym, q_vec ) ! No Transpose like Rot_Atom_abs
+        q_vec_a = Matmul( Transpose(Matopsym), q_vec )
+! Rotation to the absorbing atom basis
+        q_vec_a = Matmul( Rot_atom_abs, Matmul( Transpose( Rot_int ), q_vec_a ) )
+
         call cYlm(lmax_nrixs,q_vec_a,1._db,Ylm_q,nlmc)
       endif
 
