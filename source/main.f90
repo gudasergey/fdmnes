@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 20th of July 2018, 2 Thermidor, An 226
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 2nd of August 2018, 15 Thermidor, An 226
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 20th of July 2018'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 2nd of August 2018'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -1812,7 +1812,7 @@ function Traduction(keyword)
       traduction = 'bormann'
     case('cartesien')
       traduction = 'cartesian'
-    case('chlibre','freech')
+    case('chlibre','freech','free_char','free_ch')
       traduction = 'chlib'
     case('cristal_c','crystal_c','ciffile')
       traduction = 'cif_file'

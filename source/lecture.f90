@@ -4558,19 +4558,36 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         endif
         do ipr = ipr0,9,3
           if( igr > ngroup ) then
-            write(ipr,171) it, ntype
+            write(ipr,190) it, ntype
           else
-            write(ipr,172) igr, it, ntype
+            write(ipr,195) igr, it, ntype
           endif
         end do
         istop = 1
       end do
       if( istop == 1 ) then
         do ipr = ipr0,9,3
-          write(ipr,174)
+          write(ipr,200)
         end do
         stop
       endif
+    endif
+
+    if( Atom .or. Atom_conf ) then
+      do it = 0,ntype
+        do l = 1,nlat(it)
+          q = sum( popval(it,l,:) )
+          n = 2 * ( 2 * lvval(it,l) + 1 )
+          if( q <=  n + eps10 ) cycle
+          if( istop == 0 ) call write_error
+          do ipr = ipr0,9,3
+            write(ipr,100)
+            write(ipr,210) it, l, lvval(it,l), q, n
+          end do
+          istop = 1
+        end do
+      end do
+      if( istop == 1 ) stop
     endif
 
     if( Atom .and. Atom_conf ) then
@@ -5973,17 +5990,20 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   170 format(//'  A parameter index for the fit is not possible !'/, &
                '  Check your indata file under the keyword ',a9,/ &
                '  The index is',i4//)
-  171 format(/' Doping atom is indexed with',i3,' what is more than',/ &
-              ' the number of atom type =',i2,' declared under keyword Atom !')
-  172 format(/' Atom number',i4,' is indexed with',i3,' what is more than',/ &
-              ' the number of atom type =',i2,' declared under keyword Atom !')
-  174 format(//' Under keyword Crystal or Molecule, when the index is',/ &
-               ' supposed to be the atomic number, the simultaneous',/ &
-               ' use of the keyword Atom is forbidden !'//)
   175 format(//' The atomic number given under keyword Z_absorber =',i4,' is not in the list of atoms !'//)
   176 format(//' The first type number defined under "Crystal", "Film" or "Molecule" =',i4,',',/ &
                ' is higher than the number of atom types defined under "Atom" or "Atom_conf" =',i4,' !'//)
   180 format(/' Edge = ',a3,' not programmed !'//)
+  190 format(/' Doping atom is indexed with',i3,' what is more than',/ &
+              ' the number of atom type =',i2,' declared under keyword Atom !')
+  195 format(/' Atom number',i4,' is indexed with',i3,' what is more than',/ &
+              ' the number of atom type =',i2,' declared under keyword Atom !')
+  200 format(//' Under keyword Crystal or Molecule, when the index is',/ &
+               ' supposed to be the atomic number, the simultaneous',/ &
+               ' use of the keyword Atom is forbidden !'//)
+  210 format(//' Under keyword "Atom" or "Atom_conf", the orbital occupancy is defined higher than what is possible:',/&
+               '   This concerns the atom type',i2,', the orbital number',i2, /&
+               '   with l =',i2,' and occupancy =',f8.5,' >',i3,' !'//)
   220 format(//' iord =',i2,' must be equal to 2 or 4 !'//)
   230 format(/' itype(igr=',i2,') =',i2,' > ntype =',i2,', forbidden !')
   240 format(//' Bad value in the indata file !'/, &

@@ -9,7 +9,7 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,chargat,chargat_init, &
             itypei,itypep,itypepr,lmax_pot,lvval,Magnetic,mpirank,n_atom_0,n_atom_0_self,n_atom_ind, &
             n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,neqm,ngreq,ngroup_m,ngroup_nonsph, &
             nhybm,nlat,nlatm,nlm_pot,Nonexc,Nonsph,norbv,normrmt,npoint,npoint_ns,npsom,nrato,nrm,nrm_self,nspin, &
-            ntype,numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self, psival,rato,rchimp,rho,rho_chg, &
+            ntype,numat,overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self,psival,rato,rchimp,rho,rho_chg, &
             rho_self,rhoato,rhoato_init,rhoit,rhons,rmtg,rmtimp,rmtg0,rmtsd,Rot_Atom_gr,Rot_int,rs,rsato, &
             rsort,SCF,Self_nonexc,Sym_2D,V_abs_i,V_helm,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp, &
             Width_helm,xyz)
@@ -35,9 +35,9 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,chargat,chargat_init, &
 
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph) :: hybrid
 
-  logical:: Cal_xanes, Full_atom, Helm_cos, Magnetic, Nonexc, Nonsph, SCF, Self_nonexc, Sym_2D
+  logical:: Cal_xanes, Do_init, Full_atom, Helm_cos, Magnetic, Nonexc, Nonsph, SCF, Self_nonexc, Sym_2D
 
-  real(kind=db):: alfpot, Delta_helm, Dist, f_integr3, Overlap, Orig_helm, Rayint, Rsort, V_helm, V_intmax, v0bdcFimp, &
+  real(kind=db):: alfpot, Delta_helm, Dist, f_integr3, Overlap, Orig_helm, Rayint, Rsort, V_helm, V_intmax, V0bdcFimp, &
                   Vsphere, Width_helm
   real(kind=db), dimension(3):: V_surf
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_init, chargat_self
@@ -53,11 +53,11 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,chargat,chargat_init, &
   real(kind=db), dimension(0:nrm_self,nspin,n_atom_0_self:n_atom_ind_self):: rho_chg, rhoato_init
   real(kind=db), dimension(nrm):: dvc_ex_nex, dv_ex_nex
   real(kind=db), dimension(nrm,nspin):: drho_ex_nex, V_abs_i
-  real(kind=db), dimension(0:nrm_self, n_atom_0_self:n_atom_ind_self):: Vcato_init
+  real(kind=db), dimension(0:nrm_self,n_atom_0_self:n_atom_ind_self):: Vcato_init
   real(kind=db), dimension(npoint,nspin):: Vxc, rho
   real(kind=db), dimension(nrm):: exc
   real(kind=db), dimension(3,3):: Rot_int
-  real(kind=db), dimension(nrm,n_atom_0:n_atom_ind):: excato
+  real(kind=db), dimension(nrm,n_atom_0:n_atom_ind):: Excato
   real(kind=db), dimension(nhybm,ngroup_nonsph) :: pop_nonsph
   real(kind=db), dimension(0:ntype,nlatm) :: popatv
   real(kind=db), dimension(4,npsom):: xyz
@@ -68,10 +68,10 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,chargat,chargat_init, &
   real(kind=db), dimension(0:nrm,nlm_pot,nspin):: vxcato_e
   real(kind=db), dimension(0:nrm,0:n_atom_proto):: vato
   real(kind=db), dimension(0:nrm,n_atom_0:n_atom_ind):: dvcato, drhoato, rsato
-  real(kind=db), dimension(0:nrm,nlm_pot,n_atom_0:n_atom_ind)::Vcato
+  real(kind=db), dimension(0:nrm,nlm_pot,n_atom_0:n_atom_ind):: Vcato
   real(kind=db), dimension(0:nrm,nspin,0:n_atom_proto):: rhoigr
   real(kind=db), dimension(0:nrm,nspin,n_atom_0:n_atom_ind):: rhoato, rho_no_sup
-  real(kind=db), dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind) :: Vxcato
+  real(kind=db), dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind):: Vxcato
   real(kind=db), dimension(0:n_atom_proto,nspin):: rhomft, vxcmft
   real(kind=db), dimension(0:n_atom_proto,nlatm,nspin):: popatm
   real(kind=db), dimension(0:nrm,0:ntype):: rato, rhoit
@@ -147,6 +147,8 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,chargat,chargat_init, &
 
   if( icheck(13) > 2 ) write(3,110) i_self, Full_atom, iapr0, n_iapr
 
+  Do_init = i_self == 1 .and. .not. Cal_xanes
+
 ! Loop over all the atoms
   do iapr = iapr0,n_iapr
 
@@ -194,7 +196,7 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,chargat,chargat_init, &
 
     if( iapr >= n_atom_0 ) then
       rsato(:,iapr) = rsato_e(:)
-      excato(1:nr,iapr) = exc(1:nr)
+      Excato(1:nr,iapr) = exc(1:nr)
       Vcato(:,:,iapr) = Vcato_e(:,:)
       Vxcato(:,:,:,iapr) = Vxcato_e(:,:,:)
       rhoato(:,:,iapr) = rhoato_e(:,:)
@@ -207,7 +209,7 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,chargat,chargat_init, &
       end do
     endif
 
-    if( i_self == 1 .and. iapr >= n_atom_0_self .and. .not. cal_xanes ) then
+    if( Do_init .and. iapr >= n_atom_0_self ) then
       Vcato_init(:,iapr) = Vcato_e(:,1)
       rhoato_init(:,:,iapr) = rhoato_e(:,:)
       rho_chg(:,:,iapr) = rho_chg_e(:,:)
@@ -227,6 +229,9 @@ subroutine Potsup(alfpot,Axe_atom_gr,Cal_xanes,chargat,chargat_init, &
     endif
 
   end do
+
+  if( Full_atom ) call Force_pot_eq(Do_init,drhoato,dVcato,Excato,iaprotoi,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self, &
+                        natome,nlm_pot,nrm,nrm_self,nspin,posi,rho_chg,rho_no_sup,rhoato,rhoato_init,rsato,Vcato,Vcato_init,Vxcato)
 
   if( i_self == 1 ) then
     it = itab
@@ -5101,3 +5106,120 @@ subroutine Potential_writing(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsi
   140 format(/6x,'Epsii_moy',9x,'Delta_Eseuil',3x,9(6x,a6,i1,6x),20(5x,a6,i2,6x))
 end
 
+!***********************************************************************
+
+! Force the atom equivalent in the space group and at the same distance from the center of the sphere of calculation
+! to have the same potential
+
+subroutine Force_pot_eq(Do_init,drhoato,dVcato,Excato,iaprotoi,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self, &
+                        natome,nlm_pot,nrm,nrm_self,nspin,posi,rho_chg,rho_no_sup,rhoato,rhoato_init,rsato,Vcato,Vcato_init,Vxcato)
+
+  use declarations
+  implicit none
+
+  integer:: i, ia, ib, n_at_eq, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, natome, nlm_pot, nrm, nrm_self, nspin
+
+  integer, dimension(natome):: iaprotoi, index_at_eq
+
+  logical:: Do_init, First_couple
+
+  logical, dimension(natome):: Done
+
+  real(kind=db):: Dist
+  real(kind=db), dimension(3,natome):: posi
+  real(kind=db), dimension(nrm):: Exc
+  real(kind=db), dimension(0:nrm):: dVc, drh, rsa
+  real(kind=db), dimension(0:nrm,nlm_pot):: Vca
+  real(kind=db), dimension(0:nrm,nspin):: rho, rho_no
+  real(kind=db), dimension(0:nrm,nlm_pot,nspin):: Vxc
+
+  real(kind=db), dimension(nrm,n_atom_0:n_atom_ind):: Excato
+  real(kind=db), dimension(0:nrm,n_atom_0:n_atom_ind):: dVcato, drhoato, rsato
+  real(kind=db), dimension(0:nrm,nlm_pot,n_atom_0:n_atom_ind):: Vcato
+  real(kind=db), dimension(0:nrm,nspin,n_atom_0:n_atom_ind):: rhoato, rho_no_sup
+  real(kind=db), dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind):: Vxcato
+
+  real(kind=db), dimension(0:nrm_self):: Vca_init
+  real(kind=db), dimension(0:nrm_self,nspin):: rho_ch, rho_init
+  real(kind=db), dimension(0:nrm_self,n_atom_0_self:n_atom_ind_self):: Vcato_init
+  real(kind=db), dimension(0:nrm_self,nspin,n_atom_0_self:n_atom_ind_self):: rho_chg, rhoato_init
+
+! We are necessarily with  n_atom_0 = 1
+!                          n_atom_ind = natome
+
+  Done(:) = .false.
+  index_at_eq(:) = 0
+
+  do ia = 1,natome
+
+    if( Done(ia) ) cycle
+
+    Done(ia) = .true.
+    Dist = sum( posi(:,ia)**2 )
+    First_couple = .true.
+    n_at_eq = 0
+
+    do ib = ia + 1,natome
+      if( Done(ib) ) cycle
+      if( iaprotoi(ia) /= iaprotoi(ib) ) cycle
+      if( abs( sum( posi(:,ib)**2 ) - Dist ) > eps10 ) cycle
+      Done(ib) = .true.
+      if( First_couple ) then
+        First_couple = .false.
+        n_at_eq = 1
+        index_at_eq(1) = ia
+      endif
+      n_at_eq = n_at_eq + 1
+      index_at_eq(n_at_eq) = ib
+    end do
+
+    if( n_at_eq == 0 ) cycle
+
+    Exc(:) = 0._db
+    dVc(:) = 0._db
+    drh(:) = 0._db
+    rsa(:) = 0._db
+    Vca(:,:) = 0._db
+    rho(:,:) = 0._db
+    rho_no(:,:) = 0._db
+    Vxc(:,:,:) = 0._db
+    Vca_init(:) = 0._db
+    rho_init(:,:) = 0._db
+    rho_ch(:,:) = 0._db
+    do i = 1,n_at_eq
+      ib = index_at_eq(i)
+      Exc(:) = Exc(:) + Excato(:,ib) / n_at_eq
+      dVc(:) = dVc(:) + dVcato(:,ib) / n_at_eq
+      drh(:) = dVc(:) + drhoato(:,ib) / n_at_eq
+      rsa(:) = rsa(:) + rsato(:,ib) / n_at_eq
+      Vca(:,:) = Vca(:,:) + Vcato(:,:,ib) / n_at_eq
+      rho(:,:) = rho(:,:) + rhoato(:,:,ib) / n_at_eq
+      rho_no(:,:) = rho_no(:,:) + rho_no_sup(:,:,ib) / n_at_eq
+      Vxc(:,:,:) = Vxc(:,:,:) + Vxcato(:,:,:,ib) / n_at_eq
+      if( Do_init ) then
+        Vca_init(:) = Vca_init(:) + Vcato_init(:,ib) / n_at_eq
+        rho_init(:,:) = rho_init(:,:) + rhoato_init(:,:,ib) / n_at_eq
+        rho_ch(:,:) = rho_ch(:,:) + rho_chg(:,:,ib) / n_at_eq
+      endif
+    end do
+    do i = 1,n_at_eq
+      ib = index_at_eq(i)
+      Excato(:,ib) = Exc(:)
+      dVcato(:,ib) = dVc(:)
+      drhoato(:,ib) = drh(:)
+      rsato(:,ib) = rsa(:)
+      Vcato(:,:,ib) = Vca(:,:)
+      rhoato(:,:,ib) = rho(:,:)
+      rho_no_sup(:,:,ib) = rho_no(:,:)
+      Vxcato(:,:,:,ib) = Vxc(:,:,:)
+      if( Do_init ) then
+        Vcato_init(:,ib) = Vca_init(:)
+        rhoato_init(:,:,ib) = rho_init(:,:)
+        rho_chg(:,:,ib) = rho_ch(:,:)
+      endif
+    end do
+
+  end do
+
+  return
+end

@@ -188,7 +188,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
           popval(it,nlat(it),1:nspin) = sum(pop(io:io+1)) / nspin
         endif
 
-        p = lqn(ip) / ( 2 * lqn(ip) + 1. )
+        p = lqn(io) / ( 2 * lqn(io) + 1. )
         pop(io) = pop(io) + p * dp
         pop(io+1) = pop(io+1) + ( 1 - p ) * dp
         dp = sum( pop(io:io+1) ) - elmax
