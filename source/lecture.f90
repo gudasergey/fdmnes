@@ -33,7 +33,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   character(len=Length_name):: Fcif_file, Fichier, Fichier_pdb
   character(len=Length_name), dimension(9):: Wien_file
 
-  logical:: Absauto, adimpin, Atom_conf, Atom_conf_dop, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Bulk, COOP, Fcif, Cap_layer, &
+  logical:: Absauto, adimpin, Atom_conf, Atom_conf_dop, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Bulk, Fcif, Cap_layer, &
      Dafs_bio, Doping, Extract, Extract_ten, Film, Flapw, Full_self_abs, Hubbard, &
      Magnetic, Matper, Memory_save, NRIXS, Occupancy_first, Pdb, Pol_dafs_in, Quadrupole, Readfast, Screening, Self_abs, &
      Taux, Temp_B_iso, Use_FDMX, Very_fast, Xan_atom
@@ -52,7 +52,6 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   Axe_loc = .false.
   Bulk = .false.
   Cap_layer = .false.
-  COOP = .false.
   Fcif = .false.
   Dafs_bio = .false.
   Doping = .false.
@@ -172,11 +171,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           Backspace(itape4)
           n_atom_cap = igr - 1
 
-        case('coop','coop_dist')
-          COOP = .true.
-
         case('coop_atom')
-          COOP = .true.
           n_atom_coop = nnombre(itape4,132)
 
         case('doping')
@@ -2070,16 +2065,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('classic_i')
           Classic_irreg = .false.
 
-        case('coop')
-          COOP = .true.
-
         case('coop_atom')
-          COOP = .true.
           n = nnombre(itape4,132)
+          COOP = n > 0
           if( n > 0 ) read(itape4,*,iostat=ier) igr_coop(1:n)
 
         case('coop_dist')
-          COOP = .true.
           n = nnombre(itape4,132)
           if( n > 0 ) read(itape4,*,iostat=ier) Dist_coop
 

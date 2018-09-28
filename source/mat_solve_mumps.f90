@@ -230,7 +230,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
         write(3,110) igrph, nligne, nz
       endif
     endif
-    if ( icheck > 1 ) then
+    if ( icheck > 2 ) then
       nligne8 = nligne
       write(6,'(" Sizes of linear equation system:")')
       write(6,'(" nligne   =",I24)') nligne

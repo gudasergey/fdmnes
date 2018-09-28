@@ -14,9 +14,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   use declarations
   implicit none
 
-  integer:: Dafs_exp_type, eof, i, i_col, i_conv, i_hk, i_Trunc, i1, ical, icheck, ie, ie1, ie2, ifich, igr, ii, &
-    index_hk, initl, ip, ipar, ipas, ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, &
-    jfich, jpl, js, jseuil, k, kpl, l, Length_line, ll, mfich, n, n_col, n_col_max, n_energ_tr, &
+  integer:: Dafs_exp_type, eof, i, i_conv, i_hk, i_Trunc, i1, ical, icheck, ie, ie1, ie2, ifich, igr, ii, &
+    initl, ip, ipar, ipas, ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, &
+    jfich, jpl, js, jseuil, k, kpl, l, Length_line, mfich, n, n_col, n_col_max, n_energ_tr, &
     n_mat_pol, n_selec_core, n_signal, n_Stokes, n_Trunc, &
     ncal, ne2, nef, nelor, nen2, nenerg, nenerge, nes, nes_in, nfich, &
     ngamh, ngroup_par, ninit, ninit1, ninitlm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
@@ -29,13 +29,11 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   integer, dimension(10):: num_core
   integer, dimension(ngroup_par):: npar
   integer, dimension(ngroup_par,nparm):: indice_par
-  integer, dimension(:), allocatable:: i_done, indf, ne, ninitl, nphi, numat
+  integer, dimension(:), allocatable:: i_done, indf, n_index_hk, ne, ninitl, nphi, numat
   integer, dimension(:,:), allocatable:: hkl_dafs, nsup, ne_initl
-  integer, dimension(:), allocatable:: n_index_hk, n_div_fpp
+  integer, dimension(:), allocatable:: n_div_fpp
 
-  character(len=6):: mot6, mot6_b
   character(len=9):: keyword, mot9, Traduction
-  character(len=15):: mot15
   character(len=132):: identmot, mot, mots
   character(len=Length_word):: nomab   
   character(len=Length_name):: chemin, convolution_out, fichscanout, nomfich, nomfichbav
@@ -996,6 +994,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     endif
   endif
 
+  allocate( n_index_hk(npldafs/2) )
   allocate( nom_col(n_col) )
 
 ! Preparation is done --------------------------------------
@@ -1003,7 +1002,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Sup_sufix = ninitl(1) > 1
    
   call Col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin(1),Fichscanin(1),fprim,Full_self_abs,hkl_dafs, &
-      Length_line,n_col,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes, &
+      Length_line,n_col,n_index_hk,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes, &
       Stokes_name,Stokes_param,Sup_sufix,Tenseur)
 
 ! This loop is for the case of output for all indata files  
@@ -1267,32 +1266,34 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         endif
         betalor(:) = betalor(:) + Gamma_h
 
-        if( Check_conv ) then
-          ipr1 = 3
-        else
-          ipr1 = 6
-        endif
-        ipr2 = 6
-        do ipr = ipr1,ipr2,3
-          if( ifich == 1 .and. ( initl == 1 .or. initl == num_core(1) ) )  then
-            if( seah ) then
-              Write(ipr,'(/A)') ' Seah-Dench model'
-              Write(ipr,150) Gamma_max*rydb, asea
-            elseif( Arc ) then
-              Write(ipr,'(/A)') ' Arctangent model'
-              Write(ipr,160) Gamma_max*rydb, Ecent*rydb, Elarg*rydb
-            endif
-          endif
-          if( nfich == 1 .and. ninitl(ifich) == 1 ) then
-            Write(ipr,170) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb
-          elseif( nfich == 1 ) then
-            Write(ipr,172) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, initl
-          elseif( ninitl(ifich) == 1 ) then
-            Write(ipr,174) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, ifich
+        if( i_conv == 0 ) then
+          if( Check_conv ) then
+            ipr1 = 3
           else
-            Write(ipr,176) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, ifich, initl
+            ipr1 = 6
           endif
-        end do
+          ipr2 = 6
+          do ipr = ipr1,ipr2,3
+            if( ifich == 1 .and. ( initl == 1 .or. initl == num_core(1) ) )  then
+              if( seah ) then
+                Write(ipr,'(/A)') ' Seah-Dench model'
+                Write(ipr,150) Gamma_max*rydb, asea
+              elseif( Arc ) then
+                Write(ipr,'(/A)') ' Arctangent model'
+                Write(ipr,160) Gamma_max*rydb, Ecent*rydb, Elarg*rydb
+              endif
+            endif
+            if( nfich == 1 .and. ninitl(ifich) == 1 ) then
+              Write(ipr,170) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb
+            elseif( nfich == 1 ) then
+              Write(ipr,172) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, initl
+            elseif( ninitl(ifich) == 1 ) then
+              Write(ipr,174) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, ifich
+            else
+              Write(ipr,176) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, ifich, initl
+            endif
+          end do
+        endif
 
         if( i_conv == 0 .and. ( ifich == 1 .or. Esmin /= Eseuil(ifich) ) &
                 .and. ( initl == 1 .or. initl == num_core(1) ) .and. Gamma_max > eps10 ) then
@@ -1786,9 +1787,10 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         if( Trunc(ifich) ) then
           Ts(ie) = Ts(ie) + p2f(ie) * Xanes(i-1,nxan) + p1f(ie) * Xanes(i,nxan)
           As_bulk(ie,:,:,i_Trunc) = As_bulk(ie,:,:,i_Trunc) + p2f(ie) * Adafs(i-1,:,:) + p1f(ie) * Adafs(i,:,:)
-        else
-          Xs(ie,:) = Xs(ie,:) + p2f(ie) * Xanes(i-1,:) + p1f(ie) * Xanes(i,:)
+!        else
+!          Xs(ie,:) = Xs(ie,:) + p2f(ie) * Xanes(i-1,:) + p1f(ie) * Xanes(i,:)
         endif
+          Xs(ie,:) = Xs(ie,:) + p2f(ie) * Xanes(i-1,:) + p1f(ie) * Xanes(i,:)
       end do
 
       deallocate( Adafs )
@@ -1987,57 +1989,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     ipas = 1
   endif
   if( Transpose_file ) allocate( Signal(npldafs_t,n_signal) )
-
-  if( .not. Analyzer ) then
-
-    do j = 1,2
-    
-      i_hk = 0
-      index_hk = 0
-      mot6_b = ' '
-      do i_col = i1,n_col,ipas
-        mot15 = ' '
-        mot15 = nom_col(i_col)
-        do i = 1,15
-          if( mot15(i:i) /= '(' ) cycle
-          mot6 = ' '
-          if( mot15(i+1:i+1) == '-' .and. mot15(i+3:i+3) == '-' ) then
-            mot6(1:4) = mot15(i+1:i+4)
-          elseif( mot15(i+1:i+1) == '-' .or. mot15(i+2:i+2) == '-' ) then
-            mot6(1:3) = mot15(i+1:i+3)
-          else
-            mot6(1:2) = mot15(i+1:i+2)  
-          endif
-          exit
-        end do
-
-        do i = 1,14
-          if( mot15(i:i) /= ')' ) cycle
-          ll = len_trim( mot6 )
-          if( mot15(i+1:i+1) /= ' ' ) mot6(ll+1:ll+1) = mot15(i+1:i+1)
-          if( i >= 14 ) exit
-          if( mot15(i+2:i+2) /= ' ' ) mot6(ll+2:ll+2) = mot15(i+2:i+2)
-          exit
-        end do
-
-        if( mot6 == mot6_b ) then    
-          index_hk = index_hk + 1
-          if( j == 2 ) n_index_hk(i_hk) = index_hk 
-        else  
-          i_hk = i_hk + 1
-          index_hk = 1
-          mot6_b = mot6 
-        endif
-      end do
-      
-      if( j == 1 ) then
-        allocate( n_index_hk(i_hk) )
-        n_index_hk(:) = 1
-      endif
-      
-    end do
-  
-  endif
   
   First_E = .true.
   
@@ -2199,8 +2150,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     deallocate( Energ_tr, Signal )
   endif
 
-  if( .not. Analyzer ) deallocate( n_index_hk )
-  
   if( Scan_true .and. .not. Dafs_bio ) then
 
     Open(7, file = fichscanout)
@@ -2289,7 +2238,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   deallocate( Trunc, V0muf, Xs )
   if( Abs_in_bulk ) deallocate( As_bulk, f0_bulk, f0scan_bulk, l_dafs, Length_abs, Length_rel, Ts  )
   if( Cor_abs ) deallocate( mus )
-
+  deallocate( n_index_hk )
+  
   if( ncal > 1 .and. ical == ncal+1 ) then
     do jfich = 1,mfich
       iscr = 100 + jfich
@@ -2806,6 +2756,12 @@ end
     com_date = '   Date = ' // dat(7:8) // ' ' // dat(5:6) // ' ' // dat(1:4)
     com_time = '   Time = ' // tim(1:2)  // ' h ' // tim(3:4) // ' mn ' // tim(5:6) // ' s'
     write(3,'(1x,A/A/A)') Revision, com_date, com_time
+    
+    write(3,'(/A)') ' Convolution of the file(s):' 
+    do ifich = 1,nfich
+      write(3,'(2x,A)') fichin(ifich)
+    end do
+
   endif
 
   if( Check_conv .and. .not. Deuxieme ) write(3,110)
@@ -3143,13 +3099,13 @@ end
 !***********************************************************************
 
 subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscanin,fprim,Full_self_abs,hkl_dafs, &
-      Length_line,n_col,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes, &
+      Length_line,n_col,n_index_hk,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes, &
       Stokes_name,Stokes_param,Sup_sufix,Tenseur)
 
   use declarations
   implicit none
 
-  integer:: i, i_hk, ii, ipl, istat, j, k, kk, l, Length_line, m, n, n_col, n_col_o, n_col_in, n_index_hk, n_mat_pol, &
+  integer:: i, i_hk, ii, ipl, istat, j, k, kk, l, Length_line, m, n, n_col, n_col_o, n_col_in, n_mat_pol, &
     n_stokes, nc, nnombre, npldafs, npldafs_b, nxan
   integer, dimension(npldafs):: nphi
 
@@ -3162,6 +3118,7 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
   character(len=Length_word), dimension(:), allocatable:: nom_col_in
 
   integer, dimension(3,npldafs_b):: hkl_dafs
+  integer, dimension(npldafs/2):: n_index_hk
 
   logical:: Analyzer, Bormann, Cor_abs, Dafs_bio, Double_cor, fprim, Full_self_abs, Photoemission, Self_abs, Signal_sph, &
             Stokes, Sup_sufix, Tenseur
@@ -3512,8 +3469,8 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
         nomac = adjustl( nom_col_o(j) )
         if( nomab(1:l) /= nomac(1:l) ) cycle
         i_hk = i_hk + 1
-        n_index_hk = j - i
-        k = k + 2 * n_index_hk 
+        n_index_hk(i_hk) = j - i
+        k = k + 2 * n_index_hk(i_hk) 
         exit
       end do
       
@@ -3522,11 +3479,11 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
         nom_col(kk) = nom_col_o(i)  
       else
       
-        do j = i, i + n_index_hk - 1
+        do j = i, i + n_index_hk(i_hk) - 1
           kk = kk + 1  
           nomab = nom_col_o(j)
           l = len_trim( nomab )
-          nomab(l-1:l) = '  '
+          nomab(l:l) = ' '
           nom_col(kk) = nomab
         end do
       

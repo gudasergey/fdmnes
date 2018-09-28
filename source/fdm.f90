@@ -867,7 +867,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
   complex(kind=db), dimension(:,:,:), allocatable:: phdt, poldafse, poldafss
   complex(kind=db), dimension(:,:,:,:), allocatable:: secmd, secmd_m, secmm, secmm_m, V_hubb_abs, &
                                                       V_hubb_t
-  complex(kind=db), dimension(:,:,:,:,:), allocatable:: Fac_tau, S_nrixs, S_nrixs_m, secdd, secdd_m, rof0, secdq, secdq_m, &
+  complex(kind=db), dimension(:,:,:,:,:), allocatable:: S_nrixs, S_nrixs_m, secdd, secdd_m, rof0, secdq, secdq_m, &
                                                         Tau_ato, Taull, Tau_coop, Taull_dft, Taull_tdd, V_hubb, V_hubb_s
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: secdo, secdo_m, secoo, secoo_m, secqq, secqq_m, taull_stk
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Taull_abs
@@ -1297,8 +1297,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       call natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho_int, &
         Base_ortho_sur,Bulk,Bulk_step,Center_s,Centre,Chargat,d_ecrant,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
         dpos,Film_shift,Film_thickness,Flapw,iabsorbeur,iabsfirst,icheck(5),igr_dop,igreq,Interface_shift, &
-        itabs,itype,Kgroup,Matper,mpirank0,multi_run,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur, &
-        n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
+        itabs,itype,Kgroup,Matper,mpirank0,multi_run,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_uc, &
+        n_atom_sur,n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
         Noncentre,posn,posn_bulk,One_run,Proto_all,r_self,rsorte_s,rmax,rpotmax,Self_cons,Surface_shift,Sym_2D, &
         Taux_oc)
     endif
@@ -1375,7 +1375,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 !    Full_atom = ( Full_atom_e  .or. ( Self_cons .and. .not. ( Self_nonexc .and. Proto_all ) ) &
 !                     .or. ( natome <= n_atom_proto + 1 ) .or. Full_potential .or. Hubbard ) .and. .not. Flapw
     Full_atom = ( Full_atom_e  .or. ( Self_cons .and. .not. ( Self_nonexc .and. Proto_all ) ) &
-                     .or. ( natome <= n_atom_proto + 1 ) ) .and. .not. Flapw
+                     .or. ( natome <= n_atom_proto + 1 .and. .not. Bulk_step ) &
+                     .or. ( natome <= n_atom_proto_bulk + 1 .and. Bulk_step ) ) .and. .not. Flapw
 
     if( Full_atom ) then
       n_atom_0 = 1
@@ -1663,14 +1664,14 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
 ! Calcul de l'energie de depart du comptage d'electrons; on la calcule  une seule fois,
 ! bien que les Vcato et Vxcato changent a chaque iteration
-          call En_dep(E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck(27),itypepr,lcoeur,n_atom_0,n_atom_0_self, &
-              n_atom_ind,n_atom_ind_self,n_atom_proto,natome,ncoeur,nenerg_coh,nlm_pot,nrato,nrm,numat,nspin, &
-              ntype,Pas_SCF,psi_coeur,Relativiste,rato,Rmtg,Rmtsd,V_intmax,Vcato,Vxcato,Workf)
+          call En_dep(Bulk_step,E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck(27),itypepr,lcoeur,n_atom_0, &
+              n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_uc,natome,ncoeur,nenerg_coh,nlm_pot, &
+              nrato,nrm,numat,nspin,ntype,Pas_SCF,psi_coeur,Relativiste,rato,Rmtg,Rmtsd,V_intmax,Vcato,Vxcato,Workf)
 
 ! Calcul de la charge de reference en cas de calcul auto_coherent
-          call chg_agr(chargat,chargat_init,ch_coeur,chg_cluster,chg_open_val,Doping,Full_atom,iaprotoi,ipr_dop, &
+          call Chg_agr(Bulk_step,chargat,chargat_init,ch_coeur,chg_cluster,chg_open_val,Doping,Full_atom,iaprotoi,ipr_dop, &
               iprabs_nonexc,ispin_maj,itabs,icheck(27),itypepr,mpirank0,natome,n_atom_0_self,n_atom_ind_self, &
-              n_atom_proto,nb_eq,ngreq,nrato,nrm,nrm_self,nspin,ntype,numat,pop_open_val, &
+              n_atom_proto,n_atom_proto_uc,nb_eq,ngreq,nrato,nrm,nrm_self,nspin,ntype,numat,pop_open_val, &
               psi_open_val,rato,rho_chg,rho_coeur,rhoato_init,Rmtsd,SCF_mag_fix,SCF_mag_free)
 
           chargat_self_s(:,:) = chargat_init(:,:)
@@ -1964,7 +1965,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             nlmagm = ( lmaxg + 1 )**2
 
             allocate( Tau_ato(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind) )
-            allocate( Fac_tau(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind) )
             if( Green ) then
               nphiato1 = 0; nphiato7 = 0
             else
@@ -1984,7 +1984,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             allocate( phiato(nphiato1,nlmagm,nspinp,nspino,natome,nphiato7) )
             allocate( Taull(nlmagm,nspinp,nlmagm,nspinp,natome) )
             allocate( Tau_coop(nlmagm,nspinp,nlmagm,nspinp,nab_coop) )
-            Fac_tau(:,:,:,:,:) = (0._db,0._db)
             phiato(:,:,:,:,:,:) = 0._db
             Tau_ato(:,:,:,:,:) = (0._db,0._db)
             Taull(:,:,:,:,:) = (0._db,0._db)
@@ -2037,7 +2036,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
               Vrato_e(1:nr,:,:) = Vrato(1:nr,:,:,iapr)
 
-              call Sphere(Axe_atom_grn,Ecinetic,Eimag(ie),Energ(ie),Enervide,Fac_tau,Full_atom, &
+              call Sphere(Axe_atom_grn,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
               Full_potential,Green,Hubb_a,Hubb_d,iaabsi,iapr,iaprotoi,ibord,ich,igreq,igroupi,iopsymr,lmax,lmax_pot,m_hubb, &
               n_atom_0,n_atom_ind,n_atom_proto,natome,nbord,nbtm,nbtm_fdm,neqm,ngroup_m,nlm_pot, &
               nlmagm,nlmmax,nphiato1,nphiato7,npsom,nr,nspin,nspino,nspinp,Z,phiato,posi,r,Relativiste,Renorm_SCF,Rmtg(ipr), &
@@ -2098,7 +2097,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                     call cnlmmax(lmaxso,lval,n,nlmso)
                     deallocate( lval )
                     call mat(Adimp,Atom_axe,Axe_Atom_grn,Base_hexa,Basereel,Cal_xanes,cgrad, &
-                      clapl,Classic_irreg,Dist_coop,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,Fac_tau, &
+                      clapl,Classic_irreg,Dist_coop,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide, &
                       FDM_comp_m,Full_atom,gradvr,ia_coop,iaabsi,iaprotoi,iato,ibord,ich,ie,igroupi,igrph, &
                       irep_util,isbord,iso,ispin,isrt,ivois,isvois,karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso,nab_coop, &
                       natome,n_atom_0,n_atom_coop,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,ngroup_m,ngrph,nim,nicm, &
@@ -2121,7 +2120,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
               Time_rout(10) = Time_rout(10) + Time_tria ! Triang
             endif
 
-            deallocate( Fac_tau, Tau_ato )
+            deallocate( Tau_ato )
             deallocate( phiato )
 
             ich = icheck(27)
@@ -2176,11 +2175,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
               ich = icheck(27)
 
-              call Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_self,E_cut,E_Open_val, &
+              call Cal_State(Bulk_step,chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_self,E_cut,E_Open_val, &
                 E_Open_val_exc,E_starta,Energ,E_Fermi,Enragr,Energ_self,Fermi,Full_atom,Hubb,Hubb_diag,iaabsi,iaprotoi, &
                 i_self,ich,ie,ie_computer,Int_statedens,ipr_dop,ispin_maj,itypei,itypepr,lamstdens, &
                 Level_val_abs,Level_val_exc,lla_state,lla2_state,lmaxat,m_hubb,mpinodes,n_atom_0,n_atom_0_self, &
-                n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nb_eq,nenerg,ngreq,nlm_pot,nomfich_s,nrato, &
+                n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_uc,natome,nb_eq,nenerg,ngreq,nlm_pot,nomfich_s,nrato, &
                 nrm,nrm_self,nspin,nspinp,ntype,numat,Occ_hubb,Occ_hubb_i,pop_orb_val,rato,rho_self,rho_self_t,Rmtsd, &
                 SCF_elecabs,SCF_mag_fix,Self_nonexc,Statedens,Statedens_i,V_hubb,V_hubbard)
 
@@ -2210,13 +2209,13 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
         if( mpirank0 == 0 ) then
 
-          call eps_coeur(ch_coeur,E_coeur,E_coeur_s,Full_atom,iaprotoi,icheck(27),itypepr,lcoeur,n_atom_0,n_atom_0_self, &
-              n_atom_ind,n_atom_ind_self,n_atom_proto,natome,ncoeur,nlm_pot,nrato,nrm,nspin,ntype,numat,psi_coeur, &
+          call Eps_coeur(Bulk_step,ch_coeur,E_coeur,E_coeur_s,Full_atom,iaprotoi,icheck(27),itypepr,lcoeur,n_atom_0,n_atom_0_self, &
+              n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_uc,natome,ncoeur,nlm_pot,nrato,nrm,nspin,ntype,numat,psi_coeur, &
               rato,Relativiste,Rmtg,Rmtsd,V_intmax,Vcato,Vxcato)
 
-          call Energ_DFT(Doping,En_cluster,Energ_self,E_coeur,Excato,Full_atom,Hubb,iaprotoi,icheck(27),ipr_dop,itypepr, &
-            m_hubb,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nb_eq,ngreq,nlm_pot,nrm,nrm_self, &
-            nrato,nspin,nspinp,ntype,numat,rato,rho_self,rmtsd,V_hubb,Vcato,Vxcato)
+          call Energ_DFT(Bulk_step,Doping,En_cluster,Energ_self,E_coeur,Excato,Full_atom,Hubb,iaprotoi,icheck(27),ipr_dop, &
+            itypepr,m_hubb,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_uc,natome,nb_eq,ngreq, &
+            nlm_pot,nrm,nrm_self,nrato,nspin,nspinp,ntype,numat,rato,rho_self,rmtsd,V_hubb,Vcato,Vxcato)
 
         end if
 
@@ -2238,11 +2237,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
         else
           Delta_E_conv = Delta_En_conv
         endif
-        call prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_E_conv,Delta_energ,Delta_energ_s, &
+        call prep_next_iter(Bulk_step,chargat_self,chargat_self_s,Convergence,Delta_E_conv,Delta_energ,Delta_energ_s, &
              Doping,En_cluster,En_cluster_s,Energ_self,Energ_self_s,Fermi,Fermi_first,Full_atom, &
-             Hubbard,i_self,icheck(27),ipr_dop,m_hubb,mpirank0,n_atom_0_self, &
-             n_atom_ind_self,n_atom_proto,n_devide,natome,natomeq,nb_eq,ngreq,nlm_pot,nrm_self,nself,nspin,nspinp, &
-             p_self,p_self_max,p_self0,rho_self,rho_self_s,V_hubb,V_hubb_s)
+             Hubbard,i_self,iaprotoi,icheck(27),ipr_dop,itypepr,m_hubb,mpirank0,n_atom_0_self,n_atom_ind_self, &
+             n_atom_proto,n_atom_proto_uc,n_devide,natome,nb_eq,ngreq,nlm_pot,nrm_self,nself,nspin,nspinp, &
+             ntype,numat,p_self,p_self_max,p_self0,rho_self,rho_self_s,V_hubb,V_hubb_s)
 
         deallocate( Energ, Eimag )
 
@@ -2634,9 +2633,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
         nb_rep_t,nb_sym_op,neqm,ngreq,ngroup,ngroup_hubb,ngroup_m,nlat,nlatm,nspin,nspinp,ntype,numat,nx,occ_hubb_e,Overad, &
         popats,pos,posi,rmt,rot_atom,roverad,Rsort,Rsorte,Spinorbite,Symmol,V_hubb,V_hubbard,Ylm_comp)
 
-      call Atom_coop_selec(COOP,Dist_coop,ia_coop,iaprotoi,ich,igr_coop,igreq,igroupi,itypei,n_atom_coop,n_atom_proto,nab_coop, &
-                         natome,neqm,ngreq,ntype,numat,Posi,Rmtg)
-
       if( Hubb(itabs) .and. i_range == 1 ) then
         if( Full_atom ) then
           iapr = iaabsi
@@ -2767,6 +2763,9 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
         endif
 
       endif
+
+      call Atom_coop_selec(COOP,Dist_coop,ia_coop,iaprotoi,icheck(28),igr_coop,igreq,igroupi,itypei,n_atom_coop,n_atom_proto, &
+                         nab_coop,natome,neqm,ngreq,ntype,numat,Posi,Rmtg)
 
       if( i_range == 1 ) then
         nenerg = nenerg_s
@@ -3190,7 +3189,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           nlmagm = ( lmaxg + 1 )**2
 
           allocate( Tau_ato(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind) )
-          allocate( Fac_tau(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind) )
           if( Green ) then
             nphiato1 = 0; nphiato7 = 0
           else
@@ -3210,7 +3208,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           allocate( phiato(nphiato1,nlmagm,nspinp,nspino,natome,nphiato7) )
           allocate( Taull(nlmagm,nspinp,nlmagm,nspinp,natome) )
           allocate( Tau_coop(nlmagm,nspinp,nlmagm,nspinp,nab_coop) )
-          Fac_tau(:,:,:,:,:) = (0._db,0._db)
           phiato(:,:,:,:,:,:) = 0._db
           Tau_ato(:,:,:,:,:) = (0._db,0._db)
           Taull(:,:,:,:,:) = (0._db,0._db)
@@ -3273,7 +3270,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
             Vrato_e(1:nr,:,:) = Vrato(1:nr,:,:,iapr)
 
-            call Sphere(Axe_atom_grn,Ecinetic,Eimag(ie),Energ(ie),Enervide,Fac_tau,Full_atom, &
+            call Sphere(Axe_atom_grn,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
               Full_potential,Green,Hubb_a,Hubb_d,iaabsi,iapr,iaprotoi,ibord,icheck(18),igreq,igroupi,iopsymr,lmax,lmax_pot, &
               m_hubb,n_atom_0,n_atom_ind,n_atom_proto,natome,nbord,nbtm,nbtm_fdm,neqm,ngroup_m, &
               nlm_pot,nlmagm,nlmmax,nphiato1,nphiato7,npsom,nr,nspin,nspino,nspinp,Z,phiato,posi,r,Relativiste,Renorm, &
@@ -3338,7 +3335,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                   call cnlmmax(lmaxso,lval,n,nlmso)
                   deallocate( lval )
                   call mat(Adimp,Atom_axe,Axe_Atom_grn,Base_hexa,Basereel,Cal_xanes,cgrad, &
-                      clapl,Classic_irreg,Dist_coop,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide,Fac_tau, &
+                      clapl,Classic_irreg,Dist_coop,distai,E_comp,Ecinetic_out,Eclie_out,Eimag(ie),Eneg,Enervide, &
                       FDM_comp_m,Full_atom,gradvr,ia_coop,iaabsi,iaprotoi,iato,ibord,ich,ie,igroupi,igrph,irep_util, &
                       isbord,iso,ispin,isrt,ivois,isvois,karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso,nab_coop, &
                       natome,n_atom_0,n_atom_coop,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,ngroup_m,ngrph,nim,nicm, &
@@ -3514,7 +3511,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
           endif
 
-          deallocate( Fac_tau, Tau_ato )
+          deallocate( Tau_ato )
           deallocate( phiato )
 
           if( mpirank0 == 0 ) then
@@ -3597,6 +3594,10 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
             call CPU_TIME(time)
             Time_loc(1) = real(time,db)
+
+            if( icheck(19) > 1 ) &
+              call Tau_wout(iabsorig(multi_run),Energ(ie),ie,ie_computer,lmax_dft(iprabs,ie_computer),mpinodee, &
+                           n_multi_run,nlmmax,nomfich,nspinp,Taull_dft)
 
             if( icheck(19) > 0 ) &
               call Tau_writing(Eimag(ie),Energ(ie),iprabs,ie_computer,itypepr,lmax_dft,mpinodee,n_atom_proto,nlmmax,nspinp, &

@@ -192,7 +192,7 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
 
   endif
 
-  do initlr = 1,ninitlr       ! ----------> Boucle sur les seuils ou les etats initiaux
+  do initlr = 1,ninitlr       ! ----------> Loop over edges or core states
 
     if( Core_resolved .and. .not. Final_tddft ) then
       if( initlr <= ninit1 ) then
@@ -215,7 +215,7 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
     ct_nelec(initlr) = conv_mbarn_nelec(Ephoton)
 
     eph2 = 0.5_db * Ephoton**2
-! Pour avoir les tenseurs et sections efficace en Megabarn
+! To get tensors and cross sections in Megabarn
     if( Extract_ten ) then
       cst = 1._db
     else
@@ -257,6 +257,8 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
           if( isym /= 1 ) call rot_tensor_3( sec_dq, matopsym )
           if( isymeq(ia) < 0 ) sec_dq(:,:,:) = - sec_dq(:,:,:)
           secdqia_m(:,:,:,initlr,ia) = sec_dq(:,:,:)
+        else
+          secdqia_m(:,:,:,initlr,ia) = (0._db,0._db)
         endif
       endif
 
@@ -405,9 +407,9 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
     nplt = nplr + npldafs
   endif
   
-  do ixandafs = 1,2
+  do ixandafs = 1,2 !  = 1 absorption, = 2 DAFS
 
-    do ipl = 1,nplt
+    do ipl = 1,nplt ! Loop over polarizations
 
       mu_cal = .false.
       idafs = .false.
@@ -469,7 +471,7 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
         do ia = 1,natomsym
 
           if( idafs ) then
-! exp(iQr) is conjugated. One get back the complex conjugate in convolution.
+! exp(iQr) is conjugated. One gets back the complex conjugate in convolution.
 ! Bragg_abs already contains Taux_eq.
             ph = conjg( Bragg_abs(ia,ipldafs) )
           else
@@ -573,13 +575,13 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
           if( E_vec ) voae(:) = vecdafse(:,ipldafs,ip)
           if( E_vec ) voas(:) = vecdafss(:,ipldafs,ip)
 
-        else ! calcul mu
+        else ! calculation of mu
 
           if( Full_self_abs ) then
 
             select case(mod(ipldafs,4))
               case(1,0)
-                if( ind_mu == 1 ) then   ! entrant
+                if( ind_mu == 1 ) then   ! incoming
                   plae(:) = poldafse(:,ipldafs,ip)
                   plas(:) = poldafse(:,ipldafs,ip)
                   if( E_vec ) voae(:) = vecdafse(:,ipldafs,ip)
@@ -591,7 +593,7 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
                   if( E_vec ) voas(:) = vecdafss(:,ipldafs,ip)
                 endif
               case(2)
-                if( ind_mu == 1 ) then   ! entrant
+                if( ind_mu == 1 ) then   ! incoming
                   plae(:) = poldafse(:,ipldafs,ip)
                   plas(:) = poldafse(:,ipldafs+1,ip)
                   if( E_vec ) voae(:) = vecdafse(:,ipldafs,ip)
@@ -603,7 +605,7 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
                   if( E_vec ) voas(:) = vecdafss(:,ipldafs+2,ip)
                 endif
               case(3)
-                if( ind_mu == 1 ) then   ! entrant
+                if( ind_mu == 1 ) then   ! incoming
                   plae(:) = poldafse(:,ipldafs,ip)
                   plas(:) = poldafse(:,ipldafs-1,ip)
                   if( E_vec ) voae(:) = vecdafse(:,ipldafs,ip)
@@ -665,8 +667,8 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
             endif
 
             Ephoton = Energ(ie) + Eseuil(iseuil)
-! Pour les seuils de tres basse Energie:
-            Ephoton = max(0.001_db/Rydb, Ephoton)
+! For very low energy edges (to avoid negative photon energy) :
+            Ephoton = max( 0.001_db/Rydb, Ephoton)
             Omega = Ephoton / quatre_mc2 
 
             if( E1E1 ) then
@@ -825,8 +827,8 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
                 do je = 1,3
                   do ks = 1,3
                     sec = sec + conjg( plas(ks) ) * plae(ke) * voae(je) * sum( voas(:) * secqqia(ks,:,ke,je,initlr,ia) )
-                    if( .not. Green_int_mag ) cycle
-                    sec = sec + conjg( plas(ks) ) * plae(ke) * voae(je) * sum( voas(:) * secqqia_m(ks,:,ke,je,initlr,ia) )
+                    if( Green_int_mag ) &
+                      sec = sec + conjg( plas(ks) ) * plae(ke) * voae(je) * sum( voas(:) * secqqia_m(ks,:,ke,je,initlr,ia) )
                   end do
                 end do
               end do
@@ -848,10 +850,10 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
                   do j1 = 1,3
                     sec = sec + conjg( plas(ks) ) * plae(ke) * ( voae(j1) * sum( voae(:) * secdoia(ks,ke,j1,:,initlr,ia) ) &
                         + voas(j1) * sum( voas(:) * conjg( secdoia(ke,ks,j1,:,initlr,ia) ) ) )
-                    if( .not. Green_int_mag ) cycle
-                    sec = sec + conjg( plas(ks) ) * plae(ke) * ( voae(j1) * sum( voae(:) &
-                        * secdoia_m(ks,ke,j1,:,initlr,ia) ) + voas(j1) * sum( voas(:) &
-                        * conjg( secdoia_m(ke,ks,j1,:,initlr,ia) )))
+                    if( Green_int_mag ) &
+                      sec = sec + conjg( plas(ks) ) * plae(ke) * ( voae(j1) * sum( voae(:) &
+                          * secdoia_m(ks,ke,j1,:,initlr,ia) ) + voas(j1) * sum( voas(:) &
+                          * conjg( secdoia_m(ke,ks,j1,:,initlr,ia) )))
                   end do
                 end do
               end do
@@ -878,9 +880,9 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
                           jhs = 3 * ( js - 1 ) + hs
                           sec = sec +conjg( plas(ks) ) * voas(js) * voas(hs) * plae(ke) * voae(je) * voae(he) &
                             * secooia(ks,jhs,ke,jhe,initlr,ia)
-                          if( .not. Green_int_mag ) cycle
-                          sec = sec +conjg( plas(ks) ) * voas(js) * voas(hs) * plae(ke) * voae(je) * voae(he) &
-                            * secooia_m(ks,jhs,ke,jhe,initlr,ia)
+                          if( Green_int_mag ) &
+                            sec = sec + conjg( plas(ks) ) * voas(js) * voas(hs) * plae(ke) * voae(je) * voae(he) &
+                                      * secooia_m(ks,jhs,ke,jhe,initlr,ia)
                         end do
                       end do
                     end do
@@ -902,8 +904,8 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
               
               do ke = 1,3
                 sec = sec + uae(ke) * sum( conjg(uas(:)) * secmmia(:,ke,initlr,ia) )
-               if( .not. Green_int_mag ) cycle
-                sec = sec + uae(ke) * sum( conjg(uas(:))*secmmia_m(:,ke,initlr,ia) )
+               if( Green_int_mag ) &
+                 sec = sec + uae(ke) * sum( conjg(uas(:)) * secmmia_m(:,ke,initlr,ia) )
               end do
 ! A factor pi is missing, it has aleady been taken into account in routine Tens_ab.
               if( idafs ) then
@@ -926,8 +928,8 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
                   sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia(:,ke,initlr,ia) ) &
                             - uae(ke) * sum( conjg(plas(:)) * secmdia(:,ke,initlr,ia) )  
   ! on met le signe plus devant uae car la partie reelle contient le terme magnetique, (le complexe conjugue est donc inutile)
-                  if( Magn_sens ) sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia_m(:,ke,initlr,ia) ) &
-                                            + uae(ke) * sum( conjg( plas(:) ) * secmdia_m(:,ke,initlr,ia) )
+                  if( Green_int_mag ) sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia_m(:,ke,initlr,ia) ) &
+                                                + uae(ke) * sum( conjg( plas(:) ) * secmdia_m(:,ke,initlr,ia) )
                 else
                   sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia(:,ke,initlr,ia) ) &
                           + uae(ke) * sum( conjg(plas(:)) * conjg( secmdia(:,ke,initlr,ia) ) )  
@@ -3070,7 +3072,7 @@ subroutine Spherical_tensor_cal(Abs_U_iso,Bragg_abs,ct_nelec,Core_resolved,Volum
                 '                              Q(32)                     =', &
                 '                             Q(3-3)                     =', &
                 '                              Q(33)                     =', &
-                ' l = 4, non magn octupole:    Q(40)                     =', &
+                ' l = 4, non magn hexadecapol: Q(40)                     =', &
                 '                              Q(41)                     =', &
                 '                             Q(4-1)                     =', &
                 '                             Q(4-2)                     =', &

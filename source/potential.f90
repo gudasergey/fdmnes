@@ -3975,12 +3975,12 @@ subroutine potrmt(Cal_xanes,Full_atom,iapot,icheck,ipr1,iaprotoi,itypepr,mpirank
         iz = numat( it )
         if( it > 0 ) then
           if( iz == 0 )then
-            write(iprt,140) numat(it), charge(ipr,1:nspin), charge_ion(ipr), VmftF(ipr,1:nspin) * rydb, rchrg(ipr) * bohr
+            write(iprt,140) ipr, numat(it), charge(ipr,1:nspin), charge_ion(ipr), VmftF(ipr,1:nspin) * rydb, rchrg(ipr) * bohr
           else
-            write(iprt,140) numat(it), charge(ipr,1:nspin), charge_ion(ipr), VmftF(ipr,1:nspin) * rydb, rayion(iz)
+            write(iprt,140) ipr, numat(it), charge(ipr,1:nspin), charge_ion(ipr), VmftF(ipr,1:nspin) * rydb, rayion(iz)
           endif
         else
-          write(iprt,150) numat(it), charge(ipr,1:nspin), charge_ion(ipr), VmftF(ipr,1:nspin) * rydb, rayion(iz)
+          write(iprt,150) ipr, numat(it), charge(ipr,1:nspin), charge_ion(ipr), VmftF(ipr,1:nspin) * rydb, rayion(iz)
         endif
       end do
     end do
@@ -3988,10 +3988,10 @@ subroutine potrmt(Cal_xanes,Full_atom,iapot,icheck,ipr1,iaprotoi,itypepr,mpirank
 
   return
   110 format(/' ---- Potrmt -------',100('-'))
-  120 format(/'   Z   charge   ch_ion    Vmft   Ionic radius')
-  130 format(/'   Z    ch(u)    ch(d)   ch_ion  Vmft(u)  Vmft(d)   Ionic radius')
-  140 format(i4,5f9.3,2x,f9.3)
-  150 format(i4,'*',f8.3,4f9.3,2x,f9.3)
+  120 format(/' ipr   Z   charge   ch_ion    Vmft   Ionic radius')
+  130 format(/' ipr   Z    ch(u)    ch(d)   ch_ion  Vmft(u)  Vmft(d)   Ionic radius')
+  140 format(i3,i5,5f9.3,2x,f9.3)
+  150 format(i3,i5,'*',f8.3,4f9.3,2x,f9.3)
 end
 
 !***********************************************************************

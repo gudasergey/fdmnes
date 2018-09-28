@@ -242,12 +242,12 @@ Subroutine Prep_Film(angxyz,angxyz_bulk,angxyz_cap,angxyz_int,angxyz_sur,axyz,ax
   100 format(/'----- Prep_Film ', 100('-')/ )
   110 format(' Film thickness used =',f10.5,' A, Film shift       =',f10.5,' A,     Film thickness =',f10.5, &
              ' A, Film roughness =',f10.5,' A')
-  120 format(                               36x,'Delta_z_top_film =',f10.5,' A,     Z bottom film  =',i3,7x, &
-             ',       Z top film =',i3)
-  130 format(' Interface thickness =',f10.5,' A, Interface shift  =',f10.5,' A,     Z bottom int   =',i3,7x, &
-             ',        Z top int =',i3)
-  140 format(' Surface thickness   =',f10.5,' A, Surface shift    =',f10.5,' A,     Z bottom sur   =',i3,7x, &
-             ',        Z top sur =',i3)
+  120 format(                               36x,'Delta_z_top_film =',f10.5,' A,     Z bottom film  =',i3, &
+             ',               Z top film =',i3)
+  130 format(' Interface thickness =',f10.5,' A, Interface shift  =',f10.5,' A,     Z bottom int   =',i3, &
+             ',               Z top int =',i3)
+  140 format(' Surface thickness   =',f10.5,' A, Surface shift    =',f10.5,' A,     Z bottom sur   =',i3, &
+             ',               Z top sur =',i3)
   150 format(' Cap thickness used  =',f10.5,' A, Cap shift        =',f10.5,' A,     Cap thickness  =',f10.5, &
              ',    Cap roughness =',f10.5,' A')
   160 format(                               36x,'Delta_z_top_cap  =',f10.5,' A, Delta_z_bottom_cap =',f10.5,' A')
@@ -1178,7 +1178,8 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
         phi_0, psi, Qaz, sin_c, sin_e, sin_k, sin_m, sin_p, sin_t, sin_tau, sin_tau_ref, tau, tau_ref, Theta_Bragg, x
   real(kind=db), dimension(3):: ang, Angle_m, angxyz, angxyz_bulk, abc, axyz, axyz_bulk, cosdir, H_phi, H_phi_n, k_i, k_s, N_L, &
                                 N_phi, Norm_phi, p, p_i, p_i_p, p_i_s, p_s_p, p_s_s, Q, Q_L, sindir, Vec, W
-  real(kind=db), dimension(3,3):: Mat_B, Mat_K, Mat_NL, Mat_NN, Mat_Nphi, Mat_p, Mat_U, Mat_UB, Mat_UB_loc, Mat_UB_t, Mat, Orthmati
+  real(kind=db), dimension(3,3):: Mat, Mat_B, Mat_K, Mat_K_i, Mat_NL, Mat_NN, Mat_Nphi, Mat_p, Mat_U, Mat_UB, Mat_UB_loc, &
+                                  Mat_UB_t, Orthmati
   real(kind=db), dimension(npldafs):: Length_abs, Q_mod
   real(kind=db), dimension(3,npldafs):: angpoldafs, hkl_dafs
   real(kind=db), dimension(3,npldafs_2d):: Angle_mode
@@ -1249,6 +1250,8 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
   end do
   x = sum( abs( Mat(:,:) ) )
   Mat_unit = x < eps10
+
+  call invermat(Mat_K,Mat_K_i)
 
   Mat_UB_loc(:,:) = Angfac * Mat_UB_loc(:,:)
 
@@ -2142,7 +2145,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
       if( .not. ( Column_reference .or. Column_detector ) ) then
         x = - Mat(2,3)
         if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(alf)')
-        alfa = asin( a )
+        alfa = asin( x )
         x = Mat(2,3) + 2 * sin_t * cos_tau
         if( abs( x ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,x,'sin(bet)')
         beta = asin( x )
@@ -2215,26 +2218,45 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
       Vecdafss(:,lpl,1) = k_s(:)
       Poldafse(:,lpl,1) = cmplx( p_i(:), 0._db )
 
-      if( Q_mod(ipl) > eps10 ) then
-        call prodvec(p_s_s,H_phi,k_s)
+      if( Film .or. Bulk ) then
+        Vec(1:2) = 0._db; Vec(3) = 1._db
+        call prodvec(p_s_s,Vec,k_s)
         a = sqrt( sum( p_s_s(:)**2 ) )
-        p_s_s(:) = p_s_s(:) / a
+        if( a < eps10 ) then
+          p_s_s(1) = 1._db; p_s_s(2:3) = 0._db 
+        else
+          p_s_s(:) = p_s_s(:) / a
+        endif
       else
-        p_s_s(:) = p_i(:)
+        if( Q_mod(ipl) > eps10 ) then
+          call prodvec(p_s_s,H_phi,k_s)
+          a = sqrt( sum( p_s_s(:)**2 ) )
+          p_s_s(:) = p_s_s(:) / a
+        else
+          p_s_s(:) = p_i(:)
+        endif
       endif
 
       call prodvec(p_s_p,k_s,p_s_s)
 
 ! The following establishment of isigpi and angpoldafs is for the Col_dafs_name routine
-      if( Q_mod(ipl) > eps10 ) then
-        cos_p = abs( sum( p_i(:) * H_phi(:) ) ) / Q_mod(ipl)
+      if( Film .or. Bulk ) then
+        cos_p = abs( sum( p_i(:) * Vec(:) ) )
       else
-        cos_p = 0._db
+        if( Q_mod(ipl) > eps10 ) then
+          cos_p = abs( sum( p_i(:) * H_phi(:) ) ) / Q_mod(ipl)
+        else
+          cos_p = 0._db
+        endif
       endif
       if( cos_p < eps10 ) then
         isigpi(1,ipl) = 1
         isigpi(1,lpl) = 1
-      elseif( abs( cos_p - cos_t ) < eps10 ) then
+      elseif( ( Film .or. Bulk) .and. cos_p > 0.99390826_db ) then
+         ! cosp corresponds to 2 degres, it is the limit to write pi polarization... 
+        isigpi(1,ipl) = 2
+        isigpi(1,lpl) = 2
+      elseif( .not. ( Film .or. Bulk) .and. abs( cos_p - cos_t ) < eps10 ) then
         isigpi(1,ipl) = 2
         isigpi(1,lpl) = 2
       else
@@ -2242,18 +2264,37 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
         isigpi(1,lpl) = 5
       endif
 
-!      if( abs( sum( p_i(:) * p_s_s(:) ) ) > abs( sum( p_i(:) * p_s_p(:) ) ) ) then
-        Poldafss(:,ipl,1) = cmplx( p_s_s(:), 0._db )
+      if( Film .or. Bulk ) then
+        cos_p = abs( sum( p_s_s(:) * Vec(:) ) )
+        if( cos_p < eps10 ) then
+          isigpi(2,ipl) = 1
+        elseif( cos_p > 0.99390826_db ) then
+         ! cosp corresponds to 2 degres, it is the limit to write pi polarization... 
+          isigpi(2,ipl) = 2
+        else
+          isigpi(2,ipl) = 5
+        endif
+      else
         isigpi(2,ipl) = 1
-        Poldafss(:,lpl,1) = cmplx( p_s_p(:), 0._db )
-        isigpi(2,lpl) = 2
-!      else
-!        Poldafss(:,ipl,1) = cmplx( p_s_p(:), 0._db )
-!        isigpi(2,ipl) = 2
-!        Poldafss(:,lpl,1) = cmplx( p_s_s(:), 0._db )
-!        isigpi(2,lpl) = 1
-!      endif
+      endif
 
+      if( Film .or. Bulk ) then
+        cos_p = abs( sum( p_s_p(:) * Vec(:) ) )
+        if( cos_p < eps10 ) then
+          isigpi(2,lpl) = 1
+        elseif( cos_p > 0.99390826_db ) then
+         ! cosp corresponds to 2 degres, it is the limit to write pi polarization... 
+          isigpi(2,lpl) = 2
+        else
+          isigpi(2,lpl) = 5
+        endif
+      else
+        isigpi(2,lpl) = 2
+      endif
+
+      Poldafss(:,ipl,1) = cmplx( p_s_s(:), 0._db )
+      Poldafss(:,lpl,1) = cmplx( p_s_p(:), 0._db )
+ 
       if( Phi_fixed ) then
         angpoldafs(3,ipl) = phi
         angpoldafs(3,lpl) = phi
@@ -2268,43 +2309,9 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 
       if( phi > pi ) phi = phi - 2 * pi
 
-      if( icheck > 1 .and. .not. Mat_unit ) then
-        write(3,'(/A)') ' Basis surface'
-        write(3,150)
-        if( Q_par_n .and. ( Naz_fixed .or. Qaz_fixed ) ) then
-          write(3,160) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
-                     nu / radian, Qaz / radian, Naz / radian, &
-                     psi / radian, phi / radian, Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), &
-                     Vecdafss(:,ipl,1), real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
-        else
-          write(3,170) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
-                     nu / radian, Qaz / radian, Naz / radian, &
-                     psi / radian, eta / radian, mu / radian, chi / radian, phi / radian, &
-                     Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), Vecdafss(:,ipl,1), &
-                     real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
-        endif
-      endif
-
-      if( .not. Mat_unit ) then
-        do i = ipl,lpl,lpl-ipl
-          p(:) = real( Poldafse(:,i,1), db )
-          p = matmul( Mat_K, p )
-          Poldafse(:,i,1) = cmplx( p(:), 0._db )
-          p(:) = real( Poldafss(:,i,1), db )
-          p = matmul( Mat_K, p )
-          Poldafss(:,i,1) = cmplx( p(:), 0._db )
-          p(:) = Vecdafse(:,i,1)
-          p = matmul( Mat_K, p )
-          Vecdafse(:,i,1) = cmplx( p(:), 0._db )
-          p(:) = Vecdafss(:,i,1)
-          p = matmul( Mat_K, p )
-          Vecdafss(:,i,1) = cmplx( p(:), 0._db )
-        end do
-      endif
-
       if( icheck > 0 ) then
-        if( kpl == 1 .or. ( icheck > 1  .and. .not. Mat_unit ) ) then
-          write(3,'(/A)') ' Internal basis R1, z along c'
+        if( kpl == 1 .or. ( icheck > 1 .and. .not. Mat_unit ) ) then
+          write(3,'(/A)') ' Orthonormalized Surface basis'
           write(3,150)
         endif
         if( Q_par_n .and. ( Naz_fixed .or. Qaz_fixed ) ) then
@@ -2319,6 +2326,53 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
                      Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), Vecdafss(:,ipl,1), &
                      real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
         endif
+      endif
+
+      if( icheck > 1 .and. .not. Mat_unit  ) then
+        do i = ipl,lpl,lpl-ipl
+          p(:) = real( Poldafse(:,i,1), db )
+          p = matmul( Mat_K, p )
+          Poldafse(:,i,1) = cmplx( p(:), 0._db )
+          p(:) = real( Poldafss(:,i,1), db )
+          p = matmul( Mat_K, p )
+          Poldafss(:,i,1) = cmplx( p(:), 0._db )
+          p(:) = Vecdafse(:,i,1)
+          p = matmul( Mat_K, p )
+          Vecdafse(:,i,1) = cmplx( p(:), 0._db )
+          p(:) = Vecdafss(:,i,1)
+          p = matmul( Mat_K, p )
+          Vecdafss(:,i,1) = cmplx( p(:), 0._db )
+        end do
+
+        write(3,'(/A)') ' Internal basis R1, z along c'
+        write(3,150)
+        if( Q_par_n .and. ( Naz_fixed .or. Qaz_fixed ) ) then
+          write(3,160) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
+                     nu / radian, Qaz / radian, Naz / radian, &
+                     psi / radian, phi / radian, Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), &
+                     Vecdafss(:,ipl,1), real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+        else
+          write(3,170) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
+                     nu / radian, Qaz / radian, Naz / radian, &
+                     psi / radian, eta / radian, mu / radian, chi / radian, phi / radian, &
+                     Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), Vecdafss(:,ipl,1), &
+                     real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+        endif
+
+        do i = ipl,lpl,lpl-ipl
+          p(:) = real( Poldafse(:,i,1), db )
+          p = matmul( Mat_K_i, p )
+          Poldafse(:,i,1) = cmplx( p(:), 0._db )
+          p(:) = real( Poldafss(:,i,1), db )
+          p = matmul( Mat_K_i, p )
+          Poldafss(:,i,1) = cmplx( p(:), 0._db )
+          p(:) = Vecdafse(:,i,1)
+          p = matmul( Mat_K_i, p )
+          Vecdafse(:,i,1) = cmplx( p(:), 0._db )
+          p(:) = Vecdafss(:,i,1)
+          p = matmul( Mat_K_i, p )
+          Vecdafss(:,i,1) = cmplx( p(:), 0._db )
+        end do
       endif
 
 ! Test on results validity
@@ -2349,7 +2403,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
     ipl = lpl
 
   end do
-
+  
   return
  110 format(4(2x,3f12.7))
  120 format(//' For the reflection',i5,', (h,k,l) =',3f8.4,/ &
@@ -3800,6 +3854,19 @@ subroutine Col_dafs_name(Angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpiran
     j = j + 1
     if( j < Length_word-1 ) nomab(j:j) = ')'
 
+    if( .not. Operation_mode_used .or. abs( angpoldafs(3,ipldafs) ) < 9999._db ) then
+      if( j < Length_word-1 ) then
+        if( abs( angpoldafs(3,ipldafs) ) < 9999._db ) then
+          a = angpoldafs(3,ipldafs) * 180 / pi
+        else
+          a = 0._db
+        endif
+        index = nint( a )
+        call ad_number(index,nomab,Length_word)
+      endif
+      j = len_trim(nomab)
+    endif
+
     if( Bormann ) then
 
       j = j + 1
@@ -3843,20 +3910,6 @@ subroutine Col_dafs_name(Angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpiran
         end select
       end do
 
-    endif
-
-    if( .not. Operation_mode_used .or. abs( angpoldafs(3,ipldafs) ) < 9999._db ) then
-      j = j + 1
-      if( j < Length_word-1 ) then
-        nomab(j:j) = '_'
-        if( abs( angpoldafs(3,ipldafs) ) < 9999._db ) then
-          a = angpoldafs(3,ipldafs) * 180 / pi
-        else
-          a = 0._db
-        endif
-        index = nint( a )
-        call ad_number(index,nomab,Length_word)
-      endif
     endif
 
     nomabs(icol) = nomab

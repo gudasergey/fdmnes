@@ -2341,8 +2341,8 @@ end
 subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho_int, &
         Base_ortho_sur,Bulk,Bulk_step,Center_s,Centre,Chargat,d_ecrant,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
         dpos,Film_shift,Film_thickness,Flapw,iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift, &
-        itabs,itype,Kgroup,Matper,mpirank0,multi_run,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur, &
-        n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
+        itabs,itype,Kgroup,Matper,mpirank0,multi_run,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_uc, &
+        n_atom_sur,n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
         Noncentre,posn,posn_bulk,One_run,Proto_all,r_self,rsorte_s,rmax,rpotmax,Self_cons,Surface_shift,Sym_2D, &
         Taux_oc)
 
@@ -2350,8 +2350,8 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
   implicit none
 
   integer:: i_radius, iabsfirst, iabsorbeur, icheck, igr, igr_dop, igr0, ipr, itabs, ix, iy, iz, jgr, mpirank0, multi_run, &
-     multrmax, n_atom_bulk, n_atom_int, n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, n_igr, n_radius, natomeq_coh, natomp, &
-     natomr, neqm, ngroup, ngroup_pdb, ngroup_taux, nxmaille, nymaille, nzmaille
+     multrmax, n_atom_bulk, n_atom_int, n_atom_per, n_atom_proto, n_atom_proto_uc, n_atom_sur, n_atom_uc, n_igr, n_radius, &
+     natomeq_coh, natomp, natomr, neqm, ngroup, ngroup_pdb, ngroup_taux, nxmaille, nymaille, nzmaille
 
   integer, dimension(ngroup):: itype
   integer, dimension(n_radius):: natomeq_s
@@ -2618,7 +2618,16 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
             ps(:) = ps(:) - deccent(:)
 
             dist = Vnorme(Base_ortho_bulk,dcosxyz_bulk,ps)
-            if( dist <= r_self + eps10 ) natomeq_coh = natomeq_coh + 1
+            if( dist <= r_self + eps10 ) then
+              natomeq_coh = natomeq_coh + 1
+              boucle_ipr_bis: do ipr = 1,n_atom_proto
+                do jgr = 1,ngreq(ipr)
+                  if( igreq(ipr,jgr) /= igr ) cycle
+                  ipr_ok(ipr) = .true.
+                  exit boucle_ipr_bis
+                end do
+              end do boucle_ipr_bis
+            endif
             do i_radius = 1,n_radius
               if( dist <= rsorte_s(i_radius) + eps10 ) natomeq_s(i_radius) = natomeq_s(i_radius) + 1
             end do
@@ -2632,8 +2641,10 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
 
   endif
 
+! Proto_all is used in routine fdm to define the Full_atom mode
   Proto_all = .true.
   do ipr = 1,n_atom_proto
+    if( Bulk_step .and. ipr <= n_atom_proto_uc ) cycle
     if( ipr_ok(ipr) ) cycle
     Proto_all = .false.
     exit
@@ -2675,9 +2686,9 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
   deallocate( posg )
 
   return
-  110 format(/' ---- Natomp_cal ----',100('-'),/)
-  150 format(' Cluster radius =',f5.2,' A, nb. of atom =',i4)
-  160 format(' Absorption calculation   : cluster radius =',f5.2,' A, nb. of atom =',i4)
+  110 format(/' ---- Natomp_cal ----',100('-'))
+  150 format(/' Cluster radius =',f5.2,' A, nb. of atom =',i4)
+  160 format(/' Absorption calculation   : cluster radius =',f5.2,' A, nb. of atom =',i4)
   165 format('                            cluster radius =',f5.2,' A, nb. of atom =',i4)
   170 format(' Fermi energy calculation : cluster radius =',f5.2,' A, nb. of atom =',i4)
   180 format(' Potential sup calculation: cluster radius =',f5.2,' A, nb. of atom =',i4)

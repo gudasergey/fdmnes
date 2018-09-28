@@ -37,7 +37,7 @@ subroutine grille_coh(Eimag_coh,Energ_coh,E_start,Green,icheck,nenerg_coh,Pas_SC
 
   return
   110 format(/' ---- Grille_coh -',100('-'))
-  120 format(/'   energie    eimag      en eV')
+  120 format(/'    Energy   E_imag      (eV)')
   130 format(4f9.3)
 end
 
@@ -45,22 +45,27 @@ end
 
 ! Calculation of the charge inside the cluster used for SCF
 
-subroutine chg_agr(chargat,chargat_init,ch_c,chg_cluster,chg_open_val,Doping,Full_atom,iaprotoi,ipr_dop,iprabs, &
-                 ispin_maj,itabs,icheck,itypepr,mpirank, natome,n_atom_0_self,n_atom_ind_self, &
-                 n_atom_proto,nb_eq,ngreq,nrato,nrm, nrm_self,nspin,ntype,numat,pop_open_val, &
-                 psi_open_val,rato,rho_chg,rho_coeur, rhoato_init,rmtsd,SCF_mag_fix,SCF_mag_free)
+subroutine Chg_agr(Bulk_step,chargat,chargat_init,ch_c,chg_cluster,chg_open_val,Doping,Full_atom,iaprotoi,ipr_dop,iprabs, &
+                 ispin_maj,itabs,icheck,itypepr,mpirank,natome,n_atom_0_self,n_atom_ind_self, &
+                 n_atom_proto,n_atom_proto_uc,nb_eq,ngreq,nrato,nrm,nrm_self,nspin,ntype,numat,pop_open_val, &
+                 psi_open_val,rato,rho_chg,rho_coeur,rhoato_init,rmtsd,SCF_mag_fix,SCF_mag_free)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
-  integer:: ipr_dop, itabs, Sum_Z
+  integer:: i, iapr, icheck, ipr, iprabs, ipr_dop, iprint, ir, isp, ispin, it, itabs, mpirank, n, natome, n_atom_0_self, &
+            n_atom_ind_self, n_atom_proto, n_atom_proto_uc, nr, nrm, nrm_self, nspin, ntype, Sum_Z
   integer, dimension(0:ntype):: nrato, numat
   integer, dimension(0:n_atom_proto):: itypepr, ngreq
   integer, dimension(natome):: iaprotoi, nb_eq
   integer, dimension(n_atom_0_self:n_atom_ind_self):: ispin_maj
 
-  logical:: Doping, Full_atom, SCF_mag_fix, SCF_mag_free
+  character(len=3):: mot3
+  
+  logical:: Bulk_step, Doping, Full_atom, SCF_mag_fix, SCF_mag_free
 
+  real(kind=db):: Charge_init, Chg, Chg_coeur, Chg_sup, f, f_integr3, Rayint, Res
+  
   real(kind=db), dimension(nspin):: chg_cluster
   real(kind=db), dimension(0:n_atom_proto):: chargat
   real(kind=db), dimension(0:nrm,0:ntype):: rato, rho_coeur
@@ -72,7 +77,7 @@ subroutine chg_agr(chargat,chargat_init,ch_c,chg_cluster,chg_open_val,Doping,Ful
   real(kind=db), dimension(nrm,2):: psi_open_val
   real(kind=db), dimension(2):: chg_open_val, pop_open_val
 
-  charge_init = 0._db
+  Charge_init = 0._db
   chg_cluster(:) = 0._db
   chg_sup = 0._db
   chg_coeur = 0._db
@@ -81,7 +86,7 @@ subroutine chg_agr(chargat,chargat_init,ch_c,chg_cluster,chg_open_val,Doping,Ful
 
   if( icheck > 0 ) write(3,110)
 
-  sum_Z = 0
+  Sum_Z = 0
   SCF_mag_fix = .false.
 
   do iapr = n_atom_0_self,n_atom_ind_self
@@ -90,12 +95,13 @@ subroutine chg_agr(chargat,chargat_init,ch_c,chg_cluster,chg_open_val,Doping,Ful
       n = nb_eq(iapr)
     else
       ipr = iapr
+      if( Bulk_step .and. ipr <= n_atom_proto_uc ) cycle  
       n = ngreq(ipr)
       if( Doping .and. iapr == ipr_dop ) n = n - 1
     endif
     it = itypepr(ipr)
     nr = nrato(it)
-    rayint = rmtsd(ipr)
+    Rayint = rmtsd(ipr)
     r(0:nrm) = rato(0:nrm,it)
 
 ! Calcul de la charge totale de l'agregat: rhoato est la vraie densite
@@ -133,49 +139,59 @@ subroutine chg_agr(chargat,chargat_init,ch_c,chg_cluster,chg_open_val,Doping,Ful
     rh(0:nr) = rho_coeur(0:nr,it) * r(0:nr)**2
     ch_c(iapr) = quatre_pi * f_integr3(r,rh,0,nrm,rayint)
 
-    chg_coeur = chg_coeur + ch_c(iapr) * n
+    Chg_coeur = Chg_coeur + Ch_c(iapr) * n
     Sum_Z = Sum_Z + n * numat(it)
-    charge_init = charge_init + n * chargat(ipr)
+    Charge_init = Charge_init + n * chargat(ipr)
   end do
 
 ! Calcul de la charge de valence:
-  chg = sum( chg_cluster(:) ) - chg_coeur
+  Chg = sum( Chg_cluster(:) ) - Chg_coeur
 
   if( icheck > 0 ) then
-     write(3,120) chg
-     write(3,130) chg_coeur
-     if( .not. SCF_Mag_fix ) then
-       write(3,140) sum( chg_cluster(:) )
-     else
-       write(3,142) sum( chg_cluster(:) ), chg_cluster(:)
-     endif
-     write(3,145) chg_sup
-     write(3,150) Sum_Z
-     write(3,160) charge_init
-     write(3,170) Sum_Z - charge_init - sum( chg_cluster(:) )
+    write(3,120) Chg
+    write(3,130) Chg_coeur
+    if( .not. SCF_Mag_fix ) then
+      write(3,140) sum( chg_cluster(:) )
+    else
+      write(3,142) sum( chg_cluster(:) ), chg_cluster(:)
+    endif
+    write(3,145) Chg_sup
+    write(3,150) Sum_Z
+    write(3,160) Charge_init
+    write(3,170) Sum_Z - Charge_init - sum( Chg_cluster(:) )
   end if
+
+  if( Full_atom ) then
+    mot3 = ' ia'
+  else
+    mot3 = 'ipr'
+  endif
 
   do iprint = 3,6,3
     if( iprint == 3 .and. icheck == 0 ) cycle
     if( iprint == 6 .and. mpirank /= 0 ) cycle
     if( nspin == 1 ) then
-      write(iprint,300)
+      write(iprint,300) mot3
     else
-      write(iprint,305)
+      write(iprint,305) mot3
     endif
     do iapr = n_atom_0_self,n_atom_ind_self
       ch_v(iapr) = sum(chargat_init(iapr,:)) - ch_c(iapr)
       if( Full_atom ) then
         ipr = iaprotoi(iapr)
+        n = nb_eq(iapr)
       else
         ipr = iapr
+        n = ngreq(ipr)
+        if( Bulk_step .and. ipr <= n_atom_proto_uc ) cycle  
       endif
+      
       it = itypepr(ipr)
       if( nspin == 1 ) then
-        write(iprint,310) iapr, numat(it), ch_v(iapr), ch_c(iapr), sum(chargat_init(iapr,:)), chargat_sup(iapr), &
+        write(iprint,310) iapr, numat(it), n, ch_v(iapr), ch_c(iapr), sum(chargat_init(iapr,:)), chargat_sup(iapr), &
                    numat(it)- sum(chargat_init(iapr,:))
       else
-        write(iprint,310) iapr, numat(it), ch_v(iapr), ch_c(iapr), sum(chargat_init(iapr,:)), &
+        write(iprint,310) iapr, numat(it), n, ch_v(iapr), ch_c(iapr), sum(chargat_init(iapr,:)), &
                    chargat_init(iapr,1) - chargat_init(iapr,2), chargat_sup(iapr), numat(it)- sum(chargat_init(iapr,:))
       endif
     end do
@@ -196,6 +212,7 @@ subroutine chg_agr(chargat,chargat_init,ch_c,chg_cluster,chg_open_val,Doping,Ful
         ipr = iaprotoi(iapr)
       else
         ipr = iapr
+        if( Bulk_step .and. ipr <= n_atom_proto_uc ) cycle  
       endif
       it = itypepr(ipr)
       write(3,403) iapr
@@ -215,6 +232,7 @@ subroutine chg_agr(chargat,chargat_init,ch_c,chg_cluster,chg_open_val,Doping,Ful
       ipr = iaprotoi(iapr)
     else
       ipr = iapr
+      if( Bulk_step .and. ipr <= n_atom_proto_uc ) cycle  
     endif
     it = itypepr(ipr)
     chargat_init(iapr,:) = real(numat(it),db) / nspin - chargat_init(iapr,:)
@@ -263,9 +281,9 @@ subroutine chg_agr(chargat,chargat_init,ch_c,chg_cluster,chg_open_val,Doping,Ful
   150 format(' Sum of atomic number        =',i5)
   160 format(' Initial charge              =',f9.3)
   170 format(' Cluster charge              =',f9.3)
-  300 format(/'  ia   Z     ch_val    ch_core   ch_total     ch_out   Atom charge')
-  305 format(/'  ia   Z     ch_val    ch_core   ch_total   ch_up-dn     ch_out     Charge')
-  310 format(i4,i4,6f11.3)
+  300 format(/1x,a3,'   Z  mult     ch_val    ch_core   ch_total     ch_out   Atom charge')
+  305 format(/1x,a3,'   Z  mult     ch_val    ch_core   ch_total   ch_up-dn     ch_out     Charge')
+  310 format(2i4,i5,1x,6f11.3)
   350 format(/' Reference charges in the symmetrised cluster ')
   351 format(10x,'valence electrons: ',f9.3)
   352 format(10x,'core electrons: ',f9.3)
@@ -284,22 +302,24 @@ end
 
 ! Calcul du point du depart en energie, pour la determination du niveau de Fermi
 
-subroutine En_dep(E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck,itypepr,lcoeur,n_atom_0,n_atom_0_self, &
-                n_atom_ind,n_atom_ind_self,n_atom_proto,natome,ncoeur,nenerg_coh,nlm_pot,nrato,nrm,numat,nspin, &
-                ntype,Pas_SCF,psi_coeur,relativiste,rato,Rmtg,Rmtsd,V_intmax,Vcato,Vxcato,workf)
+subroutine En_dep(Bulk_step,E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck,itypepr,lcoeur,n_atom_0, &
+              n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_uc,natome,ncoeur,nenerg_coh,nlm_pot, &
+              nrato,nrm,numat,nspin,ntype,Pas_SCF,psi_coeur,relativiste,rato,Rmtg,Rmtsd,V_intmax,Vcato,Vxcato,Workf)
 
   use declarations
   implicit none
 
   integer:: i, iapr, icheck, ipr, ir, it, lmax_pot_loc, n_atom_0, n_atom_0_self, &
-     n_atom_ind, n_atom_ind_self, n_atom_proto, natome, nenerg_coh, nlm_pot, nlm_pot_loc, nr, nrm, nspin, ntype
+     n_atom_ind, n_atom_ind_self, n_atom_proto, n_atom_proto_uc, natome, nenerg_coh, nlm_pot, nlm_pot_loc, nr, nrm, nspin, ntype
 
   integer, dimension(2,0:ntype):: lcoeur, ncoeur
   integer, dimension(0:ntype):: nrato, numat
   integer, dimension(natome):: iaprotoi
   integer, dimension(0:n_atom_proto):: itypepr
 
-  logical:: Full_atom, Relativiste, Ylm_comp
+  character(len=3):: mot3
+  
+  logical:: Bulk_step, Full_atom, Relativiste, Ylm_comp
 
   real(kind=db):: E_marge, E_max_Fermi, E_start, Pas_SCF, psiHpsi, V_intmax, Vxc, Workf
 
@@ -338,6 +358,7 @@ subroutine En_dep(E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck,itypepr,l
       ipr = iaprotoi(iapr)
     else
       ipr = iapr
+      if( Bulk_step .and. ipr <= n_atom_proto_uc ) cycle  
     endif
     it = itypepr(ipr)
     r(1:nrm) = rato(1:nrm,it)
@@ -382,12 +403,18 @@ subroutine En_dep(E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck,itypepr,l
   nenerg_coh = nint( ( E_max_Fermi - E_start ) / Pas_SCF ) + 1
 
   if( icheck > 0 ) then
-    write(3,120)
+    if( Full_atom ) then
+      mot3 = ' ia'
+    else
+      mot3 = 'ipr'
+    endif
+    write(3,120) mot3
     do iapr = n_atom_0_self,n_atom_ind_self
       if( Full_atom ) then
         ipr = iaprotoi(iapr)
       else
         ipr = iapr
+        if( Bulk_step .and. ipr <= n_atom_proto_uc ) cycle  
       endif
       it = itypepr(ipr)
       write(3,130) iapr, numat(it), ( ncoeur(i,it), lcoeur(i,it), E_psi(i,iapr)*rydb, i = 1,2), E_starta(iapr)*rydb
@@ -407,7 +434,7 @@ subroutine En_dep(E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck,itypepr,l
 
   return
   110 format(/' ---- En_dep --------',100('-'))
-  120 format(/'  ia     Z    n  l     E_core  n  l     E_val    E_starta')
+  120 format(/1x,a3,'     Z    n  l     E_core  n  l     E_val    E_starta')
   130 format(i4,3x,i3,2x,2(i3,i3,f11.3),f11.3)
   135 format(/'  Z = ',i3,3x,'n_coeur = ',i1,3x,'l_coeur = ',i1,3x, 'n_val = ',i1,3x,'l_val = ',i1// &
             4x,'psi_coeur    ','psi_val    '/)
@@ -420,24 +447,29 @@ end
 ! Sousroutine qui corrige l'energie sortie du calcul DFT
 ! les energies sont en rydb
 
-subroutine Energ_DFT(Doping,En_cluster,Energ_self,E_coeur,excato,Full_atom,Hubb,iaprotoi,icheck,ipr_dop,itypepr, &
-           m_hubb,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nb_eq,ngreq,nlm_pot,nrm,nrm_self, &
-           nrato,nspin,nspinp,ntype,numat,rato,rho_self,rmtsd,V_hubb,Vcato,Vxcato)
+subroutine Energ_DFT(Bulk_step,Doping,En_cluster,Energ_self,E_coeur,excato,Full_atom,Hubb,iaprotoi,icheck,ipr_dop, &
+           itypepr,m_hubb,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_uc,natome,nb_eq,ngreq, &
+           nlm_pot,nrm,nrm_self,nrato,nspin,nspinp,ntype,numat,rato,rho_self,rmtsd,V_hubb,Vcato,Vxcato)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
   include 'mpif.h'
 
-  integer:: nlm_pot, nspin, nspinp
+  integer:: iapr, icheck, ipr, ipr_dop, ir, isp, ispin, it, m, m_hubb, n, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, &
+            n_atom_proto, n_atom_proto_uc, natome, nlm_pot, nr, nrm, nrm_self, nspin, nspinp, ntype
 
   integer, dimension(0:ntype):: nrato, numat
   integer, dimension(natome):: iaprotoi, nb_eq
   integer, dimension(0:n_atom_proto):: itypepr, ngreq
 
+  character(len=3):: mot3
+  
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb
 
-  logical:: Doping, Full_atom
+  logical:: Bulk_step, Doping, Full_atom
   logical, dimension(0:ntype):: Hubb
+
+  real(kind=db):: Delta_E_coeur_agr, E_coul_agr, E_exc_agr, E_hubbard_agr, E_Vxc_agr, En_cluster, Energ_self_KS_agr, f_integr3, fac
 
   real(kind=db), dimension(0:nrm_self,nlm_pot,nspin, n_atom_0_self:n_atom_ind_self):: rho_self
   real(kind=db), dimension(nrm,n_atom_0:n_atom_ind):: excato
@@ -461,6 +493,7 @@ subroutine Energ_DFT(Doping,En_cluster,Energ_self,E_coeur,excato,Full_atom,Hubb,
       ipr = iaprotoi(iapr)
     else
       ipr = iapr
+      if( Bulk_step .and. ipr <= n_atom_proto_uc ) cycle  
     endif
     it = itypepr(ipr)
     nr = nrato(it)
@@ -521,6 +554,7 @@ subroutine Energ_DFT(Doping,En_cluster,Energ_self,E_coeur,excato,Full_atom,Hubb,
     if( Full_atom ) then
       n = nb_eq(iapr)
     else
+      if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
       n = ngreq(iapr)
       if( Doping .and. iapr == ipr_dop ) n = n - 1
     endif
@@ -537,15 +571,18 @@ subroutine Energ_DFT(Doping,En_cluster,Energ_self,E_coeur,excato,Full_atom,Hubb,
     write(3,100)
     if( Full_atom ) then
       write(3,110) En_cluster * rydb
+      mot3 = ' ia'
     else
       write(3,120) En_cluster * rydb
+      mot3 = 'ipr'
     endif
-    write(3,500)
+    write(3,500) mot3
     do iapr = n_atom_0_self,n_atom_ind_self
       if( Full_atom ) then
         ipr = iaprotoi(iapr)
       else
         ipr = iapr
+        if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
       endif
       it = itypepr( ipr )
       write(3,510) iapr, numat(it), Energ_self(iapr) * rydb, Energ_self_KS(iapr) * rydb, E_coeur(iapr) * rydb, &
@@ -558,34 +595,34 @@ subroutine Energ_DFT(Doping,En_cluster,Energ_self,E_coeur,excato,Full_atom,Hubb,
   return
 
   100 format(/' ---- En_DFT ------',100('-'))
-  110 format(/' Cluster energy: ', f15.3,' eV')
-  120 format(/' Unit cell energy: ', f15.3,' eV')
-  500 format(/'   ia   Z    Energ_atom      Energ_KS    Delta_E_coeur     E_exc        E_coul        E_Vxc', &
+  110 format(/' Cluster energy = ', f15.3,' eV')
+  120 format(/' Unit cell energy = ', f15.3,' eV')
+  500 format(/1x,a3,'   Z    Energ_atom      Energ_KS    Delta_E_coeur     E_exc        E_coul        E_Vxc', &
     '        E_hubbard')
-  510 format(i5,i4,7f14.3)
-  520 format(/'  Total:',7f14.3)
+  510 format(2i4,7f14.3)
+  520 format(/' Total =',7f14.3)
 end
 
 !********************************************************************************
 
-! Sousprogramme qui calcule l'energie de la derniere orbitales de coeur Kohn Sham;
-! On considere que pendant les iterations la fonction d'onde de cette orbitale ne
-! se modifie pas, par contre le potentiel et donc son energie bougent. On fait
-! l'approximation que ce deplacement est le meme pour tous les niveaux de coeur
+! Routine calcculating the Kohn Sham energy of the top most core orbital;
+! One considers that the wave function of this orbital is not modified along the SCF cycles. 
+! Nevertheless the potential and thus its energy is changing.
+! The Approximation is that thie shift is the same for all the core levels.
 
-! le resultat sera utilise pour le calcul de l'energie de l'agregat
+! Result will be used to calculate the cluster (or unit cell) energy
 
-subroutine eps_coeur(ch_coeur,E_coeur,E_coeur_s,Full_atom,iaprotoi,icheck,itypepr,lcoeur,n_atom_0,n_atom_0_self, &
-              n_atom_ind,n_atom_ind_self,n_atom_proto,natome,ncoeur,nlm_pot,nrato,nrm,nspin,ntype,numat,psi_coeur, &
+subroutine Eps_coeur(Bulk_step,ch_coeur,E_coeur,E_coeur_s,Full_atom,iaprotoi,icheck,itypepr,lcoeur,n_atom_0,n_atom_0_self, &
+              n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_uc,natome,ncoeur,nlm_pot,nrato,nrm,nspin,ntype,numat,psi_coeur, &
               rato,Relativiste,Rmtg,Rmtsd,V_intmax,Vcato,Vxcato)
 
   use declarations
   implicit none
 
   integer iapr, icheck, ipr, ir, it, lmax_pot_loc, natome, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, &
-          n_atom_proto, nlm_pot, nlm_pot_loc, nr, nrm, nspin, ntype
+          n_atom_proto, n_atom_proto_uc, nlm_pot, nlm_pot_loc, nr, nrm, nspin, ntype
 
-  logical:: Full_atom, Relativiste, Ylm_comp
+  logical:: Bulk_step, Full_atom, Relativiste, Ylm_comp
 
   integer,dimension(2,0:ntype):: lcoeur, ncoeur
   integer,dimension(natome):: iaprotoi
@@ -616,6 +653,7 @@ subroutine eps_coeur(ch_coeur,E_coeur,E_coeur_s,Full_atom,iaprotoi,icheck,itypep
     if( Full_atom ) then
       ipr = iaprotoi(iapr)
     else
+      if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
       ipr = iapr
     endif
     it = itypepr(ipr)
@@ -640,28 +678,29 @@ end
 
 ! Preparation of next iteration
 
-subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,Delta_energ,Delta_energ_s, &
+subroutine prep_next_iter(Bulk_step,chargat_self,chargat_self_s,Convergence,Delta_En_conv,Delta_energ,Delta_energ_s, &
                Doping,En_cluster,En_cluster_s,Energ_self,Energ_self_s,Fermi,Fermi_first,Full_atom, &
-               Hubbard,i_self,icheck,ipr_dop,m_hubb,mpirank,n_atom_0_self,n_atom_ind_self,n_atom_proto,n_devide,natome,natomeq, &
-               nb_eq,ngreq,nlm_pot,nrm_self,nself,nspin,nspinp,p_self,p_self_max,p_self0,rho_self,rho_self_s, &
-               V_Hubb,V_Hubb_s) 
+               Hubbard,i_self,iaprotoi,icheck,ipr_dop,itypepr,m_hubb,mpirank,n_atom_0_self,n_atom_ind_self, &
+               n_atom_proto,n_atom_proto_uc,n_devide,natome,nb_eq,ngreq,nlm_pot,nrm_self,nself,nspin,nspinp, &
+               ntype,numat,p_self,p_self_max,p_self0,rho_self,rho_self_s,V_Hubb,V_Hubb_s) 
 
   use declarations
   implicit none
 
   integer:: i_self, iapr, icheck, ipr, ipr_dop, m_hubb, mpirank, n, n_atom_0_self, n_atom_ind_self, n_atom_proto, &
-    natome, natomeq, n_devide, nlm_pot, nrm_self, nself, nspin, nspinp
+    n_atom_proto_uc, natome, n_devide, nlm_pot, nrm_self, nself, nspin, nspinp, ntype, Z
   integer, save:: Mod_p
   
-  integer, dimension(0:n_atom_proto):: ngreq
-  integer, dimension(natome):: nb_eq
+  integer, dimension(0:n_atom_proto):: itypepr, ngreq
+  integer, dimension(natome):: iaprotoi, nb_eq
+  integer, dimension(0:ntype):: numat
 
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb, V_hubb_s
 
-  logical:: Convergence, Doping, Fermi, Fermi_first, Full_atom, Hubbard
+  logical:: Bulk_step, Convergence, Doping, Fermi, Fermi_first, Full_atom, Hubbard
 
   real(kind=db):: Delta_En_conv, Delta_energ, Delta_energ_s, Delta_lim, En_cluster, En_cluster_s, &
-    p_self, p_self_max, p_self0
+    p_self, p_self_max, p_self0, pds
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: Energ_self, Energ_self_s
   real(kind=db), dimension(0:nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self):: rho_self, rho_self_s
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_self, chargat_self_s
@@ -674,7 +713,13 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
     stop
   endif
 
-  if( mpirank == 0 ) write(6,120) i_self, En_cluster * rydb
+  if( mpirank == 0 ) then
+    if( Full_atom ) then
+      write(6,120) i_self, En_cluster * rydb
+    else
+      write(6,130) i_self, En_cluster * rydb
+    endif
+  endif
 
 ! Interpolation between 2 last iterations
   if( i_self == 1 ) then
@@ -686,21 +731,48 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
     
   else
 
-    if( icheck > 0 ) write(3,125)
+    if( icheck > 0 ) write(3,140)
 
 ! Test convergence: on the energy and on the charge of the absorbing atom
 ! To to before interpolation
-    Delta_energ = 0._db
-    if( Full_atom ) then
-      Delta_lim = Delta_En_conv * natomeq
-    else
-      Delta_lim = Delta_En_conv * sum( ngreq(1:n_atom_proto) )
-    endif
 
+    Delta_lim = 0._db
+    do iapr = n_atom_0_self,n_atom_ind_self
+      if( Full_atom ) then
+        n = nb_eq(iapr)
+        Z = numat( itypepr( iaprotoi(iapr) ) )
+      else
+        if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
+        n = ngreq(iapr)
+        if( Doping .and. iapr == ipr_dop ) n = n - 1
+        Z = numat( itypepr( iapr ) )
+      endif
+      if( Z <= 30 ) then
+        pds = 1._db
+      else
+      ! had hoc formula to have beyond Z = 30 a limit increasing as Z^2
+        pds = ( Z / 30._db )**2
+      endif
+      Delta_lim = Delta_lim + n * pds
+    end do
+    Delta_lim = Delta_lim * Delta_En_conv
+
+ !   if( Full_atom ) then
+ !     Delta_lim = Delta_En_conv * natomeq
+ !   else
+ !     if( Bulk_step ) then
+ !       Delta_lim = Delta_En_conv * sum( ngreq(n_atom_proto_uc+1:n_atom_proto) )
+ !     else
+ !       Delta_lim = Delta_En_conv * sum( ngreq(1:n_atom_proto) )
+ !     endif
+ !   endif
+
+    Delta_energ = 0._db
     do iapr = n_atom_0_self,n_atom_ind_self
       if( Full_atom ) then
         n = nb_eq(iapr)
       else
+        if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
         n = ngreq(iapr)
         if( Doping .and. iapr == ipr_dop ) n = n - 1
       endif
@@ -713,15 +785,15 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
 
       if( icheck > 0 ) then
         write(3,*)
-        write(3,130) Delta_energ*rydb, '<', Delta_lim*rydb, p_self
+        write(3,150) Delta_energ*rydb, '<', Delta_lim*rydb, p_self
       endif
-      if( mpirank == 0 ) write(6,130) Delta_energ*rydb, '<', Delta_lim*rydb, p_self
+      if( mpirank == 0 ) write(6,150) Delta_energ*rydb, '<', Delta_lim*rydb, p_self
       
       if( Fermi_first ) then
         Convergence = .false.
         Fermi_first = .false.
-        if( icheck > 0 ) write(3,135) n_devide
-        if( mpirank == 0 ) write(6,135) n_devide
+        if( icheck > 0 ) write(3,160) n_devide
+        if( mpirank == 0 ) write(6,160) n_devide
         i_self = min( i_self, nself - 1 )
       endif
         
@@ -729,9 +801,9 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
 
       if( icheck > 0 ) then
         write(3,*)
-        write(3,130) Delta_energ*rydb, '>', Delta_lim*rydb, p_self
+        write(3,150) Delta_energ*rydb, '>', Delta_lim*rydb, p_self
       endif
-      if( mpirank == 0 ) write(6,130) Delta_energ*rydb, '>', Delta_lim*rydb, p_self
+      if( mpirank == 0 ) write(6,150) Delta_energ*rydb, '>', Delta_lim*rydb, p_self
 
     endif
     
@@ -780,9 +852,10 @@ subroutine prep_next_iter(chargat_self,chargat_self_s,Convergence,Delta_En_conv,
   return
   110 format(/' The Fermi level was not reached ! ')
   120 format(/' Cycle',i4,', Total Cluster energy =',f14.3,' eV')
-  125 format(/'----- prep_next_iter ', 70('-'))
-  130 format(12x,'Delta_energ =',f11.3, ' eV ',a1,' Delta =',f8.3,' eV,  Weight =',f8.5)
-  135 format(/' New Fermi optimization with imaginary energy divided by',i2)
+  130 format(/' Cycle',i4,', Total Unit cell energy =',f14.3,' eV')
+  140 format(/'----- prep_next_iter ', 70('-'))
+  150 format(12x,'Delta_energ =',f11.3, ' eV ',a1,' Delta =',f8.3,' eV,  Weight =',f8.5)
+  160 format(/' New Fermi optimization with imaginary energy divided by',i2)
 end
 
 !***********************************************************************
@@ -794,22 +867,23 @@ end
 ! ch_ia = nombre total d'electrons (y compris de coeur) a
 !         l'iteration courrante, pour l'atome ia
 
-subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_self,E_cut,E_Open_val, &
+subroutine Cal_State(Bulk_step,chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_self,E_cut,E_Open_val, &
                 E_Open_val_exc,E_starta,Energ,E_Fermi,Enragr,Energ_self,Fermi,Full_atom,hubb,Hubb_diag,iaabsi,iaprotoi, &
                 i_self,icheck,ie,ie_computer,Int_statedens,ipr_dop,ispin_maj,itypei,itypepr,lamstdens, &
                 Open_val,Open_val_exc,lla_state,lla2_state,lmaxat,m_hubb,mpinodes,n_atom_0,n_atom_0_self, &
-                n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nb_eq,nenerg,ngreq,nlm_pot,nomfich_s,nrato, &
-                nrm,nrm_self,nspin,nspinp,ntype,numat,occ_hubb,occ_hubb_i,pop_orb_val,rato,rho_self,rho_self_t,rmtsd,SCF_elecabs, &
-                SCF_mag_fix,Self_nonexc,Statedens,Statedens_i,V_hubb,V_hubbard)
+                n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_uc,natome,nb_eq,nenerg,ngreq,nlm_pot,nomfich_s,nrato, &
+                nrm,nrm_self,nspin,nspinp,ntype,numat,occ_hubb,occ_hubb_i,pop_orb_val,rato,rho_self,rho_self_t,Rmtsd, &
+                SCF_elecabs,SCF_mag_fix,Self_nonexc,Statedens,Statedens_i,V_hubb,V_hubbard)
 
   use declarations
   implicit none
 
   integer:: i, i_self, ia, iaabsi, iapr, icheck, ie, ie_computer, imax, ipr, ipr_dop, iprabs, iprint, ir, isp, isp1, isp2, it, l, &
     l_hubbard, l_level_val, la, lamstdens, ll, lla_state, lla2_state, lh, lm, lm0, lm1, lm2, lma, m, m_hubb,mpinodes, m1, m2, n, &
-    n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, n_atom_proto, natome, nenerg, nlm_pot, nr, nrm, nrm_self, nspin, &
-    nspinp, ntype, Numat_tot, Z
+    n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, n_atom_proto, n_atom_proto_uc, natome, nenerg, nlm_pot, nr, nrm, &
+    nrm_self, nspin, nspinp, ntype, Numat_tot, Z
 
+  character(len=3) mot3
   character(len=Length_name) nomfich_s
 
   integer, dimension(0:ntype):: nrato, numat
@@ -820,7 +894,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb
 
   logical, save:: Fermi_gen, Fermi_maj, Fermi_min
-  logical:: Density, Doping, Fermi, First_loop, Full_atom, Open_file, Open_val, Open_val_exc, &
+  logical:: Bulk_step, Density, Doping, Fermi, First_loop, Full_atom, Open_file, Open_val, Open_val_exc, &
     SCF_elecabs, SCF_mag_fix, Self_nonexc
   logical, dimension(0:n_atom_proto):: proto_done
   logical, dimension(0:ntype):: Hubb
@@ -971,7 +1045,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
     end do
     if( nspinp == 1 ) Statedens_l(0:la,1) = 2 * Statedens_l(0:la,1)
 
-! Integrale de la densite d'etats
+! Integral of density of state
     do isp = 1,nspinp
       do lm = 1,lma
         Int_Statedens(lm,isp,iapr) = Int_Statedens(lm,isp,iapr) + de * Statedens(lm,isp,lm,isp,iapr,ie_computer)
@@ -1016,7 +1090,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
            Statedens_l)
     endif
 
-! Matrice d'occupation pour Hubbard
+! Occupation matrix for Hubbard
     if( hubb(it) ) then
       if( nspinp == 1 ) then
         ds = 2 * de
@@ -1039,7 +1113,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
       end do
     endif
 
-! Energie de l'agregat (ou de la cellule elementaire)
+! Energy of the cluster (or of the unit cell)
     if( nspinp == 1 ) then
       ds = 2 * de
     else
@@ -1134,7 +1208,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
 ! ch, enr = nombre total d'electrons et Energie courrantes
 ! chg_cluster = la charge qu'on va comparer avec la reference
 
-! Evaluation du niveau de Fermi
+! Fermi level evaluation
 
   Z = numat( itypei(iaabsi) )
   l = l_level_val(Z)
@@ -1154,6 +1228,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
       n = nb_eq(iapr)
       Z = numat( itypei(iapr) )
     else
+      if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
       n = ngreq(iapr)
       if( Doping .and. iapr == ipr_dop ) n = n - 1
       Z = numat( itypepr(iapr) )
@@ -1183,6 +1258,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
       if( Full_atom) then
         it = itypei(iapr)
       else
+        if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
         it = itypepr(iapr)
       endif
       if( .not. hubb(it) ) cycle
@@ -1205,6 +1281,12 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
         end do
       end do
     end do
+  endif
+
+  if( Full_atom ) then
+    mot3 = ' ia'
+  else
+    mot3 = 'ipr'
   endif
 
   if( SCF_mag_fix ) then
@@ -1253,7 +1335,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
           Charge_min_s = ch
       end select
 
-! On a atteind le niveau de Fermi
+! We have reached the Fermi level
     else
 
       select case(i)
@@ -1314,6 +1396,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
       end select
 
       do iapr = n_atom_0_self,n_atom_ind_self
+        if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
         do isp = 1,nspin
           if( i == 2 .and. SCF_mag_fix ) cycle
           if( i == 3 .and. isp /= ispin_maj(iapr) ) cycle
@@ -1324,6 +1407,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
         end do
       end do
       do iapr = n_atom_0_self,n_atom_ind_self
+        if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
         if( i == 2 .and. SCF_mag_fix ) cycle
         occ_hubb(:,:,:,:,iapr) = occ_hubb(:,:,:,:,iapr) * poids + occ_hubb_s(:,:,:,:,iapr) * ( 1 - poids )
         occ_hubb_i(:,:,:,:,iapr) = occ_hubb_i(:,:,:,:,iapr) * poids + occ_hubb_i_s(:,:,:,:,iapr) * ( 1 - poids )
@@ -1356,14 +1440,15 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
           write(iprint,294) Charge_val_abs
         endif
         if( nspin == 1 ) then
-          write(iprint,300)
+          write(iprint,300) mot3
         else
-          write(iprint,305)
+          write(iprint,305) mot3
         endif
         do iapr = n_atom_0_self,n_atom_ind_self
           if( Full_atom ) then
             ipr = iaprotoi(iapr)
           else
+            if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
             ipr = iapr
           endif
           Z = numat( itypepr(ipr) )
@@ -1382,7 +1467,8 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
           if( Full_atom ) then
             ipr = iaprotoi(iapr)
           else
-            ipr = iapr
+           if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
+           ipr = iapr
           endif
           it = itypepr(ipr)
           Z = numat( it )
@@ -1403,6 +1489,7 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
         if( Full_atom ) then
           ipr = iaprotoi(iapr)
         else
+          if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
           ipr = iapr
         endif
         it = itypepr(ipr)
@@ -1510,8 +1597,8 @@ subroutine Cal_State(chg_cluster,chg_open_val,chargat_self,Density,Doping,drho_s
   292 format(9x,'Level val excite =',f8.3,' eV')
   293 format(9x,'Level val absorb =',f8.3,' eV')
   294 format(9x,'Popul val absorb =',f8.3)
-  300 format(/5x,'  ia   Z   Energy_KS      Charge  pop_orb_val(l)   l    Radius')
-  305 format(/5x,'  ia   Z   Energy_KS      Charge       up-dn  pop_orb_val(l)   l    Radius')
+  300 format(/6x,a3,'   Z   Energy_KS      Charge  pop_orb_val(l)   l    Radius')
+  305 format(/6x,a3,'   Z   Energy_KS      Charge       up-dn  pop_orb_val(l)   l    Radius')
   310 format(5x,2i4,4f12.3,i8,f10.5)
   320 format(5x,2i4,3f12.3,i8,f10.5)
   350 format(/' Total number of electron, summed over spin:',f9.5)

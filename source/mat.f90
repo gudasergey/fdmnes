@@ -3,7 +3,7 @@
 ! Filling of FDM matrix and solving of the linear system of equation.
 
 subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, &
-                      clapl,Classic_irreg,Dist_coop,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide,Fac_tau, &
+                      clapl,Classic_irreg,Dist_coop,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide, &
                       FDM_comp_m,Full_atom,gradvr,ia_coop,iaabsi,iaprotoi,iato,ibord,icheck,ie,igroupi,igrph, &
                       irep_util,isbord,iso,ispinin,isrt,ivois,isvois,karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso,nab_coop, &
                       natome,n_atom_0,n_atom_coop,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,ngroup_m,ngrph,nim,nicm, &
@@ -15,7 +15,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   use declarations
   implicit none
   
-  integer:: i, ia, iaabsi, iab, iapr, ib, icheck, ie, igrph, ii, ipra, iprb, irep, is1, is2, isg, isp, ispinin, &
+  integer:: i, ia, iaabsi, iab, ib, icheck, ie, igrph, ii, ipra, iprb, irep, is1, is2, isg, isp, ispinin, &
     j, jj, jsp, l, l1, l2, lm, lm01, lm01c, lm02, lm02c, lm1, lm2, lmaxso, lmf, lms, lmw, m, m1, m2, mpierr, &
     MPI_host_num_for_mumps, mpirank0, natome, n_atom_0, n_atom_coop, nab_coop, n_atom_ind, n_atom_proto, nbm, nbtm, ngroup_m, &
     ngrph, nim, nicm, nligne, nligne_i, nligneso, nlmagm, nlmmax ,nlmomax, nlmsam, nlmso, nlmso_i, nlmw, nphiato1, nphiato7, &
@@ -36,7 +36,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   complex(kind=db):: ampl1, ampl2, cfac
   complex(kind=db), dimension(nopsm,nrepm):: karact
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: Taull
-  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind):: Fac_tau, Tau_ato
+  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind):: Tau_ato
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop):: Tau_coop
   complex(kind=db), dimension(:,:), allocatable :: norm, norm_t
   complex(kind=db), dimension(:,:,:), allocatable :: Bessel, Neuman
@@ -266,32 +266,15 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
           if( FDM_comp_m ) then
 !            cfac = cfac + ampl1 * ampl2
             if( l1 == lso(lmf,igrph) .and. m1 == mso(lmf,igrph) .and. ( nspino == 1 .or. is1 == iso(lmf,igrph) ) ) then 
-              cfac = cfac + ampl2
+              cfac = - ampl2
             endif
           else
-            cfac = cfac + conjg( ampl1 ) * ampl2
+ ! One multiplies by -img in order -aimag(taull) is the density of state
+            cfac = cfac - img * ampl1 * conjg(  ampl2 )
           endif
         end do
 
-        if( FDM_comp_m ) then
-! Part under construction, not yet working 
-          if( Full_atom ) then
-            iapr = ia
-          else
-            iapr = iaprotoi(ia)
-          endif
-          Taull(lm01,is1,lm02,is2,ia) = Taull(lm01,is1,lm02,is2,ia) - Fac_tau(lm02,is1,lm02,is2,iapr) * cfac
-          if( lm01 == lm02 .and. is1 == is2 ) Taull(lm01,is1,lm02,is2,ia) = Taull(lm01,is1,lm02,is2,ia) - 0.5_db * img  
-
-        else
-
-!          if( Repres_comp .and. .not. Spinorbite .and. .not. Atom_axe(ia) ) cfac = cfac + Conjg(cfac)
-! One multiplies by -img in order -aimag(taull) is the density of state
-! Conjugate to get the real part same sign that Green
-          cfac = - img * conjg( cfac )
-          Taull(lm01,is1,lm02,is2,ia) = Taull(lm01,is1,lm02,is2,ia) + cfac
-
-        endif
+        Taull(lm01,is1,lm02,is2,ia) = Taull(lm01,is1,lm02,is2,ia) + cfac
           
       end do
     end do
@@ -401,12 +384,6 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
 ! One multiplies by -img in order -aimag(taull) is the density of state
 ! Conjugate to get the real part same sign than Green
             cfac = - img * conjg( cfac )
-
-!            if( Repres_comp .and. .not. Spinorbite ) then
-!              if( .not. Atom_axe(ia) ) cfac = cfac + ampl1 * ampl2
-!              if( .not. Atom_axe(ib) ) cfac = cfac + conjg( ampl1 ) * conjg( ampl2 )
-!              if( .not. Atom_axe(ia) .and. .not. Atom_axe(ib) ) cfac = cfac + ampl1 * conjg( ampl2 )
-!            endif
 
             Tau_coop(lm01,is1,lm02,is2,iab) = Tau_coop(lm01,is1,lm02,is2,iab) + cfac
 
@@ -1923,10 +1900,7 @@ subroutine Write_ampl(Basereel,Cal_comp,iaabsi,ianew,iato,igrph,irep_util,iso,is
      
       end do
 
-!     if( Repres_comp .and. .not. Spinorbite .and. .not. Atom_axe(ia) ) cfac = cfac + Conjg(cfac)
-
 ! One multiplies by -img in order -aimag(taull) is the density of state
-!          cfac = - img * cfac
 ! Conjugate to get the real part same sign that Green
       cfac = - img * conjg( cfac )
  
@@ -4301,4 +4275,49 @@ subroutine Tau_reading(icheck,ie,iaabsi,lmaxa,natome,nenerg,nlmagm,nspinp,Taull)
   290 format(2i4,' = lmax, nspinp / ( l, m, s)')
   300 format(2420(12x,3i3,10x))
   310 format(1p,2420(1x,2e15.7))
+end
+
+!**************************************************************************************************
+
+! Writing of Tau
+
+subroutine Tau_wout(iabsorig,Energ,ie,ie_computer,lmax,mpinodes,n_multi_run,nlm,nomfich,nspinp,Taull)
+
+  use declarations
+  implicit none
+  include 'mpif.h'
+
+  integer:: iabsorig, ie, ie_computer, l, lmax, mpinodes, n_multi_run, nlm, nspinp
+
+  character(len=Length_name):: nomfich, nomficht
+ 
+  complex(kind=db), dimension(nlm,nspinp,nlm,nspinp,0:mpinodes-1):: Taull
+
+  real(kind=db):: Energ
+
+  nomficht = nomfich
+  if( n_multi_run > 1 ) then
+    l = len_trim(nomficht)
+    nomficht(l+1:l+1) = '_'
+    call ad_number(iabsorig,nomficht,Length_name)
+  endif
+  l = len_trim(nomficht)
+  nomficht(l+1:l+8) = '_tau.txt'
+
+  if( ie == 1 ) then
+    open(10,file = nomficht)
+    write(10,110) (l, l, l = 0,lmax)
+  else
+    open(10,file = nomficht, position='append')
+  endif   
+
+  write(10,120) Energ*Rydb, ( Taull(1+l+l**2,1,1+l+l**2,1,ie_computer), l = 0,lmax )
+
+  Close(10)
+  
+  return
+  110 format('     Energy ',100('    Tau_r(',i1,')  ','   Tau_i(',i1,')  '))
+  120 format(f12.5,1p,100(1x,2e13.5))
+  
+
 end
