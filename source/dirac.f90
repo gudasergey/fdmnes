@@ -2,14 +2,17 @@
 ! Calculation of the atomic electronic densities using dirac-slater or
 ! Hartree-Fock Slater.
 
-subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
+subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
           nnlm,nonexc,nqnexc,n_ray,nrato_dirac, nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
-          popexc,popval,psi_coeur,psii,psi_open_val,psival, rato,rho_coeur,rhoit,Z,relativiste)
+          popexc,popval,psi_coeur,psii,psi_open_val,psival,rato,rho_coeur,rhoit,Z,Relativiste)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
   include 'mpif.h'
 
+  integer:: i, iaug, ibav, icheck, io, ip, ipr, ir, irel, it, itabs, j, jo, jseuil, ko, l, l_level_val, lseuil, mpirank, &
+            mseuil, n_coeur, n_orb, n_orbexc, nbseuil, nlatm, nmax, nnlm, n_ray, nrato_dirac, nrm, nseuil, nspin, ntype, Z
+  
   integer, dimension(nnlm):: lqn, lqnexc, nqn, nqnexc
   integer, dimension(2,0:ntype):: lcoeur, ncoeur
   integer, dimension(0:ntype):: nlat
@@ -17,8 +20,8 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
 
   logical:: nonexc, relativiste
 
-  integer:: Z
-
+  real(kind=db):: Charge, dp, E_total, E_total_exc, elmax, h_ray, p, p1, p2, Popt, ppp, Ptot, Ray_max
+  
   real(kind=db), dimension(nnlm):: nel, pop, rqn
   real(kind=db), dimension(nrm):: rato
   real(kind=db), dimension(nrm,nbseuil):: psii
@@ -33,7 +36,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
   real(kind=db), dimension(0:nrm,2,0:ntype):: psi_coeur
 
   real(kind=db), dimension(:), allocatable:: ray, rho
-  real(kind=db), dimension(:,:), allocatable:: psi
+  real(kind=db), dimension(:,:), allocatable:: psi, psi_small
 
   if( icheck > 1 ) write(3,110) it, Z
   
@@ -82,13 +85,13 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
 ! On remplace les population par defaut par celles qui sont donnees en
 ! entree
   boucle_io: do io = 1,nlat(it)
-    popt = sum( popval(it,io,1:nspin) )
+    Popt = sum( popval(it,io,1:nspin) )
     do ip = 1,n_orb
       if(nqn(ip) /= nvval(it,io) .or. lqn(ip) /= lvval(it,io)) cycle
       if( irel == 0 .or. lqn(ip) == 0 ) then
         pop(ip) = popt
       else
-        pop(ip) = ( lqn(ip) / ( 2*lqn(ip)+1. ) ) * popt
+        pop(ip) = ( lqn(ip) / ( 2*lqn(ip) + 1._db ) ) * popt
         pop(ip+1) = popt - pop(ip)
       endif
       cycle boucle_io
@@ -112,7 +115,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
     if( irel == 0 ) then
       pop(n_orb) = popt
     else
-      pop(n_orb) = ( lqn(n_orb) / ( 2*lqn(n_orb)+1. ) ) * popt
+      pop(n_orb) = ( lqn(n_orb) / ( 2*lqn(n_orb)+1._db ) ) * popt
       if( lqn(n_orb) /= 0 ) then
 ! Si relativiste la nouvelle orbitale trouvee a un splitting
         n_orb = n_orb + 1
@@ -134,13 +137,13 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
 ! construction de l'atome neutre (le calcul des niveaux atomiques se
 ! fait avec des atomes neutres)
 
-  charge = Z - sum( pop(1:n_orb) )
+  Charge = Z - sum( pop(1:n_orb) )
   if( charge > eps6 ) then
     dp = charge
     do io = 1,n_orb
       if( ( nqn(io) <= nseuil .and. it == itabs ) .or. lqn(io) > 1 ) cycle
       if( irel == 0 .or. lqn(io) == 0 ) then
-        elmax = 2 + 4. * lqn(io)
+        elmax = 2._db + 4._db * lqn(io)
         if( pop(io) > elmax - eps6 ) cycle
 
         do j = 1,nlat(it)
@@ -167,7 +170,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
         pop(io) = elmax
       else
         if( lqn(io-1) == lqn(io) ) cycle
-        elmax = 2 + 4. * lqn(io)
+        elmax = 2._db + 4._db * lqn(io)
         if( sum(pop(io:io+1)) > elmax - eps6 ) cycle
 
         do j = 1,nlat(it)
@@ -188,13 +191,13 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
           popval(it,nlat(it),1:nspin) = sum(pop(io:io+1)) / nspin
         endif
 
-        p = lqn(io) / ( 2 * lqn(io) + 1. )
+        p = lqn(io) / ( 2 * lqn(io) + 1._db )
         pop(io) = pop(io) + p * dp
         pop(io+1) = pop(io+1) + ( 1 - p ) * dp
         dp = sum( pop(io:io+1) ) - elmax
         if( dp < eps6 ) exit
-        pop(io) = 2. * lqn(io)
-        pop(io+1) = 2 + 2. * lqn(io)
+        pop(io) = 2._db * lqn(io)
+        pop(io+1) = 2 + 2._db * lqn(io)
       endif
     end do
     if( dp > eps6 ) then
@@ -245,7 +248,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
           endif
           nqn(n_orb) = nmax
           lqn(n_orb) = 1
-          rqn(n_orb) = 1.5
+          rqn(n_orb) = 1.5_db
           pop(n_orb) = 2 * dp / 3
         endif
       endif
@@ -304,6 +307,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
   allocate( ray(n_ray) )
   allocate( rho(n_ray) )
   allocate( psi(n_ray,nnlm) )
+  allocate( psi_small(n_ray,nnlm) )
 
 ! Remplissage de popatv: ces populations correspondent a l'atome neutre
 
@@ -350,7 +354,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
 ! Influence par ce qu'on lui indique en entree, mais
 ! neanmoins pop etaient modifiees de ce que l'atome soit neutre
 
-  call dirac(E_total,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,ray,ray_max,rho,rqn,Z)
+  call dirac(E_total,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,psi_small,ray,ray_max,rho,rqn,Z)
 
 ! Construction de l'atome excite (appel en init_run):
 
@@ -399,16 +403,16 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
 
       nqn(jo) = nqnexc(io)
       lqn(jo) = lqnexc(io)
-      ptot = sum( popexc(io,1:nspin) )
+      Ptot = sum( popexc(io,1:nspin) )
 
       if( irel == 0 .or. lqn(jo) == 0 ) then
         pop(jo) = ptot
         if( irel == 1 ) rqn(jo) = 0.5_db
       else
-        if( nqn(jo) == nseuil .and. lqn(jo) == lseuil ) ptot = ptot + 1
-        p = lqn(jo) / ( 2 * lqn(jo) + 1. )
+        if( nqn(jo) == nseuil .and. lqn(jo) == lseuil ) ptot = ptot + 1._db
+        p = lqn(jo) / ( 2 * lqn(jo) + 1._db )
         pop(jo) = p * ptot
-        if( nqn(jo) == nseuil .and. lqn(jo) == lseuil .and. mseuil == 1 ) pop(jo) = pop(jo) - 1.
+        if( nqn(jo) == nseuil .and. lqn(jo) == lseuil .and. mseuil == 1 ) pop(jo) = pop(jo) - 1._db
         nqn(jo) = nqnexc(io)
         lqn(jo) = lqnexc(io)
         rqn(jo) = lqn(jo) - 0.5_db
@@ -417,7 +421,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
         lqn(jo) = lqnexc(io)
         rqn(jo) = lqn(jo) + 0.5_db
         pop(jo) = ( 1 - p ) * ptot
-        if( nqn(jo) == nseuil .and. lqn(jo) == lseuil .and. mseuil == 2 ) pop(jo) = pop(jo) - 1.
+        if( nqn(jo) == nseuil .and. lqn(jo) == lseuil .and. mseuil == 2 ) pop(jo) = pop(jo) - 1._db
       endif
 
     end do
@@ -552,7 +556,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
       endif
     endif
 
-    call dirac(E_total_exc,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,ray,ray_max,rho,rqn,Z)
+    call dirac(E_total_exc,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,psi_small,ray,ray_max,rho,rqn,Z)
 
 ! Recuperation de la fonction d'onde de l'orbitale de valence excite
     do io = 1, n_orb
@@ -566,8 +570,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
       end if
     end do
 
-    if( icheck > 0 ) write(3,190) E_total_exc * 2 * Rydb, E_total * 2 * Rydb, &
-                                  ( E_total_exc - E_total ) * 2 * Rydb
+    if( icheck > 0 ) write(3,190) E_total_exc * 2 * Rydb, E_total * 2 * Rydb, ( E_total_exc - E_total ) * 2 * Rydb
 
   endif   ! fin de la partie appel type_work pour atome excite
 
@@ -575,12 +578,23 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
   rhoit(1:n_ray,it) = rho(1:n_ray)    ! densite
 
 ! Les fonctions d'onde psi sont multipliees par r
-  rho_coeur(1:n_ray,it) = 0._db
-  do io = 1,n_coeur
-    rho_coeur(1:n_ray,it) = rho_coeur(1:n_ray,it) + pop(io) * psi(1:n_ray,io)**2
-  end do
+!  rho_coeur(1:n_ray,it) = 0._db
+!  do io = 1,n_coeur
+!    rho_coeur(1:n_ray,it) = rho_coeur(1:n_ray,it) + pop(io) * psi(1:n_ray,io)**2
+!  end do
 
+!  rho_coeur(1:n_ray,it) = rho_coeur(1:n_ray,it) / ( quatre_pi * ray(1:n_ray)**2 )
+
+  rho_coeur(1:n_ray,it) = 0._db
+  do io = n_coeur+1,n_orb
+    if( irel == 1 ) then
+      rho_coeur(1:n_ray,it) = rho_coeur(1:n_ray,it) - pop(io) * ( psi(1:n_ray,io)**2 + psi_small(1:n_ray,io)**2 )
+    else
+      rho_coeur(1:n_ray,it) = rho_coeur(1:n_ray,it) - pop(io) * psi(1:n_ray,io)**2
+    endif
+  end do
   rho_coeur(1:n_ray,it) = rho_coeur(1:n_ray,it) / ( quatre_pi * ray(1:n_ray)**2 )
+  rho_coeur(1:n_ray,it) = rho_coeur(1:n_ray,it) + rho(1:n_ray) 
 
 ! Extrapolation au centre de l'atome.
   p1 = rato(2) / ( rato(2) - rato(1) )
@@ -660,27 +674,30 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
      if( it == itabs ) then
        write(3,230) ( nvval(it,l), lvval(it,l), l = 1,nlat(it) ), nseuil, lseuil
        do ir = 1,n_ray
+         p = quatre_pi * rato(ir)**2
          if( nlat(it) > 0 ) then
-           write(3,240) rato(ir) * bohr, rhoit(ir,it), ( psival(ir,l,it), l = 1,nlat(it) ), psii(ir,:)
+           write(3,240) rato(ir) * bohr, p * rhoit(ir,it), p * rho_coeur(ir,it), ( psival(ir,l,it), l = 1,nlat(it) ), psii(ir,:)
          else
-           write(3,240) rato(ir) * bohr, rhoit(ir,it), psii(ir,:)
+           write(3,240) rato(ir) * bohr, p * rhoit(ir,it), p * rho_coeur(ir,it), psii(ir,:)
          endif
        end do
-    else
+     else
        write(3,230) ( nvval(it,l), lvval(it,l), l = 1,nlat(it) )
        do ir = 1,n_ray
+         p = quatre_pi * rato(ir)**2
          if( nlat(it) > 0 ) then
-           write(3,240) rato(ir) * bohr, rhoit(ir,it), ( psival(ir,l,it), l = 1,nlat(it) )
+           write(3,240) rato(ir) * bohr, p * rhoit(ir,it), p * rho_coeur(ir,it), ( psival(ir,l,it), l = 1,nlat(it) )
          else
-           write(3,240) rato(ir) * bohr, rhoit(ir,it)
+           write(3,240) rato(ir) * bohr, p * rhoit(ir,it), p * rho_coeur(ir,it)
          endif
        end do
+
     endif
   endif
 
-  deallocate( ray )
+  deallocate( Ray )
   deallocate( rho )
-  deallocate( psi )
+  deallocate( psi, psi_small )
 
   return
   110 format(/' ---- Dirac --------',100('-')//' it =',i2,'  Z =',i4)
@@ -703,8 +720,8 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank,n_o
   210 format(/'  Popatc =',f9.4)
   215 format(/'  n  l  Popatv')
   220 format(2i3,f8.4)
-  230 format(/'     rato          rho',10(7x,2i3))
-  240 format(1p,11e13.5)
+  230 format(/'     rato      4*pi*r2*rho 4*pi*r2*rho_c',10(7x,2i3))
+  240 format(1p,12e13.5)
 end
 
 !***********************************************************************
@@ -841,7 +858,7 @@ subroutine config(Z,irel,n_coeur,n_orb,nnlm,nqn,lqn,rqn,nel)
       elseif( abs( nel(io) - 4 * lqn(io) - 2 ) < eps10 ) then   ! cas d'une couche pleine
         nel(jo) = 2 * ( lqn(jo) + 1._db )
       else
-        nel(jo) = ( (lqn(jo)+1.) / (2*lqn(jo)+1.) ) * nel(io)
+        nel(jo) = ( ( lqn(jo) + 1._db ) / ( 2*lqn(jo) + 1._db ) ) * nel(io)
       endif
       if( lqn(jo) == 0 ) cycle
       jo = jo - 1
@@ -895,7 +912,7 @@ end
 ! This was corrected by Bengt Lindgren and A. Rosen Dec 1987.
 ! Modified by Y Joly 2000-2016
 
-subroutine dirac(E_total,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,ray,ray_max,rho,rqn,Z)
+subroutine dirac(E_total,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,psi_small,ray,ray_max,rho,rqn,Z)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)

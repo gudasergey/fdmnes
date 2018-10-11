@@ -289,7 +289,7 @@ subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsp
 ! For 2D diffraction, one only keeps 2D symmetries
         if( ( Sym_2D .or. igr > n_atom_per ) &
                       .and. .not. ( is == 1 .or. is == 18 .or. is == 21 .or. is == 24 .or. is == 40 .or. is == 41 .or. is == 45 &
-                                .or. ( is >= 49 .and. is <= 52 ) .or. ( is >= 57 .and. is <= 64 ) ) ) cycle
+                             .or. ( is >= 49 .and. is <= 52 ) .or. is == 57 .or. is == 59 .or. is == 61 .or. is == 63 ) ) cycle
 
         call opsym(is,matopsym)
         if( struct /= 'cubic' ) then
@@ -9655,7 +9655,7 @@ subroutine bordure(Green,icheck,iopsymr,iord,iscratch,ivois,mpirank0,natome,nbm,
   return
   110 format(//' Erreur dans bordure pour mpirank, i, ia, iv =',4i6/,'   xyz =',1p,4e13.5/)
   120 format(/' ---- Bordure ------',100('-')/)
-  130 format('     Atome',i3,', nbordf =',i5,', nbord =',i5)
+  130 format('     Atome',i4,', nbordf =',i5,', nbord =',i5)
   140 format('  ibord  isbord   poidsa')
   150 format(2i6,f12.5)
   160 format(' Outer sphere, nsortf =',i5,', nsort =',i5)
@@ -10393,12 +10393,13 @@ subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,it
   180 format(/'   lm    l    m    is')
   190 format(4i5)
   200 format(///'   nlmso0 =',i4,' > nspino*nsortf =',i4, // &
-    ' Solution :',/'  Reduce the maximum energy or ',/ &
-    '  Reduce the outersphere lmax using the lmaxso keyword or',/ &
-    '  Reduce the interpoint distance using the keyword Adimp'//)
-  210 format(///'   nlmsa0(ia=',i2,') =',i4,' > nspino*nbordf =',i4, // &
-    ' Solution :',/'  Reduce the maximum energy or ',/ &
-    '  Reduce the atomic lmax using the lmax keyword or',/ '  Reduce the interpoint distance using the keyword Adimp'//)
+                ' Solution :',/'  Reduce the maximum energy or ',/ &
+                '  Reduce the outersphere lmax using the lmaxso keyword or',/ &
+                '  Reduce the interpoint distance using the keyword Adimp'//)
+  210 format(///'   nlmsa0(ia=',i3,') =',i4,' > nspino*nbordf =',i4, // &
+                ' Solution :',/'  Reduce the maximum energy or ',/ &
+                '  Reduce the atomic lmax using the lmax keyword or',/ &
+                '  Reduce the interpoint distance using the keyword Adimp'//)
 end
 
 !***********************************************************************

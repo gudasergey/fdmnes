@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 16th of September 2018, 30 Fructidor, An 226
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 9th of October 2018, 17 Vendemiaire, An 227
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 16th of September 2018'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 9th of October 2018'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -255,7 +255,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 211
+  integer, parameter:: nkw_fdm = 213
   integer, parameter:: nkw_conv = 38
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_gaus = 1
@@ -341,12 +341,12 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot', &
      'ephot_min','etatlie  ','excited  ','extract  ','extract_t','extractpo','extractsy','fdm_comp ','film     ','film_cif_', &
      'film_pdb_','film_t   ','film_roug','film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ', &
-     'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_int','hedin    ','helm_cos ', &
-     'helmholtz','hkl_film ','hubbard  ','iord     ','kern_fac ','kern_fast', &
+     'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_bul','green_int','hedin    ', &
+     'helm_cos ','helmholtz','hkl_film ','hubbard  ','iord     ','kern_fac ','kern_fast', &
      'lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ','mat_ub   ', &
-     'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar', &
-     'molecule ','molecule_','muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_dft   ','no_e1e1  ', &
-     'no_e1e2  ','no_e1e3  ','no_e2e2  ','no_e3e3  ','no_fermi ','no_renorm','no_res_ma','no_res_mo','no_solsin','normaltau', &
+     'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar','molecule ', &
+     'molecule_','muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_dft   ','no_e1e1  ','no_e1e2  ', &
+     'no_e1e3  ','no_e2e2  ','no_e3e3  ','no_fermi ','no_renorm','no_res_ma','no_res_mo','no_scf_bu','no_solsin','normaltau', &
      'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','nrixs_mon','occupancy','octupole ', &
      'old_zero ','one_run  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ','pointgrou', &
      'polarized','quadmag  ','quadrupol','radius   ','range    ','rangel   ','raydem   ','rchimp   ','readfast ','relativis', &
@@ -1886,6 +1886,8 @@ function Traduction(keyword)
       traduction = 'energphot'
     case('extractio')
       traduction = 'extrac'
+    case('greenbulk','bulk_gree','bulkgreen')
+      traduction = 'green_bul'
     case('lapw','wien')
       traduction = 'flapw'
     case('lapw_s','wien_s','flapw_sau','lapw_sauv','wien_sauv', 'flapw_sav','lapw_save','wien_save')
@@ -1940,6 +1942,8 @@ function Traduction(keyword)
       traduction = 'no_core_r'
     case('nofermi')
       traduction = 'no_fermi'
+    case('noscf_bul','no_scfbul','noscfbulk','no_self_b')
+      traduction = 'no_scf_bu'
     case('nonrelat','nonrelati')
       traduction = 'non_relat'
     case('non_exc','nonexcite','non_excit','no_hole','nohole')

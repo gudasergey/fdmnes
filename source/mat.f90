@@ -264,10 +264,10 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
           endif
 
           if( FDM_comp_m ) then
-!            cfac = cfac + ampl1 * ampl2
-            if( l1 == lso(lmf,igrph) .and. m1 == mso(lmf,igrph) .and. ( nspino == 1 .or. is1 == iso(lmf,igrph) ) ) then 
-              cfac = - ampl2
-            endif
+            cfac = cfac - img * ampl1 * ampl2
+!            if( l1 == lso(lmf,igrph) .and. m1 == mso(lmf,igrph) .and. ( nspino == 1 .or. is1 == iso(lmf,igrph) ) ) then 
+!              cfac = - ampl2
+!            endif
           else
  ! One multiplies by -img in order -aimag(taull) is the density of state
             cfac = cfac - img * ampl1 * conjg(  ampl2 )

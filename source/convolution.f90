@@ -1787,10 +1787,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         if( Trunc(ifich) ) then
           Ts(ie) = Ts(ie) + p2f(ie) * Xanes(i-1,nxan) + p1f(ie) * Xanes(i,nxan)
           As_bulk(ie,:,:,i_Trunc) = As_bulk(ie,:,:,i_Trunc) + p2f(ie) * Adafs(i-1,:,:) + p1f(ie) * Adafs(i,:,:)
-!        else
-!          Xs(ie,:) = Xs(ie,:) + p2f(ie) * Xanes(i-1,:) + p1f(ie) * Xanes(i,:)
         endif
-          Xs(ie,:) = Xs(ie,:) + p2f(ie) * Xanes(i-1,:) + p1f(ie) * Xanes(i,:)
+        Xs(ie,:) = Xs(ie,:) + p2f(ie) * Xanes(i-1,:) + p1f(ie) * Xanes(i,:)
       end do
 
       deallocate( Adafs )

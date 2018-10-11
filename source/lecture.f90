@@ -1543,9 +1543,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Density_comp,Dip_rel,Dipmag,Dist_coop,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient, &
     Egamme,Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness, &
     Film_shift,Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole, &
-    Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_int,Green_s,Green_self,Helm_cos,hkl_borm,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard, &
-    Hybrid,iabsm,iabsorig,icheck,icom,igr_coop,igr_dop,indice_par,Interface_shift,iscratch,isigpi,itdil,its_lapw,iord,itape4, &
-    itype,itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,Length_line,lin_gam, &
+    Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_bulk,Green_int,Green_s,Green_self,Helm_cos,hkl_borm,hkl_dafs,hkl_film,hkl_ref,Hubb, &
+    Hubbard,Hybrid,iabsm,iabsorig,icheck,icom,igr_coop,igr_dop,indice_par,Interface_shift,iscratch,isigpi,itdil,its_lapw,iord, &
+    itape4,itype,itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,Length_line,lin_gam, &
     lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper, &
     mpinodes,mpinodes0,mpirank,mpirank0, &
     Muffintin,Multipole,multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_coop,n_atom_uc,n_atom_proto,n_devide, &
@@ -1555,10 +1555,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     nomfich,nomfichbav,Noncentre, &
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
     nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
-    nself,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_bulk,ntype_conf,numat,numat_abs, &
+    nself,nself_bulk,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_bulk,ntype_conf,numat,numat_abs, &
     nvval,occ_hubb_e,Occupancy_first,Octupole,Old_zero,One_run,Operation_mode,Operation_mode_used,Optic,Overad,Overlap, &
-    p_self_max,p_self0,param,Pas_SCF,pdpolar,phi_0,PointGroup,PointGroup_Auto,polar,Polarise,poldafsem,poldafssm, &
-    pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadmag,Quadrupole,R_rydb,r_self, &
+    p_self_max,p_self0,p_self0_bulk,param,Pas_SCF,pdpolar,phi_0,PointGroup,PointGroup_Auto,polar,Polarise,poldafsem,poldafssm, &
+    pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadmag,Quadrupole,R_rydb,R_self,R_self_bulk, &
     r0_lapw,rchimp,Readfast,Relativiste,Renorm,Rlapw,Rmt,Rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,rydberg,rsorte_s,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spinorbite,state_all, &
@@ -1581,8 +1581,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     n1, n2, natomsym, nb_atom_conf_m, nb_atom_nsph, nbseuil, &
     nchemin, necrantage, neimagent, nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_nonsph, &
     ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, nhybm, nlatm, nn, nnombre, non_relat, norb, norbdil, normrmt, &
-    nparm, nphim, nphimt, npldafs, npldafs_2d, npldafs_e, npldafs_f, nple, nq_nrixs, nrato_dirac, nrm, nscan, nself, nseuil, &
-    nslapwm, nspin, ntype, ntype_bulk, ntype_conf, Trace_k, Wien_save, Z_nospinorbite, Z
+    nparm, nphim, nphimt, npldafs, npldafs_2d, npldafs_e, npldafs_f, nple, nq_nrixs, nrato_dirac, nrm, nscan, nself, nself_bulk, &
+    nseuil, nslapwm, nspin, ntype, ntype_bulk, ntype_conf, Trace_k, Wien_save, Z_nospinorbite, Z
 
   character(len=1):: Let
   character(len=2):: Chemical_Symbol, Chemical_Symbol_c, Symbol
@@ -1642,26 +1642,26 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
     Dip_rel, Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Film, &
     exc_imp, Extract, Extract_ten, FDM_comp, FDMX_only, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, &
-    Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green_s, Green_self, Green_int, Hedin, Helm_cos, hkl_film, &
-    Hubbard, Interface_shift_given, Kern_fac_default, Kern_fast, korigimp, lmaxfree, lmoins1, lplus1, M1M1, M1M2, M2M2, &
-    Magnetic, Matper, Monocrystal, muffintin, &
-    No_DFT, no_core_resolved, no_dipquad, no_e1e3, no_e2e2, no_e3e3, No_renorm, No_solsing, noncentre, nonexc, nonexc_imp, &
+    Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green_bulk, Green_s, Green_self, Green_int, Hedin, Helm_cos, &
+    hkl_film, Hubbard, Interface_shift_given, Kern_fac_default, Kern_fast, korigimp, lmaxfree, lmoins1, lplus1, M1M1, M1M2, &
+    M2M2, Magnetic, Matper, Monocrystal, muffintin, No_DFT, no_core_resolved, no_dipquad, &
+    no_e1e3, no_e2e2, no_e3e3, No_renorm, No_SCF_bulk, No_solsing, noncentre, nonexc, nonexc_imp, &
     normaltau, Occupancy_first, Octupole, Old_zero, One_run, Operation_mode_used, Optic, Overad, &
     Pas_SCF_imp, Pdb, Perdew, PointGroup_Auto, Polarise, quadmag, Quadrupole, r_self_imp, Readfast, Relativiste, &
-    Renorm, rpalf, rydberg, SCF, SCF_elecabs, SCF_mag_free, Self_abs, self_cons, SCF_exc_imp, self_nonexc, &
-    self_nonexc_imp, solsing_only, solsing_s, spherical_signal, spherical_tensor, spherique, &
+    Renorm, rpalf, rydberg, SCF, SCF_bulk, SCF_elecabs, SCF_mag_free, Self_abs, Self_cons, Self_cons_bulk, SCF_exc_imp, &
+    self_nonexc, self_nonexc_imp, solsing_only, solsing_s, spherical_signal, spherical_tensor, spherique, &
     Spinorbite, State_all, State_all_out, Supermuf, Surface_shift_given, Symauto, Symmol, Taux, Tddft, Temp_B_iso, &
     Trace_format_wien, Use_FDMX, Ylm_comp_inp
 
-  logical, dimension(5):: SCF_log
+  logical, dimension(7):: SCF_log
   logical, dimension(10):: Multipole
   logical, dimension(ngroup):: Atom_nsph_e
   logical, dimension(0:ntype):: Hubb
 
   real(kind=db):: Alfpot, Ang_borm, Bulk_roughness, Cap_B_iso, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, &
     D_max_pot, Delta_En_conv, Delta_Epsii, Delta_helm, Dist_coop, Eclie, Eclie_out, Ephot_min, Film_roughness, Film_thickness, &
-    Film_zero, g1, g2, Gamma_max, Kern_fac, number_from_text, Overlap, p_self_max, p_self0, Pas_SCF, phi, phi_0, &
-    pop_nsph, pp, q, r, r_self, R_rydb, Rmtt, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, &
+    Film_zero, g1, g2, Gamma_max, Kern_fac, number_from_text, Overlap, p_self_max, p_self0, p_self0_bulk, Pas_SCF, phi, phi_0, &
+    pop_nsph, pp, q, r, r_self, R_self_bulk, R_rydb, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, &
     V_helm, V_intmax, vv, Width_helm, z_min
 
   real(kind=db), dimension(4,nq_nrixs):: q_nrixs
@@ -1807,6 +1807,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Full_atom_e = .false.
   Full_potential = .false.
   Gamma_tddft = .false.
+  Green_bulk = .false.
   Green_int = .false.
   Green_s = .false.
   Green_self = .true.
@@ -1863,6 +1864,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   no_e3e3 = .false.
   no_e2e2 = .false.
   No_renorm = .false.
+  No_SCF_bulk = .false.
   No_solsing = .false.
   nonexc = .false.
   nonexc_imp = .false.
@@ -1877,6 +1879,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   nrato_lapw(:) = 0
   nrm = 0
   nself = 0
+  nself_bulk = 0
   nsymextract(:) = 1
   do i = 1,n_multi_run_e
     nposextract(i) = i
@@ -1893,6 +1896,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Overlap = 0.1_db
   p_self_max = 1._db
   p_self0 = 0.1_db
+  p_self0_bulk = 0.1_db
   Pas_SCF_imp = .false.
   Pdb = .false.
   pdpolar(:,:) = 0._db
@@ -1923,9 +1927,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Rydberg = .false.
   R_rydb = 1._db
   SCF = .false.
+  SCF_bulk = .false.
   SCF_elecabs = .false.
   SCF_mag_free = .false.
   Self_cons = .false.
+  Self_cons_bulk = .false.
   SCF_exc_imp = .false.
   Self_nonexc = .true.
   Self_nonexc_imp = .false.
@@ -2866,6 +2872,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('green')
           Green_s = .true.
 
+        case('green_bul')
+          Green_bulk = .true.
+
         case('green_int')
           Green_s = .true.
           Green_int = .true.
@@ -2950,9 +2959,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('rmt')
           n = nnombre(itape4,132)
-          read(itape4,*,iostat=ier) rmtt
+          read(itape4,*,iostat=ier) rmt(1:min(ntype,n))
           if( ier > 0 ) call write_err_form(itape4,keyword)
-          rmt(:) = rmtt
 
         case('lmax')
           n = nnombre(itape4,132)
@@ -3028,6 +3036,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             read(itape4,*,iostat=ier) nself, p_self0, Delta_En_conv
           endif
           if( ier > 0 ) call write_err_form(itape4,keyword)
+
+        case('no_scf_bu')
+          No_SCF_bulk = .true.
 
         case('scf_abs')
           scf_elecabs = .true.
@@ -4122,6 +4133,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     endif
 
 ! With spinorbit, the renormalization is mandatory. I have not checked why.
+    if( Green_s ) Green_bulk = .true.
     if( Green_s .or. Renorm .or. Spinorbite .or. .not. ( Optic  .or. No_renorm ) ) then
       Renorm = .true.
     else
@@ -4182,6 +4194,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       SCF = .false.
       Fermi_auto = .false.
       nself = 0
+      nself_bulk = 0
     end if
     if( .not. r_self_imp ) r_self = rsorte_s(1)
     if( SCF ) then
@@ -4192,6 +4205,25 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       p_self0 = 0._db
       nself = 1
       if( .not. ( r_self_imp .or. One_run ) ) r_self = min( rsorte_s(1), 3.5_db )
+    endif
+
+    if( No_SCF_bulk .and. SCF ) then
+      SCF_bulk = .false.
+      if( ( Fermi_auto .or. ( Hubbard .and. .not. ( Atom_occ_hubb .or. Extract ) ) ) .and. nself_bulk == 0 ) then
+        Self_cons_bulk = .true.
+        nself_bulk = 1
+      else
+        Self_cons_bulk = .false.
+        nself_bulk = 0
+      endif
+      p_self0_bulk = 0._db
+      R_self_bulk = min( rsorte_s(1), 3.5_db )
+    else
+      SCF_bulk = SCF
+      Self_cons_bulk = Self_cons
+      p_self0_bulk = p_self0
+      nself_bulk = nself
+      R_self_bulk = R_self
     endif
 
     if( Quadrupole ) then
@@ -4329,7 +4361,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     if( Extract ) then
       State_all = .false.
       State_all_out = .false.
-      call Extract_log(Core_resolved,Green_s,nom_fich_extract,Optic,Renorm,Seuil)
+      call Extract_log(Core_resolved,Green_bulk,Green_s,nom_fich_extract,Optic,Renorm,Seuil)
     endif
 
     if( Spinorbite .and. non_relat == 0 ) Relativiste = .true.
@@ -4791,7 +4823,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       egamme(1) = -5.0_db; egamme(2) =  0.5_db;
       egamme(3) = egamme(1) + ( nenerg - 1 ) * egamme(2)
     endif
-    if( .not. green_s .and. ( .not. FDM_comp ) .and. neimagent > 0 ) eimagent(:) = 0._db
+    if( Green_s ) then
+      FDM_comp = .false.
+    elseif( .not. FDM_comp .and. neimagent > 0 ) then
+      Eimagent(:) = 0._db
+    endif
 
 ! Writing of indata:
     if( icheck(1) > 0 ) then
@@ -4920,6 +4956,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           endif
         else
           write(3,'(A)') ' Finite difference method calculation'
+          if( Bulk .and. Green_bulk ) write(3,'(3x,A)') ' but in the bulk where multiple scattering theory (Green) is used'
           if( n_adimp == 1 ) then
             write(3,440) iord, adimp(1)
           else
@@ -5330,6 +5367,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           write(3,'(/A)')' One cycle for the Fermi level calculation'
         else
           write(3,'(/A)') ' Self consistent calculation'
+          if( Bulk .and. .not. SCF_bulk ) write(3,'(3x,A)') ' but in the bulk'
           write(3,708) nself, p_self0, p_self_max, Delta_En_conv
         endif
         write(3,709) r_self
@@ -5346,6 +5384,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   endif ! arrival point when mpirank0 /= 0
 
   if( mpinodes0 > 1 ) then
+    call MPI_Bcast(Green_bulk,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Green_s,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Extract,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
   endif
@@ -5546,6 +5585,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(nphim,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(npl_2d,npldafs_2d,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nself,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(nself_bulk,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nseuil,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nsymextract,n_multi_run_e,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nposextract,n_multi_run_e,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
@@ -5562,6 +5602,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Overlap,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(p_self_max,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(p_self0,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(p_self0_bulk,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(pdpolar,nple*2,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(polar,3*nple,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(polarise,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
@@ -5582,7 +5623,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(posn,3*n_atom_uc,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Quadmag,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Quadrupole,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(r_self,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(R_self,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(R_self_bulk,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Relativiste,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Renorm,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(roverad,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -5591,8 +5633,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Rsorte_s,n_radius,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Rydberg,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(SCF,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(SCF_bulk,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(SCF_elecabs,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Self_cons,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Self_cons_bulk,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Self_nonexc,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     do i = 1,3
       if( mpirank0 == 0 ) j = iachar( Seuil(i:i) )
@@ -5759,7 +5803,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   phi_0 = phi_0 * radian
   q_nrixs(4,:) = q_nrixs(4,:) * bohr  ! q_nrxis in A^-1 in inpout
   R_rydb = R_rydb / bohr
-  r_self = r_self / bohr
+  R_self = R_self / bohr
+  R_self_bulk = R_self_bulk / bohr
   rchimp(:) = rchimp(:) / bohr
   rmtimp(:) = rmtimp(:) / bohr
   Roverad = Roverad / bohr
@@ -5948,6 +5993,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   SCF_log(3) = Self_cons
   SCF_log(4) = Self_nonexc
   SCF_log(5) = SCF
+  SCF_log(6) = Self_cons_bulk
+  SCF_log(7) = SCF_bulk
 
   return
   100 format(//'  Error in the indata file :')
@@ -6115,7 +6162,7 @@ end
 
 !***********************************************************************
 
-subroutine Extract_log(Core_resolved,Green_s,nom_fich_extract,Optic,Renorm,Seuil)
+subroutine Extract_log(Core_resolved,Green_bulk,Green_s,nom_fich_extract,Optic,Renorm,Seuil)
 
   use declarations
   implicit none
@@ -6126,7 +6173,7 @@ subroutine Extract_log(Core_resolved,Green_s,nom_fich_extract,Optic,Renorm,Seuil
   character(len=132):: mot
   character(len=Length_name):: nom_fich_extract
 
-  logical:: Core_resolved, Green_s, Optic, Renorm
+  logical:: Core_resolved, Green_bulk, Green_s, Optic, Renorm
 
   open(1, file = nom_fich_extract, status='old', iostat=istat)
   if( istat /= 0 ) call write_open_error(nom_fich_extract,istat,1)
@@ -6167,6 +6214,12 @@ subroutine Extract_log(Core_resolved,Green_s,nom_fich_extract,Optic,Renorm,Seuil
       exit
     elseif( mot(2:25) == 'Finite difference method' ) then
       Green_s = .false.
+      read(1,'(A)' ) mot
+      if( mot(5:19) == 'but in the bulk' ) then
+        Green_bulk = .true.
+      else
+        backspace(1)
+      endif
       exit
     endif
   end do

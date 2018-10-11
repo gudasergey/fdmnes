@@ -3158,10 +3158,10 @@ subroutine radial_sd(Classic_irreg,drho,Ecinetic,Eimag,Energ,Enervide,Full_poten
   150 format('    konde =',2f12.5)
 end
 
-!**********************************************************************
+!********************************************************************************************************************************
 
-! Calcul de l'integrale radiale pour la densite d'etat
-! Ylm_mod = .true. correspond au calcul en harmo complexe qu'on projete sur des harmo reelles.
+! Calculation of the radial integral for the density of state
+! Ylm_mod = .true. corresponds to the calculation with complex harmo that we project to real harmo 
 
 subroutine Radial_matrix_sd(Diagonale,drho,Full_potential,icheck,l,lmax,nlm_pot,nlm1,nlm2,nlma,nlma2,nr,nrs,nrmtsd, &
            nspin,nspino,nspinp,r,Radial_comp,Rmtsd,State,State_i,Self,Taull,ui,ur,Ylm_mod)
@@ -3695,6 +3695,461 @@ Subroutine Cal_Solsing_sd(Classic_irreg,drho,Ecomp,Eimag,f2,Full_potential,g0,gm
   120 format(3i3,1p,1x,e13.5,2x,2e13.5)
   170 format(/' drho after singul', /'   Radius         up           dn')
   180 format(1p,3e13.5)
+end
+
+!**********************************************************************
+
+! Calculation of the multiple scttaering amplitude in the complex energy case with FDM
+! Under construction
+
+subroutine Cal_Tau_comp(Cal_xanes,Ecinetic,Eimag,Energ,Enervide,Full_atom, &
+                Full_potential,Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,icheck,ie,itypei,itypepr,lmax_comp,lmax_pot,lmaxat,m_hubb, &
+                n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nenerg,nlm_comp,nlmagm, &
+                nlm_pot,nrato,nrm,nspin,nspino,nspinp,ntype,numat,RadialIntegral,rato,Relativiste,Renorm,Rmtg,Rmtsd, &
+                Spinorbite,State_all,Taull,Tau_comp,V_hubb,V_hubb_abs,V_intmax,V0bd,Vrato,Ylm_comp)
+
+  use declarations
+  implicit none
+
+  integer:: ia, iaabsi, iapr, iaprabs, icheck, ie, ipr, ir, isp1, isp2, it, je, l, lm1, lm2, lmax, lmax_comp, lmax_pot, &
+    m_hubb, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, &
+    n_atom_proto, natome, nenerg, nlm_comp, nlm_pot, nlma, nlma2, nlmagm, nr, nrm, nspin, nspino, nspinp, ntype, Z
+
+  complex(kind=db), dimension(nenerg):: Int_step
+  complex(kind=db), dimension(nlm_comp,nspinp,nlm_comp,nspinp,nenerg):: Tau_comp
+  complex(kind=db), dimension(nlm_comp,1,nspinp,nlm_comp,1,nspinp,nenerg):: RadialIntegral
+  complex(kind=db), dimension(nlm_comp,1,nspinp,nlm_comp,1,nspinp):: RadialIntegral_c
+  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: Taull
+  complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb_abs
+  complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb
+  complex(kind=db), dimension(:,:,:,:), allocatable:: V_hubb_t
+  complex(kind=db), dimension(:,:,:,:), allocatable:: Taulla
+
+  integer, dimension(0:ntype):: nrato, numat
+  integer, dimension(0:n_atom_proto):: itypepr, lmaxat
+  integer, dimension(natome):: iaprotoi, itypei
+
+  logical:: Absorbeur, Cal_xanes, Full_atom, Full_potential, Hubb_a, Hubb_d, Relativiste, &
+    Renorm, Spinorbite, State_all, Ylm_comp
+  logical, dimension(0:ntype):: Hubb
+  logical, dimension(n_atom_0:n_atom_ind):: iapr_done
+  logical, dimension(n_atom_0_self:n_atom_ind_self):: Hubb_diag
+
+  real(kind=db):: a, b, dE, E1, E2, Eimag, Enervide, V_intmax
+  real(kind=db), dimension(nenerg):: Energ
+  real(kind=db), dimension(0:lmax_comp):: pop
+  real(kind=db), dimension(nspin):: Ecinetic, V0bd
+  real(kind=db), dimension(0:n_atom_proto):: Rmtg, Rmtsd
+  real(kind=db), dimension(0:nrm,0:ntype):: rato
+  real(kind=db), dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind) :: Vrato
+  real(kind=db), dimension(:), allocatable:: r
+  real(kind=db), dimension(:,:,:), allocatable:: Vrato_t
+
+  iapr_done(:) = .false.
+  
+  RadialIntegral_c(:,:,:,:,:,:) = (0._db,0._db)
+
+  boucle_ia: do ia = 1,natome
+
+    Absorbeur = ( ia == iaabsi .and. Cal_xanes )
+    if( Cal_xanes .and. .not. ( State_all .or. Absorbeur ) ) cycle
+
+    ipr = iaprotoi(ia)
+    it = itypepr(ipr)
+    Hubb_a = Hubb(it)
+
+    Z = numat( it )
+    if( Z < 19 ) then
+      lmax = min(2,lmaxat(ipr))
+    elseif( Z > 18 .and. Z < 55 ) then
+      lmax = min(3,lmaxat(ipr))
+    else
+      lmax = min(4,lmaxat(ipr))
+    endif
+    lmax = min( lmax,lmax_comp)
+    nlma = (lmax + 1)**2
+    if( Full_potential ) then
+      nlma2 = nlma
+    else
+      nlma2 = 1
+    endif
+
+    if( Full_atom ) then
+      iapr = ia
+    else
+      iapr = ipr
+      if( iapr_done(iapr) ) cycle
+    endif
+    it = itypei(ia)
+
+    do ir = 1,nrato(it)
+      if( rato(ir,it) > Rmtsd(ipr) + eps10 ) exit
+    end do
+    nr = ir + 1
+
+    allocate( r(nr) )
+    allocate( Vrato_t(nr,nlm_pot,nspin) )
+    allocate( V_hubb_t(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp) )
+    allocate( Taulla(nlma,nspinp,nlma,nspinp) )
+    r(1:nr) = rato(1:nr,it)
+    Vrato_t(1:nr,:,:) = Vrato(1:nr,:,:,iapr)
+    if( Hubb(it) .and. iapr <= n_atom_ind_self ) then
+      Hubb_a = .true.
+      if( Absorbeur ) then
+        V_Hubb_t(:,:,:,:) = V_Hubb_abs(:,:,:,:)
+        Hubb_d = Hubb_diag(iaprabs)
+      else
+        V_Hubb_t(:,:,:,:) = V_Hubb(:,:,:,:,iapr)
+        Hubb_d = Hubb_diag(iapr)
+      endif
+    else
+      Hubb_a = .false.
+      Hubb_d = .true.
+    end if
+
+    call radial_sd_comp(Ecinetic,Eimag,Enervide,Full_potential,Hubb_a,Hubb_d,icheck,ie,lmax, &
+         lmax_pot,m_hubb,nenerg,nlm_comp,nlm_pot,nlma2,nr,nspin,nspino,nspinp,Z,r,RadialIntegral,RadialIntegral_c, &
+         Relativiste,Renorm,Rmtg(ipr),Rmtsd(ipr),Spinorbite,V_hubb_t,V_intmax,V0bd,Vrato_t,Ylm_comp)
+
+    deallocate( r, Taulla, V_hubb_t, Vrato_t )
+
+!!!!!!!!!!!!!!!!!!!!!!
+! Cas sans spinorbite pour l'instant, ni Full_poential, ni Hubbard
+!!!!!!!!!!!!!!!!!!!!!!
+   if( nenerg == 1 ) then
+     dE = 1._db
+   elseif( ie == 1 ) then
+     dE = Energ(ie+1) - Energ(ie)
+   elseif( ie == nenerg ) then
+     dE = Energ(ie) - Energ(ie-1)
+   else
+     dE = ( Energ(ie+1) - Energ(ie-1) ) / 2
+   endif
+
+    do je = 1,nenerg
+
+      if( ie == 1 ) then
+        E1 = Energ(ie) - 3 * Eimag
+      else
+        E1 = ( Energ(ie) + Energ(ie-1) ) / 2
+      endif
+ 
+      if( ie == nenerg ) then
+        E2 = Energ(ie) + 3 * Eimag
+      else
+        E2 = ( Energ(ie+1) + Energ(ie) ) / 2
+      endif
+ !     Int_step = ( img / pi ) * log( ( Energ(je) - E1 + img*Eimag/2 ) / ( Energ(je) - E2 + img*Eimag/2 ) )
+      a = 0.5_db * log( ( (Energ(je) - E1)**2 + (Eimag/2)**2 ) / ( (Energ(je) - E2)**2 + (Eimag/2)**2 ) )
+      b = atan( ( E1 - Energ(je) ) / (Eimag/2) ) - atan( ( E2 - Energ(je) ) / (Eimag/2) ) 
+      Int_step(je) = ( img / pi ) * cmplx(a,b,db)
+         
+      do lm1 = 1,nlm_comp
+        do isp1 = 1,nspinp
+          do lm2 = 1,nlm_comp
+            do isp2 = 1,nspinp
+ 
+              Tau_comp(lm1,isp1,lm2,isp2,je) = Tau_comp(lm1,isp1,lm2,isp2,je) &
+                                             + Int_step(je) * Taull(lm1,isp1,lm2,isp2,ia) * RadialIntegral_c(lm1,1,isp1,lm2,1,isp2)            
+              
+            end do
+          end do      
+        end do
+      end do
+      
+    end do
+
+    iapr_done(iapr) = .true.
+
+  end do boucle_ia
+  
+  if( ie < nenerg .or. icheck < 1 ) return
+ 
+  pop(:) = 0._db 
+  write(3,110) ( l, l, l, l = 0,lmax_comp )  
+  do je = 1,nenerg
+      if( je == 1 ) then
+        E1 = Energ(je) - 3 * Eimag
+      else
+        E1 = ( Energ(je) + Energ(je-1) ) / 2
+      endif
+ 
+      if( je == nenerg ) then
+        E2 = Energ(je) + 3 * Eimag
+      else
+        E2 = ( Energ(je+1) + Energ(je) ) / 2
+      endif
+
+    do l = 0,lmax_comp 
+      pop(l) = pop(l) - aimag( Tau_comp(l**2+l+1,1,l**2+l+1,1,je) ) * ( E2 - E1 )
+    end do  
+    write(3,120) Energ(je)*rydb, ( Tau_comp(l**2+l+1,1,l**2+l+1,1,je), pop(l),  l = 0,lmax_comp )  
+  end do
+
+  return
+  110 format(/'      Energy ', 10(3x,'Tau_c_r(',i1,')',3x,'Tau_c_i(',i1,')',5x,'pop(',i1,')',4x) )
+  120 format(f13.5,10(1x,2e13.5,1x,e13.5))
+end
+
+!**********************************************************************
+
+! Calculation of radial integral in energy complex case for FDM
+! Under construction
+
+subroutine radial_sd_comp(Ecinetic,Eimag,Enervide,Full_potential,Hubb_a,Hubb_d,icheck,ie,lmax, &
+         lmax_pot,m_hubb,nenerg,nlm_comp,nlm_pot,nlma2,nr,nspin,nspino,nspinp,numat,r,RadialIntegral,RadialIntegral_c, &
+         Relativiste,Renorm,Rmtg,Rmtsd,Spinorbite,V_hubb,V_intmax,V0bd,Vrato,Ylm_comp)
+
+  use declarations
+  implicit none
+
+  integer:: icheck, ie, ir, is1, is2, iso1, iso2, isp, isp1, isp2, l, l_hubbard, l2, lfin, lm, lm0, lm1, lm2, lmp, lmp1, lmp2, &
+    lmax, lmax_pot, m, m_hubb, nenerg, nlm, nlm_comp, nlm_pot, nlm1, nlm2, nlma2, nr, &
+    nrmtg, nrmtsd, nspin, nspino, nspinp, numat
+
+  complex(kind=db), dimension(nspin):: konde
+  complex(kind=db), dimension(nlm_comp,1,nspinp*nspino,nlm_comp,1,nspinp*nspino,nenerg):: RadialIntegral 
+  complex(kind=db), dimension(nlm_comp,1,nspinp*nspino,nlm_comp,1,nspinp*nspino):: RadialIntegral_c 
+  complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
+  complex(kind=db), dimension(:,:,:,:), allocatable:: Tau
+
+  logical:: Diagonale, Ecomp, Full_potential, Hubb_a, Hubb_d, Hubb_m, Radial_comp, Relativiste, Renorm, &
+    Spinorbite, Ylm_comp
+
+  real(kind=db):: Eimag, Enervide, f_integr3, Hpsi_r, Hpsi_i, pHp_i, pHp_r, pp, pp_i, pp_r, radli, radlr, Rmtg, &
+                  Rmtsd, td, V_intmax
+  real(kind=db), dimension(nspin):: Ecinetic, V0bd
+  real(kind=db), dimension(nr):: f2, r
+  real(kind=db), dimension(nr,nspin):: g0, gm, gp, gpi
+  real(kind=db), dimension(nr,nspino):: gso
+  real(kind=db), dimension(nr,nlm_pot,nspin):: Vrato
+  real(kind=db), dimension(nr,nlm_comp,nlma2,nspinp,nspino):: uit, urt
+  real(kind=db), dimension(:), allocatable:: dr, fci, fcr, r2, rr
+  real(kind=db), dimension(:,:,:,:), allocatable:: V
+  real(kind=db), dimension(:,:,:,:,:), allocatable:: ui, ur
+
+  konde(:) = sqrt( cmplx(Ecinetic(:), Eimag,db) )
+
+  uit(:,:,:,:,:) = 0._db
+  urt(:,:,:,:,:) = 0._db
+
+  if( Full_potential ) then
+    nlm = ( lmax + 1 )**2
+  else
+    nlm = 1
+  endif
+  allocate( V(nr,nlm,nlm,nspin) )
+
+  call mod_V(icheck,lmax,lmax_pot,nlm,nlm_pot,nr,nrmtg,nrmtsd,nspin,r,Rmtg,Rmtsd,V,V_intmax,V0bd,Vrato,Ylm_comp)
+
+  allocate( dr(nrmtsd) )
+  allocate( rr(nrmtsd) )
+  allocate( r2(nrmtsd) )
+  allocate( fci(nrmtsd) )
+  allocate( fcr(nrmtsd) )
+  
+  rr(1:nrmtsd) = r(1:nrmtsd)
+  r2(1:nrmtsd) = r(1:nrmtsd)**2
+
+  dr(1) = 0.5_db * ( r(2) + r(1) )
+  do ir = 2,nrmtsd-1
+    dr(ir) = 0.5_db * ( r(ir+1) - r(ir-1) )
+  end do
+  dr(nrmtsd) = Rmtsd - 0.5_db * ( r(nrmtsd-2) + r(nrmtsd-1) )
+
+  call coef_sch_rad(Enervide,f2,g0,gm,gp,gso,nlm,nr,nspin,nspino,numat,r,Relativiste,Spinorbite,V)
+
+  gpi(:,:) = 1 / gp(:,:)
+
+  if( abs(Eimag) > eps10 .or. Ecinetic(1) < eps10 .or. Ecinetic(nspin) < eps10 ) then
+    Ecomp = .true.
+  else
+    Ecomp = .false.
+  endif
+  Radial_comp = Ecomp .or. ( Hubb_a .and. Ylm_comp )
+
+  if( Full_potential ) then
+    lfin = 0
+  else
+    lfin = lmax
+  endif
+
+  do l = 0,lfin
+
+    if( Hubb_a .and. l == l_hubbard( numat ) )  then
+      Hubb_m = .true.
+    else
+      Hubb_m = .false.
+    endif
+
+    if( Full_potential ) then
+      nlm1 = nlm ! = ( lmax + 1 )**2
+      nlm2 = nlm
+    elseif( Hubb_m .and. .not. Hubb_d ) then
+      nlm1 = 2*l + 1
+      nlm2 = nlm1
+    elseif( Spinorbite .or. Hubb_m ) then
+      nlm1 = 2*l + 1
+      nlm2 = 1
+    else
+      nlm1 = 1
+      nlm2 = 1
+    endif
+    Diagonale = .not. ( Full_potential .or. Hubb_m )
+
+    allocate( ui(nr,nlm1,nlm2,nspinp,nspino) )
+    allocate( ur(nr,nlm1,nlm2,nspinp,nspino) )
+    allocate( Tau(nlm1,nspinp,nlm1,nspinp) )
+
+    call Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gpi,gso,Hubb_a,Hubb_d,icheck,konde,l,lmax,m_hubb, &
+         nlm,nlm1,nlm2,nr,nrmtg,nspin,nspino,nspinp,numat,r,Radial_comp,Relativiste,Renorm,Rmtg,Spinorbite,Tau,ui, &
+         ur,V,V_hubb)
+
+! Energy calculation
+
+    l2 = l*(l+1)
+
+    php_r = 0._db
+    php_i = 0._db
+    pp_r = 0._db
+    pp_i = 0._db
+    isp = 1
+
+    do ir = 1,nrmtsd
+! one must add E because g0 contains V - E
+      td = g0(ir,isp) + l2 * f2(ir) + Enervide
+      if( ir == 1 ) then
+        if( l == 0 ) then 
+          Hpsi_r = gm(ir,isp) * ur(ir,1,1,1,1) +  td * ur(ir,1,1,1,1) + gp(ir,isp) * ur(ir+1,1,1,1,1)
+          Hpsi_i = gm(ir,isp) * ui(ir,1,1,1,1) +  td * ui(ir,1,1,1,1) + gp(ir,isp) * ui(ir+1,1,1,1,1)
+        else
+          Hpsi_r = td * ur(ir,1,1,1,1) + gp(ir,isp) * ur(ir+1,1,1,1,1)
+          Hpsi_i = td * ui(ir,1,1,1,1) + gp(ir,isp) * ui(ir+1,1,1,1,1)
+        endif
+      else
+        Hpsi_r = gm(ir,isp) * ur(ir-1,1,1,1,1) +  td * ur(ir,1,1,1,1) + gp(ir,isp) * ur(ir+1,1,1,1,1)
+        Hpsi_i = gm(ir,isp) * ui(ir-1,1,1,1,1) +  td * ui(ir,1,1,1,1) + gp(ir,isp) * ui(ir+1,1,1,1,1)
+      endif
+      php_r = php_r + ( ur(ir,1,1,1,1) * Hpsi_r + ui(ir,1,1,1,1) * Hpsi_i) * dr(ir) * r2(ir)
+      php_i = php_i + ( ur(ir,1,1,1,1) * Hpsi_i - ui(ir,1,1,1,1) * Hpsi_r) * dr(ir) * r2(ir)
+      fcr(ir) = ( ur(ir,1,1,1,1) * Hpsi_r + ui(ir,1,1,1,1) * Hpsi_i ) * r2(ir)
+      fci(ir) = ( ur(ir,1,1,1,1) * Hpsi_i - ui(ir,1,1,1,1) * Hpsi_r ) * r2(ir)
+
+      pp_r = pp_r + ur(ir,1,1,1,1)**2 * dr(ir) * r2(ir)
+      pp_i = pp_i + ui(ir,1,1,1,1)**2 * dr(ir) * r2(ir)
+    end do
+    pp = pp_r + pp_i
+do ir = 1,nrmtsd
+  write(3,'(1p,2e13.5)') rr(ir)*bohr, fcr(ir)
+end do
+stop
+    php_r = f_integr3(rr,fcr,1,nrmtsd,Rmtsd)
+    php_i = f_integr3(rr,fci,1,nrmtsd,Rmtsd)
+
+    do ir = 1,nrmtsd
+      fcr(ir) = ( ur(ir,1,1,1,1)**2 + ui(ir,1,1,1,1)**2 ) * r2(ir)
+    end do
+    
+    pp = f_integr3(rr,fcr,1,nrmtsd,Rmtsd)
+
+    php_r = ( php_r / pp ) * Rydb
+    php_i = ( php_i / pp ) * Rydb
+    
+    write(3,110) php_r, php_i, pp
+ 110 format(/' <PsiHPsi> / <PsiPsi> =',1p,2e13.5,', <PsiPsi> =',e13.5) 
+
+
+    do lm1 = 1,nlm1
+      do lmp1 = 1,nlm2
+        do isp1 = 1,nspinp
+          do iso1 = 1,nspino
+
+            if( Full_potential ) then
+              urt(1:nrmtsd,lm1,lmp1,isp1,iso1) = ur(1:nrmtsd,lm1,lmp1,isp1,iso1)
+              uit(1:nrmtsd,lm1,lmp1,isp1,iso1) = ui(1:nrmtsd,lm1,lmp1,isp1,iso1)
+            elseif( Hubb_m .and. .not. Hubb_d ) then
+              lm0 = l**2
+              urt(1:nrmtsd,lm0+lm1,lm0+lmp1,isp1,iso1) = ur(1:nrmtsd,lm1,lmp1,isp1,iso1)
+              uit(1:nrmtsd,lm0+lm1,lm0+lmp1,isp1,iso1) = ui(1:nrmtsd,lm1,lmp1,isp1,iso1)
+            elseif( Spinorbite .or. Hubb_m ) then
+              lm0 = l**2
+              urt(1:nrmtsd,lm0+lm1,lmp1,isp1,iso1) = ur(1:nrmtsd,lm1,lmp1,isp1,iso1)
+              uit(1:nrmtsd,lm0+lm1,lmp1,isp1,iso1) = ui(1:nrmtsd,lm1,lmp1,isp1,iso1)
+            else
+              lm0 = l**2 + l + 1
+              do m = -l,l
+                urt(1:nrmtsd,lm0+m,lmp1,isp1,iso1) = ur(1:nrmtsd,lm1,lmp1,isp1,iso1)
+                uit(1:nrmtsd,lm0+m,lmp1,isp1,iso1) = ui(1:nrmtsd,lm1,lmp1,isp1,iso1)
+              end do
+            endif
+                  
+          end do
+        end do
+      end do
+    end do
+
+    deallocate( Tau, ui, ur )
+    
+  end do   ! fin de la boucle sur l
+
+  deallocate( V )
+
+! Integrale radiale pour la densite d'etat
+
+  lm = (lmax + 1)**2
+
+  if( .not. ( Full_potential .or. ( Hubb_a .and. .not. Hubb_d ) ) ) then
+    lmp = 1
+  else
+    lmp = lm
+  endif
+  
+  do lm1 = 1,lm
+    do lmp1 = 1,lmp
+      is1 = 0
+      do isp1 = 1,nspinp
+        do iso1 = 1,nspino
+          is1 = is1 + 1 
+
+          do lm2 = 1,lm
+            do lmp2 = 1,lmp
+              is2 = 0
+              do isp2 = 1,nspinp
+                do iso2 = 1,nspino
+                  is2 = is2 + 1 
+                  if( .not. Spinorbite .and. isp1 /= isp2 ) cycle
+! u * up
+                  fcr(1:nrmtsd) = r2(1:nrmtsd) * ( urt(1:nrmtsd,lm1,lmp1,isp1,iso1) * urt(1:nrmtsd,lm2,lmp2,isp2,iso2) &
+                                                 - uit(1:nrmtsd,lm1,lmp1,isp1,iso1) * uit(1:nrmtsd,lm2,lmp2,isp2,iso2) )
+                  radlr = f_integr3(rr,fcr,1,nrmtsd,Rmtsd)
+                  fci(1:nrmtsd) = r2(1:nrmtsd) * ( urt(1:nrmtsd,lm1,lmp1,isp1,iso1) * uit(1:nrmtsd,lm2,lmp2,isp2,iso2) &
+                                                 + uit(1:nrmtsd,lm1,lmp1,isp1,iso1) * urt(1:nrmtsd,lm2,lmp2,isp2,iso2) )
+                  radli = f_integr3(rr,fci,1,nrmtsd,Rmtsd)
+
+                  RadialIntegral(lm1,lmp1,is1,lm2,lmp2,is2,ie) = cmplx( radlr, radli, db )
+! u * conjg( up )                
+                  fcr(1:nrmtsd) = r2(1:nrmtsd) * ( urt(1:nrmtsd,lm1,lmp1,isp1,iso1) * urt(1:nrmtsd,lm2,lmp2,isp2,iso2) &
+                                                 + uit(1:nrmtsd,lm1,lmp1,isp1,iso1) * uit(1:nrmtsd,lm2,lmp2,isp2,iso2) )
+                  radlr = f_integr3(rr,fcr,1,nrmtsd,Rmtsd)
+                  fci(1:nrmtsd) = r2(1:nrmtsd) * ( - urt(1:nrmtsd,lm1,lmp1,isp1,iso1) * uit(1:nrmtsd,lm2,lmp2,isp2,iso2) &
+                                                 + uit(1:nrmtsd,lm1,lmp1,isp1,iso1) * urt(1:nrmtsd,lm2,lmp2,isp2,iso2) )
+                  radli = f_integr3(rr,fci,1,nrmtsd,Rmtsd)
+
+                  RadialIntegral_c(lm1,lmp1,is1,lm2,lmp2,is2) = cmplx( radlr, radli, db )
+                
+                end do
+              end do
+            end do
+          end do
+
+        end do
+      end do
+    end do
+  end do
+
+  deallocate( dr, fci, fcr, r2, rr )
+  
+  return
 end
 
 !***********************************************************************
