@@ -5746,7 +5746,7 @@ end
 
 !*********************************************************************
 
-! Calcul du tenseur quadrupole-quadrupole
+! Calculation of the tensor quadrupole-quadrupole E2E2
 
 subroutine tensqq(iopsymt,magnet,msymqq,msymqqi)
 
@@ -5885,7 +5885,7 @@ end
 
 !*********************************************************************
 
-! Calcul du tenseur dipole-octupole
+! Calculation of the tensor dipole-octupole
 
 subroutine tensdo(iopsymt,magnet,msymdo,msymdoi)
 
@@ -6016,7 +6016,7 @@ end
 
 !*********************************************************************
 
-! Calcul du tenseur E3E3
+! Calculation of the tensor E3E3
 
 subroutine tensoo(iopsymt,magnet,msymoo,msymooi,n_oo)
 
@@ -6278,7 +6278,7 @@ end
 
 !***********************************************************************
 
-! Calcul direct de l'inverse d'une matrice 3 x 3
+! Direct calculation of the inverse of a matrix 3 x 3
 
 subroutine invermat(a,b)
 
@@ -6367,6 +6367,7 @@ end
 !*********************************************************************
 
 ! Calculation of f' and f" = absorption before the edge (output is in MBarn)
+! fp_avantseuil is just the forward scattering
 
   complex(kind=db) function f_cal(Bulk_step,Doping,Eseuil,icheck,itypepr,n_atom_proto,n_atom_proto_uc,nbseuil, &
                         ngreq,ntype,numat,Z_abs,Taux_ipr,Volume_maille)
@@ -6405,6 +6406,7 @@ end
       Ea = Eseuil(nbseuil) - 1
       Ea = max( Ea,  0.5_db )
       call fprime(Z,Ea,fppa(ipr),fpa(ipr))
+
       fpp_avantseuil = fpp_avantseuil + Taux_ipr(ipr) * ngreq(ipr) * fppa(ipr)
 
       if( Z /= Z_abs ) fp_avantseuil = fp_avantseuil + Taux_ipr(ipr) * ngreq(ipr) * fpa(ipr)
@@ -6415,11 +6417,11 @@ end
       fp_avantseuil = fp_avantseuil + Taux_ipr(ipr) * ngreq(ipr) * f0(ipr)
     end do
 
-! Conversion en Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
+! Conversion in Megabarn (= 10^-18 cm2 = 10^-22 m2 = 10^-2 A2)
     fpp_avantseuil = fpp_avantseuil / conv_mbarn_nelec(Ea)
     fp_avantseuil = fp_avantseuil / conv_mbarn_nelec(Ea)
 
-! Conversion en coefficient d'absorption lineaire en micrometre^-1
+! Conversion in linear absorption coefficient in micrometer^-1
     if( Volume_maille > eps10 ) then
       fpp_avantseuil_m = 100 * fpp_avantseuil /( Volume_maille * bohr**3 )
       fp_avantseuil_m = 100 * fp_avantseuil /( Volume_maille * bohr**3 )

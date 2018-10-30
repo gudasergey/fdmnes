@@ -14,9 +14,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   use declarations
   implicit none
 
-  integer:: Dafs_exp_type, eof, i, i_conv, i_hk, i_Trunc, i1, ical, icheck, ie, ie1, ie2, ifich, igr, ii, &
+  integer:: Dafs_exp_type, eof, i, i_bulk_z, i_conv, i_hk, i_Trunc, i1, ical, icheck, ie, ie1, ie2, ifich, igr, ii, &
     initl, ip, ipar, ipas, ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, &
-    jfich, jpl, js, jseuil, k, kpl, l, Length_line, mfich, n, n_col, n_col_max, n_energ_tr, &
+    jfich, jpl, js, jseuil, k, kpl, l, Length_line, mfich, n, n_bulk_z, n_col, n_col_max, n_energ_tr, &
     n_mat_pol, n_selec_core, n_signal, n_Stokes, n_Trunc, &
     ncal, ne2, nef, nelor, nen2, nenerg, nenerge, nes, nes_in, nfich, &
     ngamh, ngroup_par, ninit, ninit1, ninitlm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
@@ -45,9 +45,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   complex(kind=db):: cf, zero_c
   complex(kind=db), dimension(1):: cdum
-  complex(kind=db), dimension(:), allocatable:: dampl, dph, dph_t, dpht, f0, f0_bulk, f0_th
-  complex(kind=db), dimension(:,:), allocatable:: f0scan, f0scan_bulk, phdtscan, Trs
-  complex(kind=db), dimension(:,:,:), allocatable:: Ad, Adafs, As, Mu_m, Mu_mat_comp, Mu_t
+  complex(kind=db), dimension(:), allocatable:: dampl, dph, dph_t, dpht, f0, f0_th
+  complex(kind=db), dimension(:,:), allocatable:: f0_bulk, f0scan, phdtscan, Sum_Bragg_nonabs_f, Trs
+  complex(kind=db), dimension(:,:,:), allocatable:: Ad, Adafs, As, f0scan_bulk, Mu_m, Mu_mat_comp, Mu_t, Trs_Trunc
   complex(kind=db), dimension(:,:,:,:), allocatable:: As_bulk, mu, mus
 
   logical:: Abs_before, Abs_in_bulk, Analyzer, Another_one, Arc, bav_open, Bormann, Dafs, Dafs_bio, Check_conv, chem, Circular, &
@@ -71,8 +71,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   real(kind=db), dimension(:), allocatable:: Abs_U_iso, angle, bb, betalor, decal, e1, e2, Efermip, Elor, En_fermi, Energ, &
         Energe, Energ_tr, Ep, Eph1, Ephm, Ephoton, Es, Es_temp, Eseuil, fpp_avantseuil, fi, fr, l_dafs, Length_abs, lori, & 
         lorix, lorr, lorrx, natomsym_f, Pds, p1f, p2f, Tens, V0muf, Ts, Yr, Yi
-  real(kind=db), dimension(:,:), allocatable:: decal_initl, Epsii, Length_rel, Mu_tt, mua_r, mua_i, Signal, Stokes_param, Xa, &
-                                               Xanes, Xs
+  real(kind=db), dimension(:,:), allocatable:: decal_initl, Epsii, Length_rel, Length_rel_abs, Mu_tt, mua_r, mua_i, Signal, &
+                                               Stokes_param, Xa, Xanes, Xs
   real(kind=db), dimension(:,:,:), allocatable:: Icirc, Icirccor, Icor, Icircdcor, Idcor, Mu_mat, Mus_mat
 
 ! Put to .true. when TDDFT
@@ -116,6 +116,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   jseuil = 1
   Just_total = .true.
   Magn = .false.
+  n_bulk_z = 0
   n_Stokes = 0
   nelor = 0
   nfich = 0
@@ -570,6 +571,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         if( n_energ_tr > 0 ) then 
           allocate( Energ_tr(n_energ_tr) )
           read(itape1,*) Energ_tr(:)
+          Energ_tr(:) = Energ_tr(:) / rydb
         endif
          
       case('s0_2')
@@ -759,8 +761,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Trunc(:) = .false.
 
   call Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm,Epsii,f0_forward,Fichin,Fichscanin, &
-          fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_col_max,n_mat_pol,n_Trunc,natomsym_f,ne,nfich, &
-          ninit1,ninitl,ninitlm,nphim,npldafs,nseuil,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph, &
+          fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_bulk_z,n_col_max,n_mat_pol,n_Trunc,natomsym_f,ne, &
+          nfich,ninit1,ninitl,ninitlm,nphim,npldafs,nseuil,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph, &
           Surface_ref,Tenseur,Tenseur_car,Trunc,V0muf,Volume_maille,Volume_maille_bulk)
 
   if( .not. Cor_abs ) Double_cor = .false.
@@ -849,10 +851,12 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   f0(:) = (0._db, 0._db )
   allocate( nphi(npldafs) )
   if( Abs_in_bulk ) then
-    allocate( f0_bulk(npldafs) )
-    f0_bulk(:) = (0._db, 0._db )
+    allocate( f0_bulk(npldafs,n_trunc) )
+    f0_bulk(:,:) = (0._db, 0._db )
     allocate( l_dafs(npldafs) )
-    allocate( Length_rel(npldafs,n_Trunc) )
+    allocate( Length_rel(npldafs,n_bulk_z) )
+    allocate( Sum_Bragg_nonabs_f(npldafs,n_bulk_z) )
+    allocate( Length_rel_abs(npldafs,n_Trunc) )
     allocate( Length_abs(npldafs) )
   endif
 
@@ -865,7 +869,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       deallocate( f0_th )
     else
       Pdt = 0._db; Pdt_bulk = 0._db
+      i_trunc = 0
       do ifich = 1,nfich
+        if( Trunc(ifich) ) i_trunc = i_trunc + 1
         if( Skip_run(ifich) ) cycle
         open(2, file = fichin(ifich), status='old', iostat=istat)
         if( istat /= 0) call write_open_error(fichin(ifich),istat,1)
@@ -874,8 +880,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         if( n > 0 ) then
           read(2,*) ( fr(ipl), fi(ipl), ipl = 1,npldafs )
           if( Trunc(ifich) ) then
-            f0_bulk(:) = f0_bulk(:) + Pds(ifich) * cmplx( fr(:), fi(:), db )
-            Pdt_bulk = Pdt_bulk + Pds(ifich)
+            f0_bulk(:,i_trunc) = Pds(ifich) * cmplx( fr(:), fi(:), db )
           else
             f0(:) = f0(:) + Pds(ifich) * cmplx( fr(:), fi(:), db )
             Pdt = Pdt + Pds(ifich)
@@ -884,7 +889,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         Close(2)
       end do
       if( abs(Pdt) > 1e-10_db ) f0(:) = f0(:) / Pdt
-      if( Abs_in_bulk .and. abs(Pdt_bulk) > 1e-10_db ) f0_bulk(:) = f0_bulk(:) / Pdt_bulk
     endif
 
   endif
@@ -941,7 +945,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   allocate( Mu_mat_comp(nes,4,n_mat_pol) )
   if( Abs_in_bulk ) then
     allocate( As_bulk(nes,nphim,npldafs,n_Trunc) )
-    allocate( f0scan_bulk(nphim,npldafs) )
+    allocate( f0scan_bulk(nphim,npldafs,n_Trunc) )
     allocate( Ts(nes) )
   endif
   if( Cor_abs ) allocate( mus(nes,nphim,npldafs,2) )
@@ -1021,7 +1025,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   if( Abs_in_bulk ) then
     As_bulk(:,:,:,:) = (0._db,0._db)
     Ts(:) = 0._db
-    f0scan_bulk(:,:) = ( 0._db, 0._db )
+    f0scan_bulk(:,:,:) = ( 0._db, 0._db )
   endif
   f0scan(:,:) = ( 0._db, 0._db )
   angle(:) = 0._db
@@ -1084,8 +1088,16 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           axyz(:) = axyz(:) / bohr
         elseif( Trunc(ifich) ) then
           read(2,*) Length_abs(:)
-          read(2,*) Length_rel(:,i_Trunc)
+          read(2,*) Length_rel_abs(:,i_Trunc)
           read(2,*) l_dafs(:)
+          n = nnombre(2,Length_line)
+          if( n /= 0 ) then
+            do i_bulk_z = 1,n_bulk_z
+              read(2,*) ( fr(ipl), fi(ipl), ipl = 1,npldafs )
+              Sum_Bragg_nonabs_f(1:npldafs,i_bulk_z) = cmplx( fr(1:npldafs), fi(1:npldafs), db )
+              read(2,*) Length_rel(:,i_bulk_z)
+            end do
+          endif
         endif
       elseif( Tenseur ) then
         f0(:) = ( 0._db, 0._db )
@@ -1189,7 +1201,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
               endif
               Adafs(ie,i,ipl) = cmplx( a, b, db)
               if( Trunc(ifich) ) then
-                f0scan_bulk(i,ipl) = cmplx( a1, b1, db)
+                f0scan_bulk(i,ipl,i_Trunc) = cmplx( a1, b1, db)
               else
                 f0scan(i,ipl) = cmplx( a1, b1, db)
               endif
@@ -1810,6 +1822,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 ! One applies the truncation
   if( Abs_in_bulk ) then
     allocate( Trs(nes,npldafs) )
+    allocate( Trs_Trunc(nes,npldafs,n_trunc) )
 ! Addition of pre-edge absorption and conversion in micrometer^-1
     c_micro = 100 / Volume_maille_bulk
     Ts(:) = c_micro * ( Ts(:) + mu_0_bulk )
@@ -1817,8 +1830,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     do ipl = 1,npldafs 
       Trs(:,ipl) = 1 / ( 1 - exp( - Ts(:) * Length_abs(ipl) - img * 2 * pi * l_dafs(ipl) ) )
       do i_Trunc = 1,n_Trunc 
+        Trs_Trunc(:,ipl,i_Trunc) = exp( - Ts(:) * Length_rel_abs(ipl,i_Trunc) ) * Trs(:,ipl)
         do ip = 1,nphi(ipl)
-          As(:,ip,ipl) = As(:,ip,ipl) + exp( - Ts(:) * Length_rel(ipl,i_Trunc) ) * Trs(:,ipl) * As_bulk(:,ip,ipl,i_Trunc) 
+          As(:,ip,ipl) = As(:,ip,ipl) + Trs_Trunc(:,ipl,i_Trunc) * As_bulk(:,ip,ipl,i_Trunc) 
         end do
       end do
     end do
@@ -1828,12 +1842,20 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       write(3,'(A/,23x,1p,120e13.5)') ' Length_abs(1,11,...) (micrometer) =', ( Length_abs(i), i = 1,min(npldafs,201), 10 )
       do i_Trunc = 1,n_Trunc
         write(3,'(A/,23x,1p,120e13.5)') ' Length_rel(1,11,...) (micrometer) =', &
-                                                                      ( Length_rel(i,i_Trunc), i = 1,min(npldafs,201), 10 )
+                                                                      ( Length_rel_abs(i,i_Trunc), i = 1,min(npldafs,201), 10 )
       end do
       write(3,'(/A)') '    Energy      Ts       1 - exp(-Ts*Length_abs(i)), i = 1,11,...'
       do ie = 1,nes
         write(3,'(f10.3,1p,121e13.5)') Es(ie)*rydb, Ts(ie), &
                                    ( 1 - exp( - Ts(ie) * Length_abs(i)), i = 1,min(npldafs,201), 10 ) 
+      end do
+      write(3,'(/A)') ' ( exp(-Ts*Length_rel(i,i_trunc)*Trs), i_trunc = 1,n_trunc'
+      do ipl = 1,npldafs
+        if( ipl == 1 .or. l_dafs(ipl) < l_dafs( max(1,ipl-1)) ) &
+          write(3,187) ( i_trunc, i_trunc, i_trunc, i_trunc = 1,n_trunc )
+        write(3,'(f10.5,1p,121e17.9)') l_dafs(ipl), As(nenerg,1,ipl), Trs(nenerg,ipl), abs(Trs(nenerg,ipl))**2, &
+                         sum(As_bulk(nenerg,1,ipl,:)), ( Trs_Trunc(nenerg,ipl,i_Trunc), abs(As_bulk(nenerg,1,ipl,i_Trunc))**2, &
+                         i_trunc = 1,n_trunc ) 
       end do
     endif
     
@@ -1852,21 +1874,54 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
             As(:,ip,ipl) = As(:,ip,ipl) + conjg( f0(ipl) )
           else
             As(:,ip,ipl) = As(:,ip,ipl) + f0(ipl)
-            if( Abs_in_bulk ) As(:,ip,ipl) = As(:,ip,ipl) + Trs(:,ipl) * f0_bulk(ipl)
+            if( Abs_in_bulk ) then
+              do i_Trunc = 1,n_Trunc
+                As(:,ip,ipl) = As(:,ip,ipl) + Trs_Trunc(:,ipl,i_Trunc) * f0_bulk(ipl,i_Trunc)
+              end do
+            endif
           endif
         else
           if( Bormann ) then
             As(:,ip,ipl) = As(:,ip,ipl) + conjg( f0scan(ip,ipl) )
           else
             As(:,ip,ipl) = As(:,ip,ipl) + f0scan(ip,ipl)
-            if( Abs_in_bulk ) As(:,ip,ipl) = As(:,ip,ipl) + Trs(:,ipl) * f0scan_bulk(ip,ipl)
+            if( Abs_in_bulk ) then
+              do i_Trunc = 1,n_Trunc
+                As(:,ip,ipl) = As(:,ip,ipl) + Trs_Trunc(:,ipl,i_Trunc) * f0scan_bulk(ip,ipl,i_Trunc)
+              end do
+            endif
           endif
         endif
       end do
     end do
   endif
 
-  if( Abs_in_bulk ) deallocate ( Trs )
+  if( icheck > 1 .and. Abs_in_bulk ) then
+    write(3,'(/A)') ' f0_bulk'
+    do ipl = 1,npldafs
+      if( ipl == 1 .or. l_dafs(ipl) < l_dafs( max(1,ipl-1)) ) &
+          write(3,188) ( i_trunc, i_trunc, i_trunc, i_trunc = 1,n_trunc )
+      write(3,'(f10.5,1p,121e17.9)') l_dafs(ipl), As(nenerg,1,ipl), Trs(nenerg,ipl), abs(Trs(nenerg,ipl))**2, &
+                         ( sum( f0_bulk(ipl,:) ), Trs_Trunc(nenerg,ipl,i_Trunc), abs( f0_bulk(ipl,i_Trunc) )**2, &
+                         i_trunc = 1,n_trunc ) 
+    end do
+  endif
+
+  if( Abs_in_bulk .and. .not. Forbidden .and. Dafs ) then
+ ! Contribution of the non-absorbing atoms in the bulk
+    deallocate( Trs_Trunc )
+    allocate( Trs_Trunc(nes,npldafs,n_bulk_z) )
+    do ipl = 1,npldafs 
+      do i_bulk_z = 1,n_bulk_z 
+        Trs_Trunc(:,ipl,i_bulk_z) = exp( - Ts(:) * Length_rel(ipl,i_bulk_z) ) * Trs(:,ipl)
+        do ip = 1,nphi(ipl)
+          As(:,ip,ipl) = As(:,ip,ipl) + Trs_Trunc(:,ipl,i_bulk_z) * Sum_Bragg_nonabs_f(ipl,i_bulk_z) 
+        end do
+      end do
+    end do  
+  endif
+
+  if( Abs_in_bulk ) deallocate( Trs, Trs_Trunc )
   
 ! In fact one calculates epsilon - 1 = -4*pi*Atom_density*r0/k2
 ! We are in atomic units r0 --> r0 / a0 = alfa^2
@@ -2141,11 +2196,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       n_energ_tr = nes
       allocate( Energ_tr(n_energ_tr) )
       Energ_tr(:) = Es(:)
-    else
-      Energ_tr(:) = Energ_tr(:) / rydb
     endif
     call Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal,nes,nom_col,npldafs_t,Signal)
-    deallocate( Energ_tr, Signal )
+    deallocate( Signal )
   endif
 
   if( Scan_true .and. .not. Dafs_bio ) then
@@ -2234,9 +2287,11 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   deallocate( p1f, p2f, Pds, phdtscan )
   deallocate( Run_done, Stokes_name, Stokes_param, Skip_run )
   deallocate( Trunc, V0muf, Xs )
-  if( Abs_in_bulk ) deallocate( As_bulk, f0_bulk, f0scan_bulk, l_dafs, Length_abs, Length_rel, Ts  )
+  if( Abs_in_bulk ) deallocate( As_bulk, f0_bulk, f0scan_bulk, l_dafs, Length_abs, Length_rel, Length_rel_abs, &
+                                Sum_Bragg_nonabs_f, Ts  )
   if( Cor_abs ) deallocate( mus )
   deallocate( n_index_hk )
+  if( Transpose_file ) deallocate( Energ_tr )
   
   if( ncal > 1 .and. ical == ncal+1 ) then
     do jfich = 1,mfich
@@ -2276,6 +2331,10 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   179 format(/' E_(eV) - E_edge  Width_(eV) lambda_(A)')
   180 format(3f12.3)
   185 format(2f12.3,1p,e12.4)
+  187 format(6x,'L',10x,'As_s'12x,'As_i',13x,'Trs_r',12x,'Trs_i',10x,'abs(Trs)**2',8x,'Sum_A_r',10x,'Sum_A_i'4x,&
+                 10(7x,'Fr_',i1,13x,'Fi_',i1,9x,'abs(As)**2_',i1,2x))
+  188 format(6x,'L',10x,'As_s'12x,'As_i',13x,'Trs_r',12x,'Trs_i',10x,'abs(Trs)**2',7x,'Sum_f0_r',9x,'Sum_f0_i'4x,&
+                 10(7x,'Fr_',i1,13x,'Fi_',i1,9x,'abs(f0)**2_',i1,2x))
   190 format(/'   Energy   ',9(' Mu_ss_r_',i1,'    Mu_ss_i_',i1,'    Mu_sp_r_',i1,'    Mu_sp_i_',i1,'    Mu_ps_r_',i1, &
                               '    Mu_ps_i_',i1,'    Mu_pp_r_',i1,'    Mu_pp_i_',i1,'   '))
   200 format(f10.3,1p,240e13.5)
@@ -2485,7 +2544,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
     open(2, file = fichin(ifich), status='old', iostat=istat)
 
     read(2,*)
-    do i = 1,6
+    do
       n = nnombre(2,Length_line)
       if( n == 0 ) then
         read(2,*)
@@ -2854,15 +2913,15 @@ end
 ! Reading of dimensions
 
 subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm, Epsii,f0_forward,Fichin,Fichscanin, &
-          fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_col_max,n_mat_pol,n_Trunc,natomsym_f,ne,nfich, &
-          ninit1,ninitl,ninitlm,nphim,npldafs,nseuil,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph, &
+          fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_bulk_z,n_col_max,n_mat_pol,n_Trunc,natomsym_f,ne, &
+          nfich,ninit1,ninitl,ninitlm,nphim,npldafs,nseuil,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph, &
           Surface_ref,Tenseur,Tenseur_car,Trunc,V0muf,Volume_maille,Volume_maille_bulk)
 
   use declarations
   implicit none
 
-  integer:: eof, i, ie, ifich, ipl, ipr, istat, jseuil, l, Length_line, n, n_col_max, n_mat_pol, n_mat_pol1, n_Trunc, nfich, &
-            ninit1, ninitlm, nnombre, nphi, nphim, nphim1, npldafs, npldafs1, nseuil, numat, nxan, nxan1
+  integer:: eof, i, ie, ifich, ipl, ipr, istat, jseuil, l, Length_line, n, n_bulk_z, n_col_max, n_mat_pol, n_mat_pol1, n_Trunc, &
+            nfich, ninit1, ninitlm, nnombre, nphi, nphim, nphim1, npldafs, npldafs1, nseuil, numat, nxan, nxan1
   integer, dimension(nfich):: ne, ninitl
 
   character(len=15):: nomab
@@ -2946,8 +3005,15 @@ subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ep
         n_Trunc = n_Trunc + 1
         Abs_in_bulk = .true.
         mu_0_bulk = fpp_avantseuil
+        do
+          n = nnombre(2,Length_line)
+          if( n == 0 ) exit
+          n_bulk_z = n_bulk_z + 1
+          read(2,*); read(2,*)
+        end do
       endif
     endif            
+
     Cor_abs = Self_abs .or. Full_self_abs
 
     if( Trunc(ifich) ) then
@@ -4756,12 +4822,12 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
 
   logical:: Double_cor
   
-  character(len=6):: mot6, mot6_b
-  character(len=6), dimension(:), allocatable:: hk
-  character(len=15):: mot15, mot15_b, mot15_c, mot15_d
-  character(len=15), dimension(n_col):: nom_col
-  character(len=15), dimension(:,:,:), allocatable:: E_string, l_value
-  character(len=15), dimension(:,:,:,:), allocatable:: Signal_out
+  character(len=Length_word-9):: Word_m9, Word_m9_b
+  character(len=Length_word-9), dimension(:), allocatable:: hk
+  character(len=Length_word):: Word, Word_b, Word_c, Word_d
+  character(len=Length_word), dimension(n_col):: nom_col
+  character(len=Length_word), dimension(:,:,:), allocatable:: E_string, l_value
+  character(len=Length_word), dimension(:,:,:,:), allocatable:: Signal_out
   character(len=Length_name):: Convolution_out, Convolution_tr
 
   real(kind=db):: E
@@ -4807,44 +4873,44 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
   
     i_hk = 0
     index_hk = 0
-    mot6_b = ' '
+    Word_m9_b = ' '
     do i_col = i1,n_col,ipas
-      mot15 = ' '
-      mot15 = nom_col(i_col)
-      do i = 1,15
-        if( mot15(i:i) /= '(' ) cycle
-        mot6 = ' '
-        if( mot15(i+1:i+1) == '-' .and. mot15(i+3:i+3) == '-' ) then
-          mot6(1:4) = mot15(i+1:i+4)
-        elseif( mot15(i+1:i+1) == '-' .or. mot15(i+2:i+2) == '-' ) then
-          mot6(1:3) = mot15(i+1:i+3)
+      Word = ' '
+      Word = adjustl( nom_col(i_col) )
+      do i = 1,Length_word
+        if( Word(i:i) /= '(' ) cycle
+        Word_m9 = ' '
+        if( Word(i+1:i+1) == '-' .and. Word(i+3:i+3) == '-' ) then
+          Word_m9(1:4) = Word(i+1:i+4)
+        elseif( Word(i+1:i+1) == '-' .or. Word(i+2:i+2) == '-' ) then
+          Word_m9(1:3) = Word(i+1:i+3)
         else
-          mot6(1:2) = mot15(i+1:i+2)  
+          Word_m9(1:2) = Word(i+1:i+2)  
         endif
-        length_hk = len_trim( mot6 )
+        length_hk = len_trim( Word_m9 )
         exit
       end do
 
-      do i = 1,14
-        if( mot15(i:i) /= ')' ) cycle
-        ll = len_trim( mot6 )
-        if( mot15(i+1:i+1) /= ' ' ) mot6(ll+1:ll+1) = mot15(i+1:i+1)
-        if( i >= 14 ) exit
-        if( mot15(i+2:i+2) /= ' ' ) mot6(ll+2:ll+2) = mot15(i+2:i+2)
-        exit
+      do i = 1,Length_word
+        if( Word(i:i) == ')' ) exit
       end do
-
-      if( mot6 == mot6_b ) then    
+      
+      le = len_trim( Word ) - i 
+      ll = len_trim( Word_m9 )
+      le = min( Length_word - 10 - ll, le ) 
+      Word_m9(ll+1:ll+le) = Word(i+1:i+le)
+      
+      if( Word_m9 == Word_m9_b ) then    
         index_hk = index_hk + 1
         if( j == 2 ) n_index_hk(i_hk) = index_hk 
       else  
         i_hk = i_hk + 1
         index_hk = 1
         if( j == 2 ) then
-          hk(i_hk) = mot6
+          hk(i_hk) = Word_m9
           hk_length(i_hk) = length_hk
         endif
-        mot6_b = mot6 
+        Word_m9_b = Word_m9 
       endif
     end do
     
@@ -4876,27 +4942,34 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
   do i_col = i1,n_col,ipas
     index = index + 1
     index_hk = index_hk + 1
-    mot15 = ' '
-    mot15 = nom_col(i_col)
-    i2 = 16
-    do i = 1,15
-      if( mot15(i:i) == '(' ) then
+    Word = ' '
+    Word = nom_col(i_col)
+    i2 = Length_word + 1
+    do i = 1,Length_word
+      if( Word(i:i) == '(' ) then
         i1 = i + hk_length(i_hk) + 1
-      elseif( mot15(i:i) == ')' ) then
+      elseif( Word(i:i) == ')' ) then
         i2 = i-1
         exit
       endif
     end do
-    mot15_b = ' '
-    mot15_b(1:i2-i1+1) = mot15(i1:i2)
-    l_value(index_hk,:,i_hk) = adjustr( mot15_b )
+    Word_b = ' '
+    Word_b(1:i2-i1+1) = Word(i1:i2)
+    l_value(index_hk,:,i_hk) = adjustr( Word_b )
 
     do i_cor = 1,n_cor
       do ie = 1,n_energ_tr
         j = ( i_cor - 1 ) * nes + index_ie(ie)
-        mot15_b = ' '
-        write(mot15_b,'(1p,e15.7)') ( 1 - p1(ie) ) * Signal(index,j-1) + p1(ie) * Signal(index,j)
-        Signal_out(index_hk,ie,i_cor,i_hk) = mot15_b
+        Word_b = ' '
+        Select case( Length_word )
+          case(15)
+            write(Word_b,'(1p,e15.7)') ( 1 - p1(ie) ) * Signal(index,j-1) + p1(ie) * Signal(index,j)
+          case(16)
+            write(Word_b,'(1p,e16.8)') ( 1 - p1(ie) ) * Signal(index,j-1) + p1(ie) * Signal(index,j)
+          case(17)
+            write(Word_b,'(1p,e17.9)') ( 1 - p1(ie) ) * Signal(index,j-1) + p1(ie) * Signal(index,j)
+        end select
+        Signal_out(index_hk,ie,i_cor,i_hk) = Word_b
       end do
     end do 
     
@@ -4908,54 +4981,80 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
   end do 
 
   l = 1
-  mot15_b = ''
-  mot15_b(1:1) = 'I'
+  Word_b = ''
+  Word_b(1:1) = 'I'
   do i_cor = 1,n_cor
     if( i_cor == 2 ) then
-      mot15_b(2:2) = 'c'
+      Word_b(2:2) = 'c'
       l = 2
     elseif( i_cor == 3 ) then
-      mot15_b(2:2) = 'd'
+      Word_b(2:2) = 'd'
       l = 2
     endif
     do i_hk = 1,n_hk_tr
-      mot15_d = mot15_b
-      mot6 = hk(i_hk)
-      le = len_trim( mot6 ) 
-      mot15_d(l+1:l+1) = '_'
-      mot15_d(l+2:l+1+le) = mot6(1:le) 
-      l2 = len_trim(mot15_d) + 1
-      mot15_d(l2:l2) = '('
+      Word_d = Word_b
+      Word_m9 = hk(i_hk)
+      le = len_trim( Word_m9 ) 
+      Word_d(l+1:l+1) = '_'
+      Word_d(l+2:l+1+le) = Word_m9(1:le) 
+      l2 = len_trim(Word_d) + 1
+      Word_d(l2:l2) = '('
       do i = 1,n_energ_tr
         E = Energ_tr(i)*rydb
-        mot15_c = mot15_d
-        mot15 = ' '
+        Word_c = Word_d
+        Word = ' '
         if( abs( nint( E ) - E ) < eps10 ) then
-          write(mot15,'(i6)') nint( E )
+          write(Word,'(i6)') nint( E )
         elseif( abs( nint( 10*E ) - 10*E ) < eps10 ) then
-          write(mot15,'(f15.1)') Energ_tr(i)*rydb
+          if( Length_word == 15 ) then
+            write(Word,'(f15.1)') Energ_tr(i)*rydb
+          elseif( Length_word == 17 ) then
+            write(Word,'(f17.1)') Energ_tr(i)*rydb
+          endif
         elseif( abs( nint( 100*E ) - 100*E ) < eps10 ) then
-          write(mot15,'(f15.2)') Energ_tr(i)*rydb
+          if( Length_word == 15 ) then
+            write(Word,'(f15.2)') Energ_tr(i)*rydb
+          elseif( Length_word == 17 ) then
+            write(Word,'(f17.2)') Energ_tr(i)*rydb
+          endif
         elseif( abs( nint( 1000*E ) - 1000*E ) < eps10 ) then
-          write(mot15,'(f15.3)') Energ_tr(i)*rydb
+           if( Length_word == 15 ) then
+            write(Word,'(f15.3)') Energ_tr(i)*rydb
+          elseif( Length_word == 17 ) then
+            write(Word,'(f17.3)') Energ_tr(i)*rydb
+          endif
         elseif( abs( nint( 1000*E ) - 1000*E ) < eps10 ) then
-          write(mot15,'(f15.4)') Energ_tr(i)*rydb
+          if( Length_word == 15 ) then
+            write(Word,'(f15.4)') Energ_tr(i)*rydb
+          elseif( Length_word == 17 ) then
+            write(Word,'(f17.4)') Energ_tr(i)*rydb
+          endif
         endif
-        mot15 = adjustl(mot15)
-        l3 = len_trim(mot15)
-        mot15_c(l2+1:l2+l3) = mot15(1:l3)
-        if( l2+l3 < 14 ) mot15_c(l2+l3+1:l2+l3+1) = ')'
-        mot15 = adjustr( mot15_c )
-        E_string(i,i_cor,i_hk) = mot15
+        Word = adjustl(Word)
+        l3 = len_trim(Word)
+        Word_c(l2+1:l2+l3) = Word(1:l3)
+        if( l2+l3 < 14 ) Word_c(l2+l3+1:l2+l3+1) = ')'
+        Word = adjustr( Word_c )
+        E_string(i,i_cor,i_hk) = Word
       end do
     end do
 
   end do
   
-  write(ipr,110) (( '         l_'//hk(i_hk), E_string(:,i_cor,i_hk), i_cor = 1,n_cor ), i_hk = 1,n_hk_tr )
+  select case(Length_word)
+    case(15)  
+      write(ipr,110) (( '       l_'//hk(i_hk), E_string(:,i_cor,i_hk), i_cor = 1,n_cor ), i_hk = 1,n_hk_tr )
+    case(17)  
+      write(ipr,120) (( '       l_'//hk(i_hk), E_string(:,i_cor,i_hk), i_cor = 1,n_cor ), i_hk = 1,n_hk_tr )
+  end select
 
   do index = 1,index_max
-    write(ipr,110) ( ( l_value(index,i_cor,i_hk), Signal_out(index,:,i_cor,i_hk), i_cor = 1,n_cor ), i_hk = 1,n_hk_tr )
+    select case(Length_word)
+      case(15)  
+        write(ipr,110) ( ( l_value(index,i_cor,i_hk), Signal_out(index,:,i_cor,i_hk), i_cor = 1,n_cor ), i_hk = 1,n_hk_tr )
+      case(17)  
+        write(ipr,120) ( ( l_value(index,i_cor,i_hk), Signal_out(index,:,i_cor,i_hk), i_cor = 1,n_cor ), i_hk = 1,n_hk_tr )
+    end select
   end do 
   
   Close(ipr)
@@ -4964,6 +5063,7 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
 
   return
   110 format(10000a15)
+  120 format(10000a17)
 end
 
 !***********************************************************************

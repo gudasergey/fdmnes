@@ -3858,6 +3858,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         Where( abs( Posn - i / 12._db ) < 0.00005_db ) Posn = i / 12._db
       end do
     endif
+    if( Bulk ) then
+      if( abs( Angxyz_bulk(3) - 120._db ) < 0.0001_db ) then
+        do i = 1,11
+          if( i == 3 .or. i == 6 .or. i == 9 ) cycle
+          Where( abs( Posn_bulk - i / 12._db ) < 0.00005_db ) Posn_bulk = i / 12._db
+        end do
+      endif
+    endif
 
 ! Modification when fitting
     if( fit_cal ) then
@@ -4535,6 +4543,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           exit
         end do
       end do
+      Avoid = .false.
       if( Avoid ) then
         do ipl = 1,npldafs
           if( abs( nint( hkl_dafs(3,ipl) ) - hkl_dafs(3,ipl) ) < 0.004_db - eps10 ) then

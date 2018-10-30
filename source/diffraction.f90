@@ -261,6 +261,114 @@ end
 
 !*********************************************************************
 
+! The bulk atoms equivalent by symmetry in 3D are different in 2D diffraction when not at the same z. 
+! Indeed to avoid the singularities when L integer, one takes into account the absorbtion inside the bulk unit cell
+! This one, exp(-mu*Length_rel), is included in the Bragg Term in coabs.
+! n_bulk_z_abs is the number of different z positions for the prototypical bulk atom  
+! n_bulk_zc_abs is the number of bulk atoms at a specific z position
+! igr_bulk_z_abs is the index of the bulk atoms at a specific z position 
+
+subroutine cal_n_bulk_z(First_bulk_step,i,igr_bulk_z,igr_bulk_z_abs,igreq,iprabs_nonexc,itype,n_atom_bulk,n_atom_proto, &
+                        n_atom_proto_bulk,n_bulk_z,n_bulk_z_abs,n_bulk_zc,n_bulk_zc_abs,n_bulk_z_max,n_bulk_z_max_abs, &
+                        neqm,ngreq,ngroup,ntype,numat,posn_bulk)
+
+  use declarations
+  implicit none
+
+  integer:: i, igr, igr_bulk, ipr, iprabs_nonexc, jgr, jgr_bulk, jpr, m, m_abs, n, n_abs, n_atom_bulk, n_atom_proto, &
+            n_atom_proto_bulk, n_bulk_z, n_bulk_z_abs, n_bulk_z_max, n_bulk_z_max_abs, neqm, ngroup, ntype, Z_abs
+  
+  integer, dimension(ngroup):: itype
+  integer, dimension(0:ntype):: numat
+  integer, dimension(0:n_atom_proto):: ngreq
+  integer, dimension(n_bulk_z):: n_bulk_zc
+  integer, dimension(n_bulk_z_abs):: n_bulk_zc_abs
+  integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
+  integer, dimension(n_bulk_z_max_abs,n_bulk_z_abs):: igr_bulk_z_abs
+  integer, dimension(0:n_atom_proto,neqm):: igreq
+
+  logical:: First_bulk_step  
+  logical, dimension(n_atom_bulk):: ok
+  
+  real(kind=db):: p_z1, p_z2
+
+  real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
+
+  Z_abs = numat( itype( igreq(iprabs_nonexc,1) ) )
+  ok(:) = .false. 
+  n = 0
+  n_abs = 0
+
+  do ipr = n_atom_proto-n_atom_proto_bulk+1,n_atom_proto
+
+! The non absorbing atom are tacken into account only during the cycle of the first absorbing atom
+    if( .not. First_bulk_step .and. ipr /= iprabs_nonexc ) cycle
+    
+    do igr = 1,ngreq(ipr)
+      igr_bulk = igreq(ipr,igr) - ngroup + n_atom_bulk 
+      if( ok(igr_bulk) ) cycle
+      ok(igr_bulk) = .true.
+
+      if( ipr == iprabs_nonexc ) then 
+        n_abs = n_abs + 1
+        m_abs = 1 
+        if( i == 3 ) igr_bulk_z_abs(m_abs,n_abs) = igr
+      elseif( numat( itype(igreq(ipr,igr)) ) == Z_abs ) then
+! One must not consider here the absorbing atoms which corresponds to another cycle
+        cycle
+      else
+        n = n + 1
+        m = 1 
+        if( i == 3 ) igr_bulk_z(m,n) = igreq(ipr,igr)
+      endif
+      p_z1 = posn_bulk( 3, igr_bulk )
+
+      do jpr = n_atom_proto-n_atom_proto_bulk+1,n_atom_proto
+        if( .not. First_bulk_step .and. jpr /= iprabs_nonexc ) cycle
+        if( ( ipr == iprabs_nonexc .and. jpr /= iprabs_nonexc ) .or. ( ipr /= iprabs_nonexc .and. jpr == iprabs_nonexc ) ) cycle
+
+        do jgr = 1,ngreq(jpr)
+          jgr_bulk = igreq(jpr,jgr) - ngroup + n_atom_bulk 
+          if( ok(jgr_bulk) ) cycle
+          p_z2 = posn_bulk(3, jgr_bulk )
+          if( abs( p_z1 - p_z2 ) > eps10 ) cycle
+          ok(jgr_bulk) = .true.
+          if( jpr == iprabs_nonexc ) then
+            m_abs = m_abs + 1 
+            if( i == 3 ) igr_bulk_z_abs(m_abs,n_abs) = jgr
+          elseif( numat( itype( igreq(jpr,jgr) ) ) == Z_abs ) then
+! One must not consider here the absorbing atoms which corresponds to another cycle
+            cycle
+          else 
+            m = m + 1 
+            if( i == 3 ) igr_bulk_z(m,n) = igreq(jpr,jgr)
+          endif
+        end do
+        
+      end do
+ 
+      if( i == 2 ) then
+        if( ipr == iprabs_nonexc ) then 
+          n_bulk_zc_abs(n_abs) = m_abs
+          n_bulk_z_max_abs = max( n_bulk_z_max_abs, m_abs )
+        else
+          n_bulk_zc(n) = m
+          n_bulk_z_max = max( n_bulk_z_max, m )
+        endif
+      endif 
+      
+    end do
+    if( i == 1 ) then
+      n_bulk_z = n
+      n_bulk_z_abs = n_abs
+    endif
+  end do
+
+  return
+end
+
+!*********************************************************************
+
 ! Calculation of polarizations, Bragg factors and non resonant scattering amplitudes for RXD and SRXRD
 ! Outputs : Bragg_abs : Bragg term for the absorbing atoms x temp effect x occupancy
 !           Bragg_rgh_bulk_abs : same thing but due to roughness when there is absorbing atoms in the bulk
@@ -275,29 +383,32 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
           axyz,axyz_bulk,axyz_cap,axyz_int,axyz_sur,Bormann,Bragg_abs,Bragg_rgh_bulk_abs,Bulk,Bulk_roughness,Bulk_step,Cap_B_iso, &
           Cap_layer,Cap_roughness,Cap_thickness,Dafs_bio,Delta_bulk,Delta_cap,Delta_film,Delta_int, &
           Delta_roughness_film,Delta_sur,delta_z_bottom_cap,delta_z_top_bulk,delta_z_top_cap,delta_z_top_film,Eseuil,f_avantseuil, &
-          f_no_res,Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,hkl_ref,ich,igr_bulk_z, &
-          igreq,Interface_shift, &
-          iprabs_nonexc,isigpi,itabs,itypepr,Length_abs,Length_rel,lvval,Magnetic,Mat_or,Mat_UB,mpirank0,n_atom_bulk,n_atom_cap, &
-          n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_sur,n_atom_uc,n_bulk_z,n_bulk_z_max, &
-          n_bulk_zc,n_max,natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp, &
+          f_no_res,Film,Film_roughness,Film_shift,Film_thickness,hkl_dafs,hkl_film,hkl_ref,ich,igr_bulk_z,igr_bulk_z_abs, &
+          igreq,Interface_shift,iprabs_nonexc,isigpi,itabs,itypepr, &
+          Length_abs,Length_rel,Length_rel_abs,lvval,Magnetic,Mat_or,Mat_UB,mpirank0,n_atom_bulk,n_atom_cap, &
+          n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,n_atom_sur,n_atom_uc,n_bulk_z,n_bulk_z_abs, &
+          n_bulk_z_max,n_bulk_z_max_abs, &
+          n_bulk_zc,n_bulk_zc_abs,n_max,natomsym,nbseuil,neqm,ngreq,ngrm,ngroup,ngroup_m,ngroup_taux,ngroup_temp, &
           nlat,nlatm,nphi_dafs,nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nrato,nrm,nspin,ntype,numat,Operation_mode, &
           Operation_mode_used,Orthmatt,phdf0t,phdf0t_rgh_bulk,phdt,phdt_rgh_Bulk,phi_0,Poldafse,Poldafsem,Poldafss,Poldafssm, &
-          popatm,posn,posn_bulk,posn_cap,psival,rato,Surface_shift,Taux,Taux_cap,Taux_oc,Temp,Temp_coef,Temp_B_iso,Vec_orig, &
-          Vecdafse,Vecdafsem,Vecdafss,Vecdafssm,Z_bulk,Z_cap)
+          popatm,posn,posn_bulk,posn_cap,psival,rato,Sum_Bragg_bulk_abs_f0,Sum_Bragg_nonabs_f,Surface_shift,Taux,Taux_cap,Taux_oc, &
+          Temp,Temp_coef,Temp_B_iso,Vec_orig,Vecdafse,Vecdafsem,Vecdafss,Vecdafssm,Z_bulk,Z_cap)
 
   use declarations
   implicit none
 
   integer:: i_sens, i, ich, icheck, igr, ip, ipl, ipr, iprabs_nonexc, it, itabs, iwrite, j, jgr, mpirank0, n_atom_bulk, &
     n_atom_cap, n_atom_int, n_atom_per, n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, n_atom_sur, n_atom_uc, n_bulk_z, &
-    n_bulk_z_max, n_max, n1_proto, n2_proto, &
+    n_bulk_z_abs, n_bulk_z_max, n_bulk_z_max_abs, n_max, n1_proto, n2_proto, &
     natomsym, nbseuil, neqm, ngrm, ngroup, ngroup_m, ngroup_taux, ngroup_temp, ni, nlatm, nphim, npldafs, npldafs_2d, npldafs_e, &
     npldafs_f, nrm, nspin, ntype, Z, Z_abs
 
   integer, dimension(2):: Mult_bulk, Mult_film
   integer, dimension(3):: hkl_ref
   integer, dimension(n_bulk_z):: n_bulk_zc
+  integer, dimension(n_bulk_z_abs):: n_bulk_zc_abs
   integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
+  integer, dimension(n_bulk_z_max_abs,n_bulk_z_abs):: igr_bulk_z_abs
 
   character(len=4):: mot4
   character(len=64):: mot64
@@ -306,7 +417,8 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   complex(kind=db), dimension(3):: vec_a, vec_b, pe, ps
   complex(kind=db), dimension(npldafs):: v_vec_a, v_vec_b
   complex(kind=db), dimension(npldafs):: Truncation
-  complex(kind=db), dimension(npldafs,n_max):: Sum_Bragg_abs
+  complex(kind=db), dimension(npldafs,n_max):: Sum_Bragg_abs, Sum_Bragg_bulk_abs_f0
+  complex(kind=db), dimension(npldafs,n_bulk_z):: Sum_Bragg_nonabs, Sum_Bragg_nonabs_f, Sum_Bragg_nonabs_f0, Sum_Bragg_nonabs_fa
   complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdf0t_rgh_bulk, phdt_rgh_Bulk 
   complex(kind=db), dimension(npldafs,nphim,n_max):: phdt
   complex(kind=db), dimension(natomsym,npldafs):: Bragg_abs, Bragg_rgh_bulk_abs
@@ -353,6 +465,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
   real(kind=db), dimension(ngroup_temp):: Temp_coef
   real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(n_bulk_z):: Length_rel
+  real(kind=db), dimension(n_bulk_z_abs):: Length_rel_abs
   real(kind=db), dimension(3,3):: Mat_bulk, Mat_bulk_i, Mat_or, Mat_UB, Orthmatt, Orthmati
   real(kind=db), dimension(3,n_atom_uc):: posn
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
@@ -372,6 +485,11 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
 
   phdf0t_rgh_Bulk(:,:) = (0._db, 0._db)
   Bragg_rgh_Bulk_abs(:,:) = (0._db, 0._db)
+  Sum_Bragg_abs(:,:) = (0._db,0._db)
+  Sum_Bragg_nonabs(:,:) = (0._db,0._db)
+  Sum_Bragg_nonabs_f(:,:) = (0._db,0._db)
+  Sum_Bragg_nonabs_f0(:,:) = (0._db,0._db)
+  Sum_Bragg_nonabs_fa(:,:) = (0._db,0._db)
 
   call invermat(Orthmatt,Orthmati)
 
@@ -447,7 +565,11 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
 
 ! Conversion in linear absorption coefficient in micrometer^-1 (f_avanseuil is in Mbarn)
     Volume_maille = Cal_Volume_maille(axyz_bulk,angxyz_bulk)
-    fpp_bulk_tot = 100 * aimag( f_avantseuil ) / ( Volume_maille * bohr**3 )
+    if( Abs_in_bulk ) then
+      fpp_bulk_tot = 0._db    ! because it is added in the convolution step
+    else
+      fpp_bulk_tot = 100 * aimag( f_avantseuil ) / ( Volume_maille * bohr**3 )
+    endif
 
     z_top = -100000._db
     do igr = 1,n_atom_bulk
@@ -646,15 +768,20 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
         endif
 
         if( Bulk_step ) then
- ! Fraction of absorption (avoid the singularity when l close to 1). Correct only before the edge.
-          Bragg(igr,ipl) = Bragg(igr,ipl) * exp( - ( z_top - p(3) ) * fpp_bulk_tot * Length_abs(ipl) )
-          boucle_i: do i = 1,n_bulk_z
-            do j = 1,n_bulk_zc(i)
-              if( igr_bulk_z(j,i) /= igr ) cycle
-              Length_rel(i) = z_top - p(3)
+          boucle_i: do i = 1,n_bulk_z_abs
+            do j = 1,n_bulk_zc_abs(i)
+              if( igr_bulk_z_abs(j,i) /= igr ) cycle
+              Length_rel_abs(i) = z_top - p(3)
               exit boucle_i
             end do
           end do boucle_i
+          boucle_k: do i = 1,n_bulk_z
+            do j = 1,n_bulk_zc(i)
+              if( igr_bulk_z(j,i) /= igreq(ipr,igr) ) cycle
+              Length_rel(i) = z_top - p(3)
+              exit boucle_k
+            end do
+          end do boucle_k
         endif
         if( Taux ) Bragg(igr,ipl) = Bragg(igr,ipl) * Taux_oc(jgr)
         if( Temp_B_iso ) Deb = exp( - Temp_coef(igr) * Delta_2 )
@@ -676,9 +803,9 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
       if( ipr == iprabs_nonexc ) then
         if( Bulk_step ) then
           Sum_Bragg_abs(ipl,:) = (0._db,0._db)
-          do i = 1,n_bulk_z
-            do j = 1,n_bulk_zc(i)
-              igr = igr_bulk_z(j,i)
+          do i = 1,n_bulk_z_abs
+            do j = 1,n_bulk_zc_abs(i)
+              igr = igr_bulk_z_abs(j,i)
               Sum_Bragg_abs(ipl,i) = Sum_Bragg_abs(ipl,i) + Bragg(igr,ipl)
             end do
           end do
@@ -686,6 +813,8 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
           Sum_Bragg_abs(ipl,1) = Sum_Bragg(ipr,ipl)
         endif
       endif
+
+      Sum_Bragg(ipr,ipl) = sum( Bragg(1:ngreq(ipr),ipl) )
 
       if( Bulk_step .and. Bulk_roughness > eps10 ) &
         Sum_Bragg_rgh_Bulk(ipr,ipl) = sum( Bragg_rgh_Bulk(1:ngreq(ipr),ipl) )
@@ -727,6 +856,25 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
       Sum_Bragg_f0(ipr,ipl) = Sum_Bragg(ipr,ipl) * f0(ipr,ipl)
       Sum_Bragg_fa(ipr,ipl) = Sum_Bragg(ipr,ipl) * cmplx(fp(ipr), fpp(ipr), db)
 
+      if( Bulk_step ) then
+        if( ipr == iprabs_nonexc ) then
+          do i = 1,n_bulk_z_abs
+            Sum_Bragg_bulk_abs_f0(ipl,i) = Sum_Bragg_abs(ipl,i) * f0(ipr,ipl)
+          end do 
+        else
+          do igr = 1,ngreq(ipr)
+            do i = 1,n_bulk_z
+              do j = 1,n_bulk_zc(i)
+                if( igr_bulk_z(j,i) == igreq(ipr,igr) ) then
+                  Sum_Bragg_nonabs_f0(ipl,i) = Sum_Bragg_nonabs_f0(ipl,i) + Bragg(igr,ipl) * f0(ipr,ipl)
+                  Sum_Bragg_nonabs_fa(ipl,i) = Sum_Bragg_nonabs_fa(ipl,i) + Bragg(igr,ipl) * cmplx(fp(ipr), fpp(ipr), db)
+                endif
+              end do
+            end do
+          end do
+        endif
+      endif
+      
       if( Dafs_bio ) then
         Sum_Bragg_f0_cj(ipr,ipl) = conjg( Sum_Bragg(ipr,ipl) ) * f0(ipr,ipl)
         Sum_Bragg_fa_cj(ipr,ipl) = conjg( Sum_Bragg(ipr,ipl) ) * cmplx(fp(ipr), fpp(ipr), db)
@@ -832,9 +980,14 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
 
     Sum_Bragg_f0(n1_proto:n2_proto,ipl) = cfac * Sum_Bragg_f0(n1_proto:n2_proto,ipl)
     Sum_Bragg_fa(n1_proto:n2_proto,ipl) = cfac * Sum_Bragg_fa(n1_proto:n2_proto,ipl)
-    if( Bulk_step .and. Bulk_roughness > eps10 ) then
-      Sum_Bragg_rgh_Bulk_f0(n1_proto:n2_proto,ipl) = cfac * Sum_Bragg_rgh_Bulk_f0(n1_proto:n2_proto,ipl)
-      Sum_Bragg_rgh_Bulk_fa(n1_proto:n2_proto,ipl) = cfac * Sum_Bragg_rgh_Bulk_fa(n1_proto:n2_proto,ipl)
+    if( Bulk_step ) then
+      Sum_Bragg_bulk_abs_f0(ipl,:) = cfac * Sum_Bragg_bulk_abs_f0(ipl,:)
+      Sum_Bragg_nonabs_f0(ipl,:) = cfac * Sum_Bragg_nonabs_f0(ipl,:)
+      Sum_Bragg_nonabs_fa(ipl,:) = cfac * Sum_Bragg_nonabs_fa(ipl,:)
+      if( Bulk_roughness > eps10 ) then
+        Sum_Bragg_rgh_Bulk_f0(n1_proto:n2_proto,ipl) = cfac * Sum_Bragg_rgh_Bulk_f0(n1_proto:n2_proto,ipl)
+        Sum_Bragg_rgh_Bulk_fa(n1_proto:n2_proto,ipl) = cfac * Sum_Bragg_rgh_Bulk_fa(n1_proto:n2_proto,ipl)
+      endif
     endif
 
   end do ! end loop on ipl
@@ -878,6 +1031,29 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
               phdf0t_rgh_Bulk(ipl,ip) = phdf0t_rgh_Bulk(ipl,ip) + v_vec_a(ipl) * Bragg_rgh_Bulk_f_mo(ipr,igr,ipl) &
                                                                 + v_vec_b(ipl) * Bragg_rgh_Bulk_f_ms(ipr,igr,ipl)
 
+            if( Bulk_step .and. ip == 1 ) then
+
+              if( ipr == iprabs_nonexc ) then
+                do i = 1,n_bulk_z_abs
+                  do j = 1,n_bulk_zc_abs(i)
+                    if( igr == igr_bulk_z_abs(j,i) ) Sum_Bragg_bulk_abs_f0(ipl,:) = Sum_Bragg_bulk_abs_f0(ipl,:) &
+                                                                           + v_vec_a(ipl) * Bragg_f_mo(ipr,igr,ipl) &
+                                                                           + v_vec_b(ipl) * Bragg_f_ms(ipr,igr,ipl)
+                  end do
+                end do
+
+              else
+                do i = 1,n_bulk_z_abs
+                  do j = 1,n_bulk_zc_abs(i)
+                    if( jgr == igr_bulk_z_abs(j,i) ) Sum_Bragg_nonabs_f0(ipl,:) = Sum_Bragg_nonabs_f0(ipl,:) &
+                                                                           + v_vec_a(ipl) * Bragg_f_mo(ipr,igr,ipl) &
+                                                                           + v_vec_b(ipl) * Bragg_f_ms(ipr,igr,ipl)
+                  end do
+                end do
+              endif
+
+            endif
+ 
           end do
         end do
       end do
@@ -894,6 +1070,9 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
         phdt(ipl,ip,:) = Phase_bulk(ipl) * phdt(ipl,ip,:)
       end do
       Bragg_abs(1:natomsym,ipl) = Phase_bulk(ipl) * Bragg_abs(1:natomsym,ipl)
+      Sum_Bragg_bulk_abs_f0(ipl,:) = Phase_bulk(ipl) * Sum_Bragg_bulk_abs_f0(ipl,:)
+      Sum_Bragg_nonabs_f0(ipl,:) = Phase_bulk(ipl) * Sum_Bragg_nonabs_f0(ipl,:)
+      Sum_Bragg_nonabs_fa(ipl,:) = Phase_bulk(ipl) * Sum_Bragg_nonabs_fa(ipl,:)
 
       if( Bulk_roughness > eps10 ) then
         do ip = 1,nphi_dafs(ipl)
@@ -903,6 +1082,8 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
       endif
 
     end do
+    
+    Sum_Bragg_nonabs_f(:,:) = Sum_Bragg_nonabs_f0(:,:) + Sum_Bragg_nonabs_fa(:,:)
   endif
 
 !----- Writing --------------------------------------------------------

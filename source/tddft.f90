@@ -23,18 +23,20 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
           Dipmag,dv0bdcF,Dyn_eg,Dyn_g,E_cut,E_cut_imp,E_Fermi,E_cut_man,Ecent,Eclie,Elarg,Eneg, &
           Energ_t,Energphot,Epsii_a,Epsii_moy,Eseuil,Estart,f_avantseuil,Full_potential,Full_self_abs, &
           Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_dafs,Hubb_a,Hubb_d,icheck, &
-          iabsorig,igr_bulk_z,iopsymc_25,is_g,isigpi,isymeq,jseuil,Kern_fac, &
-          l0_nrixs,ldip,Length_abs,Length_rel,lmax_pot,lmax_nrixs,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua,lseuil, &
-          ltypcal,m_g,m_hubb,Magnetic,Matper,Moyenne,mpinodes,mpirank,mpirank0,msymdd,msymddi, &
+          iabsorig,igr_bulk_z_abs,iopsymc_25,is_g,isigpi,isymeq,jseuil,Kern_fac, &
+          l0_nrixs,ldip,Length_abs,Length_rel,Length_rel_abs,lmax_pot,lmax_nrixs,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1, &
+          lqua,lseuil,ltypcal,m_g,m_hubb,Magnetic,Matper,Moyenne,mpinodes,mpirank,mpirank0,msymdd,msymddi, &
           msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_0,multi_run,Multipole, &
-          n_abs_rgh,n_bulk_sup,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_max,n_multi_run,n_oo,n_rel,n_rout,n_tens_max, &
+          n_abs_rgh,n_bulk_sup,n_bulk_z,n_bulk_z_abs,n_bulk_z_max_abs,n_bulk_zc_abs,n_max,n_multi_run, &
+          n_oo,n_rel,n_rout,n_tens_max, &
           natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,nenerg_tddft,ngamh,ninit1,ninitl,ninitl_out,ninitlv,nlm_pot,nlmamax, &
           nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s, &
           nphi_dafs,nphim,npldafs,nplr,nplrm,nq_nrixs,nr,NRIXS,nrm,nseuil,nspin,nspino,nspinp, &
           numat,nxanout,Octupole,Old_zero,Orthmatt,pdp,phdf0t,phdf0t_rgh_bulk,phdt,phdt_rgh_Bulk,pol,poldafse,poldafss, &
           psii,q_nrixs,Quadrupole,r,Relativiste,Renorm,rhoato_abs,Rmtg,Rmtsd, &
-          rof0,rot_atom_abs,Rot_int,RPALF,rsato,rsbdc,Self_abs,Solsing_only, &
-          Spherical_signal,Spherical_tensor,Spinorbite,Surface_ref,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb,V0muf, &
+          rof0,rot_atom_abs,Rot_int,RPALF,rsato,rsbdc,Self_abs,Solsing_only,Spherical_signal, &
+          Spherical_tensor,Spinorbite,Sum_Bragg_bulk_abs_f0,Sum_Bragg_nonabs_f,Surface_ref,Taull_tdd,Taux_eq,Time_rout,V_intmax, &
+          V_hubb,V0muf, &
           Vcato,vec,vecdafse,vecdafss,Vhbdc,Volume_maille,VxcbdcF, &
           Vxcato,Workf,Ylm_comp_e)
 
@@ -45,7 +47,8 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
   integer:: Cal_nenerge, i_range, iabsorig, icheck_s, ie, ie_computer, ie_e, initl, iopsymc_25, ip_max, ip0, &
     ir, isp, je, jseuil, l, l0_nrixs, lmax, lmax_pot, lmax_probe, lmax_nrixs, lmaxabs_t, &
     lmaxat0, lseuil,m_hubb, mpinodes, mpirank, mpirank0, multi_0, multi_run, n_abs_rgh, n_bulk_sup, &
-    n_bulk_z, n_bulk_z_max, n_Ec, n_max, n_multi_run, n_oo, n_rel, n_rout, n_tens_max, n_V, natomsym, nbseuil, &
+    n_bulk_z, n_bulk_z_abs, n_bulk_z_max_abs, n_Ec, n_max, n_multi_run, n_oo, n_rel, n_rout, n_tens_max, &
+    n_V, natomsym, nbseuil, &
     ncolm, ncolr, ncolt, nd3, nenerg, nenerg_s, nenerg_tddft, nenerge, ngamh, nge, ninit1, ninitl, ninitl_out, &
     ninitlv, nlm, nlm_fp, nlm_pot, nlm_probe, nlm_p_fp, nlmamax, nlms_f, nlms_g, nlmsm_f, &
     nphim, npldafs, nplr, nplrm, nq_nrixs, nr, nrm, ns_dipmag, &
@@ -62,8 +65,8 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
   integer, dimension(3,3,3):: loct, msymdq, msymdqi
   integer, dimension(3,3,3,3)::  msymdo, msymdoi, msymqq, msymqqi
   integer, dimension(3,n_oo,3,n_oo):: msymoo, msymooi
-  integer, dimension(n_bulk_z):: n_bulk_zc
-  integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
+  integer, dimension(n_bulk_z_abs):: n_bulk_zc_abs
+  integer, dimension(n_bulk_z_max_abs,n_bulk_z_abs):: igr_bulk_z_abs
 
   character(len=Length_name):: nomfich, nomfich_s
   character(len=5), dimension(nplrm):: ltypcal
@@ -75,6 +78,8 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
   complex(kind=db), dimension(natomsym,npldafs):: Bragg_abs, Bragg_rgh_bulk_abs
   complex(kind=db), dimension(npldafs,nphim):: phdf0t, phdf0t_rgh_bulk, phdt_rgh_Bulk
   complex(kind=db), dimension(npldafs,nphim,n_max):: phdt
+  complex(kind=db), dimension(npldafs,n_max):: Sum_Bragg_bulk_abs_f0
+  complex(kind=db), dimension(npldafs,n_bulk_z):: Sum_Bragg_nonabs_f
   complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
   complex(kind=db), dimension(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil):: rof0
   complex(kind=db), dimension(3,3,ninitl_out,0:mpinodes-1):: secmd, secmd_m, secmm, secmm_m
@@ -132,6 +137,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
   real(kind=db), dimension(3,npldafs):: hkl_dafs
   real(kind=db), dimension(npldafs):: Length_abs
   real(kind=db), dimension(n_bulk_z):: Length_rel
+  real(kind=db), dimension(n_bulk_z_abs):: Length_rel_abs
   real(kind=db), dimension(nr,nlm_pot,nspin) :: Vxcato
   real(kind=db), dimension(4,nq_nrixs):: q_nrixs
 
@@ -507,31 +513,33 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
       if( Abs_in_Bulk_roughness ) then
 
         call Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_rgh_bulk_abs,.false.,Cartesian_tensor, &
-              Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E,f_avantseuil, &
-              Full_self_abs,Green_int,hkl_dafs,i_range,iabsorig,icheck(21),ie,ie_computer,igr_bulk_z,Int_tens, &
-              isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodes,multi_0,Multipole,n_abs_rgh,n_bulk_sup, &
-              n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
-              ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nphi_dafs,npldafs, &
-              nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdf0t_rgh_bulk,phdt_rgh_Bulk,pol,poldafse,poldafss, &
-              sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
-              secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m, &
-              Self_abs,Spherical_signal,Spherical_tensor,Spinorbite,Surface_ref,Taux_eq,V0muf,Vecdafse,Vecdafss,vec, &
-              Volume_maille,Xan_atom)
+             Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E, &
+             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,i_range,iabsorig,icheck(21),ie,ie_computer,igr_bulk_z_abs, &
+             Int_tens,isigpi,isymeq,jseuil,Length_abs,Length_rel,Length_rel_abs,ltypcal,Matper,Moyenne,mpinodes, &
+             multi_0,Multipole,n_abs_rgh,n_bulk_sup,n_multi_run, &
+             n_bulk_z,n_bulk_z_abs,n_bulk_z_max_abs,n_bulk_zc_abs,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
+             ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nphi_dafs,npldafs, &
+             nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdf0t_rgh_bulk,phdt_rgh_Bulk,pol,poldafse,poldafss, &
+             sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
+             secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
+             Spherical_tensor,Spinorbite,Sum_Bragg_bulk_abs_f0,Sum_Bragg_nonabs_f,Surface_ref,Taux_eq,V0muf,Vecdafse,Vecdafss, &
+             Vec,Volume_maille,Xan_atom)
 
         multi_0 = multi_0 + 1
       endif
 
       call Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesian_tensor, &
-              Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E,f_avantseuil, &
-              Full_self_abs,Green_int,hkl_dafs,i_range,iabsorig,icheck(21),ie,ie_computer,igr_bulk_z,Int_tens, &
-              isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodes,multi_0,Multipole,n_abs_rgh,n_bulk_sup, &
-              n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
-              ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nphi_dafs,npldafs, &
-              nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdf0t,phdt,pol,poldafse,poldafss, &
-              sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
-              secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m, &
-              Self_abs,Spherical_signal,Spherical_tensor,Spinorbite,Surface_ref,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec, &
-              Volume_maille,Xan_atom)
+             Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E, &
+             f_avantseuil,Full_self_abs,Green_int,hkl_dafs,i_range,iabsorig,icheck(21),ie,ie_computer,igr_bulk_z_abs, &
+             Int_tens,isigpi,isymeq,jseuil,Length_abs,Length_rel,Length_rel_abs,ltypcal,Matper,Moyenne,mpinodes, &
+             multi_0,Multipole,n_abs_rgh,n_bulk_sup,n_multi_run, &
+             n_bulk_z,n_bulk_z_abs,n_bulk_z_max_abs,n_bulk_zc_abs,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
+             ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nphi_dafs,npldafs, &
+             nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdf0t,phdt,pol,poldafse,poldafss, &
+             sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
+             secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
+             Spherical_tensor,Spinorbite,Sum_Bragg_bulk_abs_f0,Sum_Bragg_nonabs_f,Surface_ref,Taux_eq,V0muf,Vecdafse,Vecdafss, &
+             Vec,Volume_maille,Xan_atom)
 
       if( Abs_in_Bulk_roughness ) multi_0 = multi_0 - 1
 
@@ -2508,8 +2516,8 @@ subroutine main_tddft_optic(Abs_U_iso,alfpot,angxyz,Allsite,Atomic_scr,axyz,Brag
         numat,nxanout,Octupole,pdp,phdf0t,phdt,pol,poldafse,poldafss, &
         psii,r,Relativiste,Renorm,rhoato_abs,Rmtg,Rmtsd, &
         rot_atom_abs,Rot_int,RPALF,rsato,Self_abs,Solsing_only, &
-        Spherical_signal,Spherical_tensor,Spinorbite,Taull_tdd,Taux_eq,Time_rout,V_intmax,V_hubb,V0muf, &
-        Vcato,Vec,Vecdafse,Vecdafss,Vhbdc,Volume_maille,VxcbdcF, &
+        Spherical_signal,Spherical_tensor,Spinorbite,Sum_Bragg_bulk_abs_f0,Sum_Bragg_nonabs_f,Taull_tdd,Taux_eq,Time_rout, &
+        V_intmax,V_hubb,V0muf,Vcato,Vec,Vecdafse,Vecdafss,Vhbdc,Volume_maille,VxcbdcF, &
         Vxcato,Workf,Ylm_comp_e)
 
   use declarations
@@ -2521,7 +2529,8 @@ subroutine main_tddft_optic(Abs_U_iso,alfpot,angxyz,Allsite,Atomic_scr,axyz,Brag
   integer, parameter:: l0_nrixs = 0
   integer, parameter:: lmax_nrixs = 0
   integer, parameter:: n_bulk_z = 0
-  integer, parameter:: n_bulk_z_max = 0
+  integer, parameter:: n_bulk_z_abs = 0
+  integer, parameter:: n_bulk_z_max_abs = 0
   integer, parameter:: n_max = 0
 
   integer:: i, i_range, iabsorig, icheck_s, ie, ie_computer, ie_e, ie_g, ief, ip_max, ip0, &
@@ -2544,8 +2553,8 @@ subroutine main_tddft_optic(Abs_U_iso,alfpot,angxyz,Allsite,Atomic_scr,axyz,Brag
   integer, dimension(3,3,3):: loct, msymdq, msymdqi
   integer, dimension(3,3,3,3)::  msymdo, msymdoi, msymqq, msymqqi
   integer, dimension(3,n_oo,3,n_oo):: msymoo, msymooi
-  integer, dimension(n_bulk_z):: n_bulk_zc
-  integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
+  integer, dimension(n_bulk_z_abs):: n_bulk_zc_abs
+  integer, dimension(n_bulk_z_max_abs,n_bulk_z_abs):: igr_bulk_z_abs
 
   character(len=Length_name):: nomfich, nomfich_s
   character(len=5), dimension(nplrm):: ltypcal
@@ -2557,6 +2566,8 @@ subroutine main_tddft_optic(Abs_U_iso,alfpot,angxyz,Allsite,Atomic_scr,axyz,Brag
   complex(kind=db), dimension(natomsym,npldafs):: Bragg_abs
   complex(kind=db), dimension(npldafs,nphim):: phdf0t
   complex(kind=db), dimension(npldafs,nphim,n_max):: phdt
+  complex(kind=db), dimension(npldafs,n_max):: Sum_Bragg_bulk_abs_f0
+  complex(kind=db), dimension(npldafs,n_bulk_z):: Sum_Bragg_nonabs_f
   complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
   complex(kind=db), dimension(3,3,n_rel,ninitl_out,0:mpinodes-1):: secdd, secdd_m, secdd_t, secdd_m_t
   complex(kind=db), dimension(3,3,ninitl_out,0:mpinodes-1):: secmd, secmd_m, secmm, secmm_m, &
@@ -2606,6 +2617,7 @@ subroutine main_tddft_optic(Abs_U_iso,alfpot,angxyz,Allsite,Atomic_scr,axyz,Brag
   real(kind=db), dimension(3,npldafs):: hkl_dafs
   real(kind=db), dimension(npldafs):: Length_abs
   real(kind=db), dimension(n_bulk_z):: Length_rel
+  real(kind=db), dimension(n_bulk_z_abs):: Length_rel_abs
   real(kind=db), dimension(3,nplrm) :: vec
   real(kind=db), dimension(ninitl,2):: coef_g
   real(kind=db), dimension(nrm,nbseuil):: psii
@@ -3070,16 +3082,17 @@ subroutine main_tddft_optic(Abs_U_iso,alfpot,angxyz,Allsite,Atomic_scr,axyz,Brag
       if( ie > nenerg ) exit
 
       call Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,.false.,Cartesian_tensor, &
-              Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E,f_avantseuil, &
-              Full_self_abs,Green_int,hkl_dafs,i_range,iabsorig,icheck(21),ie,ie_computer,igr_bulk_z,Int_tens, &
-              isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodes,multi_0,Multipole,n_abs_rgh,n_bulk_sup, &
-              n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
-              ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_tddft_conv,nomfich_s,nphi_dafs, &
-              npldafs,nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdf0t,phdt,pol,poldafse,poldafss, &
-              sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
-              secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m, &
-              Self_abs,Spherical_signal,Spherical_tensor,Spinorbite,Surface_ref,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec, &
-              Volume_maille,Xan_atom)
+                Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,.false.,Epsii,Eseuil,Final_tddft,First_E,f_avantseuil, &
+                Full_self_abs,Green_int,hkl_dafs,i_range,iabsorig,icheck(21),ie,ie_computer,igr_bulk_z_abs,Int_tens, &
+                isigpi,isymeq,jseuil,Length_abs,Length_rel,Length_rel_abs,ltypcal,Matper,Moyenne,mpinodes,multi_0, &
+                Multipole,n_abs_rgh, &
+                n_bulk_sup,n_multi_run,n_bulk_z,n_bulk_z_abs,n_bulk_z_max_abs,n_bulk_zc_abs,n_max,n_oo,n_rel, &
+                n_tens_max,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg,ninit1,ninitl_out,nomabs,nomfich,nomfich_cal_tddft_conv, &
+                nomfich_s,nphi_dafs,npldafs,nphim,nplr,nplrm,nseuil,nspinp,numat,nxanout,pdp,phdf0t,phdt, &
+                pol,poldafse,poldafss,sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
+                secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
+                Spherical_tensor,Spinorbite,Sum_Bragg_bulk_abs_f0,Sum_Bragg_nonabs_f,Surface_ref,Taux_eq,V0muf,Vecdafse,Vecdafss, &
+                Vec,Volume_maille,Xan_atom)
 
       First_E = .false.
 

@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 9th of October 2018, 17 Vendemiaire, An 227
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 24th of October 2018, 2 Brumaire, An 227
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -37,14 +37,14 @@ module declarations
 
   integer:: MPI_COMM_MUMPS, MPI_COMM_GATHER
 
-  integer, parameter:: Length_word = 15 ! number of character in words
+  integer, parameter:: Length_word = 15 ! 15 or 17 ! number of character in words
   integer, parameter:: Length_name = 264 ! max number of character in the file names
 
   integer, parameter:: Z_Mendeleiev_max = 103   ! Number of chemical elements in the Mendeleiev table
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 9th of October 2018'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 24th of October 2018'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )

@@ -3,16 +3,17 @@
 ! Calculate the absorption cross sections and the DAFS amplitudes
 
 subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesian_tensor, &
-              Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft,First_E, &
-              f_avantseuil,Full_self_abs,Green_int,hkl_dafs,i_range,iabsorig,icheck,ie,ie_computer,igr_bulk_z,Int_tens, &
-              isigpi,isymeq,jseuil,Length_abs,Length_rel,ltypcal,Matper,Moyenne,mpinodee,multi_0,Multipole,n_abs_rgh,n_bulk_sup, &
-              n_multi_run,n_bulk_z,n_bulk_z_max,n_bulk_zc,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
-              ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv,nomfich_s,nphi_dafs,npldafs, &
-              nphim,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdf0t,phdt,pol,poldafse,poldafss, &
-              sec_atom,secdd_a,secdd_m_a,secdq_a,secdq_m_a,secdo_a,secdo_m_a, &
-              secmd_a,secmd_m_a,secmm_a,secmm_m_a,secoo_a,secoo_m_a,secqq_a,secqq_m_a, &
-              Self_abs,Spherical_signal,Spherical_tensor,Spinorbite_p,Surface_ref,Taux_eq,V0muf,Vecdafse,Vecdafss,Vec, &
-              Volume_maille,Xan_atom)
+            Core_resolved,Dafs,Dafs_bio,E_cut,Energ,Energphot,Extract_ten,Epsii,Eseuil,Final_tddft,First_E, &
+            f_avantseuil,Full_self_abs,Green_int,hkl_dafs,i_range,iabsorig,icheck,ie,ie_computer,igr_bulk_z_abs, &
+            Int_tens,isigpi,isymeq,jseuil,Length_abs,Length_rel,Length_rel_abs,ltypcal,Matper,Moyenne,mpinodee, &
+            multi_0,Multipole,n_abs_rgh,n_bulk_sup,n_multi_run, &
+            n_bulk_z,n_bulk_z_abs,n_bulk_z_max_abs,n_bulk_zc_abs,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
+            ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv,nomfich_s,nphi_dafs,npldafs, &
+            nphim,nplr,nplrm,nseuil,nspin,numat_abs,nxanout,pdp,phdf0t,phdt,pol,poldafse,poldafss, &
+            sec_atom,secdd_a,secdd_m_a,secdq_a,secdq_m_a,secdo_a,secdo_m_a, &
+            secmd_a,secmd_m_a,secmm_a,secmm_m_a,secoo_a,secoo_m_a,secqq_a,secqq_m_a,Self_abs,Spherical_signal, &
+            Spherical_tensor,Spinorbite_p,Sum_Bragg_bulk_abs_f0,Sum_Bragg_nonabs_f,Surface_ref,Taux_eq,V0muf,Vecdafse,Vecdafss, &
+            Vec,Volume_maille,Xan_atom)
 
   use declarations
   implicit none
@@ -22,15 +23,16 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
   integer:: he, hs, i, i_bulk_z, i_range, ia, iabsorig, ib, ic1, ic2, icheck, icn1, icn2, ie, &
     ie_computer, ii, ind_mu, initlr, ip, ipl, ipldafs, iseuil, isp1, isp2, isp3, isp4, ispfg, &
     isym, ixandafs, j, j1, je, jhe, jhs, jpl, js, jseuil, ke, ks, l, ll, long, mpinodee, multi_0, n_abs_rgh, &
-    n_bulk_sup, n_bulk_z, n_bulk_z_max, n_dim, n_mat_cal, n_max, n_multi_run, n_oo, n_rel, n_tens, n_tens_max, n1, n2, na, &
+    n_bulk_sup, n_bulk_z, n_bulk_z_abs, n_bulk_z_max_abs, n_dim, n_mat_cal, n_max, n_multi_run, n_oo, &
+    n_rel, n_tens, n_tens_max, n1, n2, na, &
     nab, natomsym, nb, nbseuil, nc, nccm, ncolm, ncolr, ncolt, nenerg, ninit1, ninitlr, nl, np, npldafs, &
-    nphim, nplt, nplr, nplrm, nseuil, nspin, numat_abs, nxanout, nw
+    nphim, nplt, nplr, nplrm, npps, nseuil, nspin, numat_abs, nxanout, nw
 
   integer, dimension(natomsym):: isymeq
   integer, dimension(npldafs):: nphi_dafs
   integer, dimension(2,npldafs):: isigpi
-  integer, dimension(n_bulk_z):: n_bulk_zc
-  integer, dimension(n_bulk_z_max,n_bulk_z):: igr_bulk_z
+  integer, dimension(n_bulk_z_abs):: n_bulk_zc_abs
+  integer, dimension(n_bulk_z_max_abs,n_bulk_z_abs):: igr_bulk_z_abs
 
   character(len=length_word):: nomab
   character(len=length_word), dimension(ncolm):: nomabs
@@ -61,6 +63,8 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
   complex(kind=db), dimension(3,nplrm):: pol
   complex(kind=db), dimension(npldafs,nphim):: phdf0t
   complex(kind=db), dimension(npldafs,nphim,n_max):: phdt
+  complex(kind=db), dimension(npldafs,n_max):: Sum_Bragg_bulk_abs_f0
+  complex(kind=db), dimension(npldafs,n_bulk_z):: Sum_Bragg_nonabs_f
   complex(kind=db), dimension(natomsym,npldafs):: Bragg_abs
   complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
 
@@ -90,6 +94,7 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
   real(kind=db), dimension(3,npldafs):: hkl_dafs
   real(kind=db), dimension(npldafs):: Length_Abs
   real(kind=db), dimension(n_bulk_z):: Length_rel
+  real(kind=db), dimension(n_bulk_z_abs):: Length_rel_abs
   real(kind=db), dimension(ncolm*ninitlr):: tens
   real(kind=db), dimension(natomsym):: Taux_eq
   real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens
@@ -126,7 +131,7 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
 
   Cor_abs = Full_self_abs .or. Self_abs
 
-  Bulk_roughness_case = n_bulk_z > 0 .and. .not. Bulk_step
+  Bulk_roughness_case = n_bulk_z_abs > 0 .and. .not. Bulk_step
 
   if( icheck > 0 .and. Bulk_roughness_case ) then
     write(3,110)
@@ -143,7 +148,7 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
     na = 0
     nb = 1
   endif
-  if( n_bulk_z > 1 .and. .not. Bulk_roughness_case ) then
+  if( n_bulk_z_abs > 1 .and. .not. Bulk_roughness_case ) then
     nab = natomsym
   else
     nab = na
@@ -388,7 +393,11 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
 
   if( Dafs ) then
     phdt1(:) = phdt(:,1,1)
-    phdf0t1(:) = phdf0t(:,1)
+    if( Bulk_step ) then
+      phdf0t1(:) = Sum_Bragg_bulk_abs_f0(:,1)
+    else
+      phdf0t1(:) = phdf0t(:,1)
+    endif
   endif
 
   if( Spherical_tensor ) call Spherical_tensor_cal(Abs_U_iso,Bragg_abs,ct_nelec,Core_resolved,Volume_maille,E_cut,E1E1,E1E2, &
@@ -1261,7 +1270,7 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
       nomfichdafst(l+1:l+1) = '_'
       call ad_number(iabsorig,nomfichdafst,Length_name)
     endif
-    if( n_bulk_z > 1 .and. .not. Bulk_roughness_case ) then
+    if( n_bulk_z_abs > 1 .and. .not. Bulk_roughness_case ) then
       l = len_trim(nomficht)
       nomficht(l+1:l+1) = '_'
       call ad_number(i_bulk_z,nomficht,Length_name)
@@ -1313,24 +1322,24 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
       endif
 
       ipl = n_tens + ncolr - nxanout + 1
-      if( ia == 0 .and. n_bulk_z > 1 .and. .not. Bulk_roughness_case ) then
+      if( ia == 0 .and. n_bulk_z_abs > 1 .and. .not. Bulk_roughness_case ) then
         Tens(n_tens+1:ipl) = 0._db
         do ib = 1,natomsym
-          do i = 1,n_bulk_zc(i_bulk_z)
-            if( igr_bulk_z(i,i_bulk_z) == ib ) Tens(n_tens+1:ipl) = Tens(n_tens+1:ipl) + Secabs(nxanout:ncolr,initlr,ib)  
+          do i = 1,n_bulk_zc_abs(i_bulk_z)
+            if( igr_bulk_z_abs(i,i_bulk_z) == ib ) Tens(n_tens+1:ipl) = Tens(n_tens+1:ipl) + Secabs(nxanout:ncolr,initlr,ib)  
           end do
         end do
       else
         Tens(n_tens+1:ipl) = Secabs(nxanout:ncolr,initlr,ia)
       endif
       do ipldafs = 1,npldafs
-        if( ia == 0 .and. ( n_bulk_z <= 1 .or. Bulk_roughness_case ) ) then
+        if( ia == 0 .and. ( n_bulk_z_abs <= 1 .or. Bulk_roughness_case ) ) then
           cf = Ampldafs(ipldafs,1,initlr,ia)
         elseif( ia == 0 ) then
           cf = ( 0._db, 0._db )
           do ib = 1,natomsym
-            do i = 1,n_bulk_zc(i_bulk_z)
-              if( igr_bulk_z(i,i_bulk_z) == ib ) cf = cf + conjg( Bragg_abs(ib,ipldafs) ) * Ampldafs(ipldafs,1,initlr,ib)  
+            do i = 1,n_bulk_zc_abs(i_bulk_z)
+              if( igr_bulk_z_abs(i,i_bulk_z) == ib ) cf = cf + conjg( Bragg_abs(ib,ipldafs) ) * Ampldafs(ipldafs,1,initlr,ib)  
             end do
           end do
         else
@@ -1372,13 +1381,26 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
             i_range,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,3,npldafs,nseuil,numat_abs, &
             phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym_f,Surface_ref,Volume_maille)
     elseif( Bulk_step .and. ie == 1 ) then
-      allocate( hkl_dafs_fake(3,npldafs) )
-      hkl_dafs_fake(1,:) = Length_abs(:) 
-      hkl_dafs_fake(2,:) = Length_rel(i_bulk_z) * Length_abs(:)   ! fake value used in write_out, signature of truncation 
+      phdf0t1(:) = Sum_Bragg_bulk_abs_f0(:,i_bulk_z)
+      if( i_bulk_z == 1 ) then
+        npps = (n_bulk_z + 1) * npldafs 
+      else
+        npps = npldafs
+      endif
+      allocate( hkl_dafs_fake(3,npps) )
+      hkl_dafs_fake(1,1:npldafs) = Length_abs(1:npldafs) 
+      hkl_dafs_fake(2,1:npldafs) = Length_rel_abs(i_bulk_z) * Length_abs(1:npldafs)   ! fake value used in write_out, signature of truncation 
       hkl_dafs_fake(2,1) = hkl_dafs_fake(2,1) + 10000._db   ! fake value used in write_out, signature of truncation 
-      hkl_dafs_fake(3,:) = hkl_dafs(3,:) 
+      hkl_dafs_fake(3,1:npldafs) = hkl_dafs(3,1:npldafs)
+      if( i_bulk_z == 1 ) then
+        do i = 1,n_bulk_z
+          hkl_dafs_fake(1,i*npldafs+1:i*npldafs+npldafs) = Length_rel(i) * Length_abs(1:npldafs) 
+          hkl_dafs_fake(2,i*npldafs+1:i*npldafs+npldafs) = real( Sum_Bragg_nonabs_f(1:npldafs,i), db ) 
+          hkl_dafs_fake(3,i*npldafs+1:i*npldafs+npldafs) = aimag( Sum_Bragg_nonabs_f(1:npldafs,i) ) 
+        end do
+      endif 
       call write_out(Abs_U_iso,rdum,rdum,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil(nbseuil),First_E,Green_int,hkl_dafs_fake, &
-            i_range,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,0,npldafs,nseuil,numat_abs, &
+            i_range,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,0,npps,nseuil,numat_abs, &
             phdtem,phdf0t1,tens,v0muf,Core_resolved,natomsym_f,Surface_ref,Volume_maille)
       deallocate( hkl_dafs_fake )
     else
@@ -1484,7 +1506,7 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
       close(7)
     endif
 
-      if( i_bulk_z >= n_bulk_z .or. Bulk_roughness_case ) exit
+      if( i_bulk_z >= n_bulk_z_abs .or. Bulk_roughness_case ) exit
     end do
     
   end do  ! end of loop over atoms
@@ -2515,7 +2537,8 @@ subroutine Write_out(Abs_U_iso,angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Ese
 
   integer, parameter:: n_tens_max = 10000
 
-  integer:: i, i_range, icor, ipr, jseuil, n, n_dim, n_tens, ninit1, ninitlr, np, npp, nppa, npps, nseuil, numat 
+  integer:: i, i_bulk_z, i_range, icor, ipl, ipr, jseuil, n, n_bulk_z, n_dim, n_tens, ninit1, ninitlr, np, npp, nppa, npps, &
+            nseuil, numat 
   
   character(len=Length_name):: nomficht
   character(len=92):: mot1
@@ -2540,11 +2563,22 @@ subroutine Write_out(Abs_U_iso,angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Ese
   Gnuplot = .false.
   dummy = ' '
 
+  if( Length_word < 11 .or. Length_word > 17 ) then
+    call write_error
+    do ipr = 6,9,3
+      write(ipr,100) Length_word
+    end do
+    stop
+  endif
+    
 ! For 2D resonant diffraction, when an absorbing atom is in the bulk,
 ! hkl_dafs(2,1) is a fake number which when high means that hkl_dafs(i,ipl), contains Length_abs.  
   if( npps > 0 ) then
     Truncature = hkl_dafs(2,1) > 1000._db
-    if( Truncature ) hkl_dafs(2,1) = hkl_dafs(2,1) - 10000._db
+    if( Truncature ) then
+      hkl_dafs(2,1) = hkl_dafs(2,1) - 10000._db
+      n_bulk_z = npps / np - 1
+    endif
   else
     Truncature = .false.
   endif
@@ -2632,37 +2666,58 @@ subroutine Write_out(Abs_U_iso,angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Ese
 
       select case(Length_word)
         case(11)
-          write(ipr,141) dummy, ph2(1:npp)
-          write(ipr,141) dummy, ph1(1:npp)
+          write(ipr,131) dummy, ph2(1:npp)
+          write(ipr,131) dummy, ph1(1:npp)
         case(12)
-          write(ipr,142) dummy, ph2(1:npp)
-          write(ipr,142) dummy, ph1(1:npp)
+          write(ipr,132) dummy, ph2(1:npp)
+          write(ipr,132) dummy, ph1(1:npp)
         case(13)
-          write(ipr,143) dummy, ph2(1:npp)
-          write(ipr,143) dummy, ph1(1:npp)
+          write(ipr,133) dummy, ph2(1:npp)
+          write(ipr,133) dummy, ph1(1:npp)
         case(14)
-          write(ipr,144) dummy, ph2(1:npp)
-          write(ipr,144) dummy, ph1(1:npp)
+          write(ipr,134) dummy, ph2(1:npp)
+          write(ipr,134) dummy, ph1(1:npp)
         case(15)
-          write(ipr,145) dummy, ph2(1:npp)
-          write(ipr,145) dummy, ph1(1:npp)
+          write(ipr,135) dummy, ph2(1:npp)
+          write(ipr,135) dummy, ph1(1:npp)
         case(16)
-          write(ipr,146) dummy, ph2(1:npp)
-          write(ipr,146) dummy, ph1(1:npp)
+          write(ipr,136) dummy, ph2(1:npp)
+          write(ipr,136) dummy, ph1(1:npp)
         case(17)
-          write(ipr,147) dummy, ph2(1:npp)
-          write(ipr,147) dummy, ph1(1:npp)
-        case default
-          call write_error
-          do ipr = 6,9,3
-            write(ipr,150) Length_word
-          end do
-          stop
+          write(ipr,137) dummy, ph2(1:npp)
+          write(ipr,137) dummy, ph1(1:npp)
       end select
-      if( nppa > 0 ) write(ipr,155) axyz(:)*bohr, angxyz(:) / radian, ( nint( hkl_dafs(:,i) ), i = 1,npp )
+
+      if( nppa > 0 ) write(ipr,145) axyz(:)*bohr, angxyz(:) / radian, ( nint( hkl_dafs(1:3,i) ), i = 1,npp )
+
       if( Truncature) then
         do i = 1,3
-          write(ipr,156) dummy, hkl_dafs(i,:)
+          select case(Length_word)
+            case(15)
+              write(ipr,151) dummy, hkl_dafs(i,1:np)
+            case(16)
+              write(ipr,152) dummy, hkl_dafs(i,1:np)
+            case(17)
+              write(ipr,153) dummy, hkl_dafs(i,1:np)
+            case default
+              write(ipr,151) dummy, hkl_dafs(i,1:np)
+          end select
+        end do
+        do i_bulk_z = 1,n_bulk_z
+          select case(Length_word)
+            case(15)
+              write(ipr,135) dummy, ( hkl_dafs(2,ipl), hkl_dafs(3,ipl), ipl = np*i_bulk_z+1,np*(i_bulk_z+1) ) 
+              write(ipr,151) dummy, ( hkl_dafs(1,ipl), ipl = np*i_bulk_z+1,np*(i_bulk_z+1) )
+            case(16)
+              write(ipr,136) dummy, ( hkl_dafs(2,ipl), hkl_dafs(3,ipl), ipl = np*i_bulk_z+1,np*(i_bulk_z+1) ) 
+              write(ipr,152) dummy, ( hkl_dafs(1,ipl), ipl = np*i_bulk_z+1,np*(i_bulk_z+1) )
+            case(17)
+              write(ipr,137) dummy, ( hkl_dafs(2,ipl), hkl_dafs(3,ipl), ipl = np*i_bulk_z+1,np*(i_bulk_z+1) ) 
+              write(ipr,153) dummy, ( hkl_dafs(1,ipl), ipl = np*i_bulk_z+1,np*(i_bulk_z+1) )
+            case default
+              write(ipr,135) dummy, ( hkl_dafs(2,ipl), hkl_dafs(3,ipl), ipl = np*i_bulk_z+1,np*(i_bulk_z+1) ) 
+              write(ipr,151) dummy, ( hkl_dafs(1,ipl), ipl = np*i_bulk_z+1,np*(i_bulk_z+1) )
+            end select
         end do
       endif
     endif
@@ -2671,7 +2726,7 @@ subroutine Write_out(Abs_U_iso,angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Ese
       call center_word( mot, Length_word )
       title(i) = mot
     end do
-    if ( i_range == 1) then !***JDB
+    if( i_range == 1 ) then !***JDB
       if( Gnuplot ) then
         write(ipr,158) title(1:n)
       else
@@ -2682,14 +2737,6 @@ subroutine Write_out(Abs_U_iso,angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Ese
     open(ipr, file = nomficht, position='append')
   endif
 
-  if( Length_word < 11 .or. Length_word > 17 ) then
-    call write_error
-    do ipr = 6,9,3
-      write(ipr,150) Length_word
-    end do
-    stop
-  endif
-    
   if( abs( Ephseuil*rydb ) < 9.999995_db ) then
     select case(Length_word)
       case(11)
@@ -2763,6 +2810,7 @@ subroutine Write_out(Abs_U_iso,angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Ese
   if( numat >= 0 ) close(ipr)
 
   return
+  100 format(//' Length_word =',i3, ' This parameter must be set between 11 and 17 !'//)
   105 format(//' The number of column to be written is ',i5, // &
                ' This is greater than the maximum possible value given in the routine write_out in the file coabs.f !', / & 
                ' To change that you must modify the formats 121 up to 157 in this routine,', / &
@@ -2777,16 +2825,17 @@ subroutine Write_out(Abs_U_iso,angxyz,axyz,f_avantseuil,E_cut,Ephseuil,Epsii,Ese
   125 format(f10.3,i5,2i3,1p,3e15.7,2i3,10e15.7,5e15.7,a92,'(1..',i2,')',a63)
   126 format(f10.3,i5,2i3,1p,3e15.7,2i3,14e15.7,5e15.7,a92,'(1..',i2,')',a63)
 
-  141 format(A,1p,10000e11.3)
-  142 format(A,1p,10000e12.4)
-  143 format(A,1p,10000e13.5)
-  144 format(A,1p,10000e14.6)
-  145 format(A,1p,10000e15.7)
-  146 format(A,1p,10000e16.8)
-  147 format(A,1p,10000e17.9)
-  150 format(//' Length_word =',i3, ' This parameter must be set between 11 and 17 !'//)
-  155 format(3f10.5,3x,3f10.5,10000(14x,3i4))
-  156 format(A,1p,10000(15x,e15.7))
+  131 format(A,1p,10000e11.3)
+  132 format(A,1p,10000e12.4)
+  133 format(A,1p,10000e13.5)
+  134 format(A,1p,10000e14.6)
+  135 format(A,1p,10000e15.7)
+  136 format(A,1p,10000e16.8)
+  137 format(A,1p,10000e17.9)
+  145 format(3f10.5,3x,3f10.5,10000(14x,3i4))
+  151 format(A,1p,10000(15x,e15.7))
+  152 format(A,1p,10000(16x,e16.8))
+  153 format(A,1p,10000(17x,e17.9))
   158 format('#   Energy',10000A)
   160 format('    Energy',10000A)
   161 format(f10.5,1p,10000e11.3)

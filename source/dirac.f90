@@ -691,7 +691,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
            write(3,240) rato(ir) * bohr, p * rhoit(ir,it), p * rho_coeur(ir,it)
          endif
        end do
-
+       
     endif
   endif
 
