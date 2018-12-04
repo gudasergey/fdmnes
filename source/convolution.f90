@@ -1005,7 +1005,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   Sup_sufix = ninitl(1) > 1
    
-  call Col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin(1),Fichscanin(1),fprim,Full_self_abs,hkl_dafs, &
+  call Col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin(nfich),Fichscanin(nfich),fprim,Full_self_abs,hkl_dafs, &
       Length_line,n_col,n_index_hk,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes, &
       Stokes_name,Stokes_param,Sup_sufix,Tenseur)
 
@@ -2720,7 +2720,7 @@ end
   use declarations
   implicit none
 
-  integer:: ifich, istat, l, Length_line, long, longf, n, nfich, nnombre, ns
+  integer:: ifich, istat, jfich, l, l_max, Length_line, long, longf, n, nfich, nnombre, ns
   
   character(len=8):: dat
   character(len=10):: tim
@@ -2734,8 +2734,19 @@ end
  
     do ifich = 0,nfich
       if( nfich == 1 .and. ifich > 0 ) exit
- 
-      mot = fichin( max(1,ifich) )
+
+      if( ifich == 0 ) then
+        l_max = 10000
+        do jfich = 1,nfich
+          long = len_trim( fichin(jfich) )
+          if( long < l_max ) then
+            l_max = long
+            mot = fichin(jfich)
+          endif
+        end do
+      else 
+        mot = fichin(ifich)
+      endif
       l = len_trim( mot )
       if( l > 4 ) then
         if( mot(l-3:l) == '.txt' )  mot(l-3:l) = '    '     

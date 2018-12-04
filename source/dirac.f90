@@ -1,28 +1,30 @@
 ! Fdmnes subroutine
-! Calculation of the atomic electronic densities using dirac-slater or
-! Hartree-Fock Slater.
+! Calculation of the atomic electronic densities using dirac-slater or Hartree-Fock Slater.
+
+! Dirac_eq = .true. for DIRAC-SLATER, = .false. for HARTREE-FOCK-SLATER
 
 subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
-          nnlm,nonexc,nqnexc,n_ray,nrato_dirac, nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
+          nnlm,nonexc,nqnexc,n_ray,nrato_dirac,nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
           popexc,popval,psi_coeur,psii,psi_open_val,psival,rato,rho_coeur,rhoit,Z,Relativiste)
 
   use declarations
   implicit none
   include 'mpif.h'
 
-  integer:: i, iaug, ibav, icheck, io, ip, ipr, ir, irel, it, itabs, j, jo, jseuil, ko, l, l_level_val, lseuil, mpirank, &
-            mseuil, n_coeur, n_orb, n_orbexc, nbseuil, nlatm, nmax, nnlm, n_ray, nrato_dirac, nrm, nseuil, nspin, ntype, Z
+  integer:: i, iaug, ibav, icheck, io, ip, ipr, ir, it, itabs, j, jo, jseuil, ko, l, l_level_val, lseuil, mpirank, &
+            mseuil, n_coeur, n_orb, n_orb_nonexc, n_orbexc, nbseuil, nlatm, nmax, nnlm, n_ray, nrato_dirac, nrm, nseuil, &
+            nspin, ntype, Z
   
   integer, dimension(nnlm):: lqn, lqnexc, nqn, nqnexc
   integer, dimension(2,0:ntype):: lcoeur, ncoeur
   integer, dimension(0:ntype):: nlat
   integer, dimension(0:ntype,nlatm):: lvval, nvval
 
-  logical:: nonexc, relativiste
+  logical:: Dirac_eq, nonexc, relativiste
 
-  real(kind=db):: Charge, dp, E_total, E_total_exc, elmax, h_ray, p, p1, p2, Popt, ppp, Ptot, Ray_max
+  real(kind=db):: Charge, dp, E_total, E_total_exc, elmax, f_integr3, h_ray, p, p1, p2, Popt, ppp, Ptot, Ray_max, S02
   
-  real(kind=db), dimension(nnlm):: nel, pop, rqn
+  real(kind=db), dimension(nnlm):: nel, pop, pop_notrans, rqn
   real(kind=db), dimension(nrm):: rato
   real(kind=db), dimension(nrm,nbseuil):: psii
   real(kind=db), dimension(0:ntype):: popatc
@@ -35,12 +37,12 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
   real(kind=db), dimension(2):: pop_open_val
   real(kind=db), dimension(0:nrm,2,0:ntype):: psi_coeur
 
-  real(kind=db), dimension(:), allocatable:: ray, rho
-  real(kind=db), dimension(:,:), allocatable:: psi, psi_small
+  real(kind=db), dimension(:), allocatable:: ray, rho, fct
+  real(kind=db), dimension(:,:), allocatable:: psi, psi_nonexc, psi_nonexc_small, psi_small
 
   if( icheck > 1 ) write(3,110) it, Z
   
-  if( Z <= 0 .or. Z > 103 ) then
+  if( Z <= 0 .or. Z > Z_Mendeleiev_max ) then
     call write_error
     do ipr = 3,9,3
       write(ipr,115)
@@ -48,9 +50,9 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
     stop
   endif
 
-  n_ray = nrato_dirac ! Number of radius in the radial mesh
-  ray_max = 20._db   ! Maximum radius (au)
-  h_ray = n_ray * 54._db / 600      ! log step
+  n_ray = nrato_dirac           ! Number of radius in the radial mesh
+  ray_max = 20._db              ! Maximum radius (a.u.)
+  h_ray = n_ray * 54._db / 600  ! log step
 
   if( n_ray > nrm .and. mpirank == 0 ) then
     call write_error
@@ -70,25 +72,24 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
     end select
   endif
 
-  if( Z > 2 .or. relativiste ) then
-    irel = 1
+  if( Z > 2 .or. Relativiste ) then
+    Dirac_eq = .true.
   else
-    irel = 0
+    Dirac_eq = .false.
     rqn(:) = 0._db
   endif
-  if( irel == 0 ) mseuil = 1
+  if( .not. Dirac_eq ) mseuil = 1
 
-  call config(Z,irel,n_coeur,n_orb,nnlm,nqn,lqn,rqn,nel)
+  call config(Z,Dirac_eq,n_coeur,n_orb,nnlm,nqn,lqn,rqn,nel)
 
   pop(1:n_orb) = nel(1:n_orb)
 
-! On remplace les population par defaut par celles qui sont donnees en
-! entree
+! One replaces the default occupancy par the one eventually given in the indata file
   boucle_io: do io = 1,nlat(it)
     Popt = sum( popval(it,io,1:nspin) )
     do ip = 1,n_orb
       if(nqn(ip) /= nvval(it,io) .or. lqn(ip) /= lvval(it,io)) cycle
-      if( irel == 0 .or. lqn(ip) == 0 ) then
+      if( .not. Dirac_eq .or. lqn(ip) == 0 ) then
         pop(ip) = popt
       else
         pop(ip) = ( lqn(ip) / ( 2*lqn(ip) + 1._db ) ) * popt
@@ -96,7 +97,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
       endif
       cycle boucle_io
     end do
-! Si en entree on trouve une orbitale qui normalement n'existe pas:
+! Case when in the indata file one gives an orbital which is usually not occupied
     n_orb = n_orb + 1
     if( n_orb > nnlm ) then
       call write_error
@@ -112,12 +113,12 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
     else
       rqn(n_orb) = lvval(it,io) - 0.5_db
     endif
-    if( irel == 0 ) then
+    if( .not. Dirac_eq ) then
       pop(n_orb) = popt
     else
       pop(n_orb) = ( lqn(n_orb) / ( 2*lqn(n_orb)+1._db ) ) * popt
       if( lqn(n_orb) /= 0 ) then
-! Si relativiste la nouvelle orbitale trouvee a un splitting
+! When relativistic the orbital is split
         n_orb = n_orb + 1
         if( n_orb > nnlm ) then
           call write_error
@@ -134,15 +135,14 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
     endif
   end do boucle_io
 
-! construction de l'atome neutre (le calcul des niveaux atomiques se
-! fait avec des atomes neutres)
+! Building of the neutral atom (because the calculation of the atomic levels is performed with neutral atoms)
 
   Charge = Z - sum( pop(1:n_orb) )
   if( charge > eps6 ) then
     dp = charge
     do io = 1,n_orb
       if( ( nqn(io) <= nseuil .and. it == itabs ) .or. lqn(io) > 1 ) cycle
-      if( irel == 0 .or. lqn(io) == 0 ) then
+      if( .not. Dirac_eq .or. lqn(io) == 0 ) then
         elmax = 2._db + 4._db * lqn(io)
         if( pop(io) > elmax - eps6 ) cycle
 
@@ -229,11 +229,11 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
         nqn(n_orb) = nmax + 1
         lqn(n_orb) = 0
         pop(n_orb) = dp
-        if( irel == 1 ) rqn(n_orb) = 0.5_db
+        if( Dirac_eq ) rqn(n_orb) = 0.5_db
       else
         nqn(n_orb) = nmax
         lqn(n_orb) = 1
-        if( irel == 0 ) then
+        if( .not. Dirac_eq ) then
           pop(n_orb) = dp
         else
           rqn(n_orb) = 0.5_db
@@ -286,14 +286,14 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
         endif
         nvval(it,nlat(it)) = nqn(io)
         lvval(it,nlat(it)) = lqn(io)
-        if( irel == 0 .or. lqn(io) == 0 ) then
+        if( .not. Dirac_eq .or. lqn(io) == 0 ) then
           popval(it,nlat(it),1:nspin) = pop(io) / nspin
         else
           popval(it,nlat(it),1:nspin) = sum(pop(io-1:io)) / nspin
         endif
       endif
 
-      if( irel == 0 .or. lqn(io) == 0 ) then
+      if( .not. Dirac_eq .or. lqn(io) == 0 ) then
         pop(io) = pop(io) + dp
       else
         pop(io) = pop(io) + 2 * dp / 3
@@ -304,18 +304,21 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
 
   endif
 
+  allocate( fct(n_ray) )
   allocate( ray(n_ray) )
   allocate( rho(n_ray) )
   allocate( psi(n_ray,nnlm) )
   allocate( psi_small(n_ray,nnlm) )
+  allocate( psi_nonexc(n_ray,nnlm) )
+  allocate( psi_nonexc_small(n_ray,nnlm) )
 
-! Remplissage de popatv: ces populations correspondent a l'atome neutre
+! filling of popatv: these occupancies correspond to the neutral atom
 
   if( it /= itabs .or. nonexc ) then
     do io = 1,nlat(it)
       do j = 1,n_orb
         if(nqn(j) /= nvval(it,io) .or. lqn(j) /= lvval(it,io)) cycle
-        if( irel == 0 .or. lqn(j) == 0 ) then
+        if( .not. Dirac_eq .or. lqn(j) == 0 ) then
           popatv(it,io) = pop(j)
         else
           popatv(it,io) = pop(j) + pop(j+1)
@@ -332,7 +335,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
        ' The real occupancy corresponding to the demand in the indata file can be different and is applied afterwards'
     endif
       
-    if( irel == 0 ) then
+    if( .not. Dirac_eq ) then
       write(3,150) it, Z
       do io = 1,n_orb
         if( Z > 18 .and. nqn(io) < 3 ) cycle
@@ -351,21 +354,32 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
     endif
   endif
 
-! Influence par ce qu'on lui indique en entree, mais
-! neanmoins pop etaient modifiees de ce que l'atome soit neutre
+! Related to the indata file occupancy, but pop was modified to get a neutral atom
 
-  call dirac(E_total,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,psi_small,ray,ray_max,rho,rqn,Z)
+  call dirac(E_total,h_ray,icheck,ibav,Dirac_eq,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,psi_small,ray,ray_max,rho,rqn,Z)
 
-! Construction de l'atome excite (appel en init_run):
+! Construction of the excited atom (called in init_run):
 
   if( it == itabs ) then
 
+    n_orb_nonexc = n_orb
+    pop_notrans(1:n_orb_nonexc) = pop(1:n_orb_nonexc)
+    do j = 1,n_orb_nonexc
+      if( nqn(j) == nseuil .and. lqn(j) == lseuil ) then
+        pop_notrans(j) = max( pop_notrans(j) - 1._db, 0._db )
+        exit
+      endif
+    end do
+
+    psi_nonexc(:,:) = psi(:,:)
+    if( Dirac_eq ) psi_nonexc_small(:,:) = psi_small(:,:)
+    
     l = l_level_val(Z)
 
-! Recuperation de la fonction d'onde de l'orbitale de valence potentiellement occupee
+! Stocking of the valence wave functions potentielly occupied
     do io = n_orb,1,-1
       if( lqn(io) /= l ) cycle
-      if( irel == 1 .and. lqn(io) /= 0 ) then
+      if( Dirac_eq .and. lqn(io) /= 0 ) then
         psi_open_val(1:n_ray,1) = 0.5_db * ( psi(1:n_ray,io) + psi(1:n_ray,io-1) )
         pop_open_val(1) = pop(io) + pop(io-1)
       else
@@ -375,13 +389,13 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
       exit
     end do
 
-    if( nseuil == 0 ) then ! Cas de l'optic
+    if( nseuil == 0 ) then ! Optic case
       psii(:,:) = 0._db
     else
-! Recuperation de la fonction d'onde de coeur dite initiale
+! Stocking of the core (called initial) wave functions
       do j = 1,n_orb
         if( nqn(j) /= nseuil .or. lqn(j) /= lseuil ) cycle
-        if( irel == 0 .or. lqn(j) == 0 ) then
+        if( .not. Dirac_eq .or. lqn(j) == 0 ) then
           psii(1:n_ray,1) = psi(1:n_ray,j)
           if( nbseuil == 2 ) psii(1:n_ray,nbseuil) = psi(1:n_ray,j)
         elseif( mseuil == 1 ) then
@@ -405,9 +419,9 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
       lqn(jo) = lqnexc(io)
       Ptot = sum( popexc(io,1:nspin) )
 
-      if( irel == 0 .or. lqn(jo) == 0 ) then
+      if( .not. Dirac_eq .or. lqn(jo) == 0 ) then
         pop(jo) = ptot
-        if( irel == 1 ) rqn(jo) = 0.5_db
+        if( Dirac_eq ) rqn(jo) = 0.5_db
       else
         if( nqn(jo) == nseuil .and. lqn(jo) == lseuil ) ptot = ptot + 1._db
         p = lqn(jo) / ( 2 * lqn(jo) + 1._db )
@@ -441,16 +455,16 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
       dp = charge
       do io = 2,n_orb
         if( nqn(io) <= nseuil .or. lqn(io) > 1 .or. lqn(io-1) == lqn(io) ) cycle
-        if( irel == 0 .or. lqn(io) == 0 ) then
-          elmax = 2 + 4. * lqn(io)
+        if( .not. Dirac_eq .or. lqn(io) == 0 ) then
+          elmax = 2 + 4._db * lqn(io)
           if( pop(io) > elmax - eps6 ) cycle
           ppp = pop(io)
           pop(io) = min( pop(io) + dp, elmax )
           dp = dp - pop(io) + ppp
         else
-          elmax = 2 + 4. * lqn(io)
+          elmax = 2 + 4._db * lqn(io)
           if( sum(pop(io:io+1)) > elmax - eps6 ) cycle
-          p = lqn(io) / ( 2 * lqn(io) + 1. )
+          p = lqn(io) / ( 2 * lqn(io) + 1._db )
           ppp = sum( pop(io:io+1) )
           pop(io) = min( pop(io) + p * dp, elmax*p )
           pop(io+1) = min( pop(io+1) + ( 1 - p ) * dp, elmax*(1-p) )
@@ -482,12 +496,12 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
           nqn(n_orb) = nmax + 1
           lqn(n_orb) = 0
           pop(n_orb) = dp
-          if( irel == 1 ) rqn(n_orb) = 0.5_db
+          if( Dirac_eq ) rqn(n_orb) = 0.5_db
         else
           n_orb = n_orb + 1
           nqn(n_orb) = nmax
           lqn(n_orb) = 1
-          if( irel == 0 ) then
+          if( .not. Dirac_eq ) then
             pop(n_orb) = dp
           else
             rqn(n_orb) = 0.5_db
@@ -513,7 +527,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
       do io = n_orb,2,-1
         dp = charge
         if( nqn(io) <= nseuil .or. lqn(io) > 1 ) cycle
-        if( irel == 0 .or. lqn(io) == 0 ) then
+        if( .not. Dirac_eq .or. lqn(io) == 0 ) then
           pop(io) = pop(io) + dp
         else
           pop(io) = pop(io) + 2 * dp / 3
@@ -527,7 +541,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
     do io = 1,nlat(it)
       do j = 1,n_orb
         if(nqn(j) /= nvval(it,io) .or. lqn(j) /= lvval(it,io)) cycle
-        if( irel == 0 .or. lqn(j) == 0 ) then
+        if( .not. Dirac_eq .or. lqn(j) == 0 ) then
           popatv(it,io) = pop(j)
         else
           popatv(it,io) = pop(j) + pop(j+1)
@@ -537,7 +551,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
     end do
 
     if( icheck > 0 ) then
-      if( irel == 0 ) then
+      if( .not. Dirac_eq ) then
         write(3,165) Z
         do io = 1,n_orb
           if( Z > 18 .and. nqn(io) < 3 ) cycle
@@ -556,12 +570,12 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
       endif
     endif
 
-    call dirac(E_total_exc,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,psi_small,ray,ray_max,rho,rqn,Z)
+    call dirac(E_total_exc,h_ray,icheck,ibav,Dirac_eq,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,psi_small,ray,ray_max,rho,rqn,Z)
 
-! Recuperation de la fonction d'onde de l'orbitale de valence excite
+! Stocking of the excited valence wave functions
     do io = 1, n_orb
       if( io <= n_coeur .or. lqn(io) /= l ) cycle
-      if( irel == 1 .and. lqn(io) /= 0 ) then
+      if( Dirac_eq .and. lqn(io) /= 0 ) then
         psi_open_val(1:n_ray,2) = 0.5_db * ( psi(1:n_ray,io) + psi(1:n_ray,io-1) )
         pop_open_val(2) = pop(io) + pop(io-1)
       else
@@ -572,22 +586,30 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
 
     if( icheck > 0 ) write(3,190) E_total_exc * 2 * Rydb, E_total * 2 * Rydb, ( E_total_exc - E_total ) * 2 * Rydb
 
-  endif   ! fin de la partie appel type_work pour atome excite
+! Calculation of S_O^2
+    if( icheck > 1 ) write(3,'(/A)') ' io  n  l      pop        p       S02' 
+    do io = 1,n_orb_nonexc
+      S02 = 1._db
+! Radial wave functions psi are multiplied by sqrt(4*pi)*r
+      if( Dirac_eq ) then
+        fct(1:n_ray) = psi(1:n_ray,io) * psi_nonexc(1:n_ray,io) + psi_small(1:n_ray,io) * psi_nonexc_small(1:n_ray,io) 
+      else
+        fct(1:n_ray) = psi(1:n_ray,io) * psi_nonexc(1:n_ray,io)
+      endif
+      p = f_integr3(ray,fct,1,n_ray,ray(n_ray))
+      S02 = S02 * p**pop_notrans(io)
+      if( icheck > 1 ) write(3,192) io, nqn(io), lqn(io), pop_notrans(io), p, S02  
+    end do
+    if( icheck > 0 ) write(3,195) S02
+
+  endif   ! end of part corresponding to the excited atom called by type_work
 
   rato(1:n_ray) = ray(1:n_ray)
-  rhoit(1:n_ray,it) = rho(1:n_ray)    ! densite
-
-! Les fonctions d'onde psi sont multipliees par r
-!  rho_coeur(1:n_ray,it) = 0._db
-!  do io = 1,n_coeur
-!    rho_coeur(1:n_ray,it) = rho_coeur(1:n_ray,it) + pop(io) * psi(1:n_ray,io)**2
-!  end do
-
-!  rho_coeur(1:n_ray,it) = rho_coeur(1:n_ray,it) / ( quatre_pi * ray(1:n_ray)**2 )
+  rhoit(1:n_ray,it) = rho(1:n_ray)    ! Density
 
   rho_coeur(1:n_ray,it) = 0._db
   do io = n_coeur+1,n_orb
-    if( irel == 1 ) then
+    if( Dirac_eq ) then
       rho_coeur(1:n_ray,it) = rho_coeur(1:n_ray,it) - pop(io) * ( psi(1:n_ray,io)**2 + psi_small(1:n_ray,io)**2 )
     else
       rho_coeur(1:n_ray,it) = rho_coeur(1:n_ray,it) - pop(io) * psi(1:n_ray,io)**2
@@ -596,24 +618,18 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
   rho_coeur(1:n_ray,it) = rho_coeur(1:n_ray,it) / ( quatre_pi * ray(1:n_ray)**2 )
   rho_coeur(1:n_ray,it) = rho_coeur(1:n_ray,it) + rho(1:n_ray) 
 
-! Extrapolation au centre de l'atome.
+! Extrapolation to the atom center
   p1 = rato(2) / ( rato(2) - rato(1) )
   p2 = 1 - p1
   rho_coeur(0,it) = p1 * rho_coeur(1,it) + p2 * rho_coeur(2,it)
 
-! Oana: tous les tableaux que je fais sortir vers le main devraient etre remplis
-! apres la construction de l'atome excite; si l'appel se fait a partir de atom cela
-! ne gene pas, car on ne construit pas l'excite; si l'appel se fait a partir de type_work
-! on aurait deja eu toutes les quantites pour it = itabs
-
-! ici on stoque les fonctions d'onde (nonrelativistes, on tient pas compte du spin) pour les orbitales de valence
-
   do io = 1,nlat(it)
     do j = 1,n_orb
       if( nqn(j) /= nvval(it,io) .or. lqn(j) /= lvval(it,io) ) cycle
-      if( irel == 0 .or. lqn(j) == 0 ) then
+      if( .not. Dirac_eq .or. lqn(j) == 0 ) then
         psival(1:n_ray,io,it) = psi(1:n_ray,j)
       else
+! The stocking is not relativistic for the valence orbital
         do ir = 1,n_ray
           psival(ir,io,it) = 0.5_db * sum( psi(ir,j:j+1) )
         end do
@@ -622,9 +638,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
     end do
   end do
 
-! Recuperation des fonctions d'onde de la derniere orbitale de coeur
-! et de la premiere orbitale de valence
-
+! Stocking of the highest core and lowest valence orbitals
   select case (Z)
     case(1,2)
        do i = 1,2
@@ -638,11 +652,11 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
            io = n_coeur
          else
            io = n_coeur + 1
-           if( irel == 1 .and. lqn(io) /= 0 ) io = io + 1
+           if( Dirac_eq .and. lqn(io) /= 0 ) io = io + 1
          endif
          lcoeur(i,it) = lqn(io)
          ncoeur(i,it) = nqn(io)
-         if( irel == 1 .and. lqn(io) /=0 ) then
+         if( Dirac_eq .and. lqn(io) /=0 ) then
            psi_coeur(1:n_ray,i,it) = 0.5_db * ( psi(1:n_ray,io) + psi(1:n_ray,io-1) )
          else
            psi_coeur(1:n_ray,i,it) = psi(1:n_ray,io)
@@ -657,8 +671,8 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
         write(3,137) ray(ir)*bohr, ( psi_coeur(ir,i,it),i = 1,2 )
      end do
   end if
-! on prend en compte la charge eventuelle de l'atome
 
+! One takes into account the eventual atomic charge
   popatc(it) = 1._db * Z
   do io = 1,nlat(it)
     popatc(it) = popatc(it) - popatv(it,io)
@@ -697,7 +711,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
 
   deallocate( Ray )
   deallocate( rho )
-  deallocate( psi, psi_small )
+  deallocate( fct, psi, psi_nonexc, psi_nonexc_small, psi_small )
 
   return
   110 format(/' ---- Dirac --------',100('-')//' it =',i2,'  Z =',i4)
@@ -716,7 +730,9 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
   180 format(i4,i3,f5.1,2f9.3)
   190 format(/' Excited atom total energy =',1p,e13.5,' eV',/ &
               '         atom total energy =',e13.5,' eV',/&
-              '                Difference =',e13.5,' eV') 
+              '                Difference =',e13.5,' eV')
+  192 format(3i3,3f10.5)
+  195 format(' S02 = ',f9.5) 
   210 format(/'  Popatc =',f9.4)
   215 format(/'  n  l  Popatv')
   220 format(2i3,f8.4)
@@ -726,22 +742,24 @@ end
 
 !***********************************************************************
 
-subroutine config(Z,irel,n_coeur,n_orb,nnlm,nqn,lqn,rqn,nel)
+! Establishment of the electronic configuration
+
+subroutine config(Z,Dirac_eq,n_coeur,n_orb,nnlm,nqn,lqn,rqn,nel)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
-  parameter(nzm=103)
-
-  integer Z, n_orb, n_coeur
+  integer:: io, ip, ipr, jo, l, n, n_coeur, n_coeur_rel, n_orb, n_orb_base, n_orb_coeur, n_orb_rel, nnlm, Z
   integer, dimension(nnlm):: lqn, nqn
+  
+  logical:: Dirac_eq
 
   real(kind=db), dimension(nnlm):: nel, rqn
 
-  if( Z > nzm .or. Z <= 0 ) then
+  if( Z > Z_Mendeleiev_max .or. Z <= 0 ) then
     call write_error
     do ipr = 3,9,3
-      write(ipr,110) nzm, Z
+      write(ipr,110) Z_Mendeleiev_max, Z
     end do
     stop
   endif
@@ -781,13 +799,13 @@ subroutine config(Z,irel,n_coeur,n_orb,nnlm,nqn,lqn,rqn,nel)
       nqn(n_orb-2) = 5; lqn(n_orb-2) = 0
       nqn(n_orb-1) = 5; lqn(n_orb-1) = 1
       nqn(n_orb) = 6;   lqn(n_orb) = 0
-    Case(57) ! La ne converge pas avec 4f1
+    Case(57) ! La do not converge with 4f1
       nqn(n_orb-3) = 5; lqn(n_orb-3) = 0
       nqn(n_orb-2) = 5; lqn(n_orb-2) = 1
       nqn(n_orb-1) = 6; lqn(n_orb-1) = 0
       nqn(n_orb) = 5;   lqn(n_orb) = 2
-    Case(58,59,60,61,62,63,64,65,66,67,68,69,70,71) ! converge pas
-      nqn(n_orb-4) = 5; lqn(n_orb-4) = 0            ! avec 5d0
+    Case(58,59,60,61,62,63,64,65,66,67,68,69,70,71) ! Do not converge with 5d0
+      nqn(n_orb-4) = 5; lqn(n_orb-4) = 0           
       nqn(n_orb-3) = 5; lqn(n_orb-3) = 1
       nqn(n_orb-2) = 6; lqn(n_orb-2) = 0
       nqn(n_orb-1) = 5; lqn(n_orb-1) = 2
@@ -815,37 +833,37 @@ subroutine config(Z,irel,n_coeur,n_orb,nnlm,nqn,lqn,rqn,nel)
       nqn(n_orb) = 5;   lqn(n_orb) = 3
   end select
 
-  nel(1:n_orb) = 4 * lqn(1:n_orb) + 2._db  ! orbitale pleine
+  nel(1:n_orb) = 4 * lqn(1:n_orb) + 2._db  ! orbital full
   nel(n_orb) = nel(n_orb) + Z - sum( nel(1:n_orb) )
 
   if( Z > 57 .and. Z < 67 ) then
     nel(n_orb) = Z - 57._db
     nel(n_orb-1) = 1._db
   elseif( Z > 66 .and. Z < 72 ) then
-! 58:  5s5p6s ocupees + 2 el sur 5d
+! 58:  5s5p6s occupied + 2 electron on 5d
     nel(n_orb) = Z - 58._db
     nel(n_orb-1) = 2._db
-  elseif( Z > 89 .and. Z <= nzm ) then
+  elseif( Z > 89 .and. Z <= Z_Mendeleiev_max ) then
     nel(n_orb) = Z - 89._db
     nel(n_orb-1) = 1._db
   endif
 
-  if( irel == 1 ) then
+  if( Dirac_eq ) then
     n_orb_rel = n_orb
 
     do io = 1,n_orb
       if( lqn(io) /= 0 ) n_orb_rel = n_orb_rel + 1
     end do
 
-! Cas calcul atomique relativiste
+! Relativistic case
     n_coeur_rel = n_coeur
     do io = 1,n_coeur
       if( lqn(io) /= 0 ) n_coeur_rel = n_coeur_rel + 1
     end do
     n_coeur = n_coeur_rel
-! la boucle doit etre placee avant le changement des configurations
+! The loop must be before the configuration change
 
-! passage de la base l,s,ml,ms a l,s,j,mj
+! Change of basis from (l,s,ml,ms) to (l,s,j,mj)
 
     jo = n_orb_rel + 1
     do io = n_orb,1,-1
@@ -855,7 +873,7 @@ subroutine config(Z,irel,n_coeur,n_orb,nnlm,nqn,lqn,rqn,nel)
       rqn(jo) = lqn(jo) + 0.5_db     ! mj
       if( lqn(jo) == 0 ) then
         nel(jo) = nel(io)
-      elseif( abs( nel(io) - 4 * lqn(io) - 2 ) < eps10 ) then   ! cas d'une couche pleine
+      elseif( abs( nel(io) - 4 * lqn(io) - 2 ) < eps10 ) then   ! Full shell case
         nel(jo) = 2 * ( lqn(jo) + 1._db )
       else
         nel(jo) = ( ( lqn(jo) + 1._db ) / ( 2*lqn(jo) + 1._db ) ) * nel(io)
@@ -882,13 +900,10 @@ end
 
 !***********************************************************************
 
-! PROGRAM DIRAC
-
 ! DIRAC, A COMPUTER PROGRAM TO CARRY OUT BOTH NONRELATIVISTIC AND
 ! RELATIVISTIC SELF CONSISTENT FIELD CALCULATIONS FOR ATOMS AND IONS
 
 ! THE PROGRAM CONSISTS OUT OF THE FOLLOWING ROUTINES
-
 !       DIRAC - CONTROL PROGRAM
 !       DINPT - INPUT ROUTINE
 !       DIPOT - GENERATES POTENTIAL
@@ -898,21 +913,17 @@ end
 !       DIOUT - PRINTED OUTPUT ROUTINE
 !       DIADL - ROUTINE FOR NUMERICAL INTEGRATION
 
-! WRITTEN AND/OR MODIFIED FROM LOS ALAMOS PROGRAM BY
-! P. ROS AND D.E. ELLIS, CHEMISTRY DEPARTMENT
+! WRITTEN AND/OR MODIFIED FROM LOS ALAMOS PROGRAM BY P. ROS AND D.E. ELLIS, CHEMISTRY DEPARTMENT
 ! FREE UNIVERSITY OF AMSTERDAM, HOLLAND.
 ! MOD.BY.ELLIS AND JANSEN(1977)FOR EFG AND DIPOLE INTEGRALS.
 ! MOD. BY G.A. BENESH FOR CONTINUUM ORBITALS..OCT78
-! MODIFIED TO GENERATE BASIS FUNCTIONS AND CHARGE DENSITIES FOR THE
-! NON-RELATIVISTIC AND RELATIVISTIC MOLECULAR PROGRAMS
-! Modified by Tapio T Rantala to include different exchange and
-! correlation potentials by implementing the routine XC(     ).
+! MODIFIED TO GENERATE BASIS FUNCTIONS AND CHARGE DENSITIES FOR THE NON-RELATIVISTIC AND RELATIVISTIC MOLECULAR PROGRAMS
+! Modified by Tapio T Rantala to include different exchange and correlation potentials by implementing the routine XC
 ! 1985-11-06. The changes are done in DIPOT.
-! A. Rosen found that it was some error for spinpolarized calc.
-! This was corrected by Bengt Lindgren and A. Rosen Dec 1987.
-! Modified by Y Joly 2000-2016
+! A. Rosen found that it was some error for spinpolarized calc. This was corrected by Bengt Lindgren and A. Rosen Dec 1987.
+! Modified by Y Joly 2000-2018
 
-subroutine dirac(E_total,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,psi_small,ray,ray_max,rho,rqn,Z)
+subroutine dirac(E_total,h_ray,icheck,ibav,Dirac_eq,lqn,n_orb,n_ray,nnlm,nqn,pop,psi,psi_small,ray,ray_max,rho,rqn,Z)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -922,7 +933,7 @@ subroutine dirac(E_total,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi
   integer, dimension(nnlm):: lqn, nqn
   integer, dimension(n_orb):: xl, xn
 
-  logical:: last
+  logical:: Dirac_eq, last
 
   real(kind=db), dimension(n_ray,nnlm):: psi, psi_small
   real(kind=db), dimension(nnlm):: pop, rqn
@@ -936,19 +947,17 @@ subroutine dirac(E_total,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi
   psi_small(:,:) = 0._db
 
   Zn = 1._db * Z ! ATOMIC NUMBER
-! IDIRC= ZERO FOR HARTREE-FOCK-SLATER, NONZERO FOR DIRAC-SLATER
-  idirc = irel
 
   last = .false.
 
-  call dinpt(Delta_rv,h_ray,ibav,icheck,idirc,lqn,n_orb,n_ray,nnlm, nqn,ph,pop,ray,ray_max,rh,rj,rqn,vr,vs, &
+  call dinpt(Delta_rv,h_ray,ibav,icheck,Dirac_eq,lqn,n_orb,n_ray,nnlm,nqn,ph,pop,ray,ray_max,rh,rj,rqn,vr,vs, &
          xe,xj,xl,xn,xz,Zn,nc1,jspn,ha, rn,h,xion,phi,eps,del,xalph,rnuc,voc,anuc,sumel, rbar,rba2,vbar,h3)
 
 ! ITERATION TIE POINT HERE...
   do ncycl = nc1,0,-1
 
 ! RH=ELECTR.DENS. RJ=SPIN.DENS. VR=R*POT.
-    call dipot(a,b,Convr,Delta_rv,E_v,E_Vxc,E_xc,E_Z,ibav, icheck,idirc,1,n_orb,n_ray,Q,ray,rh,rj,vr,vs,xte,y,Zn, &
+    call dipot(a,b,Convr,Delta_rv,E_v,E_Vxc,E_xc,E_Z,ibav,icheck,Dirac_eq,1,n_orb,n_ray,Q,ray,rh,rj,vr,vs,xte,y,Zn, &
           jspn,h,del,xalph,rnuc,da,dbb,voc,sumel,rbar,rba2,vbar,h3)
 
     if( Convr < Delta_rv .or. ncycl <= 0 ) then
@@ -969,7 +978,7 @@ subroutine dirac(E_total,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi
       e = xe(i)
 
       if( i == jspn + 1 ) then
-        call dipot(a,b,Convr,Delta_rv,E_v,E_Vxc,E_xc,E_Z,ibav, icheck,idirc,2,n_orb,n_ray,Q,ray,rh,rj,vr,vs, xte,y,Zn, &
+        call dipot(a,b,Convr,Delta_rv,E_v,E_Vxc,E_xc,E_Z,ibav,icheck,Dirac_eq,2,n_orb,n_ray,Q,ray,rh,rj,vr,vs,xte,y,Zn, &
           jspn,h,del,xalph,rnuc,da,dbb,voc,sumel,rbar,rba2,vbar,h3)
         rj(1:n_ray) = ps * rj(1:n_ray)
       endif
@@ -977,7 +986,7 @@ subroutine dirac(E_total,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi
 ! SKIP UNOCCUPIED STATES UNTIL LAST CYCLE.
       if ( (xz(i) < ahz) .and. .not. last ) cycle
 
-      if( idirc == 0 ) then
+      if( .not. Dirac_eq ) then
         call hsdif(a,b,e,ibav,icheck,last,lq,n_ray,nq,ray,vr,y,Zn, npts,ha,rn,h,del,v0,da,dbb,a0,b0,voc,rbar,vbar)
         y(1:n_ray) = ph * xz(i) * a(1:n_ray)**2
       else
@@ -994,11 +1003,11 @@ subroutine dirac(E_total,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi
       if( .not. last) cycle
 
       psi(1:npts,i) = a(1:npts)
-      if( idirc /= 0 ) psi_small(1:npts,i) = b(1:npts)
+      if( Dirac_eq ) psi_small(1:npts,i) = b(1:npts)
 
       if( icheck > 2 ) then
         write(ibav,24) v0, ( a0(k), k = 1,5 )
-        if( idirc > 0 ) write(ibav,24) v0, (b0(k), k = 1,5)
+        if( Dirac_eq ) write(ibav,24) v0, (b0(k), k = 1,5)
       endif
 
     end do
@@ -1012,7 +1021,7 @@ subroutine dirac(E_total,h_ray,icheck,ibav,irel,lqn,n_orb,n_ray,nnlm,nqn,pop,psi
 
   end do
 
-  call diout(E_total,E_v,E_Vxc,E_xc,E_Z,ibav,icheck, idirc,n_orb,n_ray,nnlm,psi,psi_small,Q,ray,rh,rho, &
+  call diout(E_total,E_v,E_Vxc,E_xc,E_Z,ibav,icheck,Dirac_eq,n_orb,n_ray,nnlm,psi,psi_small,Q,ray,rh,rho, &
              Summa,Vrf,xe,xj,xl,xn,xte,xz,Z)
 
   return
@@ -1024,11 +1033,10 @@ end
 ! *********************************************************************
 
 ! INPUT ROUTINE FOR DIRAC PROGRAM
-! FOR INPUT SPECIFICATIONS, SEE MAIN PROGRAM DIRAC
 ! n_ray : NUMBER OF POINTS IN RADIAL MESH
 ! n_orb : NUMBER OF SHELLS
 
-subroutine dinpt(Delta_rv,h_ray,ibav,icheck,idirc,lqn,n_orb,n_ray, nnlm,nqn,ph,pop,ray,ray_max,rh,rj,rqn,vr,vs, &
+subroutine dinpt(Delta_rv,h_ray,ibav,icheck,Dirac_eq,lqn,n_orb,n_ray, nnlm,nqn,ph,pop,ray,ray_max,rh,rj,rqn,vr,vs, &
                xe,xj,xl,xn,xz,Zn,nc1,jspn,ha, rn,h,xion,phi,eps,del,xalph,rnuc,voc,anuc,sumel, rbar,rba2,vbar,h3)
 
   use declarations
@@ -1038,6 +1046,8 @@ subroutine dinpt(Delta_rv,h_ray,ibav,icheck,idirc,lqn,n_orb,n_ray, nnlm,nqn,ph,p
 
   integer, dimension(nnlm):: lqn, nqn
   integer, dimension(n_orb):: xl, xn
+  
+  logical:: Dirac_eq
 
   real(kind=db), dimension(nnlm):: pop, rqn
   real(kind=db), dimension(n_orb):: a, b, xe, xj, xz
@@ -1048,8 +1058,7 @@ subroutine dinpt(Delta_rv,h_ray,ibav,icheck,idirc,lqn,n_orb,n_ray, nnlm,nqn,ph,p
   nc1 = 199     ! MAXIMUM NUMBER OF CYCLES
   rn = ray_max  ! MAXIMUM RADIUS
   h = h_ray     ! INTERVAL OF LOGARITHMIC MESH
-! ATOMIC WEIGHT, ANUC MUST BE SPECIFIED FOR PROPER VOLUME
-! AVERAGING(DIDEN)
+! ATOMIC WEIGHT, ANUC MUST BE SPECIFIED FOR PROPER VOLUME AVERAGING(DIDEN)
   anuc = 0._db
   xion = 0._db   ! IONIC CHARGE
 
@@ -1080,11 +1089,9 @@ subroutine dinpt(Delta_rv,h_ray,ibav,icheck,idirc,lqn,n_orb,n_ray, nnlm,nqn,ph,p
   if( rba2 < eps10 ) rba2 = rn
 ! THE ABOVE VALUES OF n_ray, RN,H, ETC. SUFFICE FOR MOST ATOMS AND IONS.
   if( h < agz ) h = 33._db - 0.1_db * Zn
-  if( icheck > 1 ) then
+  if( icheck > 2 ) then
     write(ibav,110)
     write(ibav,120) n_ray, n_orb, rn, h, Zn, xion, anuc
-  endif
-  if( icheck > 2 ) then
     write(ibav,130)
     write(ibav,140) ph, phi, eps, del, Delta_rv
     write(ibav,150) rbar, vbar, rba2
@@ -1096,13 +1103,16 @@ subroutine dinpt(Delta_rv,h_ray,ibav,icheck,idirc,lqn,n_orb,n_ray, nnlm,nqn,ph,p
   if( jspn <= 0 ) jspn = n_orb
   if( nc1 == 0 ) nc1 = 30
   if( icheck > 2 ) then
-    write(ibav,160)
-    write(ibav,170) idirc, nc1, jspn
+    if( Dirac_eq ) then
+      write(ibav,160) nc1, jspn
+    else
+      write(ibav,170) nc1, jspn
+    endif
   endif
 
 ! XALPH = SLATER EXCHANGE COEFFICIENT
 ! XALPH = 2 GIVES HEDIN-LUNDQUIST EXCHANGE
-  xalph = 2.01
+  xalph = 2.01_db
 
 ! DEFINE H-CONSTANTS FOR DIFFER  START1,2  DIFF1,2
   h = 1 / h
@@ -1147,12 +1157,12 @@ subroutine dinpt(Delta_rv,h_ray,ibav,icheck,idirc,lqn,n_orb,n_ray, nnlm,nqn,ph,p
     xz(i) = pop(i)
     zbar = max( adz, zbar - xz(i) )
     if( abs(xe(i)) < afz ) xe(i) = - 0.5_db * (zbar / xn(i))**2 + vbar
-    if( idirc == 0 ) xj(i) = 0._db
+    if( .not. Dirac_eq ) xj(i) = 0._db
     if( icheck > 2 ) write(ibav,210) xn(i), xl(i), xj(i), xe(i), xz(i)
     if( xn(i) < 1-eps6 ) exit
     sum = sum + xz(i)
     if( xn(i) == xl(i) ) exit
-    if( idirc == 0 ) cycle
+    if( .not. Dirac_eq ) cycle
     if( abs( abs(xl(i) - xj(i)) - 0.5_db ) > eps6 ) exit
     if( 2*xj(i) + 1 < xz(i)-eps6 ) exit
   end do
@@ -1162,7 +1172,7 @@ subroutine dinpt(Delta_rv,h_ray,ibav,icheck,idirc,lqn,n_orb,n_ray, nnlm,nqn,ph,p
     do ipr = 3,9,3
       write(ipr,220) i
       write(ipr,225) xn(i), xl(i)
-      if( idirc /= 0 ) write(ipr,227) xj(i), xz(i)
+      if( Dirac_eq ) write(ipr,227) xj(i), xz(i)
     end do
     stop
   endif
@@ -1231,8 +1241,8 @@ subroutine dinpt(Delta_rv,h_ray,ibav,icheck,idirc,lqn,n_orb,n_ray, nnlm,nqn,ph,p
   130 format('  PH   PHI     EPS        DEL       Delta_rv')
   140 format(2f6.2,f12.2,2f12.8)
   150 format(/' PARAMTERS TO GENRT ADDTNL BASIS FNS ', ' RADIUS OF POTL WELL',f12.8,' ITS DEPTH',f12.8/,' CUTOFF',f12.8)
-  160 format('  DIRC CYCL' )
-  170 format(5i5)
+  160 format(' Dirac-Slater equation, ncl =',i5,', jspn = ',i5)
+  170 format(' Hartree-Fock-Slater equation, ncl =',i5,', jspn = ',i5)
   180 format(/' LESS THAN THREE MESH POINTS INSIDE NUCLEUS')
   190 format('  XALPHA = ',e20.8,', RNUC = ',e20.8)
   200 format('   XN   XL   XJ      XE          XZ')
@@ -1253,13 +1263,15 @@ end
 ! MODIFIED FOR RELATIVISTIC EXCHANGE...SEE 'SQK','QRELX'
 ! POINT ION ONLY OPTION FOR RHO(1).LT.0
 
-subroutine dipot(a,b,Convr,Delta_rv,E_v,E_Vxc,E_xc,E_Z,ibav, icheck,idirc,isw,n_orb,n_ray,Q,ray,rh,rj,vr,vs,xte,y,Zn, &
+subroutine dipot(a,b,Convr,Delta_rv,E_v,E_Vxc,E_xc,E_Z,ibav,icheck,Dirac_eq,isw,n_orb,n_ray,Q,ray,rh,rj,vr,vs,xte,y,Zn, &
        jspn,h,del,xalph,rnuc,da,dbb,voc,sumel,rbar,rba2,vbar,h3)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
 
   parameter( pi4 = 4 * pi)
+  
+  logical:: Dirac_eq
 
   real(kind=db), dimension(5):: da, dbb, voc
   real(kind=db), dimension(15):: dc
@@ -1473,7 +1485,7 @@ subroutine dipot(a,b,Convr,Delta_rv,E_v,E_Vxc,E_xc,E_Z,ibav, icheck,idirc,isw,n_
   detc = rc * rc
   voc(3) = ( ta * (detb - detc) + tb * (detc - deta) + tc * (deta - detb) ) / det
   voc(4) = (ta * (rc - rb) + tb * (ra - rc) + tc * (rb - ra)) / det
-  if( idirc /= 0 ) voc(1:5) = - voc(1:5) * alfa_sf
+  if( Dirac_eq ) voc(1:5) = - voc(1:5) * alfa_sf
 
   if( icheck > 2 ) write(ibav,21) voc(1), voc(5), voc(3:4)
 
@@ -2475,7 +2487,7 @@ end
 
 !   DIOUT PRINTS DATA FROM THE CALCULATION.
 
-subroutine diout(E_total,E_v,E_Vxc,E_xc,E_Z,ibav,icheck, idirc,n_orb,n_ray,nnlm,psi,psi_small,Q,ray,rh, &
+subroutine diout(E_total,E_v,E_Vxc,E_xc,E_Z,ibav,icheck,Dirac_eq,n_orb,n_ray,nnlm,psi,psi_small,Q,ray,rh, &
                    rho,Summa,Vrf,xe,xj,xl,xn,xte,xz,Z)
 
   use declarations
@@ -2488,6 +2500,8 @@ subroutine diout(E_total,E_v,E_Vxc,E_xc,E_Z,ibav,icheck, idirc,n_orb,n_ray,nnlm,
   integer:: Z
   integer, dimension(n_orb):: nist
   integer, dimension(n_orb):: xl, xn
+  
+  logical:: Dirac_eq
 
   real(kind=db), dimension(n_orb):: xe, xj, xz
   real(kind=db), dimension(n_ray):: ray, rh, rho, Vrf
@@ -2504,7 +2518,7 @@ subroutine diout(E_total,E_v,E_Vxc,E_xc,E_Z,ibav,icheck, idirc,n_orb,n_ray,nnlm,
   p4 = 1 / ( 4 * pi )
 
   do i = 1, n_orb
-    if( idirc == 0 )  then
+    if( .not. Dirac_eq )  then
       nist(i) = nint( 0.5_db * xn(i) * (xn(i) - 1) + xl(i) + ahz )
     else
       nist(i) = nint( xn(i) * (xn(i) - 2) + xl(i) + xj(i) + abz )
@@ -2536,7 +2550,7 @@ subroutine diout(E_total,E_v,E_Vxc,E_xc,E_Z,ibav,icheck, idirc,n_orb,n_ray,nnlm,
       f = quatre_pi * ray(i)**2
       write(ibav,120) bohr*ray(i), Hartree*Vrf(i)/ray(i), f*rho(i), psi(i,1:n_orb)
     end do
-    if( idirc/= 0 ) then
+    if( Dirac_eq ) then
       write(ibav,130) nlj( nist(1:n_orb) )
       do i = 1,n_ray
         f = quatre_pi * ray(i)**2

@@ -1555,7 +1555,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     nomfich,nomfichbav,Noncentre, &
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
     nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
-    nself,nself_bulk,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_bulk,ntype_conf,numat,numat_abs, &
+    nself,nself_bulk,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_bulk,ntype_conf,ntype_mod,numat,numat_abs, &
     nvval,occ_hubb_e,Occupancy_first,Octupole,Old_zero,One_run,Operation_mode,Operation_mode_used,Optic,Overad,Overlap, &
     p_self_max,p_self0,p_self0_bulk,param,Pas_SCF,pdpolar,phi_0,PointGroup,PointGroup_Auto,polar,Polarise,poldafsem,poldafssm, &
     pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadmag,Quadrupole,R_rydb,R_self,R_self_bulk, &
@@ -1582,7 +1582,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     nchemin, necrantage, neimagent, nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_nonsph, &
     ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, nhybm, nlatm, nn, nnombre, non_relat, norb, norbdil, normrmt, &
     nparm, nphim, nphimt, npldafs, npldafs_2d, npldafs_e, npldafs_f, nple, nq_nrixs, nrato_dirac, nrm, nscan, nself, nself_bulk, &
-    nseuil, nslapwm, nspin, ntype, ntype_bulk, ntype_conf, Trace_k, Wien_save, Z_nospinorbite, Z
+    nseuil, nslapwm, nspin, ntype, ntype_bulk, ntype_conf, ntype_mod, Trace_k, Wien_save, Z_nospinorbite, Z
 
   character(len=1):: Let
   character(len=2):: Chemical_Symbol, Chemical_Symbol_c, Symbol
@@ -1657,6 +1657,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   logical, dimension(10):: Multipole
   logical, dimension(ngroup):: Atom_nsph_e
   logical, dimension(0:ntype):: Hubb
+  logical, dimension(ntype):: Suppress
 
   real(kind=db):: Alfpot, Ang_borm, Bulk_roughness, Cap_B_iso, Cap_disorder, Cap_roughness, Cap_shift, Cap_thickness, &
     D_max_pot, Delta_En_conv, Delta_Epsii, Delta_helm, Dist_coop, Eclie, Eclie_out, Ephot_min, Film_roughness, Film_thickness, &
@@ -4838,6 +4839,44 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       Eimagent(:) = 0._db
     endif
 
+! Reduction of the number of atom type
+    ntype_mod = ntype
+    Suppress(:) = .false.
+    do it = 1,ntype
+      boucle_jt: do jt = it + 1,ntype
+        if( numat(it) /= numat(jt) ) cycle
+        if( nlat(it) /= nlat(jt) ) cycle
+        do l = 1,nlat(it)
+          if( sum ( abs( popval(it,l,:) - popval(jt,l,:) ) ) > eps10 ) cycle boucle_jt
+        end do
+        ntype_mod = ntype_mod - 1
+        Suppress(jt) = .true.
+        where( itype == jt ) itype = it
+      end do boucle_jt
+    end do
+    do it = 1,ntype
+      if( .not. Suppress(it) ) cycle
+      do jt = it,ntype-1
+        Ang_base_loc(:,jt) = Ang_base_loc(:,jt+1)
+        com(jt) = com(jt+1)
+        Hubb(jt) = Hubb(jt+1)
+        icom(jt) = icom(jt+1)
+        lvval(jt,:) = lvval(jt+1,:)
+        nlat(jt) = nlat(jt+1)
+        nrato(jt) = nrato(jt+1)
+        nrato_lapw(jt) = nrato_lapw(jt+1)
+        numat(jt) = numat(jt+1)
+        nvval(jt,:) = nvval(jt+1,:)
+        popval(jt,:,:) = popval(jt+1,:,:)
+        r0_lapw(jt) = r0_lapw(jt+1)
+        rchimp(jt) = rchimp(jt+1)
+        rlapw(jt) = rlapw(jt+1)
+        rmt(jt) = rmt(jt+1)
+        rmtimp(jt) = rmtimp(jt+1)
+        V_hubbard(jt) = V_hubbard(jt+1)
+      end do
+    end do
+
 ! Writing of indata:
     if( icheck(1) > 0 ) then
 
@@ -5598,6 +5637,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(nseuil,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nsymextract,n_multi_run_e,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nposextract,n_multi_run_e,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(ntype_mod,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     if( nlatm > 0 ) call MPI_Bcast(nvval,(ntype+1)*nlatm, MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(numat_abs,n_Z_abs,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     if( Atom_occ_hubb ) call MPI_Bcast(occ_hubb_e,nspin*ngroup_hubb *(2*m_hubb_e+1)**2,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)

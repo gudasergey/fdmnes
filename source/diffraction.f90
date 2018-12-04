@@ -873,16 +873,15 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
             end do
           end do
         endif
+        if( Bulk_roughness > eps10 ) then
+          Sum_Bragg_rgh_Bulk_f0(ipr,ipl) = Sum_Bragg_rgh_Bulk(ipr,ipl) * f0(ipr,ipl)
+          Sum_Bragg_rgh_Bulk_fa(ipr,ipl) = Sum_Bragg_rgh_Bulk(ipr,ipl) * cmplx(fp(ipr), fpp(ipr), db)
+        endif
       endif
       
       if( Dafs_bio ) then
         Sum_Bragg_f0_cj(ipr,ipl) = conjg( Sum_Bragg(ipr,ipl) ) * f0(ipr,ipl)
         Sum_Bragg_fa_cj(ipr,ipl) = conjg( Sum_Bragg(ipr,ipl) ) * cmplx(fp(ipr), fpp(ipr), db)
-      endif
-
-      if( Bulk_step .and. Bulk_roughness > eps10 ) then
-        Sum_Bragg_rgh_Bulk_f0(ipr,ipl) = Sum_Bragg_rgh_Bulk(ipr,ipl) * f0(ipr,ipl)
-        Sum_Bragg_rgh_Bulk_fa(ipr,ipl) = Sum_Bragg_rgh_Bulk(ipr,ipl) * cmplx(fp(ipr), fpp(ipr), db)
       endif
     end do
 

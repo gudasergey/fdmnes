@@ -47,7 +47,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
   complex(kind=db), dimension(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil):: rof0
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
-  complex(kind=db), dimension(:,:,:,:,:), allocatable:: Singul
+  complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Singul
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: rof
 
   integer, dimension(ninitl,2):: m_g
@@ -124,11 +124,11 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
   else
 
-    allocate( Singul(nlm_probe,nspinp,ip0:ip_max,ip0:ip_max,ninitlv) )
+    allocate( Singul(nlm_probe,nspinp,nlm_probe,nspinp,ip0:ip_max,ip0:ip_max,ninitlv) )
     allocate( rof(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,ninitlv) )
 
     rof(:,:,:,:,:,:) = (0._db, 0._db)
-    Singul(:,:,:,:,:) = (0._db, 0._db)
+    Singul(:,:,:,:,:,:,:) = (0._db, 0._db)
   
     do ip = ip0,ip_max
       select case(ip)
@@ -938,7 +938,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
   complex(kind=db), dimension(ninitlr):: Ten, Ten_m
   complex(kind=db), dimension(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,ninitlv):: rof
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
-  complex(kind=db), dimension(nlm_probe,nspinp,ip0:ip_max,ip0:ip_max,ninitlv):: Singul
+  complex(kind=db), dimension(nlm_probe,nspinp,nlm_probe,nspinp,ip0:ip_max,ip0:ip_max,ninitlv):: Singul
 
   logical:: Core_resolved, Dip_rel, FDM_comp_m, Final_tddft, Green, Green_int, lmoins1, lplus1, NRIXS, Solsing, Solsing_only, &
             Spinorbite, Titre, Ylm_comp
@@ -1206,9 +1206,10 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
 
 ! Here one does not divide by pi, so convenient results seems multiplied by pi, when calculating atomic form factor.
 ! So, the normalization by pi must not be done in coabs to get the atomic form factor in DAFS.
-                      if( Solsing .and. i_g_1 == i_g_2 .and. lm_f1 == lm_f2 .and. ispinf1 == ispinf2 ) then
-                        cfe = cfe + Singul(lm_f1,ispf1,irang,jrang,is_r1)
-                        cfs = cfs + Singul(lm_f1,ispf1,irang,jrang,is_r1)
+!                      if( Solsing .and. i_g_1 == i_g_2 .and. lm_f1 == lm_f2 .and. ispinf1 == ispinf2 ) then
+                      if( Solsing .and. i_g_1 == i_g_2 ) then
+                        cfe = cfe + Singul(lm_f1,ispf1,lm_f2,ispf2,irang,jrang,is_r1)
+                        cfs = cfs + Singul(lm_f2,ispf2,lm_f1,ispf1,jrang,irang,is_r1)
                       endif
                       if( Green_int ) then
                         Tau_rad = 0.5_db * ( cfe + cfs )
@@ -1221,7 +1222,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
                       endif
 
                       if( icheck > 1 .and.  abs( Tau_rad ) > eps15 ) write(3,140) Ten(initlr), Tau_rad, Cg, &
-                                 Singul(lm_f1,ispf1,irang,jrang,is_r1)
+                                 Singul(lm_f1,ispf1,lm_f2,ispf2,irang,jrang,is_r1)
 
                     end do ! end of loop over ispinf2, spin of final state ( incoming )
                   end do !  end of loop over  m2 final state
@@ -1476,7 +1477,7 @@ subroutine Tens_op(Core_resolved,Final_tddft,icheck,ip_max,ip0,irang,jrang,l_s,m
           if( Final_tddft ) then
             is12 = 2 * isp_g1 - 2 + isp_g2
             is21 = 2 * isp_g2 - 2 + isp_g1
-     ! + conjg is because this taull must be multiplied by - i to be classical tau like.
+     ! + conjg is because this Taull must be multiplied by - i to be classical tau like.
             Tau_rad = - 0.5 * Ro * ( Taull(lms_f1,lms_f2,lms_g1,lms_g2,isp_f1,isp_f2,is12) &
                                + conjg( Taull(lms_f2,lms_f1,lms_g2,lms_g1,isp_f2,isp_f1,is21) ) )
  !           Tau_rad = - Ro * cmplx( real( Taull(lms_f1,lms_f2,lms_g1,lms_g2,isp_f1,isp_f2,is12), db ), 0._db, db )

@@ -167,7 +167,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     nligneso, nlmagm, nlmmax, nlmomax, nlmsa, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, npsom, nsm, nso1, &
     nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
     numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, Spinorbite,  &
-    smi, smr, Vr, Ylm_comp, Ylmato, Ylmso )
+    smi, smr, Vr, Ylm_comp, Ylmato, Ylmso, .true. )
     
 ! expand arrays            
     oldSize = size(rowIndexes)

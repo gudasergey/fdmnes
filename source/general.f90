@@ -880,12 +880,12 @@ end
 
 !***********************************************************************
 
-subroutine init_run(cdil,Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantage,Flapw,Force_ecr,Hubb,iabsorbeur, &
+subroutine init_run(cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Doping,Ecrantage,Flapw,Force_ecr,Hubb,iabsorbeur, &
       iabsorig,icheck,icom,igreq,iprabs,iprabs_nonexc,itabs,itdil,itype,itype_dop,itypepr,jseuil,lcoeur,ldil, &
       lecrantage,lseuil,lvval,mpinodes0,mpirank0,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage,neqm,ngreq,ngroup, &
       nlat,nlatm,nnlm,nomfich_s,Nonexc,norbdil,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,numat_abs,nvval, &
       pop_open_val,popatm,popats,popatv,popval,psi_coeur,psii,psi_open_val,psival,r0_lapw,rato,rchimp,Relativiste,rho_coeur, &
-      rhoit,rlapw,Rmt,Rmtimp,V_hubbard,nompsii)
+      rhoit,rlapw,Rmt,Rmtimp,Self_nonexc,V_hubbard,nompsii)
 
   use declarations
   implicit none
@@ -907,10 +907,10 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantag
   integer, dimension(2,0:ntype):: lcoeur, ncoeur
   integer, dimension(0:ntype,nlatm):: lvval, nvval
 
-  logical:: Charge_free, Clementi, Doping, Flapw, Force_ecr, nonexc, relativiste
+  logical:: Charge_free, Clementi, Doping, Flapw, Force_ecr, Nonexc, Relativiste, Self_nonexc
   logical, dimension(0:ntype):: hubb
 
-  real(kind=db):: Chargm
+  real(kind=db):: Chargm, Chargm_SCF
   real(kind=db), dimension(norbdil):: cdil
   real(kind=db), dimension(0:n_atom_proto):: chargat
   real(kind=db), dimension(ngroup):: chargatg
@@ -979,8 +979,9 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Clementi,Com,Doping,Ecrantag
     end do
   endif
 
-  call Pop_mod(Chargat,Chargm,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,iprabs_nonexc,itype,itype_dop,itypepr,lqnexc,lvval, &
-        n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc)
+  call Pop_mod(Chargat,Chargm,Chargm_SCF,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,iprabs_nonexc,itype,itype_dop,itypepr,lqnexc, &
+        lvval,n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,Nonexc,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc, &
+        Self_nonexc)
 
   return
   110 format(/' ---- Init_run ------',100('-'))
@@ -1581,21 +1582,24 @@ end
 
 !***********************************************************************
 
-! Calcul de la configuration electronique de l'atome excite
+! Calculation of the electronic configuration of the excited atom
 
 subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,mpirank0,n_orbexc,necrantage, &
         nlat,nlatm,nnlm,nqnexc,nseuil,nspin,ntype,nvval,popexc,popval,Z)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
-  integer Z
+  integer:: i, iaug, icheck, io, ip, ipr, ispin, it, l, lecrantage, lseuil, mpirank0, n_coeur, n_orbexc, necrantage, &
+            nlatm, nmax, nnlm, nseuil, nspin, ntype, Z
+
   integer, dimension(nnlm):: lqnexc, nqnexc
   integer, dimension(0:ntype):: nlat
   integer, dimension(0:ntype,nlatm):: lvval, nvval
 
-  logical force_ecr
+  logical:: Dirac_eq, Force_ecr
 
+  real(kind=db):: Occupancy_max
   real(kind=db), dimension(nnlm):: nel, rqn
   real(kind=db), dimension(0:ntype,nlatm,nspin):: popval
   real(kind=db), dimension(nspin) :: dp, dpp, Ecrantage
@@ -1651,11 +1655,22 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
       case(89,90,91,92,93,94,95,96,97,98,99,100,101)
         necrantage = 5
         lecrantage = 3
+      case(102,103)
+        necrantage = 6
+        lecrantage = 2
+      case default
+        call write_error
+        do ipr = 3,9,3
+          if( ipr == 3 .and. icheck == 0 ) cycle
+          write(ipr,100) Z
+        end do
+        close(9)
+        stop
     end select
   endif
 
-  irel = 0
-  call config(Z,irel,n_coeur,n_orbexc,nnlm,nqnexc,lqnexc,rqn,nel)
+  Dirac_eq = .false.
+  call config(Z,Dirac_eq,n_coeur,n_orbexc,nnlm,nqnexc,lqnexc,rqn,nel)
 
   do ispin = 1,nspin
     popexc(1:n_orbexc,ispin) = nel(1:n_orbexc) / nspin
@@ -1742,16 +1757,16 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
         if( i == 1 .and. ( necrantage /= nqnexc(io) .or. lecrantage /= lqnexc(io) ) ) cycle
         if( i == 2 .and. ( necrantage == nqnexc(io) .and. lecrantage == lqnexc(io) ) ) cycle
 
-        elmax = ( 2 + 4. * lqnexc(io) ) / nspin
+        Occupancy_max = ( 2 + 4._db * lqnexc(io) ) / nspin
         do ispin = 1,nspin
-          dpp(ispin) = min(elmax - popexc(io,ispin), dp(ispin) )
+          dpp(ispin) = min(Occupancy_max - popexc(io,ispin), dp(ispin) )
           popexc(io,ispin) = popexc(io,ispin) + dpp(ispin)
           dp(ispin) = dp(ispin) - dpp(ispin)
         end do
         if( sum( dp(:) ) < eps10 ) exit boucle_i
-        if( sum( popexc(io,:) ) < nspin * elmax - eps10 ) then
-          dpp(1) = min(elmax - popexc(io,1), dp(nspin) )
-          dpp(nspin) = min(elmax - popexc(io,nspin), dp(1) )
+        if( sum( popexc(io,:) ) < nspin * Occupancy_max - eps10 ) then
+          dpp(1) = min(Occupancy_max - popexc(io,1), dp(nspin) )
+          dpp(nspin) = min(Occupancy_max - popexc(io,nspin), dp(1) )
           popexc(io,:) = popexc(io,:) + dpp(:)
           dp(1) = dp(1) - dpp(nspin)
           dp(nspin) = dp(nspin) - dpp(1)
@@ -1806,7 +1821,8 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
   endif
 
   return
-  103 format(///'   n_orb < nnlm ',// ' See the authors of the code !')
+  100 format(///'   Z =',i4,' > 103 in Screendef',//)
+  103 format(///'   n_orb < nnlm ',// ' Contact the authors of the code !')
   120 format(/'  n  l popexc')
   130 format(2i3,2f7.3)
 end
@@ -1815,8 +1831,9 @@ end
 
 ! Allocation des tableaux itypepr et popatm pour l'excite
 
-subroutine Pop_mod(chargat,chargm,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,iprabs,itype,itype_dop,itypepr,lqnexc,lvval, &
-        n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc)
+subroutine Pop_mod(chargat,Chargm,Chargm_SCF,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,iprabs,itype,itype_dop,itypepr,lqnexc, &
+        lvval,n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,Nonexc,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc, &
+        Self_nonexc)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -1828,8 +1845,9 @@ subroutine Pop_mod(chargat,chargm,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,ipr
   integer, dimension(0:ntype):: nlat
   integer, dimension(0:ntype,nlatm):: lvval, nvval
 
-  logical:: Doping, flapw
+  logical:: Doping, Flapw, Nonexc, Self_nonexc
 
+  real(kind=db):: Chargm, Chargm_SCF
   real(kind=db), dimension(0:n_atom_proto):: chargat
   real(kind=db), dimension(0:n_atom_proto,nlatm,nspin):: popatm
   real(kind=db), dimension(nnlm,nspin):: popexc
@@ -1872,7 +1890,11 @@ subroutine Pop_mod(chargat,chargm,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,ipr
       end do
     end do
 
-    chargm = chargm + chargat(0) - chargat(iprabs)
+    if( Self_nonexc ) Chargm_SCF = Chargm
+    if( .not. Nonexc ) then
+      Chargm = chargm + chargat(0) - chargat(iprabs)
+      if( .not. Self_nonexc ) Chargm_SCF = Chargm
+    endif
 
     if( icheck > 2 ) then
       write(3,120) iprabs
@@ -2622,7 +2644,7 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
               natomeq_coh = natomeq_coh + 1
               boucle_ipr_bis: do ipr = 1,n_atom_proto
                 do jgr = 1,ngreq(ipr)
-                  if( igreq(ipr,jgr) /= igr ) cycle
+                  if( igreq(ipr,jgr) /= ngroup - n_atom_bulk + igr ) cycle
                   ipr_ok(ipr) = .true.
                   exit boucle_ipr_bis
                 end do
@@ -7875,15 +7897,35 @@ end
 
 !***********************************************************************
 
-! Selection des atomes du petit agregat
-! Evaluation de leur groupe ponctuel dans cet agregat.
+subroutine Cal_nb_eq_2D(iaproto,n_atom_proto,nb_eq_2D,natomeq,natomp)
+
+  use declarations
+  implicit none
+
+  integer:: ia, n_atom_proto, natomeq, natomp
+
+  integer, dimension(natomp):: iaproto
+  integer, dimension(0:n_atom_proto):: nb_eq_2D
+
+  nb_eq_2D(:) = 0
+  do ia = 1,natomeq
+    nb_eq_2D( iaproto(ia) ) = nb_eq_2D( iaproto(ia) ) + 1
+  end do
+
+  return
+end
+
+!***********************************************************************
+
+! Selection of the atoms for the "small" cluster
+! Evaluation of their ponctual group in this cluster
 
 subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_clu,dista, &
            distai,Full_atom,Green,hubbard,i_self,ia_eq,ia_eq_inv,ia_rep,iaabs,iaabsi,iabsorbeur,iaproto,iaprotoi,icheck,igreq, &
            igroup,igroupi,igrpt_nomag,igrpt0,iopsym_atom,iopsymr,iord,ipr0,is_eq,isymeq,itype,itypei,itypep,itypepr,magnetic, &
            m_hubb,m_hubb_e,mpirank0,natome,n_atom_0_self,n_atom_ind_self,n_atom_proto,natomeq,natomp,natomsym,nb_eq,nb_rpr, &
            nb_rep_t,nb_sym_op,neqm,ngreq,ngroup,ngroup_hubb,ngroup_m,nlat,nlatm,nspin,nspinp,ntype,numat,nx,occ_hubb_e,overad, &
-           popats,pos,posi,rmt,rot_atom,roverad,rsort,rsorte,Spinorbite,Symmol,V_hubb,V_hubbard,Ylm_comp)
+           popats,pos,posi,Proto_calculated,rmt,rot_atom,roverad,rsort,rsorte,Spinorbite,Symmol,V_hubb,V_hubbard,Ylm_comp)
 
   use declarations
   implicit none
@@ -7917,6 +7959,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   logical, dimension(natome):: Atom_comp, Atom_axe
   logical, dimension(0:natome):: Atom_mag
   logical, dimension(0:ngroup_m):: Atom_with_axe
+  logical, dimension(0:n_atom_proto):: Proto_calculated
 
   real(kind=db):: Adimp, Dist, Rm, Rmax, Rsort, Rsorte, Roverad
 
@@ -7935,12 +7978,13 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
 
   if( icheck > 0) write(3,110)
 
-! Selection des atomes ou on effectue un developpement en harmoniques
-! spheriques.
+! Selection of the atoms where we make a developent in spherical harmonics, taking into account the symmetry
 
   iaabsi = 0
 
   ib = 0
+  Proto_calculated(0) = .true.
+  Proto_calculated(1:n_atom_proto) = .false.
   do ia = 1,natomeq
     ps(:) = pos(:,ia)
     call posequiv(mpirank0,ps,iopsymr,isym,igrpt_nomag)
@@ -7954,6 +7998,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     posi(:,ib) = pos(:,ia)
     Axe_atom_clui(:,ib) = Axe_atom_clu(:,ia)
     distai(ib) = dista(ia)
+    Proto_calculated( iaproto(ia) ) = .true.
   end do
 
   boucle_ipr: do ipr = ipr0,n_atom_proto
@@ -8026,6 +8071,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     if( abs(isym) == 1 ) cycle
     do ib = 1,natome
       dp(:) = abs( ps(:) - posi(:,ib) )
+   ! Atoms in bulk and surface are not of the same type.
       if( dp(1) > epspos .or. dp(2) > epspos .or. dp(3) > epspos .or. itypep(ia) /= itypei(ib) ) cycle
       nb_eq(ib) = nb_eq(ib) + 1
       ia_eq( nb_eq(ib), ib ) = ia

@@ -919,7 +919,7 @@ end
 
 function n_orb_base(Z)
 
-  integer Z
+  integer:: n_orb_base, Z
   integer, dimension(118):: n
 
   data n/ 1, 1, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, &

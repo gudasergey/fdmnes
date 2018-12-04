@@ -548,7 +548,9 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
 
       endif
 
-      if( ( ( icheck > 0 .and. ipl == 1 ) .or. ( icheck > 1 .and. idafs ) ) .and. .not. Bulk_roughness_case )  &
+      if( .not. Bulk_roughness_case .and. &
+          (     ( ie == 1 .and. ( ( icheck > 0 .and. ipl == 1 ) .or. ( icheck > 1 .and. idafs ) )  ) &
+           .or. (                 ( icheck > 1 .and. ipl == 1 ) .or. ( icheck > 2 .and. idafs )    )     ) ) &
         call write_ten_bav(Core_resolved, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Final_tddft, Green_int, Green_int_mag, icheck, &
                          idafs, ipl, ipldafs, jseuil, M1M1, Magn_sens, n_oo, n_rel, natomsym, nb, nbseuil, ninit1, ninitlr, &
                          nseuil, secddia, secddia_m, secdoia, secdoia_m, secdqia, secdqia_m, secmdia, secmdia_m, secmmia, &

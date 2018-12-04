@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 24th of October 2018, 2 Brumaire, An 227
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 30th of November 2018, 9 Frimaire, An 227
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 24th of October 2018'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 30th of November 2018'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -466,11 +466,14 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 ! in some files the 3 first characters are special...
     if( ligne == 1 ) then
       mot1 = mot(3:3)
-      do i = 66,123
+      do i = 66,123   ! check on a..z and A..Z characters
         if( ( i >= 92 .and. i <= 95 ) .or. i == 97 ) cycle
         if( achar( i ) == mot1 ) exit
       end do
-      if( i > 123 ) mot(1:3) = '   '
+      do j = 1,3
+        if( mot(j:j) == '!' ) exit
+      end do
+      if( i > 123 .and. j > 3 ) mot(1:3) = '   '
     endif
 
     if( eof /= 0 ) exit boucle_ligne
@@ -1720,9 +1723,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
          ' rewrite your indata file with a complete calculation !'//)
   120 format(///' The parameter called Par_',a9,' does not exist !'/, &
                 ' Check your indata file under the keyword parameter !'//)
-  130 format(/' ',121('-'),//' Total time =',f10.1,' sCPU')
-  140 format('            =',i4,' h,',i3,' min,',i3,' sCPU')
-  150 format('            =',i4,' d,',i3,' h,',i3,' min,',i3,' sCPU')
+  130 format(/' ',121('-'),//' Total time =',f10.1,' s CPU')
+  140 format('            =',i4,' h',i3,' min',i3,' s CPU')
+  150 format('            =',i4,' d',i3,' h',i3,' min',i3,' s CPU')
   160 format(/'    Have a beautiful day !')
 
 end
@@ -1880,7 +1883,7 @@ function Traduction(keyword)
       traduction = 'etatlie'
     case('extract_s')
       traduction = 'extracsy'
-    case('enrgpsii','epsiia')
+    case('enrgpsii','epsiia','ecore','e_core','e_psii')
       traduction = 'epsii'
     case('enrgphot','energpho','energphot','ephoton')
       traduction = 'energphot'

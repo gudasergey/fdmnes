@@ -114,7 +114,7 @@ subroutine Sphere(Axe_Atom_grn,Ecinetic,Eimag,Energ,Enervide,Full_atom, &
          nlm,nlm1,nlm2,nr,nrmtg,nspin,nspino,nspinp,numat,r,Radial_comp,Relativiste,Renorm,Rmtg,Spinorbite,Tau,ui, &
          ur,V,V_hubb)
 
-! Recopie
+! Copy
     if( Full_potential ) then
       do lm = 1,nlm1
         do lmp = 1,nlm2
@@ -143,7 +143,7 @@ subroutine Sphere(Axe_Atom_grn,Ecinetic,Eimag,Energ,Enervide,Full_atom, &
 
     deallocate( Tau )
 
- ! Calcul les fonctions radiales phiato.
+ ! Calculation of the radial functions phiato on the FDM grid points
     if( .not. Green ) then
 
      do ib = 1,natome
@@ -238,7 +238,7 @@ Subroutine mod_V(icheck,lmax,lmax_pot,nlm,nlm_pot,nr,nrmtg,nrmtsd,nspin,r,Rmtg,R
   end do
   nrmtsd = ir
 
-! n'a pas d'importance en FDM
+! No effect for FDM
   if( abs( V0bd(1) ) > eps10 ) then
     do ir = 1,nr-1
       if( r(ir) > Rmtg - eps10 ) exit
@@ -345,7 +345,7 @@ subroutine coef_sch_rad(Enervide,f2,g0,gm,gp,gso,nlm,nr,nspin,nspino,numat,r,Rel
     f2(ir) = 1 / r(ir)**2
   end do
 
-! alfa_sf = constante de structure fine.
+! alfa_sf = fine structure constant
   a2s4 = 0.25_db * alfa_sf**2
 
   do ir = 1,nr
@@ -387,10 +387,10 @@ end
 
 !***********************************************************************
 
-! Resolution de l'equation de Schrodinger radiale. Inclus le cas du potentiel non spherique.
-! Applele par Sphere, radial, radial_sd
-! Dans ur(ir,m,mp,isp,isol) : (mp, isol) definissent les etats de base
-!                             (m, isp) sont le moment et le spin reels
+! Resolution of the radial Schrodinger equation. Include the case of the non spherical potential
+! Called by Sphere, radial, radial_sd
+! In ur(ir,m,mp,isp,isol) : (mp, isol) define the basis state
+!                           (m, isp) are the real moment and spin
 
 subroutine Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a,Hubb_d,icheck,konde,ll,lmax,m_hubb, &
          nlm,nlm1,nlm2,nr,nrmtg,nspin,nspino,nspinp,numat,r,Radial_comp,Relativiste,Renorm,Rmtg,Spinorbite,Tau,ui, &
@@ -456,7 +456,7 @@ subroutine Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a
 
 ! Je fais l'hypothese que le terme de Hubbard ne croise pas les solutions 1 et 2 en cas de spinorbite.
 
-! Developpement a l'origine
+! Development at origin
     do isol = 1,nspino
       do isp = 1,nspinp
         isr = min( isp, nspin )
@@ -490,7 +490,7 @@ subroutine Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a
               p = 0.5_db + 0.5_db * sqrt( 1._db + 4*(l**2) + 8*l )
             else
               if( l == 1 ) then
-! En fait, il n'y a pas de solution pour l=1 avec spin-orbite non nelativiste !
+! In fact, there is no solution for l=1 with spin-orbit and not relativistic !
 !                      p = 1._db * l
                 p = l + 1._db
               else
@@ -503,7 +503,7 @@ subroutine Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a
             p = l + 1._db
           endif
 
- ! Attention, c'est du point de vue du m de l'orbitale
+ ! Becareful, it is from the point of vew of the m of the orbital
           if( Spinorbite .and. nsol /= 1 ) then
             if( isol == 1 .and. isp == 1 ) then
               fac = sqrt( ( l + m + 1 ) / ( 2*l + 1._db ) )
@@ -601,7 +601,7 @@ subroutine Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a
               np = 1
             endif
 
-! le deuxieme indice "m" est la composante non nulle a l'origine
+! The second index "m" is the non zero component at origin
             ur(ip,n,:,isp,isol) = td * ur(ir,n,:,isp,isol) + gm(ir,isr) * ur(im,n,:,isp,isol)
             if( Radial_comp ) then
               ui(ip,n,:,isp,isol) = td * ui(ir,n,:,isp,isol) + gm(ir,isr) * ui(im,n,:,isp,isol)
@@ -701,7 +701,7 @@ end
 
 !***********************************************************************
 
-! Ecriture de la fonction radiale
+! Writing of the radial function
 
 subroutine write_ur(Full_potential,li,lf,nlm1,nlm2,nr,nspinp,nspinpo,numat,r,Radial_comp,Rmtg,ui,ur,icom)
 
@@ -1088,7 +1088,7 @@ subroutine Renormal(Radial_comp,Full_potential,icheck,konde,ll,lmax,nlm1,nlm2,nr
           do isol = 1,nspino ! le spin d'attaque devient l'indice de solution
             do np = 1,nlm2
 
-! np et n sont bien dans ce sens !
+! np and n indeed in that way !
               if( nspino == 1 ) then
                 z = sum( Ampl(np,:,isp,isol) * u1(n,:,isp,isol) )
               else
@@ -1125,7 +1125,7 @@ end
 
 !***********************************************************************
 
-! Calcul des amplitudes des fonctions radiales
+! Calculation of the amplitudes of the radial functions
 
 subroutine cal_ampl(Ampl,Full_potential,icheck,ll,lmax,nlm1,nlm2,nspino,nspinp,Tau,Wronske,Wronsks,Wronskout,Failed)
 
@@ -1396,7 +1396,7 @@ subroutine cal_ampl(Ampl,Full_potential,icheck,ll,lmax,nlm1,nlm2,nspino,nspinp,T
     end do
   endif
 
-! Test sur le calcul
+! Test on the calculation
   if( Full_potential ) then
     do n = 1,nlm1
       do np = n+1,nlm1
@@ -1442,15 +1442,16 @@ subroutine radial(Classic_irreg,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft
   use declarations
   implicit none
 
-  integer:: i, icheck, initl, initlv, ip, ip_max, ip0, ip1, ip2, iseuil, isp, l, l_hubbard, lfin, lm, lmax, lmax_pot, &
-    lmp, lp, m, m_hubb, nlm1, nlm2, mp, nbseuil, ninit1, ninitlv, nlm, nlm_pot, nlma, nlma2, nr, nrm, &
+  integer:: i, icheck, initl, initlv, ip, ip_max, ip0, ip1, ip2, iseuil, isp, l, l_hubbard, l1, l2, lfin, lm, lm1, &
+    lm2, lmax, &
+    lmax_pot, lmp, lp, m, m1, m2, m_hubb, nlm1, nlm2, mp, nbseuil, ninit1, ninitlv, nlm, nlm_pot, nlma, nlma2, nr, nrm, &
     nrmtsd, nrmtg, nspin, nspino, nspinp, numat
 
   character(len=2):: mot1, mot2
   character(len=104):: mot
 
   complex(kind=db), dimension(nspin):: konde
-  complex(kind=db), dimension(nlma,nspinp,ip0:ip_max,ip0:ip_max,ninitlv):: Singul
+  complex(kind=db), dimension(nlma,nspinp,nlma,nspinp,ip0:ip_max,ip0:ip_max,ninitlv):: Singul
   complex(kind=db), dimension(nlma,nlma2,nspinp,nspino,ip0:ip_max,ninitlv):: rof
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
   complex(kind=db), dimension(:,:,:,:), allocatable:: Tau
@@ -1683,19 +1684,34 @@ subroutine radial(Classic_irreg,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft
           end select
 
           write(3,190) mot1, mot2
-
-          if( nspinp == 2 ) then
+          if( Hubb_m .or. Full_potential .and. nspinp == 1 ) then 
+            write(3,200) ' l1 m1 l2 m2','  Sing '
+          elseif( Hubb_m .or. Full_potential .or. Spinorbite ) then 
+            write(3,200) ' l1 m1 l2 m2','  up up','  up dn','  dn up','  dn dn'
+          elseif( nspinp == 2 ) then
             write(3,210) '  l  m','   up  ','   dn  '
           else
             write(3,210) '  l  m','  Sing '
           endif
 
-          lm = 0
-          do l = 0,lmax
-            do m = -l,l
-              lm = lm + 1
-              if( .not. ( Hubb_m .or. Full_potential .or. Spinorbite ) .and. m /= 0 ) cycle
-              write(3,230) l, m, Singul(lm,:,ip1,ip2,initl)
+          lm1 = 0
+          do l1 = 0,lmax
+            do m1 = -l1,l1
+              lm1 = lm1 + 1
+              lm2 = 0
+              do l2 = 0,lmax
+                do m2 = -l2,l2
+                  lm2 = lm2 + 1
+                  if( Hubb_m .or. Full_potential .or. Spinorbite ) then
+                    if( sum( abs( Singul(lm1,:,lm2,:,ip1,ip2,initl) ) ) < eps10 ) cycle
+                    write(3,220) l1, m1, l2, m2, ( Singul(lm1,isp,lm2,:,ip1,ip2,initl), isp = 1,nspinp )
+                  elseif( lm1 /= lm2 .or. m1 /= 0 ) then
+                    cycle
+                  else
+                    write(3,230) l1, m1, ( Singul(lm1,isp,lm2,isp,ip1,ip2,initl), isp = 1,nspinp )
+                  endif
+                end do
+              end do
             end do
           end do
         end do
@@ -1719,13 +1735,15 @@ subroutine radial(Classic_irreg,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft
   180 format(4i3,1p,8e13.5)
   185 format(2i3,1p,8e13.5)
   190 format(/' Radial integral of singular solution, ',a2,'-',a2, ' term:')
-  210 format(a6,9x,a7,3(19x,a7))
-  230 format(2i3,1p,4e13.5)
+  200 format(a12,10x,a7,4(20x,a7))
+  210 format(a6,10x,a7,2(20x,a7))
+  220 format(4i3,1p,4(1x,2e13.5)) 
+  230 format(2i3,1p,4(1x,2e13.5))
 end
 
 !**********************************************************************
 
-! Calculatim of the radial integral in the (Fermi) Golden rule.
+! Calculation of the radial integral in the (Fermi) Golden rule.
 ! psii, u and ur are wave functions time r.
 
 subroutine radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,l,nlm1,nlm2,nbseuil, &
@@ -1921,8 +1939,8 @@ end
 
 !***********************************************************************
 
-! Calcul de la solution singuliere pour l'absorption
-! Appele par Radial
+! Calculation of the singular term coming from the irregular solution for the absorption
+! Called by Radial
 
 Subroutine Cal_Solsing(Classic_irreg,Ecomp,Eimag,f2,Final_tddft,Full_potential,g0,gm,gp,gso,Hubb_a,Hubb_d, &
          icheck,initlv,ip_max,ip0,iseuil,konde,ll,lmax,m_hubb,nlm, &
@@ -1932,17 +1950,18 @@ Subroutine Cal_Solsing(Classic_irreg,Ecomp,Eimag,f2,Final_tddft,Full_potential,g
   use declarations
   implicit none
 
-  integer:: icheck, initlv, ip_max, ip0, ip1, ip2, is, ise, iseuil, isol, isp, iss,  l, ll, lmax, m_hubb, m, &
-    ms, mv, n0, n, nbseuil, ninitlv, nlm, nlm1, nlm2, np, nlma, nr, nrm, nrmtsd, ns1, ns2, nspin, nspino, nspinp, numat, nv
+  integer:: icheck, initlv, ip_max, ip0, ip1, ip2, is, ise, iseuil, isol, isp1, isp2, iss, l, l_hubbard, ll, lmax, m_hubb, &
+    m1, m2, ms1, ms2, mv, n0, n1, n2, nbseuil, ninitlv, nlm, nlm1, nlm2, np, nlma, nr, nrm, nrmtsd, ns1, ns2, nspin, &
+    nspino, nspinp, numat, nv, nv1, nv2
 
   complex(kind=db):: integr_sing, Sing
   complex(kind=db), dimension(nspin):: konde
-  complex(kind=db), dimension(nlma,nspinp,ip0:ip_max,ip0:ip_max, ninitlv):: Singul
+  complex(kind=db), dimension(nlma,nspinp,nlma,nspinp,ip0:ip_max,ip0:ip_max,ninitlv):: Singul
   complex(kind=db), dimension(nrmtsd):: f_reg, f_irg
   complex(kind=db), dimension(nlm1,nspinp,nlm1,nspinp):: Tau
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
 
-  logical:: Classic_irreg, Ecomp, Final_tddft, Full_potential, Hubb_a, Hubb_d, NRIXS, Radial_comp, Spinorbite
+  logical:: Classic_irreg, Ecomp, Final_tddft, Full_potential, Hubb_a, Hubb_m, Hubb_d, NRIXS, Radial_comp, Spinorbite
 
   real(kind=db):: Eimag, fac1, fac2, Rmtsd
   real(kind=db), dimension(nbseuil):: Vecond
@@ -1955,7 +1974,6 @@ Subroutine Cal_Solsing(Classic_irreg,Ecomp,Eimag,f2,Final_tddft,Full_potential,g
   real(kind=db), dimension(nr,nlm1,nlm2,nspinp,nspino):: ui, ur
   real(kind=db), dimension(nr,ip0:ip_max):: r_or_bess
 
-!  real(kind=db), dimension(nrmtsd+1,nlm1,nlm2,nspinp,nspino):: usi, usr
   real(kind=db), dimension(:,:,:,:,:), allocatable:: usi, usr
 
   rr(1:nrmtsd) = r(1:nrmtsd)
@@ -1971,14 +1989,14 @@ Subroutine Cal_Solsing(Classic_irreg,Ecomp,Eimag,f2,Final_tddft,Full_potential,g
   allocate( usi(nrmtsd+1,nlm1,nlm2,nspinp,nspino) )
   allocate( usr(nrmtsd+1,nlm1,nlm2,nspinp,nspino) )
 
-! gm et gp inverse dans le sousprogramme
+! gm et gp inverse in subroutine
   call Sch_radial_solsing(Classic_irreg,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a,Hubb_d,icheck,konde, &
        ll,lmax,m_hubb,nlm,nlm1,nlm2,nr,nrmtsd,nspin,nspino,nspinp,numat,r,Radial_comp,Rmtsd,Spinorbite,Tau,usi,usr,V,V_hubb)
 
   do is = ns1,ns2
 
     if( Final_tddft ) then
-      iss = nbseuil   ! c'est le 2eme seuil qui sert d'origine
+      iss = nbseuil   ! it is the second edge which is the origin (because at lower energy)
       ise = iseuil
     else
       iss = is
@@ -2004,7 +2022,7 @@ Subroutine Cal_Solsing(Classic_irreg,Ecomp,Eimag,f2,Final_tddft,Full_potential,g
 
       phi1(1:nrmtsd) = psii(1:nrmtsd,ise) * r_or_bess(1:nrmtsd,ip1)
 
-      do ip2 = ip0,ip_max  ! boucle sur dipole, quadrupole, Octupole
+      do ip2 = ip0,ip_max  ! loop over multipole
 
         if( NRIXS ) then
           fac2 = 1._db
@@ -2023,55 +2041,74 @@ Subroutine Cal_Solsing(Classic_irreg,Ecomp,Eimag,f2,Final_tddft,Full_potential,g
 
         phi2(1:nrmtsd) = psii(1:nrmtsd,ise) * r_or_bess(1:nrmtsd,ip2)
 
-        n = 0
+        n1 = 0
         do l = 0,lmax
           if( .not. Full_potential .and. l /= ll ) cycle
+          Hubb_m = Hubb_a .and. l == l_hubbard( numat )
+
           n0 = l**2 + l + 1
-          do m = -l,l
-            if( nlm1 == 1 .and. m /= 0 ) cycle
-            n = n + 1
-
-            do isp = 1,nspinp
-
-              do np = 1,nlm2
-
-                do isol = 1,nspino
-                  if( Spinorbite .and. nlm2 == 1 ) then
-                    ms = m + isol - isp
-                    if( ms > l .or. ms < -l ) cycle
-                  endif
-
-                  if( Radial_comp ) then
-                    f_reg(1:nrmtsd) = r(1:nrmtsd) * cmplx( ur(1:nrmtsd,n,np,isp,isol), ui(1:nrmtsd,n,np,isp,isol), db )
-                  else
-                    f_reg(1:nrmtsd) = r(1:nrmtsd) * cmplx( ur(1:nrmtsd,n,np,isp,isol), 0._db, db )
-                  endif
-
-                  f_irg(1:nrmtsd) = cmplx( usr(1:nrmtsd,n,np,isp,isol), usi(1:nrmtsd,n,np,isp,isol), db)
-
-                  Sing = fac1 * fac2 * integr_sing(nrmtsd,phi1,phi2,f_reg,f_irg,Rmtsd,rr,icheck)
-
-                  if( nlm1 == 1 ) then
-                    do mv = -l,l
-                      nv = n0 + mv
-                      Singul(nv,isp,ip1,ip2,is) = Singul(nv,isp,ip1,ip2,is) + Sing
+          do m1 = -l,l
+            if( nlm1 == 1 .and. m1 /= 0 ) cycle
+            n1 = n1 + 1
+            do m2 = -l,l
+              if( nlm1 == 1 .and. m2 /= 0 ) cycle
+              if( .not. ( Full_potential .or. ( Hubb_m .and. .not. Hubb_d ) ) .and. abs(m2-m1) > 1 ) cycle
+              n2 = n1 + m2 - m1
+        
+              do isp1 = 1,nspinp
+                do isp2 = 1,nspinp
+                  if( .not. spinorbite .and. isp1 /= isp2 ) cycle
+                  if( nlm1 == 1 .and. isp1 /= isp2 ) cycle
+                  if( .not. ( Full_potential .or. ( Hubb_m .and. .not. Hubb_d ) ) .and. isp2 - isp1 /= m2 - m1 ) cycle
+            
+                  do np = 1,nlm2
+            
+! Index solution is diagonal
+                    do isol = 1,nspino
+                      if( Spinorbite .and. nlm2 == 1 ) then
+                        ms1 = m1 + isol - isp1
+                        if( ms1 > l .or. ms1 < -l ) cycle
+                        ms2 = m2 + isol - isp2
+                        if( ms2 > l .or. ms2 < -l ) cycle
+                      else
+                        ms1 = m1
+                        ms2 = m2
+                      endif
+            
+                      if( Radial_comp ) then
+                        f_reg(1:nrmtsd) = r(1:nrmtsd) * cmplx( ur(1:nrmtsd,n1,np,isp1,isol), ui(1:nrmtsd,n1,np,isp1,isol), db )
+                      else
+                        f_reg(1:nrmtsd) = r(1:nrmtsd) * cmplx( ur(1:nrmtsd,n1,np,isp1,isol), 0._db, db )
+                      endif
+            
+                      f_irg(1:nrmtsd) = cmplx( usr(1:nrmtsd,n2,np,isp2,isol), usi(1:nrmtsd,n2,np,isp2,isol), db)
+            
+                      Sing = fac1 * fac2 * integr_sing(nrmtsd,phi1,phi2,f_reg,f_irg,Rmtsd,rr,icheck)
+            
+                      if( nlm1 == 1 ) then
+                        do mv = -l,l
+                          nv = n0 + mv
+                          Singul(nv,isp1,nv,isp2,ip1,ip2,is) = Singul(nv,isp1,nv,isp2,ip1,ip2,is) + Sing
+                        end do
+                      else
+                        nv1 = n0 + m1
+                        nv2 = n0 + m2
+                        Singul(nv1,isp1,nv2,isp2,ip1,ip2,is) = Singul(nv1,isp1,nv2,isp2,ip1,ip2,is) + Sing
+                      endif
+            
                     end do
-                  else
-                    nv = n0 + m
-                    Singul(nv,isp,ip1,ip2,is) = Singul(nv,isp,ip1,ip2,is) + Sing
-                  endif
+                  end do
+            
+                end do    ! end of loop isp2
+              end do    ! end of loop isp1
+            end do   ! end of loop m2
+          end do   ! end of loop m1
+        end do  ! end of loop l
 
-                end do
-              end do
+      end do ! end of loop dipole, quadrupole
+    end do ! end of loop dipole, quadrupole
 
-            end do    ! fin boucle isp
-          end do   ! fin boucle m
-        end do  ! fin boucle l
-
-      end do ! fin boucle dipole, quadrupole
-    end do ! fin boucle dipole, quadrupole
-
-  end do ! fin boucle seuil
+  end do ! end of loop seuil
 
   deallocate( usi, usr )
   
@@ -3623,32 +3660,33 @@ Subroutine Cal_Solsing_sd(Classic_irreg,drho,Ecomp,Eimag,f2,Full_potential,g0,gm
             n = nr1
           endif
 
-        np = 0
-        do lp = 0,lmax
-          if( .not. Full_potential .and. lp /= l ) cycle
-          do mp = -lp,lp
-            if( nlm2 == 1 .and. mp /= m ) cycle
-            np = np + 1
-
-            do isol = 1,nspino
-              if( Spinorbite .and. nlm2 == 1 ) then
-                ms = m + isol - isp
-                if( ms > l .or. ms < -l ) cycle
-              endif
-
-              do ir = 1,nrmtsd
-                if( Radial_comp ) then
-                  fct(ir) = fct(ir) + c_harm * r(ir) * ( ur(ir,n,np,isp,isol) * usi(ir,n,np,isp,isol) &
-                                                       + ui(ir,n,np,isp,isol) * usr(ir,n,np,isp,isol) )
-                else
-                  fct(ir) = fct(ir) + c_harm * r(ir) * ur(ir,n,np,isp,isol) * usi(ir,n,np,isp,isol)
+          np = 0
+          do lp = 0,lmax
+            if( .not. Full_potential .and. lp /= l ) cycle
+            do mp = -lp,lp
+              if( nlm2 == 1 .and. mp /= m ) cycle
+              np = np + 1
+      
+              do isol = 1,nspino
+                if( Spinorbite .and. nlm2 == 1 ) then
+                  ms = m + isol - isp
+                  if( ms > l .or. ms < -l ) cycle
                 endif
+      
+                do ir = 1,nrmtsd
+                  if( Radial_comp ) then
+                    fct(ir) = fct(ir) + c_harm * r(ir) * ( ur(ir,n,np,isp,isol) * usi(ir,n,np,isp,isol) &
+                                                         + ui(ir,n,np,isp,isol) * usr(ir,n,np,isp,isol) )
+                  else
+                    fct(ir) = fct(ir) + c_harm * r(ir) * ur(ir,n,np,isp,isol) * usi(ir,n,np,isp,isol)
+                  endif
+                end do
+      
               end do
-
             end do
           end do
+
         end do
-      end do
 
         if( icheck > 2 .and. Self ) then
           write(3,115) l, m, isp
