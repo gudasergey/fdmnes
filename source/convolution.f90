@@ -3203,7 +3203,7 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
   open(2, file = fichin, status='old', iostat=istat)
   if( istat /= 0 ) call write_open_error(fichin,istat,1)
 
-  do i = 1,5
+  do i = 1,6
     n = nnombre(2,Length_line)
     if( n == 0 ) exit
     read(2,*)
@@ -3534,7 +3534,7 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
       nomab = adjustl( nom_col_o(i) )
       if( nomab(1:2) /= 'I(' ) then
         k = k + 1
-        kk = kk + 1 
+        kk = kk + 1
         nom_col(kk) = nom_col_o(i)  
         cycle
       endif

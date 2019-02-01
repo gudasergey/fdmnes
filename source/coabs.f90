@@ -905,6 +905,7 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
                 Ampldafs_oo(ipldafs,ip,initlr,ia) = sec
               elseif( mu_cal ) then
                 mu_oo(ipldafs,ip,ind_mu,initlr,ia) = sec
+              else
                 Secabs_oo(jpl,initlr,ia) = real( sec, db )
                 if( ltypcal(ipl) == 'sp   ' .or. ltypcal(ipl) == 'ps   ' ) Secabs_oo(jpl+1,initlr,ia) = aimag( sec )
               endif

@@ -929,10 +929,10 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
   integer, dimension(ninitl), intent(in):: is_g
 
   integer:: i_g_1, i_g_2, initl1, initl2, initlr, is_dipmag, is_r1, is_r2, iseuil1, iseuil2, iso1, iso2, isp1, isp2, isp3, isp4, &
-    ispf1, ispf2, ispinf1, ispinf2, isping1, isping2, ispp_f1, ispp_f2, l1, l2, li, lm01, lm02, lm_f1, lm_f2, lmax, lmp01, &
-    lmp02, lmp_f1, lmp_f2, lms_f1, lms_f2, lp_f1, lp_f2, m1, m2, mi1, mi2, mp_f1, mp_f2, mv1, mv2
+    ispf1, ispf2, ispinf1, ispinf2, isping1, isping2, ispp_f1, ispp_f2, l_f1, l_f2, li, lm01, lm02, lm_f1, lm_f2, lmax, lmp01, &
+    lmp02, lmp_f1, lmp_f2, lms_f1, lms_f2, lp_f1, lp_f2, m_f1, m_f2, mi1, mi2, mp_f1, mp_f2, mv1, mv2
 
-  complex(kind=db):: cfe, cfs, Cg, dfe, dfs, Tau_rad, Tau_rad_i
+  complex(kind=db):: cfe, cfs, Cg, Tau_rad, Tau_rad_i
 
   complex(kind=db):: Gaunt_i, Gaunt_nrixs, Gaunt_s, Gaunt_xrc, Gauntmag 
   complex(kind=db), dimension(ninitlr):: Ten, Ten_m
@@ -1040,16 +1040,22 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
 
           Ci2 = Ci_1 * Ci_2
 
+         if( icheck > 1 ) then
+           write(3,120)
+           write(3,130) i_g_1, isping1, Jz1, mi1, Ci_1, i_g_2, isping2, Jz2, mi2, Ci_2
+         endif
+         Titre = .true.
+
 ! Loop over spherical harmonics of final states < ... f_1 > < ... >
-          do l1 = 0,lmax
+          do l_f1 = 0,lmax
 
-            if( lplus1 .and. l1 < li + 1 ) cycle
-            if( lmoins1 .and. l1 > li ) cycle
-            if( l1 > li + irang .or. l1 < li - irang .or. mod(l1,2) /= mod(li+irang,2) ) cycle
+            if( lplus1 .and. l_f1 < li + 1 ) cycle
+            if( lmoins1 .and. l_f1 > li ) cycle
+            if( l_f1 > li + irang .or. l_f1 < li - irang .or. mod(l_f1,2) /= mod(li+irang,2) ) cycle
 
-            lm01 = l1**2 + l1 + 1
-            do m1 = -l1,l1
-              lm_f1 = lm01 + m1
+            lm01 = l_f1**2 + l_f1 + 1
+            do m_f1 = -l_f1,l_f1
+              lm_f1 = lm01 + m_f1
               if( lm_f1 > nlm_probe ) cycle
 
 ! Loop over spin of final states < ... f_1 > < ... >
@@ -1059,28 +1065,19 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
 
                 ispf1 = min( ispinf1, nspinp )
 
-                if( NRIXS ) then
-                  Gaunt_s = Gaunt_nrixs(l1,m1,l_s,m_s,li,mi1,Ylm_comp)
-                elseif( irang == 0 ) then
-                  Gaunt_s = Gauntmag(l1,m1,ispinf1,m_s,li,mi1,isping1,Ylm_comp,.true.)
-                else
-                  Gaunt_s = Gaunt_xrc(l1,m1,l_s,m_s,li,mi1,Ylm_comp)
-                endif
-                if( abs(Gaunt_s) < eps10 ) cycle
-
 ! Il n'y a que pour l_s dipole magnetique qu'on peut avoir du spin-flip (ou pour l_s terme dipolaire relativiste)
                 if( ispinf1 /= isping1 .and. ( NRIXS .or. irang > 1 .or. ( irang == 1 .and. &
                                                                            ( .not. Dip_rel .or. jrang /= 1 ) ) ) ) cycle
 
 ! Loop over spin of final states < ... > < f_2 ... >
-                do l2 = 0,lmax
-                  if( lplus1 .and. l2 < li + 1 ) cycle
-                  if( lmoins1 .and. l2 > li ) cycle
-                  if( l2 > li + jrang .or. l2 < li - jrang .or. mod(l2,2) /= mod(li+jrang,2) ) cycle
+                do l_f2 = 0,lmax
+                  if( lplus1 .and. l_f2 < li + 1 ) cycle
+                  if( lmoins1 .and. l_f2 > li ) cycle
+                  if( l_f2 > li + jrang .or. l_f2 < li - jrang .or. mod(l_f2,2) /= mod(li+jrang,2) ) cycle
 
-                  lm02 = l2**2 + l2 + 1
-                  do m2 = -l2,l2
-                    lm_f2 = lm02 + m2
+                  lm02 = l_f2**2 + l_f2 + 1
+                  do m_f2 = -l_f2,l_f2
+                    lm_f2 = lm02 + m_f2
                     if( lm_f2 > nlm_probe ) cycle
 
                     do ispinf2 = 1,2  ! spin etat final en sortie
@@ -1099,32 +1096,24 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
                         is_dipmag = 1
                       endif
 
-                      if( NRIXS ) then
-                        Gaunt_i = Gaunt_nrixs(l2,m2,l_i,m_i,li,mi2,Ylm_comp)
-                      elseif( jrang == 0 ) then
-                        Gaunt_i = Gauntmag(l2,m2,ispinf2,m_i,li,mi2,isping2,Ylm_comp,.true.)
-                      else
-                        Gaunt_i = Gaunt_xrc(l2,m2,l_i,m_i,li,mi2,Ylm_comp)
-                      endif
-                      if( abs(Gaunt_i) < eps10 ) cycle
-
-                      Cg = Ci2 * conjg( Gaunt_s ) * Gaunt_i
-
-                      cfe = (0._db, 0._db)
-                      cfs = (0._db, 0._db)
-                      Titre = .true.
-
-        if( .not. Solsing_only ) then
-
 ! Loop over harmonics of non spherical final states < ... f_1 > < ... >
           lmp_f1 = 0
           do lp_f1 = 0,lmax
-            if( nlm_p_fp == 1 .and. lp_f1 /= l1 ) cycle
+            if( nlm_p_fp == 1 .and. lp_f1 /= l_f1 ) cycle
             lmp01 = nspino * (lp_f1**2 + lp_f1 + 1)
 
             do mp_f1 = -lp_f1,lp_f1
-              if( nlm_p_fp == 1 .and. mp_f1 /= m1 ) cycle
+              if( nlm_p_fp == 1 .and. mp_f1 /= m_f1 ) cycle
               lmp_f1 = lmp_f1 + 1
+
+              if( NRIXS ) then
+                Gaunt_s = Gaunt_nrixs(lp_f1,mp_f1,l_s,m_s,li,mi1,Ylm_comp)
+              elseif( irang == 0 ) then
+                Gaunt_s = Gauntmag(lp_f1,mp_f1,ispinf1,m_s,li,mi1,isping1,Ylm_comp,.true.)
+              else
+                Gaunt_s = Gaunt_xrc(lp_f1,mp_f1,l_s,m_s,li,mi1,Ylm_comp)
+              endif
+              if( abs(Gaunt_s) < eps10 ) cycle
 
 ! Loop over spin-orbit solution index < ... f_1 > < ... >
               do ispp_f1 = 1,nspinp
@@ -1132,22 +1121,33 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
                 iso1 = min( ispp_f1, nspino )
 
                 if( Spinorbite ) then
-                  mv1 = mp_f1 - ispinf1 + iso1
-                  if( mv1 > lp_f1 .or. mv1 < -lp_f1 ) cycle
+                  mv1 = m_f1 - ispinf1 + iso1
+                  if( mv1 > l_f1 .or. mv1 < -l_f1 ) cycle
                 else
-                  mv1 = mp_f1
+                  mv1 = m_f1
                 endif
-                lms_f1 = lmp01 + (mv1 - 1) * nspino + iso1
+                lms_f1 = ( lm01 + mv1 - 1 ) * nspino + iso1
 
 ! Loop over harmonics of non spherical final states < ... > < f_2 ... >
                 lmp_f2 = 0
                 do lp_f2 = 0,lmax
-                  if( nlm_p_fp == 1 .and. lp_f2 /= l2 ) cycle
+                  if( nlm_p_fp == 1 .and. lp_f2 /= l_f2 ) cycle
                   lmp02 = nspino * (lp_f2**2 + lp_f2 + 1)
 
                   do mp_f2 = -lp_f2,lp_f2
-                    if( nlm_p_fp == 1 .and. mp_f2 /= m2 ) cycle
+                    if( nlm_p_fp == 1 .and. mp_f2 /= m_f2 ) cycle
                     lmp_f2 = lmp_f2 + 1
+
+                    if( NRIXS ) then
+                      Gaunt_i = Gaunt_nrixs(lp_f2,mp_f2,l_i,m_i,li,mi2,Ylm_comp)
+                    elseif( jrang == 0 ) then
+                      Gaunt_i = Gauntmag(lp_f2,mp_f2,ispinf2,m_i,li,mi2,isping2,Ylm_comp,.true.)
+                    else
+                      Gaunt_i = Gaunt_xrc(lp_f2,mp_f2,l_i,m_i,li,mi2,Ylm_comp)
+                    endif
+                    if( abs(Gaunt_i) < eps10 ) cycle
+
+                    Cg = Ci2 * conjg( Gaunt_s ) * Gaunt_i
 
 ! Loop over spin-orbit solution index < ... > < f_2 ... >
                     do ispp_f2 = 1,nspinp
@@ -1155,62 +1155,38 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
                       iso2 = min( ispp_f2, nspino )
 
                       if( Spinorbite ) then
-                        mv2 = mp_f2 - ispinf2 + iso2
-                        if( mv2 > lp_f2 .or. mv2 < -lp_f2 ) cycle
+                        mv2 = m_f2 - ispinf2 + iso2
+                        if( mv2 > l_f2 .or. mv2 < -l_f2 ) cycle
                       else
-                        mv2 = mp_f2
+                        mv2 = m_f2
                       endif
-                      lms_f2 = lmp02 + (mv2 - 1) * nspino + iso2
+                      lms_f2 = ( lm02 + mv2 - 1 ) * nspino + iso2
 
-                      if( Green .or. FDM_comp_m ) then
-                        dfe = rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) * rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) &
-                            * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
-                        dfs = rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) * rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) &
-                            * Taull(lms_f2,lms_f1,initl2,initl1,ispinf2,ispinf1,is_dipmag)
-                      else
-                        dfe = conjg( rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) ) * rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) &
-                            * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
-                        dfs = conjg( rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) ) * rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) &
-                            * Taull(lms_f2,lms_f1,initl2,initl1,ispinf2,ispinf1,is_dipmag)
-                      endif
-                      cfe = cfe + dfe
-                      cfs = cfs + dfs
-
-                      if( icheck > 1 .and. abs( dfe ) > eps15 ) then
-                        if( Titre ) then
-                          Titre = .false.
-                          write(3,120)
-                          write(3,130) i_g_1, isping1, Jz1, mi1, Ci_1, i_g_2, isping2, Jz2, mi2, Ci_2, l1, &
-                          m1, ispinf1, l2, m2, ispinf2
-                          if( nlm_p_fp == 1 ) then
-                            write(3,131)
-                          else
-                            write(3,132)
-                          endif
+                      if( .not. Solsing_only ) then
+                        if( Green .or. FDM_comp_m ) then
+                          cfe = rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) * rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) &
+                              * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
+                          cfs = rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) * rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) &
+                              * Taull(lms_f2,lms_f1,initl2,initl1,ispinf2,ispinf1,is_dipmag)
+                        else
+                          cfe = conjg( rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) ) * rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) &
+                              * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
+                          cfs = conjg( rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) ) * rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) &
+                              * Taull(lms_f2,lms_f1,initl2,initl1,ispinf2,ispinf1,is_dipmag)
                         endif
-                        write(3,135) lp_f1, mp_f1, iso1, lp_f2, mp_f2, iso2, dfe, Gaunt_i, Gaunt_s, &
-                          rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1), rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2), &
-                          Taull(lms_f2,lms_f1,initl2,initl1,ispp_f2,ispp_f1,is_dipmag),  &
-                          Taull(lms_f1,lms_f2,initl1,initl2,ispp_f1,ispp_f2,is_dipmag)
+                      else
+                        cfe = ( 0._db, 0._db )
+                        cfs = ( 0._db, 0._db )
                       endif
-
-                    end do ! end of loop over spin-orbit solution f_i ( incoming )
-                  end do ! end of loop over mp_f2 non-spherical
-                end do ! end of loop over lp_f2 non-spherical
-
-              end do ! end of loop over spin-orbit solution f_s ( outgoing )
-            end do ! end of loop over mp_f1 non-spherical
-          end do ! end of loop over lp_f1 non-spherical
-
-        endif
-
+                      
+                      if( Solsing .and. i_g_1 == i_g_2 .and. lp_f1 == l_f1 .and. lp_f2 == l_f2  &
+                                                       .and. mp_f1 == m_f1 .and. mp_f2 == m_f2 .and. iso1 == iso2 ) then
+                                                                                          ! index solution is diagonal
+                        cfe = cfe + Singul(lm_f1+mv1-m_f1,ispf1,lm_f2+mv2-m_f2,ispf2,irang,jrang,is_r1)
+                        cfs = cfs + Singul(lm_f2+mv2-m_f2,ispf2,lm_f1+mv1-m_f1,ispf1,jrang,irang,is_r1)
+                      endif
 ! Here one does not divide by pi, so convenient results seems multiplied by pi, when calculating atomic form factor.
 ! So, the normalization by pi must not be done in coabs to get the atomic form factor in DAFS.
-!                      if( Solsing .and. i_g_1 == i_g_2 .and. lm_f1 == lm_f2 .and. ispinf1 == ispinf2 ) then
-                      if( Solsing .and. i_g_1 == i_g_2 ) then
-                        cfe = cfe + Singul(lm_f1,ispf1,lm_f2,ispf2,irang,jrang,is_r1)
-                        cfs = cfs + Singul(lm_f2,ispf2,lm_f1,ispf1,jrang,irang,is_r1)
-                      endif
                       if( Green_int ) then
                         Tau_rad = 0.5_db * ( cfe + cfs )
                         Tau_rad_i = 0.5_db * (cfe - cfs)
@@ -1221,16 +1197,68 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
                         Ten(initlr) = Ten(initlr) + Cg * Tau_rad
                       endif
 
-                      if( icheck > 1 .and.  abs( Tau_rad ) > eps15 ) write(3,140) Ten(initlr), Tau_rad, Cg, &
-                                 Singul(lm_f1,ispf1,lm_f2,ispf2,irang,jrang,is_r1)
+                      if( icheck > 1 .and. abs( Tau_rad ) > eps15 ) then
+                        if( Titre ) then
+                          Titre = .false.
+                          if( nlm_p_fp == 1 ) then
+                            write(3,131)
+                          else
+                            write(3,132)
+                          endif
+                        endif
+                        if( nlm_p_fp == 1 ) then
+                          if( Solsing .and. i_g_1 == i_g_2 .and. lp_f1 == l_f1 .and. lp_f2 == l_f2  &
+                                                       .and. mp_f1 == m_f1 .and. mp_f2 == m_f2 .and. iso1 == iso2 ) then
+                            write(3,140) l_f1, m_f1, ispinf1, iso1, l_f2, m_f2, ispinf2, iso2, &
+                              Ten(initlr), Cg*Tau_rad, cfe, cfs, Gaunt_i, Gaunt_s, &
+                              rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1), rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2), &
+                              Taull(lms_f2,lms_f1,initl2,initl1,ispp_f2,ispp_f1,is_dipmag), &
+                              Taull(lms_f1,lms_f2,initl1,initl2,ispp_f1,ispp_f2,is_dipmag), &
+                              Singul(lm_f1+mv1-m_f1,ispf1,lm_f2+mv2-m_f2,ispf2,irang,jrang,is_r1)
+                          else
+                            write(3,140) l_f1, m_f1, ispinf1, iso1, l_f2, m_f2, ispinf2, iso2, &
+                              Ten(initlr), Cg*Tau_rad, cfe, cfs, Gaunt_i, Gaunt_s, &
+                              rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1), rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2), &
+                              Taull(lms_f2,lms_f1,initl2,initl1,ispp_f2,ispp_f1,is_dipmag), &
+                              Taull(lms_f1,lms_f2,initl1,initl2,ispp_f1,ispp_f2,is_dipmag), &
+                              (0._db,0._db)
+                          endif
+                        else
+                          if( Solsing .and. i_g_1 == i_g_2 .and. lp_f1 == l_f1 .and. lp_f2 == l_f2  &
+                                                       .and. mp_f1 == m_f1 .and. mp_f2 == m_f2 .and. iso1 == iso2 ) then
+                            write(3,145) l_f1, m_f1, lp_f1, mp_f1, ispinf1, iso1, l_f2, m_f2, lp_f2, mp_f2, ispinf2, iso2, &
+                              Ten(initlr), Cg*Tau_rad, cfe, cfs, Gaunt_i, Gaunt_s, &
+                              rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1), rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2), &
+                              Taull(lms_f2,lms_f1,initl2,initl1,ispp_f2,ispp_f1,is_dipmag), &
+                              Taull(lms_f1,lms_f2,initl1,initl2,ispp_f1,ispp_f2,is_dipmag), &
+                              Singul(lm_f1+mv1-m_f1,ispf1,lm_f2+mv2-m_f2,ispf2,irang,jrang,is_r1)
+                          else
+                            write(3,145) l_f1, m_f1, lp_f1, mp_f1, ispinf1, iso1, l_f2, m_f2, lp_f2, mp_f2, ispinf2, iso2, &
+                              Ten(initlr), Cg*Tau_rad, cfe, cfs, Gaunt_i, Gaunt_s, &
+                              rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1), rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2), &
+                              Taull(lms_f2,lms_f1,initl2,initl1,ispp_f2,ispp_f1,is_dipmag), &
+                              Taull(lms_f1,lms_f2,initl1,initl2,ispp_f1,ispp_f2,is_dipmag), &
+                              (0._db,0._db)
+                          endif
+                        endif 
+                      endif
+
+                    end do ! end of loop over spin-orbit solution f_i ( incoming )
+                  end do ! end of loop over mp_f2 non-spherical
+                end do ! end of loop over lp_f2 non-spherical
+
+              end do ! end of loop over spin-orbit solution f_s ( outgoing )
+            end do ! end of loop over mp_f1 non-spherical
+          end do ! end of loop over lp_f1 non-spherical
+
 
                     end do ! end of loop over ispinf2, spin of final state ( incoming )
-                  end do !  end of loop over  m2 final state
-                end do !  end of loop over  l2 final state
+                  end do !  end of loop over  m_f2 final state
+                end do !  end of loop over  l_f2 final state
 
               end do  !  end of loop over spin of final state ( outgoing )
-            end do  !  end of loop over  m1 final state
-          end do !  end of loop over  l1 final state
+            end do  !  end of loop over  m_f1 final state
+          end do !  end of loop over  l_f1 final state
 
         end do    !  end of loop over spin of core states ( incoming )
       end do    !  end of loop over core states ( incoming )
@@ -1242,14 +1270,14 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
   Ten_m(:) = img * Ten_m(:)
 
   return
-  120 format(/' ini1 isg1 Jz1 mi1  Ci1  ini2 isg2 Jz2 mi2  Ci2   l1  m1 isf1  l2  m2 isf2')
-  130 format(2(2i4,f6.1,i3,f7.3),2(3i4,2x))
-  131 format(6x,'l1   m1 iso_1   l2   m2 iso_2',11x,'Tau_rad',23x,'Gaunt_i',24x,'Gaunt_s',25x,'rof_s',25x,'rof_i',26x,'Tau_s', &
-             26x,'Tau_i')
-  132 format(4x,'lp_1 mp_1 iso_1 lp_2 mp_2 iso_2',11x,'Tau_rad',23x,'Gaunt_i',24x,'Gaunt_s',25x,'rof_s',25x,'rof_i',26x,'Tau_s', &
-             26x,'Tau_i')
-  135 format(3x,6i5,1p,2e15.7,2(1x,2e15.7),1x,4e15.7,8(1x,2e15.7))
-  140 format(17x,'Ten',26x,'Tau_rad',26x,'Cg',27x,'Singul'/,1p,1x,4(1x,2e15.7))
+  120 format(/' ini1 isg1 Jz1 mi1  Ci1  ini2 isg2 Jz2 mi2  Ci2')
+  130 format(2(2i4,f6.1,i3,f7.3))
+  131 format('  l1  m1 is1 io1  l2  m2 is2 io2',15x,'Ten',27x,'dTen',28x,'cfe',27x,'cfs',27x, &
+                'Gaunt_i',24x,'Gaunt_s',25x,'rof_s',26x,'rof_i',26x,'Tau_s',26x,'Tau_i',26x,'Singul')
+  132 format('  l1  m1 lp1 mp1 is1 io1  l2  m2 lp2 mp2 is2 io2',15x,'Ten',27x,'dTen',28x,'cfe',27x,'cfs',27x, &
+                'Gaunt_i',24x,'Gaunt_s',25x,'rof_s',26x,'rof_i',26x,'Tau_s',26x,'Tau_i',26x,'Singul')
+  140 format(8i4,1p,15(1x,2e15.7))
+  145 format(12i4,1p,15(1x,2e15.7))
 end
 
 !***********************************************************************

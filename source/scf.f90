@@ -1145,9 +1145,9 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
         endif
         if( icheck > 0 ) then
           if( nspinp == 1 ) then
-            write(3,266) iapr, Z, ( m2, m2 = -l,l ) 
+            write(3,266) Atom_kind, iapr, Z, ( m2, m2 = -l,l ) 
           else
-            write(3,267) iapr, Z, ( ( m2, isp2, m2 = -l,l ), isp2 = 1,nspinp )
+            write(3,267) Atom_kind, iapr, Z, ( ( m2, isp2, m2 = -l,l ), isp2 = 1,nspinp )
           endif
           do isp1 = 1,nspinp
             do m1 = -l,l

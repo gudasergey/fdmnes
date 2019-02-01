@@ -11,9 +11,9 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
             ngroup_m,ngroup_nonsph, &
             nhybm,nlat,nlatm,nlm_pot,Nonexc,Nonsph,norbv,normrmt,npoint,npoint_ns,npsom,nrato,nrm,nrm_self,nspin, &
             ntype,numat,Overlap,pop_nonsph,popatm,popatv,pos,posi,posi_self,Proto_calculated,psival,Rato,rho,rho_chg, &
-            rho_self,rhoato,rhoato_init,rhoit,rhons,Rmtg,Rmtimp,Rmtg0,Rmtsd,Rot_Atom_gr,Rot_int,rs,rsato, &
-            Rsort,SCF,Self_nonexc,Sym_2D,V_abs_i,V_helm,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato,V0bdcFimp, &
-            Width_helm,xyz)
+            rho_self,rhoato,rhoato_init,rhoit,rhons,Rmtg,Rmtimp,Rmtg0,Rmtsd,Rot_Atom_gr,Rot_int,rs,rsato,Rsort, &
+            SCF,Self_nonexc,Sym_2D,V_abs_i,V_helm,V_intmax,Vcato,Vcato_init,Vh,Vhns,Vsphere,Vxc,Vxcato, &
+            V0bdcFimp,Width_helm,xyz)
 
   use declarations
   implicit none
@@ -37,8 +37,8 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
 
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph) :: hybrid
 
-  logical:: Bulk_atom_done, Cal_xanes, Do_init, Full_atom, Helm_cos, Magnetic, Nonexc, Nonsph, SCF, Self_nonexc, Sym_2D, &
-            This_bulk_atom_done
+  logical:: Bulk_atom_done, Cal_xanes, Do_init, Full_atom, Helm_cos, Magnetic, Nonexc, Nonsph, SCF, Self_nonexc, &
+            Sym_2D, This_bulk_atom_done
   logical, dimension(0:n_atom_proto):: Proto_calculated
 
   real(kind=db):: alfpot, Delta_helm, Dist, f_integr3, Overlap, Orig_helm, Rayint, Rsort, V_helm, V_intmax, V0bdcFimp, &
@@ -116,12 +116,12 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
       do ia = 1,n_atom_ind
         if( iaprotoi(ia) == 0 ) exit
       end do
-      iaprex = ia
+      iaprex = ia  ! index of the absorbing atom in the cluster (before excitation)
     else
       do iaprabs = 1,n_atom_ind
         if( iaprotoi(iaprabs) == iprabs ) exit
       end do
-      iaprex = 0
+      iaprex = 0   ! when the absorbing atom is not excited, iaprex is the index of the excited one
     endif
   else
     iaprabs = iprabs

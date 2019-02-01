@@ -1752,7 +1752,7 @@ subroutine radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,l,nlm1,nlm2,nbseui
   use declarations
   implicit none
 
-  integer initlv, ip, ip_max, ip0, iseuil, is, isol, isp, iss, l, lm, lm1, lm2, nlm1, nlm2, n1, n2, nbseuil, &
+  integer initlv, ip, ip_max, ip0, iseuil, is, isol, isp, iss, l, lm, lm1, lm2, lmax, lv, m, nlm1, nlm2, n1, n2, nbseuil, &
     ninitlv, nlma, nlma2, nr, nrm, nrmtsd, ns1, ns2, nspino, nspinp
 
   complex(kind=db), dimension(nlma,nlma2,nspinp,nspino,ip0:ip_max, ninitlv):: rof
@@ -1823,7 +1823,23 @@ subroutine radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,l,nlm1,nlm2,nbseui
               endif
 
               if( nlm1 /= 1 .and. nlm2 /= 1 ) then
-                rof(lm1+n1,lm1+n2,isp,isol,ip,is) = cmplx( radlr, radli,db)
+                if( nspino == 2 ) then
+                  if( nlm1 == 2*l+1 ) then ! non diagonal hubbard case
+                    m = n1 - l - 1  
+                    lv = l
+                  else ! Full potential case
+                    lmax = nint( sqrt( real(nlm1,db) ) ) - 1  ! because nlm1 = (lmax+1)**2 
+                    do lv = lmax,0,-1
+                      if( n1 > lv**2 ) exit
+                    end do
+                    m = n1 - lv**2 - lv - 1 
+                  endif
+                  m = m - isp + isol
+                  if( abs(m) > lv ) cycle 
+                  rof(lm1+n1-isp+isol,lm1+n2,isol,isp,ip,is) = cmplx( radlr, radli,db)  ! it is the attacking spin which define the solution index
+                else
+                  rof(lm1+n1,lm1+n2,isp,isol,ip,is) = cmplx( radlr, radli,db)
+                endif
               elseif( nlm1 /= 1 .and. nlma2 /= 1 ) then
                 rof(lm1+n1,lm1+n1,isp,isol,ip,is) = cmplx( radlr, radli,db)
               elseif( nlm1 /= 1 ) then

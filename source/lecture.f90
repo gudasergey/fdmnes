@@ -1556,7 +1556,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
     nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
     nself,nself_bulk,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_bulk,ntype_conf,ntype_mod,numat,numat_abs, &
-    nvval,occ_hubb_e,Occupancy_first,Octupole,Old_zero,One_run,Operation_mode,Operation_mode_used,Optic,Overad,Overlap, &
+    nvval,occ_hubb_e,Occupancy_first,Octupole,Old_zero,One_run,One_SCF,Operation_mode,Operation_mode_used,Optic,Overad,Overlap, &
     p_self_max,p_self0,p_self0_bulk,param,Pas_SCF,pdpolar,phi_0,PointGroup,PointGroup_Auto,polar,Polarise,poldafsem,poldafssm, &
     pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadmag,Quadrupole,R_rydb,R_self,R_self_bulk, &
     r0_lapw,rchimp,Readfast,Relativiste,Renorm,Rlapw,Rmt,Rmtimp,Rot_Atom_gr,rotloc_lapw, &
@@ -1646,7 +1646,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     hkl_film, Hubbard, Interface_shift_given, Kern_fac_default, Kern_fast, korigimp, lmaxfree, lmoins1, lplus1, M1M1, M1M2, &
     M2M2, Magnetic, Matper, Monocrystal, muffintin, No_DFT, no_core_resolved, no_dipquad, &
     no_e1e3, no_e2e2, no_e3e3, No_renorm, No_SCF_bulk, No_solsing, noncentre, nonexc, nonexc_imp, &
-    normaltau, Occupancy_first, Octupole, Old_zero, One_run, Operation_mode_used, Optic, Overad, &
+    normaltau, Occupancy_first, Octupole, Old_zero, One_run, One_SCF, Operation_mode_used, Optic, Overad, &
     Pas_SCF_imp, Pdb, Perdew, PointGroup_Auto, Polarise, quadmag, Quadrupole, r_self_imp, Readfast, Relativiste, &
     Renorm, rpalf, rydberg, SCF, SCF_bulk, SCF_elecabs, SCF_mag_free, Self_abs, Self_cons, Self_cons_bulk, SCF_exc_imp, &
     self_nonexc, self_nonexc_imp, solsing_only, solsing_s, spherical_signal, spherical_tensor, spherique, &
@@ -1890,6 +1890,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Octupole = .false.
   Old_zero = .false.
   One_run = .false.
+  One_SCF = .false.
   Operation_mode(:,:) = 0
   Operation_mode_used = .false.
   Optic = .false.
@@ -3676,6 +3677,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('one_run')
           One_run = .true.
           State_all = .true.
+
+        case('one_scf')
+          One_scf = .true.
 
         case('mat_ub')
           m = 0
@@ -5644,6 +5648,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Octupole,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Old_zero,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(One_run,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(One_SCF,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Operation_mode,5*npldafs_2d,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Operation_mode_used,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Optic,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)

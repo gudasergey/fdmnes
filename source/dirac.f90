@@ -736,8 +736,8 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
   210 format(/'  Popatc =',f9.4)
   215 format(/'  n  l  Popatv')
   220 format(2i3,f8.4)
-  230 format(/'     rato      4*pi*r2*rho 4*pi*r2*rho_c',10(7x,2i3))
-  240 format(1p,12e13.5)
+  230 format(/'     rato      4*pi*r2*rho 4*pi*r2*rho_c',10(7x,2i3,2x))
+  240 format(1p,12e15.7)
 end
 
 !***********************************************************************

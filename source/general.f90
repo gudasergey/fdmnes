@@ -7933,7 +7933,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   character(len=8):: ptgrname_int
 
   integer:: i, i_self, ia, ia1, ia2, iaabs, iaabsi, iabsorbeur, iapr, ib, icheck, ie, ig, iga, igr, igrpt_nomag, igrpt0, &
-     ind_rep, iord, ipr, ipr0, is, isp, isym, it, it1, it2, j, js, l, l_hubbard, m, m_hubb, mp, m_hubb_e, mpirank0, &
+     ind_rep, iord, ipr, ipr0, is, isp, istop, isym, it, it1, it2, j, js, l, l_hubbard, m, m_hubb, mp, m_hubb_e, mpirank0, &
      n_atom_0_self, n_atom_ind_self, n_atom_proto, na_ligne, na1, na2, natome, natomeq, natomp, natomsym, &
      nb_sym_op, neqm, ngroup, ngroup_hubb, ngroup_m, nlatm, nspin, nspinp, ntype, nx
 
@@ -8007,6 +8007,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     end do
   end do boucle_ipr
 
+  istop = 0
   boucle_igr: do igr = 1,ngreq(ipr)
     do ia = 1,natome
       if( iaprotoi(ia) /= ipr ) cycle
@@ -8017,7 +8018,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
             if( ipr == 3 .and. icheck == 0 ) cycle
             write(ipr,120)
           end do
-          stop
+          istop = 1
         endif
         iaabsi = ia
         exit boucle_igr
@@ -8201,7 +8202,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   rmax = ( rsort / Adimp + sqrt(2._db) * ( iord / 2 ) + epspos ) / cos( pi / 6 )
   nx = nint( rmax )
 
-  if( icheck > 0) then
+  if( icheck > 0 .or. istop == 1 ) then
     write(3,140) rsort*bohr
     write(3,150) nx
     write(3,160) natome, igrpt0, Ylm_comp, Atom_mag(0)
@@ -8210,21 +8211,27 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     else
       write(3,'(A)') ' No Full_atom mode'
     endif
-    if( Magnetic .or. Nonsph ) then
-      write(3,170)
-    else
-      write(3,180)
-    endif
-    do ia = 1,natome
-      it = itypei(ia)
-      if( atom_mag(ia) ) then
-        write(3,190) ia, numat(it), it, igroupi(ia), iaprotoi(ia), iatomp(ia), posi(1:3,ia)*bohr, igrpt(ia), &
-              ptgrname_int(igrpt(ia)), Ylm_comp, Atom_axe(ia), Atom_mag(ia), Axe_atom_clui(:,ia)
+    do ipr = 3,9,3
+      if( ipr == 3 .and. icheck == 0 ) cycle
+      if( ipr == 9 .and. istop == 0 ) cycle
+
+      if( Magnetic .or. Nonsph ) then
+        write(ipr,170)
       else
-        write(3,190) ia, numat(it), it, igroupi(ia), iaprotoi(ia), iatomp(ia), posi(1:3,ia)*bohr, igrpt(ia), &
-              ptgrname_int(igrpt(ia)), Ylm_comp, Atom_axe(ia), Atom_mag(ia)
+        write(ipr,180)
       endif
+      do ia = 1,natome
+        it = itypei(ia)
+        if( atom_mag(ia) ) then
+          write(ipr,190) ia, numat(it), it, igroupi(ia), iaprotoi(ia), iatomp(ia), posi(1:3,ia)*bohr, igrpt(ia), &
+                ptgrname_int(igrpt(ia)), Ylm_comp, Atom_axe(ia), Atom_mag(ia), Axe_atom_clui(:,ia)
+        else
+          write(ipr,190) ia, numat(it), it, igroupi(ia), iaprotoi(ia), iatomp(ia), posi(1:3,ia)*bohr, igrpt(ia), &
+                ptgrname_int(igrpt(ia)), Ylm_comp, Atom_axe(ia), Atom_mag(ia)
+        endif
+      end do
     end do
+
     write(3,'(/A)') ' Atom rotation matrices :'
     na_ligne = 4
     do iga = 1,(natome-1)/na_ligne + 1
@@ -8297,16 +8304,21 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     stop
   endif
 
+  if( istop == 1 ) stop
+
   return
   110 format(/' ---- Atom_selec --',100('-'))
-  120 format(/' The absorbing atom is not inside the area of calculation !',/ &
-              ' This can be due to the radius which is too small.',/ &
-              ' Try again increasing the radius incuding the SCF one.',// &
-              ' It can also be due to the ponctual group of the cluster of calculation.', / &
-              ' Look at under "Symsite" in the bav file, the atoms equivalent to the one giving the problem, and choose one.',/ &
-              ' - When using the keyword "Absorber", use it, instead of the previous one.' , / &
-              ' - In the other case, change the order of the atoms in the list of atoms under "Crystal",', / &
-              '   writing the chosen atom before the one giving the problem.' //)
+  120 format(/' The absorbing atom is not inside the area of calculation !',// &
+              ' When the calculation is performed on a cluster of atoms,',/ &
+              ' it can be due to the calculation radius which is too small.'/ &
+              ' So try again increasing the radius foth both the SCF and the Xanes.',// &
+              ' Another solution is too check in the list of selected atoms below,' / &
+              ' which takes into account the ponctual group symmetry, if the absorbing atom is in the list.',// &
+              ' - if not, choose another atom in the list equivalent by symmetry of the space group, or of the ponctual group.',/ &
+              ' The equivalent atoms can be found under "Symsite" in the bav file.',/ &
+              ' Then you can use the keyword "Absorber", to choose the equivalent atom as absorber.' ,// &
+              ' - if yes or if the previous method does not work, just change the order of the atoms, under "Crystal",', / &
+              '   or "molecule", putting first the selected atom or at least before the one giving the problem.' /)
   130 format(/' Atome',i4,', with working cluster sub-point group')
   140 format(/'  Rsort = ',f8.3,' A')
   150 format('  nx =',i4)
