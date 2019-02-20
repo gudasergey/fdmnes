@@ -1538,7 +1538,7 @@ end
 subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_mode,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk, &
     axyz_cap,axyz_int,axyz_sur,Basereel,Bormann,Bulk,Bulk_roughness,Cap_B_iso, &
-    Cap_layer,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre,Charge_free,Classic_irreg, &
+    Cap_layer,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre,Charge_free,Check_extract,Classic_irreg, &
     Clementi,com,comt,COOP,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Delta_helm,Density, &
     Density_comp,Dip_rel,Dipmag,Dist_coop,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient, &
     Egamme,Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness, &
@@ -1572,7 +1572,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   include 'mpif.h'
 
   integer:: eof, eoff, i, i_range, ier, ia, ie, igr, igr_dop, igrdat, io, iord, ip, ipar, ipl, ipl0, ipr, ipr0, &
-    iscratch, isp, ispin, istat, istop, isymeq, it, itape4, itype_dop, j, jgr, jpl, jseuil, jt, k, kgr, l, l_hubbard, &
+    iscratch, isp, ispin, istat, istop, isymeq, it, itape4, itype_dop, j, jgr, jpl, jseuil, jt, k, kgr, kt, l, l_hubbard, &
     l_level_val, l1, l2, lamstdens, lecrantage, Length_line, lin_gam, lmax_nrixs, lmax_pot, lmax_pot_default, lmax_tddft_inp, &
     lmaxat0, lmaxso0, long, lseuil, m, m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, mpinodes0, mpirank, mpirank0, &
     mpirank_in_mumps_group, multi_run, multrmax, n, n_adp_type, n_adimp, n_atom_bulk, n_atom_cap, n_atom_coop, n_atom_int, &
@@ -1637,10 +1637,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph):: Hybrid
 
   logical:: Absauto, adimpin, All_nrixs, Allsite, ATA, Atom, Atom_B_iso, Atom_conf, Atom_nonsph, Atom_occ_hubb, Atomic_scr, &
-    Atom_U_iso, Avoid, Axe_loc, Basereel, Bormann, Bulk, Cartesian_tensor, &
-    Charge_free, Centre_auto, Centre_auto_abs, Center_s, Fcif, Classic_irreg, Clementi, COOP, Core_resolved, Core_resolved_e, &
+    Atom_U_iso, Avoid, Axe_loc, Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, &
+    Centre_auto, Centre_auto_abs, Center_s, Check_extract, Classic_irreg, Clementi, COOP, Core_resolved, Core_resolved_e, &
     Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
-    Dip_rel, Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Film, &
+    Dip_rel, Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Fcif, Film, &
     exc_imp, Extract, Extract_ten, FDM_comp, FDMX_only, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, &
     Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green_bulk, Green_s, Green_self, Green_int, Hedin, Helm_cos, &
     hkl_film, Hubbard, Interface_shift_given, Kern_fac_default, Kern_fast, korigimp, lmaxfree, lmoins1, lplus1, M1M1, M1M2, &
@@ -1769,6 +1769,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Delta_Helm = 0._db
   D_max_pot = 2.5_db
   Dafs = .false.
+  Delta_En_conv = 0.1_db
+  Delta_Epsii = 1000000._db * Rydb
+  Density = .false.
+  Density_comp = .false.
   Dip_rel = .false.
   dipmag = .false.
   Dist_coop = 0._db
@@ -1786,10 +1790,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Ecrantage(:) = 1._db / nspin
   Eclie = 0.2_db
   Eclie_out = 1._db
-  Delta_En_conv = 0.1_db
-  Delta_Epsii = 1000000._db * Rydb
-  Density = .false.
-  Density_comp = .false.
   Eneg_i = .false.
   Eneg_n_i = .false.
   Energphot = .false.
@@ -2247,7 +2247,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('new_zero')
           Old_zero = .false.
 
-        case('etatlie')
+        case('e_out_min')
           n = nnombre(itape4,132)
           if( n == 1 ) then
             read(itape4,*,iostat=ier) Eclie_out
@@ -3789,10 +3789,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     long = len_trim(nomfich)
     nomfichbav(long+1:long+8) = '_bav.txt'
 
-    do i = 1,30
-      if( icheck(i) > 1 ) exit
-    end do
-    if( Extract .and. i > 30 ) icheck(1:30) = 0
+    if( Extract .and. .not. Check_extract ) then
+      do i = 1,30
+        if( icheck(i) > 1 ) exit
+      end do
+      if( i > 30 ) icheck(1:30) = 0
+    endif
 
     i = sum( icheck(1:28) )
     if( i > 0 ) then
@@ -4848,6 +4850,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Suppress(:) = .false.
     do it = 1,ntype
       boucle_jt: do jt = it + 1,ntype
+        if( Suppress(jt) ) cycle
         if( numat(it) /= numat(jt) ) cycle
         if( nlat(it) /= nlat(jt) ) cycle
         do l = 1,nlat(it)
@@ -4860,24 +4863,31 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     end do
     do it = 1,ntype
       if( .not. Suppress(it) ) cycle
+      n = 0
       do jt = it,ntype-1
-        Ang_base_loc(:,jt) = Ang_base_loc(:,jt+1)
-        com(jt) = com(jt+1)
-        Hubb(jt) = Hubb(jt+1)
-        icom(jt) = icom(jt+1)
-        lvval(jt,:) = lvval(jt+1,:)
-        nlat(jt) = nlat(jt+1)
-        nrato(jt) = nrato(jt+1)
-        nrato_lapw(jt) = nrato_lapw(jt+1)
-        numat(jt) = numat(jt+1)
-        nvval(jt,:) = nvval(jt+1,:)
-        popval(jt,:,:) = popval(jt+1,:,:)
-        r0_lapw(jt) = r0_lapw(jt+1)
-        rchimp(jt) = rchimp(jt+1)
-        rlapw(jt) = rlapw(jt+1)
-        rmt(jt) = rmt(jt+1)
-        rmtimp(jt) = rmtimp(jt+1)
-        V_hubbard(jt) = V_hubbard(jt+1)
+        if( Suppress( jt+1 ) ) then
+          n = n + 1
+          cycle
+        endif
+        kt = jt - n
+        where( itype == jt+1 ) itype = itype - n - 1
+        Ang_base_loc(:,kt) = Ang_base_loc(:,jt+1)
+        com(kt) = com(jt+1)
+        Hubb(kt) = Hubb(jt+1)
+        icom(kt) = icom(jt+1)
+        lvval(kt,:) = lvval(jt+1,:)
+        nlat(kt) = nlat(jt+1)
+        nrato(kt) = nrato(jt+1)
+        nrato_lapw(kt) = nrato_lapw(jt+1)
+        numat(kt) = numat(jt+1)
+        nvval(kt,:) = nvval(jt+1,:)
+        popval(kt,:,:) = popval(jt+1,:,:)
+        r0_lapw(kt) = r0_lapw(jt+1)
+        rchimp(kt) = rchimp(jt+1)
+        rlapw(kt) = rlapw(jt+1)
+        rmt(kt) = rmt(jt+1)
+        rmtimp(kt) = rmtimp(jt+1)
+        V_hubbard(kt) = V_hubbard(jt+1)
       end do
     end do
 
@@ -4996,7 +5006,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             case(3)
               write(3,'(A)') '   Half interatomic distance type muffin-tin radius'
             case(4)
-              write(3,420) rmtimp(1:ntype)
+              write(3,420) rmtimp(1:ntype_mod)
             case(5)
               write(3,'(A)') '   Potential imposed type muffin-tin radius'
           end select
@@ -5171,11 +5181,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       else
 
         write(3,*)
-        write(3,542) ngroup, ntype
+        write(3,542) ngroup, ntype_mod
 
         if( nlatm > 0 ) then
           write(3,'(A)') '   Typ  Z   n  l  Popul.'
-          do it = 1,ntype
+          do it = 1,ntype_mod
             if( nspin == 1 ) then
               write(3,543) it, numat(it), ( nvval(it,l), lvval(it,l), popval(it,l,:), l = 1,nlat(it) )
             else
@@ -5191,224 +5201,225 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         if( .not. PointGroup_Auto ) write(3,552) PointGroup
         if( Symmol .and. .not. Nonexc ) write(3,'(A)') '   Absorbing atom taken as not excited for the symmetry calculation'
 
-        write(3,*)
-        if( Film ) then
-          write(3,'(a55,4i5)') ' Film,  n_atom_uc, n_atom_int, n_atom_sur, n_atom_per =', n_atom_uc, n_atom_int, &
-                               n_atom_sur, n_atom_per
-        elseif( Matper ) then
-          write(3,'(a22,i5)') ' Crystal,  n_atom_uc =', n_atom_uc
-        else
-          write(3,'(a22,i5)') ' Molecule, n_atom_uc =', n_atom_uc
-        endif
-        if( Space_group /= ' ' .and. Matper ) write(3,554) Space_group
-        if( Pdb .and. Taux .and. Atom_B_iso ) then
-          mot = 'Kgroup  Occupancy    B_iso'
-        elseif( Pdb .and. Taux .and. Atom_U_iso ) then
-          mot = 'Kgroup  Occupancy    U_iso'
-        elseif( Pdb .and. Taux ) then
-          mot = 'Kgroup  Occupancy'
-        elseif( Pdb .and. Temp_B_iso ) then
-          mot = 'Kgroup    B_iso'
-        elseif( Pdb ) then
-          mot = 'Kgroup'
-        elseif( Atom_nonsph ) then
-          if( Taux .and. Atom_B_iso ) then
-            mot = ' Occupancy    B_iso    norbv   popats'
-          elseif( Taux .and. Atom_U_iso ) then
-            mot = ' Occupancy    U_iso    norbv   popats'
-          elseif( Taux ) then
-            mot = ' Occupancy  norbv   popats'
-          elseif( Atom_B_iso ) then
-            mot = '   B_iso   norbv   popats'
-          elseif( Atom_U_iso ) then
-            mot = '   U_iso   norbv   popats'
-          else
-            mot = '  norbv  popats'
-          endif
-        else
-          if( Taux .and. Atom_B_iso ) then
-            mot = ' Occupancy   B_iso'
-          elseif( Taux .and. Atom_U_iso ) then
-            mot = ' Occupancy   U_iso'
-          elseif( Taux ) then
-            mot = ' Occupancy'
-          elseif( Atom_B_iso ) then
-            mot = '   B_iso'
-          elseif( Atom_U_iso ) then
-            mot = '   U_iso'
-          else
-            mot = ' '
-          endif
-        endif
-        do jgr = 1,ngroup - n_atom_bulk
-          if( Doping .and. jgr == ngroup - n_atom_bulk ) then
-            write(3,'(/A)') '   Doping element :'
-            igr = igr_dop
-          else
-            igr = jgr
-          endif
-          if( jgr == 1 .and. n_atom_per > 0 ) then
-            write(3,555) axyz(1:3)
-            write(3,556) angxyz(1:3)
-          endif
-          if( jgr == n_atom_per + 1 .and. n_atom_int > 0 ) then
-            write(3,'(/A)') '   Interface elements :'
-            write(3,555) axyz_int(1:3)
-            write(3,556) angxyz_int(1:3)
-          elseif( jgr == n_atom_per + n_atom_int + 1 .and. n_atom_sur > 0 ) then
-            write(3,'(/A)') '   Surface elements :'
-            write(3,555) axyz_sur(1:3)
-            write(3,556) angxyz_sur(1:3)
-          endif
-          if( jgr == 1 ) write(3,560) mot
+      endif
 
-          it = itype(jgr)
-          Z = numat( abs(it) )
-          if( Pdb .and. Taux .and. Temp_B_iso ) then
-            write(3,565) Z, posn(:,igr), it, Kgroup(jgr), Taux_oc(jgr), Temp_coef(jgr)
-          elseif( Pdb .and. Taux ) then
-            write(3,565) Z, posn(:,igr), it, Kgroup(jgr), Taux_oc(jgr)
-          elseif( Pdb .and. Temp_B_iso ) then
-            write(3,570) Z, posn(:,igr), it, Kgroup(jgr), Temp_coef(jgr)
-          elseif( Pdb ) then
-            write(3,570) Z, posn(:,igr), it, Kgroup(jgr)
-          elseif( norbv( min(jgr,ngroup_nonsph) ) == 0 ) then
-            if( Taux .and. Temp_B_iso ) then
-              write(3,571) Z, posn(:,igr), it, Taux_oc(jgr), Temp_coef(jgr)
-            elseif( Taux ) then
-              write(3,571) Z, posn(:,igr), it, Taux_oc(jgr)
-            elseif( Temp_B_iso ) then
-              write(3,572) Z, posn(:,igr), it, Temp_coef(jgr)
-            else
-              write(3,570) Z, posn(:,igr), it
-            endif
+      write(3,*)
+      if( Film ) then
+        write(3,'(a55,4i5)') ' Film,  n_atom_uc, n_atom_int, n_atom_sur, n_atom_per =', n_atom_uc, n_atom_int, &
+                             n_atom_sur, n_atom_per
+      elseif( Matper ) then
+        write(3,'(a22,i5)') ' Crystal,  n_atom_uc =', n_atom_uc
+      else
+        write(3,'(a22,i5)') ' Molecule, n_atom_uc =', n_atom_uc
+      endif
+      if( Space_group /= ' ' .and. Matper ) write(3,554) Space_group
+      if( Pdb .and. Taux .and. Atom_B_iso ) then
+        mot = 'Kgroup  Occupancy    B_iso'
+      elseif( Pdb .and. Taux .and. Atom_U_iso ) then
+        mot = 'Kgroup  Occupancy    U_iso'
+      elseif( Pdb .and. Taux ) then
+        mot = 'Kgroup  Occupancy'
+      elseif( Pdb .and. Temp_B_iso ) then
+        mot = 'Kgroup    B_iso'
+      elseif( Pdb ) then
+        mot = 'Kgroup'
+      elseif( Atom_nonsph ) then
+        if( Taux .and. Atom_B_iso ) then
+          mot = ' Occupancy    B_iso    norbv   popats'
+        elseif( Taux .and. Atom_U_iso ) then
+          mot = ' Occupancy    U_iso    norbv   popats'
+        elseif( Taux ) then
+          mot = ' Occupancy  norbv   popats'
+        elseif( Atom_B_iso ) then
+          mot = '   B_iso   norbv   popats'
+        elseif( Atom_U_iso ) then
+          mot = '   U_iso   norbv   popats'
+        else
+          mot = '  norbv  popats'
+        endif
+      else
+        if( Taux .and. Atom_B_iso ) then
+          mot = ' Occupancy   B_iso'
+        elseif( Taux .and. Atom_U_iso ) then
+          mot = ' Occupancy   U_iso'
+        elseif( Taux ) then
+          mot = ' Occupancy'
+        elseif( Atom_B_iso ) then
+          mot = '   B_iso'
+        elseif( Atom_U_iso ) then
+          mot = '   U_iso'
+        else
+          mot = ' '
+        endif
+      endif
+      do jgr = 1,ngroup - n_atom_bulk
+        if( Doping .and. jgr == ngroup - n_atom_bulk ) then
+          write(3,'(/A)') '   Doping element :'
+          igr = igr_dop
+        else
+          igr = jgr
+        endif
+        if( jgr == 1 .and. n_atom_per > 0 ) then
+          write(3,555) axyz(1:3)
+          write(3,556) angxyz(1:3)
+        endif
+        if( jgr == n_atom_per + 1 .and. n_atom_int > 0 ) then
+          write(3,'(/A)') '   Interface elements :'
+          write(3,555) axyz_int(1:3)
+          write(3,556) angxyz_int(1:3)
+        elseif( jgr == n_atom_per + n_atom_int + 1 .and. n_atom_sur > 0 ) then
+          write(3,'(/A)') '   Surface elements :'
+          write(3,555) axyz_sur(1:3)
+          write(3,556) angxyz_sur(1:3)
+        endif
+        if( jgr == 1 ) write(3,560) mot
+
+        it = itype(jgr)
+        Z = numat( abs(it) )
+        if( Pdb .and. Taux .and. Temp_B_iso ) then
+          write(3,565) Z, posn(:,igr), it, Kgroup(jgr), Taux_oc(jgr), Temp_coef(jgr)
+        elseif( Pdb .and. Taux ) then
+          write(3,565) Z, posn(:,igr), it, Kgroup(jgr), Taux_oc(jgr)
+        elseif( Pdb .and. Temp_B_iso ) then
+          write(3,570) Z, posn(:,igr), it, Kgroup(jgr), Temp_coef(jgr)
+        elseif( Pdb ) then
+          write(3,570) Z, posn(:,igr), it, Kgroup(jgr)
+        elseif( norbv( min(jgr,ngroup_nonsph) ) == 0 ) then
+          if( Taux .and. Temp_B_iso ) then
+            write(3,571) Z, posn(:,igr), it, Taux_oc(jgr), Temp_coef(jgr)
+          elseif( Taux ) then
+            write(3,571) Z, posn(:,igr), it, Taux_oc(jgr)
+          elseif( Temp_B_iso ) then
+            write(3,572) Z, posn(:,igr), it, Temp_coef(jgr)
           else
-            if( Taux .and. Temp_B_iso ) then
-              write(3,575) Z, posn(:,igr), it, Taux_oc(jgr), Temp_coef(jgr), norbv(jgr), &
-                                                                       ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
-            elseif( Taux ) then
-              write(3,576) Z, posn(:,igr), it, Taux_oc(jgr), norbv(jgr), ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
-            elseif( Temp_B_iso ) then
-              write(3,576) Z, posn(:,igr), it, Temp_coef(jgr), norbv(jgr), ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
-            else
-              write(3,580) Z, posn(:,igr), it, norbv(jgr), (popats(jgr,l,1:nspin), l = 1,nlat( abs(it)) )
-            endif
-            do io = 1,norbv(jgr)
-              if( sum( abs( hybrid(io,10:16,jgr) ) ) < eps10 ) then
-                write(3,600) io, pop_nonsph(io,jgr), real( hybrid(io,1:9,jgr) )
-              else
-                write(3,600) io, pop_nonsph(io,jgr), real( hybrid(io,:,jgr) )
-              endif
-            end do
+            write(3,570) Z, posn(:,igr), it
           endif
-          if( Atom_occ_hubb .and. Hubb( abs(it) ) ) then
-            l = l_hubbard( Z )
-            write(3,610) ( ( occ_hubb_e(m,m,isp,jgr), m = -l,l ), isp = 1,nspin )
+        else
+          if( Taux .and. Temp_B_iso ) then
+            write(3,575) Z, posn(:,igr), it, Taux_oc(jgr), Temp_coef(jgr), norbv(jgr), &
+                                                                     ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
+          elseif( Taux ) then
+            write(3,576) Z, posn(:,igr), it, Taux_oc(jgr), norbv(jgr), ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
+          elseif( Temp_B_iso ) then
+            write(3,576) Z, posn(:,igr), it, Temp_coef(jgr), norbv(jgr), ( popats(jgr,l,1:nspin), l = 1,nlat( abs(it) ) )
+          else
+            write(3,580) Z, posn(:,igr), it, norbv(jgr), (popats(jgr,l,1:nspin), l = 1,nlat( abs(it)) )
+          endif
+          do io = 1,norbv(jgr)
+            if( sum( abs( hybrid(io,10:16,jgr) ) ) < eps10 ) then
+              write(3,600) io, pop_nonsph(io,jgr), real( hybrid(io,1:9,jgr) )
+            else
+              write(3,600) io, pop_nonsph(io,jgr), real( hybrid(io,:,jgr) )
+            endif
+          end do
+        endif
+        if( Atom_occ_hubb .and. Hubb( abs(it) ) ) then
+          l = l_hubbard( Z )
+          write(3,610) ( ( occ_hubb_e(m,m,isp,jgr), m = -l,l ), isp = 1,nspin )
+        endif
+      end do
+
+      if( abs( dpos(1) ) > epspos .or. abs( dpos(2) ) > epspos .or. abs( dpos(3) ) > epspos ) write(3,545) dpos(1:3)
+
+      if( Film ) then
+        write(3,*)
+        if( n_atom_per > 0 ) then
+          write(3,'(a17,f10.5)') ' Film thickness =', Film_thickness
+          write(3,'(a17,3f10.5)') ' Film shift     =', Film_shift(1:3)
+          if( abs( Film_shift(4) ) > eps10 ) write(3,'(a17,f10.5)') ' Film rotat     =', Film_shift(4)
+          if( abs( Film_zero ) > -100._db )  write(3,'(a17,f10.5)') ' Film zero      =', Film_zero
+        endif
+        if( Film_roughness > eps10 ) write(3,'(a17,f10.5)') ' Film roughness =', Film_roughness
+        if( n_atom_int > 0 ) then
+          write(3,'(a17,3f10.5)') ' Interface shift=', Interface_shift(1:3)
+          if( abs( Interface_shift(4) ) > eps10 ) write(3,'(a17,f10.5)') ' Interface rotat=', Interface_shift(4)
+        endif
+        if( n_atom_sur > 0 ) then
+          write(3,'(a17,3f10.5)') ' Surface shift  =', Surface_shift(1:3)
+          if( abs( Surface_shift(4) ) > eps10 ) write(3,'(a17,f10.5)') ' Surface rotat  =', Interface_shift(4)
+        endif
+        if( hkl_film ) then
+          write(3,'(A)') ' (h,k,l) corresponding to the reciprocal space of the film'
+        else
+          write(3,'(A)') ' (h,k,l) corresponding to the reciprocal space of the bulk'
+        endif
+      endif
+      if( Bulk ) then
+       if( Bulk_roughness > eps10 ) write(3,'(a17,f10.5)') ' Bulk roughness =', Bulk_roughness
+       write(3,620) ' Bulk', axyz_bulk(:), Angxyz_bulk(:)
+        if( Atom_B_iso ) then
+          write(3,'(A)') '    Z         x              y              z      Typ   B_iso'
+        elseif( Atom_U_iso ) then
+          write(3,'(A)') '    Z         x              y              z      Typ   U_iso'
+        else
+          write(3,'(A)') '    Z         x              y              z      Typ'
+        endif
+        do igr = 1,n_atom_bulk
+          it = itype( ngroup - n_atom_bulk + igr )
+          if( Temp_B_iso ) then
+            write(3,625) Z_bulk(igr), posn_bulk(:,igr), it, Temp_coef(ngroup-n_atom_bulk+igr)
+          else
+            write(3,625) Z_bulk(igr), posn_bulk(:,igr), it
           endif
         end do
-
-        if( abs( dpos(1) ) > epspos .or. abs( dpos(2) ) > epspos .or. abs( dpos(3) ) > epspos ) write(3,545) dpos(1:3)
-
-        if( Film ) then
-          write(3,*)
-          if( n_atom_per > 0 ) then
-            write(3,'(a17,f10.5)') ' Film thickness =', Film_thickness
-            write(3,'(a17,3f10.5)') ' Film shift     =', Film_shift(1:3)
-            if( abs( Film_shift(4) ) > eps10 ) write(3,'(a17,f10.5)') ' Film rotat     =', Film_shift(4)
-            if( abs( Film_zero ) > -100._db )  write(3,'(a17,f10.5)') ' Film zero      =', Film_zero
-          endif
-          if( Film_roughness > eps10 ) write(3,'(a17,f10.5)') ' Film roughness =', Film_roughness
-          if( n_atom_int > 0 ) then
-            write(3,'(a17,3f10.5)') ' Interface shift=', Interface_shift(1:3)
-            if( abs( Interface_shift(4) ) > eps10 ) write(3,'(a17,f10.5)') ' Interface rotat=', Interface_shift(4)
-          endif
-          if( n_atom_sur > 0 ) then
-            write(3,'(a17,3f10.5)') ' Surface shift  =', Surface_shift(1:3)
-            if( abs( Surface_shift(4) ) > eps10 ) write(3,'(a17,f10.5)') ' Surface rotat  =', Interface_shift(4)
-          endif
-          if( hkl_film ) then
-            write(3,'(A)') ' (h,k,l) corresponding to the reciprocal space of the film'
-          else
-            write(3,'(A)') ' (h,k,l) corresponding to the reciprocal space of the bulk'
-          endif
+      endif
+      if( Cap_layer ) then
+        write(3,620) '  Cap', axyz_cap(:), Angxyz_cap(:)
+        write(3,'(A)') '    Z         x              y              z           Occupancy'
+        do igr = 1,n_atom_cap
+          write(3,630) Z_cap(igr), posn_cap(:,igr), Taux_cap(igr)
+        end do
+        if( Cap_shift < -100._db ) then
+          write(3,'(A)') ' Default cap shift, equal to the sum of top film and bottom cap atom radii'
+        else
+          write(3,640) 'shift    ', Cap_shift
         endif
-        if( Bulk ) then
-         if( Bulk_roughness > eps10 ) write(3,'(a17,f10.5)') ' Bulk roughness =', Bulk_roughness
-         write(3,620) ' Bulk', axyz_bulk(:), Angxyz_bulk(:)
-          if( Atom_B_iso ) then
-            write(3,'(A)') '    Z         x              y              z      Typ   B_iso'
-          elseif( Atom_U_iso ) then
-            write(3,'(A)') '    Z         x              y              z      Typ   U_iso'
-          else
-            write(3,'(A)') '    Z         x              y              z      Typ'
-          endif
-          do igr = 1,n_atom_bulk
-            it = itype( ngroup - n_atom_bulk + igr )
-            if( Temp_B_iso ) then
-              write(3,625) Z_bulk(igr), posn_bulk(:,igr), it, Temp_coef(ngroup-n_atom_bulk+igr)
-            else
-              write(3,625) Z_bulk(igr), posn_bulk(:,igr), it
-            endif
-          end do
+        if( Cap_thickness < -100._db ) then
+          write(3,'(A)') ' Default cap thickness, equal to one layer'
+        else
+          write(3,640) 'thickness', Cap_thickness
         endif
-        if( Cap_layer ) then
-          write(3,620) '  Cap', axyz_cap(:), Angxyz_cap(:)
-          write(3,'(A)') '    Z         x              y              z           Occupancy'
-          do igr = 1,n_atom_cap
-            write(3,630) Z_cap(igr), posn_cap(:,igr), Taux_cap(igr)
-          end do
-          if( Cap_shift < -100._db ) then
-            write(3,'(A)') ' Default cap shift, equal to the sum of top film and bottom cap atom radii'
-          else
-            write(3,640) 'shift    ', Cap_shift
-          endif
-          if( Cap_thickness < -100._db ) then
-            write(3,'(A)') ' Default cap thickness, equal to one layer'
-          else
-            write(3,640) 'thickness', Cap_thickness
-          endif
-          if( Cap_roughness > eps10 ) write(3,640) 'roughness', Cap_roughness
-          if( Cap_disorder > eps10 ) write(3,640) 'disorder ', Cap_disorder
-          if( Cap_b_iso > eps10 ) write(3,640) 'b_iso    ', Cap_b_iso
-        endif
+        if( Cap_roughness > eps10 ) write(3,640) 'roughness', Cap_roughness
+        if( Cap_disorder > eps10 ) write(3,640) 'disorder ', Cap_disorder
+        if( Cap_b_iso > eps10 ) write(3,640) 'b_iso    ', Cap_b_iso
+      endif
 
 ! About potential
-        if( abs( V_helm ) > eps10 ) then
-          write(3,650) V_helm, Delta_helm, Width_helm
-          if( Helm_cos ) write(3,'(A)') '    with cosine model'
-        endif
-        if( abs( V_helm ) > eps10 ) write(3,650) V_helm, Delta_helm, Width_helm
-        if( Flapw ) then
-          if( Hedin .or. Perdew ) then
-            write(3,'(/A)') ' FLAPW potential energy dependant'
-          else
-            write(3,'(/A)') ' FLAPW potential not energy dependant'
-          endif
-        else
-          if( Hedin ) then
-            write(3,'(/A)') ' Hedin and Lundqvist exchange-correlation potential'
-          elseif( Perdew ) then
-            write(3,'(/A)') ' Perdew and Zunger exchange-correlation potential'
-          else
-            write(3,660) alfpot
-          endif
-        endif
-        if( Full_potential ) write(3,670) lmax_pot
-        if( neimagent == 1 ) then
-          write(3,680) eimagent(1)
-        elseif( neimagent > 1 ) then
-          write(3,'(A)') '   Energy   E_imag    (eV)'
-          write(3,690) (eeient(ie), eimagent(ie), ie = 2,neimagent)
-        endif
-        if( multrmax /= 1 ) write(3,702) multrmax
-        if( abs( rpotmax ) > eps4 ) write(3,703) Rpotmax
-        write(3,704) D_max_pot
+      if( abs( V_helm ) > eps10 ) then
+        write(3,650) V_helm, Delta_helm, Width_helm
+        if( Helm_cos ) write(3,'(A)') '    with cosine model'
       endif
+      if( abs( V_helm ) > eps10 ) write(3,650) V_helm, Delta_helm, Width_helm
+      if( Flapw ) then
+        if( Hedin .or. Perdew ) then
+          write(3,'(/A)') ' FLAPW potential energy dependant'
+        else
+          write(3,'(/A)') ' FLAPW potential not energy dependant'
+        endif
+      else
+        if( Hedin ) then
+          write(3,'(/A)') ' Hedin and Lundqvist exchange-correlation potential'
+        elseif( Perdew ) then
+          write(3,'(/A)') ' Perdew and Zunger exchange-correlation potential'
+        else
+          write(3,660) alfpot
+        endif
+      endif
+      if( Full_potential ) write(3,670) lmax_pot
+      if( neimagent == 1 ) then
+        write(3,680) eimagent(1)
+      elseif( neimagent > 1 ) then
+        write(3,'(A)') '   Energy   E_imag    (eV)'
+        write(3,690) (eeient(ie), eimagent(ie), ie = 2,neimagent)
+      endif
+      if( multrmax /= 1 ) write(3,702) multrmax
+      if( abs( rpotmax ) > eps4 ) write(3,703) Rpotmax
+      write(3,704) D_max_pot
 
       if( Hubbard ) then
         write(3,'(/A)') ' Hubbard calculation '
         write(3,'(A)') ' Type  Z  Hubbard parameter (eV)'
-        do it = 1,ntype
+        do it = 1,ntype_mod
           if( Hubb(it) ) write(3,'(2i4,f12.3)') it, numat(it), V_hubbard(it)
         end do
       endif
@@ -5795,8 +5806,13 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     end do
 
     if( One_run .and. Taux ) then
-      Error_message = ' It is not possible to have at the same time One_run and Crystal_t keywords !'
-      call write_error_message(Error_message,ipr0,istop)
+      do igr = 1,ngroup_taux
+        if( abs( Taux_oc(igr) - 1 ) > 0.000001_db ) exit
+      end do
+      if( igr <= ngroup_taux ) then
+        Error_message = ' It is not possible to have at the same time One_run and Crystal_t keywords !'
+        call write_error_message(Error_message,ipr0,istop)
+      endif
     endif
 
     if( Film_roughness > eps10 ) then
@@ -6133,7 +6149,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   450 format('   lmaxso0 =',i3)
   460 format('   R_rydb =',f7.3,' A')
   470 format('   Center =',3f7.3)
-  480 format('   Eclie, Eclie_out =',2f7.3,' eV')
+  480 format('   E_ato_min, E_out_min =',2f7.3,' eV')
   490 format('   V_intmax =',f7.3,' eV')
   500 format(/' Temperature =',f6.1,' K')
   505 format(6x,3f7.3,3x,3f7.3,3x,f7.3,4x,f7.3)

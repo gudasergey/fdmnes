@@ -993,8 +993,8 @@ subroutine Renormal(Radial_comp,Full_potential,icheck,konde,ll,lmax,nlm1,nlm2,nr
 ! Dans ce cas le deuxieme indice de "u" est celui de l'attaque
 ! c'est aussi le premier indice de Wronsk
 ! et l est celui sortant
-          Wronsks(:,np,isp,:) = u1(np,:,isp,:) * s2(isr) - u2(np,:,isp,:) * s1(isr)
-          Wronske(:,np,isp,:) = u1(np,:,isp,:) * bs(2,l,isr) - u2(np,:,isp,:) * bs(1,l,isr)
+          Wronsks(np,:,isp,:) = u1(np,:,isp,:) * s2(isr) - u2(np,:,isp,:) * s1(isr)
+          Wronske(np,:,isp,:) = u1(np,:,isp,:) * bs(2,l,isr) - u2(np,:,isp,:) * bs(1,l,isr)
         endif
       end do
     end do
@@ -1132,7 +1132,7 @@ subroutine cal_ampl(Ampl,Full_potential,icheck,ll,lmax,nlm1,nlm2,nspino,nspinp,T
   use declarations
   implicit none
 
-  integer:: i, icheck, isol, isp, ispp, j, l, ll, lmax, lp, m, nlm1, nlm2, mp, mq, n, nd, ndim, np, nspino, nspinp, nu
+  integer:: i, icheck, isol, isp, ispp, j, l, ll, lmax, lp, m, nlm1, nlm2, mp, mpv, mq, n, nd, ndim, np, nspino, nspinp, nu
 
   complex(kind=db):: Det
   complex(kind=db), dimension(nlm1,nspinp,nlm1,nspinp):: Tau
@@ -1233,17 +1233,27 @@ subroutine cal_ampl(Ampl,Full_potential,icheck,ll,lmax,nlm1,nlm2,nspino,nspinp,T
           do ispp = 1,nspinp  ! solution
             if( nspino == 1 .and. ispp /= isp ) cycle
             isol = min(nspino,ispp)
-            np = 0
             do lp = 0,lmax
               if( .not. Full_potential .and. lp /= ll ) cycle
               do mp = -lp,lp
-                np = np + 1
-                j = j + 1
+!                if( nspino == 2 ) then
+!                  mpv = mp - isp + isol
+!                  if( abs(mpv) > lp ) cycle
+!                else 
+                  mpv = mp
+!                endif
+                if( Full_potential ) then
+                  np = 1 + lp + lp**2 + mpv
+                else
+                  np = lp + 1 + mpv
+                endif  
+                j = j + 1 
 ! colonne harmonique reelle, ligne harmonique attaque
 !                Mat_e(i,j) = Wronske(n,np,isp,isol)
 !                Mat_s(i,j) = Wronsks(n,np,isp,isol)
-                Mat_e(j,i) = Wronske(np,n,isp,isol)
-                Mat_s(j,i) = Wronsks(np,n,isp,isol)
+
+                Mat_e(j,i) = Wronske(n,np,isp,isol)
+                Mat_s(j,i) = Wronsks(n,np,isp,isol)
               end do
             end do
           end do
@@ -1270,8 +1280,6 @@ subroutine cal_ampl(Ampl,Full_potential,icheck,ll,lmax,nlm1,nlm2,nspino,nspinp,T
           write(3,130) i, Mat_s(i,:)
         end do
       endif
-
-      Mat_A = Mat_s
 
       call invcomp(ndim,Mat_s,ndim,ndim,0,Stop_job)
 
@@ -1752,7 +1760,7 @@ subroutine radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,l,nlm1,nlm2,nbseui
   use declarations
   implicit none
 
-  integer initlv, ip, ip_max, ip0, iseuil, is, isol, isp, iss, l, lm, lm1, lm2, lmax, lv, m, nlm1, nlm2, n1, n2, nbseuil, &
+  integer initlv, ip, ip_max, ip0, iseuil, is, isol, isp, iss, l, lm, lm1, lm2, nlm1, nlm2, n1, n2, nbseuil, &
     ninitlv, nlma, nlma2, nr, nrm, nrmtsd, ns1, ns2, nspino, nspinp
 
   complex(kind=db), dimension(nlma,nlma2,nspinp,nspino,ip0:ip_max, ninitlv):: rof
@@ -1823,23 +1831,23 @@ subroutine radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,l,nlm1,nlm2,nbseui
               endif
 
               if( nlm1 /= 1 .and. nlm2 /= 1 ) then
-                if( nspino == 2 ) then
-                  if( nlm1 == 2*l+1 ) then ! non diagonal hubbard case
-                    m = n1 - l - 1  
-                    lv = l
-                  else ! Full potential case
-                    lmax = nint( sqrt( real(nlm1,db) ) ) - 1  ! because nlm1 = (lmax+1)**2 
-                    do lv = lmax,0,-1
-                      if( n1 > lv**2 ) exit
-                    end do
-                    m = n1 - lv**2 - lv - 1 
-                  endif
-                  m = m - isp + isol
-                  if( abs(m) > lv ) cycle 
-                  rof(lm1+n1-isp+isol,lm1+n2,isol,isp,ip,is) = cmplx( radlr, radli,db)  ! it is the attacking spin which define the solution index
-                else
+!                if( nspino == 2 ) then
+!                  if( nlm1 == 2*l+1 ) then ! non diagonal hubbard case
+!                    m = n1 - l - 1  
+!                    lv = l
+!                  else ! Full potential case
+!                    lmax = nint( sqrt( real(nlm1,db) ) ) - 1  ! because nlm1 = (lmax+1)**2 
+!                    do lv = lmax,0,-1
+!                      if( n1 > lv**2 ) exit
+!                    end do
+!                    m = n1 - lv**2 - lv - 1 
+!                  endif
+!                  m = m - isp + isol
+!                  if( abs(m) > lv ) cycle 
+!                  rof(lm1+n1-isp+isol,lm1+n2,isol,isp,ip,is) = cmplx( radlr, radli,db)  ! it is the attacking spin which define the solution index
+!                else
                   rof(lm1+n1,lm1+n2,isp,isol,ip,is) = cmplx( radlr, radli,db)
-                endif
+!                endif
               elseif( nlm1 /= 1 .and. nlma2 /= 1 ) then
                 rof(lm1+n1,lm1+n1,isp,isol,ip,is) = cmplx( radlr, radli,db)
               elseif( nlm1 /= 1 ) then

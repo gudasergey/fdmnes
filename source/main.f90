@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 29th of January 2019, 9 Pluviose, An 227
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 19th of February 2019, 30 Pluviose, An 227
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 29th of January 2019'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 19th of February 2019'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -256,7 +256,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
   integer, parameter:: nkw_all = 38
   integer, parameter:: nkw_fdm = 214
-  integer, parameter:: nkw_conv = 38
+  integer, parameter:: nkw_conv = 39
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_gaus = 1
   integer, parameter:: nkw_metric = 12
@@ -300,7 +300,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   integer, dimension(:), allocatable:: ifile_notskip, indparp, Length_block, npar, npbl, nparam
   integer, dimension(:,:), allocatable:: indice_par
 
-  logical:: bav_open, Bormann, Case_fdm, Check_file, Conv_done, &
+  logical:: bav_open, Bormann, Case_fdm, Check_file, Check_extract, Conv_done, &
     Convolution_cal, Dafs_bio, E_cut_man, Fdmnes_cal, Fit_cal, Gamma_hole_imp, Gamma_tddft, Gaus_cal, Metric_cal, &
     Minim_fdm_ok, minimok, Mult_cal, Scan_a, Selec_cal, &
     Use_FDMX, FDMX_only, cm2g, nobg, nohole, nodw, noimfp, imfp_inp, elf_inp, dwfactor_inp, tdebye_inp, tmeas_inp, &
@@ -325,9 +325,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
      'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/
 
-  data kw_conv / 'abs_b_iso','abs_befor','abs_u_iso','all_conv ','no_analyz','cal_tddft','calculati','circular ','conv_out ', &
+  data kw_conv / 'abs_b_iso','abs_befor','abs_u_iso','all_conv ','cal_tddft','calculati','check_bir','circular ','conv_out ', &
      'convoluti','dafs_exp_','dead_laye','dec      ','directory','double_co','eintmax  ','epsii    ','forbidden','fprime   ', &
-     'gamma_fix','gamma_var','gaussian ','no_extrap','nxan_lib ','photo_emi','s0_2     ','selec_cor','sample_th', &
+     'gamma_fix','gamma_var','gaussian ','no_analyz','no_extrap','nxan_lib ','photo_emi','s0_2     ','selec_cor','sample_th', &
      'scan     ','scan_conv','scan_file','seah     ','stokes   ','stokes_na','surface_p','table    ','thomson  ','transpose'/
 
   data kw_fdm/  &
@@ -339,7 +339,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_2d  ','dafs_exp ','debye    ','delta_en_','dip_rel  ','e1e1     ', &
      'delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ', &
      'edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot', &
-     'ephot_min','etatlie  ','excited  ','extract  ','extract_t','extractpo','extractsy','fdm_comp ','film     ','film_cif_', &
+     'ephot_min','e_out_min','excited  ','extract  ','extract_t','extractpo','extractsy','fdm_comp ','film     ','film_cif_', &
      'film_pdb_','film_t   ','film_roug','film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ', &
      'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_bul','green_int','hedin    ', &
      'helm_cos ','helmholtz','hkl_film ','hubbard  ','iord     ','kern_fac ','kern_fast', &
@@ -378,6 +378,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
   Ang_borm = 0._db
   Bormann = .false.
+  Check_extract = .false.
   Check_file = .false.
   comt = ' '
   Convolution_cal = .false.
@@ -623,6 +624,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
       select case(keyword)
 
         case('check')
+          Check_extract = .true.
           n1 = 1
           do i = 1,30
             n = nnombre(1,132)
@@ -1520,7 +1522,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     if( Fdmnes_cal .and. ifdm == 1 ) then
       if( ical > 1 ) Close(3)
 
-      call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
+      call fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
           Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
           itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
           nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,Use_FDMX,FDMX_only, &
@@ -1641,7 +1643,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
     if( Fdmnes_cal .and. Minim_fdm_ok .and. ncal /= ncal_nonfdm ) then
       Close(3)
-      call fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
+      call fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
         itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
         nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,Use_FDMX,FDMX_only, &
@@ -1879,8 +1881,8 @@ function Traduction(keyword)
       traduction = 'end'
     case('end_jump')
       traduction = 'endjump'
-    case('eclie')
-      traduction = 'etatlie'
+    case('eclie','delta_e_o','etatlie','delta_v_o','Ec_out_mi','Ek_out_mi','Ek_min','Ec_min')
+      traduction = 'e_out_min'
     case('extract_s')
       traduction = 'extracsy'
     case('enrgpsii','epsiia','ecore','e_core','e_psii')

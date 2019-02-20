@@ -1,7 +1,7 @@
 ! Subroutine of the FDMNES Package
 ! Contain the main of the FDM-MST part of the calculation
 
-subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
+subroutine fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
         itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
         nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,Use_FDMX,FDMX_only, &
@@ -58,8 +58,8 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   complex(kind=db), dimension(:,:), allocatable:: poldafsem, poldafssm
   complex(kind=db), dimension(:,:,:), allocatable:: hybrid
 
-  logical:: Absauto, Abs_in_bulk, All_nrixs, Allsite, ATA, Atom_nonsph, Atom_occ_hubb, Atomic_scr, &
-     Axe_loc, Basereel, Base_ortho_int, Base_ortho_sur, Bormann, Bulk, Clementi, Cap_layer, Cartesian_tensor, Center_s,&
+  logical:: Absauto, Abs_in_bulk, All_nrixs, Allsite, ATA, Atom_nonsph, Atom_occ_hubb, Atomic_scr, Axe_loc, &
+     Basereel, Base_ortho_int, Base_ortho_sur, Bormann, Bulk, Check_extract, Clementi, Cap_layer, Cartesian_tensor, Center_s, &
      Charge_free, Classic_irreg, Core_resolved, Convolution_cal, COOP, Coupelapw, Dafs, Dafs_bio, Density, Density_comp, &
      Dip_rel, Dipmag, Doping, Dyn_eg, Dyn_g, E_cut_man, Eneg_i, Eneg_n_i, Energphot, Extract, Extract_ten, FDM_comp, FDMX_only, &
      Film, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, &
@@ -250,7 +250,7 @@ subroutine fdm(Ang_borm,Bormann,comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_
   call lecture(Absauto,adimp_e,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_mode,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk, &
     axyz_cap,axyz_int,axyz_sur,Basereel,Bormann,Bulk,Bulk_roughness,Cap_B_iso, &
-    Cap_layer,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre,Charge_free,Classic_irreg, &
+    Cap_layer,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre,Charge_free,Check_extract,Classic_irreg, &
     Clementi,com,comt,COOP,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Delta_helm,Density, &
     Density_comp,Dip_rel,Dipmag,Dist_coop,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient, &
     Egamme,Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness, &
@@ -2287,7 +2287,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                   ich = min(icheck(19), icheck(27))
 
                   if( Green ) then
-                    call msm(Atom_axe,Axe_Atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag(ie),Full_atom, &
+                    call msm(Axe_Atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag(ie),Full_atom, &
                       ia_coop,ia_eq,ia_rep, &
                       iaabsi,iaprotoi,iato,ich,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato, &
                       n_atom_0,n_atom_coop,n_atom_ind,n_atom_proto,nab_coop,natome,natomp,nb_eq,nb_rpr,nb_rep_t,nb_sym_op,nchemin, &
@@ -3558,7 +3558,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                 ich = icheck(19)
 
                 if( Green ) then
-                  call msm(Atom_axe,Axe_Atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag(ie),Full_atom, &
+                  call msm(Axe_Atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag(ie),Full_atom, &
                     ia_coop,ia_eq,ia_rep, &
                     iaabsi,iaprotoi,iato,ich,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato, &
                     n_atom_0,n_atom_coop,n_atom_ind,n_atom_proto,nab_coop,natome,natomp,nb_eq,nb_rpr,nb_rep_t,nb_sym_op,nchemin, &

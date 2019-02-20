@@ -16,7 +16,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   integer:: Dafs_exp_type, eof, i, i_bulk_z, i_conv, i_hk, i_Trunc, i1, ical, icheck, ie, ie1, ie2, ifich, igr, ii, &
     initl, ip, ipar, ipas, ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, &
-    jfich, jpl, js, jseuil, k, kpl, l, Length_line, mfich, n, n_bulk_z, n_col, n_col_max, n_energ_tr, &
+    jfich, jpl, js, jseuil, k, kpl, l, Length_line, mfich, n, n_bir, n_bulk_z, n_col, n_col_max, n_energ_tr, &
     n_mat_pol, n_selec_core, n_signal, n_Stokes, n_Trunc, &
     ncal, ne2, nef, nelor, nen2, nenerg, nenerge, nes, nes_in, nfich, &
     ngamh, ngroup_par, ninit, ninit1, ninitlm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
@@ -50,7 +50,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   complex(kind=db), dimension(:,:,:), allocatable:: Ad, Adafs, As, f0scan_bulk, Mu_m, Mu_mat_comp, Mu_t, Trs_Trunc
   complex(kind=db), dimension(:,:,:,:), allocatable:: As_bulk, mu, mus
 
-  logical:: Abs_before, Abs_in_bulk, Analyzer, Another_one, Arc, bav_open, Bormann, Dafs, Dafs_bio, Check_conv, chem, Circular, &
+  logical:: Abs_before, Abs_in_bulk, Analyzer, Another_one, Arc, bav_open, Bormann, Check_birefringence, Dafs, Dafs_bio, &
+    Check_conv, chem, Circular, &
     Conv_done, Cor_abs, decferm, Deuxieme, Double_cor, E_cut_man, Energphot, Epsii_ref_man, Extrap, Fermip, First_E, Fit_cal, &
     Forbidden, fprim, fprime_atom, Full_self_abs, Gamma, Gamma_hole_imp, Gamma_var, Gaussian_default, Green_int, Just_total, &
     Magn, no_extrap, nxan_lib, Photoemission, Scan_a, scan_true, Seah, Self_abs, &
@@ -73,7 +74,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         lorix, lorr, lorrx, natomsym_f, Pds, p1f, p2f, Tens, V0muf, Ts, Yr, Yi
   real(kind=db), dimension(:,:), allocatable:: decal_initl, Epsii, Length_rel, Length_rel_abs, Mu_tt, mua_r, mua_i, Signal, &
                                                Stokes_param, Xa, Xanes, Xs
-  real(kind=db), dimension(:,:,:), allocatable:: Icirc, Icirccor, Icor, Icircdcor, Idcor, Mu_mat, Mus_mat
+  real(kind=db), dimension(:,:,:), allocatable:: Icirc, Icirccor, Icor, Icircdcor, Idcor, Mu_mat
+  real(kind=db), dimension(:,:,:,:), allocatable:: Mus_mat
 
 ! Put to .true. when TDDFT
   Another_one = .false.
@@ -86,6 +88,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Analyzer = .true.
   Arc = .true.
   Asea = 0.2_db  ! Slope of Gamma at the origin in Seah Dench model
+  Check_birefringence = .false.
   chem = .false.
   Check_conv = .false.
   Circular = .false.
@@ -431,6 +434,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           read(itape1,*) Abs_U_iso_inp, Shift_U_iso          
         endif
 
+     case('check_bir')
+       Check_birefringence = .true.
+        
       case('seah')
 
         Arc = .false.
@@ -941,7 +947,12 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   allocate( p2f(nes) )
   allocate( phdtscan(nphim,npldafs) )
   allocate( Xs(nes,nxan) )
-  allocate( Mus_mat(nes,n_stokes,n_mat_pol) )
+  if( Check_birefringence ) then
+    n_bir = 4
+  else
+    n_bir = 1
+  endif
+  allocate( Mus_mat(nes,n_stokes,n_bir,n_mat_pol) )
   allocate( Mu_mat_comp(nes,4,n_mat_pol) )
   if( Abs_in_bulk ) then
     allocate( As_bulk(nes,nphim,npldafs,n_Trunc) )
@@ -977,9 +988,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   elseif( Bormann ) then
     n_col = nxan + n_mat_pol * n_stokes + 2*npldafs
   elseif( .not. Analyzer ) then
-    n_col = nxan + n_mat_pol * ( n_stokes + 2 ) + npldafs / 2
+    n_col = nxan + n_mat_pol * ( n_stokes * n_bir + 2 ) + npldafs / 2
   else
-    n_col = nxan + n_mat_pol * ( n_stokes + 2 ) + npldafs
+    n_col = nxan + n_mat_pol * ( n_stokes * n_bir + 2 ) + npldafs
     if( Dafs_bio ) then
       if( icheck > 1 ) then
          n_col = n_col + 4*npldafs
@@ -1006,8 +1017,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Sup_sufix = ninitl(1) > 1
    
   call Col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin(nfich),Fichscanin(nfich),fprim,Full_self_abs,hkl_dafs, &
-      Length_line,n_col,n_index_hk,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes, &
-      Stokes_name,Stokes_param,Sup_sufix,Tenseur)
+      Length_line,n_bir,n_col,n_index_hk,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph, &
+      Stokes,Stokes_name,Stokes_param,Sup_sufix,Tenseur)
 
 ! This loop is for the case of output for all indata files  
   boucle_conv_file: do i_conv = 0,nfich
@@ -1018,7 +1029,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     endif
 
   Xs(:,:) = 0._db
-  Mus_mat(:,:,:) = 0._db
+  Mus_mat(:,:,:,:) = 0._db
   Mu_mat_comp(:,:,:) = (0._db,0._db)
   if( Dafs ) As(:,:,:) = (0._db,0._db)
   if( Cor_abs ) mus(:,:,:,:) = (0._db,0._db)
@@ -1954,7 +1965,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   if( Stokes_xan ) then
 ! Conversion from Megabarn to micrometer^-1
     c_micro = 100 / Volume_maille
-! Mu_mat_comp is already in micrometre -1
+! Mu_mat_comp is already in micrometer -1
     do i = 1,4,3
       Mu_mat_comp(:,i,:) = Mu_mat_comp(:,i,:) + c_micro * cmplx( fpp_avantseuil(ifich), f0_forward, db)
     end do
@@ -2003,12 +2014,15 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   if( Stokes_xan ) then
     if( icheck > 1 ) then
-      write(3,190) (( ipl, i = 1,8 ), ipl = 1,n_mat_pol)  
-      do ie = 1,nes
-        write(3,'(f10.3,1p,121e13.5)') Es(ie)*rydb, ( Mu_mat_comp(ie,:,ipl), ipl = 1,n_mat_pol ) 
+      do ipl = 1,n_mat_pol
+        write(3,189) ipl
+        write(3,190) ( ipl, i = 1,8 )  
+        do ie = 1,nes
+          write(3,'(f10.3,1p,121e13.5)') Es(ie)*rydb, Mu_mat_comp(ie,:,ipl) 
+        end do
       end do
     endif
-    call Cal_MuTrans(icheck,Mu_mat_comp,Mus_mat,n_stokes,n_mat_pol,nes,Sample_thickness,Stokes_param)
+    call Cal_MuTrans(icheck,Mu_mat_comp,Mus_mat,n_bir,n_stokes,n_mat_pol,nes,Sample_thickness,Stokes_param)
   endif
 
   if( Cor_abs ) &
@@ -2059,8 +2073,10 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
       jpl = jpl + 1
       Tens(jpl) = real( Mu_mat_comp(ie,4,ipl), db )   ! pi-pi
       do i = 1,n_stokes
-        jpl = jpl + 1
-        Tens(jpl) = Mus_mat(ie,i,ipl)
+        do j = 1,n_bir
+          jpl = jpl + 1
+          Tens(jpl) = Mus_mat(ie,i,j,ipl)
+        end do
       end do
     end do
 
@@ -2335,8 +2351,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
                  10(7x,'Fr_',i1,13x,'Fi_',i1,9x,'abs(As)**2_',i1,2x))
   188 format(6x,'L',10x,'As_s'12x,'As_i',13x,'Trs_r',12x,'Trs_i',10x,'abs(Trs)**2',7x,'Sum_f0_r',9x,'Sum_f0_i'4x,&
                  10(7x,'Fr_',i1,13x,'Fi_',i1,9x,'abs(f0)**2_',i1,2x))
-  190 format(/'   Energy   ',9(' Mu_ss_r_',i1,'    Mu_ss_i_',i1,'    Mu_sp_r_',i1,'    Mu_sp_i_',i1,'    Mu_ps_r_',i1, &
-                              '    Mu_ps_i_',i1,'    Mu_pp_r_',i1,'    Mu_pp_i_',i1,'   '))
+  189 format(/' Complex linear absorption coefficients (micrometer^-1) for the orientation matrix number =',i3)
+  190 format(/'   Energy   ',' Mu_ss_r_',i1,'    Mu_ss_i_',i1,'    Mu_sp_r_',i1,'    Mu_sp_i_',i1,'    Mu_ps_r_',i1, &
+                          '    Mu_ps_i_',i1,'    Mu_pp_r_',i1,'    Mu_pp_i_',i1)
   200 format(f10.3,1p,240e13.5)
   210 format(f7.1,1p,3e13.5)
 end
@@ -3174,13 +3191,13 @@ end
 !***********************************************************************
 
 subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscanin,fprim,Full_self_abs,hkl_dafs, &
-      Length_line,n_col,n_index_hk,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph,Stokes, &
-      Stokes_name,Stokes_param,Sup_sufix,Tenseur)
+      Length_line,n_bir,n_col,n_index_hk,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph, &
+      Stokes,Stokes_name,Stokes_param,Sup_sufix,Tenseur)
 
   use declarations
   implicit none
 
-  integer:: i, i_hk, ii, ipl, istat, j, k, kk, l, Length_line, m, n, n_col, n_col_o, n_col_in, n_mat_pol, &
+  integer:: i, i_bir, i_hk, ii, ipl, istat, j, k, kk, l, Length_line, m, n, n_bir, n_col, n_col_o, n_col_in, n_mat_pol, &
     n_stokes, nc, nnombre, npldafs, npldafs_b, nxan
   integer, dimension(npldafs):: nphi
 
@@ -3256,6 +3273,7 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
           nomab(m:m) = ' '
         end do
         nomac = nomab
+        nomac(k:k) = ' '
         l = len_trim( nomab )
         nomab(l+1:l+2) = 'ss'
         nom_col_o(i) = nomab
@@ -3271,13 +3289,25 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
           endif
           i = i + 1
           nom_col_o(i) = nomab
+          l = min( Length_word-3, len_trim( nomab ) )
+          do i_bir = 2,n_bir
+            if( i_bir == 2 ) then
+              nomab(l+1:l+3) = 'nB'
+            elseif( i_bir == 3 ) then
+              nomab(l+1:l+3) = 'nD'
+            else
+              nomab(l+1:l+3) = 'nO'
+            endif
+            i = i + 1
+            nom_col_o(i) = nomab
+          end do
         end do
       else 
         if( l > 4 ) then
           if( nomab(l-3:l-2) == '_r' .or. nomab(l-3:l-2) == '_i' ) nomab(l-3:l-2) = '  '
         endif
         if( nxan == 0 ) then
-           nom_col_in(j) = nomab
+          nom_col_in(j) = nomab
         else
           nom_col_o(i) = nomab
         endif
@@ -4047,14 +4077,14 @@ end
 
 ! Calculation of transmission
 
-subroutine Cal_MuTrans(icheck,Mu_mat_comp,Mus_mat,n_stokes,n_mat_pol,nes,Sample_thickness,Stokes_param)
+subroutine Cal_MuTrans(icheck,Mu_mat_comp,Mus_mat,n_bir,n_stokes,n_mat_pol,nes,Sample_thickness,Stokes_param)
 
   use declarations
   implicit none
 
-  integer:: i, icheck, indp, ie, ipl, nes, n_mat_pol, n_stokes
+  integer:: i, i_bir, icheck, indp, ie, ipl, n_bir, n_mat_pol, n_stokes, nes
 
-  complex(kind=db):: Ch, diag, exp_TS, exp_TS_i, mu_pp, mu_ps, mu_sp, mu_ss, Sh, Tau, Trace
+  complex(kind=db):: Ch, diag, exp_TS, exp_TS_i, Mu_iso, mu_pp, mu_ps, mu_sp, mu_ss, Sh, Tau, Trace
 
   complex(kind=db), dimension(2,2):: AM, Mu, Mat, Mat_pol
   complex(kind=db), dimension(nes,4,n_mat_pol):: Mu_mat_comp
@@ -4063,7 +4093,7 @@ subroutine Cal_MuTrans(icheck,Mu_mat_comp,Mus_mat,n_stokes,n_mat_pol,nes,Sample_
 
   real(kind=db), dimension(2,2):: Analyseur
   real(kind=db), dimension(5,n_stokes):: Stokes_param
-  real(kind=db),  dimension(nes,n_stokes,n_mat_pol):: Mus_mat
+  real(kind=db),  dimension(nes,n_stokes,n_bir,n_mat_pol):: Mus_mat
 
   if( icheck > 1 ) write(3,100)
   
@@ -4071,26 +4101,26 @@ subroutine Cal_MuTrans(icheck,Mu_mat_comp,Mus_mat,n_stokes,n_mat_pol,nes,Sample_
 
     do indp = 1,n_stokes   ! Boucle sur la polarisation
 
-! Parametres de Stokes
+! Stokes parameter
       P1 = Stokes_param(1,indp)
       P2 = Stokes_param(2,indp)
       P3 = Stokes_param(3,indp)
 
-! Matrice polarisation
+! Polarization matrix
       Mat_pol(1,1) = 1._db + P1;  Mat_pol(1,2) = P2 - img*P3
       Mat_pol(2,1) = P2 + img*P3; Mat_pol(2,2) = 1._db - P1
       Mat_pol = Mat_pol / 2
 
-! Tout est avec le complexe conjugue (Bragg, F, ..)
+! All is with conjugate complex (Bragg, F, ..)
       Mat_pol = Conjg( Mat_pol)
 
-! Angle de rotation de l'analyseur
+! Rotation angle of analyzor
       Cos_eta = Cos( Stokes_param(4,indp) )
       Sin_eta = Sin( Stokes_param(4,indp) )
-! Angle de Bragg de l'analyseur
+! Bragg angle of analyzor
       Cos_2Bra = Cos( 2 * Stokes_param(5,indp) )
 
-! Matrice Analyseur
+! Analyzor matrix
       Analyseur(1,1) = Cos_eta
       Analyseur(1,2) = - Sin_eta
       Analyseur(2,1) = Cos_2Bra * Sin_eta
@@ -4105,60 +4135,89 @@ subroutine Cal_MuTrans(icheck,Mu_mat_comp,Mus_mat,n_stokes,n_mat_pol,nes,Sample_
       
       do ie = 1,nes
 
-        mu_ss = Mu_mat_comp(ie,1,ipl) 
-        mu_sp = Mu_mat_comp(ie,2,ipl) 
-        mu_ps = Mu_mat_comp(ie,3,ipl) 
-        mu_pp = Mu_mat_comp(ie,4,ipl) 
-        if( abs( mu_pp - mu_ss ) < 1.e-20_db .and. abs( mu_sp * mu_ps ) < 1.e-20_db ) then
-          Mu(1,1) = 1._db
-          Mu(2,1) = 0._db
-          Mu(1,2) = 0._db
-          Mu(2,2) = 1._db
-        else 
-          Tau = 0.25_db * sqrt( (mu_pp - mu_ss)**2 + 4 * mu_sp * mu_ps )
-          exp_TS = exp( Tau * Sample_thickness )
-          exp_TS_i = 1 / exp_TS
-          Ch  = 0.5_db * ( Exp_TS + Exp_Ts_i )  
-          Sh = 0.5_db * ( Exp_TS - Exp_Ts_i ) 
-          diag = 0.25_db * Sh * ( mu_pp - mu_ss ) / Tau
-          Mu(1,1) = ch + diag
-          Mu(2,1) = - 0.5_db * Sh * mu_ps / Tau
-          Mu(1,2) = - 0.5_db * Sh * mu_sp / Tau
-          Mu(2,2) = ch - diag
-        endif
+        do i_bir = 1,n_bir
         
-        Mu(:,:) =  exp( -0.25_db * ( mu_pp + mu_ss ) * Sample_thickness ) * Mu(:,:)
+          if( i_bir == 1 ) then 
+            mu_ss = Mu_mat_comp(ie,1,ipl) 
+            mu_sp = Mu_mat_comp(ie,2,ipl) 
+            mu_ps = Mu_mat_comp(ie,3,ipl) 
+            mu_pp = Mu_mat_comp(ie,4,ipl) 
+            Mu_iso = exp( -0.25_db * ( mu_pp + mu_ss ) * Sample_thickness )
+          elseif( i_bir == 2 ) then   ! Without birefringence
+            mu_ss = cmplx( real( Mu_mat_comp(ie,1,ipl), db ), 0._db, db )  
+            mu_sp = cmplx( real( Mu_mat_comp(ie,2,ipl), db ), 0._db, db ) 
+            mu_ps = cmplx( real( Mu_mat_comp(ie,3,ipl), db ), 0._db, db ) 
+            mu_pp = cmplx( real( Mu_mat_comp(ie,4,ipl), db ), 0._db, db )
+          elseif( i_bir == 3 ) then   ! Without dichroism
+            mu_ss = cmplx(0._db, aimag( Mu_mat_comp(ie,1,ipl) ), db )  
+            mu_sp = cmplx(0._db, aimag( Mu_mat_comp(ie,2,ipl) ), db ) 
+            mu_ps = cmplx(0._db, aimag( Mu_mat_comp(ie,3,ipl) ), db ) 
+            mu_pp = cmplx(0._db, aimag( Mu_mat_comp(ie,4,ipl) ), db )
+          else                        ! No off-diagonal components
+            mu_ss = Mu_mat_comp(ie,1,ipl)  
+            mu_sp = ( 0._db, 0._db ) 
+            mu_ps = ( 0._db, 0._db ) 
+            mu_pp = Mu_mat_comp(ie,4,ipl)
+          endif 
 
-        if( icheck > 1 .and. ie == 1 ) then
-          write(3,'(/A)') '   Mu Matrix'
-          do i = 1,2
-            write(3,130) Mu(i,:)
-          end do 
-        endif
-      
-        AM = Matmul( Analyseur, Mu )
-
-        if( icheck > 1 .and. ie == 1 ) then
-          write(3,'(/A)') '   A.Mu Matrix'
-          do i = 1,2
-            write(3,130) AM(i,:)
-          end do 
-        endif
-
-        Mat = Transpose( Conjg( AM ) )
-        Mat = Matmul( AM, Matmul( Mat_pol, Mat ) )
-        Trace = real( Mat(1,1) + Mat(2,2), db )
-
-        if( icheck > 1 .and. ie == 1 ) then
-          write(3,'(/A)') '   A.Mu.P.Tr(Conj(A.Mu)) Matrix'
-          do i = 1,2
-            write(3,130) Mat(i,:)
-          end do 
-        endif
-
-        Mus_mat(ie,indp,ipl) = Trace
-!        Mus_mat(ie,indp,ipl) = - log( Trace ) / Sample_thickness
-
+          if( abs( mu_pp - mu_ss ) < 1.e-20_db .and. abs( mu_sp * mu_ps ) < 1.e-20_db ) then
+            Mu(1,1) = 1._db
+            Mu(2,1) = 0._db
+            Mu(1,2) = 0._db
+            Mu(2,2) = 1._db
+          else
+            Tau = 0.25_db * sqrt( (mu_pp - mu_ss)**2 + 4 * mu_sp * mu_ps )
+            exp_TS = exp( Tau * Sample_thickness )
+            exp_TS_i = 1 / exp_TS
+            Ch  = 0.5_db * ( Exp_TS + Exp_Ts_i )  
+            Sh = 0.5_db * ( Exp_TS - Exp_Ts_i ) 
+            diag = 0.25_db * Sh * ( mu_pp - mu_ss ) / Tau
+            Mu(1,1) = ch + diag
+            Mu(2,1) = - 0.5_db * Sh * mu_ps / Tau
+            Mu(1,2) = - 0.5_db * Sh * mu_sp / Tau
+            Mu(2,2) = ch - diag
+          endif
+          
+          Mu(:,:) =  Mu_iso * Mu(:,:)
+     
+          if( icheck > 1 .and. ie == 1 ) then
+            if( i_bir == 1 ) then
+              write(3,'(/A)') '   Mu Matrix'
+            elseif( i_bir == 2 ) then
+              write(3,'(/A)') '   Mu Matrix, without birefringence'
+            elseif( i_bir == 3 ) then
+              write(3,'(/A)') '   Mu Matrix, without dichroism'
+            else
+              write(3,'(/A)') '   Mu Matrix, without off-diagonal components'
+            endif
+            do i = 1,2
+              write(3,130) Mu(i,:)
+            end do 
+          endif
+       
+          AM = Matmul( Analyseur, Mu )
+     
+          if( icheck > 1 .and. ie == 1 ) then
+            write(3,'(/A)') '   A.Mu Matrix'
+            do i = 1,2
+              write(3,130) AM(i,:)
+            end do 
+          endif
+     
+          Mat = Transpose( Conjg( AM ) )
+          Mat = Matmul( AM, Matmul( Mat_pol, Mat ) )
+          Trace = real( Mat(1,1) + Mat(2,2), db )
+     
+          if( icheck > 1 .and. ie == 1 ) then
+            write(3,'(/A)') '   A.Mu.P.Tr(Conj(A.Mu)) Matrix'
+            do i = 1,2
+              write(3,130) Mat(i,:)
+            end do 
+          endif
+     
+          Mus_mat(ie,indp,i_bir,ipl) = Trace
+     
+        end do
       end do
     end do
   end do
@@ -4173,7 +4232,8 @@ subroutine Cal_MuTrans(icheck,Mu_mat_comp,Mus_mat,n_stokes,n_mat_pol,nes,Sample_
 end
 
 !***********************************************************************
-! Calcul de l'intensite en fonction des parametres de Stokes
+
+! Calculation of intensity versus Stokes parameters 
 
 subroutine Cal_stokes(As,Icirc,nes,n_stokes,np_stokes, nphi,nphim,npldafs,Stokes_param)
 
@@ -4198,30 +4258,30 @@ subroutine Cal_stokes(As,Icirc,nes,n_stokes,np_stokes, nphi,nphim,npldafs,Stokes
 
   do ipl = 1,npldafs,4
 
-    do indp = 1,n_stokes   ! Boucle sur la polarisation
+    do indp = 1,n_stokes   ! Loop on polarization
 
       is = is + 1
 
-! Parametres de Stokes
+! Stokes parameters
       P1 = Stokes_param(1,indp)
       P2 = Stokes_param(2,indp)
       P3 = Stokes_param(3,indp)
 
-! Matrice polarisation
+! Polarisation matrix
       Mat_pol(1,1) = 1._db + P1;  Mat_pol(1,2) = P2 - img*P3
       Mat_pol(2,1) = P2 + img*P3; Mat_pol(2,2) = 1._db - P1
       Mat_pol = Mat_pol / 2
 
-! Tout est avec le complexe conjugue (Bragg, F, ..)
+! AA is with conjugate complex (Bragg, F, ..)
       Mat_pol = Conjg( Mat_pol)
 
-! Angle de rotation de l'analyseur
+! Rotation angle of analyzor
       Cos_eta = Cos( Stokes_param(4,indp) )
       Sin_eta = Sin( Stokes_param(4,indp) )
-! Angle de Bragg de l'analyseur
+! Bragg angle of analyzor
       Cos_2Bra = Cos( 2 * Stokes_param(5,indp) )
 
-! Matrice Analyseur
+! Analyzor matrix
       Analyseur(1,1) = Cos_eta
       Analyseur(1,2) = - Sin_eta
       Analyseur(2,1) = Cos_2Bra * Sin_eta
@@ -4258,7 +4318,7 @@ end
 
 !***********************************************************************
 
-! Calcul de l'intensite corrige d'absorption en tenant compte de la birefringence
+! Calculation of intensity corrected by self-absorption taking into account birefringence
 
 subroutine Corr_abs(angxyz,As,axyz,c_micro,d_dead,Double_cor,Eseuil,fpp_avantseuil,hkl_dafs,hkl_S,Icor,Icirccor, &
           Icircdcor,Idcor,mus,n_stokes,nes,np_stokes,nphi,nphim, npldafs,Self_abs,Stokes_param)
@@ -4372,9 +4432,9 @@ subroutine Corr_abs(angxyz,As,axyz,c_micro,d_dead,Double_cor,Eseuil,fpp_avantseu
           dmu_s = (0._db, 0._db)
         endif
 
-! Matrices transmittance
-! Elles sont decomposee en 2 parties. La matrice transmittance totale
-! est donnee par T = 0.5*(exp(Tau*l)*Tr(1) + exp(-Tau*l)*Tr(2) )
+! Transmittance matrices
+! They have cut in 2 parts. The total transmitance matrix is given by
+!   T = 0.5*(exp(Tau*l)*Tr(1) + exp(-Tau*l)*Tr(2) )
         Tr_i(1,1,1) = 1 + dmu_i; Tr_i(1,2,1) = - musp_i
         Tr_i(2,1,1) = - mups_i;  Tr_i(2,2,1) = 1 - dmu_i
 
@@ -4391,18 +4451,18 @@ subroutine Corr_abs(angxyz,As,axyz,c_micro,d_dead,Double_cor,Eseuil,fpp_avantseu
 
         Tr_s(:,:,:) = Tr_s(:,:,:) / 2
 
-! Exposant des exponentielles
+! Exponent of the exponentials
 
         Ex_i(1) = - mu_i + t_i;  Ex_i(2) = - mu_i - t_i
 
         Ex_s(1) = - mu_s + t_s;  Ex_s(2) = - mu_s - t_s
 
-! Amplitude de diffusion
+! Scattering amplitude
 
         F(1,1) = fss; F(1,2) = fps
         F(2,1) = fsp; F(2,2) = fpp
 
-! Produit
+! Product
         k = 0
         do i = 1,2
           do j = 1,2
@@ -4441,7 +4501,7 @@ subroutine Corr_abs(angxyz,As,axyz,c_micro,d_dead,Double_cor,Eseuil,fpp_avantseu
           end do
         endif
 
-        do indp = 1,4+n_stokes  ! Boucle sur polarisation et analyse
+        do indp = 1,4+n_stokes  ! Loop over polarization and analyzor 
 
           select case(indp)
 
@@ -4468,7 +4528,7 @@ subroutine Corr_abs(angxyz,As,axyz,c_micro,d_dead,Double_cor,Eseuil,fpp_avantseu
               eta = Stokes_param(4,indp-4)
               Brag_A = Stokes_param(5,indp-4)
 
-! Parametres de Stokes
+! Stokes parameters
               P1 = Stokes_param(1,indp-4)
               P2 = Stokes_param(2,indp-4)
               P3 = Stokes_param(3,indp-4)
@@ -4478,7 +4538,7 @@ subroutine Corr_abs(angxyz,As,axyz,c_micro,d_dead,Double_cor,Eseuil,fpp_avantseu
 
           end select
 
-! Matrice polarisation
+! Polarization matrix
           Mat_pol(1,1) = 1._db + P1;  Mat_pol(1,2) = P2 - img*P3
           Mat_pol(2,1) = P2 + img*P3; Mat_pol(2,2) = 1._db - P1
           Mat_pol = Mat_pol / 2

@@ -932,7 +932,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
     ispf1, ispf2, ispinf1, ispinf2, isping1, isping2, ispp_f1, ispp_f2, l_f1, l_f2, li, lm01, lm02, lm_f1, lm_f2, lmax, lmp01, &
     lmp02, lmp_f1, lmp_f2, lms_f1, lms_f2, lp_f1, lp_f2, m_f1, m_f2, mi1, mi2, mp_f1, mp_f2, mv1, mv2
 
-  complex(kind=db):: cfe, cfs, Cg, Tau_rad, Tau_rad_i
+  complex(kind=db):: cfe, cfs, Cg, rof_1, rof_2, Singul_e, Singul_s, Tau_rad, Tau_rad_i
 
   complex(kind=db):: Gaunt_i, Gaunt_nrixs, Gaunt_s, Gaunt_xrc, Gauntmag 
   complex(kind=db), dimension(ninitlr):: Ten, Ten_m
@@ -1163,16 +1163,24 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
                       lms_f2 = ( lm02 + mv2 - 1 ) * nspino + iso2
 
                       if( .not. Solsing_only ) then
-                        if( Green .or. FDM_comp_m ) then
-                          cfe = rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) * rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) &
-                              * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
-                          cfs = rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) * rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) &
-                              * Taull(lms_f2,lms_f1,initl2,initl1,ispinf2,ispinf1,is_dipmag)
+                        if( nlm_p_fp > 1 .and. Spinorbite ) then      
+                          rof_1 = rof(lm_f1+mv1-m_f1,lmp_f1,iso1,ispf1,irang,is_r1)
+                          rof_2 = rof(lm_f2+mv2-m_f2,lmp_f2,iso2,ispf2,jrang,is_r2)
                         else
-                          cfe = conjg( rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) ) * rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) &
-                              * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
-                          cfs = conjg( rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2) ) * rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1) &
-                              * Taull(lms_f2,lms_f1,initl2,initl1,ispinf2,ispinf1,is_dipmag)
+                          rof_1 = rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1)
+                          rof_2 = rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2)
+                        endif
+                      else
+                        rof_1 = ( 0._db, 0._db )
+                        rof_2 = ( 0._db, 0._db )
+                      endif
+                      if( .not. Solsing_only ) then
+                        if( Green .or. FDM_comp_m ) then
+                          cfe = rof_1 * rof_2 * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
+                          cfs = rof_2 * rof_1 * Taull(lms_f2,lms_f1,initl2,initl1,ispinf2,ispinf1,is_dipmag)
+                        else
+                          cfe = conjg( rof_1 ) * rof_2 * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
+                          cfs = conjg( rof_2 ) * rof_1 * Taull(lms_f2,lms_f1,initl2,initl1,ispinf2,ispinf1,is_dipmag)
                         endif
                       else
                         cfe = ( 0._db, 0._db )
@@ -1182,9 +1190,15 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
                       if( Solsing .and. i_g_1 == i_g_2 .and. lp_f1 == l_f1 .and. lp_f2 == l_f2  &
                                                        .and. mp_f1 == m_f1 .and. mp_f2 == m_f2 .and. iso1 == iso2 ) then
                                                                                           ! index solution is diagonal
-                        cfe = cfe + Singul(lm_f1+mv1-m_f1,ispf1,lm_f2+mv2-m_f2,ispf2,irang,jrang,is_r1)
-                        cfs = cfs + Singul(lm_f2+mv2-m_f2,ispf2,lm_f1+mv1-m_f1,ispf1,jrang,irang,is_r1)
+                        Singul_e = Singul(lm_f1+mv1-m_f1,ispf1,lm_f2+mv2-m_f2,ispf2,irang,jrang,is_r1)
+                        Singul_s = Singul(lm_f2+mv2-m_f2,ispf2,lm_f1+mv1-m_f1,ispf1,jrang,irang,is_r1)
+                        cfe = cfe + Singul_e
+                        cfs = cfs + Singul_s
+                      else
+                        Singul_e = ( 0._db, 0._db ) 
+                        Singul_s = ( 0._db, 0._db ) 
                       endif
+                      
 ! Here one does not divide by pi, so convenient results seems multiplied by pi, when calculating atomic form factor.
 ! So, the normalization by pi must not be done in coabs to get the atomic form factor in DAFS.
                       if( Green_int ) then
@@ -1207,39 +1221,19 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
                           endif
                         endif
                         if( nlm_p_fp == 1 ) then
-                          if( Solsing .and. i_g_1 == i_g_2 .and. lp_f1 == l_f1 .and. lp_f2 == l_f2  &
-                                                       .and. mp_f1 == m_f1 .and. mp_f2 == m_f2 .and. iso1 == iso2 ) then
-                            write(3,140) l_f1, m_f1, ispinf1, iso1, l_f2, m_f2, ispinf2, iso2, &
-                              Ten(initlr), Cg*Tau_rad, cfe, cfs, Gaunt_i, Gaunt_s, &
-                              rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1), rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2), &
-                              Taull(lms_f2,lms_f1,initl2,initl1,ispp_f2,ispp_f1,is_dipmag), &
-                              Taull(lms_f1,lms_f2,initl1,initl2,ispp_f1,ispp_f2,is_dipmag), &
-                              Singul(lm_f1+mv1-m_f1,ispf1,lm_f2+mv2-m_f2,ispf2,irang,jrang,is_r1)
-                          else
-                            write(3,140) l_f1, m_f1, ispinf1, iso1, l_f2, m_f2, ispinf2, iso2, &
-                              Ten(initlr), Cg*Tau_rad, cfe, cfs, Gaunt_i, Gaunt_s, &
-                              rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1), rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2), &
-                              Taull(lms_f2,lms_f1,initl2,initl1,ispp_f2,ispp_f1,is_dipmag), &
-                              Taull(lms_f1,lms_f2,initl1,initl2,ispp_f1,ispp_f2,is_dipmag), &
-                              (0._db,0._db)
-                          endif
+                          write(3,140) l_f1, m_f1, ispinf1, iso1, l_f2, m_f2, ispinf2, iso2, &
+                            Ten(initlr), Cg*Tau_rad, cfe, cfs, Gaunt_i, Gaunt_s, &
+                            rof_1, rof_2, &
+                            Taull(lms_f2,lms_f1,initl2,initl1,ispp_f2,ispp_f1,is_dipmag), &
+                            Taull(lms_f1,lms_f2,initl1,initl2,ispp_f1,ispp_f2,is_dipmag), &
+                            Singul_e, Singul_s
                         else
-                          if( Solsing .and. i_g_1 == i_g_2 .and. lp_f1 == l_f1 .and. lp_f2 == l_f2  &
-                                                       .and. mp_f1 == m_f1 .and. mp_f2 == m_f2 .and. iso1 == iso2 ) then
-                            write(3,145) l_f1, m_f1, lp_f1, mp_f1, ispinf1, iso1, l_f2, m_f2, lp_f2, mp_f2, ispinf2, iso2, &
-                              Ten(initlr), Cg*Tau_rad, cfe, cfs, Gaunt_i, Gaunt_s, &
-                              rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1), rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2), &
-                              Taull(lms_f2,lms_f1,initl2,initl1,ispp_f2,ispp_f1,is_dipmag), &
-                              Taull(lms_f1,lms_f2,initl1,initl2,ispp_f1,ispp_f2,is_dipmag), &
-                              Singul(lm_f1+mv1-m_f1,ispf1,lm_f2+mv2-m_f2,ispf2,irang,jrang,is_r1)
-                          else
-                            write(3,145) l_f1, m_f1, lp_f1, mp_f1, ispinf1, iso1, l_f2, m_f2, lp_f2, mp_f2, ispinf2, iso2, &
-                              Ten(initlr), Cg*Tau_rad, cfe, cfs, Gaunt_i, Gaunt_s, &
-                              rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1), rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2), &
-                              Taull(lms_f2,lms_f1,initl2,initl1,ispp_f2,ispp_f1,is_dipmag), &
-                              Taull(lms_f1,lms_f2,initl1,initl2,ispp_f1,ispp_f2,is_dipmag), &
-                              (0._db,0._db)
-                          endif
+                          write(3,145) l_f1, m_f1, lp_f1, mp_f1, ispinf1, iso1, l_f2, m_f2, lp_f2, mp_f2, ispinf2, iso2, &
+                            Ten(initlr), Cg*Tau_rad, cfe, cfs, Gaunt_i, Gaunt_s, &
+                            rof_1, rof_2, &
+                            Taull(lms_f2,lms_f1,initl2,initl1,ispp_f2,ispp_f1,is_dipmag), &
+                            Taull(lms_f1,lms_f2,initl1,initl2,ispp_f1,ispp_f2,is_dipmag), &
+                            Singul_e, Singul_s
                         endif 
                       endif
 
@@ -1273,11 +1267,11 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
   120 format(/' ini1 isg1 Jz1 mi1  Ci1  ini2 isg2 Jz2 mi2  Ci2')
   130 format(2(2i4,f6.1,i3,f7.3))
   131 format('  l1  m1 is1 io1  l2  m2 is2 io2',15x,'Ten',27x,'dTen',28x,'cfe',27x,'cfs',27x, &
-                'Gaunt_i',24x,'Gaunt_s',25x,'rof_s',26x,'rof_i',26x,'Tau_s',26x,'Tau_i',26x,'Singul')
+                'Gaunt_i',24x,'Gaunt_s',25x,'rof_s',26x,'rof_i',26x,'Tau_s',26x,'Tau_i',25x,'Singul_e',24x,'Singul_s')
   132 format('  l1  m1 lp1 mp1 is1 io1  l2  m2 lp2 mp2 is2 io2',15x,'Ten',27x,'dTen',28x,'cfe',27x,'cfs',27x, &
-                'Gaunt_i',24x,'Gaunt_s',25x,'rof_s',26x,'rof_i',26x,'Tau_s',26x,'Tau_i',26x,'Singul')
-  140 format(8i4,1p,15(1x,2e15.7))
-  145 format(12i4,1p,15(1x,2e15.7))
+                'Gaunt_i',24x,'Gaunt_s',25x,'rof_s',26x,'rof_i',26x,'Tau_s',26x,'Tau_i',25x,'Singul_e',24x,'Singul_s')
+  140 format(8i4,1p,16(1x,2e15.7))
+  145 format(12i4,1p,16(1x,2e15.7))
 end
 
 !***********************************************************************

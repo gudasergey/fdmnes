@@ -390,7 +390,8 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
             if( Repres_comp .and. .not. Spinorbite ) then
               lm01c = lm01 - 2 * m1
               lm02c = lm02 - 2 * m2
-              isg = (-1)**(m1+m2)
+!              isg = (-1)**(m1+m2)
+              isg = 1
 !              if( Atom_axe(ia) .or. Atom_axe(ib) ) &
                 Tau_coop(lm01c,is1,lm02c,is2,iab) = Tau_coop(lm01c,is1,lm02c,is2,iab) + isg * cfac
             endif
@@ -2109,7 +2110,7 @@ end
 
 ! Calculation of multiple scattering amplitude using the multiple scattering theory
 
-subroutine msm(Atom_axe,Axe_atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag,Full_atom, &
+subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag,Full_atom, &
                     ia_coop,ia_eq,ia_rep, &
                     iaabsi,iaprotoi,iato,icheck,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,lato,lmaxa,lmaxg,mato, &
                     n_atom_0,n_atom_coop,n_atom_ind,n_atom_proto,nab_coop,natome,natomp,nb_eq,nb_rpr,nb_rep_t,nb_sym_op,nchemin, &
@@ -2151,8 +2152,6 @@ subroutine msm(Atom_axe,Axe_atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,
 
   logical:: Brouder, Cal_xanes, Classic_irreg, Ereel, Full_atom, Normaltau, Solsing, &
     Recop, Repres_comp, Spinorbite, State_all_r, Stop_job, Sym_cubic, Tau_nondiag, Ylm_comp
-
-  logical, dimension(natome):: Atom_axe
 
   real(kind=db):: cosang, Dist_coop, Eimag, fac, fnorm, g, Gaunt_r, Gauntcp, gmatr, r, rkr, tp1, tp2, tp3, Time_fill, Time_tria
 
@@ -2778,7 +2777,7 @@ subroutine msm(Atom_axe,Axe_atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,
   endif
 
   if( natome > 1 .and. nab_coop > 0 ) &
-    call Cal_Tau_coop(Atom_axe,Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lmaxa,lmaxg,mat,mato, &
+    call Cal_Tau_coop(Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lmaxa,lmaxg,mat,mato, &
                       n_atom_coop,n_atom_proto,nab_coop,natome,nb_sym_op,ndim,ngrph,nlmagm,nlmch,nlmsa,nlmsam,nlmsamax,nlmsmax, &
                       nspino,nspinp,Posi,Repres_comp,Rmtg,rot_atom,Spinorbite,Tau_coop,Ylm_comp)
   
@@ -2978,7 +2977,7 @@ end
 
 !***********************************************************************
 
-subroutine Cal_Tau_coop(Atom_axe,Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lmaxa,lmaxg,mat,mato, &
+subroutine Cal_Tau_coop(Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lmaxa,lmaxg,mat,mato, &
                       n_atom_coop,n_atom_proto,nab_coop,natome,nb_sym_op,ndim,ngrph,nlmagm,nlmch,nlmsa,nlmsam,nlmsamax,nlmsmax, &
                       nspino,nspinp,Posi,Repres_comp,Rmtg,rot_atom,Spinorbite,Tau_coop,Ylm_comp)
 
@@ -2995,8 +2994,6 @@ subroutine Cal_Tau_coop(Atom_axe,Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispi
   
   logical:: Repres_comp, Spinorbite, Ylm_comp
   
-  logical, dimension(natome):: Atom_axe
-
   real(kind=db):: Dist, Dist_coop
   real(kind=db), dimension(0:n_atom_proto):: Rmtg
   real(kind=db), dimension(3,3):: Mat_rot
@@ -3118,9 +3115,8 @@ subroutine Cal_Tau_coop(Atom_axe,Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispi
           if( .not. Spinorbite .and. Repres_comp ) then
             lm01c = lm01 - 2 * m1
             lm02c = lm02 - 2 * m2
-            isg = (-1)**(m1+m2)
-            if( Atom_axe(ia) .or. Atom_axe(ib) ) &
-              Tau_coop(lm01c,is2,lm02c,is1,iab) = Tau_coop(lm01c,is2,lm02c,is1,iab) + isg * taullp(lm1,lm2)
+            isg = 1
+            Tau_coop(lm01c,is1,lm02c,is2,iab) = Tau_coop(lm01c,is1,lm02c,is2,iab) + isg * taullp(lm1,lm2)
           endif
         end do
       end do
