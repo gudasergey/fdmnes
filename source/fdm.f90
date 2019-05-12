@@ -17,7 +17,7 @@ subroutine fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_
 
   integer:: i, igr, igr_dop, iord, ipr, ipr_dop, ir, is, iscratch, istat, it, itape1, itape4, itph, itpm, itps, &
     itype_dop, j, jgr, jseuil, l, lamstdens, lecrantage, Length_line, lin_gam, lmax_nrixs, lmax_pot, &
-    lmax_tddft_inp, lmaxat0, lmaxso0, lseuil, m_hubb_e, mermrank, mpierr, mpinodes, mpinodes0, mpirank, mpirank0, &
+    lmax_tddft_inp, lmaxat0, lmaxso_max,lmaxso0, lseuil, m_hubb_e, mermrank, mpierr, mpinodes, mpinodes0, mpirank, mpirank0, &
     multi_run, multi_run_e, multrmax, n, n_abs_rgh, n_atom_bulk, n_atom_cap, n_atom_coop, n_atom_int, n_atom_neq, n_atom_per, &
     n_atom_per_neq, &
     n_atom_proto, n_atom_proto_bulk, n_atom_proto_p, n_atom_proto_uc, n_atom_sur, n_atom_uc, n_devide, n_file_dafs_exp, &
@@ -258,8 +258,8 @@ subroutine fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_
     Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_bulk,Green_int,Green_s,Green_self,Helm_cos,hkl_borm,hkl_dafs,hkl_film,hkl_ref,Hubb, &
     Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_coop,igr_dop,indice_par,Interface_shift,iscratch,isigpi,itdil,its_lapw,iord, &
     itape4,itype,itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,Length_line,lin_gam, &
-    lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB,Matper, &
-    mpinodes,mpinodes0,mpirank,mpirank0, &
+    lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso_max,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB, &
+    Matper,mpinodes,mpinodes0,mpirank,mpirank0, &
     Muffintin,Multipole,multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_coop,n_atom_uc,n_atom_proto,n_devide, &
     n_file_dafs_exp,n_mat_polar,n_multi_run_e,n_radius,n_range,n_Z_abs,nb_atom_conf_m,nbseuil,nchemin,necrantage,neimagent, &
     nenerg_s,ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw,ngroup_m,ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux, &
@@ -652,7 +652,7 @@ subroutine fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_
       Green_s,Green_self,Helm_cos,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_coop,igr_dop, &
       igreq,Interface_shift,ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype,itype_dop,jseuil, &
       Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam, &
-      lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e, &
+      lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso_max,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e, &
       Magnetic,Mat_or,Mat_UB,Matper,mpinodes,mpinodes0,mpirank,mpirank0,Muffintin,Multipole,multrmax, &
       n_abs_rgh,n_adimp,n_atom_bulk,n_atom_cap,n_atom_coop,n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_bulk, &
       n_atom_proto_uc,n_atom_sur,n_atom_uc,n_bulk_sup,n_devide,n_mat_polar,n_multi_run,n_radius,n_range,n_rout,natomeq_s, &
@@ -856,7 +856,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       Green_s,Green_self,Helm_cos,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_coop,igr_dop, &
       igreq,Interface_shift,ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype,itype_dop,jseuil, &
       Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam, &
-      lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e, &
+      lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso_max,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e, &
       Magnetic,Mat_or,Mat_UB,Matper,mpinodes,mpinodes0,mpirank,mpirank0,Muffintin,Multipole,multrmax, &
       n_abs_rgh,n_adimp,n_atom_bulk,n_atom_cap,n_atom_coop,n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_bulk, &
       n_atom_proto_uc,n_atom_sur,n_atom_uc,n_bulk_sup,n_devide,n_mat_polar,n_multi_run,n_radius,n_range,n_rout,natomeq_s, &
@@ -892,8 +892,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     index_e, initl, iord, ip_max, ipr1, ipr_dop, iprabs, iprabs_nonexc, ir, iscratch, iso1, iso2, isp1, isp2, ispin, iss1, &
     iss2, it, itab, itabs, itabs_nonexc, itype_dop, j, je, jseuil, l, l_hubbard, &
     l0_nrixs, l1, l2, lamstdens, lecrantage, lh, lin_gam, lla_state, lla2_state, lm1, lm2, lmax, lmax_nrixs, lmax_pot, &
-    lmax_abs, lmax_comp, lmaxabs_t, lmax_tddft, lmax_tddft_inp, lmaxabsa, lmaxat0, lmaxg, lmaxmax, lmaxso, lmaxso_max, &
-    lmax_probe, lmaxso0, lms1, lms2, lseuil, m, m_hubb, m_hubb_e, m1, m2, &
+    lmax_abs, lmax_comp, lmax_probe, lmaxabs_t, lmax_tddft, lmax_tddft_inp, lmaxabsa, lmaxat0, lmaxg, lmaxmax, lmaxso, &
+    lmaxso_m, lmaxso_max, lmaxso0, lms1, lms2, lseuil, m, m_hubb, m_hubb_e, m1, m2, &
     mpierr, mpinodee, mpinodee0, mpinodes, mpinodes0, mpirank, mpirank0, mpirank_in_mumps_group, &
     multi_0, multi_imp, multi_run, multi_run_e, multrmax, n, n_abs_rgh, n_adimp, n_atom_0, n_atom_0_self, n_atom_bulk, &
     n_atom_cap, n_atom_coop, n_atom_ind, n_atom_ind_self, n_atom_int, n_atom_per, n_atom_proto, n_atom_proto_bulk, &
@@ -1080,7 +1080,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
      rato_abs, rsato_abs, rhons, rs, rvol, sec_atom, Taux_eq, Taux_ipr, Vh, Vhns
   real(kind=db), dimension(:,:), allocatable:: coef_g, Axe_atom_clu, Chargat_init, chargat_init_bulk, Chargat_self, &
      chargat_self_bulk, chargat_self_s, drho_ex_nex, Excato, Int_tens, pdp, poidsa, pop_orb_val, pop_orb_val_bulk, pos, &
-     posi, posi_self, rho, rhoato_abs,rsato, V_abs_i, Vcato_abs, Vcato_init, Vcato_init_bulk, Vr, Vxc, vec, xyz, Ylmso
+     posi, posi_self, rho, rhoato_abs,rsato, V_abs_i, Vcato_abs, Vcato_init, Vcato_init_bulk, Vr, Vxc, vec, xyz, xyz_so
   real(kind=db), dimension(:,:,:), allocatable:: gradvr, Int_statedens, rho_chg, rho_chg_bulk, rho_self_t, rhoato, rhoato_init, &
      rhoato_init_bulk, rot_atom, Vcato, Vcato_bulk, Vecdafse, Vecdafss, Vra, Vrato_e, Vxcato_abs, Ylmato
   real(kind=db), dimension(:,:,:,:), allocatable:: rho_self, rho_self_bulk, rho_self_s, Vrato, Vxcato
@@ -1456,7 +1456,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     call agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn, &
           axyz,axyz_bulk,axyz_int,axyz_sur,Base_hexa,Base_ortho_int,Base_ortho_sur,Bulk,Bulk_step,Center_s, &
           Chargat,Cubmat,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,dista, &
-          Doping,dpos,Film_shift,Film_thickness,iaabs,iaabsfirst,iabsorbeur, &
+          Doping,dpos,Film_shift,Film_thickness,iaabs,iaabsfirst,iabsorbeur,iabsfirst, &
           iaproto,iapot,ich,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,Interface_shift,iopsymc,iopsymr,itabs,itype,itypep, &
           karact,Kgroup,Magnetic,Matper,mpirank0,multi_run_e,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc, &
           natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat, &
@@ -1475,7 +1475,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
     Ylm_comp = Ylm_comp_inp .or. Atom_comp_cal(igrpt0)
 
-    if( .not. One_run .or. ( One_run .and. multi_run_e == 1 ) ) iaabsfirst = iaabs
+!    if( .not. One_run .or. ( One_run .and. multi_run_e == 1 ) ) iaabsfirst = iaabs
 
     FDM_comp_m = FDM_comp
 ! FDM_comp_m = .false. ! annule l'effet FDM_comp
@@ -1591,7 +1591,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
         Vcato_init(:,:) = 0._db
       endif
       allocate( V_abs_i(nrm,nspin) )
-      if( .not. Bulk_step .and. .not. Full_atom ) then
+      if( .not. Bulk_step .and. .not. Full_atom .and. Self_nonexc ) then
         do ipr = n_atom_proto-n_atom_proto_bulk+1, n_atom_proto
           Chargat_init(ipr,:) = chargat_init_bulk(ipr,:)
           Chargat_self(ipr,:) = chargat_self_bulk(ipr,:)
@@ -1802,6 +1802,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
       if( .not. Green ) call recup_bordure(ibord,isbord,iscratch,isrt,mpinodes0,mpirank0,natome,nbord,nbordf,nbm,nbtm,nsm, &
                                            nsort,nsortf,nstm,poidsa,poidso)
+      allocate( xyz_so(4,nsort) )
+      if( .not. Green ) Call Selec_xyz_so(iopsymr,isrt,npsom,nsort,xyz,xyz_so)
 
 ! Boucle coherence
       boucle_coh: do i_self = 1,nself_c
@@ -1945,9 +1947,10 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
 ! Determination du lmax
           if( .not. Green ) then
-            call clmax(Ecineticmax_out,Rsort,lmaxso0,lmaxso_max,2,.true.)
+            call clmax(Ecineticmax_out,Rsort,lmaxso0,lmaxso_m,-1,.true.)
+            lmaxso_m = min( lmaxso_m, lmaxso_max )
           else
-            lmaxso_max = 0
+            lmaxso_m = 0
           endif
 
           lmaxmax = 0
@@ -1965,7 +1968,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
           nlmmax = (lmaxmax + 1 )**2
           nlmsam = nspinp * nlmmax
-          nlmomax = ( lmaxso_max + 1 )**2
+          nlmomax = ( lmaxso_m + 1 )**2
           nso1 = nspino * nlmomax
 
           allocate( iato(nlmsam,natome,ngrph) )
@@ -1979,7 +1982,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
 ! Determination des (l,m) de chaque representation
           call lmrep(Green,iaprotoi,iato,icheck(15),iopsym_atom,iopsymr,irep_util,iso,itypei,karact,lato, &
-               lmaxat,lmaxso_max,lso,mato,mpirank0,mso,n_atom_proto,natome,nbordf,ngrph,nlmsa0,nlmsam,nlmso0, &
+               lmaxat,lmaxso_m,lso,mato,mpirank0,mso,n_atom_proto,natome,nbordf,ngrph,nlmsa0,nlmsam,nlmso0, &
                nso1,nsortf,nspino,ntype,numat,Orthmati,posi,rot_atom)
 
 ! Calcul des Ylm sur les points du maillage
@@ -1990,9 +1993,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           endif
           allocate( Ylmato(nbtm_fdm,nlmmax,natome) )
           if( .not. Green )  then
-            allocate( Ylmso(nsort,nlmomax) )
-            call ylmpt(iaprotoi,ibord,icheck(15),iopsymr,isrt,lmaxat,lmaxso_max,n_atom_proto,natome, &
-               nbord,nbtm,nlmmax,nlmomax,nsort,nstm,npsom,posi,rot_atom,rot_atom_abs,xyz,Ylmato,Ylmso)
+            call Ylmpt(iaprotoi,ibord,icheck(15),iopsymr,lmaxat,n_atom_proto,natome, &
+               nbord,nbtm,nlmmax,npsom,posi,rot_atom,xyz,Ylmato)
           endif
 
           if( .not. Green ) then
@@ -2194,8 +2196,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             Tau_coop(:,:,:,:,:) = (0._db,0._db)
 
             if( .not. Green ) then
-              Z = 2
-              call clmax(Ecmax_out,Rsort,lmaxso0,lmaxso,Z,.true.)
+              call clmax(Ecmax_out,Rsort,lmaxso0,lmaxso,-1,.true.)
+              lmaxso = min( lmaxso, lmaxso_max )
             endif
 
             ich = min(icheck(18), icheck(27))
@@ -2305,10 +2307,10 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                       FDM_comp_m,Full_atom,gradvr,ia_coop,iaabsi,iaprotoi,iato,ibord,ich,ie,igroupi,igrph, &
                       irep_util,isbord,iso,ispin,isrt,ivois,isvois,karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso,nab_coop, &
                       natome,n_atom_0,n_atom_coop,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,ngroup_m,ngrph,nim,nicm, &
-                      nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
+                      nlmagm,nlmmax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
                       nsort,nsortf,nso1,nspin,nspino,nspinp,nstm,numia,nvois,phiato,poidsa,poidso,Posi,R_rydb,Recop,Relativiste, &
                       Repres_comp(igrph),Rmtg,Rsort,rvol,Rydberg,Solsing,Spinorbite,State_all,Sym_cubic,Tau_ato,Tau_coop,Taull, &
-                      Time_fill,Time_tria,V0bdc_out,Vr,xyz,Ylm_comp,Ylmato,Ylmso)
+                      Time_fill,Time_tria,V0bdc_out,Vr,xyz,xyz_so,Ylm_comp,Ylmato)
                   endif
 
                 end do  ! end of loop over representations
@@ -2473,8 +2475,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       deallocate( nbord, nbordf, nlmsa, nlmsa0, nlmso0, numia )
       deallocate( Occ_hubb, Occ_hubb_i, poidsa, poidso, poidsov, poidsov_out, pop_orb_val )
       deallocate( Repres_comp, rho, rhoato, rhons, rho_self_s, rho_self_t, rs, rsato, rvol )
-      deallocate( Statedens, Statedens_i, V_hubb_s, Vcato, Vh, Vhns, Vr, Vrato, Vxc, Vxcato, xyz, Ylmato )
-      if( .not. Green ) deallocate( gradvr, Ylmso )
+      deallocate( Statedens, Statedens_i, V_hubb_s, Vcato, Vh, Vhns, Vr, Vrato, Vxc, Vxcato, xyz, xyz_so, Ylmato )
+      if( .not. Green ) deallocate( gradvr )
 
       if( mpirank0 == 0 ) then
         call CPU_TIME(time)
@@ -2577,7 +2579,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     call Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Dipmag, &
            E1E2e,Green,iaabs,icheck(6),igroup,igrpt0,iopsymc,iopsymr,itype,itypep,ldip,loct,lqua,lseuil,Magnetic,mpirank0, &
            msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole,n_oo,natomp,ngroup, &
-           ngroup_m,nlat,nlatm,nspin,ntype,numat,Octupole,popats,pos,Quadrupole,rot_atom_abs,Rot_int, &
+           ngroup_m,nlat,nlatm,nspin,ntype,numat,Octupole,popats,pos,Quadrupole,Rot_atom_abs,Rot_int, &
            Spinorbite,State_all,Symmol,Tensor_imp)
     E1E1 = Multipole(1); E1E2 = Multipole(2); E1E3 = Multipole(3);
     E1M1 = Multipole(4); E2E2 = Multipole(6);
@@ -2872,7 +2874,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
         nim = npoint
         npsom = npso
 
-        if( i_range > 1 ) deallocate( clapl, cgrad, ivois, isvois, numia, rvol, xyz )
+        if( i_range > 1 ) deallocate( clapl, cgrad, ivois, isvois, numia, rvol, xyz, xyz_so )
 
         allocate( clapl(0:nvois) )
         allocate( cgrad(nvois) )
@@ -2932,9 +2934,12 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       allocate( Vr(npoint,nspin) )
       allocate( Vrato(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind) )
 
-      if( .not. ( Green .or. Second_run .or. Extract ) ) &
+      if( .not. ( Green .or. Second_run .or. Extract ) ) then
         call recup_bordure(ibord,isbord,iscratch,isrt,mpinodes0,mpirank0,natome,nbord, &
                            nbordf,nbm,nbtm,nsm,nsort,nsortf,nstm,poidsa,poidso)
+        allocate( xyz_so(4,nsort) )
+        Call Selec_xyz_so(iopsymr,isrt,npsom,nsort,xyz,xyz_so)
+      endif
 
       if( mpirank0 == 0 ) then
         call CPU_TIME(time)
@@ -3050,9 +3055,10 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
 ! Determination of lmax
       if( .not. Green ) then
-        call clmax(Ecineticmax_out,rsort,lmaxso0,lmaxso_max,2,.true.)
+        call clmax(Ecineticmax_out,Rsort,lmaxso0,lmaxso_m,-1,.true.)
+        lmaxso_m = min( lmaxso_m, lmaxso_max )
       else
-        lmaxso_max = 0
+        lmaxso_m = 0
       endif
       lmaxmax = 0
       if( Full_atom ) then
@@ -3104,7 +3110,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       endif
 
       nlmsam = nspinp * nlmmax
-      nlmomax = ( lmaxso_max + 1 )**2
+      nlmomax = ( lmaxso_m + 1 )**2
       nso1 = nspino * nlmomax
 
       if( .not. Green .and. FDM_comp ) then
@@ -3168,7 +3174,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 ! Determination of the (l,m) of each representation
       if( .not. ( Second_run .or. Extract ) ) &
         call lmrep(Green,iaprotoi,iato,icheck(15),iopsym_atom,iopsymr,irep_util,iso,itypei,karact,lato, &
-               lmaxat,lmaxso_max,lso,mato,mpirank0,mso,n_atom_proto,natome,nbordf,ngrph,nlmsa0,nlmsam,nlmso0, &
+               lmaxat,lmaxso_m,lso,mato,mpirank0,mso,n_atom_proto,natome,nbordf,ngrph,nlmsa0,nlmsam,nlmso0, &
                nso1,nsortf,nspino,ntype,numat,Orthmati,posi,rot_atom)
 
 ! Ylm calculation on the FDM grid points
@@ -3179,9 +3185,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       endif
       allocate( Ylmato(nbtm_fdm,nlmmax,natome) )
       if( .not. ( Green .or. Second_run .or. Extract ) )  then
-        allocate( Ylmso(nsort,nlmomax) )
-        call ylmpt(iaprotoi,ibord,icheck(15),iopsymr,isrt,lmaxat,lmaxso_max,n_atom_proto,natome, &
-           nbord,nbtm,nlmmax,nlmomax,nsort,nstm,npsom,posi,rot_atom,rot_atom_abs,xyz,Ylmato,Ylmso)
+        call Ylmpt(iaprotoi,ibord,icheck(15),iopsymr,lmaxat,n_atom_proto,natome, &
+           nbord,nbtm,nlmmax,npsom,posi,rot_atom,xyz,Ylmato)
       endif
 
       if( .not. ( Green .or. Second_run .or. Extract ) ) then
@@ -3451,9 +3456,9 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           Tau_coop(:,:,:,:,:) = (0._db,0._db)
 
           if( .not. Green ) then
-            Z = 2
-            call clmax(Ecmax_out,rsort,lmaxso0,lmaxso,Z,.true.)
-            if( icheck(18) > 1 ) write(3,'(/a9,i4)') ' lmaxso =', lmaxso
+            call clmax(Ecmax_out,Rsort,lmaxso0,lmaxso,-1,.true.)
+            lmaxso = min( lmaxso, lmaxso_max )
+            if( icheck(18) > 0 ) write(3,'(/a9,i4)') ' lmaxso =', lmaxso
           endif
 
           if( icheck(18) > 1 ) write(3,190)
@@ -3576,10 +3581,10 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                       FDM_comp_m,Full_atom,gradvr,ia_coop,iaabsi,iaprotoi,iato,ibord,ich,ie,igroupi,igrph,irep_util, &
                       isbord,iso,ispin,isrt,ivois,isvois,karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso,nab_coop, &
                       natome,n_atom_0,n_atom_coop,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,ngroup_m,ngrph,nim,nicm, &
-                      nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
+                      nlmagm,nlmmax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
                       nsort,nsortf,nso1,nspin,nspino,nspinp,nstm,numia,nvois,phiato,poidsa,poidso,Posi,R_rydb,Recop,Relativiste, &
                       Repres_comp(igrph),Rmtg,Rsort,rvol,Rydberg,Solsing,Spinorbite,State_all,Sym_cubic,Tau_ato,Tau_coop,Taull, &
-                      Time_fill,Time_tria,V0bdc_out,Vr,xyz,Ylm_comp,Ylmato,Ylmso)
+                      Time_fill,Time_tria,V0bdc_out,Vr,xyz,xyz_so,Ylm_comp,Ylmato)
                 endif
 
               end do  ! end of loop over representations
@@ -3724,7 +3729,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                     m_hubb,mpinodee,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi, &
                     Multipole,n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlv,nlm_pot, &
                     nlm_probe,nlm_p_fp,nlmamax,nrato_abs,nrm,nspin,nspino,nspinp,numat(itabs),psii,rato_abs,Relativiste,Renorm, &
-                    Rmtg_abs,Rmtsd_abs,rof0,rot_atom_abs,Rot_int,secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm, &
+                    Rmtg_abs,Rmtsd_abs,rof0,Rot_atom_abs,Rot_int,secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm, &
                     secmm_m,secoo,secoo_m,secqq,secqq_m,Solsing,Solsing_only,Spinorbite,Taull_abs,Tddft,V_hubb_abs,V_intmax, &
                     V0bdc,Vra,Ylm_comp)
               endif
@@ -3844,8 +3849,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                            n_multi_run,nlmmax,nomfich,nspinp,Taull_dft)
 
             if( icheck(19) > 0 ) &
-              call Tau_writing(Eimag(ie),Energ(ie),iprabs,ie_computer,itypepr,lmax_dft,mpinodee,n_atom_proto,nlmmax,nspinp, &
-                               ntype,numat,Taull_dft)
+              call Tau_writing(Eimag(ie),Energ(ie),iprabs,ie_computer,itypepr,lmax_dft,lmax_probe,mpinodee,n_atom_proto,nlmmax, &
+                               nspinp,ntype,numat,Taull_dft)
 
             if( .not. Optic ) then
 
@@ -3924,7 +3929,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
       if( .not. ( Green .or. Second_run .or. Extract ) ) then
         deallocate( gradvr )
-        deallocate( Ylmso )
       endif
       deallocate( Ylmato )
 
@@ -3981,7 +3985,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           nlm_probe,nlmamax,nomabs,nomfich,nomfich_cal_conv,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm, &
           nrato_abs,nrm,nseuil,nspin,nspino,nspinp, &
           numat_abs,nxanout,pdp,phdf0t,phdt,pol,poldafse,poldafss,psii, &
-          rato_abs,Relativiste,Renorm,Rmtg_abs,Rmtsd_abs,rot_atom_abs,Rot_int,Self_abs,Solsing_only,Spherical_signal, &
+          rato_abs,Relativiste,Renorm,Rmtg_abs,Rmtsd_abs,Rot_atom_abs,Rot_int,Self_abs,Solsing_only,Spherical_signal, &
           Spherical_tensor,Spinorbite,Sum_Bragg_bulk_abs_f0,Sum_Bragg_nonabs_f,Taull_tdd,Taux_eq,Tddft,Time_rout,V_intmax, &
           V_hubb_abs,V0muf,Vcato_abs,vec,Vecdafse,Vecdafss,Vhbdc,Volume_maille,VxcbdcF,Vxcato_abs,Workf,Ylm_comp)
 
@@ -4011,7 +4015,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
           nphi_dafs,nphim,npldafs,nplr,nplrm,nrato_abs,nrm,nseuil,nspin,nspino,nspinp, &
           numat_abs,nxanout,Octupole,pdp,phdf0t,phdt,pol,poldafse,poldafss, &
           psii,rato_abs,Relativiste,Renorm,rhoato_abs,Rmtg_abs,Rmtsd_abs, &
-          rot_atom_abs,Rot_int,RPALF,rsato_abs,Self_abs,Solsing_only, &
+          Rot_atom_abs,Rot_int,RPALF,rsato_abs,Self_abs,Solsing_only, &
           Spherical_signal,Spherical_tensor,Spinorbite,Sum_Bragg_bulk_abs_f0,Sum_Bragg_nonabs_f,Taull_tdd,Taux_eq,Time_rout, &
           V_intmax,V_hubb_abs,V0muf,Vcato_abs,Vec,Vecdafse,Vecdafss,Vhbdc,Volume_maille,VxcbdcF, &
           Vxcato_abs,Workf,Ylm_comp)
@@ -4110,6 +4114,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       deallocate( cgrad, clapl, ivois, isvois )
       deallocate( numia, rvol )
     endif
+
+    if( .not. ( Green .or. Second_run .or. Extract ) ) deallocate( xyz_so )
 
     deallocate( Bragg_abs, Bragg_rgh_bulk_abs, karact, Axe_atom_clu, dista )
     deallocate( Epsii )

@@ -7,10 +7,10 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
                       FDM_comp_m,Full_atom,gradvr,ia_coop,iaabsi,iaprotoi,iato,ibord,icheck,ie,igroupi,igrph, &
                       irep_util,isbord,iso,ispinin,isrt,ivois,isvois,karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso,nab_coop, &
                       natome,n_atom_0,n_atom_coop,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,ngroup_m,ngrph,nim,nicm, &
-                      nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
+                      nlmagm,nlmmax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
                       nsort,nsortf,nso1,nspin,nspino,nspinp,nstm,numia,nvois,phiato,poidsa,poidso,Posi,R_rydb,Recop,Relativiste, &
                       Repres_comp,Rmtg,Rsort,rvol,Rydberg,Solsing,Spinorbite,State_all_r,Sym_cubic,Tau_ato,Tau_coop,Taull, &
-                      Time_fill,Time_tria,V0bd_out,Vr,xyz,Ylm_comp,Ylmato,Ylmso)
+                      Time_fill,Time_tria,V0bd_out,Vr,xyz,xyz_so,Ylm_comp,Ylmato)
 
   use declarations
   implicit none
@@ -18,7 +18,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   integer:: i, ia, iaabsi, iab, ib, icheck, ie, igrph, ii, ipra, iprb, irep, is1, is2, isg, isp, ispinin, &
     j, jj, jsp, l, l1, l2, lm, lm01, lm01c, lm02, lm02c, lm1, lm2, lmaxso, lmf, lms, lmw, m, m1, m2, mpierr, &
     MPI_host_num_for_mumps, mpirank0, natome, n_atom_0, n_atom_coop, nab_coop, n_atom_ind, n_atom_proto, nbm, nbtm, ngroup_m, &
-    ngrph, nim, nicm, nligne, nligne_i, nligneso, nlmagm, nlmmax ,nlmomax, nlmsam, nlmso, nlmso_i, nlmw, nphiato1, nphiato7, &
+    ngrph, nim, nicm, nligne, nligne_i, nligneso, nlmagm, nlmmax, nlmsam, nlmso, nlmso_i, nlmw, nphiato1, nphiato7, &
     npoint, npr, npsom, nsm, nsort, nsort_c, nsort_r, nsortf ,nso1, nspin, nspino, nspinp, nspinr, nstm, nvois
 
   integer, dimension(0:npoint):: new
@@ -57,7 +57,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   real(kind=db), dimension(nim):: rvol
   real(kind=db), dimension(nsm):: poidso
   real(kind=db), dimension(4,npsom):: xyz
-  real(kind=db), dimension(nsort,nlmomax):: Ylmso
+  real(kind=db), dimension(4,nsort):: xyz_so
   real(kind=db), dimension(0:n_atom_proto):: Rmtg
   real(kind=db), dimension(natome):: distai
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_grn
@@ -155,10 +155,10 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
     call mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clapl, E_comp, Eimag, Enervide, gradvr, &
         ianew, iato, ibord, icheck, ie, igrph, ii, isbord, iso, ispinin, isrt, isvois, ivois, Kar, Kari, lato, &
         lb1, lb2, lmaxso, lso, mato, MPI_host_num_for_mumps, mpirank0, mso, natome, nbm, nbord, nbordf, nbtm, Neuman, Neumanr, &
-        new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmomax, nlmsa, nlmso, nlmso_i, &
+        new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmsa, nlmso, nlmso_i, &
         nphiato1, nphiato7, npoint, npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
         numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, smi, smr, Spinorbite, Time_fill, Time_tria, Vr, &
-        Ylm_comp, Ylmato, Ylmso)
+        xyz_so, Ylm_comp, Ylmato )
 
   deallocate( Bessel, Besselr, Neuman, Neumanr )
 
@@ -542,8 +542,8 @@ subroutine phiso(Adimp,Bessel,Besselr,E_comp,Ecinetic_out,Eclie_out,Eimag, &
 
   logical:: E_comp, Eneg, Rydberg
 
-  real(kind=db):: Adimp, cal_norm, clapl, clapl0, deltar, dr, Ecinetic_out, Ec, Eclie_out, ee, Eimag, Enervide, fnorm, konder, &
-                  p1, p2, pp, R_rydb, Rmax, rr, Rsort, V0bd_out, zr
+  real(kind=db):: Adimp, cal_norm, clapl, clapl0, deltar, dr, Ecinetic_out, Ec, Eclie_out, ee, E_min, Eimag, Enervide, fnorm, &
+                  konder, p1, p2, pp, R_rydb, Rmax, rr, Rsort, V0bd_out, zr
 
   real(kind=db), dimension(3):: p
   real(kind=db), dimension(0:lmaxso):: bsr, nmr
@@ -579,12 +579,14 @@ subroutine phiso(Adimp,Bessel,Besselr,E_comp,Ecinetic_out,Eclie_out,Eimag, &
 
   if( Rydberg ) then
 
-    if( abs( Enervide ) < eps10 ) then
-      ee = eps10
+!    E_min = eps1
+    E_min = 1.e-06_db / Rydb   
+    if( abs( Enervide ) < E_min ) then
+      ee = E_min
     else
       ee = Enervide
     endif
-    if( ee < eps10 ) then
+    if( ee < E_min ) then
       Rmax = - 2 / ee + R_rydb
     else
       Rmax = 100._db / bohr
@@ -593,7 +595,7 @@ subroutine phiso(Adimp,Bessel,Besselr,E_comp,Ecinetic_out,Eclie_out,Eimag, &
   endif
 
   if( Rydberg .and. Rmax >= Rsort ) then
-    deltar = rmax - rsort + adimp + eps10
+    deltar = Rmax - Rsort + adimp + eps10
     dr = 0.05_db / bohr
     nr = nint( deltar / dr ) + 1
 
@@ -612,7 +614,7 @@ subroutine phiso(Adimp,Bessel,Besselr,E_comp,Ecinetic_out,Eclie_out,Eimag, &
     end do
 
 ! To avoid discontinuity
-    if( ee >= eps10 ) then
+    if( ee >= E_min ) then
       pp = - v(0) / ( r(0) - r(nr) )
       do ir = 0,nr
         v(ir) = v(ir) + ( r(ir) - r(nr) ) * pp
@@ -816,7 +818,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
     Enervide, gradvr, ianew, iato, ibord, icheck, igrph, ii, isbord, iso, ispin0, isrt, isvois, ivois, Kar, Kari, &
     lato, lb1i, lb1r, lb2i, lb2r, lmaxso, lso, mato, mletl, mso, natome, nbm, nbord, &
     nbordf, nbtm, Neuman, Neumanr, new, newinv, ngrph, nicm, nim, nligne, nligne_i, &
-    nligneso, nlmagm, nlmmax, nlmomax, nlmsa, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, npsom, nsm, nso1, &
+    nligneso, nlmagm, nlmmax, nlmsa, nlmsam, nlmso, nlmso_i, nlmso_r, nphiato1, nphiato7, npoint, npsom, nsm, nso1, &
     nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
     numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, Spinorbite,  &
     smi, smr, Vr, Ylm_comp, Ylmato, Ylmso, MUMPS )
@@ -829,8 +831,8 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   integer:: i, ii1, ia, ib, icheck, ii, ispin, ispin0, igrph, indg, isol, isp, ispint, ispo, ispp, ispq, ispt, isym, &
     iv, j, jj, jj1, jjj, k, l, lb1i, lb1r, lb2i, lb2r, ljj, lm, lm0, lmaxso, lmf, lmf0, lmp, lmp0, lms, lp, &
     m, mf, mp, n, natome, nbm, nbtm, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmagm, nlmso, nlmso_i, & 
-    nphiato1, nphiato7, npoint, npsom, nsm, nsort, nsort_c, nsortf, nsort_r, nspino, nspinp, nstm, nso1, nlmsam, nspin, nspinr, &
-    nlmmax, nlmomax, nvois
+    nlmso_r, nphiato1, nphiato7, npoint, npsom, nsm, nsort, nsort_c, nsortf, nsort_r, nspino, nspinp, nstm, nso1, nlmsam, &
+    nspin, nspinr, nlmmax, nvois
  
   integer, dimension(0:npoint):: new
   integer, dimension(natome):: ianew, nbord, nbordf, nlmsa
@@ -865,7 +867,6 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   real(kind=db), dimension(nbm,natome):: poidsa
   real(kind=db), dimension(nim):: rvol
   real(kind=db), dimension(nsm):: poidso
-  real(kind=db), dimension(nsort,nlmomax):: Ylmso
   real(kind=db), dimension(nicm,3,nspin):: gradvr
   real(kind=db), dimension(nbtm,nlmmax,natome):: Ylmato
   real(kind=db), dimension(nphiato1,nlmagm,nspinp,nspino,natome,nphiato7):: phiato
@@ -874,6 +875,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   real(kind=db), dimension(nlmso,nligne):: smr
   real(kind=db), dimension(nlmso_i,nligne_i):: smi
   real(kind=db), dimension(nsort_r,0:lmaxso,nspino):: Besselr, Neumanr
+  real(kind=db), dimension(nsort,nlmso_r):: Ylmso
   
   real(kind=db), save, dimension(nletm**2):: vletr, vleti
 
@@ -1157,6 +1159,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       endif
 
       do ib = 1,nsortf
+      
         if( Cal_comp ) then
           if( Ylm_comp .and.  m /= 0 .and. mp /= 0 ) then
             cfac = conjg( Yc(m,Ylmso(ib,lm0),Ylmso(ib,lm0-2*m)) ) * Yc(mp,Ylmso(ib,lmp0), Ylmso(ib,lmp0-2*mp) )
@@ -1165,7 +1168,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
           elseif( Ylm_comp .and.  mp /= 0 ) then
             cfac = Ylmso(ib,lm0) * Yc(mp,Ylmso(ib,lmp0), Ylmso(ib,lmp0-2*mp) )
           else
-            cfac = cmplx(Ylmso(ib,lm0) * Ylmso(ib,lmp0), 0._db, db)
+            cfac = cmplx( Ylmso(ib,lm0) * Ylmso(ib,lmp0), 0._db, db)
           endif
           cfac = poidso(ib) * cfac
  
@@ -1396,7 +1399,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       write(3,165) (mlet(k), vletr(k), vleti(k), k = 1,nlet)
     endif
   endif
-    
+
   return
   120 format(/'  FDM Matrix :',/'  ii     i   lb1   lb2   / abr(i = lb1,lb2)')
   130 format(4i6)
@@ -4160,13 +4163,14 @@ end
 
 ! Writing for extract
 
-subroutine Tau_writing(Eimag,Energ,iprabs,ie_computer,itypepr,lmaxat,mpinodes,n_atom_proto,nlmmax,nspinp,ntype,numat,Taull_dft)
+subroutine Tau_writing(Eimag,Energ,iprabs,ie_computer,itypepr,lmaxat,lmax_probe,mpinodes,n_atom_proto,nlmmax, &
+                       nspinp,ntype,numat,Taull_dft)
 
   use declarations
   implicit none
   include 'mpif.h'
 
-  integer:: ie_computer, ipr, iprabs, isp, jsp, l, lm, lmax, m, mpinodes, n_atom_proto, nlm, nlmmax, nspinp, ntype
+  integer:: ie_computer, ipr, iprabs, isp, jsp, l, lm, lmax, lmax_probe, m, mpinodes, n_atom_proto, nlm, nlmmax, nspinp, ntype
   integer, dimension(0:ntype):: numat
   integer, dimension(0:n_atom_proto):: itypepr
   integer, dimension(0:n_atom_proto,0:mpinodes-1):: lmaxat
@@ -4181,7 +4185,10 @@ subroutine Tau_writing(Eimag,Energ,iprabs,ie_computer,itypepr,lmaxat,mpinodes,n_
   write(3,'(/A)') ' Z, lmax  (1,... n_atom_proto)'   
   write(3,'(100(i3,i2))') ( numat(itypepr(ipr)), lmaxat(ipr,ie_computer), ipr = 1,n_atom_proto )
 
-  lmax = lmaxat(iprabs,ie_computer)
+! To save space in the bav file one limits the printing down to 3.
+! Tau_dft is just used to calculate cross section after extraction...
+  lmax = max( lmax_probe, 3 )
+  lmax = min( lmaxat(iprabs,ie_computer), lmax )
   nlm = ( lmax + 1 )**2
 
   write(3,260)
@@ -4227,7 +4234,7 @@ subroutine Tau_reading(icheck,ie,iaabsi,lmaxa,natome,nenerg,nlmagm,nspinp,Taull)
   read(1,*); read(1,*); read(1,*); read(1,*); read(1,*)
   read(1,*) lmax, nspinp
 
-! lmaxa can be < lmax because lmax is deined by the max of the lmax of the atoms with same atomic numer than the absorbing one 
+! lmaxa can be < lmax because lmax is defined by the max of the lmax of the atoms with same atomic numer than the absorbing one 
   nlm = ( lmax + 1 )**2
   if( lmaxa < lmax ) then
     nlma = ( lmaxa + 1 )**2

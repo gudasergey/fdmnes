@@ -467,6 +467,8 @@ subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsp
       if( n_atom_proto == 1 ) write(3,110)
       if( Bulk ) then
         write(3,120) n_atom_proto, numat_jgr, neq
+      elseif( igreq(1) > n_atom_per ) then
+        write(3,125) n_atom_proto, numat_jgr, neq
       else
         write(3,130) n_atom_proto, numat_jgr, neq
       endif
@@ -551,12 +553,14 @@ subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsp
 
   return
   110 format(/' ---- Symsite ------',100('-'))
-  120 format(/3x,'ipr =',i3,', Z =',i3,', natomsym =',i6,'      - Bulk -',//, &
+  120 format(/3x,'ipr =',i4,', Z =',i3,', natomsym =',i6,'      - Bulk -',//, &
              '  igr      posx     posy     posz          sym    code')
-  130 format(/3x,'ipr =',i3,', Z =',i3,', natomsym =',i6//, '  igr      posx     posy     posz          sym    code')
+  125 format(/3x,'ipr =',i4,', Z =',i3,', natomsym =',i6,'   - Surface -',//, &
+             '  igr      posx     posy     posz          sym    code')
+  130 format(/3x,'ipr =',i4,', Z =',i3,', natomsym =',i6//, '  igr      posx     posy     posz          sym    code')
   140 format(i5,2x,3f9.5,2x,a11,3x,129i3)
-  150 format(/3x,'ipr =',i3,', Z =',i3,', natomsym =',i6,'      - Bulk -',//,'  igr...')
-  160 format(/3x,'ipr =',i3,', Z =',i3,', natomsym =',i6//,'  igr...')
+  150 format(/3x,'ipr =',i4,', Z =',i3,', natomsym =',i6,'      - Bulk -',//,'  igr...')
+  160 format(/3x,'ipr =',i4,', Z =',i3,', natomsym =',i6//,'  igr...')
 end
 
 !*********************************************************************
@@ -624,6 +628,7 @@ subroutine Search_ordering(Absauto,axyz,axyz_int,axyz_sur,Base_ortho,Base_ortho_
 
   do igr = 1,n_atom_uc
     do jgr = igr+1,n_atom_uc
+      if( igr <= n_atom_per .and. jgr > n_atom_per ) cycle
       if( dist(jgr) > dist(igr) + eps10 ) cycle
       Same_distance = abs( dist(igr) - dist(jgr) ) < eps10
  ! When at the same distance, one puts first the atom in the positive direction versus the origin
@@ -2381,8 +2386,8 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
   integer, dimension(0:n_atom_proto):: ngreq
   integer, dimension(0:n_atom_proto,neqm):: igreq
 
-  logical:: ATA, Base_ortho, Base_ortho_bulk, Base_ortho_int, Base_ortho_sur,Bulk, Bulk_step, Center_s, Doping, &
-        Flapw, Matper, Noncentre, One_run, Proto_all, Self_cons, Sym_2D
+  logical:: Abs_case, ATA, Base_ortho, Base_ortho_bulk, Base_ortho_int, Base_ortho_sur,Bulk, Bulk_step, Center_s, &
+        Different_slab, Doping, Flapw, Matper, Noncentre, One_run, Proto_all, Self_cons, Sym_2D
   logical, dimension(n_atom_proto):: ipr_ok
 
   real(kind=db):: d_ecrant, cos_z, cos_z_b, cos_z_i, cos_z_s, Delta_bulk, Delta_film, Delta_int, Delta_sur, dist, &
@@ -2526,14 +2531,21 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
       do iz = -nzmaille,nzmaille
         boucle_igr: do igr = igr0,n_igr
           if( Sym_2D ) then
-            if( igr > n_atom_per .and. iz /= 0 ) cycle
-            if( iabsfirst <= n_atom_per + n_atom_int .and. iz < 0 ) cycle
-            if( iabsfirst > n_atom_per + n_atom_int .and. iz > 0 ) cycle
+            if( ( igr > n_atom_per .and. iz /= 0 ) .or. iz < 0 ) cycle
+ !           if( iabsfirst <= n_atom_per + n_atom_int .and. iz < 0 ) cycle
           endif
           if( ngroup_pdb > 0 ) then
             if( Kgroup(iabsorbeur) /= Kgroup(igr) .and. Kgroup(iabsorbeur) /= 0 .and. Kgroup(igr) /= 0 ) cycle
           endif
-          if( ix == 0 .and. iy == 0 .and. iz == 0 .and. itype(igr) /= itype(iabsorbeur) ) then
+
+          Different_slab = ( igr <= n_atom_per .and. iabsorbeur > n_atom_per ) &
+                      .or. ( iabsorbeur <= n_atom_per .and. igr > n_atom_per ) &
+                      .or. ( igr <= n_atom_per + n_atom_int .and. iabsorbeur > n_atom_per + n_atom_int ) &
+                      .or. ( iabsorbeur <= n_atom_per + n_atom_int .and. igr > n_atom_per + n_atom_int )
+
+          Abs_case = ix == 0 .and. iy == 0 .and. iz == 0 .and. ( ( Doping .and. igr == igr_dop ) .or. igr == iabsorbeur )
+
+          if( ix == 0 .and. iy == 0 .and. iz == 0 .and. itype(igr) /= itype(iabsorbeur) .and. .not. Different_slab ) then
             if( Doping ) then
               if( igr /= igr_dop .and. sum( abs(posg(:,igr) - posg(:,igr_dop)) ) < eps6 ) cycle
             else
@@ -2556,7 +2568,7 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
           ps(1:3) = posg(1:3,igr) + v(1:3)
 
           if( Sym_2D .and. igr <= n_atom_per ) then
-            if( ps(3) * cos_z > Film_thickness + eps10 ) cycle
+            if( ps(3) * cos_z + deccent(3) > Film_thickness + eps10 ) cycle
             if( iabsfirst <= n_atom_per + n_atom_int ) then
               ps(3) = ps(3) + ( Delta_Film - Delta_int ) / cos_z
               ps(1:2) = ps(1:2) + Film_shift(1:2)
@@ -2573,11 +2585,18 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
               ps(1:2) = ps(1:2) - Film_shift(1:2) - Surface_shift(1:2)
             endif
           endif
-          if( .not. ATA .and. .not. ( ix == 0 .and. iy == 0 .and. iz == 0 .and. igr == iabsorbeur ) ) then
+
+          if( .not. ATA .and. .not. Abs_case ) then
             do jgr = igr0,igr-1
+              Different_slab = ( igr <= n_atom_per .and. jgr > n_atom_per ) &
+                      .or. ( jgr <= n_atom_per .and. igr > n_atom_per ) &
+                      .or. ( igr <= n_atom_per + n_atom_int .and. jgr > n_atom_per + n_atom_int ) &
+                      .or. ( jgr <= n_atom_per + n_atom_int .and. igr > n_atom_per + n_atom_int )
+              if( igr == jgr .or. Different_slab ) cycle
               if( sum( abs( posg(:,igr) - posg(:,jgr) ) ) < eps6 )  cycle boucle_igr
             end do
           endif
+
           if( Bulk_step .or. igr <= n_atom_per ) then
             dist = Vnorme(Base_ortho,dcosxyz,ps)
           elseif( igr <= n_atom_per + n_atom_int ) then
@@ -2677,7 +2696,7 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
     call Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
             Base_ortho_sur,Bulk,Bulk_step,Center_s,chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
             Doping,dpos,Film_shift, &
-            Film_thickness,iabsorbeur,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0,multi_run, &
+            Film_thickness,iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0,multi_run, &
             n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb, &
             ngroup_taux,Noncentre,One_run,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
     natomp = natomr
@@ -2721,14 +2740,15 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
 subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
             Base_ortho_sur,Bulk,Bulk_step,Center_s,chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
             Doping,dpos,Film_shift, &
-            Film_thickness,iabsorbeur,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0,multi_run, &
+            Film_thickness,iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0,multi_run, &
             n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb, &
             ngroup_taux,Noncentre,One_run,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
 
   use declarations
   implicit none
 
-  integer:: ia, iaabs, iaabsfirst, iabsorbeur, icheck, igr, igr_dop, ipr, itabs, mpirank0, multi_run, n_atom_bulk, n_atom_int, &
+  integer:: ia, iaabs, iaabsfirst, iabsorbeur, iabsfirst, icheck, igr, igr_dop, ipr, itabs, mpirank0, multi_run, n_atom_bulk, &
+            n_atom_int, &
             n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, na, natomp, natomq, natomr, ngroup, ngroup_pdb, ngroup_taux
   integer, dimension(natomp):: iaproto, igroup, itypep
   integer, dimension(ngroup_pdb):: Kgroup
@@ -2756,7 +2776,7 @@ subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_b
   call Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
               Base_ortho_sur,Bulk,Bulk_step,Center_s,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
               dista,Doping,dpos,Film_shift,Film_thickness, &
-              iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
+              iaabs,iaabsfirst,iabsorbeur,iabsfirst,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
               multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
               One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
@@ -2849,22 +2869,22 @@ end
 subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
               Base_ortho_sur,Bulk,Bulk_step,Center_s,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
               dista,Doping,dpos,Film_shift,Film_thickness, &
-              iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
+              iaabs,iaabsfirst,iabsorbeur,iabsfirst,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
               multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
               One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
   use declarations
   implicit none
 
-  integer:: ia, ia1, ia2, iaabs, iaabsfirst, iabsorbeur, ib, igr, igr0, igr_dop, igr12, ipr, iprint, itabs, ity12, &
+  integer:: ia, ia1, ia2, iaabs, iaabsfirst, iabsorbeur, iabsfirst, ib, igr, igr0, igr_dop, igr12, ipr, iprint, itabs, ity12, &
     ix, iy, iz, jgr, mpirank0, multi_run, n_atom_bulk, n_atom_int, n_atom_per, n_atom_sur, n_atom_uc, n_igr, natomp, ngroup, &
     ngroup_pdb, ngroup_taux, nxmaille, nymaille, nzmaille
   integer, dimension(ngroup):: itype
   integer, dimension(natomp):: igroup, itypep
   integer, dimension(ngroup_pdb):: Kgroup
 
-  logical:: Abs_case, ATA, Base_ortho, Base_ortho_bulk, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Center_s, Doping, &
-    Matper, Noncentre, One_run, Sym_2D
+  logical:: Abs_case, ATA, Base_ortho, Base_ortho_bulk, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Center_s, &
+    Different_slab, Doping, Matper, Noncentre, One_run, Sym_2D
 
   real(kind=db):: cos_z, cos_z_b, cos_z_i, cos_z_s, Delta_bulk, Delta_film, Delta_int, Delta_sur, dist, &
     dist12, Film_thickness, Rmax, Vnorme
@@ -2958,17 +2978,21 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
       do iz = -nzmaille,nzmaille
         boucle_igr: do igr = igr0,n_igr
           if( Sym_2D ) then
-            if( igr > n_atom_per .and. iz /= 0 ) cycle
-            if( iabsorbeur <= n_atom_per + n_atom_int .and. iz < 0 ) cycle
-            if( iabsorbeur > n_atom_per + n_atom_int .and. iz > 0 ) cycle
-          endif
+            if( ( igr > n_atom_per .and. iz /= 0 ) .or. iz < 0 ) cycle
+ !           if( iabsfirst <= n_atom_per + n_atom_int .and. iz < 0 ) cycle
+         endif
           if( ngroup_pdb > 0 ) then
             if( Kgroup(iabsorbeur) /= Kgroup(igr) .and. Kgroup(iabsorbeur) /= 0 .and. Kgroup(igr) /= 0 ) cycle
           endif
 
+          Different_slab = ( igr <= n_atom_per .and. iabsorbeur > n_atom_per ) &
+                      .or. ( iabsorbeur <= n_atom_per .and. igr > n_atom_per ) &
+                      .or. ( igr <= n_atom_per + n_atom_int .and. iabsorbeur > n_atom_per + n_atom_int ) &
+                      .or. ( iabsorbeur <= n_atom_per + n_atom_int .and. igr > n_atom_per + n_atom_int )
+
           Abs_case = ix == 0 .and. iy == 0 .and. iz == 0 .and. ( ( Doping .and. igr == igr_dop ) .or. igr == iabsorbeur )
 
-          if( ix == 0 .and. iy == 0 .and. iz == 0 .and. itype(igr) /= itype(iabsorbeur) ) then
+          if( ix == 0 .and. iy == 0 .and. iz == 0 .and. itype(igr) /= itype(iabsorbeur) .and. .not. Different_slab ) then
             if( Doping ) then
               if( igr /= igr_dop .and. sum( abs(posg(:,igr) - posg(:,igr_dop)) ) < eps6 ) cycle
             else
@@ -2991,8 +3015,8 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
           ps(1:3) = posg(1:3,igr) + v(1:3)
 
           if( Sym_2D .and. igr <= n_atom_per ) then
-            if( ps(3) * cos_z > Film_thickness + eps10 ) cycle
-            if( iabsorbeur <= n_atom_per + n_atom_int ) then
+            if( ps(3) * cos_z + deccent(3) > Film_thickness + eps10 ) cycle
+            if( iabsfirst <= n_atom_per + n_atom_int ) then
               ps(3) = ps(3) + ( Delta_Film - Delta_int ) / cos_z
               ps(1:2) = ps(1:2) + Film_shift(1:2)
             else
@@ -3000,10 +3024,10 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
               ps(1:2) = ps(1:2) - Surface_shift(1:2)
             endif
           elseif( Sym_2D ) then
-            if( iabsorbeur <= n_atom_per + n_atom_int .and. igr > n_atom_per + n_atom_int ) then
+            if( iabsfirst <= n_atom_per + n_atom_int .and. igr > n_atom_per + n_atom_int ) then
               ps(3) = ps(3) + ( Delta_sur - Delta_int ) / cos_z_s
               ps(1:2) = ps(1:2) + Film_shift(1:2) + Surface_shift(1:2)
-            elseif( iabsorbeur > n_atom_per + n_atom_int .and. igr <= n_atom_per + n_atom_int ) then
+            elseif( iabsfirst > n_atom_per + n_atom_int .and. igr <= n_atom_per + n_atom_int ) then
               ps(3) = ps(3) - ( Delta_sur - Delta_int ) / cos_z_i
               ps(1:2) = ps(1:2) - Film_shift(1:2) - Surface_shift(1:2)
             endif
@@ -3011,7 +3035,11 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
 
           if( .not. ATA .and. .not. Abs_case ) then
             do jgr = igr0,n_igr
-              if( igr == jgr ) cycle
+              Different_slab = ( igr <= n_atom_per .and. jgr > n_atom_per ) &
+                      .or. ( jgr <= n_atom_per .and. igr > n_atom_per ) &
+                      .or. ( igr <= n_atom_per + n_atom_int .and. jgr > n_atom_per + n_atom_int ) &
+                      .or. ( jgr <= n_atom_per + n_atom_int .and. igr > n_atom_per + n_atom_int )
+              if( igr == jgr .or. Different_slab ) cycle
               if( sum( abs( posg(1:3,igr) - posg(1:3,jgr) ) ) < eps6 ) then
                 if( ngroup_taux == 0 ) then
                   call write_error
@@ -3093,7 +3121,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
           do igr = 1,n_atom_bulk
             ps(1:3) = posg_bulk(1:3,igr) + v(1:3)
 
-            if( iabsorbeur <= n_atom_per + n_atom_int ) then
+            if( iabsfirst <= n_atom_per + n_atom_int ) then
               ps(3) = ps(3) + ( Delta_bulk - Delta_int ) / cos_z_b
               ps(1:2) = ps(1:2) - Interface_shift(1:2)
             else
@@ -3193,7 +3221,7 @@ end
 subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn, &
           axyz,axyz_bulk,axyz_int,axyz_sur,Base_hexa,Base_ortho_int,Base_ortho_sur,Bulk,Bulk_step,Center_s, &
           Chargat,Cubmat,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,dista, &
-          Doping,dpos,Film_shift,Film_thickness,iaabs,iaabsfirst,iabsorbeur, &
+          Doping,dpos,Film_shift,Film_thickness,iaabs,iaabsfirst,iabsorbeur,iabsfirst, &
           iaproto,iapot,icheck,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,Interface_shift,iopsymc,iopsymr,itabs,itype,itypep, &
           karact,Kgroup,Magnetic,Matper,mpirank0,multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc, &
           natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat, &
@@ -3203,7 +3231,8 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
   use declarations
   implicit none
 
-  integer:: i, ia, iaabs, iaabsfirst, iabsorbeur, ib, icheck, igr, igr_dop, igrpt, igrpt_nomag, igrpt_sg, igrpt_sg_cmp, &
+  integer:: i, ia, iaabs, iaabsfirst, iabsorbeur, iabsfirst, ib, ic, icheck, igr, igr_dop, igrpt, igrpt_nomag, igrpt_sg, &
+    igrpt_sg_cmp, &
     igrpt_sg_cal, igrpt_sg_so, igrpt0, igrptn, ipr, ired, istop, it, itabs, k, mpirank0, multi_run, n_atom_bulk, n_atom_int, &
     n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, natomp, nb_rep, nb_sym_op, neqm, ngroup, ngroup_m, ngroup_pdb, ngroup_taux, &
     nlatm, npr1, nspin, ntype, Za, Zb
@@ -3266,7 +3295,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
   call Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
               Base_ortho_sur,Bulk,Bulk_step,Center_s,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
               dista,Doping,dpos,Film_shift,Film_thickness, &
-              iaabs,iaabsfirst,iabsorbeur,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
+              iaabs,iaabsfirst,iabsorbeur,iabsfirst,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
               multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
               One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
@@ -3654,20 +3683,39 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
       if( dist < Test_dist_min ) then
         if( istop == 0 ) call write_error
         if( ia > ngroup ) then
-          Za = iaproto(ia)
+          do ic = 1,ngroup
+            if( iaproto(ia) == iaproto(ic) ) exit
+          end do
+          if( ic <= ngroup ) then
+            Za = numat(itypep(ic))
+          else
+            Za = - iaproto(ia)
+          endif
         else
           Za = numat(itypep(ia))
         endif
         if( ib > ngroup ) then
-          Zb = iaproto(ib)
+          do ic = 1,ngroup
+            if( iaproto(ib) == iaproto(ic) ) exit
+          end do
+          if( ic <= ngroup ) then
+            Zb = numat(itypep(ic))
+          else
+            Zb = - iaproto(ib)
+          endif
         else
           Zb = numat(itypep(ib))
         endif
         do ipr = 3,9,3
           if( ipr == 3 .and. icheck == 0 ) cycle
           if( istop == 0 ) write(ipr,'(/A/)') '  The following atoms are too close :'
-          write(ipr,260) iaproto(ia), ia, igroup(ia), Za, pos(1:3,ia)*bohr, &
-                         iaproto(ib), ib, igroup(ib), Zb, pos(1:3,ib)*bohr, dist*bohr
+          if( Za > 0 .and. Zb > 0 ) then
+            write(ipr,260) iaproto(ia), ia, igroup(ia), Za, pos(1:3,ia)*bohr, &
+                           iaproto(ib), ib, igroup(ib), Zb, pos(1:3,ib)*bohr, dist*bohr
+          else
+            write(ipr,265) iaproto(ia), ia, igroup(ia), pos(1:3,ia)*bohr, &
+                           iaproto(ib), ib, igroup(ib), pos(1:3,ib)*bohr, dist*bohr
+          endif
         end do
         istop = 1
       endif
@@ -3714,6 +3762,9 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
   250 format(4i5,f13.3)
   260 format(' Atoms ipr = ',i4,', ia =',i5,', igr =',i5,', Z =',i3,', pos =',3f12.7,/ &
              '   and ipr = ',i4,', ia =',i5,', igr =',i5,', Z =',i3,', pos =',3f12.7,// &
+             '  Distance =',f10.5,' A')
+  265 format(' Atoms ipr = ',i4,', ia =',i5,', igr =',i5,', pos =',3f12.7,/ &
+             '   and ipr = ',i4,', ia =',i5,', igr =',i5,', pos =',3f12.7,// &
              '  Distance =',f10.5,' A')
   270 format(/'  Minimal distance is set at =',f10.5,' A', // &
               '  The positions are the one in the cluster.', / &
@@ -4325,7 +4376,11 @@ subroutine sym_cluster(Atom_with_axe,Axe_atom_clu,iaabs,igroup,iopsym,itype,ityp
             if( ( ia == iaabs .and. ib /= iaabs ) .or. ( ia /= iaabs .and. ib == iaabs ) ) cycle
           endif
           v(1:3) = pos(1:3,ib) - pt(1:3)
-          if( abs( v(1) ) > epspos .or. abs( v(2) ) > epspos .or. abs( v(3) ) > epspos ) cycle
+          if( ia == ib ) then
+            if( abs( v(1) ) > eps10 .or. abs( v(2) ) > eps10 .or. abs( v(3) ) > eps10 ) cycle
+          else
+            if( abs( v(1) ) > epspos .or. abs( v(2) ) > epspos .or. abs( v(3) ) > epspos ) cycle
+          endif
           igrb = igroup(ib)
           if( abs(itypegen(igrb)) /= abs(itypegen(igra)) ) cycle
 
@@ -9775,6 +9830,36 @@ end
 
 !***********************************************************************
 
+! Selection and normalisation of the points at the border of the outer-sphere
+
+subroutine Selec_xyz_so(iopsymr,isrt,npsom,nsort,xyz,xyz_so)
+
+  use declarations
+  implicit none
+
+  integer:: ib, isym, npsom, nsort
+  integer, dimension(nsort):: isrt     ! nstm = nsort when not Green
+  integer, dimension(nopsm):: iopsymr
+
+  real(kind=db):: r
+  real(kind=db), dimension(3):: p, V, W
+  real(kind=db), dimension(4,npsom):: xyz
+  real(kind=db), dimension(4,nsort):: xyz_so
+
+  p(:) = 0._db
+
+  do ib = 1,nsort
+    W(1:3) = xyz(1:3,isrt(ib))
+    call posrel(iopsymr,W,p,V,r,isym)
+    xyz_so(1:3,ib) = V(1:3)
+    xyz_so(4,ib) = r
+  end do
+
+  return
+end
+
+!***********************************************************************
+
 ! Calcul de l'energie du niveau de coeur initial.
 
 subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_moy,Eseuil,icheck,is_g, &
@@ -10500,8 +10585,9 @@ end
 !***********************************************************************
 
 ! Calculation of the number of spherical harmonics at the energy
+! From lmax(lmax-1) = ( k.R )^2
 
-subroutine clmax(Energ,r,lmax0,lmax,Z,lmaxfree)
+subroutine clmax(Energ,R,lmax0,lmax,Z,lmaxfree)
 
   use declarations
   implicit none
@@ -10510,36 +10596,32 @@ subroutine clmax(Energ,r,lmax0,lmax,Z,lmaxfree)
 
   logical:: lmaxfree
 
-  real(kind=db):: Energ, r, rk, rk2
+  real(kind=db):: Energ, R, kR
 
-  if( Energ > 0._db .and. r > eps10 ) then
-    rk = sqrt( Energ ) * r
+  if( Energ > 0._db .and. R > eps10 ) then
+    kR = sqrt( Energ ) * R
   else
-    rk = 0._db
+    kR = 0._db
   endif
-  rk2 = rk**2
+
   if( lmax0 < 0 ) then
-    lmax = int( 0.5_db + 0.5_db * sqrt(1 + 4*rk2) ) - lmax0
+    lmax = int( 0.5_db + 0.5_db * sqrt(1 + 4*kR**2) ) - lmax0
   else
-    lmax = int( 0.5_db + 0.5_db * sqrt(1 + 4*rk2) ) + 2
+    lmax = int( 0.5_db + 0.5_db * sqrt(1 + 4*kR**2) ) + 1
   endif
-  if( rk < 1._db ) then
-    lmax = min(6,lmax)
-  elseif( rk < 1.7_db ) then
-    lmax = min( nint(4.30*rk+0.30),lmax )
-  else
-    lmax = min( nint(3.04*rk+3.83),lmax )
-  endif
-  if( Z == 1 ) then
+
+  if( Z < 0 ) then  ! outer sphere case
+    lmax = max( 1, lmax )
+  elseif( Z == 1 ) then
     lmax = 2
+  elseif( Z == 0 .or. ( Z > 1 .and. Z <= 54 ) ) then
+    lmax = max( 2, lmax )
   elseif( Z > 54 ) then
-    lmax = max( 3,lmax )
-  else
-    lmax = max( 2,lmax )
+    lmax = max( 3, lmax )
   endif
 
   if( .not. lmaxfree ) then
-    if( Z < 3 ) then
+    if( Z > 0 .and. Z < 3 ) then
       lmax = min(lmax,3)
     elseif( Z < 19 ) then
       lmax = min(lmax,4)
@@ -10549,12 +10631,11 @@ subroutine clmax(Energ,r,lmax0,lmax,Z,lmaxfree)
       lmax = min(lmax,6)
     elseif( Z < 87 ) then
       lmax = min(lmax,7)
-    else
+    elseif( Z >= 87 ) then
       lmax = min(lmax,8)
     endif
   endif
 
-!  if( lmax0 > 0 ) lmax = min( lmax, lmax0 )
   if( lmax0 >= 0 ) lmax = min( lmax, lmax0 )
 
   return
@@ -10564,18 +10645,17 @@ end
 
 ! Calculation of the Ylm and of the distances from the atom center of each points.
 
-subroutine ylmpt(iaprotoi,ibord,icheck,iopsymr,isrt,lmaxat,lmaxso,n_atom_proto,natome, &
-             nbord,nbtm,nlmmax,nlmomax,nsort,nstm,npsom,posi,rot_atom,rot_atom_abs,xyz,Ylmato,Ylmso)
+subroutine Ylmpt(iaprotoi,ibord,icheck,iopsymr,lmaxat,n_atom_proto,natome, &
+             nbord,nbtm,nlmmax,npsom,posi,rot_atom,xyz,Ylmato)
 
   use declarations
   implicit none
 
-  integer:: i, ia, ib, icheck, ipr, isym, l, lm, lmax, lmaxso, m, n_atom_proto, natome, nbtm, nlmc, nlmmax, nlmomax, nlmr, np, &
-            nsort, nstm, npsom
+  integer:: i, ia, ib, icheck, ipr, isym, l, lm, lmax, m, n_atom_proto, natome, nbtm, nlmc, nlmmax, nlmr, np, &
+            npsom
 
   integer, dimension(0:n_atom_proto):: lmaxat
   integer, dimension(nopsm):: iopsymr
-  integer, dimension(nstm):: isrt
   integer, dimension(natome):: iaprotoi, nbord
   integer, dimension(nbtm,natome):: ibord
 
@@ -10583,53 +10663,37 @@ subroutine ylmpt(iaprotoi,ibord,icheck,iopsymr,isrt,lmaxat,lmaxso,n_atom_proto,n
 
   real(kind=db):: r
   real(kind=db), dimension(3):: p, v, w
-  real(kind=db), dimension(3,3):: rot_a, rot_atom_abs
+  real(kind=db), dimension(3,3):: rot_a
   real(kind=db), dimension(3,3,natome):: rot_atom
   real(kind=db), dimension(3,natome):: posi
   real(kind=db), dimension(4,npsom):: xyz
   real(kind=db), dimension(nbtm,nlmmax,natome):: Ylmato
-  real(kind=db), dimension(nsort,nlmomax):: Ylmso
   real(kind=db), dimension(:), allocatable :: Ylmr
 
   if( icheck > 1 ) write(3,110)
 
-  do ia = 0,natome
+  do ia = 1,natome
 
-    if( ia > 0 ) then
-      ipr = iaprotoi(ia)
-      lmax = lmaxat(ipr)
-      np = nbord(ia)
-      p(1:3) = posi(1:3,ia)
+    ipr = iaprotoi(ia)
+    lmax = lmaxat(ipr)
+    np = nbord(ia)
+    p(1:3) = posi(1:3,ia)
 ! Changement de base :
-      rot_a(:,:) = rot_atom(:,:,ia)
-    else
-      p(:) = 0._db
-      lmax = lmaxso
-      np = nsort
-      rot_a(:,:) = rot_atom_abs(:,:)
-    endif
+    rot_a(:,:) = rot_atom(:,:,ia)
     nlmr = ( lmax + 1 )**2
     nlmc = ( ( lmax + 1 ) * ( lmax + 2 ) ) / 2
     allocate( Ylmc(nlmc) )
     allocate( Ylmr(nlmr) )
 
     do ib = 1,np
-      if( ia == 0 ) then
-        i = isrt(ib)
-      else
-        i = ibord(ib,ia)
-      endif
+      i = ibord(ib,ia)
       w(1:3) = xyz(1:3,i)
       call posrel(iopsymr,w,p,v,r,isym)
-      w = matmul( rot_a, v )
+      if( ia > 0 ) w = matmul( rot_a, v )
       call cYlm(lmax,w,r,Ylmc,nlmc)
 ! Conversion in real Ylm
       call Ylmcr(lmax,nlmc,nlmr,Ylmc,Ylmr)
-      if( ia == 0 ) then
-        Ylmso(ib,1:nlmr) = Ylmr(1:nlmr)
-      else
-        Ylmato(ib,1:nlmr,ia) = Ylmr(1:nlmr)
-      endif
+      Ylmato(ib,1:nlmr,ia) = Ylmr(1:nlmr)
     end do
 
     if( icheck > 2 ) then
@@ -10639,11 +10703,7 @@ subroutine ylmpt(iaprotoi,ibord,icheck,iopsymr,isrt,lmaxat,lmaxso,n_atom_proto,n
         do m = -l,l
           write(3,130) l, m
           lm = lm + 1
-          if( ia == 0 ) then
-            write(3,140) Ylmso(1:np,lm)
-          else
-            write(3,140) Ylmato(1:np,lm,ia)
-          endif
+          write(3,140) Ylmato(1:np,lm,ia)
         end do
       end do
     endif

@@ -1188,7 +1188,8 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
                       endif
                       
                       if( Solsing .and. i_g_1 == i_g_2 .and. lp_f1 == l_f1 .and. lp_f2 == l_f2  &
-                                                       .and. mp_f1 == m_f1 .and. mp_f2 == m_f2 .and. iso1 == iso2 ) then
+                                  .and. mp_f1 == m_f1 .and. mp_f2 == m_f2 .and. iso1 == iso2 .and. ispf1 == ispf2 &
+                                  .and. ( .not. Spinorbite .or. iso1 == ispf1 ) ) then
                                                                                           ! index solution is diagonal
                         Singul_e = Singul(lm_f1+mv1-m_f1,ispf1,lm_f2+mv2-m_f2,ispf2,irang,jrang,is_r1)
                         Singul_s = Singul(lm_f2+mv2-m_f2,ispf2,lm_f1+mv1-m_f1,ispf1,jrang,irang,is_r1)
@@ -2913,7 +2914,7 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   complex(kind=db), dimension(ninitlr):: Ten, Ten_m
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
-  complex(kind=db), dimension(:,:,:,:,:), allocatable:: Singul
+  complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Singul
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: rof
   complex(kind=db), dimension(nq_nrixs,(lmax_nrixs+1)**2,(lmax_nrixs+1)**2,ninitlr,0:mpinodes-1):: S_nrixs, S_nrixs_m
 
@@ -2941,7 +2942,7 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
   NRIXS = .true.
 
-  allocate( Singul(nlm_probe,nspinp,l0_nrixs:lmax_nrixs,l0_nrixs:lmax_nrixs,ninitlv) )
+  allocate( Singul(nlm_probe,nspinp,nlm_probe,nspinp,l0_nrixs:lmax_nrixs,l0_nrixs:lmax_nrixs,ninitlv) )
   allocate( rof(nlm_probe,nlm_p_fp,nspinp,nspino,l0_nrixs:lmax_nrixs,ninitlv) )
   S_nrixs(:,:,:,:,mpirank) = (0._db,0._db)
   S_nrixs_m(:,:,:,:,mpirank) = (0._db,0._db)
@@ -2951,7 +2952,7 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
     if( icheck > 1 ) write(3,100) iq, q_nrixs(4,iq) / bohr
     
     rof(:,:,:,:,:,:) = (0._db, 0._db)
-    Singul(:,:,:,:,:) = (0._db, 0._db)
+    Singul(:,:,:,:,:,:,:) = (0._db, 0._db)
 
     call cbessel(bessel,l0_nrixs,lmax_nrixs,nr,q_nrixs(4,iq),r)
   

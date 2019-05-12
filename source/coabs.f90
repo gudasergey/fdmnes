@@ -1391,16 +1391,18 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
         npps = npldafs
       endif
       allocate( hkl_dafs_fake(3,npps) )
-      hkl_dafs_fake(1,1:npldafs) = Length_abs(1:npldafs) 
-      hkl_dafs_fake(2,1:npldafs) = Length_rel_abs(i_bulk_z) * Length_abs(1:npldafs)   ! fake value used in write_out, signature of truncation 
-      hkl_dafs_fake(2,1) = hkl_dafs_fake(2,1) + 10000._db   ! fake value used in write_out, signature of truncation 
-      hkl_dafs_fake(3,1:npldafs) = hkl_dafs(3,1:npldafs)
-      if( i_bulk_z == 1 ) then
-        do i = 1,n_bulk_z
-          hkl_dafs_fake(1,i*npldafs+1:i*npldafs+npldafs) = Length_rel(i) * Length_abs(1:npldafs) 
-          hkl_dafs_fake(2,i*npldafs+1:i*npldafs+npldafs) = real( Sum_Bragg_nonabs_f(1:npldafs,i), db ) 
-          hkl_dafs_fake(3,i*npldafs+1:i*npldafs+npldafs) = aimag( Sum_Bragg_nonabs_f(1:npldafs,i) ) 
-        end do
+      if( npldafs > 0 ) then
+        hkl_dafs_fake(1,1:npldafs) = Length_abs(1:npldafs) 
+        hkl_dafs_fake(2,1:npldafs) = Length_rel_abs(i_bulk_z) * Length_abs(1:npldafs)   ! fake value used in write_out, signature of truncation 
+        hkl_dafs_fake(2,1) = hkl_dafs_fake(2,1) + 10000._db   ! fake value used in write_out, signature of truncation 
+        hkl_dafs_fake(3,1:npldafs) = hkl_dafs(3,1:npldafs)
+        if( i_bulk_z == 1 ) then
+          do i = 1,n_bulk_z
+            hkl_dafs_fake(1,i*npldafs+1:i*npldafs+npldafs) = Length_rel(i) * Length_abs(1:npldafs) 
+            hkl_dafs_fake(2,i*npldafs+1:i*npldafs+npldafs) = real( Sum_Bragg_nonabs_f(1:npldafs,i), db ) 
+            hkl_dafs_fake(3,i*npldafs+1:i*npldafs+npldafs) = aimag( Sum_Bragg_nonabs_f(1:npldafs,i) ) 
+          end do
+        endif
       endif 
       call write_out(Abs_U_iso,rdum,rdum,f_avantseuil,E_cut,Ephseuil,Epsii,Eseuil(nbseuil),First_E,Green_int,hkl_dafs_fake, &
             i_range,jseuil,n_dim,n_tens,ninit1,ninitlr,nomficht,title,npldafs,npldafs,0,npps,nseuil,numat_abs, &

@@ -784,7 +784,7 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
           end do boucle_k
         endif
         if( Taux ) Bragg(igr,ipl) = Bragg(igr,ipl) * Taux_oc(jgr)
-        if( Temp_B_iso ) Deb = exp( - Temp_coef(igr) * Delta_2 )
+        if( Temp_B_iso ) Deb = exp( - Temp_coef(jgr) * Delta_2 )
         if( icheck > 1 .and. ( Debye .or. Temp_B_iso ) ) write(3,165) nint( hkl_dafs(1:3,ipl) ), numat(it), Deb
         if( Debye .or. Temp_B_iso ) Bragg(igr,ipl) = Bragg(igr,ipl) * Deb
         if( ipr == iprabs_nonexc ) Bragg_abs(igr,ipl) = Bragg(igr,ipl)
@@ -916,8 +916,8 @@ subroutine Prepdafs(Abs_in_bulk,Angle_or,Angle_mode,Angpoldafs,Angxyz,Angxyz_bul
  ! Calculate the bulk scattering only when there is no absorbing atom in it
  ! In the other case, it only calculates the non resonant part coming from the bulk roughness
       call Bulk_scat(Abs_in_bulk,angxyz_bulk,axyz_bulk,Bulk_roughness,c_cos_z_b,Delta_bulk,delta_z_top_bulk,Energy_photon, &
-        hkl_dafs,hkl_film,icheck,Length_abs,Mat_bulk_i,Mult_bulk,n_atom_bulk,ngroup_temp,npldafs,phd_f_bulk,posn_bulk,Q_mod, &
-        Temp_coef,Temp_B_iso,Truncation,Z_abs,Z_bulk)
+        hkl_dafs,hkl_film,icheck,Length_abs,Mat_bulk_i,Mult_bulk,n_atom_bulk,ngroup_taux,ngroup_temp,npldafs,phd_f_bulk, &
+        posn_bulk,Q_mod,Taux_oc,Temp_coef,Temp_B_iso,Truncation,Z_abs,Z_bulk)
 
       phd_f_bulk(:) = Phase_bulk(:) * phd_f_bulk(:)
     endif
@@ -3590,13 +3590,13 @@ end
 ! When there is an absorbing atom in the bulk, the calculation is only for the non resonant scattering dure to the roughness 
 
 subroutine Bulk_scat(Abs_in_bulk,angxyz_bulk,axyz_bulk,Bulk_roughness,c_cos_z_b,Delta_bulk,delta_z_top_bulk,Energy_photon, &
-        hkl_dafs,hkl_film,icheck,Length_abs,Mat_bulk_i,Mult_bulk,n_atom_bulk,ngroup_temp,npldafs,phd_f_bulk,posn_bulk,Q_mod, &
-        Temp_coef,Temp_B_iso,Truncation,Z_abs,Z_bulk)
+        hkl_dafs,hkl_film,icheck,Length_abs,Mat_bulk_i,Mult_bulk,n_atom_bulk,ngroup_taux,ngroup_temp,npldafs,phd_f_bulk, &
+        posn_bulk,Q_mod,Taux_oc,Temp_coef,Temp_B_iso,Truncation,Z_abs,Z_bulk)
 
   use declarations
   implicit none
 
-  integer:: i, i_sens, icheck, igr, ipl, j, jgr, n_atom_bulk, ngroup_temp, npldafs, Z, Z_abs
+  integer:: i, i_sens, icheck, igr, ipl, j, jgr, n_atom_bulk, ngroup_taux, ngroup_temp, npldafs, Z, Z_abs
 
   integer, dimension(2):: Mult_bulk
   integer, dimension(n_atom_bulk):: Z_bulk
@@ -3618,6 +3618,7 @@ subroutine Bulk_scat(Abs_in_bulk,angxyz_bulk,axyz_bulk,Bulk_roughness,c_cos_z_b,
   real(kind=db), dimension(3,3):: Mat_bulk_i
   real(kind=db), dimension(n_atom_bulk):: fp_bulk, fpp_bulk
   real(kind=db), dimension(n_atom_bulk,npldafs):: Abs_temp, f0_bulk
+  real(kind=db), dimension(ngroup_taux):: Taux_oc
   real(kind=db), dimension(ngroup_temp):: Temp_coef
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
   real(kind=db), dimension(npldafs):: abs_mesh, Length_abs, Q_mod
@@ -3695,6 +3696,7 @@ subroutine Bulk_scat(Abs_in_bulk,angxyz_bulk,axyz_bulk,Bulk_roughness,c_cos_z_b,
         Bragg_bulk = Bragg_bulk * exp( - ( z_top - posn_bulk(3,igr) ) * fpp_bulk_tot * Length_abs(ipl) )
 
         if( Temp_B_iso ) Bragg_bulk = Bragg_bulk * Abs_temp(igr,ipl)
+        if( ngroup_taux > 0 ) Bragg_bulk = Bragg_bulk * Taux_oc(ngroup_taux-n_atom_bulk+igr)
 
         phd_f_bulk(ipl) = phd_f_bulk(ipl) + Bragg_bulk * cmplx( f0_bulk(igr,ipl) + fp_bulk(igr), fpp_bulk(igr), db )
 
@@ -3745,6 +3747,7 @@ subroutine Bulk_scat(Abs_in_bulk,angxyz_bulk,axyz_bulk,Bulk_roughness,c_cos_z_b,
         end do
 
         if( Temp_B_iso ) Bragg_bulk = Bragg_bulk * Abs_temp(igr,ipl)
+        if( ngroup_taux > 0 ) Bragg_bulk = Bragg_bulk * Taux_oc(ngroup_taux-n_atom_bulk+igr)
 
         phd_f_bulk(ipl) = phd_f_bulk(ipl) + Bragg_bulk * cmplx( f0_bulk(igr,ipl) + fp_bulk(igr), fpp_bulk(igr), db ) 
     

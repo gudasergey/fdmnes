@@ -5,10 +5,10 @@
 subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clapl, E_comp, Eimag, Enervide, gradvr, &
         ianew, iato, ibord, icheck, ie, igrph, ii, isbord, iso, ispinin, isrt, isvois, ivois, Kar, Kari, lato, &
         lb1, lb2, lmaxso, lso, mato, MPI_host_num_for_mumps, mpirank0, mso, natome, nbm, nbord, nbordf, nbtm, Neuman, Neumanr, &
-        new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmomax, nlmsa, nlmso, nlmso_i, &
+        new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmsa, nlmso, nlmso_i, &
         nphiato1, nphiato7, npoint, npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
         numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, smi, smr, Spinorbite, Time_fill, Time_tria, &
-        Vr, Ylm_comp, Ylmato, Ylmso)
+        Vr, xyz_so, Ylm_comp, Ylmato )
 
   use declarations
   implicit none
@@ -70,9 +70,9 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     end subroutine
   END INTERFACE
 
-  integer:: icheck, ie, igrph, ii, isp, ispin, ispinin, i, j, lb1i, lb1r, lb2i, lb2r, &
+  integer:: icheck, ib, ie, igrph, ii, isp, ispin, ispinin, i, j, lb1i, lb1r, lb2i, lb2r, &
     lmaxso, MPI_host_num_for_mumps, mpirank_in_mumps_group, mpirank0, natome, nbm, nbtm, ngrph, nicm, nim, nligne, &
-    nligne_i, nligneso, nlmagm, nlmmax, nlmomax, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, & 
+    nligne_i, nligneso, nlmagm, nlmmax, nlmsam, nlmso, nlmso_c, nlmso_i, nlmso_r, nphiato1, nphiato7, npoint, & 
     npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, nvois, mpierr
   
   integer, dimension(0:npoint):: new
@@ -93,13 +93,15 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   character(len=2), dimension(nligne):: mletl
 
   complex(kind=db), dimension(nsort_c,0:lmaxso,nspinr):: Bessel, Neuman
+  complex(kind=db), dimension(:), allocatable:: Ylmso_c
 
   logical:: Base_hexa, Basereel, Cal_comp, E_comp, Relativiste, Repres_comp, Spinorbite, Ylm_comp
 
   real(kind=sg):: time
 
-  real(kind=db):: Enervide, Eimag, p2, Precision, tp1, tp2, tp3, Time_fill, Time_tria
+  real(kind=db):: Enervide, Eimag, p2, Precision, r, tp1, tp2, tp3, Time_fill, Time_tria
   
+  real(kind=db), dimension(3):: w
   real(kind=db), dimension(nopsm,nspino):: Kar, Kari
   real(kind=db), dimension(nvois):: cgrad
   real(kind=db), dimension(0:nvois):: clapl
@@ -107,7 +109,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   real(kind=db), dimension(nbm,natome):: poidsa
   real(kind=db), dimension(nim):: rvol
   real(kind=db), dimension(nsm):: poidso
-  real(kind=db), dimension(nsort,nlmomax):: Ylmso
+  real(kind=db), dimension(4,nsort):: xyz_so
   real(kind=db), dimension(nicm,3,nspino):: gradvr
   real(kind=db), dimension(nbtm,nlmmax,natome):: Ylmato
   real(kind=db), dimension(nphiato1,nlmagm,nspinp,nspino,natome,nphiato7):: phiato
@@ -115,8 +117,10 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   real(kind=db), dimension(nlmso_i,nligne_i):: smi
   real(kind=db), dimension(nsort_r,0:lmaxso,nspinr):: Besselr, Neumanr
 
-  real(kind=db), dimension(:), allocatable:: abvi, abvr
+  real(kind=db), dimension(:), allocatable:: abvi, abvr, Ylmso_r
+  real(kind=db), dimension(:,:), allocatable:: Ylmso
   real(kind=db), dimension(:), pointer:: A, AGather 
+
   complex(kind=db), dimension(:), pointer:: AZ, AZGather
 
   mpirank_in_mumps_group = mod( mpirank0, MPI_host_num_for_mumps )
@@ -126,7 +130,23 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     call CPU_TIME(time)
     tp1 = real(time,db)
   endif
-  
+ 
+  nlmso_r = ( lmaxso + 1 )**2
+  nlmso_c = ( ( lmaxso + 1 ) * ( lmaxso + 2 ) ) / 2
+  allocate( Ylmso_c(nlmso_c) )
+  allocate( Ylmso_r(nlmso_r) )
+  allocate( Ylmso(nsort,nlmso_r) )
+
+  do ib = 1,nsort
+    w(1:3) = xyz_so(1:3,ib)
+    r = xyz_so(4,ib) 
+    call cYlm(lmaxso,w,r,Ylmso_c,nlmso_c)
+! Conversion in real Ylm
+    call Ylmcr(lmaxso,nlmso_c,nlmso_r,Ylmso_c,Ylmso_r)
+    Ylmso(ib,:) = Ylmso_r(:)  
+  end do
+  deallocate( Ylmso_r, Ylmso_c )
+ 
   if( Spinorbite ) then
     ispin = 1
   else
@@ -164,7 +184,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     Enervide, gradvr, ianew, iato, ibord, icheck, igrph, ii, isbord, iso, ispin, isrt, isvois, ivois, Kar, Kari, &
     lato, lb1i, lb1r, lb2i, lb2r, lmaxso, lso, mato, mletl, mso, natome, nbm, nbord, &
     nbordf, nbtm, Neuman, Neumanr, new, newinv, ngrph, nicm, nim, nligne, nligne_i, &
-    nligneso, nlmagm, nlmmax, nlmomax, nlmsa, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, npsom, nsm, nso1, &
+    nligneso, nlmagm, nlmmax, nlmsa, nlmsam, nlmso, nlmso_i, nlmso_r, nphiato1, nphiato7, npoint, npsom, nsm, nso1, &
     nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
     numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, Spinorbite,  &
     smi, smr, Vr, Ylm_comp, Ylmato, Ylmso, .true. )
@@ -208,6 +228,8 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     deallocate( abvi, abvr )
   end do      ! end of cycle by lines
   nz = inz
+
+  deallocate( Ylmso )
   
   if ( MPI_host_num_for_mumps > 1 ) then
     call MPI_GATHER( nz, 1, MPI_INTEGER8, nzGather, 1, MPI_INTEGER8, 0, MPI_COMM_MUMPS, mpierr)

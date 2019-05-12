@@ -16,7 +16,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   integer:: Dafs_exp_type, eof, i, i_bulk_z, i_conv, i_hk, i_Trunc, i1, ical, icheck, ie, ie1, ie2, ifich, igr, ii, &
     initl, ip, ipar, ipas, ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, &
-    jfich, jpl, js, jseuil, k, kpl, l, Length_line, mfich, n, n_bir, n_bulk_z, n_col, n_col_max, n_energ_tr, &
+    jfich, jpl, js, jseuil, k, kpl, Length, Length_line, mfich, n, n_bir, n_bulk_z, n_col, n_col_max, n_energ_tr, &
     n_mat_pol, n_selec_core, n_signal, n_Stokes, n_Trunc, &
     ncal, ne2, nef, nelor, nen2, nenerg, nenerge, nes, nes_in, nfich, &
     ngamh, ngroup_par, ninit, ninit1, ninitlm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
@@ -41,7 +41,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   character(len=9), dimension(ngroup_par,nparm) :: typepar
   character(len=Length_word), dimension(:), allocatable:: nom_col
   character(len=Length_name), dimension(:), allocatable:: Convolution_out_all, fichin, fichscanin, fichscanout_all
-  character(len=13), dimension(:), allocatable:: Stokes_name
+  character(len=Length_word), dimension(:), allocatable:: Stokes_name
 
   complex(kind=db):: cf, zero_c
   complex(kind=db), dimension(1):: cdum
@@ -54,8 +54,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     Check_conv, chem, Circular, &
     Conv_done, Cor_abs, decferm, Deuxieme, Double_cor, E_cut_man, Energphot, Epsii_ref_man, Extrap, Fermip, First_E, Fit_cal, &
     Forbidden, fprim, fprime_atom, Full_self_abs, Gamma, Gamma_hole_imp, Gamma_var, Gaussian_default, Green_int, Just_total, &
-    Magn, no_extrap, nxan_lib, Photoemission, Scan_a, scan_true, Seah, Self_abs, &
-    Signal_Sph, Stokes, Stokes_Dafs, Stokes_xan, Sup_sufix, Tenseur, Tenseur_car, Thomson, Transpose_file, U_iso_inp
+    Magn, no_extrap, nxan_lib, Scan_a, scan_true, Seah, Self_abs, &
+    Signal_Sph, Stokes, Stokes_Dafs, Stokes_xan, Sup_sufix, Tenseur, Tenseur_car, Thomson, Transpose_file, U_iso_inp, XES
   logical, dimension(:), allocatable:: run_done, Skip_run, Trunc
 
   real(kind=db):: a, a1, a2, a3, a4, Abs_U_iso_inp, alambda, Asea, b, b1, b2, b3, b4, bba, bbb, c, c_micro, &
@@ -131,7 +131,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     num_core(i) = i
   end do
   nxan_lib = .false.
-  Photoemission = .false.
   S0_2 = 1._db
   Sample_thickness = 0._db
   scan_true = .false.
@@ -149,6 +148,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Transpose_file = .false.
   U_iso_inp = .false.
   Vibration = 0._db
+  XES = .false.
 
   if( bav_open .or. icheck > 1 ) Check_conv = .true.
   
@@ -156,7 +156,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   Rewind(itape1)
 
-  boucle_ii: do ii = 1,1000
+  boucle_ii: do ii = 1,1000000
 
     n = nnombre(itape1,132)
     read(itape1,'(A)',iostat=eof) mot
@@ -166,7 +166,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
     if( keyword == 'calculati' ) then
       nfich = 0
-      boucle_i: do i = 1,1000
+      boucle_i: do i = 1,1000000
         n = nnombre(itape1,132)
         read(itape1,'(A)',iostat=eof) mots
         if( eof /= 0 ) exit boucle_ii
@@ -182,7 +182,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     endif
 
     if( keyword == 'stokes' ) then
-      do i = 1,1000
+      do i = 1,1000000
         n = nnombre(itape1,132)
         if( n == 0 ) exit
         n_stokes = n_stokes + 1
@@ -218,7 +218,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   end do
   mfich = nfich
 
-  boucle_jj: do ii = 1,1000
+  boucle_jj: do ii = 1,1000000
     n = nnombre(itape1,132)
     read(itape1,'(A)',iostat=eof) mot
     if( eof /= 0 ) exit boucle_jj
@@ -253,8 +253,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     allocate( fichin(nfich) )
     mot = ' '
     mot = nomfich
-    l = len_trim(mot)
-    mot(l+1:l+4) = '.txt'
+    Length = len_trim(mot)
+    mot(Length+1:Length+4) = '.txt'
     fichin(1) = mot
   else
     allocate( fichin(nfich) )
@@ -286,7 +286,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     end do
   endif
 
-  boucle_lect: do ii = 1,1000
+  boucle_lect: do ii = 1,1000000
 
     n = nnombre(itape1,132)
     read(itape1,'(A)',iostat=eof) mot
@@ -584,14 +584,14 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
         read(itape1,*,iostat=eof) S0_2
 
-      case('photo_emi')
-
-        Photoemission = .true.
+      case('XES')
+        XES = .true.
 
       case('epsii')
         n = nnombre(itape1,132)
         read(itape1,*,iostat=eof) Epsii_ref
         if( eof > 0 ) call write_err_form(itape1,keyword)
+        Epsii_ref = Epsii_ref / rydb
         Epsii_ref_man = .true.
 
       case('selec_cor')
@@ -635,8 +635,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
             exit boucle_n
           end do
           mots = adjustl( mots )
-          Stokes_name(i) = mots(1:13)
-          if( Stokes_name(i) == 'noname       ') Stokes_name(i) = 'no_name'
+          Stokes_name(i) = mots(1:Length_word)
+          if( Stokes_name(i) == 'noname') Stokes_name(i) = 'no_name'
         end do boucle_n
 
       case('dead_laye')
@@ -668,14 +668,14 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     open(2, file = fichin(ifich), status='old', iostat=istat)
     if( istat /= 0 ) then
       mot = fichin(ifich)
-      l = len_trim(mot)
-      if( mot(l-3:l) /= '.txt' ) then
-        mot(l+1:l+4) = '.txt'
+      Length = len_trim(mot)
+      if( mot(Length-3:Length) /= '.txt' ) then
+        mot(Length+1:Length+4) = '.txt'
         Close(2) 
         open(2, file = mot, status='old', iostat=istat)
         if( istat /= 0 ) then
-          l = len_trim(mot)
-          mot(l-3:l+2) = '_1.txt'
+          Length = len_trim(mot)
+          mot(Length-3:Length+2) = '_1.txt'
           open(2, file = mot, status='old', iostat=istat)
           if( istat == 0 ) then
            call write_error
@@ -689,8 +689,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         endif
         fichin(ifich) = mot
       else
-       l = len_trim(mot)
-       mot(l-3:l+2) = '_1.txt'
+       Length = len_trim(mot)
+       mot(Length-3:Length+2) = '_1.txt'
        open(2, file = mot, status='old', iostat=istat)
        if( istat == 0 ) then
          call write_error
@@ -712,7 +712,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   fichscanout_all(:) = ' '
 
   call Conv_out_name(bav_open,check_conv,Chem,Chemin,convolution_out,Convolution_out_all,Dafs_bio,Deuxieme,fichin, &
-                        fichscanin,fichscanout,fichscanout_all,Length_line,nfich,nomfichbav,Photoemission,Scan_a,Scan_true)
+                        fichscanin,fichscanout,fichscanout_all,Length_line,nfich,nomfichbav,Scan_a,Scan_true,XES)
 
   do ifich = 1,nfich
     if( convolution_out /= fichin(ifich) ) cycle
@@ -749,6 +749,19 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     Close(2)
   end do
 
+  if( n_selec_core /= 0 ) then
+    do i = 1,n_selec_core
+      if( num_core(i) > ninitlm ) then
+        call write_error
+        do ipr = 6,9,3
+          write(ipr,130) num_core(1:n_selec_core)
+          write(ipr,135) ninitlm
+        end do
+        stop
+      endif
+    end do
+  endif
+  
   call n_div_fpp_avanseuil(Eseuil,n_div_fpp,nfich)
 
   allocate( Abs_U_iso(nfich) )
@@ -920,15 +933,15 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
 ! Elaboration of energy grid
 
-  call Shift_eval(decal,decal_initl,delta_edge,Energphot,Eph1,Ephm,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Esmin,nfich, &
-                        ninit1,ninitl,ninitlm)
+  call Shift_eval(decal,decal_initl,delta_edge,Energphot,Eph1,Ephm,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Esmin, &
+                        n_selec_core,nfich,ninit1,ninitl,ninitlm,num_core)
  
   pasdeb = 0.5_db / rydb
   nes_in = 100000
   allocate( Es_temp(nes_in) )
    
-  call Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Estart,fichin,Length_line,ne,ne_initl,nes,nes_in, &
-                              nfich,ninitl,ninitlm,nsup,pasdeb)  
+  call Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Estart,fichin,Length_line,n_selec_core, &
+                              ne,ne_initl,nes,nes_in,nfich,ninitl,ninitlm,nsup,num_core,pasdeb)  
   allocate( Es(nes) )
   Es(1:nes) = Es_temp(1:nes)
   deallocate( Es_temp )
@@ -962,8 +975,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   if( Cor_abs ) allocate( mus(nes,nphim,npldafs,2) )
 
   Stokes = n_stokes > 0
-  Stokes_Dafs = Circular .or. Full_self_abs
   Stokes_xan = Stokes .and. n_mat_pol > 0
+!  Stokes_Dafs = Circular .or. Full_self_abs
+  Stokes_Dafs = Stokes .and. .not. Stokes_xan
 
   if( Circular ) then
 ! The analysor is supposed perfect
@@ -1017,8 +1031,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Sup_sufix = ninitl(1) > 1
    
   call Col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin(nfich),Fichscanin(nfich),fprim,Full_self_abs,hkl_dafs, &
-      Length_line,n_bir,n_col,n_index_hk,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph, &
-      Stokes,Stokes_name,Stokes_param,Sup_sufix,Tenseur)
+      Length_line,n_bir,n_col,n_index_hk,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Self_abs,Signal_sph, &
+      Stokes,Stokes_name,Stokes_param,Sup_sufix,Tenseur,XES)
 
 ! This loop is for the case of output for all indata files  
   boucle_conv_file: do i_conv = 0,nfich
@@ -1263,7 +1277,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           Elor(:) = Energ(:)
         endif
 
-        if( Photoemission .or. Green_int ) then
+        if( XES .or. Green_int ) then
           betalor(:) = 0._db
         elseif( seah ) then
           call seahdench(asea,E_cut,Gamma_max,nelor,Elor,betalor)
@@ -1375,7 +1389,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         if( Dafs .or. Stokes_xan ) allocate( lorr(nenerge) )
 
 ! Calculation of the coefficients of the lorentzian
-        call cflor(bb,betalor,E_cut,Energe,Elor,Energ,ie1,ie2,nef,nelor,nenerg,nenerge,Photoemission)
+        call cflor(bb,betalor,E_cut,Energe,Elor,Energ,ie1,ie2,nef,nelor,nenerg,nenerge,XES)
         if( Energphot ) then
           Ephoton(:) = Energ(:) + decal_initl(initl,ifich)
         else
@@ -1385,18 +1399,39 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   ! Temperature effect in the Debye model
         if( ( U_iso_inp .and. Abs_U_iso_inp > eps10 ) .or. Abs_U_iso(ifich) > eps10   ) then
 
-! natomsym is real
-          fac = natomsym / ninitl(ifich)
+        select case( ninitl(ifich) )
+          case(1)
+            n = ninitl(ifich)
+          case(2)
+            if( ninit1 == 2 ) then
+              n = ninitl(ifich)
+            else
+              n = 1
+            endif
+          case(4,6,10)
+            if( ninit1 /= ninitl(ifich) ) then
+              if( initl <= ninit1 ) then 
+                n = ninit1
+              else
+                n = ninitl(ifich) - ninit1 
+              endif 
+            else
+              n = ninitl(ifich)
+            endif
+          end select
+
+ ! natomsym is real
+          fac = natomsym / n
 
           call Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nenerg,nfich, &
                         nom_col,numat,nxan,Shift_U_iso,U_iso_inp,V0muf,Xanes)
 
-          fac = 1 / ninitl(ifich)
+          fac = 1._db / n
 
           if( Dafs ) call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
                         nenerg,nfich,.true.,nphim,npldafs,numat,Shift_U_iso,U_iso_inp,V0muf) 
 
-          fac = natomsym * 100 / ( ninitl(ifich) * Volume_maille )
+          fac = natomsym * 100 / ( n * Volume_maille )
   
           if( Cor_abs ) then
             allocate( Mu_t(nenerg,nphim,npldafs) )
@@ -1474,7 +1509,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
         do ie = ie1,ie2
           if( ie == ie1 ) then
-            if( Photoemission ) then
+            if( XES ) then
               e1(ie) = 1.5 * Energe(1) - 0.5 * Energe(2)
             else
               e1(ie) = E_cut
@@ -1493,7 +1528,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           endif
         end do
 
-        if( Photoemission ) then
+        if( XES ) then
           nen2 = ie2
         else
           nen2 = nenerg
@@ -1642,7 +1677,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
           endif
 
-          if( Photoemission ) then
+          if( XES ) then
             do ipl = 1,nxan
               Xanes(nef+1:nenerg,ipl) = 0._db
             end do
@@ -2010,7 +2045,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   endif
 
-  if( Stokes .and. Full_Self_abs ) call Cal_stokes(As,Icirc,nes,n_stokes,np_stokes,nphi,nphim,npldafs,Stokes_param)
+  if( Stokes_dafs ) call Cal_stokes(As,Icirc,nes,n_stokes,np_stokes,nphi,nphim,npldafs,Stokes_param)
 
   if( Stokes_xan ) then
     if( icheck > 1 ) then
@@ -2225,8 +2260,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
     do i = 1,n_col
       nomab = adjustl( nom_col(i) )
       if( nomab(1:1) /= 'I' ) cycle
-      l = len_trim(nomab)
-      if( nomab(l-1:l) == '_0' ) nomab(l-1:l) = '  '
+      Length = len_trim(nomab)
+      if( nomab(Length-1:Length) == '_0' ) nomab(Length-1:Length) = '  '
       nom_col(i) = nomab
     end do
 
@@ -2334,6 +2369,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   120 format(///' The output file has the same name than one of the input files:',/ &
                 3x,A,// &
                 ' Choose another one with keyword "Conv_out" !',//)
+  130 format(//' Selec_core keyword is used with the numbers =',10i3)
+  135 format(' At list one of them is larger than the number of core states (or edges when non magnetic) =',i2,/ &
+             ' what is forbidden !'/)
   145 format(///' Error under the keyword Par_',a6,'in the indata file:',// &
                 ' The wanted file is the number',i3,' !',/ &
                 ' There are only',i3,' files in the job !'//)
@@ -2397,15 +2435,16 @@ end
 
 ! Evaluation of relative shifts between input data
 
-  subroutine Shift_eval(decal,decal_initl,delta_edge,Energphot,Eph1,Ephm,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Esmin,nfich, &
-                        ninit1,ninitl,ninitlm)
+  subroutine Shift_eval(decal,decal_initl,delta_edge,Energphot,Eph1,Ephm,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Esmin, &
+                        n_selec_core,nfich,ninit1,ninitl,ninitlm,num_core)
   
   use declarations
   implicit none
 
-  integer:: ifich, jfich, n, nfich, ninit1, ninitlm
+  integer:: i, ifich, jfich, n, n_selec_core, nfich, ninit1, ninitlm
   
   integer, dimension(nfich):: ninitl
+  integer, dimension(10):: num_core
   
   logical:: Energphot, Epsii_ref_man
   logical, dimension(:), allocatable:: ok
@@ -2457,10 +2496,12 @@ end
       decal(jfich) = decal(jfich) - Epsii_moy + sum( Epsii(1:ninitl(jfich),jfich) ) / ninitl(jfich)
       decal_min = min( decal(jfich), decal_min ) 
     end do
-    do jfich = ifich,nfich
-      if( abs( Eseuil(jfich) - Eseuil(ifich) ) > 1._db ) cycle
-      decal(jfich) = decal(jfich) - decal_min
-    end do
+    if( .not. Epsii_ref_man ) then 
+      do jfich = ifich,nfich
+        if( abs( Eseuil(jfich) - Eseuil(ifich) ) > 1._db ) cycle
+        decal(jfich) = decal(jfich) - decal_min
+      end do
+    endif
     
   end do
  
@@ -2476,12 +2517,28 @@ end
       case(2)
          if( ninit1 == 2 ) then
            Epsii_moy = sum( Epsii(1:ninitl(ifich),ifich) ) / ninitl(ifich)
-         else
+         elseif( n_selec_core == 0 .or. n_selec_core == ninitl(ifich) ) then 
            Epsii_moy = Epsii(2,ifich)
+         elseif( num_core(1) == 2 ) then
+           Epsii_moy = Epsii(2,ifich)
+         else
+           Epsii_moy = Epsii(1,ifich)
          endif
       case(4,6,10)
          if( ninit1 /= ninitl(ifich) ) then
-           Epsii_moy = sum( Epsii(ninit1+1:ninitl(ifich),ifich) ) / ( ninitl(ifich) - ninit1 )
+           if( n_selec_core == 0 ) then 
+             Epsii_moy = sum( Epsii(ninit1+1:ninitl(ifich),ifich) ) / ( ninitl(ifich) - ninit1 )
+           else
+             n = 0
+             do i = 1, n_selec_core
+               if( num_core(i) > ninit1 ) n = n + 1
+             end do
+             if( n /= 0 ) then
+               Epsii_moy = sum( Epsii(ninit1+1:ninitl(ifich),ifich) ) / ( ninitl(ifich) - ninit1 )
+             else
+               Epsii_moy = sum( Epsii(1:ninit1,ifich) ) / ninit1
+             endif 
+           endif
          else
            Epsii_moy = sum( Epsii(1:ninitl(ifich),ifich) ) / ninitl(ifich)
          endif
@@ -2496,15 +2553,16 @@ end
 
 !********************************************************************************************************************
 
-subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Estart,fichin,Length_line,ne,ne_initl,nes,nes_in, &
-                              nfich,ninitl,ninitlm,nsup,pasdeb)
+subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Estart,fichin,Length_line,n_selec_core, &
+                              ne,ne_initl,nes,nes_in,nfich,ninitl,ninitlm,nsup,num_core,pasdeb)
 
   use declarations
   implicit none
   
-  integer:: i, ie, ifich, ifichref, initl, initlref, ipr, je, istat, Length_line, n, &
+  integer:: i, ie, ifich, ifichref, initl, initlref, ipr, j, je, istat, Length_line, n, n_selec_core, &
             nemax, nes, nes_in, nfich, ninitlm, nnombre 
 
+  integer, dimension(10):: num_core
   integer, dimension(nfich):: ne, ninitl
   integer, dimension(ninitlm,nfich):: ne_initl, nsup
   
@@ -2519,10 +2577,21 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
   real(kind=db), dimension(ninitlm,nfich):: decal_initl 
   real(kind=db), dimension(:), allocatable:: Energ 
   real(kind=db), dimension(:,:,:), allocatable:: Ef 
+
+  ne_initl(:,:) = 0
+  nsup(:,:) = 0
   
   Estart_l = Estart
   do ifich = 1,nfich
     do initl = 1,ninitl(ifich)
+    
+      if( n_selec_core /= 0 ) then
+        do i = 1,n_selec_core
+          if( initl == num_core(i) ) exit
+        end do
+        if( i > n_selec_core ) cycle
+      endif
+    
       if( Energphot ) then
         E = Eph1(ifich) - Eseuil(ifich) + decal_initl(initl,ifich)
       else
@@ -2534,6 +2603,14 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
 
   do ifich = 1,nfich
     do initl = 1,ninitl(ifich)
+    
+      if( n_selec_core /= 0 ) then
+        do i = 1,n_selec_core
+          if( initl == num_core(i) ) exit
+        end do
+        if( i > n_selec_core ) cycle
+      endif
+        
       if( Energphot ) then
         E = Eph1(ifich) - Eseuil(ifich) + decal_initl(initl,ifich)
       else
@@ -2551,7 +2628,6 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
 
   nemax = maxval( ne_initl )
 
-  n = sum( ninitl(:) )
   allocate( Ef(nemax,ninitlm,nfich) )
 
   do ifich = 1,nfich
@@ -2579,19 +2655,18 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
     Energ(:) = Energ(:) / Rydb
     
     do initl = 1,ninitl(ifich)
+
+      if( ne_initl(initl,ifich) == 0 ) cycle
+      
       do ie = 1,ne(ifich)
         je = ie + nsup(initl,ifich)
         Ef(je,initl,ifich) = Energ(ie)
       end do
-    end do
 
-    do initl = 1,ninitl(ifich)
       do ie = nsup(initl,ifich),1,-1
         Ef(ie,initl,ifich) = Ef(ie+1,initl,ifich) - pasdeb
       end do
-    end do
 
-    do initl = 1,ninitl(ifich)
       n = ne_initl(initl,ifich)
       Ef(1:n,initl,ifich) = Ef(1:n,initl,ifich) + decal_initl(initl,ifich)
     end do
@@ -2603,28 +2678,35 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
  ! When there are absorbing atom with different Z, 
  ! the maximum energy of the convoluted spectra corresponds to the one of maximum edge energy  
   E = Eseuil(1)
-  i = 0
+  j = 0
   do ifich = 2,nfich
     if( abs( Eseuil(ifich) - E ) < 1._db ) cycle
-    if( ifich == 2 ) i = 1
+    if( ifich == 2 ) j = 1
     if( Eseuil(ifich) < E ) cycle
     E = Eseuil(ifich)
-    i = ifich
+    j = ifich
   end do
 
-  Emin = Ef(1,1,1)
-  if( i == 0 ) then
-    Emax = Ef(ne_initl(1,1),1,1)
+  if( j == 0 ) then
+    do initl = 1,ninitl(1)
+      if( ne_initl(initl,1) /= 0 ) exit
+    end do
+    Emax = Ef(ne_initl(initl,1),initl,1)
   else
-    Emax = Ef(ne_initl(1,i),1,i)
+    do initl = 1,ninitl(j)
+      if( ne_initl(initl,j) /= 0 ) exit
+    end do
+    Emax = Ef(ne_initl(initl,j),initl,j)
   endif
 
   Emin = Estart_l
   
   do ifich = 1,nfich
     do initl = 1,ninitl(ifich)
-!      Emin = min( Ef(1,initl,ifich), Emin )
-      if( i == 0 .or. abs( Eseuil(ifich) - Eseuil(max(i,1)) ) < 1._db ) then
+    
+      if( ne_initl(initl,ifich) == 0 ) cycle
+         
+      if( j == 0 .or. abs( Eseuil(ifich) - Eseuil(max(j,1)) ) < 1._db ) then
         if( Ef(ne_initl(initl,ifich),initl,ifich) - Emax > Emax - Emin ) then
           Emax = Ef(ne_initl(initl,ifich),initl,ifich)
         elseif( .not. Emax - Ef(ne_initl(initl,ifich),initl,ifich) > Ef(ne_initl(initl,ifich),initl,ifich) - Emin ) then  
@@ -2642,6 +2724,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
   dmin = 1000000000._db
   do ifich = 1,nfich
     do initl = 1,ninitl(ifich)
+      if( ne_initl(initl,1) == 0 ) cycle
       if( decal_initl(initl,ifich) > dmin - eps10 ) cycle
       ifichref = ifich
       initlref = initl
@@ -2678,6 +2761,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
     do ifich = 1,nfich
       do initl = 1,ninitl(ifich)
         if( Fichdone(initl,ifich) ) cycle
+        if( ne_initl(initl,ifich) == 0 ) cycle
         if( decal_initl(initl,ifich) < d + eps10 ) then
           Fichdone(initl,ifich) = .true.
           cycle
@@ -2732,12 +2816,12 @@ end
 ! Name of the output file
 
   subroutine Conv_out_name(bav_open,check_conv,Chem,Chemin,convolution_out,Convolution_out_all,Dafs_bio,Deuxieme,fichin, &
-                           fichscanin,fichscanout,fichscanout_all,Length_line,nfich,nomfichbav,Photoemission,Scan_a,Scan_true)
+                           fichscanin,fichscanout,fichscanout_all,Length_line,nfich,nomfichbav,Scan_a,Scan_true,XES)
 
   use declarations
   implicit none
 
-  integer:: ifich, istat, jfich, l, l_max, Length_line, long, longf, n, nfich, nnombre, ns
+  integer:: ifich, istat, jfich, Length, l_max, Length_line, long, longf, n, nfich, nnombre, ns
   
   character(len=8):: dat
   character(len=10):: tim
@@ -2745,7 +2829,7 @@ end
   character(len=Length_name):: chemin, convolution_out, fichscanout, mot, mots, nomfichbav
   character(len=Length_name), dimension(nfich):: convolution_out_all, fichin, fichscanin, fichscanout_all
 
-  logical:: bav_open, check_conv, Chem, Dafs_bio, Deuxieme, Photoemission, Scan_a, Scan_true
+  logical:: bav_open, check_conv, Chem, Dafs_bio, Deuxieme, Scan_a, Scan_true, XES
   
   if( convolution_out == ' ' ) then
  
@@ -2764,25 +2848,25 @@ end
       else 
         mot = fichin(ifich)
       endif
-      l = len_trim( mot )
-      if( l > 4 ) then
-        if( mot(l-3:l) == '.txt' )  mot(l-3:l) = '    '     
+      Length = len_trim( mot )
+      if( Length > 4 ) then
+        if( mot(Length-3:Length) == '.txt' )  mot(Length-3:Length) = '    '     
       endif
       
-      l = len_trim( mot)
-      if( nfich > 1 .and. ifich == 0 .and. l > 2 ) then
-        if( mot(l-1:l-1) == '_' ) then
-          mot(l-1:l) = '  '
-        elseif( mot(l-2:l-2) == '_' ) then
-          mot(l-2:l) = '   '
+      Length = len_trim( mot)
+      if( nfich > 1 .and. ifich == 0 .and. Length > 2 ) then
+        if( mot(Length-1:Length-1) == '_' ) then
+          mot(Length-1:Length) = '  '
+        elseif( mot(Length-2:Length-2) == '_' ) then
+          mot(Length-2:Length) = '   '
         endif
       endif
 
-      l = len_trim( mot) + 1
-      if( Photoemission ) then
-        mot(l:l+12) = '_xes_conv.txt'
+      Length = len_trim( mot) + 1
+      if( XES ) then
+        mot(Length:Length+12) = '_xes_conv.txt'
       else
-        mot(l:l+8) = '_conv.txt'
+        mot(Length:Length+8) = '_conv.txt'
       endif
       
       if( ifich == 0 ) then
@@ -2795,34 +2879,34 @@ end
   
   else
   
-    l = len_trim( convolution_out )
+    Length = len_trim( convolution_out )
 
-    if( l > 5 ) then
-      if( convolution_out(l-3:l) /= '.txt' ) convolution_out(l+1:l+4) = '.txt'  
+    if( Length > 5 ) then
+      if( convolution_out(Length-3:Length) /= '.txt' ) convolution_out(Length+1:Length+4) = '.txt'  
     endif
 
     do ifich = 1,nfich
       if( nfich == 1 ) exit
       mot = convolution_out
-      l = len_trim( convolution_out )
-      if( convolution_out(l-8:l) == '_conv.txt' ) then
-        mot(l-7:l) = '        '
+      Length = len_trim( convolution_out )
+      if( convolution_out(Length-8:Length) == '_conv.txt' ) then
+        mot(Length-7:Length) = '        '
         call ad_number(ifich,mot,Length_name)
-        l = len_trim( mot )
-        if( Photoemission ) then
-          mot(l+1:l+16) = '_xes_conv.txt'
+        Length = len_trim( mot )
+        if( XES ) then
+          mot(Length+1:Length+16) = '_xes_conv.txt'
         else
-          mot(l+1:l+9) = '_conv.txt'
+          mot(Length+1:Length+9) = '_conv.txt'
         endif 
       else
-        if( Photoemission ) then
-          mot(l-3:l+1) = '_xes_'
+        if( XES ) then
+          mot(Length-3:Length+1) = '_xes_'
         else
-          mot(l-3:l) = '_   '
+          mot(Length-3:Length) = '_   '
         endif
         call ad_number(ifich,mot,Length_name)
-        l = len_trim( mot )
-        mot(l+1:l+4) = '.txt'
+        Length = len_trim( mot )
+        mot(Length+1:Length+4) = '.txt'
       endif 
       convolution_out_all(ifich) = mot
     end do
@@ -2830,10 +2914,10 @@ end
   endif
 
   if( .not. bav_open .and. Check_conv ) then
-    l = len_trim(convolution_out)
+    Length = len_trim(convolution_out)
     nomfichbav = ' '
-    nomfichbav(1:l-4) = convolution_out(1:l-4)
-    nomfichbav(l-3:l+4) = '_bav.txt'
+    nomfichbav(1:Length-4) = convolution_out(1:Length-4)
+    nomfichbav(Length-3:Length+4) = '_bav.txt'
     open(3, file = nomfichbav, status='unknown',iostat=istat)
     if( istat /= 0 ) call write_open_error(nomfichbav,istat,1)
     bav_open = .true.
@@ -2855,22 +2939,22 @@ end
     do ifich = 1,nfich
       mots = ' '
       mot = fichin(ifich)
-      l = len_trim(mot) - 4
+      Length = len_trim(mot) - 4
       if( nfich == 1 ) then
         ns = 0
       else
-        if( mot(l-2:l-2) == '_' ) then
+        if( mot(Length-2:Length-2) == '_' ) then
           ns = 3
-        elseif( mot(l-1:l-1) == '_' ) then
+        elseif( mot(Length-1:Length-1) == '_' ) then
           ns = 2
         else
           ns = 0
         endif
       endif
-      mots(1:l-ns) = mot(1:l-ns)
-      mots(l-ns+1:l-ns+5) = '_scan'
-      if( ns > 0 ) mots(l-ns+6:l+5) = mot(l-ns+1:l)
-      mots(l+6:l+9) = '.txt'
+      mots(1:Length-ns) = mot(1:Length-ns)
+      mots(Length-ns+1:Length-ns+5) = '_scan'
+      if( ns > 0 ) mots(Length-ns+6:Length+5) = mot(Length-ns+1:Length)
+      mots(Length+6:Length+9) = '.txt'
       fichscanin(ifich) = mots
     end do
     Scan_true = .true.
@@ -2888,14 +2972,14 @@ end
 
   if( Scan_true .and. fichscanout == ' ' .and. .not. Dafs_bio ) then
     mot = convolution_out
-    l = len_trim(mot)
-    mot(l-7:l+5) = 'scan_conv.txt'
+    Length = len_trim(mot)
+    mot(Length-7:Length+5) = 'scan_conv.txt'
     fichscanout = mot
     do ifich = 1,nfich
       if( nfich == 1 ) exit
       mot = convolution_out_all(ifich)
-      l = len_trim(mot)
-      mot(l-7:l+5) = 'scan_conv.txt'
+      Length = len_trim(mot)
+      mot(Length-7:Length+5) = 'scan_conv.txt'
       fichscanout_all(ifich) = mot
     end do
   endif
@@ -2948,8 +3032,8 @@ subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ep
   use declarations
   implicit none
 
-  integer:: eof, i, ie, ifich, ipl, ipr, istat, jseuil, l, Length_line, n, n_bulk_z, n_col_max, n_mat_pol, n_mat_pol1, n_Trunc, &
-            nfich, ninit1, ninitlm, nnombre, nphi, nphim, nphim1, npldafs, npldafs1, nseuil, numat, nxan, nxan1
+  integer:: eof, i, ie, ifich, ipl, ipr, istat, jseuil, Length, Length_line, n, n_bulk_z, n_col_max, n_mat_pol, n_mat_pol1, &
+            n_Trunc, nfich, ninit1, ninitlm, nnombre, nphi, nphim, nphim1, npldafs, npldafs1, nseuil, numat, nxan, nxan1
   integer, dimension(nfich):: ne, ninitl
 
   character(len=15):: nomab
@@ -3083,9 +3167,9 @@ subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ep
     read(2,'(10x,10000a15)') nomcol(:)
     do ipl = 1,nxan
       nomab = nomcol(ipl)
-      l = len_trim( nomab )
-      if( l <= 3 ) cycle
-      do i = 1,l-2
+      Length = len_trim( nomab )
+      if( Length <= 3 ) cycle
+      do i = 1,Length-2
         if( nomab(i:i+2) /= '_ss' ) cycle
         n_mat_pol = n_mat_pol + 1
         exit
@@ -3191,20 +3275,20 @@ end
 !***********************************************************************
 
 subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscanin,fprim,Full_self_abs,hkl_dafs, &
-      Length_line,n_bir,n_col,n_index_hk,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Photoemission,Self_abs,Signal_sph, &
-      Stokes,Stokes_name,Stokes_param,Sup_sufix,Tenseur)
+      Length_line,n_bir,n_col,n_index_hk,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Self_abs,Signal_sph, &
+      Stokes,Stokes_name,Stokes_param,Sup_sufix,Tenseur,XES)
 
   use declarations
   implicit none
 
-  integer:: i, i_bir, i_hk, ii, ipl, istat, j, k, kk, l, Length_line, m, n, n_bir, n_col, n_col_o, n_col_in, n_mat_pol, &
+  integer:: i, i_bir, i_hk, ii, ipl, istat, j, k, kk, Length, Length_line, m, n, n_bir, n_col, n_col_o, n_col_in, n_mat_pol, &
     n_stokes, nc, nnombre, npldafs, npldafs_b, nxan
   integer, dimension(npldafs):: nphi
 
   character(len=Length_name):: fichin, Fichscanin
   character(len=Length_word):: nomab, nomac
   character(len=length_line):: motl
-  character(len=13), dimension(n_stokes):: Stokes_name
+  character(len=Length_word), dimension(n_stokes):: Stokes_name
   character(len=Length_word), dimension(n_col):: nom_col
   character(len=Length_word), dimension(2*n_col):: nom_col_o
   character(len=Length_word), dimension(:), allocatable:: nom_col_in
@@ -3212,8 +3296,8 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
   integer, dimension(3,npldafs_b):: hkl_dafs
   integer, dimension(npldafs/2):: n_index_hk
 
-  logical:: Analyzer, Bormann, Cor_abs, Dafs_bio, Double_cor, fprim, Full_self_abs, Photoemission, Self_abs, Signal_sph, &
-            Stokes, Sup_sufix, Tenseur
+  logical:: Analyzer, Bormann, Cor_abs, Dafs_bio, Double_cor, fprim, Full_self_abs, Self_abs, Signal_sph, &
+            Stokes, Sup_sufix, Tenseur, XES
 
   real(kind=db), dimension(5,n_stokes):: Stokes_param
 
@@ -3252,12 +3336,12 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
       i = i + 1
       j = j + 1
       nomab = nom_col_in(j)
-      l = len_trim( nomab )
-      if( nomab(l-1:l-1) == '_' ) nomab(l-1:l) = '  '
-      if( nomab(l-2:l-1) == '_L' ) nomab(l-2:l) = '   '
-      if( nomab(l-2:l-1) == '_M' ) nomab(l-2:l) = '   '
-      if( nomab(l-2:l-1) == '_N' ) nomab(l-2:l) = '   '
-      if( nomab(l-2:l-1) == '_O' ) nomab(l-2:l) = '   '
+      Length = len_trim( nomab )
+      if( nomab(Length-1:Length-1) == '_' ) nomab(Length-1:Length) = '  '
+      if( nomab(Length-2:Length-1) == '_L' ) nomab(Length-2:Length) = '   '
+      if( nomab(Length-2:Length-1) == '_M' ) nomab(Length-2:Length) = '   '
+      if( nomab(Length-2:Length-1) == '_N' ) nomab(Length-2:Length) = '   '
+      if( nomab(Length-2:Length-1) == '_O' ) nomab(Length-2:Length) = '   '
 
       if( j > nxan + 1 .and. j <= nxan + 6 * n_mat_pol + 1 ) then
 
@@ -3265,19 +3349,19 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
           i = i - 1
           cycle
         endif
-        l = len_trim( nomab )
-        do k = 1,l
+        Length = len_trim( nomab )
+        do k = 1,Length
           if( nomab(k:k) == '_' ) exit
         end do
-        do m = k+1,l
+        do m = k+1,Length
           nomab(m:m) = ' '
         end do
         nomac = nomab
         nomac(k:k) = ' '
-        l = len_trim( nomab )
-        nomab(l+1:l+2) = 'ss'
+        Length = len_trim( nomab )
+        nomab(Length+1:Length+2) = 'ss'
         nom_col_o(i) = nomab
-        nomab(l+1:l+2) = 'pp'
+        nomab(Length+1:Length+2) = 'pp'
         i = i + 1
         nom_col_o(i) = nomab
         do n = 1,n_stokes
@@ -3289,22 +3373,22 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
           endif
           i = i + 1
           nom_col_o(i) = nomab
-          l = min( Length_word-3, len_trim( nomab ) )
+          Length = min( Length_word-3, len_trim( nomab ) )
           do i_bir = 2,n_bir
             if( i_bir == 2 ) then
-              nomab(l+1:l+3) = 'nB'
+              nomab(Length+1:Length+3) = 'nB'
             elseif( i_bir == 3 ) then
-              nomab(l+1:l+3) = 'nD'
+              nomab(Length+1:Length+3) = 'nD'
             else
-              nomab(l+1:l+3) = 'nO'
+              nomab(Length+1:Length+3) = 'nO'
             endif
             i = i + 1
             nom_col_o(i) = nomab
           end do
         end do
       else 
-        if( l > 4 ) then
-          if( nomab(l-3:l-2) == '_r' .or. nomab(l-3:l-2) == '_i' ) nomab(l-3:l-2) = '  '
+        if( Length > 4 ) then
+          if( nomab(Length-3:Length-2) == '_r' .or. nomab(Length-3:Length-2) == '_i' ) nomab(Length-3:Length-2) = '  '
         endif
         if( nxan == 0 ) then
           nom_col_in(j) = nomab
@@ -3313,7 +3397,7 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
         endif
       endif
       nomab = adjustl( nom_col_o(i) )
-      if( Photoemission .and. nomab(1:7) == '<xanes>' ) then
+      if( XES .and. nomab(1:7) == '<xanes>' ) then
         nomab(1:7) = '  <xes>'
         call center_word(nomab,Length_word)
         nom_col_o(i) = nomab
@@ -3361,19 +3445,19 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
           else
             call ad_number(hkl_dafs(k,ipl),nomab,Length_word)
           endif
-          l = len_trim(nomab) + 1
-          if( l > Length_word ) exit
+          Length = len_trim(nomab) + 1
+          if( Length > Length_word ) exit
           if( k == 3 ) then
-            nomab(l:l) = ')'
+            nomab(Length:Length) = ')'
           else
-            nomab(l:l) = ','
+            nomab(Length:Length) = ','
           endif
         end do
-        if( l+1 <= Length_word ) then 
+        if( Length+1 <= Length_word ) then 
           if( j == 2 .or. j == 4 ) then
-            nomab(l+1:l+1) = 's'
+            nomab(Length+1:Length+1) = 's'
           elseif( j == 3 .or. j == 5 ) then
-            nomab(l+1:l+1) = 'p'
+            nomab(Length+1:Length+1) = 'p'
           endif
         endif
         call center_word(nomab,Length_word)
@@ -3390,12 +3474,12 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
         i = i + 1
         j = j + 1
         nomab = nom_col_in(j)
-        l = len_trim( nomab )
-        nomab(l+1:l+1) = 'p'
+        Length = len_trim( nomab )
+        nomab(Length+1:Length+1) = 'p'
         nom_col_o(i) = nomab
 
         i = i + 1
-        nomab(l+1:l+1) = 's'
+        nomab(Length+1:Length+1) = 's'
         nom_col_o(i) = nomab
 
         cycle
@@ -3409,8 +3493,8 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
         nom_col_o(i) = nomab
 
         i = i + 1
-        l = min( len_trim( nomab ) + 1, Length_word )
-        nomab(l:l) = 'i'
+        Length = min( len_trim( nomab ) + 1, Length_word )
+        nomab(Length:Length) = 'i'
         nom_col_o(i) = nomab
 
         cycle
@@ -3420,8 +3504,8 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
       j = j + 2
       nomab = nom_col_in(j)
       if( Signal_sph ) then
-        l = len_trim( nomab )
-        nomab(2:l+1) = nomab(1:l)
+        Length = len_trim( nomab )
+        nomab(2:Length+1) = nomab(1:Length)
       endif
       nomab(1:1) = 'I'
       i = i + 1
@@ -3430,23 +3514,23 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
       if( fprim ) then
         i = i + 1
         nomab = nom_col_in(j)
-        l = len_trim( nomab )
-        do k = 1,l-1
+        Length = len_trim( nomab )
+        do k = 1,Length-1
           nomab(k:k) = nomab(k+1:k+1)
         end do
-        nomab(l:l) = 'p'
+        nomab(Length:Length) = 'p'
         nom_col_o(i) = nomab
 
         i = i + 1
-        nomab(l:l) = 's'
+        nomab(Length:Length) = 's'
         nom_col_o(i) = nomab
       endif
 
       if( Cor_abs ) then
         i = i + 1
         nomab = nom_col_in(j)
-        l = len_trim( nomab )
-        do k = min(l+1,Length_word),2,-1
+        Length = len_trim( nomab )
+        do k = min(Length+1,Length_word),2,-1
           nomab(k:k) = nomab(k-1:k-1)
         end do
         nomab(1:2) = 'Ic'
@@ -3479,17 +3563,17 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
           if( Stokes_name(ii) /= 'no_name' ) then
 
             nomab = Stokes_name(ii)
-            l = len_trim( nomab )
-            nomab(2:l+1) = nomab(1:l)
+            Length = len_trim( nomab )
+            nomab(2:Length+1) = nomab(1:Length)
             nomab(1:1) = 'I'
-            l = l + 1
+            Length = Length + 1
 
           else
 
-            nomab = nom_col_in(j-4)
+            nomab = nom_col_in(j)
             nomab(1:1) = 'I'
-            l = len_trim( nomab )
-            do k = 2,l-1
+            Length = len_trim( nomab )
+            do k = 2,Length-1
               if( nomab(k:k+1) == 'pp' ) exit
             end do
             if( abs( Stokes_param(1,ii) - 1 ) < 0.0001 ) then
@@ -3507,8 +3591,8 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
             k = k + 1
 
             if( abs( Stokes_param(5,ii) ) < 0.0001 ) then
-              nomab(k:l-1) = nomab(k+1:l)
-              nomab(l:l) = ' '
+              nomab(k:Length-1) = nomab(k+1:Length)
+              nomab(Length:Length) = ' '
             elseif( abs( Stokes_param(4,ii) ) < 0.0001 ) then
               nomab(k:k) = 's'
             elseif( abs( Stokes_param(4,ii) - pi/2 ) < 0.0001 ) then
@@ -3523,7 +3607,7 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
 
           if( Cor_abs ) then
             i = i + 1
-            do k = min(l+1,Length_word),2,-1
+            do k = min(Length+1,Length_word),2,-1
               nomab(k:k) = nomab(k-1:k-1)
             end do
             nomab(1:2) = 'Ic'
@@ -3568,11 +3652,11 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
         nom_col(kk) = nom_col_o(i)  
         cycle
       endif
-      l = len_trim( nomab ) - 1
+      Length = len_trim( nomab ) - 1
     
       do j = i+1,n_col_o
         nomac = adjustl( nom_col_o(j) )
-        if( nomab(1:l) /= nomac(1:l) ) cycle
+        if( nomab(1:Length) /= nomac(1:Length) ) cycle
         i_hk = i_hk + 1
         n_index_hk(i_hk) = j - i
         k = k + 2 * n_index_hk(i_hk) 
@@ -3587,8 +3671,8 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
         do j = i, i + n_index_hk(i_hk) - 1
           kk = kk + 1  
           nomab = nom_col_o(j)
-          l = len_trim( nomab )
-          nomab(l:l) = ' '
+          Length = len_trim( nomab )
+          nomab(Length:Length) = ' '
           nom_col(kk) = nomab
         end do
       
@@ -3892,14 +3976,14 @@ end
 
 ! Calculation of the coefficients of the lorentzian
 
-subroutine cflor(bb,betalor,E_cut,Eph,Elor,Energ,ie1,ie2,nef,nelor,nenerg,nenerge,Photoemission)
+subroutine cflor(bb,betalor,E_cut,Eph,Elor,Energ,ie1,ie2,nef,nelor,nenerg,nenerge,XES)
 
   use declarations
   implicit none
 
   integer:: ie, ie1, ie2, j, nef, nelor, nenerg, nenerge
   
-  logical:: Photoemission
+  logical:: XES
 
   real(kind=db):: def, E_cut, p
   real(kind=db), dimension(nenerge):: bb, Eph
@@ -3921,9 +4005,9 @@ subroutine cflor(bb,betalor,E_cut,Eph,Elor,Energ,ie1,ie2,nef,nelor,nenerg,nenerg
   end do
   nef = ie
 
-  if( Photoemission ) nef = max(1, nef-1)
+  if( XES ) nef = max(1, nef-1)
 
-  if( Photoemission ) then
+  if( XES ) then
     ie1 = 1
     ie2 = nef
   else
@@ -4644,12 +4728,14 @@ subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,f
   character(len=Length_word):: nomab
   character(len=Length_word), dimension(n_col):: nom_col
 
-  integer:: i, ie, ifich, n_col, nenerg, nfich, nxan, Z
+  integer:: i, ie, ie0, ifich, Length, n_col, nenerg, nfich, nxan, Z
   integer, dimension(nfich):: numat
   
   logical:: Energphot, U_iso_inp
 
-  real(kind=db):: Abs_U_iso_inp, c, Conv_Mbarn_nelec, E, Eph, f, fac, fp, fpp, fpp0, p, Shift_U_iso
+  real(kind=db):: Abs_U_iso_inp, c, Conv_Mbarn_nelec, Delta_E, E, E_medium, Eph, f, fac, fp, fpp, fpp0, p, Shift_U_iso, &
+                  Xanes_atom_av
+  real(kind=db), dimension(nxan):: Ratio, Xanes_av 
   real(kind=db), dimension(nenerg):: Energ, Ephoton, Xanes_atom 
   real(kind=db), dimension(nenerg,nxan):: Xanes 
   real(kind=db), dimension(nfich):: Abs_U_iso, Eseuil, V0muf 
@@ -4681,7 +4767,53 @@ subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,f
       Xanes_atom(ie) = f * ( fpp - fpp0 )
     end do
   
-  endif  
+  endif
+  
+! This part is also used for X-ray Raman. In that case, the Xanes_atom must be renormalized to
+! a Raman_atom. Because here one does not know if it is Raman or XANES one checks the normalization.
+  Ratio(:) = 1._db
+  nomab = nom_col(1)
+  nomab = adjustl(nomab)
+  if( nomab(1:2) == 'q=' ) then  ! Test to check if it Raman X
+    E_medium = Energ(nenerg) / 2
+    do ie = 1,nenerg
+      if( Energ(ie) > E_medium ) exit
+    end do
+    ie0 = ie
+    if(  ie0 > 2 .and. ie0 < nenerg - 2 ) then
+      Xanes_atom_av = 0._db
+      Xanes_av(:) = 0._db
+      do ie = ie0,nenerg
+        if( ie == ie0 ) then
+          Delta_E = ( Energ(ie+1) - Energ(ie) ) / 2 + Energ(ie) - E_medium
+        elseif( ie == nenerg ) then
+          Delta_E = ( Energ(ie) - Energ(ie-1) ) / 2
+        else
+          Delta_E = ( Energ(ie+1) - Energ(ie-1) ) / 2
+        endif
+        Xanes_atom_av = Xanes_atom_av + Delta_E * Xanes_atom(ie)
+        do i = 1,nxan
+          nomab = nom_col(i)
+          nomab = adjustl(nomab)
+          Length = len_trim(nomab)
+          if( nomab(Length-1:Length) == 'l0' .or. nomab(Length-1:Length) == 'l2' .or. nomab(Length-1:Length) == 'l3' ) cycle
+          Xanes_av(i) = Xanes_av(i) + Delta_E * Xanes(ie,i)   
+        end do
+      end do
+      Xanes_atom_av = Xanes_atom_av / E_medium
+      do i = 1,nxan
+        nomab = nom_col(i)
+        nomab = adjustl(nomab)
+        Length = len_trim(nomab)
+        if( nomab(Length-1:Length) == 'l0' .or. nomab(Length-1:Length) == 'l2' .or. nomab(Length-1:Length) == 'l3' ) then
+          Ratio(i) = 0._db
+        else
+          Xanes_av(i) = Xanes_av(i) / E_medium
+          Ratio(i) = Xanes_av(i) / Xanes_atom_av
+        endif
+      end do
+    endif
+  endif
 
   do ie = 1,nenerg
     if( Energphot ) then
@@ -4699,10 +4831,13 @@ subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,f
     do i = 1,nxan
       nomab = nom_col(i)
       nomab = adjustl(nomab)
-      if( nomab(1:3) == 'dic' .or. nomab(1:3) == 'Dic' ) then
+      Length = len_trim(nomab)
+      if( nomab(Length-1:Length) == 'l0' .or. nomab(Length-1:Length) == 'l2' .or. nomab(Length-1:Length) == 'l3' ) then
+        cycle
+      elseif( nomab(1:3) == 'dic' .or. nomab(1:3) == 'Dic' ) then
         Xanes(ie,i) = p * Xanes(ie,i)
       else
-        Xanes(ie,i) = p * Xanes(ie,i) + (1 - p) * Xanes_atom(ie)
+        Xanes(ie,i) = p * Xanes(ie,i) + (1 - p) * Ratio(i) * Xanes_atom(ie)
       endif
     end do
   end do
@@ -4886,8 +5021,8 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
   use declarations
   implicit none
   
-  integer:: i, i_col, i_cor, i_hk, i1, i2, ie, index, index_hk, index_max, ipas, ipr, j, l, l2, l3, le, length_hk, ll, n_col, &
-            n_cor, n_hk_tr, n_energ_tr, n_signal, nes, npldafs
+  integer:: i, i_col, i_cor, i_hk, i1, i2, ie, index, index_hk, index_max, ipas, ipr, j, Length, l2, l3, le, length_hk, ll, &
+            n_col, n_cor, n_hk_tr, n_energ_tr, n_signal, nes, npldafs
   integer, dimension(:), allocatable:: hk_length, n_index_hk
   integer, dimension(n_energ_tr):: index_ie
 
@@ -4907,8 +5042,8 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
   real(kind=db), dimension(npldafs,n_signal):: Signal
  
   Convolution_tr = Convolution_out
-  l = len_trim(Convolution_tr)
-  Convolution_tr(l-3:l+3) = '_tr.txt'
+  Length = len_trim(Convolution_tr)
+  Convolution_tr(Length-3:Length+3) = '_tr.txt'
   
   ipr = 4
   
@@ -5051,23 +5186,23 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
     endif   
   end do 
 
-  l = 1
+  Length = 1
   Word_b = ''
   Word_b(1:1) = 'I'
   do i_cor = 1,n_cor
     if( i_cor == 2 ) then
       Word_b(2:2) = 'c'
-      l = 2
+      Length = 2
     elseif( i_cor == 3 ) then
       Word_b(2:2) = 'd'
-      l = 2
+      Length = 2
     endif
     do i_hk = 1,n_hk_tr
       Word_d = Word_b
       Word_m9 = hk(i_hk)
       le = len_trim( Word_m9 ) 
-      Word_d(l+1:l+1) = '_'
-      Word_d(l+2:l+1+le) = Word_m9(1:le) 
+      Word_d(Length+1:Length+1) = '_'
+      Word_d(Length+2:Length+1+le) = Word_m9(1:le) 
       l2 = len_trim(Word_d) + 1
       Word_d(l2:l2) = '('
       do i = 1,n_energ_tr
@@ -5146,7 +5281,7 @@ subroutine Main_gaussian(File_in,itape,File_out)
   use declarations
   implicit none
 
-  integer:: eof, i, ier, ipr, istat, itape, l, ligne, n, n_text, ncol, nnombre, nx
+  integer:: eof, i, ier, ipr, istat, itape, Length, ligne, n, n_text, ncol, nnombre, nx
 
   character(len=9):: keyword
   character(len=132):: identmot, mot, Title, Traduction
@@ -5159,7 +5294,7 @@ subroutine Main_gaussian(File_in,itape,File_out)
   Rewind(itape)
   
   i = 0
-  do ligne = 1,1000
+  do ligne = 1,1000000
 
     n = nnombre(itape,132)
     read(itape,'(A)',iostat=eof) mot
@@ -5245,9 +5380,9 @@ subroutine Main_gaussian(File_in,itape,File_out)
 
 ! Writing
   
-  l = len_trim( File_out )
-  if( l > 4 ) then
-    if( File_out(l-3:l-3) /= '.' ) File_out(l+1:l+4) = '.txt'
+  Length = len_trim( File_out )
+  if( Length > 4 ) then
+    if( File_out(Length-3:Length-3) /= '.' ) File_out(Length+1:Length+4) = '.txt'
   endif
 
   Open(20, file = File_out )

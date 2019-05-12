@@ -186,7 +186,7 @@ subroutine symgrp(Cif,Cif_file,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans)
   implicit none
 
   integer, parameter:: nline_spgr = 5046
-  integer:: nmaxop
+  integer:: Length, nmaxop
 
   character(len=1):: SGTrans
   character(len=10):: sgnbcar, sgnbcar0
@@ -216,8 +216,13 @@ subroutine symgrp(Cif,Cif_file,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans)
     if( istat /= 0 ) call write_open_error(Cif_file,istat,1)
 
     do
-     read(itape,'(A)') mot
-     if( mot(1:26) == '_symmetry_equiv_pos_as_xyz' .or. mot(1:32) == '_space_group_symop_operation_xyz' ) exit 
+      read(itape,'(A)') mot
+      Length = len_trim(mot)
+      do i = 1,Length
+       if( mot(i:i) == char(9) ) mot(i:i) = ' '
+      end do
+      mot = adjustl(mot)
+      if( mot(1:26) == '_symmetry_equiv_pos_as_xyz' .or. mot(1:32) == '_space_group_symop_operation_xyz' ) exit 
     end do
     
     boucle_i: do i = 1,1000

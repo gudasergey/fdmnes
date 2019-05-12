@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 19th of February 2019, 30 Pluviose, An 227
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 19th of April 2019, 29 Germinal, An 227
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 19th of February 2019'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 19th of April 2019'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -327,13 +327,13 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
   data kw_conv / 'abs_b_iso','abs_befor','abs_u_iso','all_conv ','cal_tddft','calculati','check_bir','circular ','conv_out ', &
      'convoluti','dafs_exp_','dead_laye','dec      ','directory','double_co','eintmax  ','epsii    ','forbidden','fprime   ', &
-     'gamma_fix','gamma_var','gaussian ','no_analyz','no_extrap','nxan_lib ','photo_emi','s0_2     ','selec_cor','sample_th', &
-     'scan     ','scan_conv','scan_file','seah     ','stokes   ','stokes_na','surface_p','table    ','thomson  ','transpose'/
+     'gamma_fix','gamma_var','gaussian ','no_analyz','no_extrap','nxan_lib ','s0_2     ','selec_cor','sample_th','scan     ', &
+     'scan_conv','scan_file','seah     ','stokes   ','stokes_na','surface_p','table    ','thomson  ','transpose','XES      '/
 
   data kw_fdm/  &
      'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_b_is','atom_conf','atom_nsph','ang_spin ', &
      'atomic_sc','axe_spin ','atom_u_is', &
-     'base_comp','base_reel','bond     ','bulk     ','bulk_roug','cap_b_iso','cap_disor','cap_layer','cap_rough','cap_shift', &
+     'base_comp','base_reel','bond     ','bulk     ','bulk_roug','cap_b_iso','cap_layer','cap_rough','cap_shift', &
      'cap_thick','cap_u_iso','cartesian','center   ','center_ab','center_s ','chlib    ','cif_file ','classic_i','clementi ', &
      'coop     ','coop_atom','coop_dist','core_reso','crystal  ', &
      'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_2d  ','dafs_exp ','debye    ','delta_en_','dip_rel  ','e1e1     ', &
@@ -350,7 +350,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','nrixs_mon','occupancy','octupole ', &
      'old_zero ','one_run  ','one_scf  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ', &
      'pointgrou','polarized','quadmag  ','quadrupol','radius   ','range    ','rangel   ','raydem   ','rchimp   ','readfast ', &
-     'relativis','rmt      ','rmtg     ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ', &
+     'relativis','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ', &
      'self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
      'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spinorbit','step_azim','supermuf ','surface  ', &
      'surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','trace    ','vmax     ','v0imp    ', &
@@ -1815,6 +1815,8 @@ function Traduction(keyword)
       traduction = 'base_reel'
     case('borman')
       traduction = 'bormann'
+    case('cap_disor')
+      traduction = 'cap_u_iso'
     case('cartesien')
       traduction = 'cartesian'
     case('chlibre','freech','free_char','free_ch')
@@ -1959,7 +1961,7 @@ function Traduction(keyword)
       traduction = 'not_eneg'
     case('nrato_dir','nratodira','nr_ato')
       traduction = 'nrato'
-    case('nixs','xraman','xramman')
+    case('nixs','xraman','xramman','ramanx','rammanx')
       traduction = 'nrixs'
     case('dipole_oc','dip_oct')
       traduction = 'octupole'
@@ -1993,6 +1995,8 @@ function Traduction(keyword)
       traduction = 'relativis'
     case('rmtimp','rmt_imp','rmtgimp','rmtg_imp')
       traduction = 'rmtg'
+    case('z_rmtg','zrmtg','rmtgz')
+      traduction = 'rmtg_z'
     case('rmtvo')
       traduction = 'rmtv0'
     case('ang_rotsu','angrotsup','rotsup')
@@ -2053,8 +2057,8 @@ function Traduction(keyword)
       traduction = 'seah'
     case('noextrap')
       traduction = 'no_extrap'
-    case('photoemis','photo')
-      traduction = 'photo_emi'
+    case('photoemis','photo','xes')
+      traduction = 'XES'
     case('s02','so2','so_2')
       traduction = 's0_2'
     case('elarge','e_large','ewidth','e_width')
