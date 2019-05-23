@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 19th of April 2019, 29 Germinal, An 227
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 22nd of May 2019, 2 Prairial, An 227
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 19th of April 2019'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 22nd of May 2019'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -255,7 +255,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 214
+  integer, parameter:: nkw_fdm = 215
   integer, parameter:: nkw_conv = 39
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_gaus = 1
@@ -349,9 +349,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'no_e1e3  ','no_e2e2  ','no_e3e3  ','no_fermi ','no_renorm','no_res_ma','no_res_mo','no_scf_bu','no_solsin','normaltau', &
      'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','nrixs_mon','occupancy','octupole ', &
      'old_zero ','one_run  ','one_scf  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ', &
-     'pointgrou','polarized','quadmag  ','quadrupol','radius   ','range    ','rangel   ','raydem   ','rchimp   ','readfast ', &
-     'relativis','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ','rydberg  ', &
-     'self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
+     'pointgrou','polarized','quadmag  ','quadrupol','radius   ','range    ','rangel   ','ray_max_d','raydem   ','rchimp   ', &
+     'readfast ','relativis','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ', &
+     'rydberg  ','self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
      'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spinorbit','step_azim','supermuf ','surface  ', &
      'surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','trace    ','vmax     ','v0imp    ', &
      'xalpha   ','xan_atom ','ylm_comp ','z_absorbe','z_nospino','zero_azim'/

@@ -571,7 +571,7 @@ subroutine Search_ordering(Absauto,axyz,axyz_int,axyz_sur,Base_ortho,Base_ortho_
   use declarations
   implicit none
 
-  integer:: i, igr, jgr, n_atom_int, n_atom_per, n_atom_uc
+  integer:: i, igr, jgr, n, n_atom_int, n_atom_per, n_atom_uc
   integer, dimension(n_atom_uc):: Ordering
 
   logical:: Absauto, Base_ortho, Base_ortho_int, Base_ortho_sur, Center_s, Closer, Matper, Noncentre, Positive, Same_distance, &
@@ -624,36 +624,60 @@ subroutine Search_ordering(Absauto,axyz,axyz_int,axyz_sur,Base_ortho,Base_ortho_
   end do
 
 ! When Absorber keyword is used, there is a risk that the ordering make the chosen aborbing atom not first in the list
-  if( .not. Absauto ) return
+  if( Absauto ) then
 
-  do igr = 1,n_atom_uc
-    do jgr = igr+1,n_atom_uc
-      if( igr <= n_atom_per .and. jgr > n_atom_per ) cycle
-      if( dist(jgr) > dist(igr) + eps10 ) cycle
-      Same_distance = abs( dist(igr) - dist(jgr) ) < eps10
+    do igr = 1,n_atom_uc
+      do jgr = igr+1,n_atom_uc
+        if( igr <= n_atom_per .and. jgr > n_atom_per ) cycle
+        if( dist(jgr) > dist(igr) + eps10 ) cycle
+        Same_distance = abs( dist(igr) - dist(jgr) ) < eps10
  ! When at the same distance, one puts first the atom in the positive direction versus the origin
-      ps(:) = pos(:,jgr) - pos(:,igr)
-      if( Sym_2D ) then
-        if( abs( pos(3,jgr) - pos(3,igr) ) > eps10 ) cycle
-        Positive = Same_distance .and. ( sum( ps(1:2) ) > eps10 .or. ps(1) > eps10 )
-        Closer = ( Noncentre .or. Center_s ) .and. dist(jgr) < dist(igr) - eps10
-      else
-        Positive = Same_distance .and. ( sum( ps(:) ) > eps10 .or. ps(1) > eps10 .or. ( abs( ps(1) ) < eps10 .and. ps(2) > eps10 ) )
-        Closer = ( Noncentre .or. Center_s ) .and. dist(jgr) < dist(igr) - eps10
-      endif
-      if( Positive .or. Closer ) then
-        dist12 = dist(igr)
-        dist(igr) = dist(jgr)
-        dist(jgr) = dist12
+        ps(:) = pos(:,jgr) - pos(:,igr)
+        if( Sym_2D ) then
+          if( abs( pos(3,jgr) - pos(3,igr) ) > eps10 ) cycle
+          Positive = Same_distance .and. ( sum( ps(1:2) ) > eps10 .or. ps(1) > eps10 )
+          Closer = ( Noncentre .or. Center_s ) .and. dist(jgr) < dist(igr) - eps10
+        else
+          Positive = Same_distance .and. &
+                    ( sum( ps(:) ) > eps10 .or. ps(1) > eps10 .or. ( abs( ps(1) ) < eps10 .and. ps(2) > eps10 ) )
+          Closer = ( Noncentre .or. Center_s ) .and. dist(jgr) < dist(igr) - eps10
+        endif
+        if( Positive .or. Closer ) then
+          dist12 = dist(igr)
+          dist(igr) = dist(jgr)
+          dist(jgr) = dist12
+          i = Ordering(igr)
+          Ordering(igr) = Ordering(jgr)
+          Ordering(jgr) = i
+          ps(:) = pos(:,igr)
+          pos(:,igr) = pos(:,jgr)
+          pos(:,jgr) = ps(:)
+          endif
+      end do
+    end do
+
+  endif
+
+! For self-consistency, the atom must be calculated from the bulk up to surface,
+! because the self-consistent potential of deeper atoms is conserved when top more layers are calculated
+
+  if( n_atom_uc - n_atom_per > 0 ) then
+
+    n = n_atom_per + n_atom_int
+
+    do igr = n_atom_per + 1, n_atom_uc
+      do jgr = igr + 1, n_atom_uc
+        if( pos(3,igr) > pos(3,jgr) + eps10 .or. ( igr <= n .and. jgr > n ) ) cycle
         i = Ordering(igr)
         Ordering(igr) = Ordering(jgr)
         Ordering(jgr) = i
         ps(:) = pos(:,igr)
         pos(:,igr) = pos(:,jgr)
         pos(:,jgr) = ps(:)
-      endif
+      end do
     end do
-  end do
+
+  endif
 
   return
 end
@@ -889,8 +913,8 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Dopi
       iabsorig,icheck,icom,igreq,iprabs,iprabs_nonexc,itabs,itdil,itype,itype_dop,itypepr,jseuil,lcoeur,ldil, &
       lecrantage,lseuil,lvval,mpinodes0,mpirank0,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage,neqm,ngreq,ngroup, &
       nlat,nlatm,nnlm,nomfich_s,Nonexc,norbdil,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,numat_abs,nvval, &
-      pop_open_val,popatm,popats,popatv,popval,psi_coeur,psii,psi_open_val,psival,r0_lapw,rato,rchimp,Relativiste,rho_coeur, &
-      rhoit,rlapw,Rmt,Rmtimp,Self_nonexc,V_hubbard,nompsii)
+      pop_open_val,popatm,popats,popatv,popval,psi_coeur,psii,psi_open_val,psival,r0_lapw,rato,Ray_max_dirac,rchimp,Relativiste, &
+      rho_coeur,rhoit,rlapw,Rmt,Rmtimp,Self_nonexc,V_hubbard,nompsii)
 
   use declarations
   implicit none
@@ -915,7 +939,7 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Dopi
   logical:: Charge_free, Clementi, Doping, Flapw, Force_ecr, Nonexc, Relativiste, Self_nonexc
   logical, dimension(0:ntype):: hubb
 
-  real(kind=db):: Chargm, Chargm_SCF
+  real(kind=db):: Chargm, Chargm_SCF, Ray_max_dirac
   real(kind=db), dimension(norbdil):: cdil
   real(kind=db), dimension(0:n_atom_proto):: chargat
   real(kind=db), dimension(ngroup):: chargatg
@@ -958,7 +982,7 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Dopi
 ! Atomic electron density
   call atom(Clementi,com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpirank0,nbseuil,ncoeur,ngroup,nlat, &
         nlatm,nnlm,Nonexc,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,nvval,popatc,popats, &
-        popatv,popexc,popval,psi_coeur,psii,psival,r0_lapw,rato,Relativiste,rho_coeur,rhoit,rlapw)
+        popatv,popexc,popval,psi_coeur,psii,psival,r0_lapw,rato,Ray_max_dirac,Relativiste,rho_coeur,rhoit,rlapw)
 
   call pop_group(Chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,ngroup,nlat,nlatm,nspin,ntype,numat,popatc,popats)
 
@@ -974,7 +998,7 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Dopi
   call Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,itabs,itype,itype_dop,jseuil,lcoeur,lecrantage, &
         lqnexc,lseuil,lvval,mpinodes0,mpirank0,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,Nonexc,nqnexc, &
         nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popatc,popats,popatv,popexc,popval, &
-        psi_coeur,psii,psi_open_val,psival,rato,rchimp,Relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
+        psi_coeur,psii,psi_open_val,psival,rato,Ray_max_dirac,rchimp,Relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
 
   if( norbdil /= 0 ) then
     do it = min(itabs,1),ntype
@@ -996,7 +1020,7 @@ end
 
 subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpirank0,nbseuil,ncoeur,ngroup,nlat, &
         nlatm,nnlm,Nonexc,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,nvval,popatc,popats, &
-        popatv,popexc,popval,psi_coeur,psii,psival,r0_lapw,rato,Relativiste,rho_coeur,rhoit,rlapw)
+        popatv,popexc,popval,psi_coeur,psii,psival,r0_lapw,rato,Ray_max_dirac,Relativiste,rho_coeur,rhoit,rlapw)
 
   use declarations
   implicit none
@@ -1005,7 +1029,7 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
   integer:: icheck, igr, ipr, it, j, jseuil, k, l, lseuil, mpirank0, n, n_orbexc, &
     nbseuil, ngroup, nlatm, nnlm, nr, nrato_dirac, nrm, nseuil, nspin, ntype
 
-  real(kind=db):: dr, drmax, dx, rmax
+  real(kind=db):: dr, drmax, dx, Ray_max_dirac, Rmax
 
   character(len=35), dimension(0:ntype) :: com
 
@@ -1051,7 +1075,7 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
 
         call dirgen(icheck,it,0,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank0,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
           nnlm,nonexc,nqnexc,nr,nrato_dirac,nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
-          popexc,popval,psi_coeur,psii,psi_open_val,psival,ra,rho_coeur,rhoit,numat(it),Relativiste)
+          popexc,popval,psi_coeur,psii,psi_open_val,psival,ra,Ray_max_dirac,rho_coeur,rhoit,numat(it),Relativiste)
 
         nrato(it) = nr
         rato(1:nr,it) = ra(1:nr)
@@ -1420,11 +1444,15 @@ end
 subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,itabs,itype,itype_dop,jseuil,lcoeur,lecrantage, &
         lqnexc,lseuil,lvval,mpinodes0,mpirank0,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,nonexc,nqnexc, &
         nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popatc,popats,popatv,popexc,popval, &
-        psi_coeur,psii,psi_open_val,psival,rato,rchimp,relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
+        psi_coeur,psii,psi_open_val,psival,rato,Ray_max_dirac,rchimp,relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
   include 'mpif.h'
+
+  integer:: iabsorbeur, icheck, igr, ipr, ir, irt, istat, it, itabs, itabs_t, itype_dop, jseuil, l, lecrantage, lseuil, &
+     mpinodes0, mpirank0, mpierr, n_orbexc, nbseuil, necrantage, ngroup, nlatm, nnlm, nr, nrato_dirac, nrm, nseuil, nspin, &
+     ntype
 
   character(len=35), dimension(0:ntype) :: com
   character(len=Length_name):: nompsii
@@ -1438,8 +1466,10 @@ subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
 
   logical:: Doping, Force_ecr, nonexc, relativiste
 
+  real(kind=db):: p1, p2, Ray_max_dirac
+
   real(kind=db), dimension(0:ntype):: popatc, rchimp, rmt, rmtimp, V_hubbard
-  real(kind=db), dimension(nspin):: ecrantage
+  real(kind=db), dimension(nspin):: Ecrantage
   real(kind=db), dimension(nrm):: rr
   real(kind=db), dimension(nrm,nbseuil):: psii, psiit
   real(kind=db), dimension(ngroup,nlatm,nspin):: popats
@@ -1484,7 +1514,7 @@ subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
   Hubb(0) = Hubb(itabs)
   V_hubbard(0) = V_hubbard(itabs)
 
-  call Screendef(ecrantage,force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,mpirank0,n_orbexc,necrantage, &
+  call Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,mpirank0,n_orbexc,necrantage, &
         nlat,nlatm,nnlm,nqnexc,nseuil,nspin,ntype,nvval,popexc,popval,numat(itabs))
 
 ! itabs est remis a la valeur initiale a la fin de la routine si on est en nonexc
@@ -1502,7 +1532,7 @@ subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
 
     call dirgen(icheck,itabs,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank0,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
          nnlm,nonexc,nqnexc,nr,nrato_dirac,nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
-         popexc,popval,psi_coeur,psii,psi_open_val,psival, rr,rho_coeur,rhoit,numat(itabs),relativiste)
+         popexc,popval,psi_coeur,psii,psi_open_val,psival,rr,Ray_max_dirac,rho_coeur,rhoit,numat(itabs),Relativiste)
 
 ! popats pour l'absorbeur
     do igr = 1,ngroup
@@ -1560,7 +1590,7 @@ subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
       if( nonexc .and. it == 0 ) cycle
       write(3,130) it, com(it), numat(it), ( nvval(it,l), lvval(it,l), popatv(it,l), l = 1,nlat(it))
     end do
-    if( .not. nonexc ) write(3,140) necrantage, lecrantage, ecrantage(1:nspin)
+    if( .not. nonexc ) write(3,140) necrantage, lecrantage, Ecrantage(1:nspin)
   endif
   if( icheck > 1 ) then
     write(3,150)
@@ -4371,13 +4401,16 @@ subroutine sym_cluster(Atom_with_axe,Axe_atom_clu,iaabs,igroup,iopsym,itype,ityp
           endif
         endif
 
+!if( is == 24 .and. ia > 9) then
+
         do ib = 1,natomp
           if( .not. Symmol ) then   ! When nonexc, Symmol is automaticaly true
             if( ( ia == iaabs .and. ib /= iaabs ) .or. ( ia /= iaabs .and. ib == iaabs ) ) cycle
           endif
           v(1:3) = pos(1:3,ib) - pt(1:3)
           if( ia == ib ) then
-            if( abs( v(1) ) > eps10 .or. abs( v(2) ) > eps10 .or. abs( v(3) ) > eps10 ) cycle
+            if( abs( v(1) ) > 1.e-8_db .or. abs( v(2) ) > 1.e-8_db .or. abs( v(3) ) > 1.e-8_db ) cycle
+!            if( abs( v(1) ) > eps10 .or. abs( v(2) ) > eps10 .or. abs( v(3) ) > eps10 ) cycle
           else
             if( abs( v(1) ) > epspos .or. abs( v(2) ) > epspos .or. abs( v(3) ) > epspos ) cycle
           endif
@@ -4398,17 +4431,9 @@ subroutine sym_cluster(Atom_with_axe,Axe_atom_clu,iaabs,igroup,iopsym,itype,ityp
 
           if( Atom_with_axe(igra) ) then
 ! L'axe de l'atome a ete renverse dans symsite si l'atome est antiferro
-!            if( itypegen(igra) == itypegen(igrb) ) then
               if( abs( Axe_atom_clu(1,ib) - Axe_atom_s(1) ) > epspos .or. abs( Axe_atom_clu(2,ib) - Axe_atom_s(2) ) &
                                                     > epspos .or. abs( Axe_atom_clu(3,ib) - Axe_atom_s(3) ) &
                                     > epspos ) cycle boucle_exter
-!            else
-
-!              if( abs( Axe_atom_clu(1,ib) + Axe_atom_s(1) ) > epspos .or. abs( Axe_atom_clu(2,ib) + Axe_atom_s(2) ) &
-!                                                    > epspos .or. abs( Axe_atom_clu(3,ib) + Axe_atom_s(3) ) &
-!                                    > epspos ) cycle boucle_exter
-!            endif
-
           else
 
             if(   ( abs( Axe_atom_clu(1,ib) - Axe_atom_s(1) ) > epspos &
@@ -9830,36 +9855,6 @@ end
 
 !***********************************************************************
 
-! Selection and normalisation of the points at the border of the outer-sphere
-
-subroutine Selec_xyz_so(iopsymr,isrt,npsom,nsort,xyz,xyz_so)
-
-  use declarations
-  implicit none
-
-  integer:: ib, isym, npsom, nsort
-  integer, dimension(nsort):: isrt     ! nstm = nsort when not Green
-  integer, dimension(nopsm):: iopsymr
-
-  real(kind=db):: r
-  real(kind=db), dimension(3):: p, V, W
-  real(kind=db), dimension(4,npsom):: xyz
-  real(kind=db), dimension(4,nsort):: xyz_so
-
-  p(:) = 0._db
-
-  do ib = 1,nsort
-    W(1:3) = xyz(1:3,isrt(ib))
-    call posrel(iopsymr,W,p,V,r,isym)
-    xyz_so(1:3,ib) = V(1:3)
-    xyz_so(4,ib) = r
-  end do
-
-  return
-end
-
-!***********************************************************************
-
 ! Calcul de l'energie du niveau de coeur initial.
 
 subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_moy,Eseuil,icheck,is_g, &
@@ -10645,17 +10640,18 @@ end
 
 ! Calculation of the Ylm and of the distances from the atom center of each points.
 
-subroutine Ylmpt(iaprotoi,ibord,icheck,iopsymr,lmaxat,n_atom_proto,natome, &
-             nbord,nbtm,nlmmax,npsom,posi,rot_atom,xyz,Ylmato)
+subroutine Ylmpt(iaprotoi,ibord,icheck,iopsymr,isrt,lmaxat,lmaxso,n_atom_proto,natome, &
+             nbord,nbtm,nlmmax,nlmomax,nsort,nstm,npsom,posi,rot_atom,xyz,Ylmato,Ylmso)
 
   use declarations
   implicit none
 
-  integer:: i, ia, ib, icheck, ipr, isym, l, lm, lmax, m, n_atom_proto, natome, nbtm, nlmc, nlmmax, nlmr, np, &
-            npsom
+  integer:: i, ia, ib, icheck, ipr, isym, l, lm, lmax, lmaxso, m, n_atom_proto, natome, nbtm, nlmc, nlmmax, nlmomax, nlmr, np, &
+            nsort, nstm, npsom
 
   integer, dimension(0:n_atom_proto):: lmaxat
   integer, dimension(nopsm):: iopsymr
+  integer, dimension(nstm):: isrt
   integer, dimension(natome):: iaprotoi, nbord
   integer, dimension(nbtm,natome):: ibord
 
@@ -10668,32 +10664,47 @@ subroutine Ylmpt(iaprotoi,ibord,icheck,iopsymr,lmaxat,n_atom_proto,natome, &
   real(kind=db), dimension(3,natome):: posi
   real(kind=db), dimension(4,npsom):: xyz
   real(kind=db), dimension(nbtm,nlmmax,natome):: Ylmato
+  real(kind=db), dimension(nsort,nlmomax):: Ylmso
   real(kind=db), dimension(:), allocatable :: Ylmr
 
   if( icheck > 1 ) write(3,110)
 
-  do ia = 1,natome
+  do ia = 0,natome
 
-    ipr = iaprotoi(ia)
-    lmax = lmaxat(ipr)
-    np = nbord(ia)
-    p(1:3) = posi(1:3,ia)
+    if( ia > 0 ) then
+      ipr = iaprotoi(ia)
+      lmax = lmaxat(ipr)
+      np = nbord(ia)
+      p(1:3) = posi(1:3,ia)
 ! Changement de base :
-    rot_a(:,:) = rot_atom(:,:,ia)
+      rot_a(:,:) = rot_atom(:,:,ia)
+    else
+      p(:) = 0._db
+      lmax = lmaxso
+      np = nsort
+    endif
     nlmr = ( lmax + 1 )**2
     nlmc = ( ( lmax + 1 ) * ( lmax + 2 ) ) / 2
     allocate( Ylmc(nlmc) )
     allocate( Ylmr(nlmr) )
 
     do ib = 1,np
-      i = ibord(ib,ia)
+      if( ia == 0 ) then
+        i = isrt(ib)
+      else
+        i = ibord(ib,ia)
+      endif
       w(1:3) = xyz(1:3,i)
       call posrel(iopsymr,w,p,v,r,isym)
       if( ia > 0 ) w = matmul( rot_a, v )
       call cYlm(lmax,w,r,Ylmc,nlmc)
 ! Conversion in real Ylm
       call Ylmcr(lmax,nlmc,nlmr,Ylmc,Ylmr)
-      Ylmato(ib,1:nlmr,ia) = Ylmr(1:nlmr)
+      if( ia == 0 ) then
+        Ylmso(ib,1:nlmr) = Ylmr(1:nlmr)
+      else
+        Ylmato(ib,1:nlmr,ia) = Ylmr(1:nlmr)
+      endif
     end do
 
     if( icheck > 2 ) then
@@ -10703,7 +10714,11 @@ subroutine Ylmpt(iaprotoi,ibord,icheck,iopsymr,lmaxat,n_atom_proto,natome, &
         do m = -l,l
           write(3,130) l, m
           lm = lm + 1
-          write(3,140) Ylmato(1:np,lm,ia)
+          if( ia == 0 ) then
+            write(3,140) Ylmso(1:np,lm)
+          else
+            write(3,140) Ylmato(1:np,lm,ia)
+          endif
         end do
       end do
     endif

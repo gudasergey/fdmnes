@@ -1580,7 +1580,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     nvval,occ_hubb_e,Occupancy_first,Octupole,Old_zero,One_run,One_SCF,Operation_mode,Operation_mode_used,Optic,Overad,Overlap, &
     p_self_max,p_self0,p_self0_bulk,param,Pas_SCF,pdpolar,phi_0,PointGroup,PointGroup_Auto,polar,Polarise,poldafsem,poldafssm, &
     pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadmag,Quadrupole,R_rydb,R_self,R_self_bulk, &
-    r0_lapw,rchimp,Readfast,Relativiste,Renorm,Rlapw,Rmt,Rmtimp,Rot_Atom_gr,rotloc_lapw, &
+    r0_lapw,Ray_max_dirac,rchimp,Readfast,Relativiste,Renorm,Rlapw,Rmt,Rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,rydberg,rsorte_s,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spinorbite,state_all, &
     state_all_out,Supermuf,Surface_shift,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef, &
@@ -1685,8 +1685,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   real(kind=db):: Alfpot, Ang_borm, Bulk_roughness, Cap_B_iso, Cap_roughness, Cap_shift, Cap_thickness, Cap_U_iso, &
     D_max_pot, Delta_En_conv, Delta_Epsii, Delta_helm, Dist_coop, Eclie, Eclie_out, Ephot_min, Film_roughness, Film_thickness, &
     Film_zero, g1, g2, Gamma_max, Kern_fac, number_from_text, Overlap, p_self_max, p_self0, p_self0_bulk, Pas_SCF, phi, phi_0, &
-    pop_nsph, pp, q, r, r_self, R_self_bulk, R_rydb, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, Test_dist_min, Theta, &
-    V_helm, V_intmax, vv, Width_helm, z_min
+    pop_nsph, pp, q, r, r_self, R_self_bulk, R_rydb, Ray_max_dirac, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, &
+    Test_dist_min, Theta, V_helm, V_intmax, vv, Width_helm, z_min
 
   real(kind=db), dimension(4,nq_nrixs):: q_nrixs
   real(kind=db), dimension(2):: f_no_res
@@ -1942,6 +1942,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   R_self_imp = .false.
   r0_lapw(:) = 0._db
   Rchimp(:) = 0._db
+  Ray_max_dirac = 0._db
   Relativiste = .false.
   Renorm = .false.
   rlapw(:) = 0._db
@@ -2933,6 +2934,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('norman')
           normrmt = 2
+
+        case('ray_max_d')
+          n = nnombre(itape4,132)
+          read(itape4,*,iostat=ier) Ray_max_dirac
+          if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('rchimp')
           do it = 1,100000
@@ -5138,6 +5144,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       endif
       if( Atom_nonsph ) write(3,'(/A)') ' Calculation with non spherical orbitals'
       if( Temp > eps10 ) write(3,500) Temp
+      if( Ray_max_dirac > eps6 ) write(3,502) Ray_max_dirac
 
       if( nple > 0 ) then
         if( sum( abs( pdpolar(:,:) ) ) > eps10 ) then
@@ -5799,6 +5806,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(posn,3*n_atom_uc,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Quadmag,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Quadrupole,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Ray_max_dirac,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(R_self,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(R_self_bulk,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Relativiste,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
@@ -5984,6 +5992,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   R_rydb = R_rydb / bohr
   R_self = R_self / bohr
   R_self_bulk = R_self_bulk / bohr
+  Ray_max_dirac = Ray_max_dirac / bohr
   rchimp(:) = rchimp(:) / bohr
   rmtimp(:) = rmtimp(:) / bohr
   Roverad = Roverad / bohr
@@ -6263,6 +6272,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   480 format('   E_ato_min, E_out_min =',2f7.3,' eV')
   490 format('   V_intmax =',f7.3,' eV')
   500 format(/' Temperature =',f6.1,' K')
+  502 format(' Ray max Dirac  =',f6.2,' A')
   505 format(6x,3f7.3,3x,3f7.3,3x,f7.3,4x,f7.3)
   510 format(6x,3f7.3,3x,3f7.3,3x,'Matrix')
   511 format(/' Bormann',/ '  (h, k, l) = (',i3,',',i3,',',i3,')   Azimuth =',f7.2)

@@ -7,10 +7,10 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
                       FDM_comp_m,Full_atom,gradvr,ia_coop,iaabsi,iaprotoi,iato,ibord,icheck,ie,igroupi,igrph, &
                       irep_util,isbord,iso,ispinin,isrt,ivois,isvois,karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso,nab_coop, &
                       natome,n_atom_0,n_atom_coop,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,ngroup_m,ngrph,nim,nicm, &
-                      nlmagm,nlmmax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
+                      nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
                       nsort,nsortf,nso1,nspin,nspino,nspinp,nstm,numia,nvois,phiato,poidsa,poidso,Posi,R_rydb,Recop,Relativiste, &
                       Repres_comp,Rmtg,Rsort,rvol,Rydberg,Solsing,Spinorbite,State_all_r,Sym_cubic,Tau_ato,Tau_coop,Taull, &
-                      Time_fill,Time_tria,V0bd_out,Vr,xyz,xyz_so,Ylm_comp,Ylmato)
+                      Time_fill,Time_tria,V0bd_out,Vr,xyz,Ylm_comp,Ylmato,Ylmso)
 
   use declarations
   implicit none
@@ -18,7 +18,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   integer:: i, ia, iaabsi, iab, ib, icheck, ie, igrph, ii, ipra, iprb, irep, is1, is2, isg, isp, ispinin, &
     j, jj, jsp, l, l1, l2, lm, lm01, lm01c, lm02, lm02c, lm1, lm2, lmaxso, lmf, lms, lmw, m, m1, m2, mpierr, &
     MPI_host_num_for_mumps, mpirank0, natome, n_atom_0, n_atom_coop, nab_coop, n_atom_ind, n_atom_proto, nbm, nbtm, ngroup_m, &
-    ngrph, nim, nicm, nligne, nligne_i, nligneso, nlmagm, nlmmax, nlmsam, nlmso, nlmso_i, nlmw, nphiato1, nphiato7, &
+    ngrph, nim, nicm, nligne, nligne_i, nligneso, nlmagm, nlmmax ,nlmomax, nlmsam, nlmso, nlmso_i, nlmw, nphiato1, nphiato7, &
     npoint, npr, npsom, nsm, nsort, nsort_c, nsort_r, nsortf ,nso1, nspin, nspino, nspinp, nspinr, nstm, nvois
 
   integer, dimension(0:npoint):: new
@@ -57,7 +57,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   real(kind=db), dimension(nim):: rvol
   real(kind=db), dimension(nsm):: poidso
   real(kind=db), dimension(4,npsom):: xyz
-  real(kind=db), dimension(4,nsort):: xyz_so
+  real(kind=db), dimension(nsort,nlmomax):: Ylmso
   real(kind=db), dimension(0:n_atom_proto):: Rmtg
   real(kind=db), dimension(natome):: distai
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_grn
@@ -155,10 +155,10 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
     call mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clapl, E_comp, Eimag, Enervide, gradvr, &
         ianew, iato, ibord, icheck, ie, igrph, ii, isbord, iso, ispinin, isrt, isvois, ivois, Kar, Kari, lato, &
         lb1, lb2, lmaxso, lso, mato, MPI_host_num_for_mumps, mpirank0, mso, natome, nbm, nbord, nbordf, nbtm, Neuman, Neumanr, &
-        new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmsa, nlmso, nlmso_i, &
+        new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmomax, nlmsa, nlmso, nlmso_i, &
         nphiato1, nphiato7, npoint, npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
         numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, smi, smr, Spinorbite, Time_fill, Time_tria, Vr, &
-        xyz_so, Ylm_comp, Ylmato )
+        Ylm_comp, Ylmato, Ylmso)
 
   deallocate( Bessel, Besselr, Neuman, Neumanr )
 
@@ -818,7 +818,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
     Enervide, gradvr, ianew, iato, ibord, icheck, igrph, ii, isbord, iso, ispin0, isrt, isvois, ivois, Kar, Kari, &
     lato, lb1i, lb1r, lb2i, lb2r, lmaxso, lso, mato, mletl, mso, natome, nbm, nbord, &
     nbordf, nbtm, Neuman, Neumanr, new, newinv, ngrph, nicm, nim, nligne, nligne_i, &
-    nligneso, nlmagm, nlmmax, nlmsa, nlmsam, nlmso, nlmso_i, nlmso_r, nphiato1, nphiato7, npoint, npsom, nsm, nso1, &
+    nligneso, nlmagm, nlmmax, nlmomax, nlmsa, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, npsom, nsm, nso1, &
     nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
     numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, Spinorbite,  &
     smi, smr, Vr, Ylm_comp, Ylmato, Ylmso, MUMPS )
@@ -831,8 +831,8 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   integer:: i, ii1, ia, ib, icheck, ii, ispin, ispin0, igrph, indg, isol, isp, ispint, ispo, ispp, ispq, ispt, isym, &
     iv, j, jj, jj1, jjj, k, l, lb1i, lb1r, lb2i, lb2r, ljj, lm, lm0, lmaxso, lmf, lmf0, lmp, lmp0, lms, lp, &
     m, mf, mp, n, natome, nbm, nbtm, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmagm, nlmso, nlmso_i, & 
-    nlmso_r, nphiato1, nphiato7, npoint, npsom, nsm, nsort, nsort_c, nsortf, nsort_r, nspino, nspinp, nstm, nso1, nlmsam, &
-    nspin, nspinr, nlmmax, nvois
+    nphiato1, nphiato7, npoint, npsom, nsm, nsort, nsort_c, nsortf, nsort_r, nspino, nspinp, nstm, nso1, nlmsam, nspin, nspinr, &
+    nlmmax, nlmomax, nvois
  
   integer, dimension(0:npoint):: new
   integer, dimension(natome):: ianew, nbord, nbordf, nlmsa
@@ -867,6 +867,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   real(kind=db), dimension(nbm,natome):: poidsa
   real(kind=db), dimension(nim):: rvol
   real(kind=db), dimension(nsm):: poidso
+  real(kind=db), dimension(nsort,nlmomax):: Ylmso
   real(kind=db), dimension(nicm,3,nspin):: gradvr
   real(kind=db), dimension(nbtm,nlmmax,natome):: Ylmato
   real(kind=db), dimension(nphiato1,nlmagm,nspinp,nspino,natome,nphiato7):: phiato
@@ -875,7 +876,6 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   real(kind=db), dimension(nlmso,nligne):: smr
   real(kind=db), dimension(nlmso_i,nligne_i):: smi
   real(kind=db), dimension(nsort_r,0:lmaxso,nspino):: Besselr, Neumanr
-  real(kind=db), dimension(nsort,nlmso_r):: Ylmso
   
   real(kind=db), save, dimension(nletm**2):: vletr, vleti
 
@@ -1159,7 +1159,6 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       endif
 
       do ib = 1,nsortf
-      
         if( Cal_comp ) then
           if( Ylm_comp .and.  m /= 0 .and. mp /= 0 ) then
             cfac = conjg( Yc(m,Ylmso(ib,lm0),Ylmso(ib,lm0-2*m)) ) * Yc(mp,Ylmso(ib,lmp0), Ylmso(ib,lmp0-2*mp) )
@@ -1168,7 +1167,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
           elseif( Ylm_comp .and.  mp /= 0 ) then
             cfac = Ylmso(ib,lm0) * Yc(mp,Ylmso(ib,lmp0), Ylmso(ib,lmp0-2*mp) )
           else
-            cfac = cmplx( Ylmso(ib,lm0) * Ylmso(ib,lmp0), 0._db, db)
+            cfac = cmplx(Ylmso(ib,lm0) * Ylmso(ib,lmp0), 0._db, db)
           endif
           cfac = poidso(ib) * cfac
  
@@ -1399,7 +1398,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       write(3,165) (mlet(k), vletr(k), vleti(k), k = 1,nlet)
     endif
   endif
-
+    
   return
   120 format(/'  FDM Matrix :',/'  ii     i   lb1   lb2   / abr(i = lb1,lb2)')
   130 format(4i6)
@@ -2988,8 +2987,8 @@ subroutine Cal_Tau_coop(Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lm
   implicit none
   
   integer:: ia, iab, ib, ic, igrph, ipra, iprb, is1, is2, ispin, isg, isp, j, l, l1, l2, lm, lm01, lm01c, lm02, lm02c, &
-    lm1, lm1p, lm2, lm2p, lma, lma0, lmaxg, lmb, lmb0, m, m1, m2, n_atom_coop, n_atom_proto, natome, nb_sym_op, ndim, ngrph, &
-    nlmch, nlmagm, nlmsam, nlmsamax, nlmsmax, nspino, nspinp, nab_coop
+    lm1, lm1p, lm2, lm2p, lma, lma0, lmaxg, lmb, lmb0, m, m1, m2, n_atom_coop, n_atom_proto, natome, nb_sym_op, ndim, &
+    ngrph, nlmch, nlmagm, nlmsam, nlmsamax, nlmsmax, nspino, nspinp, nab_coop
 
   integer, dimension(n_atom_coop):: ia_coop
   integer, dimension(natome):: iaprotoi, lmaxa, nlmsa
@@ -3152,7 +3151,7 @@ subroutine Cmat_cal(Cmat,iato,icheck,igrph,iopsymr,irep_util,is_eq,karact,lato,l
   complex(kind=db), dimension(-lmaxg:lmaxg):: Ctem
   complex(kind=db), dimension(natome,nlmsamax,nb_sym_op,-lmaxg:lmaxg,nspino):: Cmat
   complex(kind=db), dimension(nopsm,nrepm):: karact
-  complex(kind=db), dimension(:,:,:), allocatable:: Dlmm_ia, Dlmm_ib,Dlmm_is
+  complex(kind=db), dimension(:,:,:), allocatable:: Dlmm_ia, Dlmm_ib, Dlmm_is
   complex(kind=db), dimension(:,:), allocatable:: Mat_ia, Mat_is
 
   integer, dimension(natome):: nb_eq, nlmsa
@@ -3577,11 +3576,9 @@ subroutine Rotation_mat(Dlmm,icheck,Mat_rot,lmax,Ylm_comp)
   use declarations
   implicit none
 
-  integer:: icheck, l, lmax, m, mp
+  integer:: icheck, is, l, lmax, m, mp
 
   real(kind=db):: alfa, beta, gamma, r2
-
-!  Number of N! values computed : Nfac
 
   complex(kind=db), dimension(-lmax:lmax,-lmax:lmax):: Mat, Trans, Transi
   complex(kind=db), dimension(-lmax:lmax,-lmax:lmax,0:lmax):: Dlmm
@@ -3605,15 +3602,16 @@ subroutine Rotation_mat(Dlmm,icheck,Mat_rot,lmax,Ylm_comp)
 
   if( .not. Ylm_comp ) then
 
-! Cas des harmoniques reelles :
+! Case of real harmonics:
   
   Trans(:,:) = (0._db, 0._db)
   Transi(:,:) = (0._db, 0._db)
   r2 = 1 / sqrt(2._db)
   do m = -lmax,lmax
     if( m > 0 ) then
-      Trans(m,m) = cmplx( (-1)**m * r2, 0._db, db)
-      Trans(m,-m) = cmplx( 0._db, (-1)**m * r2, db)
+      is = (-1)**m
+      Trans(m,m) = cmplx( is * r2, 0._db, db)
+      Trans(m,-m) = cmplx( 0._db, is * r2, db)
     elseif( m == 0 ) then
       Trans(0,0) = (1._db, 0._db)
     else
@@ -3621,25 +3619,8 @@ subroutine Rotation_mat(Dlmm,icheck,Mat_rot,lmax,Ylm_comp)
       Trans(m,m) = cmplx(0._db, -r2, db)
     endif
   end do
-  do m = -lmax,lmax
-    if( m > 0 ) then
-      Transi(m,-m) = cmplx(r2, 0._db, db)
-      if( mod(m,2) == 0 ) then
-        Transi(m,m) = cmplx(r2, 0._db, db)
-      else
-        Transi(m,m) = cmplx(-r2, 0._db, db)
-      endif
-    elseif( m == 0 ) then
-      Transi(0,0) = (1._db, 0._db)
-    else
-      if( mod(m,2) == 0 ) then
-        Transi(m,-m) = cmplx(0._db, -r2, db)
-      else
-        Transi(m,-m) = cmplx(0._db, r2, db)
-      endif
-      Transi(m,m) = cmplx(0._db, r2, db)
-    endif
-  end do
+  
+  Transi = Conjg( Transpose( Trans ) )
 
   do l = 0,lmax
 
@@ -3660,6 +3641,8 @@ subroutine Rotation_mat(Dlmm,icheck,Mat_rot,lmax,Ylm_comp)
   endif
 
   if( icheck > 2 ) then
+  
+    write(3,100) alfa*180/pi, beta*180/pi, gamma*180/pi
     do l = 0,lmax
       Write(3,110) l
         write(3,120 ) (m, m =-l,l)
@@ -3670,6 +3653,7 @@ subroutine Rotation_mat(Dlmm,icheck,Mat_rot,lmax,Ylm_comp)
   endif
 
   return
+  100 format(/' alfa, beta, gamma =',3f10.4)
   110 format(/' Dlmm,  l =',i3)
   120 format(5x,'m',100(13x,i3,11x))  
   130 format(i6,1p,100(1x,2e13.5))  
@@ -3870,7 +3854,7 @@ end
 
 ! **********************************************************************
 
-! Calculation of Euler angles from the rotation matrix
+! Calculation of Euler angles from the rotation matrix  (Z1 Y2 Z3) !(Z1 X2 Z3)
 
 subroutine Euler_mat(icheck,Mat,alfa,beta,gamma)
 

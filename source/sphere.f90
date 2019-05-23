@@ -4246,7 +4246,7 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
   character(len=Length_name):: nomfich_coop, nomfich_s
   character(len=2), dimension(-7:99):: ch
 
-  complex(kind=db):: Yc, Ycompa, Ycompb, YlmaYlmb, YuaYub
+  complex(kind=db):: Tau_D, Yc, Ycompa, Ycompb, YlmaYlmb, YuaYub
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop):: Tau_coop, Tau_coop_r
   complex(kind=db), dimension(:), allocatable:: Ylmc
@@ -4254,16 +4254,17 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
   complex(kind=db), dimension(:,:,:,:), allocatable:: Taull, V_hubb_t
   complex(kind=db), dimension(:,:,:,:,:), allocatable:: um
   
-  logical:: Density_comp, Full_atom, Full_potential, Hubb_a, Hubb_d, Relativiste, Renorm, Sens, Spino, Spinorbite, Ylm_comp 
+  logical:: Density_comp, Full_atom, Full_potential, Hubb_a, Hubb_d, Relativiste, Renorm, Sens, Spino, Spinorbite, Ylm_comp, &
+            Z_along_bond 
   logical, dimension(0:ntype):: Hubb
   logical, dimension(n_atom_0_self:n_atom_ind_self):: Hubb_diag
 
   real(kind=db):: Angle, Dist, Dist_coop, dOverlap, Eimag, Energ, Enervide, Rad_max, Radius_coop, Step, Step_rad, V_intmax, Vol
-  real(kind=db), dimension(3):: T, U, V, Va, Vb, W
+  real(kind=db), dimension(3):: T, U, V, Va, Vb, Vx, Vy, Vz, W
   real(kind=db), dimension(nspin):: Ecinetic, V0bd
   real(kind=db), dimension(nab_coop):: COverlap_T
   real(kind=db), dimension(0:n_atom_proto):: Rmtg, Rmtg0, Rmtsd
-  real(kind=db), dimension(3,3):: Rot_a, Rot_b
+  real(kind=db), dimension(3,3):: Mat_rot, Rot_a, Rot_b
   real(kind=db), dimension(3,3,natome):: rot_atom
   real(kind=db), dimension(3,natome):: Posi
   real(kind=db), dimension(0:nrm,0:ntype):: rato
@@ -4289,6 +4290,9 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
                  3,3, 3,3,3,3,3,3,3,3,3,3,3,3,3,3, 3,3,3,3,3,3,3,3,3,3, 3,3,3,3,3,3, & ! Rn 86     
                  3,3, 3,3,3,3,3,3,3,3,3,3,3,3,3,3, 3/ ! Lw 103     
  
+!  Z_along_bond = .true.
+  Z_along_bond = .false.
+  
   COverlap_T(:) = 0._db
   n_rad = 1
   Rad_max = 0.20_db
@@ -4440,9 +4444,7 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
     ipra = iaprotoi( ia )
     Za = numat( itypepr(ipra) )
     lmaxa = min( lmaxat( ipra ), lmax_coop( Za ) )
-    Rot_a(:,:) = rot_atom(:,:,ia)
     allocate( Dlmm_ia(-lmaxa:lmaxa,-lmaxa:lmaxa,0:lmaxa) )
-    call Rotation_mat(Dlmm_ia,0,Rot_a,lmaxa,Ylm_comp)  ! 0 is for icheck
 
     do ib = ia+1,natome
 
@@ -4467,8 +4469,38 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
       Zb = numat( itypepr(iprb) )
       lmaxb = min( lmaxat( iprb ), lmax_coop( Zb ) )
      
+      Rot_a(:,:) = rot_atom(:,:,ia)
       Rot_b(:,:) = rot_atom(:,:,ib)
       allocate( Dlmm_ib(-lmaxb:lmaxb,-lmaxb:lmaxb,0:lmaxb) )
+
+! Rotation to get the local z axis along the bond direction
+      if( Z_along_bond ) then
+
+        Vz(:) = Posi(:,ib) - Posi(:,ia)
+        Vz(:) = Vz(:) / sqrt( sum( Vz(:)**2 ) )
+            
+        if( abs( Vz(3) - 1._db ) > eps10 ) then
+
+          Vx(1) = - Vz(2) / sqrt( Vz(1)**2 + Vz(2)**2 ) 
+          Vx(2) = Vz(1) / sqrt( Vz(1)**2 + Vz(2)**2 )
+          Vx(3) = 0._db
+              
+          call prodvec( Vy, Vz, Vx )
+          Vy(:) = Vy(:) / sqrt( sum( Vy(:)**2 ) )
+        
+          Mat_rot(:,1) = Vx(:)
+          Mat_rot(:,2) = Vy(:)
+          Mat_rot(:,3) = Vz(:)
+          
+          Mat_rot = Transpose( Mat_rot )
+
+          Rot_a = Matmul( Mat_rot, Rot_a )
+          Rot_b = Matmul( Mat_rot, Rot_b )
+
+        endif
+      endif
+
+      call Rotation_mat(Dlmm_ia,0,Rot_a,lmaxa,Ylm_comp)  ! 0 is for icheck
       call Rotation_mat(Dlmm_ib,0,Rot_b,lmaxb,Ylm_comp)
 
       do isa = 1,nspinp
@@ -4483,12 +4515,13 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
                 do mb = -lb,lb
                   lmb = lmb + 1
                   do mpa = -la,la
-                    lm = la**2 + la + 1 + mpa 
+                    lm = la**2 + la + 1 + mpa
+                    Tau_D = (0._db, 0._db)
                     do mpb = -lb,lb
-                      lmp = lb**2 + lb + 1 + mpb 
-                      Tau_coop_r(lma,isa,lmb,isb,iab) = Tau_coop_r(lma,isa,lmb,isb,iab) &
-                                                      + Dlmm_ia(mpa,ma,la) * Tau_coop(lm,isa,lmp,isb,iab) * Dlmm_ib(mpb,mb,lb)
+                      lmp = lb**2 + lb + 1 + mpb
+                      Tau_D = Tau_D + Tau_coop(lm,isa,lmp,isb,iab) * conjg(Dlmm_ib(mb,mpb,lb))  
                     end do
+                    Tau_coop_r(lma,isa,lmb,isb,iab) = Tau_coop_r(lma,isa,lmb,isb,iab) + Dlmm_ia(ma,mpa,la) * Tau_D
                   end do
                 end do  
               end do 
@@ -4606,6 +4639,36 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
                           '           Tau_coop            COverlap'
       endif
 
+! Rotation to get the local z axis along the bond direction
+      if( Z_along_bond ) then
+
+        Vz(:) = Posi(:,ib) - Posi(:,ia)
+        Dist = sqrt( sum( Vz(:)**2 ) )
+        Vz(:) = Vz(:) / Dist
+            
+        if( abs( Vz(3) - 1._db ) > eps10 ) then
+
+          Vx(1) = - Vz(2) / sqrt( Vz(1)**2 + Vz(2)**2 ) 
+          Vx(2) = Vz(1) / sqrt( Vz(1)**2 + Vz(2)**2 )
+          Vx(3) = 0._db
+              
+          call prodvec( Vy, Vz, Vx )
+          Vy(:) = Vy(:) / sqrt( sum( Vy(:)**2 ) )
+        
+          Mat_rot(:,1) = Vx(:)
+          Mat_rot(:,2) = Vy(:)
+          Mat_rot(:,3) = Vz(:)
+
+          Mat_rot = Transpose( Mat_rot )
+
+        else
+
+          Mat_rot(:,:) = 0._db
+          Mat_rot(1,1) = 1._db; Mat_rot(2,2) = 1._db; Mat_rot(3,3) = 1._db 
+
+        endif
+      endif
+
 ! Construction of the basis (Va (or Vb), U, T) to build n_angle points around a circle, + 1 at the center      
       V(:) = Posi(:,ib) - Posi(:,ia) 
       V(:) = V(:) / sqrt( sum( V(:)**2 ) )
@@ -4639,8 +4702,10 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
           if( i_rad == 0 ) then
             W(:) = Va(:)
           else  
-            W(:) = Va(:) + i_rad * ( cos( Angle ) * U(:) + sin( Angle ) * T(:) ) 
+            W(:) = Va(:) + i_rad * ( cos( Angle ) * T(:) + sin( Angle ) * U(:) ) 
           endif
+          if( Z_along_bond ) W = Matmul( Mat_rot, W )
+          
           ira = n_radius(iapra) 
        
           Dist = sqrt( sum( W(:)**2 ) )
@@ -4654,6 +4719,8 @@ subroutine Cal_COOP(Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide,Full_at
           else  
             W(:) = Vb(:) + i_rad * ( cos( Angle ) * U(:) + sin( Angle ) * T(:) ) 
           endif
+          if( Z_along_bond ) W = Matmul( Mat_rot, W )
+ 
           irb = n_radius(iaprb) 
        
           Dist = sqrt( sum( W(:)**2 ) )
@@ -5590,7 +5657,7 @@ subroutine Cal_Trans_l(lh,Trans)
         elseif( m1 > 0 ) then
           Trans(m1,m2) = is * r2_r
         else
-          Trans(m1,m2) = - r2_i
+          Trans(m1,m2) = r2_i
         endif
 
       elseif( m1 == - m2 ) then
@@ -5598,7 +5665,7 @@ subroutine Cal_Trans_l(lh,Trans)
         if( m1 > 0 ) then
           Trans(m1,m2) = r2_r
         else
-          Trans(m1,m2) = is * r2_i
+          Trans(m1,m2) = - is * r2_i
         endif
 
       endif

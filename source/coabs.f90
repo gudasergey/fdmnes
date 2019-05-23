@@ -3221,7 +3221,7 @@ subroutine Spherical_tensor_cal(Abs_U_iso,Bragg_abs,ct_nelec,Core_resolved,Volum
    endif
   endif
   
-  if( ie == 1 ) then
+  if( ie == 1 .and. icheck > 0 ) then
     
     if( E1E1 ) then
       write(3,110) 'E1E1'

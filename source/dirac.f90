@@ -5,7 +5,7 @@
 
 subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
           nnlm,nonexc,nqnexc,n_ray,nrato_dirac,nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
-          popexc,popval,psi_coeur,psii,psi_open_val,psival,rato,rho_coeur,rhoit,Z,Relativiste)
+          popexc,popval,psi_coeur,psii,psi_open_val,psival,rato,Ray_max_dirac,rho_coeur,rhoit,Z,Relativiste)
 
   use declarations
   implicit none
@@ -22,7 +22,8 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
 
   logical:: Dirac_eq, nonexc, relativiste
 
-  real(kind=db):: Charge, dp, E_total, E_total_exc, elmax, f_integr3, h_ray, p, p1, p2, Popt, ppp, Ptot, Ray_max, S02
+  real(kind=db):: Charge, dp, E_total, E_total_exc, elmax, f_integr3, h_ray, p, p1, p2, Popt, ppp, Ptot, Ray_max, Ray_max_dirac, &
+                  S02
   
   real(kind=db), dimension(nnlm):: nel, pop, pop_notrans, rqn
   real(kind=db), dimension(nrm):: rato
@@ -51,7 +52,12 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
   endif
 
   n_ray = nrato_dirac           ! Number of radius in the radial mesh
-  ray_max = 20._db              ! Maximum radius (a.u.)
+! Radius of the atom (a. u.)
+  if( Ray_max_dirac > eps10 ) then
+    Ray_max = Ray_max_dirac       
+  else
+    Ray_max = 20._db              
+  endif
   h_ray = n_ray * 54._db / 600  ! log step
 
   if( n_ray > nrm .and. mpirank == 0 ) then
@@ -2127,7 +2133,7 @@ end
 !  CONTROL SUBROUTINE FOR THE INTEGRATION OF THE DIRAC-SLATER EQUATIONS.
 !  FINDS EIGENVALUES. NORMALIZES ORBITAL FUNCTIONS.
 
-subroutine didif(a,b,e,ibav,icheck,last,lq,n_ray,nq,ray,vr,y,Zn, npts,ha,rn,h,eps,del,fj,v0,da,dbb,a0,b0,voc, &
+subroutine didif(a,b,e,ibav,icheck,last,lq,n_ray,nq,ray,vr,y,Zn,npts,ha,rn,h,eps,del,fj,v0,da,dbb,a0,b0,voc, &
                    vbar,fk,cs,g,q11,q22,tcs)
 
   use declarations
@@ -2262,7 +2268,7 @@ subroutine didif(a,b,e,ibav,icheck,last,lq,n_ray,nq,ray,vr,y,Zn, npts,ha,rn,h,ep
     if( p < 0._db ) then
       call write_error
       do ipr = 3,9,3
-        write(ipr,19)
+        write(ipr,19) rn * bohr
       end do
       stop
     endif
@@ -2389,7 +2395,9 @@ subroutine didif(a,b,e,ibav,icheck,last,lq,n_ray,nq,ray,vr,y,Zn, npts,ha,rn,h,ep
 
    10 format(2i5,f5.1,e15.5,e19.9,e15.5,2e13.3)
    15 format(' Too many nodes',i4,2i4,f4.1,3e15.7)
-   19 format(//' Dirac routine:'/, ' THE TURNING POINT IS BEYOND RN. A LARGER VALUE OF RN', ' MAY BE NEEDED.')
+   19 format(//' Dirac routine:'//, &
+               ' The turning point is beyond the atomic radius =',f9.5,' A' // &
+               ' Try a larger value with keyword "Ray_max_dirac" !',//)
    40 format(//' Dirac routine:'/,' DE too large',2i4,f4.1,4e15.7)
    50 format(//' Dirac routine:'/,' Too few nodes',i4,2i4,f4.1,3e15.7)
    60 format(//' Dirac routine:'/,' ntest /= 0')
