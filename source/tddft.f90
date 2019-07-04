@@ -4307,3 +4307,57 @@ subroutine Cal_Chi_opt(B_stk, Chi, Chi_0, dChi_0, dchi_0_i, Energ, First_E, Firs
   160 format(16i5,3x,1p,2e13.5)
 
 end
+
+!**********************************************************************************************
+
+! Transformation harmo reel vers Harmo comp pour un lh donne.
+! La transformation inverse est le conjugue de la transpose
+
+subroutine Cal_Trans_l(lh,Trans)
+
+  use declarations
+  implicit none
+
+  integer:: is, lh, m1, m2
+
+  complex(kind=db):: r2_r, r2_i
+  complex(kind=db),dimension(-lh:lh,-lh:lh):: Trans
+
+  real(kind=db):: r2
+
+  Trans(:,:) = (0._db, 0._db)
+
+  r2 = 1 / sqrt(2._db)
+  r2_r = cmplx( r2,    0._db, db)
+  r2_i = cmplx( 0._db, r2,    db)
+
+  do m1 = -lh,lh
+    is = (-1)**m1
+    do m2 = -lh,lh
+
+      if( m1 == m2 ) then
+
+        if( m1 == 0 ) then
+          Trans(m1,m2) = (1._db,0._db)
+        elseif( m1 > 0 ) then
+          Trans(m1,m2) = is * r2_r
+        else
+          Trans(m1,m2) = r2_i
+        endif
+
+      elseif( m1 == - m2 ) then
+
+        if( m1 > 0 ) then
+          Trans(m1,m2) = r2_r
+        else
+          Trans(m1,m2) = - is * r2_i
+        endif
+
+      endif
+
+    end do
+  end do
+
+  return
+end
+

@@ -62,8 +62,8 @@ subroutine fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_
      Basereel, Base_ortho_int, Base_ortho_sur, Bormann, Bulk, Check_extract, Clementi, Cap_layer, Cartesian_tensor, Center_s, &
      Charge_free, Classic_irreg, Core_resolved, Convolution_cal, COOP, Coupelapw, Dafs, Dafs_bio, Density, Density_comp, &
      Dip_rel, Dipmag, Doping, Dyn_eg, Dyn_g, E_cut_man, Eneg_i, Eneg_n_i, Energphot, Extract, Extract_ten, FDM_comp, FDMX_only, &
-     Film, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, &
-     Gamma_tddft, Green_bulk, Green_int, Green_s, Green_self, Helm_cos, hkl_film, Hubbard, Kern_fast, key_calc, korigimp, &
+     Film, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, &
+     Green_bulk, Green_int, Green_s, Green_self, Harm_cubic, Helm_cos, hkl_film, Hubbard, Kern_fast, key_calc, korigimp, &
      lmaxfree, lmoins1, lplus1, Magnetic, Matper, Memory_save, Muffintin, No_DFT, No_solsing, Noncentre, Nonexc, Normaltau, &
      NRIXS, Occupancy_first, Octupole, Old_zero, One_run, One_SCF, Operation_mode_used, Optic, Overad, Pdb, PointGroup_Auto,   &
      Polarise, Quadmag, Quadrupole, Readfast, Relativiste, Renorm, RPALF, Rydberg, Scan_a, Self_abs, &
@@ -78,12 +78,12 @@ subroutine fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_
   logical, dimension(:), allocatable:: Atom_with_axe, Atom_nsph_e, Hubb, Hubb_temp, ok, Run_done, Skip, Skip_run
 
   real(kind=db):: alfpot, Ang_borm, Bulk_roughness, Cap_B_iso, Cap_roughness, Cap_shift, Cap_thickness, &
-     D_max_pot, Delta_edge, Delta_En_conv, Delta_Epsii, Delta_helm, Dist_coop, E_cut_imp, Ecent, Eclie, Eclie_out, Elarg, &
+     D_max_pot, Delta_edge, Delta_En_conv, Delta_Epsii, Delta_helm, E_cut_imp, Ecent, Eclie, Eclie_out, Elarg, &
      Ephot_min, Estart, Film_roughness, Film_thickness, Gamma_max, Kern_fac, Overlap, p_self_max, p_self0, p_self0_bulk, &
      p_z1, p_z2, Pas_SCF, phi_0, R_rydb, R_self, R_self_bulk, Ray_max_dirac, Roverad, Rpotmax, Rtph, Temp, Test_dist_min, &
      V_helm, V_intmax, dwfactor, tdebye, tmeas, expntlA, expntlB, victA, victB, Width_helm
 
-  real(kind=db), dimension(2):: f_no_res
+  real(kind=db), dimension(2):: Dist_coop, f_no_res
   real(kind=db), dimension(3):: Ang_rotsup, angxyz, angxyz_bulk, angxyz_cap, angxyz_int, angxyz_sur, axyz, axyz_bulk, axyz_cap, &
                                 axyz_int, axyz_sur, Centre, dpos, Vec_orig
   real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
@@ -255,7 +255,8 @@ subroutine fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_
     Density_comp,Dip_rel,Dipmag,Dist_coop,Doping,dpos,Dyn_eg,Dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient, &
     Egamme,Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness, &
     Film_shift,Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole, &
-    Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_bulk,Green_int,Green_s,Green_self,Helm_cos,hkl_borm,hkl_dafs,hkl_film,hkl_ref,Hubb, &
+    Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_bulk,Green_int,Green_s,Green_self,Harm_cubic,Helm_cos,hkl_borm,hkl_dafs,hkl_film, &
+    hkl_ref,Hubb, &
     Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_coop,igr_dop,indice_par,Interface_shift,iscratch,isigpi,itdil,its_lapw,iord, &
     itape4,itype,itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,Length_line,lin_gam, &
     lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso_max,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB, &
@@ -649,8 +650,8 @@ subroutine fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_
       E_radius,E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Ephot_min, &
       Estart,Extract,Extract_ten,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Flapw,Flapw_new, &
       Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_bulk,Green_int, &
-      Green_s,Green_self,Helm_cos,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_coop,igr_dop, &
-      igreq,Interface_shift,ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype,itype_dop,jseuil, &
+      Green_s,Green_self,Harm_cubic,Helm_cos,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_coop, &
+      igr_dop,igreq,Interface_shift,ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype,itype_dop,jseuil, &
       Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam, &
       lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso_max,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e, &
       Magnetic,Mat_or,Mat_UB,Matper,mpinodes,mpinodes0,mpirank,mpirank0,Muffintin,Multipole,multrmax, &
@@ -853,8 +854,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       E_radius,E_max_range,Ecent,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Elarg,Eneg_i,Eneg_n_i,Energphot,Ephot_min, &
       Estart,Extract,Extract_ten,f_no_res,FDM_comp,Film,Film_roughness,Film_shift,Film_thickness,Flapw,Flapw_new, &
       Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_bulk,Green_int, &
-      Green_s,Green_self,Helm_cos,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_coop,igr_dop, &
-      igreq,Interface_shift,ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype,itype_dop,jseuil, &
+      Green_s,Green_self,Harm_cubic,Helm_cos,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_coop, &
+      igr_dop,igreq,Interface_shift,ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype,itype_dop,jseuil, &
       Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,lin_gam, &
       lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso_max,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e, &
       Magnetic,Mat_or,Mat_UB,Matper,mpinodes,mpinodes0,mpirank,mpirank0,Muffintin,Multipole,multrmax, &
@@ -987,8 +988,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
      E_cut_man, Eneg, Eneg_i, Eneg_n_i, Energphot, Extract, &
      Extract_ten, FDM_comp, FDM_comp_m, Fermi, Fermi_first, Film, Final_optic, Final_tddft, First_E, First_Bulk_step, &
      Flapw, Flapw_new, Force_ecr, Full_atom, Full_atom_e, Full_atom_gen, Full_potential, Full_self_abs, &
-     Gamma_hole_imp, Gamma_tddft, &
-     Green, Green_bulk, Green_i, Green_int, Green_s, Green_self, Helm_cos, hkl_film, Hubb_a, Hubb_abs, Hubb_d, Hubb_diag_abs, &
+     Gamma_hole_imp, Gamma_tddft, Green, Green_bulk, Green_i, Green_int, Green_s, Green_self, &
+     Harm_cubic, Helm_cos, hkl_film, Hubb_a, Hubb_abs, Hubb_d, Hubb_diag_abs, &
      Hubbard, Kern_fast, korigimp, Level_val_abs, Level_val_exc, lmaxfree, lmoins1, lplus1, M1M1, Magnetic, Matper, Moy_cluster, &
      Moy_loc, Moyenne, Muffintin, No_DFT, No_solsing, Noncentre, Nonexc_g, Nonexc, Nonsph, Normaltau, NRIXS, Octupole, &
      Old_zero, One_run, One_SCF, Operation_mode_used, Optic, Optic_xanes, Overad, PointGroup_Auto, Polarise, Proto_all, &
@@ -1011,7 +1012,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     Cap_shift, Cap_thickness, Chargm, Chargm_SCF, d_ecrant, D_max_pot, Delta_bulk, Delta_cap, &
     Delta_E_conv, Delta_edge, Delta_En_conv, Delta_energ, Delta_energ_s, Delta_Epsii, Delta_Eseuil, &
     Delta_film, Delta_helm, Delta_int, Delta_roughness_film, Delta_sur, delta_z_bottom_cap, delta_z_top_bulk, delta_z_top_cap, &
-    delta_z_top_film, Dist_coop, E, E_cut, E_cut_imp, E_Fermi, E_Open_val, E_Open_val_exc, E_start, &
+    delta_z_top_film, E, E_cut, E_cut_imp, E_Fermi, E_Open_val, E_Open_val_exc, E_start, &
     E_zero, Ecent, Ecineticmax, Ecineticmax_out, Eclie, Eclie_out, Ecmax, Ecmax_out, Ei0, Eii, Elarg, Em, En_cluster, &
     En_cluster_s, Enervide, Enragr, Ephot_min, Epsii_moy, Estart, Extract_E_cut, Extract_E_Fermi, Extract_V0bdcF, Film_roughness, &
     Film_thickness, Gamma_max, Kern_fac, Overlap, p_self, p_self_max, p_self0, p_self0_c, p_self0_bulk, Pas_SCF, &
@@ -1020,7 +1021,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     Surface_ref, Temp, Test_dist_min, Time_fill, Time_tria, tp_SCF_1, tp_SCF_2, tp_XANES_1, tp_XANES_2, V_helm, V_helm_t, &
     V_intmax, V0muf, Vhbdc, Vhbdc_init, Vhbdc_out, Volume_maille, Vsphere, Vsphere_cal, Width_helm, Workf, Workf_i, Workf_val
 
-  real(kind=db), dimension(2):: chg_open_val, f_no_res, pop_open_val
+  real(kind=db), dimension(2):: chg_open_val, Dist_coop, f_no_res, pop_open_val
   real(kind=db), dimension(3):: Ang_rotsup, Angxyz, angxyz_bulk, angxyz_cap, angxyz_int, angxyz_sur, axyz, axyz_bulk, axyz_cap, &
                                 axyz_int, axyz_sur, Centre, deccent, dpos, Vec_orig
   real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
@@ -1273,7 +1274,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     do it = 1,ntype
       n = n_orb_rel( numat(it) )
       if( numat(it) == numat_abs )then
-        n = n + 2 * max( 1, nlat(it) )
+        n = n + 2 * max( 1, nlat(it) ) + 2
       elseif( nlat(it) > 0 ) then
         n = n + 2 * nlat(it)
       endif
@@ -2339,8 +2340,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             endif
 
             call Cal_dens(Cal_xanes,Classic_irreg,Density_comp,drho_self,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
-              Full_potential,Hubb,Hubb_diag,iaabsi,iaprabs_nonexc,iaprotoi,ich,itypei,itypepr,lla2_state,lmax_pot,lmaxat,m_hubb, &
-              mpinodes,mpirank,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nlmagm,nlm_pot, &
+              Full_potential,Harm_cubic,Hubb,Hubb_diag,iaabsi,iaprabs_nonexc,iaprotoi,ich,itypei,itypepr,lla2_state,lmax_pot, &
+              lmaxat,m_hubb,mpinodes,mpirank,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nlmagm,nlm_pot, &
               nrato,nrm,nrm_self,nspin,nspino,nspinp,ntype,numat,Rato,Relativiste,Renorm_SCF,Rmtg,Rmtsd,Solsing,Solsing_o, &
               Spinorbite,State_all_out,Statedens,Statedens_i,Taull,V_hubb,V_hubb_abs,V_intmax,V0bdc,Vrato,Ylm_comp)
 
@@ -2984,8 +2985,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
       endif
 
-      call Atom_coop_selec(COOP,Dist_coop,ia_coop,iaprotoi,icheck(28),igr_coop,igreq,igroupi,itypei,n_atom_coop,n_atom_proto, &
-                         nab_coop,natome,neqm,ngreq,ntype,numat,Posi,Rmtg)
+      call Atom_coop_selec(COOP,Dist_coop,ia_coop,iaprotoi,icheck(28),igr_coop,igreq,igroupi,iprabs_nonexc,itypei,n_atom_coop, &
+                         n_atom_proto,nab_coop,natome,neqm,ngreq,nomfich_s,ntype,numat,Posi,Rmtg)
 
       if( i_range == 1 ) then
         nenerg = nenerg_s
@@ -3778,8 +3779,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             endif
             if( Density ) &
               call Cal_dens(Cal_xanes,Classic_irreg,Density_comp,drho_self,Ecinetic,Eimag(ie),Energ(ie),Enervide,Full_atom, &
-                Full_potential,Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,ich,itypei,itypepr,lla2_state,lmax_pot,lmaxat,m_hubb, &
-                mpinodee,mpirank,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nlmagm,nlm_pot, &
+                Full_potential,Harm_cubic,Hubb,Hubb_diag,iaabsi,iaprabs,iaprotoi,ich,itypei,itypepr,lla2_state,lmax_pot,lmaxat, &
+                m_hubb,mpinodee,mpirank,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,natome,nlmagm,nlm_pot, &
                 nrato,nrm,nrm_self,nspin,nspino,nspinp,ntype,numat,Rato,Relativiste,Renorm,Rmtg,Rmtsd,Solsing,Solsing_o, &
                 Spinorbite,State_all_out,Statedens,Statedens_i,Taull,V_hubb,V_hubb_abs,V_intmax,V0bdc,Vrato,Ylm_comp)
             if( .not. Green .and. FDM_comp ) &    ! under construction

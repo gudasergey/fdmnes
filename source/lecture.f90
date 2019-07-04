@@ -1379,7 +1379,7 @@ subroutine Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichie
       Symbol = mot132(1:2)
       if( Symbol(2:2) == '1' .or. Symbol(2:2) == '2' .or. Symbol(2:2) == '3' .or. Symbol(2:2) == '4' .or.  &
           Symbol(2:2) == '5' .or. Symbol(2:2) == '6' .or. Symbol(2:2) == '7' .or. Symbol(2:2) == '8' .or.  &
-          Symbol(2:2) == '9' ) Symbol(2:2) = ' '
+          Symbol(2:2) == '9' .or. Symbol(2:2) == '+' .or. Symbol(2:2) == '-' ) Symbol(2:2) = ' '
 
       do i = 1,103
         if( Chemical_Symbol_c(i) /= Symbol .and. Chemical_Symbol(i) /= Symbol ) cycle
@@ -1564,7 +1564,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Density_comp,Dip_rel,Dipmag,Dist_coop,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient, &
     Egamme,Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness, &
     Film_shift,Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole, &
-    Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_bulk,Green_int,Green_s,Green_self,Helm_cos,hkl_borm,hkl_dafs,hkl_film,hkl_ref,Hubb, &
+    Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_bulk,Green_int,Green_s,Green_self,Harm_cubic,Helm_cos,hkl_borm,hkl_dafs,hkl_film, &
+    hkl_ref,Hubb, &
     Hubbard,Hybrid,iabsm,iabsorig,icheck,icom,igr_coop,igr_dop,indice_par,Interface_shift,iscratch,isigpi,itdil,its_lapw,iord, &
     itape4,itype,itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,Length_line,lin_gam, &
     lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso_max,lmaxso0,lmaxat0,lmoins1,lplus1,lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB, &
@@ -1598,7 +1599,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     lmax_tddft_inp, lmaxat0, lmaxso0, lmaxso_max, long, lseuil, m, m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, &
     mpinodes0, mpirank, mpirank0, &
     mpirank_in_mumps_group, multi_run, multrmax, n, n_adp_type, n_adimp, n_atom_bulk, n_atom_cap, n_atom_coop, n_atom_int, &
-    n_atom_neq, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_proto, n_atom_uc, n_B_iso, n_devide, n_file_dafs_exp, &
+    n_atom_neq,  n_atom_neq_min, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_proto, n_atom_uc, n_B_iso, n_devide, &
+    n_file_dafs_exp, &
     n_fract_x, n_fract_y, n_fract_z, n_label, n_mat_polar, n_multi_run_e, n_occupancy, n_radius, n_range, n_rmtg_Z, n_symbol, &
     n_Z_abs, n1, n2, natomsym, nb_atom_conf_m, nb_atom_nsph, nbseuil, &
     nchemin, necrantage, neimagent, nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_nonsph, &
@@ -1665,9 +1667,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
     Dip_rel, Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Fcif, Film, &
     exc_imp, Extract, Extract_ten, FDM_comp, FDMX_only, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, &
-    Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green_bulk, Green_s, Green_self, Green_int, Hedin, Helm_cos, &
-    hkl_film, Hubbard, Interface_shift_given, Kern_fac_default, Kern_fast, korigimp, lmaxfree, lmoins1, lplus1, M1M1, M1M2, &
-    M2M2, Magnetic, Matper, Monocrystal, muffintin, No_DFT, no_core_resolved, no_dipquad, &
+    Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green_bulk, Green_s, Green_self, Green_int, Harm_cubic, Hedin, &
+    Helm_cos, hkl_film, Hubbard, Interface_shift_given, Kern_fac_default, Kern_fast, korigimp, lmaxfree, lmoins1, lplus1, M1M1, &
+    M1M2, M2M2, Magnetic, Matper, Monocrystal, muffintin, No_DFT, no_core_resolved, no_dipquad, &
     no_e1e3, no_e2e2, no_e3e3, No_renorm, No_SCF_bulk, No_solsing, noncentre, nonexc, nonexc_imp, &
     normaltau, Occupancy_first, Octupole, Old_zero, One_run, One_SCF, Operation_mode_used, Optic, Overad, &
     Pas_SCF_imp, Pdb, Perdew, PointGroup_Auto, Polarise, quadmag, Quadrupole, r_self_imp, Readfast, Relativiste, &
@@ -1683,16 +1685,16 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   logical, dimension(ntype):: Suppress
 
   real(kind=db):: Alfpot, Ang_borm, Bulk_roughness, Cap_B_iso, Cap_roughness, Cap_shift, Cap_thickness, Cap_U_iso, &
-    D_max_pot, Delta_En_conv, Delta_Epsii, Delta_helm, Dist_coop, Eclie, Eclie_out, Ephot_min, Film_roughness, Film_thickness, &
+    D_max_pot, Delta_En_conv, Delta_Epsii, Delta_helm, Eclie, Eclie_out, Ephot_min, Film_roughness, Film_thickness, &
     Film_zero, g1, g2, Gamma_max, Kern_fac, number_from_text, Overlap, p_self_max, p_self0, p_self0_bulk, Pas_SCF, phi, phi_0, &
     pop_nsph, pp, q, r, r_self, R_self_bulk, R_rydb, Ray_max_dirac, rn, Roverad, Rpotmax, Step_azim, t, tc, Temp, &
     Test_dist_min, Theta, V_helm, V_intmax, vv, Width_helm, z_min
 
   real(kind=db), dimension(4,nq_nrixs):: q_nrixs
-  real(kind=db), dimension(2):: f_no_res
-  real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
+  real(kind=db), dimension(2):: Dist_coop, f_no_res
   real(kind=db), dimension(3):: Ang, Ang_rotsup, Ang_spin, Angxyz, Angxyz_bulk, Angxyz_cap, Angxyz_int, Angxyz_sur, Axe, Axe_spin, &
                                 axyz, axyz_bulk, axyz_cap, axyz_int, axyz_sur, Centre, dpos, p, Vec_orig
+  real(kind=db), dimension(4):: Film_shift, Interface_shift, Surface_shift
   real(kind=db), dimension(6):: Trace_p
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(3,3):: Cubmat, Cubmat_bulk, Cubmati, Cubmati_bulk, Mat, Mat_or, Mat_UB, Rot, Rot_gen
@@ -1739,6 +1741,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
   n_atom_int = n_atom(3); n_atom_neq = n_atom(4); n_atom_per = n_atom(5)
   n_atom_per_neq = n_atom(6); n_atom_sur = n_atom(7)
+
+  n_atom_neq_min = min( n_atom_neq, n_atom_uc ) ! because of the fake cif_file from Vista...
 
 ! Default values of parametres
   adimp(:) = 0.25_db
@@ -1799,7 +1803,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Density_comp = .false.
   Dip_rel = .false.
   dipmag = .false.
-  Dist_coop = 0._db
+  Dist_coop(:) = 0._db
   dyn_eg = .false.
   dyn_g = .false.
   dpos(:) = 0._db
@@ -1836,6 +1840,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Green_int = .false.
   Green_s = .false.
   Green_self = .true.
+  Harm_cubic = .false.
   Hedin = .false.
   Helm_cos = .false.
   hkl_film = .false.
@@ -2119,7 +2124,16 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
         case('coop_dist')
           n = nnombre(itape4,132)
-          if( n > 0 ) read(itape4,*,iostat=ier) Dist_coop
+          if( n == 1 ) then
+            read(itape4,*,iostat=ier) Dist_coop(2)
+          elseif( n > 1 ) then
+            read(itape4,*,iostat=ier) Dist_coop(:)
+            if( Dist_coop(2) < Dist_coop(1) ) then
+              r = Dist_coop(1)
+              Dist_coop(1) = Dist_coop(2)
+              Dist_coop(2) = r
+            endif
+          endif
 
         case('doping')
           read(itape4,*,iostat=ier) itype_dop, igr_dop
@@ -2146,6 +2160,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('film_thic')
           read(itape4,*,iostat=ier) Film_thickness
           if( ier > 0 ) call write_err_form(itape4,keyword)
+
+        case('harm_cubi')
+          Harm_cubic = .true.
 
         case('hkl_film')
           hkl_film = .true.
@@ -2444,12 +2461,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             case(3,4)
               n = n - 2
               read(itape4,*,iostat=ier) necrantage, lecrantage, ecrantage(1:min(nspin,n))
+              Force_ecr = .true.
           end select
           if( n == 1 .and. Magnetic ) then
             ecrantage(nspin) = ecrantage(1) / nspin
             ecrantage(1) = ecrantage(nspin)
           endif
-          Force_ecr = .true.
 
         case('tddft')
           tddft = .true.
@@ -3697,7 +3714,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 endif
               end do
 
-              do igr = 1,n_atom_per_neq
+              igr = 0
+              Loop_kgr: do kgr = 1,n_atom_per_neq
 
                 read(8,'(A)') mot
                 mot = adjustl(mot)
@@ -3711,28 +3729,41 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 Symbol = mot132(1:2)
                 if( Symbol(2:2) == '1' .or. Symbol(2:2) == '2' .or. Symbol(2:2) == '3' .or. Symbol(2:2) == '4' .or. &
                     Symbol(2:2) == '5' .or. Symbol(2:2) == '6' .or. Symbol(2:2) == '7' .or. Symbol(2:2) == '8' .or. &
-                    Symbol(2:2) == '9' ) Symbol(2:2) = ' '
+                    Symbol(2:2) == '9' .or. Symbol(2:2) == '-' .or. Symbol(2:2) == '+' ) Symbol(2:2) = ' '
 
                 do i = 1,103
                   if( Chemical_Symbol_c(i) /= Symbol .and. Chemical_Symbol(i) /= Symbol ) cycle
-                  itype(igr) = i
+                  it = i
                   exit
                 end do
                 if( i == 104 ) then
                   call write_error
                   do ipr = 6,9,3
-                    write(ipr,145) igr, Symbol
+                    write(ipr,145) kgr, Symbol
                   end do
                   stop
                 endif
 
-                posn(1,igr) = number_from_text(n_fract_x,mot)
-                posn(2,igr) = number_from_text(n_fract_y,mot)
-                posn(3,igr) = number_from_text(n_fract_z,mot)
+                p(1) = number_from_text(n_fract_x,mot)
+                p(2) = number_from_text(n_fract_y,mot)
+                p(3) = number_from_text(n_fract_z,mot)
+
+                do i = 1,3
+                  if( p(i) < - eps10 ) p(i) = p(i) + 1._db
+                  if( p(i) > 1 - eps10 ) p(i) = p(i) - 1._db
+                end do
+! Checking for the fake vista cif_file
+                do jgr = 1,igr
+                  if( sum( abs( posn(:,jgr) - p(:) ) ) < eps10 .and. it == itype(jgr) ) cycle loop_kgr
+                end do
+
+                igr = igr + 1
+                itype(igr) = it
+                posn(:,igr) = p(:)
                 if( Taux ) Taux_oc(igr) = number_from_text(n_occupancy,mot)
                 if( Temp_B_iso ) Temp_coef(igr) = number_from_text(n_B_iso,mot)
 
-              end do
+              end do loop_kgr
 
               exit
 
@@ -4064,8 +4095,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
       jt = ntype_conf
 
-      boucle_2: do igr = 1,n_atom_neq+1
-        if( ( .not. Doping .or. ( Doping .and. itype_dop == 1 ) ) .and. igr == n_atom_neq+1 ) cycle
+      boucle_2: do igr = 1,n_atom_neq_min+1
+        if( ( .not. Doping .or. ( Doping .and. itype_dop == 1 ) ) .and. igr == n_atom_neq_min+1 ) cycle
         do it = 1,ntype_conf
           do kgr = 1,nb_atom_conf(it)
             if( igr == igra(kgr,it) ) cycle boucle_2
@@ -4080,7 +4111,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           if( itype(igr) == itype(jgr) ) cycle boucle_2
         end do boucle_3
         jt = jt + 1
-        if( Doping .and. igr == n_atom_neq+1 ) then
+        if( Doping .and. igr == n_atom_neq_min+1 ) then
           numat(jt) = itype_dop
         else
           numat(jt) = itype(igr)
@@ -4088,8 +4119,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         itZ( numat(jt) ) = jt
       end do boucle_2
 
-      boucle_igr: do igr = 1,n_atom_neq+1
-        if( .not. Doping .and. igr == n_atom_neq+1 ) cycle
+      boucle_igr: do igr = 1,n_atom_neq_min+1
+        if( .not. Doping .and. igr == n_atom_neq_min+1 ) cycle
         do it = 1,ntype_conf
           do kgr = 1,nb_atom_conf(it)
             if( igr /= igra(kgr,it) ) cycle
@@ -4097,7 +4128,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             cycle boucle_igr
           end do
         end do
-        if( Doping .and. igr == n_atom_neq+1 ) then
+        if( Doping .and. igr == n_atom_neq_min+1 ) then
           if( itype_dop == 1 ) then
             itype(igr) = itype_dop
           else
@@ -4161,14 +4192,19 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
       iabsorig(:) = iabsm(:)
 
-      allocate( neq(n_atom_per_neq) )
-      allocate( pos(3,n_atom_per_neq) )
-      do igr = 1,n_atom_per_neq
+      nn = min( n_atom_per_neq, n_atom_uc )
+      allocate( neq(nn) )
+      allocate( pos(3,nn) )
+      do igr = 1,nn
         pos(:,igr) = posn(:,igr)
       end do
-      call spgroup(Fcif,Fcif_file,.true.,neq,n_atom_uc,n_atom_per_neq,itype,pos,posn,Space_group)
+      if( n_atom_uc > n_atom_per_neq ) then
+        call spgroup(Fcif,Fcif_file,.true.,neq,n_atom_uc,nn,itype,pos,posn,Space_group)
+      else
+        neq(:) = 1
+      endif
 
-      if( Doping .and. igr_dop <= n_atom_per_neq ) then
+      if( Doping .and. igr_dop <= nn ) then
         do igr = 1,n_atom_uc - n
           if( sum( abs( posn(:,igr) - pos(:,igr_dop) ) ) > eps10 ) cycle
           igr_dop = igr
@@ -4177,7 +4213,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       endif
 
       do j = 1,n_atom_coop
-        if( igr_coop(j) > n_atom_per_neq ) cycle
+        if( igr_coop(j) > nn ) cycle
         do igr = 1,n_atom_uc - n
           if( sum( abs( posn(:,igr) - pos(:,igr_coop(j)) ) ) > eps10 ) cycle
           igr_coop(j) = igr
@@ -4186,7 +4222,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       end do
 
       ia = n_atom_uc - n + 1
-      do igr = n_atom_per_neq,1,-1
+      do igr = nn,1,-1
         do i = 1,neq(igr)
           ia = ia - 1
           itype(ia) = itype(igr)
@@ -4336,6 +4372,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     if( E1M1 .or. M1M1 ) Dipmag = .true.
     if( E1M2 .or. M2M2 ) Quadmag = .true.
     if( E1E3 .or. E3E3 ) Octupole = .true.
+
+    if( Density_comp ) Harm_cubic = .false.
 
     if( .not. Pas_SCF_imp ) then
       if( Green_self ) then
@@ -5659,7 +5697,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Density,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Density_comp,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Dipmag,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Dist_coop,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Dist_coop,2,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Doping,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(dpos,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(E_adimp,n_adimp,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -5693,6 +5731,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Gamma_tddft,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Green_int,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Green_self,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Harm_cubic,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Hedin,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     if( npldafs > 0 ) call MPI_Bcast(hkl_dafs,3*npldafs, MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Helm_cos,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
@@ -5968,7 +6007,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Delta_En_conv = Delta_En_conv / Rydb
   Delta_Epsii = Delta_Epsii / Rydb
   Delta_helm = Delta_helm / bohr
-  Dist_coop = Dist_coop / bohr
+  Dist_coop(:) = Dist_coop(:) / bohr
   dpos(:) = dpos(:) / bohr
   E_adimp(:) = E_adimp(:) / Rydb
   E_max_range(:) = E_max_range(:) / Rydb

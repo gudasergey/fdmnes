@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 22nd of May 2019, 2 Prairial, An 227
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 2nd of July 2019, 13 Messidor, An 227
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -44,7 +44,7 @@ module declarations
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 22nd of May 2019'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 2ndh of July 2019'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -67,6 +67,8 @@ module declarations
   real(kind=db), parameter:: quatre_pi = 4 * pi
   real(kind=db), parameter:: huit_pi = 8 * pi
   real(kind=db), parameter:: radian = pi / 180._db
+  real(kind=db), parameter:: sqrt_2 = 1.41421356237309504880168872420970_db  ! in fact 1.41421356237310 in db
+  real(kind=db), parameter:: sqrt_1o2 = 1 / sqrt_2  ! 1 / sqrt(2)
   real(kind=db), parameter:: sqrt3s2 = 0.86602540378443865_db   ! = sqrt(3._db) / 2
   real(kind=db), parameter:: msqrt3s2 = - 0.86602540378443865_db
 
@@ -255,7 +257,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 215
+  integer, parameter:: nkw_fdm = 216
   integer, parameter:: nkw_conv = 39
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_gaus = 1
@@ -341,8 +343,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot', &
      'ephot_min','e_out_min','excited  ','extract  ','extract_t','extractpo','extractsy','fdm_comp ','film     ','film_cif_', &
      'film_pdb_','film_t   ','film_roug','film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ', &
-     'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_bul','green_int','hedin    ', &
-     'helm_cos ','helmholtz','hkl_film ','hubbard  ','iord     ','kern_fac ','kern_fast', &
+     'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_bul','green_int','harm_cubi', &
+     'hedin    ','helm_cos ','helmholtz','hkl_film ','hubbard  ','iord     ','kern_fac ','kern_fast', &
      'lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ','mat_ub   ', &
      'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar','molecule ', &
      'molecule_','muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_dft   ','no_e1e1  ','no_e1e2  ', &
@@ -2393,7 +2395,7 @@ subroutine mult_cell(itape,File_out)
   return
 
   110 format(//' number of type =',i5,' > ntypem =',i4,// ' Change the parameter ntypem in the code !'//)
-  120 format(/' Crystal',/5x,3f14.10,3f12.5)
+  120 format(/' Crystal',/5x,3f16.12,3f12.5)
   130 format(//' number of atoms =',i6,' > nam =',i6,// ' Change the parameter nam in the code !'//)
   140 format(//'  Error in the indata file :')
   150 format(//' The following line is not understood :',/A,// &
@@ -2402,6 +2404,6 @@ subroutine mult_cell(itape,File_out)
           5x,' - How many numbers must be in the line ?'/, &
           5x,' - Are there spaces between the numbers ?'/, &
           5x,' - Tabulations are forbidden !'//)
-  160 format(i5,3f14.10,'  ! ',i5,3x,a2)
+  160 format(i5,3f16.12,'  ! ',i5,3x,a2)
 end
 

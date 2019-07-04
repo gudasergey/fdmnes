@@ -1043,13 +1043,14 @@ end
 ! n_orb : NUMBER OF SHELLS
 
 subroutine dinpt(Delta_rv,h_ray,ibav,icheck,Dirac_eq,lqn,n_orb,n_ray, nnlm,nqn,ph,pop,ray,ray_max,rh,rj,rqn,vr,vs, &
-               xe,xj,xl,xn,xz,Zn,nc1,jspn,ha, rn,h,xion,phi,eps,del,xalph,rnuc,voc,anuc,sumel, rbar,rba2,vbar,h3)
+               xe,xj,xl,xn,xz,Zn,nc1,jspn,ha,rn,h,xion,phi,eps,del,xalph,rnuc,voc,anuc,sumel,rbar,rba2,vbar,h3)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
 
   parameter( adz = 0.3_db, aez = .25e4_db, afz = .1e-6_db, agz = .1e-4_db, arz = .208e-4_db)
 
+  integer:: i, io
   integer, dimension(nnlm):: lqn, nqn
   integer, dimension(n_orb):: xl, xn
   
@@ -1150,6 +1151,8 @@ subroutine dinpt(Delta_rv,h_ray,ibav,icheck,Dirac_eq,lqn,n_orb,n_ray, nnlm,nqn,p
   endif
   zbar = Zn
 
+  xe(:) = 0._db
+
   do i = 1, n_orb
 ! XN = RADIAL QUANTUM NUMBER
 ! XL = ORBITAL ANGULAR MOMENTUM (OF MAJOR COMPONENT IN DIRAC-S
@@ -1159,7 +1162,6 @@ subroutine dinpt(Delta_rv,h_ray,ibav,icheck,Dirac_eq,lqn,n_orb,n_ray, nnlm,nqn,p
     xn(i) = nqn(i)
     xl(i) = lqn(i)
     xj(i) = rqn(i)
-    xe(i) = 0._db
     xz(i) = pop(i)
     zbar = max( adz, zbar - xz(i) )
     if( abs(xe(i)) < afz ) xe(i) = - 0.5_db * (zbar / xn(i))**2 + vbar
@@ -1173,12 +1175,22 @@ subroutine dinpt(Delta_rv,h_ray,ibav,icheck,Dirac_eq,lqn,n_orb,n_ray, nnlm,nqn,p
     if( 2*xj(i) + 1 < xz(i)-eps6 ) exit
   end do
 
-  if( i <= n_orb ) then
+  io = i
+  if( io <= n_orb ) then
     call write_error
     do ipr = 3,9,3
-      write(ipr,220) i
-      write(ipr,225) xn(i), xl(i)
-      if( Dirac_eq ) write(ipr,227) xj(i), xz(i)
+      write(ipr,220) nint(Zn), io
+      if( Dirac_eq ) then
+        write(ipr,225) xn(io), xl(io), xj(io), xz(io)
+      else
+        write(ipr,227) xn(io), xl(io), xz(io) 
+      endif
+
+      write(ipr,200)    
+      do i = 1,n_orb
+        write(ipr,210) nqn(i), lqn(i), rqn(i), xe(i), pop(i)
+      end do
+      
     end do
     stop
   endif
@@ -1251,11 +1263,12 @@ subroutine dinpt(Delta_rv,h_ray,ibav,icheck,Dirac_eq,lqn,n_orb,n_ray, nnlm,nqn,p
   170 format(' Hartree-Fock-Slater equation, ncl =',i5,', jspn = ',i5)
   180 format(/' LESS THAN THREE MESH POINTS INSIDE NUCLEUS')
   190 format('  XALPHA = ',e20.8,', RNUC = ',e20.8)
-  200 format('   XN   XL   XJ      XE          XZ')
-  210 format(2i5,f5.1,2f10.3)
-  220 format(//' Problem in Dirac routine ! :'//, ' ERROR ON EIGENVALUE CARD',i5)
-  225 format(/' Check the values :'/,3x,' n = ',i3,/3x,' l = ',i3)
-  227 format(/3x,' j = ',f7.3,/3x,' number of electron = ',f7.3)
+  200 format('    n    l   j     Energy    Occupancy')
+  210 format(2i5,f5.1,f11.3,f10.3)
+  220 format(//' Problem in Dirac routine !'//, &
+               ' Error in atom Z =',i3,', for the orbital number',i3)
+  225 format(/' Check the values:'/,3x,' n = ',i3,', l = ',i3,', j =',f7.3,', Occupancy = ',f7.3,/)
+  227 format(/' Check the values:'/,3x,' n = ',i3,', l = ',i3,', Occupancy = ',f7.3,/)
   230 format(' XION was = ',f12.5,',and is = ',f12.5)
   240 format(' R(1) =',e15.7,', D =',e15.7,', RNUC =',e15.7)
   250 format(' CHARGE DENSITY')

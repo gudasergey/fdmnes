@@ -46,8 +46,9 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
     recop, Relativiste, Repres_comp, Rydberg, Spinorbite, Solsing, State_all_r, Stop_job, Sym_cubic, Ylm_comp
   logical, dimension(natome):: Atom_axe
 
-  real(kind=db):: adimp, Dist, Dist_coop, Eclie_out, Eimag, Enervide, R_rydb, Rsort, Time_fill, Time_tria 
+  real(kind=db):: adimp, Dist, Eclie_out, Eimag, Enervide, R_rydb, Rsort, Time_fill, Time_tria 
 
+  real(kind=db), dimension(2):: Dist_coop
   real(kind=db), dimension(nspin):: Ecinetic_out, V0bd_out
   real(kind=db), dimension(nopsm,nspino):: Kar, Kari
   real(kind=db), dimension(nvois):: cgrad
@@ -323,18 +324,20 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
 
         if( n_atom_coop > 0 ) then
           do j = 1,n_atom_coop
-            if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
+            if( ia_coop(j) == 0 ) cycle
+            if( ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
           end do
           if( j > n_atom_coop ) cycle
         endif
 
         iprb = iaprotoi(ib)
         Dist = sqrt( sum( ( Posi(:,ia) - Posi(:,ib) )**2 ) )
-        if( Dist_coop > eps10 ) then
-          if( Dist > Dist_coop + eps10 ) cycle
+        if( Dist < Dist_coop(1) - eps10 ) cycle
+        if( Dist_coop(2) > eps10 ) then
+          if( Dist > Dist_coop(2) + eps10 ) cycle
         else
           if( Dist > Rmtg( ipra ) + Rmtg( iprb ) ) cycle
-        endif  
+        endif
 
         iab = iab + 1
           
@@ -1428,9 +1431,9 @@ function Yc(m,Ylm1,Ylm2)
     Yc = cmplx( Ylm1, 0._db, db)
   else
     if( m < 0 ) then
-      Yc = cmplx( Ylm2,-Ylm1, db ) / sqrt(2._db)
+      Yc = cmplx( Ylm2,-Ylm1, db ) * sqrt_1o2
     else
-      Yc = cmplx( Ylm1, Ylm2, db ) * ( (-1)**m ) / sqrt(2._db)
+      Yc = cmplx( Ylm1, Ylm2, db ) * ( (-1)**m ) * sqrt_1o2
     endif
   endif
 
@@ -2155,11 +2158,11 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag,Ful
   logical:: Brouder, Cal_xanes, Classic_irreg, Ereel, Full_atom, Normaltau, Solsing, &
     Recop, Repres_comp, Spinorbite, State_all_r, Stop_job, Sym_cubic, Tau_nondiag, Ylm_comp
 
-  real(kind=db):: cosang, Dist_coop, Eimag, fac, fnorm, g, Gaunt_r, Gauntcp, gmatr, r, rkr, tp1, tp2, tp3, Time_fill, Time_tria
+  real(kind=db):: cosang, Eimag, fac, fnorm, g, Gaunt_r, Gauntcp, gmatr, r, rkr, tp1, tp2, tp3, Time_fill, Time_tria
 
-  real(kind=db), dimension(nspin):: ecinetic
-  real(kind=db), dimension(nspin):: konder
+  real(kind=db), dimension(2):: Dist_coop 
   real(kind=db), dimension(3):: w
+  real(kind=db), dimension(nspin):: Ecinetic, konder
   real(kind=db), dimension(3,3):: Mat_rot
   real(kind=db), dimension(0:n_atom_proto):: Rmtg
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_grn
@@ -2996,7 +2999,8 @@ subroutine Cal_Tau_coop(Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lm
   
   logical:: Repres_comp, Spinorbite, Ylm_comp
   
-  real(kind=db):: Dist, Dist_coop
+  real(kind=db):: Dist
+  real(kind=db), dimension(2):: Dist_coop
   real(kind=db), dimension(0:n_atom_proto):: Rmtg
   real(kind=db), dimension(3,3):: Mat_rot
   real(kind=db), dimension(3,natome):: Posi
@@ -3021,18 +3025,20 @@ subroutine Cal_Tau_coop(Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lm
 
       if( n_atom_coop > 0 ) then
         do j = 1,n_atom_coop
-          if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
+          if( ia_coop(j) == 0 ) cycle
+          if( ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
         end do
         if( j > n_atom_coop ) cycle
       endif
 
       iprb = iaprotoi(ib)
       Dist = sqrt( sum( ( Posi(:,ia) - Posi(:,ib) )**2 ) )
-      if( Dist_coop > eps10 ) then
-        if( Dist > Dist_coop + eps10 ) cycle
+      if( Dist < Dist_coop(1) - eps10 ) cycle
+      if( Dist_coop(2) > eps10 ) then
+        if( Dist > Dist_coop(2) + eps10 ) cycle
       else
         if( Dist > Rmtg( ipra ) + Rmtg( iprb ) ) cycle
-      endif  
+      endif
 
       iab = iab + 1
 
@@ -3578,7 +3584,7 @@ subroutine Rotation_mat(Dlmm,icheck,Mat_rot,lmax,Ylm_comp)
 
   integer:: icheck, is, l, lmax, m, mp
 
-  real(kind=db):: alfa, beta, gamma, r2
+  real(kind=db):: alfa, beta, gamma
 
   complex(kind=db), dimension(-lmax:lmax,-lmax:lmax):: Mat, Trans, Transi
   complex(kind=db), dimension(-lmax:lmax,-lmax:lmax,0:lmax):: Dlmm
@@ -3606,17 +3612,16 @@ subroutine Rotation_mat(Dlmm,icheck,Mat_rot,lmax,Ylm_comp)
   
   Trans(:,:) = (0._db, 0._db)
   Transi(:,:) = (0._db, 0._db)
-  r2 = 1 / sqrt(2._db)
   do m = -lmax,lmax
     if( m > 0 ) then
       is = (-1)**m
-      Trans(m,m) = cmplx( is * r2, 0._db, db)
-      Trans(m,-m) = cmplx( 0._db, is * r2, db)
+      Trans(m,m) = cmplx( is * sqrt_1o2, 0._db, db)
+      Trans(m,-m) = cmplx( 0._db, is * sqrt_1o2, db)
     elseif( m == 0 ) then
       Trans(0,0) = (1._db, 0._db)
     else
-      Trans(m,-m) = cmplx(r2, 0._db, db)
-      Trans(m,m) = cmplx(0._db, -r2, db)
+      Trans(m,-m) = cmplx(sqrt_1o2, 0._db, db)
+      Trans(m,m) = cmplx(0._db, -sqrt_1o2, db)
     endif
   end do
   
@@ -3679,8 +3684,11 @@ Subroutine DJMN(beta,R,LMAX)
   real(kind = db), dimension(0:2*lmax,0:2*lmax):: expr
   real(kind = db), dimension(0:Nfac):: GLG
 
-  data SMALL,SQR2 /0.001_db,1.414213562_db/
+!  data SMALL,SQR2 /0.001_db,1.414213562_db/
 
+  Small = 0.001_db
+  Sqr2 = sqrt( 2._db )
+  
 !  Logarithm of the Gamma function : Log(N!)
   GLG(1) = 0._db
   do I = 2,Nfac
@@ -3854,7 +3862,7 @@ end
 
 ! **********************************************************************
 
-! Calculation of Euler angles from the rotation matrix  (Z1 Y2 Z3) !(Z1 X2 Z3)
+! Calculation of Euler angles from the rotation matrix  (Z1 Y2 Z3)
 
 subroutine Euler_mat(icheck,Mat,alfa,beta,gamma)
 

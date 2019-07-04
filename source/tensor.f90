@@ -448,7 +448,8 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                                 lplus1,M_depend,ns_dipmag,ndim2,ninitlr,nlm1g,nlm2g,nlm_probe,nlm_p_fp,nspinp,nspino, &
                                 roff_rr,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
                             else
-                              call tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Green_int,icheck,ip_max, &
+                              call tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full_potential,Green,Green_int, &
+                                icheck,ip_max, &
                                 ip0,irang,is_g,isp1,isp2,isp3,isp4,jrang,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil, &
                                 ns_dipmag,ndim2,ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul, &
                                 Solsing,Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
@@ -915,7 +916,7 @@ end
 
 !***********************************************************************
 
-subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Green_int,icheck,ip_max, &
+subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full_potential,Green,Green_int,icheck,ip_max, &
                               ip0,irang,is_g,isp1,isp2,isp3,isp4,jrang,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil,ns_dipmag, &
                               ndim2,ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
                               Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
@@ -940,8 +941,8 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
   complex(kind=db), dimension(nlm_probe,nspinp,nlm_probe,nspinp,ip0:ip_max,ip0:ip_max,ninitlv):: Singul
 
-  logical:: Core_resolved, Dip_rel, FDM_comp_m, Final_tddft, Green, Green_int, lmoins1, lplus1, NRIXS, Solsing, Solsing_only, &
-            Spinorbite, Titre, Ylm_comp
+  logical:: Core_resolved, Dip_rel, FDM_comp_m, Final_tddft, Full_potential, Green, Green_int, lmoins1, lplus1, NRIXS, Solsing, &
+            Solsing_only, Spinorbite, Titre, Ylm_comp
 
   real(kind=db):: Ci_1, Ci_2, Ci2, J_initl1, J_initl2, Jz1, Jz2
   real(kind=db), dimension(ninitl,2):: coef_g
@@ -1069,6 +1070,15 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
                 if( ispinf1 /= isping1 .and. ( NRIXS .or. irang > 1 .or. ( irang == 1 .and. &
                                                                            ( .not. Dip_rel .or. jrang /= 1 ) ) ) ) cycle
 
+                if( NRIXS ) then
+                  Gaunt_s = Gaunt_nrixs(l_f1,m_f1,l_s,m_s,li,mi1,Ylm_comp)
+                elseif( irang == 0 ) then
+                  Gaunt_s = Gauntmag(l_f1,m_f1,ispinf1,m_s,li,mi1,isping1,Ylm_comp,.true.)
+                else
+                  Gaunt_s = Gaunt_xrc(l_f1,m_f1,l_s,m_s,li,mi1,Ylm_comp)
+                endif
+                if( abs(Gaunt_s) < eps10 ) cycle
+
 ! Loop over spin of final states < ... > < f_2 ... >
                 do l_f2 = 0,lmax
                   if( lplus1 .and. l_f2 < li + 1 ) cycle
@@ -1090,6 +1100,17 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
 
                       if( .not. ( Final_tddft .or. Spinorbite ) .and. ispinf2 /= ispinf1 ) cycle
 
+                      if( NRIXS ) then
+                        Gaunt_i = Gaunt_nrixs(l_f2,m_f2,l_i,m_i,li,mi2,Ylm_comp)
+                      elseif( jrang == 0 ) then
+                        Gaunt_i = Gauntmag(l_f2,m_f2,ispinf2,m_i,li,mi2,isping2,Ylm_comp,.true.)
+                      else
+                        Gaunt_i = Gaunt_xrc(l_f2,m_f2,l_i,m_i,li,mi2,Ylm_comp)
+                      endif
+                      if( abs(Gaunt_i) < eps10 ) cycle
+
+                      Cg = Ci2 * conjg( Gaunt_s ) * Gaunt_i
+
                       if( Final_tddft .and. ispinf1 /= isping1 ) then
                         is_dipmag = 2
                       else
@@ -1097,84 +1118,54 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
                       endif
 
 ! Loop over harmonics of non spherical final states < ... f_1 > < ... >
-          lmp_f1 = 0
           do lp_f1 = 0,lmax
-            if( nlm_p_fp == 1 .and. lp_f1 /= l_f1 ) cycle
-            lmp01 = nspino * (lp_f1**2 + lp_f1 + 1)
+            if( .not. Full_potential .and. lp_f1 /= l_f1 ) cycle
+            lmp01 = lp_f1**2 + lp_f1 + 1
 
             do mp_f1 = -lp_f1,lp_f1
               if( nlm_p_fp == 1 .and. mp_f1 /= m_f1 ) cycle
-              lmp_f1 = lmp_f1 + 1
-
-              if( NRIXS ) then
-                Gaunt_s = Gaunt_nrixs(lp_f1,mp_f1,l_s,m_s,li,mi1,Ylm_comp)
-              elseif( irang == 0 ) then
-                Gaunt_s = Gauntmag(lp_f1,mp_f1,ispinf1,m_s,li,mi1,isping1,Ylm_comp,.true.)
-              else
-                Gaunt_s = Gaunt_xrc(lp_f1,mp_f1,l_s,m_s,li,mi1,Ylm_comp)
-              endif
-              if( abs(Gaunt_s) < eps10 ) cycle
+              lmp_f1 = min( lmp01 + mp_f1, nlm_p_fp ) 
 
 ! Loop over spin-orbit solution index < ... f_1 > < ... >
               do ispp_f1 = 1,nspinp
                 if( .not. Spinorbite .and. ispp_f1 /= ispf1 ) cycle
                 iso1 = min( ispp_f1, nspino )
 
-                if( Spinorbite ) then
-                  mv1 = m_f1 - ispinf1 + iso1
+                if( Spinorbite .and. nlm_p_fp == 1 ) then
+                  mv1 = mp_f1 - ispinf1 + iso1
                   if( mv1 > l_f1 .or. mv1 < -l_f1 ) cycle
                 else
-                  mv1 = m_f1
+                  mv1 = mp_f1
                 endif
-                lms_f1 = ( lm01 + mv1 - 1 ) * nspino + iso1
+                lms_f1 = ( lmp01 + mv1 - 1 ) * nspino + iso1
 
 ! Loop over harmonics of non spherical final states < ... > < f_2 ... >
-                lmp_f2 = 0
                 do lp_f2 = 0,lmax
-                  if( nlm_p_fp == 1 .and. lp_f2 /= l_f2 ) cycle
-                  lmp02 = nspino * (lp_f2**2 + lp_f2 + 1)
+                  if( .not. Full_potential .and. lp_f2 /= l_f2 ) cycle
+                  lmp02 = lp_f2**2 + lp_f2 + 1
 
                   do mp_f2 = -lp_f2,lp_f2
                     if( nlm_p_fp == 1 .and. mp_f2 /= m_f2 ) cycle
-                    lmp_f2 = lmp_f2 + 1
-
-                    if( NRIXS ) then
-                      Gaunt_i = Gaunt_nrixs(lp_f2,mp_f2,l_i,m_i,li,mi2,Ylm_comp)
-                    elseif( jrang == 0 ) then
-                      Gaunt_i = Gauntmag(lp_f2,mp_f2,ispinf2,m_i,li,mi2,isping2,Ylm_comp,.true.)
-                    else
-                      Gaunt_i = Gaunt_xrc(lp_f2,mp_f2,l_i,m_i,li,mi2,Ylm_comp)
-                    endif
-                    if( abs(Gaunt_i) < eps10 ) cycle
-
-                    Cg = Ci2 * conjg( Gaunt_s ) * Gaunt_i
+                    lmp_f2 = min( lmp02 + mp_f2, nlm_p_fp ) 
 
 ! Loop over spin-orbit solution index < ... > < f_2 ... >
                     do ispp_f2 = 1,nspinp
                       if( .not. Spinorbite .and. ispp_f2 /= ispf2 ) cycle
                       iso2 = min( ispp_f2, nspino )
 
-                      if( Spinorbite ) then
-                        mv2 = m_f2 - ispinf2 + iso2
+                      if( Spinorbite .and. nlm_p_fp == 1 ) then
+                        mv2 = mp_f2 - ispinf2 + iso2
                         if( mv2 > l_f2 .or. mv2 < -l_f2 ) cycle
                       else
-                        mv2 = m_f2
+                        mv2 = mp_f2
                       endif
-                      lms_f2 = ( lm02 + mv2 - 1 ) * nspino + iso2
+                      lms_f2 = ( lmp02 + mv2 - 1 ) * nspino + iso2
 
                       if( .not. Solsing_only ) then
-                        if( nlm_p_fp > 1 .and. Spinorbite ) then      
-                          rof_1 = rof(lm_f1+mv1-m_f1,lmp_f1,iso1,ispf1,irang,is_r1)
-                          rof_2 = rof(lm_f2+mv2-m_f2,lmp_f2,iso2,ispf2,jrang,is_r2)
-                        else
-                          rof_1 = rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1)
-                          rof_2 = rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2)
-                        endif
-                      else
-                        rof_1 = ( 0._db, 0._db )
-                        rof_2 = ( 0._db, 0._db )
-                      endif
-                      if( .not. Solsing_only ) then
+
+                        rof_1 = rof(lm_f1,lmp_f1,ispf1,iso1,irang,is_r1)
+                        rof_2 = rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2)
+ 
                         if( Green .or. FDM_comp_m ) then
                           cfe = rof_1 * rof_2 * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
                           cfs = rof_2 * rof_1 * Taull(lms_f2,lms_f1,initl2,initl1,ispinf2,ispinf1,is_dipmag)
@@ -1182,9 +1173,14 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Green,Gre
                           cfe = conjg( rof_1 ) * rof_2 * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
                           cfs = conjg( rof_2 ) * rof_1 * Taull(lms_f2,lms_f1,initl2,initl1,ispinf2,ispinf1,is_dipmag)
                         endif
+
                       else
+
+                        rof_1 = ( 0._db, 0._db )
+                        rof_2 = ( 0._db, 0._db )
                         cfe = ( 0._db, 0._db )
                         cfs = ( 0._db, 0._db )
+
                       endif
                       
                       if( Solsing .and. i_g_1 == i_g_2 .and. lp_f1 == l_f1 .and. lp_f2 == l_f2  &
@@ -3005,7 +3001,7 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
             if( icheck > 1 ) write(3,150) l_s, m_s, l_i, m_i
 
-            call tens_ab(coef_g,Core_resolved,.false.,FDM_comp,Final_tddft,Green,Green_int,icheck,lmax_nrixs, &
+            call tens_ab(coef_g,Core_resolved,.false.,FDM_comp,Final_tddft,Full_potential,Green,Green_int,icheck,lmax_nrixs, &
                                 l0_nrixs,l_s,is_g,1,1,1,1,l_i,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2, &
                                 ninit1,ninitl,ninitlv,ninitlr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
                                 Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)

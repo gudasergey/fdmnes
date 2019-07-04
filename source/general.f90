@@ -1229,7 +1229,7 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,Nonexc,
   endif
 
 ! Factoriels
-  Nfact(1) = sqrt( 2._db )
+  Nfact(1) = sqrt_2
   do i = 2,6
     Nfact(i) = Nfact(i-1) * sqrt( 2._db * i * ( 2 * i - 1 ) )
   end do
@@ -4019,7 +4019,7 @@ subroutine cluster_rot(iopsym,rotmat)
   integer:: i, i2, is, n_opsym, n_opsym_2, n_opsym_3, n_opsym_s
   integer, dimension(nopsm):: iops, iopsym
 
-  real(kind=db):: cs, r2, sn, vn, wn
+  real(kind=db):: cs, sn, vn, wn
   real(kind=db), dimension(3):: k, v, w, x
   real(kind=db), dimension(3,3):: rotmat
 
@@ -4033,7 +4033,6 @@ subroutine cluster_rot(iopsym,rotmat)
   n_opsym_3 = sum( iops(2:9) )
   if( n_opsym_3 == 8 ) return
 
-  r2 = 1 / sqrt( 2._db )
   v(:) = 0._db
   k(1) = 0._db; k(2) = 0._db; k(3) = 1._db
 
@@ -4178,9 +4177,9 @@ subroutine cluster_rot(iopsym,rotmat)
                 iops(10) == 1 .and. iops(11) == 1  ) .or. ( iops(40) == 0 .and. iops(41) == 0 .and. &
                 iops(22) == 0 .and. iops(23) == 0 .and. ( iops(45) == 1 .or. iops(48) == 1 .or. &
                 iops(10) == 1 .or. iops(11) == 1 ) ) ) ) then
-    rotmat(1,1) =   r2;  rotmat(1,2) =   r2; rotmat(1,3) = 0._db
-    rotmat(2,1) =  -r2;  rotmat(2,2) =   r2; rotmat(2,3) = 0._db
-    rotmat(3,1) = 0._db;  rotmat(3,2) = 0._db; rotmat(3,3) = 1._db
+    rotmat(1,1) = sqrt_1o2;  rotmat(1,2) = sqrt_1o2; rotmat(1,3) = 0._db
+    rotmat(2,1) =-sqrt_1o2;  rotmat(2,2) = sqrt_1o2; rotmat(2,3) = 0._db
+    rotmat(3,1) =    0._db;  rotmat(3,2) =    0._db; rotmat(3,3) = 1._db
 
 ! Rotation de 30 degres en cas d'axe 3 selon Oz
   elseif( ( iops(58) == 1 .and. iops(22) == 0 .and. iops(57) == 0 ) .or. &
@@ -4216,15 +4215,15 @@ subroutine cluster_rot(iopsym,rotmat)
 ! Rotation de + 45 degres en cas 4'/mm'm' --> 4'/mmm
   elseif(  iopsym(18) == -1 .and. iopsym(25) == 1 &
      .and. iopsym(40) == -1 .and. iopsym(41) == -1 .and. iopsym(45) == 1 ) then
-    rotmat(1,1) =   r2;  rotmat(1,2) =   r2; rotmat(1,3) = 0._db
-    rotmat(2,1) =  -r2;  rotmat(2,2) =   r2; rotmat(2,3) = 0._db
-    rotmat(3,1) = 0._db;  rotmat(3,2) = 0._db; rotmat(3,3) = 1._db
+    rotmat(1,1) = sqrt_1o2;  rotmat(1,2) = sqrt_1o2; rotmat(1,3) = 0._db
+    rotmat(2,1) =-sqrt_1o2;  rotmat(2,2) = sqrt_1o2; rotmat(2,3) = 0._db
+    rotmat(3,1) =    0._db;     rotmat(3,2) = 0._db; rotmat(3,3) = 1._db
 
 ! Rotation de + 45 degres en cas 4'm'm --> 4'mm'   (le deuxieme "m" est le plan diagonal)
   elseif( n_opsym == 8 .and. iopsym(18) == -1  &
      .and. iopsym(40) == -1 .and. iopsym(41) == -1 .and. iopsym(45) == 1 ) then
-    rotmat(1,1) =   r2;  rotmat(1,2) =   r2; rotmat(1,3) = 0._db
-    rotmat(2,1) =  -r2;  rotmat(2,2) =   r2; rotmat(2,3) = 0._db
+    rotmat(1,1) = sqrt_1o2;  rotmat(1,2) = sqrt_1o2; rotmat(1,3) = 0._db
+    rotmat(2,1) =-sqrt_1o2;  rotmat(2,2) = sqrt_1o2; rotmat(2,3) = 0._db
     rotmat(3,1) = 0._db;  rotmat(3,2) = 0._db; rotmat(3,3) = 1._db
 
 ! mm'm' --> m'm'm
@@ -7112,7 +7111,7 @@ subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_ma
 
   logical:: Dipmag, Moyenne, Octupole, Polarise, Quadrupole, Xan_atom
 
-  real(kind=db):: pdt, plmin, pp, pp1, pp2, pv, r, rac_2, vomin, vv
+  real(kind=db):: pdt, plmin, pp, pp1, pp2, pv, r, vomin, vv
   real(kind=db), dimension(3):: axyz, p, pl, v, v1, v2, vo, w
   real(kind=db), dimension(3,3):: Orthmatt, Orthmati
   real(kind=db), dimension(3,nple):: polar, veconde
@@ -7129,7 +7128,6 @@ subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_ma
   pdp(:,:) = 0._db
   ltypcal(:) = 'linear'
 
-  rac_2 = sqrt( 2._db )
   jpl = 0
 
 ! Si aucune polarisation n'est definie en entree, on en construit par defaut
@@ -7149,10 +7147,10 @@ subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_ma
         pol(i,jpl) = 1._db
         vec(j,jpl) = 1._db
         jpl = jpl + 1
-        pol(i,jpl) = 1._db / rac_2
-        vec(i,jpl) = 1._db / rac_2
-        pol(j,jpl) = 1._db / rac_2
-        vec(j,jpl) = - 1._db / rac_2
+        pol(i,jpl) = sqrt_1o2
+        vec(i,jpl) = sqrt_1o2
+        pol(j,jpl) = sqrt_1o2
+        vec(j,jpl) = - sqrt_1o2
         do ii = 1,3
           jj = mod(ii,3) + 1
           if( abs(msymdd(i,i)) == abs(msymdd(ii,ii)) .and. abs(msymqq(i,j,i,j)) == abs(msymqq(ii,jj,ii,jj)) ) then
@@ -7268,13 +7266,13 @@ subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_ma
       r = sqrt( sum( v1(:)**2 ) )
       v1(:) = v1(:) / r
       call prodvec(v2,vo,v1)
-      pol(:,jpl) = cmplx( v1(:), v2(:), db ) / rac_2
+      pol(:,jpl) = cmplx( v1(:), v2(:), db ) * sqrt_1o2
       vec(:,jpl) = vo(:)
       pdp(jpl,:) = 0.5_db*pdpolar(ipl,:)
       ltypcal(jpl) = 'left '
 
       jpl = jpl + 1
-      pol(:,jpl) = cmplx( v1(:), - v2(:), db ) / rac_2
+      pol(:,jpl) = cmplx( v1(:), - v2(:), db ) * sqrt_1o2
       vec(:,jpl) = vo(:)
       pdp(jpl,:) = 0.5_db*pdpolar(ipl,:)
       ltypcal(jpl) = 'right'
@@ -8279,7 +8277,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     rsort = max( rsorte, rm + Adimp )
   endif
   rsort = max( rsort, rmt(itypei(1)) + Adimp )
-  rmax = ( rsort / Adimp + sqrt(2._db) * ( iord / 2 ) + epspos ) / cos( pi / 6 )
+  rmax = ( rsort / Adimp + sqrt_2 * ( iord / 2 ) + epspos ) / cos( pi / 6 )
   nx = nint( rmax )
 
   if( icheck > 0 .or. istop == 1 ) then
@@ -8428,13 +8426,13 @@ end
 
 ! Calculation of the couples of atoms where one calculates the Crystal Orbital Overlap
 
-subroutine Atom_coop_selec(COOP,Dist_coop,ia_coop,iaprotoi,icheck,igr_coop,igreq,igroupi,itypei,n_atom_coop,n_atom_proto,nab_coop, &
-                         natome,neqm,ngreq,ntype,numat,Posi,Rmtg)
+subroutine Atom_coop_selec(COOP,Dist_coop,ia_coop,iaprotoi,icheck,igr_coop,igreq,igroupi,iprabs_nonexc,itypei,n_atom_coop, &
+                         n_atom_proto,nab_coop,natome,neqm,ngreq,nomfich_s,ntype,numat,Posi,Rmtg)
 
   use declarations
   implicit none
 
-  integer:: i, ia, icheck, ipr, j, n_atom_coop, nab_coop, nab_coop_ev, natome, neqm, n_atom_proto, ntype
+  integer:: i, ia, icheck, ipr, iprabs_nonexc, j, n_atom_coop, nab_coop, nab_coop_ev, natome, neqm, n_atom_proto, ntype
 
   integer, dimension(0:ntype):: numat
   integer, dimension(n_atom_coop):: ia_coop, igr_coop
@@ -8442,9 +8440,11 @@ subroutine Atom_coop_selec(COOP,Dist_coop,ia_coop,iaprotoi,icheck,igr_coop,igreq
   integer, dimension(0:n_atom_proto):: ngreq
   integer, dimension(0:n_atom_proto,neqm):: igreq
 
+  character(len=Length_name):: nomfich_s
+
   logical:: COOP
 
-  real(kind=db):: Dist_coop
+  real(kind=db), dimension(2):: Dist_coop
   real(kind=db), dimension(0:n_atom_proto):: Rmtg
   real(kind=db), dimension(3,natome):: Posi
 
@@ -8474,12 +8474,14 @@ subroutine Atom_coop_selec(COOP,Dist_coop,ia_coop,iaprotoi,icheck,igr_coop,igreq
   if( n_atom_coop > 0 .and. icheck > 0 ) then
     write(3,120)
     do i = 1,n_atom_coop
+      if( ia_coop(i) == 0 ) cycle
       write(3,'(2i5,3f10.5)') igr_coop(i), ia_coop(i), Posi(:,ia_coop(i))*bohr
     end do
     write(3,130)
   endif
 
-  nab_coop = nab_coop_ev(Dist_coop,ia_coop,iaprotoi,icheck,igroupi,itypei,n_atom_coop,n_atom_proto,natome,ntype,numat,Posi,Rmtg)
+  nab_coop = nab_coop_ev(Dist_coop,ia_coop,iaprotoi,icheck,igroupi,iprabs_nonexc,itypei,n_atom_coop,n_atom_proto,natome, &
+                         nomfich_s,ntype,numat,Posi,Rmtg)
 
   return
   110 format(/' ---- Atom_coop_selec --',100('-'))
@@ -8494,26 +8496,37 @@ end
 
 ! Calculation of the number of couple of atoms where one calculate the Crystal Orbital Overlap
 
-function nab_coop_ev(Dist_coop,ia_coop,iaprotoi,icheck,igroupi,itypei,n_atom_coop,n_atom_proto,natome,ntype,numat,Posi,Rmtg)
+function nab_coop_ev(Dist_coop,ia_coop,iaprotoi,icheck,igroupi,iprabs_nonexc,itypei,n_atom_coop,n_atom_proto,natome, &
+                     nomfich_s,ntype,numat,Posi,Rmtg)
 
   use declarations
   implicit none
 
-  integer:: ia, iab, ib, icheck, ipra, iprb, j, n_atom_coop, nab_coop_ev, natome, n_atom_proto, ntype
+  integer, parameter:: Length_ext = 22
+
+  integer:: ia, iab, ib, icheck, ipra, ipraa, iprabs_nonexc, iprb, iprbb, j, length, n_atom_coop, nab_coop_ev, natome, &
+            n_atom_proto, ntype
 
   integer, dimension(0:ntype):: numat
   integer, dimension(n_atom_coop):: ia_coop
   integer, dimension(natome):: iaprotoi, igroupi, itypei
 
-  real(kind=db):: Dist, Dist_coop
+  character(len=1):: Mark_exc_a, Mark_exc_b
+  character(len=Length_ext):: File_coop_ext
+  character(len=Length_name):: nomfich_s
+
+  real(kind=db):: Dist
+  real(kind=db), dimension(2):: Dist_coop
   real(kind=db), dimension(0:n_atom_proto):: Rmtg
   real(kind=db), dimension(3,natome):: Posi
 
   if( icheck > 0 ) then
-    if( Dist_coop > eps10 ) then
-      write(3,'(/a62,f10.5,a2)') ' The maximum interatomic distance for the COOP calculation is:', Dist_coop*bohr,' A'
+    if( Dist_coop(1) > eps10 ) &
+      write(3,'(/a62,f10.5,a2)') ' The minimum interatomic distance for the COOP calculation is:', Dist_coop(1)*bohr,' A'
+    if( Dist_coop(2) > eps10 ) then
+      write(3,'(a62,f10.5,a2)') ' The maximum interatomic distance for the COOP calculation is:', Dist_coop(2)*bohr,' A'
     else
-      write(3,'(/A)') ' The maximum interatomic distance for the COOP calculation is the sum of the atomic radii'
+      write(3,'(A)') ' The maximum interatomic distance for the COOP calculation is the sum of the atomic radii'
     endif
   endif
 
@@ -8526,23 +8539,52 @@ function nab_coop_ev(Dist_coop,ia_coop,iaprotoi,icheck,igroupi,itypei,n_atom_coo
 
       if( n_atom_coop > 0 ) then
         do j = 1,n_atom_coop
-          if( ia_coop(j) == 0 .or. ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
+          if( ia_coop(j) == 0 ) cycle
+          if( ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
         end do
         if( j > n_atom_coop ) cycle
       endif
 
       iprb = iaprotoi( ib )
       Dist = sqrt( sum( ( Posi(:,ia) - Posi(:,ib) )**2 ) )
-      if( Dist_coop > eps10 ) then
-        if( Dist > Dist_coop + eps10 ) cycle
+      if( Dist < Dist_coop(1) - eps10 ) cycle
+      if( Dist_coop(2) > eps10 ) then
+        if( Dist > Dist_coop(2) + eps10 ) cycle
       else
         if( Dist > Rmtg( ipra ) + Rmtg( iprb ) ) cycle
       endif
       iab = iab + 1
+      if( ipra == 0 ) then
+        ipraa = iprabs_nonexc
+        Mark_exc_a = '*'
+      else
+        ipraa = ipra
+        Mark_exc_a = ' '
+      endif
+      if( iprb == 0 ) then
+        iprbb = iprabs_nonexc
+        Mark_exc_b = '*'
+      else
+        iprbb = iprb
+        Mark_exc_b = ' '
+      endif
+
+      length = len_trim(nomfich_s)
+      j = min(length,7)
+      File_coop_ext = ' '
+      File_coop_ext(1:j) = nomfich_s(length-j+1:length)
+      File_coop_ext(j+1:j+5) = '_coop'
+      j = len_trim(File_coop_ext)
+      File_coop_ext(j+1:j+1) = '_'
+      call ad_number(ia,File_coop_ext,Length_ext)
+      j = len_trim(File_coop_ext)
+      File_coop_ext(j+1:j+1) = '_'
+      call ad_number(ib,File_coop_ext,Length_ext)
+
       if( icheck > 0 ) then
         if( iab == 1 ) write(3,100)
-        write(3,110) ia, igroupi(ia), iaprotoi(ia), numat(itypei(ia)), Posi(:,ia)*bohr, ib, igroupi(ib), iaprotoi(ib), &
-                     numat(itypei(ib)), Posi(:,ib)*bohr, Dist*bohr
+        write(3,110) ia, igroupi(ia), ipraa, numat(itypei(ia)), Mark_exc_a, Posi(:,ia)*bohr, &
+                     ib, igroupi(ib), iprbb, numat(itypei(ib)), Mark_exc_b, Posi(:,ib)*bohr, Dist*bohr, File_coop_ext
       endif
     end do
   end do
@@ -8553,9 +8595,9 @@ function nab_coop_ev(Dist_coop,ia_coop,iaprotoi,icheck,igroupi,itypei,n_atom_coo
 
   return
   100 format(/' List of the couples of atoms:', // &
-             '   ia  igr  ipr    Z       Position in cluster         ia  igr  ipr    Z       Position in cluster', &
-             '        Distance')
-  110 format(4i5,3f10.5,2x,4i5,3f10.5,f12.5)
+             '   ia  igr  ipr    Z        Position in cluster         ia  igr  ipr    Z        Position in cluster', &
+             '        Distance      File_coop_name')
+  110 format(4i5,a1,3f10.5,2x,4i5,a1,3f10.5,f12.5,3x,'...',a22)
 end
 
 !***********************************************************************
@@ -9049,7 +9091,7 @@ subroutine nbpoint(Adimp,Base_hexa,D_max_pot,Green,iaabs,igrpt_nomag,iopsymr,ior
     end do
     rmax = min(dcour,rsort) / Adimp + epspos
   else
-    rmax = rsort / Adimp + sqrt(2._db) * iord / 2 + epspos
+    rmax = rsort / Adimp + sqrt_2 * iord / 2 + epspos
   endif
 
   p(:) = pos(:,iaabs) / Adimp
@@ -9148,7 +9190,7 @@ subroutine reseau(Adimp,Base_hexa,D_max_pot,Green,iaabs,icheck, &
     end do
     rmax = min(dcour,rsort) / Adimp + epspos
   else
-    rmax = rsort / Adimp + sqrt(2._db) * iord / 2 + epspos
+    rmax = rsort / Adimp + sqrt_2 * iord / 2 + epspos
   endif
 
   p(:) = pos(:,iaabs) / Adimp
@@ -10142,8 +10184,8 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
       isp = 1
       ur(:,1) = psi(:)
     else
-      ur(:,1) = psi(:) / sqrt(2._db)
-      ur(:,2) = psi(:) / sqrt(2._db)
+      ur(:,1) = psi(:) * sqrt_1o2
+      ur(:,2) = psi(:) * sqrt_1o2
     endif
     f_so = sqrt( (l - m) * ( l + m + 1._db) )
   else
@@ -10833,10 +10875,7 @@ subroutine ylmcr(lmax,nlmc,nlmr,ylmc,ylmr)
 
   complex(kind=db), dimension(nlmc):: ylmc
 
-  real(kind=db):: rac_2
   real(kind=db), dimension(nlmr):: ylmr
-
-  rac_2 = sqrt(2._db)
 
   lm = 0
   do l = 0,lmax
@@ -10849,11 +10888,11 @@ subroutine ylmcr(lmax,nlmc,nlmr,ylmc,ylmr)
       lm0 = l2 + abs(m)
 
       if( m < 0 ) then
-        ylmr(lm) = (-1)**m * rac_2 * aimag( ylmc(lm0) )
+        ylmr(lm) = (-1)**m * sqrt_2 * aimag( ylmc(lm0) )
       elseif( m == 0 ) then
         ylmr(lm) = real( ylmc(lm0), db )
       else
-        ylmr(lm) = (-1)**m * rac_2 * real( ylmc(lm0), db )
+        ylmr(lm) = (-1)**m * sqrt_2 * real( ylmc(lm0), db )
       endif
 
     end do

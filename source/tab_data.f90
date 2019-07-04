@@ -962,7 +962,7 @@ end
 
 !*********************************************************************
 
-! Index of the last core orbital.C alled by dirgen.
+! Index of the last core orbital. Called by dirgen.
 ! Order of the occupancy orbital: 1s[He]2s2p[Ne]3s3p[Ar]4s3d4p[Kr]5s4d5p[Xe]6s4f5d6p[Rn]7s6d5f
 ! inversion: 6s2 4f0 5d1, then one fills the 4f, then the 6p
 
