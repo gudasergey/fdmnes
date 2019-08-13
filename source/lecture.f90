@@ -4498,6 +4498,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     if( Extract ) then
       State_all = .false.
       State_all_out = .false.
+      COOP = .false.
       call Extract_log(Core_resolved,Green_bulk,Green_s,nom_fich_extract,Optic,Renorm,Seuil)
     endif
 

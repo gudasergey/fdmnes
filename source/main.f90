@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 19th of July 2019, 30 Messidor, An 227
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 26th of July 2019, 7 Thermidor, An 227
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -48,7 +48,7 @@ module declarations
   integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic ponctual groups (with other orientation)
   integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic ponctual groups (with other orientation)
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 19th of July 2019'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 26th of July 2019'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )

@@ -37,7 +37,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   complex(kind=db), dimension(nopsm,nrepm):: karact
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: Taull
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind):: Tau_ato
-  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop):: Tau_coop
+  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop,2):: Tau_coop
   complex(kind=db), dimension(:,:), allocatable :: norm, norm_t
   complex(kind=db), dimension(:,:,:), allocatable :: Bessel, Neuman
   complex(kind=db), dimension(:,:,:,:), allocatable :: taull_tem
@@ -386,15 +386,17 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
 
 ! One multiplies by -img in order -aimag(Taull) is the density of state
 ! Conjugate to get the real part same sign than Green
-            cfac = - img * conjg( cfac )
+!            cfac = - img * conjg( cfac )
 
-            Tau_coop(lm01,is1,lm02,is2,iab) = Tau_coop(lm01,is1,lm02,is2,iab) + cfac
+            Tau_coop(lm01,is1,lm02,is2,iab,1) = Tau_coop(lm01,is1,lm02,is2,iab,1) - img * conjg( cfac )
+            Tau_coop(lm02,is2,lm01,is1,iab,2) = Tau_coop(lm02,is2,lm01,is1,iab,2) - img * cfac
 
             if( Repres_comp .and. .not. Spinorbite ) then
               lm01c = lm01 - 2 * m1
               lm02c = lm02 - 2 * m2
               isg = (-1)**(m1+m2)
-              Tau_coop(lm01c,is1,lm02c,is2,iab) = Tau_coop(lm01c,is1,lm02c,is2,iab) + isg * cfac
+              Tau_coop(lm01c,is1,lm02c,is2,iab,1) = Tau_coop(lm01c,is1,lm02c,is2,iab,1) + isg * cfac
+              Tau_coop(lm02c,is2,lm01c,is1,iab,2) = Tau_coop(lm02c,is2,lm01c,is1,iab,2) + isg * conjg( cfac )
             endif
           
           end do          
@@ -2146,7 +2148,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag,Ful
   complex(kind=db), dimension(nopsm,nrepm):: karact
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind)::tau_ato
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: Taull
-  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop):: Tau_coop
+  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop,2):: Tau_coop
   complex(kind=db), dimension(:), allocatable:: bessel, neuman, ylmc
   complex(kind=db), dimension(:,:), allocatable:: hankelm, mat, matp, taullp, taullq
   complex(kind=db), dimension(:,:,:), allocatable:: Cmatr, Dlmm_ia, taup, taup_inv
@@ -2987,9 +2989,9 @@ subroutine Cal_Tau_coop(Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lm
   use declarations
   implicit none
   
-  integer:: ia, iab, ib, ic, igrph, ipra, iprb, is1, is2, ispin, isg, isp, j, L, l1, l2, lm, lm01, lm01c, lm02, lm02c, &
-    lm1, lm1p, lm2, lm2p, lma, lma0, lmaxg, lmb, lmb0, m, m1, m2, n_atom_coop, n_atom_proto, natome, nb_sym_op, ndim, &
-    ngrph, nlmch, nlmagm, nlmsam, nlmsamax, nlmsmax, nspino, nspinp, nab_coop
+  integer:: i_trans, ia, ia_tr, iab, ib, ib_tr, ic, igrph, ipra, iprb, is1, is2, ispin, isg, isp, j, L, l1, l2, lm, lm01, lm01c, &
+    lm02, lm02c, lm1, lm1p, lm2, lm2p, lma, lma0, lma0_tr, lmaxg, lmb, lmb0, lmb0_tr, m, m1, m2, n_atom_coop, n_atom_proto, &
+    natome, nb_sym_op, ndim, ngrph, nlmch, nlmagm, nlmsam, nlmsamax, nlmsmax, nspino, nspinp, nab_coop
 
   integer, dimension(n_atom_coop):: ia_coop
   integer, dimension(natome):: iaprotoi, lmaxa, nlmsa
@@ -3007,7 +3009,7 @@ subroutine Cal_Tau_coop(Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lm
   complex(kind=db), dimension(ndim,nlmch):: mat
   complex(kind=db), dimension(nlmsmax,nlmsmax):: taullp, taullq
   complex(kind=db), dimension(natome,nlmsamax,nb_sym_op,-lmaxg:lmaxg,nspino):: Cmat
-  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop):: Tau_coop
+  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop,2):: Tau_coop
   complex(kind=db), dimension(:,:,:), allocatable:: Dlmm_ia
   complex(kind=db), dimension(:,:,:,:), allocatable:: Cmatr
 
@@ -3042,16 +3044,10 @@ subroutine Cal_Tau_coop(Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lm
 
       lmb0 = sum( nlmsa(1:ib-1) )
 
-      do lma = 1,nlmsa(ia)
-        do lmb = 1,nlmsa(ib)
-          taullp(lma,lmb) = mat(lma0+lma,lmb0+lmb)
-        end do
-      end do
-
       if( nb_sym_op > 1 ) then
 
         allocate( Cmatr(nlmsamax,-lmaxg:lmaxg,nspino,ia:ib) )
-
+    
         do ic = ia,ib,ib-ia
           Mat_rot(:,:) = rot_atom(:,:,ic)
           Mat_rot = Transpose( Mat_rot )
@@ -3067,66 +3063,93 @@ subroutine Cal_Tau_coop(Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lm
           end do
           deallocate( Dlmm_ia )
         end do
+    
+      endif
 
-        taullq(:,:) = taullp(:,:)
-        taullp(:,:) = (0._db,0._db)
+      do i_trans = 1,2 ! loop over transpose (usefull when spinorbit)
 
-        do lm1 = 1,nlmsa(ia)
-          l1 = lato(lm1,ia,igrph)
-          m1 = mato(lm1,ia,igrph)
-          is1 = iato(lm1,ia,igrph)
-          do lm2 = 1,nlmsa(ib)
-            l2 = lato(lm2,ib,igrph)
-            m2 = mato(lm2,ib,igrph)
-            is2 = iato(lm2,ib,igrph)
-
-            do lm1p = 1,nlmsa(ia)
-              if( lato(lm1p,ia,igrph) /= l1 ) cycle
-              if( abs( Cmatr(lm1p,m1,is1,ia) ) < eps10 ) cycle
-              do lm2p = 1,nlmsa(ib)
-                if( lato(lm2p,ib,igrph) /= l2 ) cycle
-                if( abs( Cmatr(lm2p,m2,is2,ib) ) < eps10 ) cycle
-
-                Taullp(lm1,lm2) = Taullp(lm1,lm2) + Cmatr(lm1p,m1,is1,ia) * Taullq(lm1p,lm2p) * Conjg( Cmatr(lm2p,m2,is2,ib) )
-
+        if( i_trans == 1 ) then
+          ia_tr = ia
+          ib_tr = ib
+          lma0_tr = lma0
+          lmb0_tr = lmb0
+        else
+          ia_tr = ib
+          ib_tr = ia
+          lma0_tr = lmb0
+          lmb0_tr = lma0
+        endif
+              
+        do lma = 1,nlmsa(ia_tr)
+          do lmb = 1,nlmsa(ib_tr)
+            taullp(lma,lmb) = mat(lma0_tr+lma,lmb0_tr+lmb)
+          end do
+        end do
+    
+        if( nb_sym_op > 1 ) then
+    
+          taullq(:,:) = taullp(:,:)
+          taullp(:,:) = (0._db,0._db)
+    
+          do lm1 = 1,nlmsa(ia_tr)
+            l1 = lato(lm1,ia_tr,igrph)
+            m1 = mato(lm1,ia_tr,igrph)
+            is1 = iato(lm1,ia_tr,igrph)
+            do lm2 = 1,nlmsa(ib_tr)
+              l2 = lato(lm2,ib_tr,igrph)
+              m2 = mato(lm2,ib_tr,igrph)
+              is2 = iato(lm2,ib_tr,igrph)
+    
+              do lm1p = 1,nlmsa(ia_tr)
+                if( lato(lm1p,ia_tr,igrph) /= l1 ) cycle
+                if( abs( Cmatr(lm1p,m1,is1,ia_tr) ) < eps10 ) cycle
+                do lm2p = 1,nlmsa(ib_tr)
+                  if( lato(lm2p,ib_tr,igrph) /= l2 ) cycle
+                  if( abs( Cmatr(lm2p,m2,is2,ib_tr) ) < eps10 ) cycle
+    
+                  Taullp(lm1,lm2) = Taullp(lm1,lm2) + Cmatr(lm1p,m1,is1,ia_tr) * Taullq(lm1p,lm2p) &
+                                                                               * Conjg( Cmatr(lm2p,m2,is2,ib_tr) )
+    
+                end do
               end do
+    
             end do
-
+          end do
+    
+          if( i_trans == 2 ) deallocate( Cmatr )
+    
+        endif
+    
+        do lm1 = 1,nlmsa(ia_tr)
+          L = lato(lm1,ia_tr,igrph)
+          m1 = mato(lm1,ia_tr,igrph)
+          lm01 = L**2 + L + 1 + m1
+          if( Spinorbite ) then
+            is1 = iato(lm1,ia_tr,igrph)
+          else
+            is1 = ispin
+          endif
+          do lm2 = 1,nlmsa(ib_tr)
+            L = lato(lm2,ib_tr,igrph)
+            m2 = mato(lm2,ib_tr,igrph)
+            lm02 = L**2 + L + 1 + m2
+            if( Spinorbite ) then
+              is2 = iato(lm2,ib_tr,igrph)
+            else
+              is2 = ispin
+            endif
+            Tau_coop(lm01,is1,lm02,is2,iab,i_trans) = Tau_coop(lm01,is1,lm02,is2,iab,i_trans) + taullp(lm1,lm2)
+            if( .not. Spinorbite .and. Repres_comp ) then
+              lm01c = lm01 - 2 * m1
+              lm02c = lm02 - 2 * m2
+              isg = (-1)**(m1+m2)
+              Tau_coop(lm01c,is1,lm02c,is2,iab,i_trans) = Tau_coop(lm01c,is1,lm02c,is2,iab,i_trans) + isg * taullp(lm1,lm2)
+            endif
           end do
         end do
 
-        deallocate( Cmatr )
-
-      endif
-
-      do lm1 = 1,nlmsa(ia)
-        L = lato(lm1,ia,igrph)
-        m1 = mato(lm1,ia,igrph)
-        lm01 = L**2 + L + 1 + m1
-        if( Spinorbite ) then
-          is1 = iato(lm1,ia,igrph)
-        else
-          is1 = ispin
-        endif
-        do lm2 = 1,nlmsa(ib)
-          L = lato(lm2,ib,igrph)
-          m2 = mato(lm2,ib,igrph)
-          lm02 = L**2 + L + 1 + m2
-          if( Spinorbite ) then
-            is2 = iato(lm2,ib,igrph)
-          else
-            is2 = ispin
-          endif
-          Tau_coop(lm01,is1,lm02,is2,iab) = Tau_coop(lm01,is1,lm02,is2,iab) + taullp(lm1,lm2)
-          if( .not. Spinorbite .and. Repres_comp ) then
-            lm01c = lm01 - 2 * m1
-            lm02c = lm02 - 2 * m2
-            isg = (-1)**(m1+m2)
-            Tau_coop(lm01c,is1,lm02c,is2,iab) = Tau_coop(lm01c,is1,lm02c,is2,iab) + isg * taullp(lm1,lm2)
-          endif
-        end do
-      end do
-
+      end do ! end of loop over i_trans
+      
     end do
   end do ! end of loop over ia
 

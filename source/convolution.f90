@@ -2897,7 +2897,7 @@ end
            y = Deltar          
           case(6)
            if( .not. U_iso_man ) cycle
-           y = Deltar          
+           y = Abs_U_iso_inp          
         end select
         
         x = y / 10

@@ -977,8 +977,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
   complex(kind=db), dimension(:,:,:,:), allocatable:: secmd, secmd_m, secmm, secmm_m, V_hubb_abs, &
                                                       V_hubb_t
   complex(kind=db), dimension(:,:,:,:,:), allocatable:: S_nrixs, S_nrixs_m, secdd, secdd_m, Tau_comp, rof0, secdq, secdq_m, &
-                                                        Tau_ato, Taull, Tau_coop, Taull_dft, Taull_tdd, V_hubb, V_hubb_s
-  complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: secdo, secdo_m, secoo, secoo_m, secqq, secqq_m, Taull_stk
+                                                        Tau_ato, Taull, Taull_dft, Taull_tdd, V_hubb, V_hubb_s
+  complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: secdo, secdo_m, secoo, secoo_m, secqq, secqq_m, Tau_coop, Taull_stk
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: RadialIntegral, Taull_abs
 
   logical:: Abs_in_bulk, Abs_in_Bulk_roughness, Absorbeur, All_nrixs, Allsite, ATA, Bulk_atom_done, Atom_comp_cal, Atom_nonsph, &
@@ -2191,11 +2191,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             nab_coop = 0
             allocate( phiato(nphiato1,nlmagm,nspinp,nspino,natome,nphiato7) )
             allocate( Taull(nlmagm,nspinp,nlmagm,nspinp,natome) )
-            allocate( Tau_coop(nlmagm,nspinp,nlmagm,nspinp,nab_coop) )
+            allocate( Tau_coop(nlmagm,nspinp,nlmagm,nspinp,nab_coop,2) )
             phiato(:,:,:,:,:,:) = 0._db
             Tau_ato(:,:,:,:,:) = (0._db,0._db)
             Taull(:,:,:,:,:) = (0._db,0._db)
-            Tau_coop(:,:,:,:,:) = (0._db,0._db)
+            Tau_coop(:,:,:,:,:,:) = (0._db,0._db)
 
             if( .not. Green ) then
               call clmax(Ecmax_out,Rsort,lmaxso0,lmaxso,-1,.true.)
@@ -3441,11 +3441,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
           allocate( phiato(nphiato1,nlmagm,nspinp,nspino,natome,nphiato7) )
           allocate( Taull(nlmagm,nspinp,nlmagm,nspinp,natome) )
-          allocate( Tau_coop(nlmagm,nspinp,nlmagm,nspinp,nab_coop) )
+          allocate( Tau_coop(nlmagm,nspinp,nlmagm,nspinp,nab_coop,2) )
           phiato(:,:,:,:,:,:) = 0._db
           Tau_ato(:,:,:,:,:) = (0._db,0._db)
           Taull(:,:,:,:,:) = (0._db,0._db)
-          Tau_coop(:,:,:,:,:) = (0._db,0._db)
+          Tau_coop(:,:,:,:,:,:) = (0._db,0._db)
 
           if( .not. Green ) then
             call clmax(Ecmax_out,Rsort,lmaxso0,lmaxso,-1,.true.)
