@@ -90,7 +90,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
 
   pop(1:n_orb) = nel(1:n_orb)
 
-! One replaces the default occupancy par the one eventually given in the indata file
+! One replaces the default occupancy by the one eventually given in the indata file
   boucle_io: do io = 1,nlat(it)
     Popt = sum( popval(it,io,1:nspin) )
     do ip = 1,n_orb
@@ -742,7 +742,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
   210 format(/'  Popatc =',f9.4)
   215 format(/'  n  l  Popatv')
   220 format(2i3,f8.4)
-  230 format(/'     rato      4*pi*r2*rho 4*pi*r2*rho_c',10(7x,2i3,2x))
+  230 format(/'     Radius        4*pi*r2*rho   4*pi*r2*rho_c',10(4x,2i3,5x))
   240 format(1p,12e15.7)
 end
 

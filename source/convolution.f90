@@ -6,9 +6,9 @@
 !              L(x) = (1/(pi*b)) * 1 / ( 1 + ( (x-a)/b )**2 )
 !    Integration over energy for Dafs.
 
-subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart, &
-        Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max,ical, &
-        icheck,indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
+subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
+        E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_max_man, &
+        ical,icheck,indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,ncal)
 
   use declarations
@@ -51,11 +51,11 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   complex(kind=db), dimension(:,:,:,:), allocatable:: As_bulk, mu, mus
 
   logical:: Abs_before, Abs_in_bulk, Analyzer, Another_one, Arc, bav_open, Bormann, Check_birefringence, Dafs, Dafs_bio, &
-    Check_conv, chem, Circular, &
-    Conv_done, Cor_abs, decferm, Deuxieme, Double_cor, E_cut_man, Energphot, Epsii_ref_man, Extrap, Fermip, First_E, Fit_cal, &
-    Forbidden, fprim, fprime_atom, Full_self_abs, Gamma, Gamma_hole_imp, Gamma_var, Gaussian_default, Green_int, Just_total, &
-    Magn, no_extrap, nxan_lib, Scan_a, scan_true, Seah, Self_abs, &
-    Signal_Sph, Stokes, Stokes_Dafs, Stokes_xan, Sup_sufix, Tenseur, Tenseur_car, Thomson, Transpose_file, U_iso_inp, XES
+    Check_conv, chem, Circular, Conv_done, Cor_abs, decferm, Deuxieme, Double_cor, &
+    E_cut_man, E_cut_param, Energphot, Epsii_ref_man, Extrap, Fermip, First_E, Fit_cal, &
+    Forbidden, fprim, fprime_atom, Full_self_abs, Gamma, Gamma_hole_man, Gamma_hole_param, Gamma_max_man, Gamma_var, &
+    Gaussian_default, Green_int, Just_total, Magn, no_extrap, nxan_lib, Scan_a, scan_true, Seah, Self_abs, &
+    Signal_Sph, Stokes, Stokes_Dafs, Stokes_xan, Sup_sufix, Tenseur, Tenseur_car, Thomson, Transpose_file, U_iso_man, XES
   logical, dimension(:), allocatable:: run_done, Skip_run, Trunc
 
   real(kind=db):: a, a1, a2, a3, a4, Abs_U_iso_inp, alambda, Asea, b, b1, b2, b3, b4, bba, bbb, c, c_micro, &
@@ -103,6 +103,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Deuxieme = .false.
   Double_cor = .false.
   E_cut = E_cut_imp * rydb
+  E_cut_param = .false.
   Epsii_ref_man = .false.
   eintmax = 1000000._db
   f0_forward = 0._db
@@ -112,6 +113,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   fprim = .false.
   fprime_atom = .false.
   Full_self_abs = .false.
+  Gamma_hole_param = .false.
   Gamma_var = .false.
   Gaussian_default = .false.
   Green_int = .false.
@@ -146,7 +148,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Tenseur_car = .false.
   Thomson = .false.
   Transpose_file = .false.
-  U_iso_inp = .false.
+  U_iso_man = .false.
   Vibration = 0._db
   XES = .false.
 
@@ -416,7 +418,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         read(itape1,'(A)') chemin
 
       case('abs_b_iso')
-        U_iso_inp = .true.
+        U_iso_man = .true.
         n = nnombre(itape1,132)
         if( n == 1 ) then
           read(itape1,*) Abs_U_iso_inp
@@ -426,7 +428,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         Abs_U_iso_inp = Abs_U_iso_inp / ( 8 * pi**2 ) 
 
       case('abs_u_iso')
-        U_iso_inp = .true.
+        U_iso_man = .true.
         n = nnombre(itape1,132)
         if( n == 1 ) then
           read(itape1,*) Abs_U_iso_inp
@@ -434,8 +436,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           read(itape1,*) Abs_U_iso_inp, Shift_U_iso          
         endif
 
-     case('check_bir')
-       Check_birefringence = .true.
+      case('check_bir')
+        Check_birefringence = .true.
         
       case('seah')
 
@@ -450,16 +452,19 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           case(2)
             read(itape1,*) asea, Gamma_max
             Gamma_max = Gamma_max / rydb
+            Gamma_max_man = .true.
           case(3)
             read(itape1,*) asea, Gamma_max, Gamma_hole(1)
             Gamma_hole(1) = Gamma_hole(1) / rydb
             Gamma_max = Gamma_max / rydb
-            Gamma_hole_imp = .true.
+            Gamma_hole_man = .true.
+            Gamma_max_man = .true.
           case default
             read(itape1,*) asea, Gamma_max, Gamma_hole(1), E_cut
             Gamma_hole(1) = Gamma_hole(1) / rydb
             Gamma_max = Gamma_max / rydb
-            Gamma_hole_imp = .true.
+            Gamma_hole_man = .true.
+            Gamma_max_man = .true.
             E_cut_man = .true.
         end select
 
@@ -483,20 +488,23 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
             Ecent = Ecent / rydb
             Elarg = Elarg / rydb
             Gamma_max = Gamma_max / rydb
+            Gamma_max_man = .true.
           case(4)
             read(itape1,*) Ecent, Elarg, Gamma_max, Gamma_hole(1)
             Ecent = Ecent / rydb
             Elarg = Elarg / rydb
             Gamma_hole(1) = Gamma_hole(1) / rydb
             Gamma_max = Gamma_max / rydb
-            Gamma_hole_imp = .true.
-          case default
+            Gamma_hole_man = .true.
+            Gamma_max_man = .true.
+         case default
             read(itape1,*) Ecent, Elarg, Gamma_max, Gamma_hole(1), E_cut
             Ecent = Ecent / rydb
             Elarg = Elarg / rydb
             Gamma_hole(1) = Gamma_hole(1) / rydb
             Gamma_max = Gamma_max / rydb
-            Gamma_hole_imp = .true.
+            Gamma_hole_man = .true.
+            Gamma_max_man = .true.
             E_cut_man = .true.
         end select
 
@@ -711,8 +719,10 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
   Convolution_out_all(:) = ' ' 
   fichscanout_all(:) = ' '
 
-  call Conv_out_name(bav_open,check_conv,Chem,Chemin,convolution_out,Convolution_out_all,Dafs_bio,Deuxieme,fichin, &
-                        fichscanin,fichscanout,fichscanout_all,Length_line,nfich,nomfichbav,Scan_a,Scan_true,XES)
+  call Conv_out_name(Abs_U_iso_inp,bav_open,check_conv,Chem,Chemin,convolution_out,Convolution_out_all,Dafs_bio,Deltar, &
+                        Deuxieme,E_cut,E_cut_man,Epsii_ref,Epsii_ref_man,fichin,fichscanin,fichscanout,fichscanout_all, &
+                        Gamma_hole(1),Gamma_hole_man,Gamma_max,Gamma_max_man,Length_line,nfich,nomfichbav,Scan_a,Scan_true, &
+                        U_iso_man,XES)
 
   do ifich = 1,nfich
     if( convolution_out /= fichin(ifich) ) cycle
@@ -827,10 +837,10 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           case('gamma_hol')
             Gamma_hole(1) = param(igr,ipar)
             Gamma_hole(1) = Gamma_hole(1) / rydb
-            Gamma_hole_imp = .true.
+            Gamma_hole_param = .true.
           case('E_cut','EFermi')
             E_cut = param(igr,ipar)
-            E_cut_man = .true.
+            E_cut_param = .true.
           case('shift')
             if( .not. run_done( indice_par(igr,ipar) ) ) then
               ifich = i_done( indice_par(igr,ipar) )
@@ -912,7 +922,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
 
   endif
 
-  if( E_cut_man ) En_Fermi(:) = E_cut
+  if( E_cut_man .or. E_cut_param ) En_Fermi(:) = E_cut
 
   if( Gaussian_default ) deltar = max( Eseuil(1) / 10000, 0.0001_db )
 
@@ -1285,7 +1295,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
           call gammarc(Ecent,Elarg,Gamma_max,E_cut,nelor,Elor,betalor)
         endif
 
-        if( .not. Gamma_hole_imp ) then
+        if( .not. ( Gamma_hole_man .or. Gamma_hole_param ) ) then
           if( ninitl(ifich) == 1 .or. ninit1 == ninitl(ifich) .or. initl <= ninit1 ) then
             js = jseuil
           else
@@ -1397,7 +1407,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
         endif
   
   ! Temperature effect in the Debye model
-        if( ( U_iso_inp .and. Abs_U_iso_inp > eps10 ) .or. Abs_U_iso(ifich) > eps10   ) then
+        if( ( U_iso_man .and. Abs_U_iso_inp > eps10 ) .or. Abs_U_iso(ifich) > eps10   ) then
 
         select case( ninitl(ifich) )
           case(1)
@@ -1423,13 +1433,13 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
  ! natomsym is real
           fac = natomsym / n
 
-          call Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nenerg,nfich, &
-                        nom_col,numat,nxan,Shift_U_iso,U_iso_inp,V0muf,Xanes)
+          call Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nef,nenerg,nfich, &
+                        nom_col,numat,nxan,Shift_U_iso,U_iso_man,V0muf,Xanes)
 
           fac = 1._db / n
 
           if( Dafs ) call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
-                        nenerg,nfich,.true.,nphim,npldafs,numat,Shift_U_iso,U_iso_inp,V0muf) 
+                        nenerg,nfich,.true.,nphim,npldafs,numat,Shift_U_iso,U_iso_man,V0muf) 
 
           fac = natomsym * 100 / ( n * Volume_maille )
   
@@ -1440,7 +1450,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
             do i = 1,2
               Mu_t(:,:,:) = Mu(:,:,:,i) 
               call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Mu_t,dph_t,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
-                        nenerg,nfich,.false.,nphim,npldafs,numat,Shift_U_iso,U_iso_inp,V0muf)
+                        nenerg,nfich,.false.,nphim,npldafs,numat,Shift_U_iso,U_iso_man,V0muf)
               Mu(:,:,:,i) = Mu_t(:,:,:) 
             end do
             deallocate( dph_t, Mu_t )
@@ -1450,8 +1460,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge,E_c
             allocate( Mu_tt(nenerg,npldafs) )
             do i = 1,6,5
               Mu_tt(:,:) = Mu_mat(:,i,:) 
-              call Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nenerg,nfich, &
-                        nom_col,numat,npldafs,Shift_U_iso,U_iso_inp,V0muf,Mu_tt)
+              call Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nef,nenerg,nfich, &
+                        nom_col,numat,npldafs,Shift_U_iso,U_iso_man,V0muf,Mu_tt)
               Mu_mat(:,i,:) = Mu_tt(:,:)  
             end do  
             deallocate( Mu_tt )
@@ -2815,21 +2825,26 @@ end
 
 ! Name of the output file
 
-  subroutine Conv_out_name(bav_open,check_conv,Chem,Chemin,convolution_out,Convolution_out_all,Dafs_bio,Deuxieme,fichin, &
-                           fichscanin,fichscanout,fichscanout_all,Length_line,nfich,nomfichbav,Scan_a,Scan_true,XES)
+  subroutine Conv_out_name(Abs_U_iso_inp,bav_open,check_conv,Chem,Chemin,convolution_out,Convolution_out_all,Dafs_bio,Deltar, &
+                        Deuxieme,E_cut,E_cut_man,Epsii_ref,Epsii_ref_man,fichin,fichscanin,fichscanout,fichscanout_all, &
+                        Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_max_man,Length_line,nfich,nomfichbav,Scan_a,Scan_true, &
+                        U_iso_man,XES)
 
   use declarations
   implicit none
 
-  integer:: ifich, istat, jfich, Length, l_max, Length_line, long, longf, n, nfich, nnombre, ns
+  integer:: i, ifich, istat, jfich, k, Length, l_max, L, Length_line, long, longf, n, nfich, nnombre, ns
   
   character(len=8):: dat
-  character(len=10):: tim
+  character(len=10):: mot10, tim
   character(len=50):: com_date, com_time
   character(len=Length_name):: chemin, convolution_out, fichscanout, mot, mots, nomfichbav
   character(len=Length_name), dimension(nfich):: convolution_out_all, fichin, fichscanin, fichscanout_all
 
-  logical:: bav_open, check_conv, Chem, Dafs_bio, Deuxieme, Scan_a, Scan_true, XES
+  logical:: bav_open, check_conv, Chem, Dafs_bio, Deuxieme, E_cut_man, Epsii_ref_man, Gamma_hole_man, Gamma_max_man, Scan_a, &
+            Scan_true, U_iso_man, XES
+  
+  real(kind=db):: Abs_U_iso_inp, Deltar, E_cut, Epsii_ref, Gamma_hole, Gamma_max, x, y
   
   if( convolution_out == ' ' ) then
  
@@ -2862,6 +2877,74 @@ end
         endif
       endif
 
+      do k = 1,6
+      
+        select case(k)
+          case(1)
+           if( .not. E_cut_man ) cycle
+           y = E_cut
+          case(2)
+           if( .not. Gamma_max_man ) cycle
+           y = Gamma_max * Rydb
+          case(3)
+           if( .not. Gamma_hole_man ) cycle
+           y = Gamma_hole * Rydb
+          case(4)
+           if( .not. Epsii_ref_man ) cycle
+           y = Epsii_ref * Rydb          
+          case(5)
+           if( abs( Deltar ) < eps10 ) cycle
+           y = Deltar          
+          case(6)
+           if( .not. U_iso_man ) cycle
+           y = Deltar          
+        end select
+        
+        x = y / 10
+        do i = 0,4
+          x = 10 * x
+          if( abs( x - nint(x) ) < eps10 ) exit
+        end do
+        
+        select case(i)
+          case(0)
+            write(mot10,'(i10)') nint( y )
+          case(1)
+            write(mot10,'(f10.1)') y
+          case(2)
+            write(mot10,'(f10.2)') y
+          case(3)
+            write(mot10,'(f10.3)') y
+          case default
+            write(mot10,'(f10.4)') y
+        end select
+        
+        mot10 = adjustl( mot10 )   
+        L = len_trim( mot10 )
+        if( i > 0 ) mot10(L-i:L-i) = 'p'
+     
+        Length = len_trim( mot ) + 1
+
+        select case(k)
+          case(1)          
+            mot(Length:Length+2) = '_EF'
+          case(2)
+            mot(Length:Length+2) = '_Gm'
+          case(3)
+            mot(Length:Length+2) = '_GH'
+          case(4)
+            mot(Length:Length+2) = '_Ep'
+          case(5)
+            mot(Length:Length+2) = '_Ga'
+          case(6)
+            mot(Length:Length+2) = '_Ui'
+        end select
+        Length = Length + 2
+        
+        mot(Length+1:Length+L) = mot10(1:L)
+        
+      end do
+     
       Length = len_trim( mot) + 1
       if( XES ) then
         mot(Length:Length+12) = '_xes_conv.txt'
@@ -4719,8 +4802,8 @@ end
 
 ! Effect of temperature using the Debye model
 
-subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nenerg,nfich, &
-                        nom_col,numat,nxan,Shift_U_iso,U_iso_inp,V0muf,Xanes)
+subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nef,nenerg,nfich, &
+                        nom_col,numat,nxan,Shift_U_iso,U_iso_man,V0muf,Xanes)
 
   use declarations
   implicit none
@@ -4728,13 +4811,13 @@ subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,f
   character(len=Length_word):: nomab
   character(len=Length_word), dimension(n_col):: nom_col
 
-  integer:: i, ie, ie0, ifich, Length, n_col, nenerg, nfich, nxan, Z
+  integer:: i, ie, ie0, ifich, Length, n_col, nef, nenerg, nfich, nxan, Z
   integer, dimension(nfich):: numat
   
-  logical:: Energphot, U_iso_inp
+  logical:: Energphot, U_iso_man
 
-  real(kind=db):: Abs_U_iso_inp, c, Conv_Mbarn_nelec, Delta_E, E, E_medium, Eph, f, fac, fp, fpp, fpp0, p, Shift_U_iso, &
-                  Xanes_atom_av
+  real(kind=db):: Abs_U_iso_inp, c, Conv_Mbarn_nelec, Delta_E, E, E_medium, Eph, f, fac, fp, fpp, fpp0, &
+                  p, Shift, Shift_U_iso, Xanes_atom_av
   real(kind=db), dimension(nxan):: Ratio, Xanes_av 
   real(kind=db), dimension(nenerg):: Energ, Ephoton, Xanes_atom 
   real(kind=db), dimension(nenerg,nxan):: Xanes 
@@ -4756,12 +4839,10 @@ subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,f
  ! Calculation of atomic spectra when not existing
   if( i > nxan ) then
 
-    Eph = Eseuil(ifich) - 1
-    Eph = max( Eph,  0.5_db )
-    call fprime(Z,Eph,fpp0,fp)
+    call Shift_from_frime_binding_energy(Eseuil(ifich),fpp0,Shift,Z) 
 
     do ie = 1,nenerg
-      Eph = Ephoton(ie) - Shift_U_iso
+      Eph = Ephoton(ie) - Shift_U_iso + Shift
       call fprime(Z,Eph,fpp,fp)
       f = fac / conv_mbarn_nelec(Eph)
       Xanes_atom(ie) = f * ( fpp - fpp0 )
@@ -4792,6 +4873,7 @@ subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,f
           Delta_E = ( Energ(ie+1) - Energ(ie-1) ) / 2
         endif
         Xanes_atom_av = Xanes_atom_av + Delta_E * Xanes_atom(ie)
+        if( ie < nef ) cycle  ! it is before convolution, thus before E_fermi, it is zero
         do i = 1,nxan
           nomab = nom_col(i)
           nomab = adjustl(nomab)
@@ -4823,7 +4905,7 @@ subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,f
     endif
     if( E < eps10 ) cycle
 
-    if( U_iso_inp ) then 
+    if( U_iso_man ) then 
       p = exp( - c * Abs_U_iso_inp * E )
     else
       p = exp( - c * Abs_U_iso(ifich) * E )
@@ -4847,8 +4929,47 @@ end
 
 !***********************************************************************
 
+! fprime.f90 has tabulated edge energy different from fdmnes (see frime_data).
+! This routine calculate the shift between them
+
+subroutine Shift_from_frime_binding_energy(Eseuil,fpp0,Shift,Z) 
+
+  use declarations
+  implicit none
+
+  integer:: i, j, Z
+  
+  real(kind=db):: Binding_energy, Delta, Eph, Eseuil, fp, fpp0, fpp1, Shift 
+
+  Eph = Eseuil - 1
+  Eph = max( Eph,  0.5_db )
+  call fprime(Z,Eph,fpp0,fp)
+  
+  Delta = 0.8_db / Rydb
+  do j = 1,3
+    Loop_i: do i = 1,100
+      Eph = Eph + Delta
+      call fprime(Z,Eph,fpp1,fp)
+      if( fpp1 > fpp0 ) then
+        Eph = Eph - Delta
+        Delta = Delta / 2
+        exit Loop_i
+      else
+        Binding_energy = Eph
+        fpp0 = fpp1
+      endif
+    end do Loop_i
+  end do
+  
+  Shift = Binding_energy - Eseuil
+   
+  return
+end
+
+!***********************************************************************
+
 subroutine Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
-                        nenerg,nfich,Dafs_cal,nphim,npldafs,numat,Shift_U_iso,U_iso_inp,V0muf) 
+                        nenerg,nfich,Dafs_cal,nphim,npldafs,numat,Shift_U_iso,U_iso_man,V0muf) 
   use declarations
   implicit none
 
@@ -4859,9 +4980,9 @@ subroutine Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Epho
   complex(kind=db), dimension(npldafs):: dph 
   complex(kind=db), dimension(nenerg):: Dafs_atom 
   
-  logical:: Dafs_cal, Energphot, U_iso_inp
+  logical:: Dafs_cal, Energphot, U_iso_man
 
-  real(kind=db):: Abs_U_iso_inp, c, Conv_Mbarn_nelec, E, Eph, f, fac, fp, fpp, fpp0, p, Shift_U_iso
+  real(kind=db):: Abs_U_iso_inp, c, Conv_Mbarn_nelec, E, Eph, f, fac, fp, fpp, fpp0, p, Shift, Shift_U_iso
   real(kind=db), dimension(nenerg):: Energ, Ephoton 
   real(kind=db), dimension(nfich):: Abs_U_iso, Eseuil, V0muf 
 
@@ -4872,14 +4993,12 @@ subroutine Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Epho
 
  ! Calculation of atomic spectra when not existing
 
-  Eph = Eseuil(ifich) - 1
-  Eph = max( Eph,  0.5_db )
-  call fprime(Z,Eph,fpp0,fp)
+  call Shift_from_frime_binding_energy(Eseuil(ifich),fpp0,Shift,Z) 
 
   f = fac / pi
   
   do ie = 1,nenerg
-    Eph = Ephoton(ie) - Shift_U_iso
+    Eph = Ephoton(ie) - Shift_U_iso + Shift
     call fprime(Z,Eph,fpp,fp)
     if( .not. Dafs_cal ) f = fac / ( pi * Conv_Mbarn_nelec(Eph) ) 
     Dafs_atom(ie) = f * cmplx( fpp - fpp0, 0._db, db )
@@ -4903,7 +5022,7 @@ subroutine Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Epho
     endif
     if( E < eps10 ) cycle
     
-    if( U_iso_inp ) then 
+    if( U_iso_man ) then 
       p = exp( - c * Abs_U_iso_inp * E )
     else
       p = exp( - c * Abs_U_iso(ifich) * E )

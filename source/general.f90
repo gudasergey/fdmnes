@@ -845,35 +845,43 @@ end
 
 ! Elaboration of the energy grid for the xanes calculation step
 
-subroutine grille_xanes(eeient,eimag,eimagent,egamme,energ,icheck,lin_gam,ngamme,neimagent,nenerg)
+subroutine grille_xanes(eeient,eimag,eimagent,Egamme,energ,icheck,lin_gam,ngamme,neimagent,nenerg)
 
   use declarations
   implicit none
 
-  integer:: icheck, i, ie, lin_gam, ngamme, neimagent, nenerg, ngc
+  integer:: icheck, i, ie, igc, lin_gam, ngamme, neimagent, nenerg, ngc
 
   real(kind=db):: de, def, p1, r
   real(kind=db), dimension(neimagent) :: eeient, eimagent
   real(kind=db), dimension(nenerg) :: energ, eimag
-  real(kind=db), dimension(ngamme) :: egamme
+  real(kind=db), dimension(ngamme) :: Egamme
 
 ! Energy grid elaboration
-  energ(1) = egamme(1)
+  energ(1) = Egamme(1)
 
   if( lin_gam == 1 ) then            ! 'rangel'
     def = 10._db / rydb
     do ie = 2,nenerg
       r = 1 + energ(ie-1) / def
       r = max( r, 0.25_db )
-      de = sqrt( r ) * egamme(2)
+      de = sqrt( r ) * Egamme(2)
       energ(ie) = energ(ie-1) + de
     end do
   else
     ngc = 2
     do ie = 2,nenerg
-      energ(ie) = energ(ie-1) + egamme(ngc)
-      if( energ(ie) >= egamme(ngc+1) - eps10 ) ngc = ngc + 2
+      energ(ie) = energ(ie-1) + Egamme(ngc)
+      do igc = ngc, ngamme - 1, 2
+        if( energ(ie) >= Egamme(igc+1) - eps10 ) then
+          ngc = ngc + 2
+          energ(ie) = min( Egamme(ngc-1), energ(ie) )
+        else
+          exit
+        endif
+      end do
     end do
+    Energ(nenerg) = min( Energ(nenerg), Egamme(ngamme) )
   endif
 
   eimag(1:nenerg) = 0._db
@@ -6645,7 +6653,8 @@ end
 
   real(kind=sg):: getf0
 
-  real(kind=db):: Conv_mbarn_nelec, Ea, fp_avantseuil, fp_avantseuil_m, fpp_avantseuil, fpp_avantseuil_m, Volume_maille
+  real(kind=db):: Conv_mbarn_nelec, Ea, fp_avantseuil, fp_avantseuil_m, fpp_avantseuil, &
+                  fpp_avantseuil_m, Volume_maille
   real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(n_atom_proto):: f0, fpa, fppa, Taux_ipr
 

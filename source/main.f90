@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 14th of July 2019, 25 Messidor, An 227
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 19th of July 2019, 30 Messidor, An 227
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -48,7 +48,7 @@ module declarations
   integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic ponctual groups (with other orientation)
   integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic ponctual groups (with other orientation)
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 14th of July 2019'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 19th of July 2019'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -307,7 +307,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   integer, dimension(:,:), allocatable:: indice_par
 
   logical:: bav_open, Bormann, Case_fdm, Check_file, Check_extract, Conv_done, &
-    Convolution_cal, Dafs_bio, E_cut_man, Fdmnes_cal, Fit_cal, Gamma_hole_imp, Gamma_tddft, Gaus_cal, Metric_cal, &
+    Convolution_cal, Dafs_bio, E_cut_man, Fdmnes_cal, Fit_cal, Gamma_hole_man, Gamma_max_man, Gamma_tddft, Gaus_cal, Metric_cal, &
     Minim_fdm_ok, minimok, Mult_cal, Scan_a, Selec_cal, &
     Use_FDMX, FDMX_only, cm2g, nobg, nohole, nodw, noimfp, imfp_inp, elf_inp, dwfactor_inp, tdebye_inp, tmeas_inp, &
     expntl, victoreen
@@ -418,8 +418,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   iscratchconv = 35
 
   Gamma_hole(:) = 0._db
-  Gamma_hole_imp = .false.
+  Gamma_hole_man = .false.
   Gamma_max = 15._db / Rydb
+  Gamma_max_man = .false.
   Gamma_tddft = .false.
   Gaus_cal = .false.
   hkl_borm(:) = 0
@@ -788,7 +789,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
         case('gamma_hol')
           n = nnombre(1,132)
-          gamma_hole_imp = .true.
+          Gamma_hole_man = .true.
           ngamh = min(n,10)
           read(1,*) Gamma_hole(1:ngamh)
           Gamma_hole(1:ngamh) = Gamma_hole(1:ngamh) / rydb
@@ -804,6 +805,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
         case('gamma_max')
           n = nnombre(1,132)
+          Gamma_max_man = .true.
           read(1,*) Gamma_max
           Gamma_max = Gamma_max / rydb
 
@@ -1202,8 +1204,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     call MPI_Bcast(nb_datafile,1,MPI_INTEGER,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Fit_cal,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Gamma_hole,10,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Gamma_hole_imp,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
+    call MPI_Bcast(Gamma_hole_man,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Gamma_max,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Gamma_max_man,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Gamma_tddft,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Fdmnes_cal,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ngamh,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -1529,7 +1532,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
       if( ical > 1 ) Close(3)
 
       call fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
-          Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
+          Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
           itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
           nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,Use_FDMX,FDMX_only, &
           fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
@@ -1544,10 +1547,10 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
     if( mpirank0 /= 0 ) cycle
 
-    if( Convolution_cal ) call Convolution(bav_open,Bormann,Conv_done, &
-        convolution_out,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max, &
-        ical,icheck(30),indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
-        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav, npar,nparm,param,Scan_a,TypePar,ncal)
+    if( Convolution_cal ) call Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge, &
+        E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max, &
+        Gamma_max_man,ical,icheck(30),indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
+        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,ncal)
 
     if( Metric_cal ) then
 
@@ -1650,7 +1653,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     if( Fdmnes_cal .and. Minim_fdm_ok .and. ncal /= ncal_nonfdm ) then
       Close(3)
       call fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
-        Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
+        Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
         itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
         nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,Use_FDMX,FDMX_only, &
         fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
@@ -1664,9 +1667,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     endif
 
     if( mpirank0 == 0 ) then
-      if( Convolution_cal ) call Convolution(bav_open,Bormann, .false., &
-        convolution_out,Delta_edge,E_cut_imp,E_cut_man,Ecent, Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_imp,Gamma_max, &
-        ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,Length_line,n_col_max, &
+      if( Convolution_cal ) call Convolution(bav_open,Bormann, .false.,convolution_out,Delta_edge, &
+        E_cut_imp,E_cut_man,Ecent, Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max, &
+        Gamma_max_man,ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,Length_line,n_col_max, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,ncal)
 
       call Metric(comt,convolution_out,Dafs_bio,Dist_min, Dist_min_g,fdmfit_out,Fit_cal,Gen_Shift_min,ical, &

@@ -14,7 +14,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   implicit none
   include 'mpif.h'
 
-  integer:: eof, eoff, i, iabsm_1, ie, ier, igamme, igr, igrdat, io, ipr, ipl, istat, it, itape4, itype_dop, j, jgr, &
+  integer:: eof, eoff, i, iabsm_1, ie, ier, igamme, igc, igr, igrdat, io, ipr, ipl, istat, it, itape4, itype_dop, j, jgr, &
     jpl, k, l, Length, Length_line, lin_gam, lmax_nrixs, mpierr, mpinodes0, mpirank0, n, n_adimp, n_atom_bulk, n_atom_cap, &
     n_atom_coop, n_atom_int, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_uc, n_dic, n_file_dafs_exp, &
     n_fract_x, n_fract_y, n_fract_z, n_label, n_mat_polar, n_mu, n_multi_run_e, n_radius, n_range, n_symbol, n_Z_abs, nb, &
@@ -316,12 +316,12 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           else
             lin_gam = 0
           endif
-          allocate( egamme(ngamme) )
-          read(itape4,*,iostat=ier) egamme(1:ngamme)
+          allocate( Egamme(ngamme) )
+          read(itape4,*,iostat=ier) Egamme(1:ngamme)
           if( ier > 0 ) call write_err_form(itape4,keyword)
 
           do igamme = 2,ngamme,2
-            if( egamme(igamme) > eps6 ) cycle
+            if( Egamme(igamme) > eps6 ) cycle
             call write_error
             do ipr = 6,9,3
               write(ipr,110)
@@ -330,19 +330,19 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             stop
           end do
 
-          E = egamme(1)
+          E = Egamme(1)
           if( ngamme == 1 ) then
             nenerg = 1
-          elseif( egamme(3) <= egamme(1) ) then
+          elseif( Egamme(3) <= Egamme(1) ) then
             nenerg = 1
           elseif( lin_gam == 1 ) then
             def = 10 / rydb
             do ie = 2,10000000
               r = 1 + ( E/rydb ) / def
               r = max( r, 0.25_db )
-              de = sqrt( r ) * egamme(2)
+              de = sqrt( r ) * Egamme(2)
               e = e + de
-              if( e > egamme(ngamme) + eps10 ) then
+              if( e > Egamme(ngamme) + eps10 ) then
                 nenerg = ie - 1
                 exit
               endif
@@ -350,24 +350,23 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           else
             ngc = 2
             do ie = 2,1000000
-              e = e + egamme(ngc)
-              if( e > egamme(ngamme) + eps10 ) then
-                nenerg = ie - 1
+              E = E + Egamme(ngc)
+              if( E > Egamme(ngamme) - eps10 ) then
+                nenerg = ie
                 exit
-              elseif( e >= egamme(ngc+1) - eps10 ) then
-                if( ngc+1 == ngamme ) then
-                  nenerg = ie
-                  exit
-                endif
-                if( egamme(ngc+3) <= egamme(ngc+1) ) then
-                  nenerg = ie
-                  exit
-                endif
-                ngc = ngc + 2
+              else
+                do igc = ngc, ngamme - 3, 2
+                  if( E >= Egamme(igc+1) - eps10 ) then
+                    ngc = ngc + 2
+                    E = min( Egamme(ngc-1), E )
+                  else
+                    exit
+                  endif
+                end do
               endif
             end do
           endif
-          deallocate( egamme )
+          deallocate( Egamme )
 
         case('eimag')
           do ie = 1,100000
@@ -1701,7 +1700,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   real(kind=db), dimension(norbdil):: cdil
   real(kind=db), dimension(0:ntype):: r0_lapw, rchimp, rlapw, rmt, rmtimp, V_hubbard
   real(kind=db), dimension(neimagent):: eeient, eimagent
-  real(kind=db), dimension(ngamme):: egamme
+  real(kind=db), dimension(ngamme):: Egamme
   real(kind=db), dimension(nspin):: ecrantage, V0bdcFimp
   real(kind=db), dimension(n_adimp):: Adimp
   real(kind=db), dimension(n_radius):: Rsorte_s
@@ -2281,7 +2280,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           else
             lin_gam = 0
           endif
-          read(itape4,*,iostat=ier) egamme(1:n)
+          read(itape4,*,iostat=ier) Egamme(1:n)
 
         case('energphot')
           energphot = .true.
@@ -2465,8 +2464,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             case(3,4)
               n = n - 2
               read(itape4,*,iostat=ier) necrantage, lecrantage, ecrantage(1:min(nspin,n))
-              Force_ecr = .true.
           end select
+          Force_ecr = .true.
           if( n == 1 .and. Magnetic ) then
             ecrantage(nspin) = ecrantage(1) / nspin
             ecrantage(1) = ecrantage(nspin)
@@ -4959,8 +4958,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
     if( lin_gam == - 1 ) then
       lin_gam = 1
-      egamme(1) = -5.0_db; egamme(2) =  0.5_db;
-      egamme(3) = egamme(1) + ( nenerg - 1 ) * egamme(2)
+      Egamme(1) = -5.0_db; Egamme(2) =  0.5_db;
+      Egamme(3) = Egamme(1) + ( nenerg - 1 ) * Egamme(2)
     endif
     if( Green_s ) then
       FDM_comp = .false.

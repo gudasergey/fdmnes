@@ -22,7 +22,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
           Bragg_rgh_bulk_abs,Bulk_step,Classic_irreg,coef_g,Cartesian_tensor,Core_resolved,Dafs,Dafs_bio,Delta_edge,Delta_Eseuil, &
           Dipmag,dv0bdcF,Dyn_eg,Dyn_g,E_cut,E_cut_imp,E_Fermi,E_cut_man,Ecent,Eclie,Elarg,Eneg, &
           Energ_t,Energphot,Epsii_a,Epsii_moy,Eseuil,Estart,f_avantseuil,Full_potential,Full_self_abs, &
-          Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,hkl_dafs,Hubb_a,Hubb_d,icheck, &
+          Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,hkl_dafs,Hubb_a,Hubb_d,icheck, &
           iabsorig,igr_bulk_z_abs,iopsymc_25,is_g,isigpi,isymeq,jseuil,Kern_fac, &
           l0_nrixs,ldip,Length_abs,Length_rel,Length_rel_abs,lmax_pot,lmax_nrixs,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1, &
           lqua,lseuil,ltypcal,m_g,m_hubb,Magnetic,Matper,Moyenne,mpinodes,mpirank,mpirank0,msymdd,msymddi, &
@@ -99,7 +99,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
 
   logical:: Abs_in_Bulk_roughness, All_nrixs, Allsite, Atomic_scr, Bulk_step, Cartesian_tensor, Classic_irreg, Core_resolved, &
     Dafs, Dafs_bio, Dipmag, Dyn_eg, Dyn_g, E_cut_man, Eneg, Energphot, FDM_comp, Final_optic, Final_tddft, First_E, &
-    Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green, Green_int, &
+    Full_potential, Full_self_abs, Gamma_hole_man, Gamma_tddft, Green, Green_int, &
     Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, Magnetic, Matper, &
     Moyenne, NRIXS, Octupole, Old_zero, Optic, Quadrupole, Radial_comp, &
     Relativiste, Renorm, RPALF, Self_abs, Solsing, Solsing_only, Spherical_signal, &
@@ -425,7 +425,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
 
 ! Calcul de Chi_0
       call Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,E_cut_tddft,Ecent,Elarg,Energ(ie),Energ_s, &
-         Eseuil(nbseuil),fppn,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,icheck(23),ie,jseuil,lmax, &
+         Eseuil(nbseuil),fppn,Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,icheck(23),ie,jseuil,lmax, &
          nbseuil,nenerge,nenerg_s,ngamh,ninit1,ninitl,n_Ec,nlm,nlmamax,nlmsm_f,nlms_f,nlms_g,nomfich,ns_dipmag, &
          nseuil,nspino,nspinp,numat,rof_ph,rof0,Spinorbite,Taull_tdd)
       deallocate( rof_ph )
@@ -909,7 +909,7 @@ end
 ! Calcul de Chi_0
 
 subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ecent,Elarg,Energ,Energ_s, &
-       Eseuil,fppn,Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,icheck,ie,jseuil,lmax, &
+       Eseuil,fppn,Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,icheck,ie,jseuil,lmax, &
        nbseuil,nenerge,nenerg_s,ngamh,ninit1,ninitl,n_Ec,nlm,nlmamax,nlmsm_f,nlms_f,nlms_g,nomfich,ns_dipmag, &
        nseuil,nspino,nspinp,numat,rof_ph,rof0,Spinorbite,Taull_tdd)
 
@@ -924,7 +924,7 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
 
   integer, dimension(nlms_f,2):: i_val, l_val, m_val
 
-  logical:: Core_resolved, Gamma_hole_imp, Gamma_tddft, Spinorbite
+  logical:: Core_resolved, Gamma_hole_man, Gamma_tddft, Spinorbite
 
   character(len=2):: ch2
   character(len=Length_name):: nomfich
@@ -1029,7 +1029,7 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
 
         if( Gamma_max > eps10 ) call gammarc(Ecent,Elarg,Gamma_max,EFermi_i,nenerge,Energe,Gamma)
 
-        if( Gamma_hole_imp ) then
+        if( Gamma_hole_man ) then
           if( ngamh == 1 ) then
             Gamma(:) = Gamma(:) + Gamma_hole(1)
           elseif( ngamh == n_Ec ) then
