@@ -920,7 +920,7 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Dopi
   implicit none
   include 'mpif.h'
 
-  integer:: i, iabsorig, iabsorbeur, icheck, igr, ipr, iprabs, iprabs_nonexc, it, itabs, itype_dop, jseuil, l, lecrantage, lseuil, &
+  integer:: i, iabsorig, iabsorbeur, icheck, igr, ipr, iprabs, iprabs_nonexc, it, itabs, itype_dop, jseuil, L, lecrantage, lseuil, &
       mpinodes0, mpirank0, n_atom_proto, n_multi_run, n_orbexc, nbseuil, necrantage, neqm, ngroup, nlatm, nnlm, norbdil, &
       nrato_dirac, nr, nrm, nseuil, nspin, ntype, numat_abs
 
@@ -959,11 +959,11 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Dopi
   real(kind=db), dimension(0:nrm,2,0:ntype):: psi_coeur
 
   if( n_multi_run > 1 .and. mpirank0 == 0 ) then
-    l = len_trim(nomfich_s)
-    nomfich_s(l+1:l+1) = '_'
+    L = len_trim(nomfich_s)
+    nomfich_s(L+1:L+1) = '_'
     call ad_number(iabsorig,nomfich_s,Length_name)
-    l = len_trim(nomfich_s)
-    write(6,'(/3x,A)') nomfich_s(1:l)
+    L = len_trim(nomfich_s)
+    write(6,'(/3x,A)') nomfich_s(1:L)
   endif
 
   if( icheck > 0 ) write(3,110)
@@ -989,8 +989,8 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Dopi
   do ipr = 1,n_atom_proto
     igr = igreq(ipr,1)
     Chargat(ipr) = Chargatg(igr)
-    do l = 1,nlat(abs(itype(igr)))
-      popatm(ipr,l,1:nspin) = popats(igr,l,1:nspin)
+    do L = 1,nlat(abs(itype(igr)))
+      popatm(ipr,L,1:nspin) = popats(igr,L,1:nspin)
     end do
   end do
 
@@ -1026,7 +1026,7 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
   implicit none
   include 'mpif.h'
 
-  integer:: icheck, igr, ipr, it, j, jseuil, k, l, lseuil, mpirank0, n, n_orbexc, &
+  integer:: icheck, igr, ipr, it, j, jseuil, k, L, lseuil, mpirank0, n, n_orbexc, &
     nbseuil, ngroup, nlatm, nnlm, nr, nrato_dirac, nrm, nseuil, nspin, ntype
 
   real(kind=db):: dr, drmax, dx, Ray_max_dirac, Rmax
@@ -1083,8 +1083,8 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
 
         do igr = 1,ngroup
           if( abs( itype(igr) ) /= it ) cycle
-          do l = 1,nlat(it)
-            popats(igr,l,1:nspin) = popval(it,l,1:nspin)
+          do L = 1,nlat(it)
+            popats(igr,L,1:nspin) = popval(it,L,1:nspin)
           end do
         end do
 
@@ -1234,7 +1234,7 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,Nonexc,
     Nfact(i) = Nfact(i-1) * sqrt( 2._db * i * ( 2 * i - 1 ) )
   end do
 
-! Pour l'absorbeur, on calcule l'atome excite (Z+1) et l'atome non excite
+! Pour L'absorbeur, on calcule L'atome excite (Z+1) et L'atome non excite
   if( it == itabs .and. .not. nonexc ) then
     ncalc = 2
   else
@@ -1364,7 +1364,7 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,Nonexc,
   return
   100 format(/' it =',i2,'  Z =',i4)
   105 format(/' Number of radius =',i6,' > nrm =',i6,// ' Increase nrm using keyword nrato !'/)
-  110 format(///' Orbital not found in the Clementi and Roetti bases :',/'   it =',i2,',  n =',i2,'  l =',i2)
+  110 format(///' Orbital not found in the Clementi and Roetti bases :',/'   it =',i2,',  n =',i2,'  L =',i2)
   120 format(' io, nprin, nazim, nconf =',4i3,' ch =',f10.7)
 end
 
@@ -1377,7 +1377,7 @@ subroutine pop_group(chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,ngr
   use declarations
   implicit none
 
-  integer:: icheck, igr, ipr, it, l, mpirank0, ngroup, nlatm, nspin, ntype
+  integer:: icheck, igr, ipr, it, L, mpirank0, ngroup, nlatm, nspin, ntype
   integer, dimension(0:ntype) :: nlat, numat
   integer, dimension(ngroup):: itype
 
@@ -1412,7 +1412,7 @@ subroutine pop_group(chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,ngr
     endif
     do igr = 1,ngroup
       it = abs( itype(igr) )
-      write(3,150) igr, chargatg(igr), ( popats(igr,l,1:nspin), l = 1,nlat(it) )
+      write(3,150) igr, chargatg(igr), ( popats(igr,L,1:nspin), L = 1,nlat(it) )
     end do
   endif
 
@@ -1450,7 +1450,7 @@ subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
   implicit none
   include 'mpif.h'
 
-  integer:: iabsorbeur, icheck, igr, ipr, ir, irt, istat, it, itabs, itabs_t, itype_dop, jseuil, l, lecrantage, lseuil, &
+  integer:: iabsorbeur, icheck, igr, ipr, ir, irt, istat, it, itabs, itabs_t, itype_dop, jseuil, L, lecrantage, lseuil, &
      mpinodes0, mpirank0, mpierr, n_orbexc, nbseuil, necrantage, ngroup, nlatm, nnlm, nr, nrato_dirac, nrm, nseuil, nspin, &
      ntype
 
@@ -1534,11 +1534,11 @@ subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
          nnlm,nonexc,nqnexc,nr,nrato_dirac,nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
          popexc,popval,psi_coeur,psii,psi_open_val,psival,rr,Ray_max_dirac,rho_coeur,rhoit,numat(itabs),Relativiste)
 
-! popats pour l'absorbeur
+! popats pour L'absorbeur
     do igr = 1,ngroup
       if( abs( itype(igr) ) /= itabs ) cycle
-      do l = 1,nlat(itabs)
-        popats(igr,l,1:nspin) = popval(itabs,l,1:nspin)
+      do L = 1,nlat(itabs)
+        popats(igr,L,1:nspin) = popval(itabs,L,1:nspin)
       end do
     end do
 
@@ -1561,7 +1561,7 @@ subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
     endif
   endif
 
-! ici on fait les atributions pour l'absorbeur rato(:,0)
+! ici on fait les atributions pour L'absorbeur rato(:,0)
 
   if( icom(itabs) /= 3 ) then
     nrato(itabs) = nr
@@ -1588,7 +1588,7 @@ subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
     write(3,120)
     do it = 0,ntype
       if( nonexc .and. it == 0 ) cycle
-      write(3,130) it, com(it), numat(it), ( nvval(it,l), lvval(it,l), popatv(it,l), l = 1,nlat(it))
+      write(3,130) it, com(it), numat(it), ( nvval(it,L), lvval(it,L), popatv(it,L), L = 1,nlat(it))
     end do
     if( .not. nonexc ) write(3,140) necrantage, lecrantage, Ecrantage(1:nspin)
   endif
@@ -1603,7 +1603,7 @@ subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
 
   return
   110 format(//' The absorbing atom cannot be the number',i3,' because it is an empty sphere !'//)
-  120 format(/' Atom type',21x,'Z  n  l  popatv')
+  120 format(/' Atom type',21x,'Z  n  L  popatv')
   130 format(i3,1x,a25,i3,8(2i3,f6.2))
   140 format(/' Default or imposed orbital screening :',/ &
               '      When default is used, if the screening orbital is full,',/ &
@@ -1625,7 +1625,7 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
   use declarations
   implicit none
 
-  integer:: i, iaug, icheck, io, ip, ipr, ispin, it, l, lecrantage, lseuil, mpirank0, n_coeur, n_orbexc, necrantage, &
+  integer:: i, iaug, icheck, io, ip, ipr, ispin, it, L, lecrantage, lseuil, mpirank0, n_coeur, n_orbexc, necrantage, &
             nlatm, nmax, nnlm, nseuil, nspin, ntype, Z
 
   integer, dimension(nnlm):: lqnexc, nqnexc
@@ -1712,18 +1712,18 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
   end do
 
   if( Force_ecr ) then
-    do l = 1,nlat(0)
-      if( nvval(0,l) == necrantage .and. lvval(0,l) == lecrantage ) exit
+    do L = 1,nlat(0)
+      if( nvval(0,L) == necrantage .and. lvval(0,L) == lecrantage ) exit
     end do
-    if( l > nlat(0) ) then
-      nlat(0) = l
-      nvval(0,l) = necrantage
-      lvval(0,l) = lecrantage
+    if( L > nlat(0) ) then
+      nlat(0) = L
+      nvval(0,L) = necrantage
+      lvval(0,L) = lecrantage
 
-      popval(0,l,1:nspin) = 0._db
+      popval(0,L,1:nspin) = 0._db
       do ip = 1,n_orbexc
         if( nqnexc(ip) /= necrantage .or. lqnexc(ip) /= lecrantage ) cycle
-        popval(0,l,1:nspin) = popexc(ip,1:nspin)
+        popval(0,L,1:nspin) = popexc(ip,1:nspin)
         exit
       end do
 
@@ -1755,7 +1755,7 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
     popexc(n_orbexc,1:nspin) = popval(it,io,1:nspin)
   end do boucle_io
 
-! On enleve l'electron de coeur
+! On enleve L'electron de coeur
   do io = 1,n_orbexc
     if( nqnexc(io) /= nseuil .or. lqnexc(io) /= lseuil ) cycle
     do ispin = 1,nspin
@@ -1764,7 +1764,7 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
     exit
   end do
 
-! On ajoute l'ecrantage
+! On ajoute L'ecrantage
 
   if( Force_ecr ) then
 
@@ -1858,13 +1858,13 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
   return
   100 format(///'   Z =',i4,' > 103 in Screendef',//)
   103 format(///'   n_orb < nnlm ',// ' Contact the authors of the code !')
-  120 format(/'  n  l popexc')
+  120 format(/'  n  L popexc')
   130 format(2i3,2f7.3)
 end
 
 !***********************************************************************
 
-! Allocation des tableaux itypepr et popatm pour l'excite
+! Allocation des tableaux itypepr et popatm pour L'excite
 
 subroutine Pop_mod(chargat,Chargm,Chargm_SCF,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,iprabs,itype,itype_dop,itypepr,lqnexc, &
         lvval,n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,Nonexc,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc, &
@@ -1940,7 +1940,7 @@ subroutine Pop_mod(chargat,Chargm,Chargm_SCF,Doping,Flapw,iabsorbeur,icheck,igre
       endif
       do ipr = 0,n_atom_proto
         nl = nlat( itypepr(ipr) )
-        write(3,150) ipr, itypepr(ipr), chargat(ipr), ( popatm(ipr,l,1:nspin), l = 1,nl )
+        write(3,150) ipr, itypepr(ipr), chargat(ipr), ( popatm(ipr,L,1:nspin), L = 1,nl )
       end do
     endif
 
@@ -1962,7 +1962,7 @@ subroutine dilatorb(cdil,icheck,it,itdil,ldil,nlatm,norbdil,nr,nrm,ntype,popatv,
   use declarations
   implicit none
 
-  integer:: icheck, io, ir, it, jr, jr1, l, nlatm, norbdil, nr, nrm, ntype
+  integer:: icheck, io, ir, it, jr, jr1, L, nlatm, norbdil, nr, nrm, ntype
 
   integer, dimension(norbdil):: itdil, ldil
 
@@ -1980,12 +1980,12 @@ subroutine dilatorb(cdil,icheck,it,itdil,ldil,nlatm,norbdil,nr,nrm,ntype,popatv,
   do io = 1,norbdil
 
     if( itdil(io) /= it ) cycle
-    l = ldil(io)
+    L = ldil(io)
 
 ! Orbital expansion
     cd = 1 + cdil(io)
     rn(0:nr) = r(0:nr) * cd
-    psit(1:nr) = psival(1:nr,l,it)
+    psit(1:nr) = psival(1:nr,L,it)
     psit(0) = 0
     psin(0) = 0
     jr1 = 1
@@ -2014,14 +2014,14 @@ subroutine dilatorb(cdil,icheck,it,itdil,ldil,nlatm,norbdil,nr,nrm,ntype,popatv,
     rhn(0:nr) = rhn(0:nr) / charge
     dc = 1 / sqrt( charge )
 
-    psival(0:nr,l,it) = dc * psin(0:nr)
-    rhoit(0:nr,it) = rhoit(0:nr,it) + popatv(it,l) * ( rhn(0:nr) - rht(0:nr) )
+    psival(0:nr,L,it) = dc * psin(0:nr)
+    rhoit(0:nr,it) = rhoit(0:nr,it) + popatv(it,L) * ( rhn(0:nr) - rht(0:nr) )
 
     if( icheck > 1 ) then
       write(3,110)
-      write(3,120) it, l
+      write(3,120) it, L
       do ir = 1,nr
-        write(3,130) r(ir)*bohr, psit(ir), psival(ir,l,it), rhoit(ir,it)
+        write(3,130) r(ir)*bohr, psit(ir), psival(ir,L,it), rhoit(ir,it)
       end do
     endif
 
@@ -2029,7 +2029,7 @@ subroutine dilatorb(cdil,icheck,it,itdil,ldil,nlatm,norbdil,nr,nrm,ntype,popatv,
 
   return
   110 format(/' ---- Dilat --------',100('-'))
-  120 format(/5x,'it =',i3,',  l =',i2,/ '     rato    psi_before_dil    psival          rho')
+  120 format(/5x,'it =',i3,',  L =',i2,/ '     rato    psi_before_dil    psival          rho')
   130 format(1p,9e13.5)
 end
 
@@ -3659,7 +3659,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
       write(3,240) ipr, iapot(ipr)
     end do
 
-! Angle des liasons autour de l'absorbeur
+! Angle des liasons autour de L'absorbeur
     if( natomp > 2 ) write(3,'(/A)') '   ia   ib   Za   Zb   Angle(a,O,b)'
     rad_i = 180._db / pi
     Distm = 3.2_db / bohr
@@ -3821,7 +3821,7 @@ function Vsphere_cal(Chargat,Chargm,dista_natomp,Flapw,iaproto,icheck,Matper,n_a
   real(kind=db):: Chagreg, Chargm, dista_natomp, Vsphere_cal
   real(kind=db), dimension(0:n_atom_proto):: Chargat
 
-! Calcul de la charge de l'agregat :
+! Calcul de la charge de L'agregat :
   if( .not. Flapw .and. Matper ) then
     Chagreg = 0._db
     do ia = 1,natomp
@@ -3972,12 +3972,12 @@ subroutine write_iopsym(iopsym,ipr)
     i2 = i1 + ni - 1
     mot = ' '
     do i = i1,i2
-      l = len_trim(mot)
-      l = l + 1
+      L = len_trim(mot)
+      L = L + 1
       mot9 = adjustl( nomsym(i) )
       ln = len_trim( mot9 )
-      mot(l+1:l+ln) = mot9(1:ln)
-      if( i < i2 ) mot(l+ln+1:l+ln+1) = ','
+      mot(L+1:L+ln) = mot9(1:ln)
+      if( i < i2 ) mot(L+ln+1:L+ln+1) = ','
     end do
     write(ipr,110) adjustr(mot),iopsym(i1:i2)
     i1 = i2 + 1
@@ -4429,7 +4429,7 @@ subroutine sym_cluster(Atom_with_axe,Axe_atom_clu,iaabs,igroup,iopsym,itype,ityp
           .or.(.not. Atom_with_axe(igra) .and. Atom_with_axe(igrb))) cycle boucle_exter
 
           if( Atom_with_axe(igra) ) then
-! L'axe de l'atome a ete renverse dans symsite si l'atome est antiferro
+! L'axe de L'atome a ete renverse dans symsite si L'atome est antiferro
               if( abs( Axe_atom_clu(1,ib) - Axe_atom_s(1) ) > epspos .or. abs( Axe_atom_clu(2,ib) - Axe_atom_s(2) ) &
                                                     > epspos .or. abs( Axe_atom_clu(3,ib) - Axe_atom_s(3) ) &
                                     > epspos ) cycle boucle_exter
@@ -4663,9 +4663,6 @@ subroutine numgrpt(iopsym,igrpt,igrpt_nomag,mpirank0,Sgrp)
   use declarations
   implicit none
 
-  integer, parameter:: ngrptm = 32
-  integer, parameter:: ngrptmagm = 90
-
   integer:: i, igr_sg, igrpt, igrpt_nomag, ipr, is, k, mpirank0, nb_ord, ni
 
   integer, dimension(nopsm):: iopsymc, iopsym
@@ -4723,7 +4720,107 @@ subroutine numgrpt(iopsym,igrpt,igrpt_nomag,mpirank0,Sgrp)
     end do boucle_grpt
 
 ! Cas des groupes magnetiques ou on prend un sous-groupe pour avoir
-! l'axe du spin conforme.
+! L'axe du spin conforme.
+    if( Sgrp .and. i == 1 ) then
+      is = nopsm
+      if( abs( iopsym(25) ) == 1 ) then
+        is = 25
+      elseif( iopsym(42) == 1 ) then
+        is = 42
+      elseif( iopsym(24) == 1 ) then
+        is = 24
+      endif
+      iopsym(2:is-1) = 0
+      iopsym(is+1:nopsm) = 0
+    endif
+
+  end do
+
+  if( mpirank0 == 0 ) then
+    call write_error
+    do ipr = 6,9,3
+      write(ipr,'(/A)') ' Point group not found !'
+      write(ipr,170)
+      call write_iopsym(iopsym,ipr)
+    end do
+    stop
+  endif
+
+  return
+  170 format(/' iopsymc =')
+end
+
+!***********************************************************************
+
+! Simplified version with all group and not magnetic
+
+subroutine numgrpt_s(iopsym,igrpt,igrpt_nomag,mpirank0,Sgrp)
+
+  use declarations
+  implicit none
+
+  integer:: i, igr_sg, igrpt, igrpt_nomag, ipr, is, k, mpirank0, nb_ord, ni
+
+  integer, dimension(nopsm):: iopsymc, iopsym
+
+  character(len=8) PointGroup_name, PointGroup_nomag_name, PointGroup_Sch, PointSubGroup_name, &
+                   PointSubGroup_Sch, ptgrname_int, ptgrname_int_nomag, ptgrname_sch
+
+  logical:: Sgrp
+
+  common/PointGroup_name/ PointGroup_name, PointGroup_nomag_name
+  common/PointGroup_Sch/ PointGroup_Sch
+  common/PointSubGroup_name/ PointSubGroup_name, PointSubGroup_Sch
+
+! La sphere est transformee en m3m
+  if( sum( abs(iopsym(:)) ) == 64 ) iopsym(49:64) = 0
+! Le cylindre est transformee en 6/mmm
+  if( abs(iopsym(51)) == 1 .and. abs(iopsym(45)) == 1 ) then
+    iopsym(10:11) = 0
+    iopsym(18:21:3) = 0
+    iopsym(28:31:3) = 0
+    iopsym(45:48:3) = 0
+!    iopsym(65:72) = 0
+  endif
+!  if( iopsym(65) /= 0 .or. iopsym(69) /= 0 ) then
+!    iopsym(2:41) = 0
+!    iopsym(43:64) = 0
+!  endif
+
+  if( sgrp ) then
+    ni = 2
+  else
+    ni = 1
+  endif
+
+  do i = 1,ni
+
+    boucle_grpt: do igrpt = 1,ngrptmagm+ngrpt_compm+ngrptmag_compm
+
+      call grp_opsym_s(igr_sg,igrpt,igrpt_nomag,iopsymc,nb_ord)
+
+      do k = 1,nopsm
+        if( iopsym(k) /= iopsymc(k) ) cycle boucle_grpt
+      end do
+
+      if( igrpt <= ngrptmagm+ngrpt_compm ) then
+        PointGroup_name = ptgrname_int_nomag(igrpt)
+      else
+        PointGroup_name = ptgrname_int(igrpt)
+      endif
+      if( igrpt > ngrptm+ngrpt_compm ) then
+        PointSubGroup_name = ptgrname_int_nomag(igr_sg)
+        PointSubGroup_Sch = ptgrname_Sch(igr_sg)
+      endif
+      PointGroup_nomag_name = ptgrname_int_nomag(igrpt_nomag)
+      PointGroup_Sch = ptgrname_sch(igrpt_nomag)
+
+      return
+
+    end do boucle_grpt
+
+! Cas des groupes magnetiques ou on prend un sous-groupe pour avoir
+! L'axe du spin conforme.
     if( Sgrp .and. i == 1 ) then
       is = nopsm
       if( abs( iopsym(25) ) == 1 ) then
@@ -4759,8 +4856,6 @@ subroutine grp_opsym_imp(iopsymc,igrpt,igrpt_nomag,mpirank0,PointGroup)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
-
-  parameter( ngrptm = 32, ngrptmagm = 90)
 
   character(len=8) PointGroup, PointGroup_name, PointGroup_nomag_name, PointGroup_Sch, ptgrname_int, ptgrname_sch
 
@@ -4835,8 +4930,6 @@ subroutine grp_opsym(igr_sg,igrpt,igrpt_nomag,iopsymc,nb_ord)
   use declarations
   implicit real(kind=db) (a-h,o-z)
 
-  parameter( ngrptm = 32, ngrpt_compm = 11, ngrptmagm = 90, ngrptmag_compm = 10 )
-
   integer, dimension(ngrptm+1:ngrptmagm+ngrptmag_compm):: ngref, ngnmg
   integer, dimension(nopsm):: iopsymc
 
@@ -4897,12 +4990,77 @@ end
 
 !***********************************************************************
 
+subroutine grp_opsym_s(igr_sg,igrpt,igrpt_nomag,iopsymc,nb_ord)
+
+  use declarations
+  implicit real(kind=db) (a-h,o-z)
+
+  integer, dimension(ngrptm+ngrpt_compm+1:ngrptmagm+ngrpt_compm+ngrptmag_compm):: ngref, ngnmg
+  integer, dimension(nopsm):: iopsymc
+
+! Numero de groupe non magnetique reference pour les groupes magnetiques
+  data ngref/ 2, 4, 3, 5, 5, 5, 7, 6, 6, 8, 8, 8,19,18,21,24,24,24, 9,10,14,14,11,11,11,12,12,13,13,13, &
+             15,15,15,15,15,22,17,20,20,20,26,26,23,23,23,25,25,27,27,27,27,27,29,30,31,32,32,32, &
+              7, 7, 6, 8, 8, 8, 8,12,26,25/
+
+! Numero du sous-groupe non magnetique non multiplie par le renversement
+! du temps pour les groupes magnetiques
+  data ngnmg/ 1, 1, 1, 4, 3, 2, 4, 4,34, 7, 6, 5,16,16,16,21,18,41, 4, 4, 9, 7, 9,10, 5, 9, 6,10, 7,42, &
+             14,12, 8,13,11,16,16,19,18,17,22,19,22,17,21,22,18,24,20,23,26,25,28,28,28,31,30,29, &
+             35,36,33,39,40,37,38,42,41,43/
+
+  iopsymc(:) = 0
+
+  if( igrpt > ngrptm+ngrpt_compm ) then
+    igrpt_nomag = ngref(igrpt)
+  else
+    igrpt_nomag = igrpt
+  endif
+
+  nb_ord = numbops( igrpt_nomag )
+
+  ideb = 0
+  do is = 1,igrpt_nomag - 1
+    ideb = ideb + numbops(is)
+  end do
+
+  do is = 1,nb_ord
+    iopsymc( ios(ideb+is) ) = 1
+  end do
+
+! Groupes magnetiques : on met un signe negatif pour les operations
+! multipliees par le renversement du temps.
+
+  if( igrpt > ngrptm+ngrpt_compm ) then
+
+! Sous-groupe contenant les operations non multiplies par le
+! renversement du temps
+    igr_sg = ngnmg(igrpt)
+    nb_ord_sg = numbops(igr_sg)
+    jdeb = 0
+    do is = 1,igr_sg - 1
+      jdeb = jdeb + numbops(is)
+    end do
+    boucle_is: do is = 1,nb_ord
+      do js = 1,nb_ord_sg
+        if( ios(ideb+is) == ios(jdeb+js) ) cycle boucle_is
+      end do
+      iopsymc( ios(ideb+is) ) = - iopsymc( ios(ideb+is) )
+    end do boucle_is
+
+  endif
+
+  return
+end
+
+!***********************************************************************
+
 subroutine character_table(icheck,igrpt_nomag,karact,nb_rep)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
 
-  parameter( nclasm=12, ngrptm = 32, ngrpt_compm = 11 )
+  parameter( nclasm=12 )
 
   character(len=8):: PointGroup_name, PointGroup_nomag_name
   character(len=9):: nomsym
@@ -5056,8 +5214,8 @@ subroutine character_table(icheck,igrpt_nomag,karact,nb_rep)
   if( inversion ) then
     do irep = 1,nr
       mot = ch(irep)
-      l = len_trim(mot)
-      mot(l+1:2*l) = mot(1:l)
+      L = len_trim(mot)
+      mot(L+1:2*L) = mot(1:L)
       ch(irep) = mot
       do ic = nc+1, nb_cla
         j = 3*ic-1
@@ -5194,8 +5352,8 @@ subroutine character_table(icheck,igrpt_nomag,karact,nb_rep)
         ic = ic + 3
         if( nb_sympcl(i) > 1 ) then
           id = 3 * nb_sympcl(i) - 3
-          l = len_trim(mot)
-          mot(ic+1+id:l+id) = mot(ic+1:l)
+          L = len_trim(mot)
+          mot(ic+1+id:L+id) = mot(ic+1:L)
           mot(ic+1:ic+id) = ' '
           ic = ic + id
         endif
@@ -5301,18 +5459,18 @@ subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Dipmag, &
     if( spinorbite ) then
       call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu, &
         iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsym_abs,iopsymr,itype,itypep,Magnetic,mpirank0, &
-        natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol)
+        natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol,.false.)
     else
 ! Here one uses the complete symmetry (iopsymc)
       call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu, &
         iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsym_abs,iopsymc,itype,itypep,Magnetic,mpirank0, &
-        natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol)
+        natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol,.false.)
     endif
   endif
 ! The rotation is calculated with the used symmetry (iopsymr)
   call point_group_atom(Atom_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu, &
       iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsymt,iopsymr,itype,itypep,Magnetic,mpirank0, &
-      natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol)
+      natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol,.false.)
 
   if( spinorbite .or. ( nspin == 2 .and. lseuil > 0 ) ) then
     magnet = .true.
@@ -5376,7 +5534,7 @@ subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Dipmag, &
           do i = 1,3
             write(3,150) i, i, i
             do k = 1,3
-              write(3,120) ( ( msymqq(i,j,k,l), msymqqi(i,j,k,l), l = 1,3), j = 1,3 )
+              write(3,120) ( ( msymqq(i,j,k,L), msymqqi(i,j,k,L), L = 1,3), j = 1,3 )
             end do
           end do
         endif
@@ -5385,7 +5543,7 @@ subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Dipmag, &
           do i = 1,3
             write(3,150) i, i, i
             do k = 1,3
-              write(3,120) ( (msymdo(i,j,k,l), msymdoi(i,j,k,l), l = 1,3 ), j = 1,3 )
+              write(3,120) ( (msymdo(i,j,k,L), msymdoi(i,j,k,L), L = 1,3 ), j = 1,3 )
             end do
           end do
         endif
@@ -5600,7 +5758,7 @@ subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Dipmag, &
   120 format(3(3x,3(i4,i3)))
   130 format(/'  Dipole-quadrupole matrix shape :'/,/ 11x,'(1,j,k)',17x,'(2,j,k)',17x,'(3,j,k)')
   140 format(/'  Quadrupole-quadrupole matrix shape :'/)
-  150 format( 10x,'(',i1,',1,k,l)',15x,'(',i1,',2,k,l)',15x,'(',i1,',3,k,l)')
+  150 format( 10x,'(',i1,',1,k,L)',15x,'(',i1,',2,k,L)',15x,'(',i1,',3,k,L)')
   155 format(/' je he',3(13x,'(:,je,he',3(',',i1),')'))
   160 format(/'  Dipole-Octupole matrix shape :'/)
   165 format(/'  Octupole-Octupole matrix shape :'/)
@@ -5608,7 +5766,7 @@ subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Dipmag, &
   168 format(2i3,5x,3(3i4,8x))
   170 format(3(3x,3i3))
   180 format(/'  Dipole-quadrupole matrix shape :'/,/ 5x,'(1,j,k)     (2,j,k)     (3,j,k)')
-  190 format(/'    (',i1,',1,k,l)   (',i1,',2,k,l)   (',i1,',3,k,l)')
+  190 format(/'    (',i1,',1,k,L)   (',i1,',2,k,L)   (',i1,',3,k,L)')
   195 format(/' je he',3(5x,'(:,je,he',3(',',i1),')'))
   210 format(/' ldip = (',3i2,')')
   215 format(/' ldip = (',3i2,'), apres imposition')
@@ -5832,9 +5990,9 @@ subroutine tensdq(iopsymt,magnet,msymdq,msymdqi)
   n = maxval( abs(msymdq) )
   boucle_i: do i = 1,n
     do k = 1,3
-      do l = 1,3
+      do L = 1,3
         do m = 1,3
-          if( abs(msymdq(k,l,m)) == i .or. abs(msymdqi(k,l,m)) == i ) cycle boucle_i
+          if( abs(msymdq(k,L,m)) == i .or. abs(msymdqi(k,L,m)) == i ) cycle boucle_i
         end do
       end do
     end do
@@ -5872,26 +6030,26 @@ subroutine tensqq(iopsymt,magnet,msymqq,msymqqi)
   do i = 1,3
     do j = i,3
       do k = 1,3
-        do l = k,3
-          if( msymqq(i,j,k,l) /= 0 .or. msymqqi(i,j,k,l) /= 0) cycle
+        do L = k,3
+          if( msymqq(i,j,k,L) /= 0 .or. msymqqi(i,j,k,L) /= 0) cycle
           kkk = kkk + 1
-          msymqq(i,j,k,l) = kkk
-          msymqq(j,i,k,l) = kkk
-          msymqq(i,j,l,k) = kkk
-          msymqq(j,i,l,k) = kkk
-          msymqq(k,l,i,j) = kkk
-          msymqq(l,k,i,j) = kkk
-          msymqq(k,l,j,i) = kkk
-          msymqq(l,k,j,i) = kkk
-          if( i /= k .or. j /= l ) then
-            msymqqi(i,j,k,l) = kkk
-            msymqqi(j,i,k,l) = kkk
-            msymqqi(i,j,l,k) = kkk
-            msymqqi(j,i,l,k) = kkk
-            msymqqi(k,l,i,j) = - kkk
-            msymqqi(l,k,i,j) = - kkk
-            msymqqi(k,l,j,i) = - kkk
-            msymqqi(l,k,j,i) = - kkk
+          msymqq(i,j,k,L) = kkk
+          msymqq(j,i,k,L) = kkk
+          msymqq(i,j,L,k) = kkk
+          msymqq(j,i,L,k) = kkk
+          msymqq(k,L,i,j) = kkk
+          msymqq(L,k,i,j) = kkk
+          msymqq(k,L,j,i) = kkk
+          msymqq(L,k,j,i) = kkk
+          if( i /= k .or. j /= L ) then
+            msymqqi(i,j,k,L) = kkk
+            msymqqi(j,i,k,L) = kkk
+            msymqqi(i,j,L,k) = kkk
+            msymqqi(j,i,L,k) = kkk
+            msymqqi(k,L,i,j) = - kkk
+            msymqqi(L,k,i,j) = - kkk
+            msymqqi(k,L,j,i) = - kkk
+            msymqqi(L,k,j,i) = - kkk
           endif
 
           do iss = 2,min(48,nopsm)
@@ -5914,8 +6072,8 @@ subroutine tensqq(iopsymt,magnet,msymqq,msymqqi)
             jjs = jj / im(j)
             kk = abs( im(k) )
             kks = kk / im(k)
-            ll = abs( im(l) )
-            lls = ll / im(l)
+            ll = abs( im(L) )
+            lls = ll / im(L)
             isg = iis * jjs * kks * lls
             isgi = isg * isgmag
 
@@ -5970,9 +6128,9 @@ subroutine tensqq(iopsymt,magnet,msymqq,msymqqi)
   boucle_i: do i = 1,n
     do j = 1,3
       do k = 1,3
-        do l = 1,3
+        do L = 1,3
           do m = 1,3
-            if( abs(msymqq(j,k,l,m)) == i .or. abs(msymqqi(j,k,l,m)) == i ) cycle boucle_i
+            if( abs(msymqq(j,k,L,m)) == i .or. abs(msymqqi(j,k,L,m)) == i ) cycle boucle_i
           end do
         end do
       end do
@@ -6012,21 +6170,21 @@ subroutine tensdo(iopsymt,magnet,msymdo,msymdoi)
   do i = 1,3
     do j = 1,3
       do k = j,3
-        do l = k,3
-          if( msymdo(i,j,k,l) /= 0 .or. msymdoi(i,j,k,l) /= 0 )cycle
+        do L = k,3
+          if( msymdo(i,j,k,L) /= 0 .or. msymdoi(i,j,k,L) /= 0 )cycle
           kkk = kkk + 1
-          msymdo(i,j,k,l) = kkk
-          msymdo(i,j,l,k) = kkk
-          msymdo(i,k,j,l) = kkk
-          msymdo(i,l,j,k) = kkk
-          msymdo(i,k,l,j) = kkk
-          msymdo(i,l,k,j) = kkk
-          msymdoi(i,j,k,l) = kkk
-          msymdoi(i,j,l,k) = kkk
-          msymdoi(i,k,j,l) = kkk
-          msymdoi(i,l,j,k) = kkk
-          msymdoi(i,k,l,j) = kkk
-          msymdoi(i,l,k,j) = kkk
+          msymdo(i,j,k,L) = kkk
+          msymdo(i,j,L,k) = kkk
+          msymdo(i,k,j,L) = kkk
+          msymdo(i,L,j,k) = kkk
+          msymdo(i,k,L,j) = kkk
+          msymdo(i,L,k,j) = kkk
+          msymdoi(i,j,k,L) = kkk
+          msymdoi(i,j,L,k) = kkk
+          msymdoi(i,k,j,L) = kkk
+          msymdoi(i,L,j,k) = kkk
+          msymdoi(i,k,L,j) = kkk
+          msymdoi(i,L,k,j) = kkk
 
           do iss = 2,min(48,nopsm)
 
@@ -6048,8 +6206,8 @@ subroutine tensdo(iopsymt,magnet,msymdo,msymdoi)
             jjs = jj / im(j)
             kk = abs( im(k) )
             kks = kk / im(k)
-            ll = abs( im(l) )
-            lls = ll / im(l)
+            ll = abs( im(L) )
+            lls = ll / im(L)
             isg = iis * jjs * kks * lls
             isgi = isg * isgmag
 
@@ -6101,9 +6259,9 @@ subroutine tensdo(iopsymt,magnet,msymdo,msymdoi)
   boucle_i: do i = 1,n
     do j = 1,3
       do k = 1,3
-        do l = 1,3
+        do L = 1,3
           do m = 1,3
-            if( abs(msymdo(j,k,l,m)) == i .or. abs(msymdoi(j,k,l,m)) == i ) cycle boucle_i
+            if( abs(msymdo(j,k,L,m)) == i .or. abs(msymdoi(j,k,L,m)) == i ) cycle boucle_i
           end do
         end do
       end do
@@ -6578,7 +6736,7 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
   implicit none
 
   integer:: icheck, initl, iseuil, iop, isinitl, ism, ispin, ispo, jseuil, jspin, kpl, kspin, kv2, kvo, &
-    l, lf, lf1, lf2, lg, linitl, lo, lseuil, m, m_initl, mi, mm, mo, mpirank0, ms, nb_rep, nbseuil, ngrph, nlfm, nlfm0, &
+    L, lf, lf1, lf2, lg, linitl, lo, lseuil, m, m_initl, mi, mm, mo, mpirank0, ms, nb_rep, nbseuil, ngrph, nlfm, nlfm0, &
     noperat, nselec, nsm, nspino
 
   integer, dimension(2):: ninitl
@@ -6602,7 +6760,7 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
 
   linitl = lseuil
 
-! Calcul du (l,m) = (linitl,minitl) de l'etat initial
+! Calcul du (L,m) = (linitl,minitl) de L'etat initial
   select case(jseuil)
     case(1,3,5,7)
       isinitl = 1
@@ -6632,10 +6790,10 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
   allocate( lselec(nlfm) )
   allocate( mselec(nlfm) )
 
-! Calcul des (l,m) = (lselec,mselec) des etats d'arrivee
+! Calcul des (L,m) = (lselec,mselec) des etats d'arrivee
   lf = 0
 ! Boucle sur toutes les transitions possibles, on est dans la base de
-! l'atome absorbeur.
+! L'atome absorbeur.
   do kv2 = 0,3
   do kvo = 0,3
   do kpl = 0,3
@@ -6658,7 +6816,7 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
       endif
     endif
 
-! Calcul du (l,m) = (loperat,moperat) de la transition
+! Calcul du (L,m) = (loperat,moperat) de la transition
     call lmtrans(kpl,kvo,kv2,noperat,loperat,moperat,Spinorbite)
 
     if( icheck > 1 ) then
@@ -6707,9 +6865,9 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
                 endif
               endif
 
-            boucle_ll: do l = lf1,lf2,2
+            boucle_ll: do L = lf1,lf2,2
 
-              if( m > l .or. m < -l ) cycle
+              if( m > L .or. m < -L ) cycle
 
               if( Ylm_comp ) then
 
@@ -6721,11 +6879,11 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
                     mm = - m
                   endif
                   do lg = 1,min(lf,nlfm)
-                    if( lselec(lg) == l .and. mselec(lg) == mm .and. iselec(lg) == kspin ) cycle boucle_ism
+                    if( lselec(lg) == L .and. mselec(lg) == mm .and. iselec(lg) == kspin ) cycle boucle_ism
                   end do
                   lf = lf + 1
                   if( lf > nlfm ) cycle
-                  lselec(lf) = l
+                  lselec(lf) = L
                   mselec(lf) = mm
                   iselec(lf) = kspin
                 end do boucle_ism
@@ -6735,14 +6893,14 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
                 do ms = -1,1,2
                   if( m_initl == 0 .and. ms == 1 ) exit
                   mi = ms * abs( m_initl )
-                  gnt = Gaunt_r(l,m,lo,mo,linitl,mi)
+                  gnt = Gaunt_r(L,m,lo,mo,linitl,mi)
                   if( abs(gnt) < eps6 ) cycle
                   do lg = 1,min(lf,nlfm)
-                    if( lselec(lg) == l .and. mselec(lg) == m ) cycle boucle_ll
+                    if( lselec(lg) == L .and. mselec(lg) == m ) cycle boucle_ll
                   end do
                   lf = lf + 1
                   if( lf > nlfm ) cycle
-                  lselec(lf) = l
+                  lselec(lf) = L
                   mselec(lf) = m
                   iselec(lf) = kspin
                 end do
@@ -6842,7 +7000,7 @@ subroutine cal_irep(icheck,iopsymr,irep_util,iselec,karact,lselec, mselec,nb_rep
 
     if( fait(lf) ) cycle
 
-    l = lselec(lf)
+    L = lselec(lf)
     m = mselec(lf)
     ispin = iselec(lf)
     fait(lf) = .true.
@@ -6856,10 +7014,10 @@ subroutine cal_irep(icheck,iopsymr,irep_util,iselec,karact,lselec, mselec,nb_rep
           m = m - 1
         endif
         ispin = 3 - ispin
-        if( m > l .or. m < -l ) cycle
+        if( m > L .or. m < -L ) cycle
         do lg = 1,nselec
           if( fait(lg) ) cycle
-          if( lselec(lg) == l .and. mselec(lg) == m .and. iselec(lg) == ispin ) then
+          if( lselec(lg) == L .and. mselec(lg) == m .and. iselec(lg) == ispin ) then
             fait(lg) = .true.
             lass(lf) = lg
             lass(lg) = lf
@@ -6869,10 +7027,10 @@ subroutine cal_irep(icheck,iopsymr,irep_util,iselec,karact,lselec, mselec,nb_rep
       endif
 
 ! Calcul des characteres des orbitales d'arrivee :
-! Dans la base de l'atome absorbeur
-      call symorb(l,m,kopsymo)
+! Dans la base de L'atome absorbeur
+      call symorb(L,m,kopsymo)
 
-! Recherche de la representation a laquelle appartient l'orbitale
+! Recherche de la representation a laquelle appartient L'orbitale
       boucle_irep: do irep = 1,nb_rep
 
         do is = 1,nopsm
@@ -6895,13 +7053,13 @@ subroutine cal_irep(icheck,iopsymr,irep_util,iselec,karact,lselec, mselec,nb_rep
   if( spinorbite ) then
     do lf = 1,nselec
       if( irepo(lf) /= 0 ) cycle
-      l = lselec(lf)
+      L = lselec(lf)
       m = - mselec(lf)
       do lg = 1,nselec
-        if( l == lselec(lg) .and. m == mselec(lg) ) exit
+        if( L == lselec(lg) .and. m == mselec(lg) ) exit
       end do
       if( lg == nselec + 1 ) then
-        call symorb(l,m,kopsymo)
+        call symorb(L,m,kopsymo)
         boucle_irep2: do irep = 1,nb_rep
           do is = 1,nopsm
             if( iopsymr(is) == 0 ) cycle
@@ -6971,7 +7129,7 @@ subroutine cal_irep(icheck,iopsymr,irep_util,iselec,karact,lselec, mselec,nb_rep
       if( irep_util(igrph,1) /= 0 .and. irep_util(igrph,nspino) /= 0 ) cycle
       lf = lmrep(igrph,1)
       isp = iselec(lf)
-      l = lselec(lf)
+      L = lselec(lf)
       m = mselec(lf)
 
       if( isp == 1 ) then
@@ -6979,11 +7137,11 @@ subroutine cal_irep(icheck,iopsymr,irep_util,iselec,karact,lselec, mselec,nb_rep
       else
         m = m - 1
       endif
-      l = l + 4
+      L = L + 4
 
       boucle_isg: do isg = 1,-1,-2
         m = isg * m
-        call symorb(l,m,kopsymo)
+        call symorb(L,m,kopsymo)
 
         boucle_irep3: do irep = 1,nb_rep
 
@@ -7068,11 +7226,11 @@ subroutine irep_util_all(icheck,iopsymr,irep_util,karact,nb_rep, ngrph,nspino,sp
 
   nselec = 0
 
-  do l = 0,3
-    do m = -l,l
+  do L = 0,3
+    do m = -L,L
       do isp = 1,nspino
         nselec = nselec + 1
-        lselec(nselec) = l
+        lselec(nselec) = L
         mselec(nselec) = m
         iselec(nselec) = isp
       end do
@@ -7227,7 +7385,7 @@ subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_ma
     vv = sum( v(:)**2 )
     if( vv > eps6 ) call trvec(mpirank0,Orthmatt,v,vo)
 
-! Test sur l'orthogonalite
+! Test sur L'orthogonalite
     if( Quadrupole .or. Octupole .or. Dipmag ) then
       pv = abs( sum( vo(:) * pl(:) ) )
       if( pv > eps4 ) then
@@ -7411,7 +7569,7 @@ subroutine Polond(axyz,Dipmag,icheck,ltypcal,Moyenne,mpirank0,msymdd,msymqq,n_ma
     Moyenne = .false.
   endif
 
-! nxanout est l'indice de colonne a partir de laquelle on imprime
+! nxanout est L'indice de colonne a partir de laquelle on imprime
   if( Polarise ) then
     nxanout = 1
   else
@@ -7589,7 +7747,7 @@ end
 
 !***********************************************************************
 
-! Calcul du (l,m) = (loperat,moperat) de la transition
+! Calcul du (L,m) = (loperat,moperat) de la transition
 
 subroutine lmtrans(kpl,kvo,kv2,noperat,loperat,moperat,spinorbite)
 
@@ -7737,7 +7895,7 @@ end
 
 !***********************************************************************
 
-subroutine symorb(l,m,kopsymo)
+subroutine symorb(L,m,kopsymo)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -7748,24 +7906,24 @@ subroutine symorb(l,m,kopsymo)
 
   logical lpair, pair
 
-  if( l == 0 ) then
+  if( L == 0 ) then
     kopsymo(:) = (1._db, 0._db)
     return
   endif
   pair = .false.
   iopsymo(:) = 0
   iopsymo(1) = 1
-  lpair = mod(l,2) == 0
+  lpair = mod(L,2) == 0
 
 ! Axes 2
   im = abs( m )
   do is = 22,24
     select case(is)
       case(22)   ! Axe 2 Ox
-        mm = mod(l+im,2)
+        mm = mod(L+im,2)
         pair = (mm == 0 .and. m >= 0) .or. (mm == 1 .and. m < 0)
       case(23)   ! Axe 2 Oy
-        mm = mod(l+2*im,2)
+        mm = mod(L+2*im,2)
         pair = (mm == 0 .and. m >= 0) .or. (mm == 1 .and. m < 0)
       case(24)   ! Axe 2 Oz
         mm = mod(im,2)
@@ -7780,7 +7938,7 @@ subroutine symorb(l,m,kopsymo)
 
 ! Axes 2 selon (110) et (1-10)
   m4 = mod(im,4)
-  mlm = mod(l+im,2)
+  mlm = mod(L+im,2)
   if( ( m >= 0 .and. ( ( m4 == 0 .and. mlm == 0 ) .or. ( m4 == 2 .and. mlm == 1 ) ) ) &
    .or. ( m < 0 .and. ( ( m4 == 2 .and. mlm == 0 ) .or. ( m4 == 0 .and. mlm == 1 ) ) ) ) then
     iopsymo(10:11) = 1
@@ -7807,7 +7965,7 @@ subroutine symorb(l,m,kopsymo)
       iopsymo(49) = 8; iopsymo(50) = 4
   end select
 ! Axes 3 negatif
-  if( mod(l+m,2) == 0 ) then
+  if( mod(L+m,2) == 0 ) then
     iopsymo(53:54) = iopsymo(49:50)
   else
     select case(mm)
@@ -7838,7 +7996,7 @@ subroutine symorb(l,m,kopsymo)
       iopsymo(18) = 9; iopsymo(21) = 3
   end select
 ! Axes S4
-  if( mod(l+m,2) == 0 ) then
+  if( mod(L+m,2) == 0 ) then
     iopsymo(28:31:3) = iopsymo(18:21:3)
   else
     select case(mm)
@@ -7875,7 +8033,7 @@ subroutine symorb(l,m,kopsymo)
       iopsymo(51) = 10; iopsymo(52) = 2
   end select
 ! Axes 6 negatif
-  if( mod(l+m,2) == 0 ) then
+  if( mod(L+m,2) == 0 ) then
     iopsymo(55:56) = iopsymo(51:52)
   else
     select case(mm)
@@ -7912,7 +8070,7 @@ subroutine symorb(l,m,kopsymo)
   else
     iopsymo(41) = 1
   endif
-  if( mod(l+m,2) == 1 ) then
+  if( mod(L+m,2) == 1 ) then
     iopsymo(42) = -1
   else
     iopsymo(42) = 1
@@ -8008,10 +8166,10 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   use declarations
   implicit none
 
-  character(len=8):: ptgrname_int
+  character(len=8):: ptgrname_int, ptgrname_int_nomag
 
   integer:: i, i_self, ia, ia1, ia2, iaabs, iaabsi, iabsorbeur, iapr, ib, icheck, ie, ig, iga, igr, igrpt_nomag, igrpt0, &
-     ind_rep, iord, ipr, ipr0, is, isp, istop, isym, it, it1, it2, j, js, l, l_hubbard, m, m_hubb, mp, m_hubb_e, mpirank0, &
+     ind_rep, iord, ipr, ipr0, is, isp, istop, isym, it, it1, it2, j, js, L, l_hubbard, m, m_hubb, mp, m_hubb_e, mpirank0, &
      n_atom_0_self, n_atom_ind_self, n_atom_proto, na_ligne, na1, na2, natome, natomeq, natomp, natomsym, &
      nb_sym_op, neqm, ngroup, ngroup_hubb, ngroup_m, nlatm, nspin, nspinp, ntype, nx
 
@@ -8032,7 +8190,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb
 
   logical:: Atom_mag_cal, Nonsph, Atom_occ_mat, Full_atom, Green, Hubbard, magnetic, overad, &
-          Spinorbite, Symmol, Ylm_comp
+          Simplified, Spinorbite, Symmol, Ylm_comp
   logical, dimension(nb_sym_op):: Fait
   logical, dimension(natome):: Atom_comp, Atom_axe
   logical, dimension(0:natome):: Atom_mag
@@ -8115,9 +8273,9 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
         ipr = iaprotoi(igr)
         it = itypepr(ipr)
       end if
-      l = l_hubbard( numat(it) )
-      do m = -l,l
-        do mp = -l,l
+      L = l_hubbard( numat(it) )
+      do m = -L,L
+        do mp = -L,L
           do isp = 1,nspin
             if( m == mp ) V_hubb(m,mp,isp,isp,iapr) = cmplx( 0.5_db * V_hubbard(it), 0._db )
             V_hubb(m,mp,isp,isp,iapr) = V_hubb(m,mp,isp,isp,iapr) - cmplx( V_hubbard(it) * occ_hubb_e(m,mp,isp,igr), 0._db )
@@ -8237,12 +8395,13 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   endif
 
 ! Evaluation de la symetrie locale
+  Simplified = .not. Magnetic
   do ia = 1,natome
     if( icheck > 1 ) write(3,130) ia
     ps(:) = posi(:,ia)
     call point_group_atom(Atom_comp(ia),Atom_mag(ia),Atom_with_axe,Nonsph,Axe_atom_clu, &
         iaabs,iatomp(ia),icheck,igroup,igroupi(ia),igrpt(ia),igrpt0,iopsyma,iopsymr,itype,itypep,magnetic,mpirank0,natomp, &
-        ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_a,Spinorbite,Symmol)
+        ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_a,Spinorbite,Symmol,Simplified)
 
     Atom_comp(ia) = Ylm_comp
 
@@ -8255,7 +8414,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     rot_atom(:,:,ia) = rot_a(:,:)
   end do
 
-! Atomes se trouvant sur l'axe de l'agregat
+! Atomes se trouvant sur L'axe de L'agregat
   do ia = 1,natome
     if( sum( abs( posi(1:2,ia) ) ) < eps10 ) then
       Atom_axe(ia) = .true.
@@ -8305,7 +8464,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
                 ptgrname_int(igrpt(ia)), Ylm_comp, Atom_axe(ia), Atom_mag(ia), Axe_atom_clui(:,ia)
         else
           write(ipr,190) ia, numat(it), it, igroupi(ia), iaprotoi(ia), iatomp(ia), posi(1:3,ia)*bohr, igrpt(ia), &
-                ptgrname_int(igrpt(ia)), Ylm_comp, Atom_axe(ia), Atom_mag(ia)
+                ptgrname_int_nomag(igrpt(ia)), Ylm_comp, Atom_axe(ia), Atom_mag(ia)
         endif
       end do
     end do
@@ -8350,7 +8509,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
 
 ! L'elaboration du reseau s'effectuant autour de chaque atome, en
 ! definissant la zone atomique par la sphere muffin-tin, il est
-! necessaire d'avoir des rayons muffin-tin laissant l'espace a au moins
+! necessaire d'avoir des rayons muffin-tin laissant L'espace a au moins
 ! un point entre les atomes.
 
   if( .not. Green ) then
@@ -8863,7 +9022,7 @@ end
 
 subroutine point_group_atom(Ylm_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu, &
           iaabs,iap,icheck,igroup,igra,igrpt,igrpt0,iopsym,iopsymr,itype,itypep,magnetic,mpirank0,natomp, &
-          ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,posi,rot_atom,Spinorbite,Symmol)
+          ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,posi,rot_atom,Spinorbite,Symmol,Simplified)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -8873,7 +9032,7 @@ subroutine point_group_atom(Ylm_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu,
   integer, dimension(ngroup):: itype
   integer, dimension(0:ntype):: nlat, numat
 
-  logical:: Atom_comp_cal, Atom_mag, Atom_mag_cal, Magnetic, Nonsph, Spinorbite, Symmol, Ylm_comp
+  logical:: Atom_comp_cal, Atom_mag, Atom_mag_cal, Magnetic, Nonsph, Simplified, Spinorbite, Symmol, Ylm_comp
   logical, dimension(0:ngroup_m):: Atom_with_axe
 
   real(kind=db), dimension(3):: posi, px, py, pz, v
@@ -8906,13 +9065,13 @@ subroutine point_group_atom(Ylm_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu,
       call sym_cluster(Atom_with_axe,Axe_atom_clut,iaabs,igroup,iopsym,itype,itypep, &
              natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,p,Symmol)
 
-! Le groupe ponctuel de l'atome doit etre un sous-groupe du groupe de l'agregat.
+! Le groupe ponctuel de L'atome doit etre un sous-groupe du groupe de L'agregat.
       rot_tem = transpose(rot_atom)
       call iop_rot(icheck,irotiops,rot_tem)
       where( irotiops /= 0 ) irotiops = iopsymr(irotiops)
       where( irotiops == 0 ) iopsym = 0
 
-      call cluster_rot(iopsym,rot_tem)
+      if( .not. Simplified ) call cluster_rot(iopsym,rot_tem)
 
       if( sum( abs( rot_tem(:,:) - rot_un(:,:) ) ) < eps10  ) exit
 
@@ -8933,7 +9092,11 @@ subroutine point_group_atom(Ylm_comp,Atom_mag,Atom_with_axe,Nonsph,Axe_atom_clu,
 
     end do
 
-    call numgrpt(iopsym,igrpt,igrpt_nomag,mpirank0,.false.)
+    if( Simplified ) then
+      call numgrpt_s(iopsym,igrpt,igrpt_nomag,mpirank0,.false.)
+    else
+      call numgrpt(iopsym,igrpt,igrpt_nomag,mpirank0,.false.)
+    endif
 
   endif
 
@@ -9001,7 +9164,7 @@ end
 
 !***********************************************************************
 
-! Pour certains groupes magnetique, l'atome central ne peut pas etre magnetique
+! Pour certains groupes magnetique, L'atome central ne peut pas etre magnetique
 
 function Atom_mag_cal(igrpt)
 
@@ -9022,7 +9185,7 @@ end
 
 !***********************************************************************
 
-! Pour certains groupes magnetique, l'atome central ne peut pas etre magnetique
+! Pour certains groupes magnetique, L'atome central ne peut pas etre magnetique
 
 subroutine Axe_mag_cal(igrpt,Axe)
 
@@ -9043,7 +9206,7 @@ end
 
 !***********************************************************************
 
-! Pour certains groupes la base commode est la base des Y(l,m) complexes
+! Pour certains groupes la base commode est la base des Y(L,m) complexes
 
 function Atom_comp_cal(igrpt)
 
@@ -9236,7 +9399,7 @@ subroutine reseau(Adimp,Base_hexa,D_max_pot,Green,iaabs,icheck, &
   end do
   npso = i
 
-! Mise en ordre par rapport a la distance au centre de l'agregat.
+! Mise en ordre par rapport a la distance au centre de L'agregat.
   do i = 1,npso
     do j = i+1,npso
       if( xyz(4,i) < xyz(4,j) + epspos ) cycle
@@ -9263,7 +9426,7 @@ subroutine reseau(Adimp,Base_hexa,D_max_pot,Green,iaabs,icheck, &
     endif
   end do
 
-! Nombre de points a l'interieur de la zone de calcul :
+! Nombre de points a L'interieur de la zone de calcul :
   do i = 1,npso
     if( xyz(4,i) > rsort + epspos ) exit
   end do
@@ -9601,7 +9764,7 @@ end
 !***********************************************************************
 
 ! Routine effectuant la selection des points en bordure des spheres muffin-tin, et calculant les distances relatives de ces points au
-! centre de l'atome correspondant.
+! centre de L'atome correspondant.
 
 subroutine bordure(Green,icheck,iopsymr,iord,iscratch,ivois,mpirank0,natome,nbm,nbtm,nim, &
              npoint,npso,npsom,nsm,nstm,numia,nvois,posi,rvol,xyz)
@@ -9897,7 +10060,7 @@ end
 
 !***********************************************************************
 
-! Calcul de l'energie du niveau de coeur initial.
+! Calcul de L'energie du niveau de coeur initial.
 
 subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_moy,Eseuil,icheck,is_g, &
            itabs_nonexc,lseuil,m_g,mpirank0,nbseuil,ninit1,ninitl,ninitlr,nr,nrm,nseuil,nspine,ntype,numat,psii,rato,Rmtg, &
@@ -10100,13 +10263,13 @@ end
 ! Calculation of the Kohhn-Sham energy of a core level by E = <psi|H|psi> / <psi|psi>
 ! When relativistic, one needs self-consistency because Hamiltonian depends on the calculated energy
 
-function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
+function psiHpsi(Cal_psi,icheck,isol,L,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
               nspino,nspinp,numat,V0bd,Vrato,psi,r,Relativiste,Rmtg,Rmtsd,Spinorbite,V_intmax,Ylm_comp)
 
   use declarations
   implicit none
 
-  integer:: icheck, ie_cycle, im, ip, ip_cycle, ir, isol, isp, l, l2, lmax, lmax_pot, m, m_hubb, m1, m2, n, nie_cycle, &
+  integer:: icheck, ie_cycle, im, ip, ip_cycle, ir, isol, isp, L, l2, lmax, lmax_pot, m, m_hubb, m1, m2, n, nie_cycle, &
     nip_cycle, nlm, nlm_pot, nodes, nr, nr_max, nr_pos, nrm, nrmtg, nrmtsd, nsol, nspin, nspino, nspinp, numat
 
   parameter(m_hubb = 0)
@@ -10114,7 +10277,7 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
   logical:: Cal_psi, Ecomp, Full_potential, Hubb_a, Hubb_d, Radial_comp, Relativiste, Renorm, Spinorbite, Ylm_comp
 
   complex(kind=db), dimension(nspin):: konde
-  complex(kind=db), dimension(2*l+1,nspin,2*l+1,nspin):: Tau
+  complex(kind=db), dimension(2*L+1,nspin,2*L+1,nspin):: Tau
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
 
   real(kind=db):: E, Eimag, Ep, Epp, fac, f_integr, f_so, Hpsi, &
@@ -10129,9 +10292,9 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
 
   if( icheck > 1 ) then
     if( Spinorbite ) then
-      write(3,110) n, l, m
+      write(3,110) n, L, m
     else
-      write(3,115) n, l
+      write(3,115) n, L
     endif
   endif
 
@@ -10142,8 +10305,8 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
   Hubb_a = .false.
   Hubb_d = .true.
   m2 = 1
-  m1 = 2 * l + 1
-  lmax = l
+  m1 = 2 * L + 1
+  lmax = L
   Renorm = .false.
   Radial_comp = .false.
 
@@ -10172,22 +10335,22 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
 
   Epp = 0._db
 
-  l2 = l**2 + l
+  l2 = L**2 + L
 
   ur(:,:) = 0._db
 
   if( Spinorbite ) then
-    if( m == -l-1 ) then
+    if( m == -L-1 ) then
       isp = 2
       ur(:,2) = psi(:)
-    elseif( m == l ) then
+    elseif( m == L ) then
       isp = 1
       ur(:,1) = psi(:)
     else
       ur(:,1) = psi(:) * sqrt_1o2
       ur(:,2) = psi(:) * sqrt_1o2
     endif
-    f_so = sqrt( (l - m) * ( l + m + 1._db) )
+    f_so = sqrt( (L - m) * ( L + m + 1._db) )
   else
     isp = 1
     ur(:,1) = psi(:)
@@ -10215,8 +10378,8 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
 
       do isp = 1,nspin
         if( Spinorbite ) then
-          if( m == -l-1 .and. isp == 1 ) cycle
-          if( m == l .and. isp == 2 ) cycle
+          if( m == -L-1 .and. isp == 1 ) cycle
+          if( m == L .and. isp == 2 ) cycle
         endif
         do ir = 2,nrmtg
 ! one must add E because g0 contains V - E
@@ -10262,23 +10425,23 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
       allocate( urs(nr,m1,m2,nspin,nspino) )
       allocate( uis(nr,m1,m2,nspin,nspino) )
       call Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gpi,gso,Hubb_a,Hubb_d,icheck,konde, &
-         l,lmax,m_hubb,nlm,m1,m2,nr,nrmtg,nspin,nspino,nspinp,numat,r,Radial_comp,Relativiste,Renorm,Rmtg,Spinorbite,Tau, &
+         L,lmax,m_hubb,nlm,m1,m2,nr,nrmtg,nspin,nspino,nspinp,numat,r,Radial_comp,Relativiste,Renorm,Rmtg,Spinorbite,Tau, &
          uis,urs,V,V_hubb)
 
       if( Spinorbite ) then
-        if( m == -l-1 ) then
+        if( m == -L-1 ) then
           ur(:,1) = 0._db
           ur(:,2) = urs(:,1,m2,2,nspino) * r(:)
-        elseif( m == l ) then
+        elseif( m == L ) then
           ur(:,1) = urs(:,m1,m2,1,1) * r(:)
           ur(:,2) = 0._db
         else
-          ur(:,1) = urs(:,l+1+m,m2,1,isol) * r(:)
-          ur(:,2) = urs(:,l+1+m+1,m2,2,isol) * r(:)
+          ur(:,1) = urs(:,L+1+m,m2,1,isol) * r(:)
+          ur(:,2) = urs(:,L+1+m+1,m2,2,isol) * r(:)
         endif
       else
         do isp = 1,nspin
-          ur(:,isp) = urs(:,min(l+1+m,m1),m2,isp,1) * r(:)
+          ur(:,isp) = urs(:,min(L+1+m,m1),m2,isp,1) * r(:)
         end do
       endif
       deallocate( urs, uis )
@@ -10290,7 +10453,7 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
       nr_pos = min(nr_pos,nr-2)
 
       nodes = 0
-      if( m == -l-1 ) then
+      if( m == -L-1 ) then
         isp = 2
       else
         isp = 1
@@ -10298,14 +10461,14 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
       do ir = 2,min(nr_pos,nrmtg)
         if( ur(ir,isp)*ur(ir-1,isp) < 0._db ) nodes = nodes + 1
       end do
-      if( nodes == n - l - 1 .or. E > V(nrmtg,1,1,1) ) exit
+      if( nodes == n - L - 1 .or. E > V(nrmtg,1,1,1) ) exit
 
-      if( nodes > n - l - 1 ) then
+      if( nodes > n - L - 1 ) then
         E = E - 0.1_db * abs(E)
       else
         E = E + 0.1_db * abs(E)
       endif
-      if( icheck > 1 ) write(3,125) nodes, n-l-1, E*Rydb
+      if( icheck > 1 ) write(3,125) nodes, n-L-1, E*Rydb
     end do
 
     if( E < V(nrmtg,1,1,1) ) then
@@ -10322,15 +10485,15 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
 
       do isp = 1,nspin
         if( Spinorbite ) then
-          if( m == -l-1 .and. isp == 1 ) cycle
-          if( m == l .and. isp == 2 ) cycle
+          if( m == -L-1 .and. isp == 1 ) cycle
+          if( m == L .and. isp == 2 ) cycle
         endif
 
         do ir = nr_max,nr_max-1,-1
           VmE = V(ir,1,1,isp) - E
           VmE = Max( VmE, 0.000001_db )
           k_onde = sqrt( VmE )
-          ur(ir,isp) = exp( - k_onde * r(ir) ) / r(ir)**(l+1)
+          ur(ir,isp) = exp( - k_onde * r(ir) ) / r(ir)**(L+1)
         end do
 
         fac = ur(nr_pos+1,isp)
@@ -10371,8 +10534,8 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
 
     do isp = 1,nspin
       if( Spinorbite ) then
-        if( m == -l-1 .and. isp == 1 ) cycle
-        if( m == l .and. isp == 2 ) cycle
+        if( m == -L-1 .and. isp == 1 ) cycle
+        if( m == L .and. isp == 2 ) cycle
       endif
       ur(:,isp) = ur(:,isp) / spp
     end do
@@ -10395,8 +10558,8 @@ function psiHpsi(Cal_psi,icheck,isol,l,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
   deallocate( V )
 
   return
-  110 format(/' Core wave function : n =',i2,', l =',i2,', m =',i2/)
-  115 format(/' Core wave function : n =',i2,', l =',i2/)
+  110 format(/' Core wave function : n =',i2,', L =',i2,', m =',i2/)
+  115 format(/' Core wave function : n =',i2,', L =',i2/)
   120 format(' Cycle',2i4,',  E = ',f10.3,' eV,  <psi.psi> =',f10.7)
   125 format('   Nodes =',i2,' >',i2,' -->  E = ',f10.3,' eV')
   130 format('    rato        psi      psi_new(up)   psi_new(dn)       Vr_up       Vr_dn')
@@ -10406,7 +10569,7 @@ end
 
 !***********************************************************************
 
-! Calculations of the (l,m) belloging to each representations
+! Calculations of the (L,m) belloging to each representations
 
 subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,itypei,karact,lato, &
              lmaxat,lmaxso,lso,mato,mpirank0,mso,n_atom_proto,natome,nbordf,ngrph,nlmsa0,nlmsam,nlmso0, &
@@ -10469,12 +10632,12 @@ subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,it
       call iop_rot(icheck,irotiops,rot_a)
     endif
 
-    do l = 0,lmax
-      do m = -l,l
+    do L = 0,lmax
+      do m = -L,L
 
         do ispin = 1,nspino
 
-          call symorb(l,m,kopsymo)
+          call symorb(L,m,kopsymo)
 
 ! Search of the representation whom the orbital belongs
           boucle_irep: do igrph = 1,ngrph
@@ -10494,12 +10657,12 @@ subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,it
             if( ia == 0 ) then
               nlmso0(igrph) = nlmso0(igrph) + 1
               iso( nlmso0(igrph), igrph ) = ispin
-              lso( nlmso0(igrph), igrph ) = l
+              lso( nlmso0(igrph), igrph ) = L
               mso( nlmso0(igrph), igrph ) = m
             else
               nlmsa0(ia,igrph) = nlmsa0(ia,igrph) + 1
               iato( nlmsa0(ia,igrph), ia, igrph ) = ispin
-              lato( nlmsa0(ia,igrph), ia, igrph ) = l
+              lato( nlmsa0(ia,igrph), ia, igrph ) = L
               mato( nlmsa0(ia,igrph), ia, igrph ) = m
             endif
 
@@ -10572,7 +10735,7 @@ subroutine lmrep(Green,iaprotoi,iato,icheck,iopsym_atom,iopsymr,irep_util,iso,it
   130 format(/' Atome ia =',i3,', position =',3f7.3)
   170 format(/' lmax =',i3,', nlm =',i3,', igrph =',i2)
   175 format(/'  ia = ',i3,', lmax =',i3,', nlm =',i3,', igrph =',i2)
-  180 format(/'   lm    l    m    is')
+  180 format(/'   lm    L    m    is')
   190 format(4i5)
   200 format(///'   nlmso0 =',i4,' > nspino*nsortf =',i4, // &
                 ' Solution :',/'  Reduce the maximum energy or ',/ &
@@ -10688,7 +10851,7 @@ subroutine Ylmpt(iaprotoi,ibord,icheck,iopsymr,isrt,lmaxat,lmaxso,n_atom_proto,n
   use declarations
   implicit none
 
-  integer:: i, ia, ib, icheck, ipr, isym, l, lm, lmax, lmaxso, m, n_atom_proto, natome, nbtm, nlmc, nlmmax, nlmomax, nlmr, np, &
+  integer:: i, ia, ib, icheck, ipr, isym, L, lm, lmax, lmaxso, m, n_atom_proto, natome, nbtm, nlmc, nlmmax, nlmomax, nlmr, np, &
             nsort, nstm, npsom
 
   integer, dimension(0:n_atom_proto):: lmaxat
@@ -10752,9 +10915,9 @@ subroutine Ylmpt(iaprotoi,ibord,icheck,iopsymr,isrt,lmaxat,lmaxso,n_atom_proto,n
     if( icheck > 2 ) then
       write(3,120) ia
       lm = 0
-      do l = 0,lmax
-        do m = -l,l
-          write(3,130) l, m
+      do L = 0,lmax
+        do m = -L,L
+          write(3,130) L, m
           lm = lm + 1
           if( ia == 0 ) then
             write(3,140) Ylmso(1:np,lm)
@@ -10773,7 +10936,7 @@ subroutine Ylmpt(iaprotoi,ibord,icheck,iopsymr,isrt,lmaxat,lmaxso,n_atom_proto,n
   return
   110 format(/' ---- Ylmpt --------',100('-'))
   120 format(/'    Ylm,  Atom',i3)
-  130 format(/' l, m =',2i3)
+  130 format(/' L, m =',2i3)
   140 format(1p,8f10.3)
 end
 
@@ -10781,7 +10944,7 @@ end
 
 ! Calculation of complex Ylm
 ! Only m >= 0 are calculated
-! The index of Ylm is lm = l(l+1)/2 + 1 + m
+! The index of Ylm is lm = L(L+1)/2 + 1 + m
 
 subroutine cylm(lmax,v,r,ylmc,nlm)
 
@@ -10813,34 +10976,34 @@ subroutine cylm(lmax,v,r,ylmc,nlm)
 ! Calcul de Y(0,0) :
   ylmc(1) = 1 / sqrt( quatre_pi )
 
-! Calcul des Y(l,l) :
-  do l = 1,lmax
-    lm = ((l+1)*(l+2)) / 2
-    lm1 = (l*(l+1)) / 2
-    f = - sqrt(1 + 0.5_db/l)
+! Calcul des Y(L,L) :
+  do L = 1,lmax
+    lm = ((L+1)*(L+2)) / 2
+    lm1 = (L*(L+1)) / 2
+    f = - sqrt(1 + 0.5_db/L)
     ylmc(lm) = f * sint_exphi * ylmc(lm1)
   end do
 
 ! Calcul de Y(1,0) :
   if( lmax > 0 ) ylmc(2) = sqrt( 3 / quatre_pi ) * cost
 
-! Calcul des Y(l,l-1) :
-  do l = 2,lmax
-    lm = ( ( l + 1 ) * ( l + 2 ) ) / 2 - 1
-    lm1 = ( l**2 + l ) / 2 - 1
-    f = - sqrt( (2*l + 1._db) / (2*l - 2) )
+! Calcul des Y(L,L-1) :
+  do L = 2,lmax
+    lm = ( ( L + 1 ) * ( L + 2 ) ) / 2 - 1
+    lm1 = ( L**2 + L ) / 2 - 1
+    f = - sqrt( (2*L + 1._db) / (2*L - 2) )
     ylmc(lm) = f * sint_exphi * ylmc(lm1)
   end do
 
-! Calcul des Y(l,m) :
+! Calcul des Y(L,m) :
   exphi = conjg( exphi )
 
-  do l = 2,lmax
-    lm0 = ( l**2 + l ) / 2
-    do m = l-2,1,-1
+  do L = 2,lmax
+    lm0 = ( L**2 + L ) / 2
+    do m = L-2,1,-1
       lm = lm0 + m + 1
-      f = - 2 * (m + 1._db) / sqrt( l*(l+1._db) - m*(m+1._db) )
-      g = - sqrt( ( l*(l+1._db) - (m+1._db)*(m+2._db) ) / ( l*(l+1._db) - m*(m+1._db) ) )
+      f = - 2 * (m + 1._db) / sqrt( L*(L+1._db) - m*(m+1._db) )
+      g = - sqrt( ( L*(L+1._db) - (m+1._db)*(m+2._db) ) / ( L*(L+1._db) - m*(m+1._db) ) )
       if( abs(sint) > eps10 ) then
         ylmc(lm) = exphi*( cott*f*ylmc(lm+1) + exphi*g*ylmc(lm+2) )
       else
@@ -10849,13 +11012,13 @@ subroutine cylm(lmax,v,r,ylmc,nlm)
     end do
   end do
 
-! Calcul des Y(l,0) :
-  do l = 2,lmax
-    lm = ( l * (l+1) ) / 2 + 1
-    lm1 = ( (l-1)*l ) / 2 + 1
-    lm2 = ( (l-2)*(l-1) ) / 2 + 1
-    f = sqrt( (2*l + 1._db) / (2*l - 1._db) ) * (2*l - 1._db) / l
-    g = - sqrt( (2*l + 1._db) / (2*l - 3._db) ) * (l - 1._db) / l
+! Calcul des Y(L,0) :
+  do L = 2,lmax
+    lm = ( L * (L+1) ) / 2 + 1
+    lm1 = ( (L-1)*L ) / 2 + 1
+    lm2 = ( (L-2)*(L-1) ) / 2 + 1
+    f = sqrt( (2*L + 1._db) / (2*L - 1._db) ) * (2*L - 1._db) / L
+    g = - sqrt( (2*L + 1._db) / (2*L - 3._db) ) * (L - 1._db) / L
     ylmc(lm) = f * cost * ylmc(lm1) + g * ylmc(lm2)
   end do
 
@@ -10871,18 +11034,18 @@ subroutine ylmcr(lmax,nlmc,nlmr,ylmc,ylmr)
   use declarations
   implicit none
 
-  integer:: l, l2, lm, lm0, lmax, m, nlmc, nlmr
+  integer:: L, l2, lm, lm0, lmax, m, nlmc, nlmr
 
   complex(kind=db), dimension(nlmc):: ylmc
 
   real(kind=db), dimension(nlmr):: ylmr
 
   lm = 0
-  do l = 0,lmax
+  do L = 0,lmax
 
-    l2 = ( l**2 + l ) / 2 + 1
+    l2 = ( L**2 + L ) / 2 + 1
 
-    do m = -l,l
+    do m = -L,L
 
       lm = lm + 1
       lm0 = l2 + abs(m)
@@ -10894,6 +11057,51 @@ subroutine ylmcr(lmax,nlmc,nlmr,ylmc,ylmr)
       else
         ylmr(lm) = (-1)**m * sqrt_2 * real( ylmc(lm0), db )
       endif
+
+    end do
+  end do
+
+  return
+end
+
+!***********************************************************************
+
+! Convertion from complex Ylm to real Ylm
+
+subroutine Ylm_ZtoK(lmax,nlmr,Ylm)
+
+  use declarations
+  implicit none
+
+  integer:: i, L, lm_K, lm0, lmax, m, m_K, n, nlmr
+
+  real(kind=db):: c_cubic
+
+  real(kind=db), dimension(nlmr):: Ylm, Rlm
+
+  Rlm(:) = Ylm(:)
+
+  Ylm(:) = 0._db
+  lm_K = 0
+
+  do L = 0,lmax
+
+    lm0 = L**2 + L + 1
+
+    do m_K = -L,L
+
+      lm_K = lm_K + 1
+
+      if( L /= 3 .or. ( m_K == -3 .or. m_K == 0 .or. m_K == 3 ) ) then
+        n = 1
+      else
+        n = 2
+      endif
+
+      do i = 1,n
+        call Trans_TtoK(c_cubic,.true.,i,l,m_K,m)
+        Ylm(lm_K) = Ylm(lm_K) + c_cubic * Rlm( lm0 + m )
+      end do
 
     end do
   end do
@@ -10918,13 +11126,13 @@ subroutine ylmsym(iopsym,lmax,lv,mpirank0,mv,nlms,nlmtot)
 
   lm = 0
 
-  do l = 0,lmax
-    do m = -l,l
+  do L = 0,lmax
+    do m = -L,L
 
 ! Centrosymetrie
       if( iops(25) == 1 ) then
         parsym = iopsym(25) == 1
-        parite = mod(l+2*abs(m),2) == 0
+        parite = mod(L+2*abs(m),2) == 0
         if( (parsym .and. .not. parite) .or. (.not. parsym .and. parite)  ) cycle
       endif
 
@@ -10946,7 +11154,7 @@ subroutine ylmsym(iopsym,lmax,lv,mpirank0,mv,nlms,nlmtot)
 ! Plan Oz
       if( iops(42) == 1 ) then
         parsym = iopsym(42) == 1
-        parite = mod(l+abs(m),2) == 0
+        parite = mod(L+abs(m),2) == 0
         if( (parsym .and. .not. parite) .or. (.not. parsym .and. parite)  ) cycle
       endif
 
@@ -10988,7 +11196,7 @@ subroutine ylmsym(iopsym,lmax,lv,mpirank0,mv,nlms,nlmtot)
 
       if( irot > 1) then
         mr = mod(abs(m),irot)
-        ml = mod(l+abs(m),2)
+        ml = mod(L+abs(m),2)
         parrot = mod(irot,2) == 0
         if( abs(iopsym(28)) == 1 .and. iopsym(18) == 0 ) then
           parite = ( mr == 0 .and. ml == 0 ) .or. ( mr == 2 .and. ml == 1 )
@@ -11003,14 +11211,14 @@ subroutine ylmsym(iopsym,lmax,lv,mpirank0,mv,nlms,nlmtot)
 ! Axe 2 selon 0x
       if( iops(22) == 1 ) then
         parsym = iopsym(22) > 0
-        parite = (m >= 0 .and. mod(l+m,2) == 0) .or. (m < 0 .and. mod(l-m,2) == 1)
+        parite = (m >= 0 .and. mod(L+m,2) == 0) .or. (m < 0 .and. mod(L-m,2) == 1)
         if( (parsym .and. .not. parite) .or. (.not. parsym .and. parite)  ) cycle
       endif
 
 ! Axe 2 selon 0y
       if( iops(23) == 1 ) then
         parsym = iopsym(23) > 0
-        parite = (m >= 0 .and. mod(l+2*m,2) == 0) .or. (m < 0 .and. mod(l-2*m,2) == 1)
+        parite = (m >= 0 .and. mod(L+2*m,2) == 0) .or. (m < 0 .and. mod(L-2*m,2) == 1)
         if( (parsym .and. .not. parite) .or. (.not. parsym .and. parite)  ) cycle
       endif
 
@@ -11031,7 +11239,7 @@ subroutine ylmsym(iopsym,lmax,lv,mpirank0,mv,nlms,nlmtot)
         end do
         stop
       endif
-      lv(lm) = l
+      lv(lm) = L
       mv(lm) = m
 
     end do
@@ -11199,10 +11407,10 @@ end
 
 !***********************************************************************
 
-! Calcul de l'integrale de 0 a Radius de f.
+! Calcul de L'integrale de 0 a Radius de f.
 ! L'integrale est calculee avec un polynome d'interpolation d'ordre 3
 ! r: contient les valeurs des rayons pour les points qu'on integre
-! On considere que seule les valeurs jusqu'à l'indice n tel que
+! On considere que seule les valeurs jusqu'à L'indice n tel que
 ! r(i) > Radius > Radius(i-1) sont sures.
 
   real(kind=db) function f_integr3(r,fct,ir0,nrm,Radius)
@@ -11225,7 +11433,7 @@ end
   do i = 1,nrm-1
     if( i == 1 ) then
       if( ir0 == 1 ) then
- ! Construction de l'ordonnée par extrapolation du second degre
+ ! Construction de L'ordonnée par extrapolation du second degre
         rm = r(1)
         r0 = r(2)
         rp = r(3)
@@ -11295,7 +11503,7 @@ end
 
 !***********************************************************************
 
-! Calcul de l'integrale de 0 a Radius de f. f(0) = 0.
+! Calcul de L'integrale de 0 a Radius de f. f(0) = 0.
 ! L'integrale est calculee avec un polynome d'interpolation d'ordre 3
 ! r: contient les valeurs des rayons pour les points qu'on integre
 ! nr: nombre de points qu'on integre

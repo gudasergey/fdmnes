@@ -609,8 +609,11 @@ end
 
 function ptgrname_int_nomag(igrpt)
 
-  parameter( ngrptm = 32, ngrpt_compm = 11, ngrptmagm = 90, ngrptmag_compm = 10 )
+  use declarations
+  implicit none
 
+  integer:: igrpt 
+  
   character(len=8):: ptgrname_int_nomag
   character(len=8), dimension(ngrptm+ngrpt_compm):: ptgrname_int_t
 
@@ -630,8 +633,11 @@ end
 
 function ptgrname_int(igrpt)
 
-  parameter( ngrptm = 32, ngrptmagm = 90, ngrptmag_compm = 10 )
+  use declarations
+  implicit none
 
+  integer:: igrpt 
+  
   character(len=8):: ptgrname_int, ptgrname_int_nomag
   character(len=8), dimension(ngrptm+1:ngrptmagm+ngrptmag_compm):: ptgrname_mag_t
 
@@ -657,8 +663,11 @@ end
 
 function ptgrname_sch(igrpt)
 
-  parameter( ngrptm = 32, ngrpt_compm = 11)
+  use declarations
+  implicit none
 
+  integer:: igrpt 
+  
   character(len=8):: ptgrname_sch
   character(len=8), dimension(ngrptm+ngrpt_compm):: ptgrname_sch_t
 
@@ -680,7 +689,10 @@ end
 
 function numbops(is)
 
-  parameter( ngrptm = 32, ngrpt_compm = 11 )
+  use declarations
+  implicit none
+
+  integer:: numbops, is 
 
   integer, dimension(ngrptm+ngrpt_compm):: no_tab
 
@@ -1143,5 +1155,41 @@ function Debye_temperature(Z)
   Debye_temperature = TD(Z)
 
   return
-  110 format(//' Z =',i12,' < 0 or > Z_Mendeleiev_max =',i4,' in routine Esdata !'//)
+  110 format(//' Z =',i12,' < 0 or > Z_Mendeleiev_max =',i4,' in function Debye_temperature !'//)
 end
+
+!*********************************************************************
+
+! lmax value for the COOP
+
+function lmax_coop(Z)
+
+  use declarations
+  implicit none
+
+  integer:: ipr, lmax_coop, Z
+  integer, dimension(Z_Mendeleiev_max):: lmax_c
+
+  data lmax_c/1,                                  1, &  ! He
+              1,1,                      2,2,2,2,2,2, &  ! Ne
+              2,2,                      2,2,2,2,2,2, &  ! Ar
+              2,2, 2,2,2,2,2,2,2,2,2,2, 2,2,2,2,2,2, &  ! Kr 36  
+              2,2, 2,2,2,2,2,2,2,2,2,2, 2,2,2,2,2,2, &  ! Xe 54   
+              3,3, 3,3,3,3,3,3,3,3,3,3,3,3,3,3, 3,3,3,3,3,3,3,3,3,3, 3,3,3,3,3,3, & ! Rn 86     
+              3,3, 3,3,3,3,3,3,3,3,3,3,3,3,3,3, 3/ ! Lw 103     
+
+  if( Z <= 0 .or. Z > Z_Mendeleiev_max ) then
+    call write_error
+    do ipr = 3,9,3
+      write(ipr,110) Z, Z_Mendeleiev_max
+    end do
+    stop
+  endif
+
+  lmax_coop = lmax_c(Z)
+
+  return
+  110 format(//' Z =',i12,' < 0 or > Z_Mendeleiev_max =',i4,' in function lmax_coop !'//)
+end
+
+ 

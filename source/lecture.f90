@@ -1558,9 +1558,9 @@ end
 
 subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_mode,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk, &
-    axyz_cap,axyz_int,axyz_sur,Basereel,Bormann,Bulk,Bulk_roughness,Cap_B_iso, &
-    Cap_layer,Cap_roughness,Cap_shift,Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre,Charge_free,Check_extract,Classic_irreg, &
-    Clementi,com,comt,COOP,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Delta_helm,Density, &
+    axyz_cap,axyz_int,axyz_sur,Basereel,Bormann,Bulk,Bulk_roughness,Cap_B_iso,Cap_layer,Cap_roughness, &
+    Cap_shift,Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre,Charge_free,Check_extract,Classic_irreg,Clementi,Com,Comt, &
+    COOP,COOP_z_along_bond,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii,Delta_helm,Density, &
     Density_comp,Dip_rel,Dipmag,Dist_coop,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient, &
     Egamme,Eimagent,Eneg_i,Eneg_n_i,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film,Film_roughness, &
     Film_shift,Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole, &
@@ -1663,8 +1663,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
   logical:: Absauto, adimpin, All_nrixs, Allsite, Apostrophe,ATA, Atom, Atom_B_iso, Atom_conf, Atom_nonsph, Atom_occ_hubb, &
     Atomic_scr, Atom_U_iso, Avoid, Axe_loc, Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, &
-    Centre_auto, Centre_auto_abs, Center_s, Check_extract, Classic_irreg, Clementi, COOP, Core_resolved, Core_resolved_e, &
-    Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
+    Centre_auto, Centre_auto_abs, Center_s, Check_extract, Classic_irreg, Clementi, COOP, Core_resolved, COOP_z_along_bond, &
+    Core_resolved_e, Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
     Dip_rel, Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Fcif, Film, &
     exc_imp, Extract, Extract_ten, FDM_comp, FDMX_only, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, &
     Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green_bulk, Green_s, Green_self, Green_int, Harm_cubic, Hedin, &
@@ -1791,6 +1791,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Fcif = .false.
   com(:) = ' Dirac'
   COOP = .false.
+  COOP_z_along_bond = .true.
   Core_resolved_e = .false.
   Coupelapw = .false.
   Cylindre = .false.
@@ -1840,7 +1841,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Green_int = .false.
   Green_s = .false.
   Green_self = .true.
-  Harm_cubic = .false.
+  Harm_cubic = .true.
   Hedin = .false.
   Helm_cos = .false.
   hkl_film = .false.
@@ -2135,6 +2136,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             endif
           endif
 
+        case('coop_z_ax')
+          COOP_z_along_bond = .false.
+
         case('doping')
           read(itape4,*,iostat=ier) itype_dop, igr_dop
           if( ier > 0 ) call write_err_form(itape4,keyword)
@@ -2161,8 +2165,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           read(itape4,*,iostat=ier) Film_thickness
           if( ier > 0 ) call write_err_form(itape4,keyword)
 
-        case('harm_cubi')
-          Harm_cubic = .true.
+        case('harm_tess')
+          Harm_cubic = .false.
 
         case('hkl_film')
           hkl_film = .true.
@@ -5684,6 +5688,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Classic_irreg,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Clementi,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(COOP,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(COOP_z_along_bond,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Core_resolved,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Coupelapw,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(D_max_pot,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)

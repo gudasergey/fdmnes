@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 2nd of July 2019, 13 Messidor, An 227
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 14th of July 2019, 25 Messidor, An 227
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,8 +43,12 @@ module declarations
   integer, parameter:: Z_Mendeleiev_max = 103   ! Number of chemical elements in the Mendeleiev table
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
+  integer, parameter:: ngrptm = 32   ! Standard number of non magnetic ponctual groups
+  integer, parameter:: ngrptmagm = 90   ! Standard number of magnetic ponctual groups
+  integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic ponctual groups (with other orientation)
+  integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic ponctual groups (with other orientation)
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 2ndh of July 2019'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 14th of July 2019'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -257,7 +261,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 216
+  integer, parameter:: nkw_fdm = 217
   integer, parameter:: nkw_conv = 39
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_gaus = 1
@@ -337,13 +341,13 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'atomic_sc','axe_spin ','atom_u_is', &
      'base_comp','base_reel','bond     ','bulk     ','bulk_roug','cap_b_iso','cap_layer','cap_rough','cap_shift', &
      'cap_thick','cap_u_iso','cartesian','center   ','center_ab','center_s ','chlib    ','cif_file ','classic_i','clementi ', &
-     'coop     ','coop_atom','coop_dist','core_reso','crystal  ', &
+     'coop     ','coop_atom','coop_dist','coop_z_ax','core_reso','crystal  ', &
      'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_2d  ','dafs_exp ','debye    ','delta_en_','dip_rel  ','e1e1     ', &
      'delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ', &
      'edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot', &
      'ephot_min','e_out_min','excited  ','extract  ','extract_t','extractpo','extractsy','fdm_comp ','film     ','film_cif_', &
      'film_pdb_','film_t   ','film_roug','film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ', &
-     'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_bul','green_int','harm_cubi', &
+     'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_bul','green_int','harm_tess', &
      'hedin    ','helm_cos ','helmholtz','hkl_film ','hubbard  ','iord     ','kern_fac ','kern_fast', &
      'lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ','mat_ub   ', &
      'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar','molecule ', &
@@ -1825,6 +1829,8 @@ function Traduction(keyword)
       traduction = 'chlib'
     case('cristal_c','crystal_c','ciffile')
       traduction = 'cif_file'
+    case('harmo_tes','harm_real','harmo_rea','harmo_ree','harm_reel','real_harm')
+      traduction = 'harm_tess'
     case('icheck')
       traduction = 'check'
     case('centre')
@@ -1845,6 +1851,8 @@ function Traduction(keyword)
       traduction = 'coop_atom'
     case('dist_coop')
       traduction = 'coop_dist'
+    case('coop_z_fi','coop_fixe')
+      traduction = 'coop_z_ax'
     case('spinresol','spin_reso','coreresol')
       traduction = 'core_reso'
     case('crist','cryst','cristallo','cristal')

@@ -257,7 +257,7 @@ subroutine Chg_agr(Bulk_step,Chargat,Chargat_init,Chg_coeur,Chg_reference,chg_op
     Rayint = rmtsd(ipr)
     r(0:nrm) = rato(0:nrm,it)
 
-! Calcul de la charge totale de l'agregat: rhoato est la vraie densite
+! Calcul de la charge totale de L'agregat: rhoato est la vraie densite
     do ispin = 1,nspin
       rh(0:nr) = rhoato_init(0:nr,ispin,iapr) * r(0:nr)**2
       res = quatre_pi * f_integr3(r,rh,0,nrm,rayint)
@@ -278,7 +278,7 @@ subroutine Chg_agr(Bulk_step,Chargat,Chargat_init,Chg_coeur,Chg_reference,chg_op
       Chg_reference(2) = Chg_reference(2) + chargat_init(iapr,isp) * n
     endif
 
-! Calcul de la charge totale de l'agregat: rho_chg est la densite
+! Calcul de la charge totale de L'agregat: rho_chg est la densite
 ! venant des atomes exterieurs au petit agregat.
     do ispin = 1, nspin
       rh(0:nr) = rho_chg(0:nr,ispin,iapr) * r(0:nr)**2
@@ -413,7 +413,7 @@ subroutine Chg_agr(Bulk_step,Chargat,Chargat_init,Chg_coeur,Chg_reference,chg_op
     rh(1:nrm) = psi_open_val(1:nrm,i)**2
     nr = nrato(it)
     chg_open_val(i) = f_integr3(r,rh,0,nrm,rayint)
-! psi_level_val etait normalise a l'unite:
+! psi_level_val etait normalise a L'unite:
     chg_open_val(i) = chg_open_val(i) * pop_open_val(i)
   end do
 
@@ -473,14 +473,14 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
                 n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,natome,nb_eq,nb_eq_2D,nenerg,ngreq, &
                 nlm_pot,nomfich_s,nrato, &
                 nrm,nrm_self,nspin,nspinp,ntype,numat,occ_hubb,occ_hubb_i,pop_orb_val,Proto_calculated,rato,rho_self,rho_self_t, &
-                Rmtsd,SCF_elecabs,SCF_mag_fix,Self_nonexc,Statedens,Statedens_i,Sym_2D,V_hubb,V_hubbard)
+                Rmtsd,SCF_elecabs,SCF_mag_fix,Self_nonexc,Statedens,Statedens_i,Sym_2D,V_hubb,V_hubbard,Ylm_comp)
 
   use declarations
   implicit none
 
-  integer:: i, i_self, ia, iaabsi, iapr, icheck, ie, ie_computer, imax, ipr, ipr_dop, iprabs, iprint, ir, isp, isp1, isp2, it, l, &
-    l_hubbard, l_level_val, la, lamstdens, ll, lla_state, lla2_state, lh, lm, lm0, lm1, lm2, lma, m, m_hubb,mpinodes, m1, m2, n, &
-    n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, natome, nenerg, &
+  integer:: i, i_self, ia, iaabsi, iapr, icheck, ie, ie_computer, imax, ipr, ipr_dop, iprabs, iprint, ir, isp, isp1, isp2, iss, &
+    it, L, l_hubbard, l_level_val, la, lamstdens, ll, lla_state, lla2_state, lh, lm, lm0, lm1, lm2, lma, m, m_hubb,mpinodes, m1, &
+    m2, n, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, natome, nenerg, &
     nlm_pot, nr, nrm, nrm_self, nspin, nspinp, ntype, Numat_tot, Z
 
   character(len=3):: Atom_kind
@@ -495,7 +495,7 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
 
   logical, save:: Fermi_gen, Fermi_maj, Fermi_min
   logical:: Bulk_atom_done, Bulk_step, Density, Doping, Fermi, First_loop, Full_atom, Open_file, Open_val, Open_val_exc, &
-    SCF_elecabs, SCF_mag_fix, Self_nonexc, Sym_2D, This_bulk_atom_done
+    SCF_elecabs, SCF_mag_fix, Self_nonexc, Sym_2D, This_bulk_atom_done, Ylm_comp
   logical, dimension(0:n_atom_proto):: Proto_calculated, proto_done
   logical, dimension(0:ntype):: Hubb
   logical, dimension(n_atom_0_self:n_atom_ind_self):: Hubb_diag
@@ -511,7 +511,7 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
   real(kind=db), dimension(0:ntype):: V_hubbard
   real(kind=db), dimension(0:n_atom_proto):: Rmtsd
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: E_starta
-  real(kind=db), dimension(nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self,0:mpinodes-1):: drho_self
+  real(kind=db), dimension(nrm_self,nlm_pot,nspinp,n_atom_0_self:n_atom_ind_self,0:mpinodes-1):: drho_self
   real(kind=db), dimension(lla2_state,nspinp,n_atom_0:n_atom_ind):: Int_Statedens
   real(kind=db), dimension(lla2_state,nspinp,lla2_state,nspinp,n_atom_0:n_atom_ind,0:mpinodes-1):: Statedens, Statedens_i
   real(kind=db), dimension(0:lla_state,nspinp,n_atom_0:n_atom_ind):: Int_Statedens_l
@@ -645,12 +645,12 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
     lma = (ll + 1)**2
 
     Statedens_l(:,:) = 0._db
-    do l = 0,la
-      lm1 = l**2 + 1
-      lm2 = ( l + 1 )**2
+    do L = 0,la
+      lm1 = L**2 + 1
+      lm2 = ( L + 1 )**2
       do isp = 1,nspinp
         do lm = lm1,lm2
-          Statedens_l(l,isp) = Statedens_l(l,isp) + Statedens(lm,isp,lm,isp,iapr,ie_computer)
+          Statedens_l(L,isp) = Statedens_l(L,isp) + Statedens(lm,isp,lm,isp,iapr,ie_computer)
         end do
       end do
     end do
@@ -663,13 +663,13 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
       end do
     end do
 
-    do l = 0,ll
-      lm1 = l**2 + 1
-      lm2 = ( l + 1 )**2
+    do L = 0,ll
+      lm1 = L**2 + 1
+      lm2 = ( L + 1 )**2
       do isp = 1,nspinp
-        Int_Statedens_l(l,isp,iapr) = sum(Int_Statedens(lm1:lm2,isp,iapr))
+        Int_Statedens_l(L,isp,iapr) = sum(Int_Statedens(lm1:lm2,isp,iapr))
       end do
-      if( nspinp == 1 ) Int_Statedens_l(l,1,iapr) = 2 * Int_Statedens_l(l,1,iapr)
+      if( nspinp == 1 ) Int_Statedens_l(L,1,iapr) = 2 * Int_Statedens_l(L,1,iapr)
     end do
 
     Int_statedens_t(:,iapr) = 0._db
@@ -680,25 +680,25 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
     if( icheck > 1 ) then
       write(3,130) Atom_kind, iapr
       lm = 0
-      do l = 0,ll
-        do m = -l,l
+      do L = 0,ll
+        do m = -L,L
           lm = lm + 1
           do isp = 1,nspinp
-            write(3,140) l, m, isp, Statedens(lm,isp,lm,isp,iapr,ie_computer), Int_Statedens(lm,isp,iapr)
+            write(3,140) L, m, isp, Statedens(lm,isp,lm,isp,iapr,ie_computer), Int_Statedens(lm,isp,iapr)
           end do
         end do
       end do
-      write(3,'(/A)') '    l   sum_m(Integral)'
-      do l = 0,la
-        write(3,150) l, Int_Statedens_l(l,1:nspinp,iapr)
+      write(3,'(/A)') '    L   sum_m(Integral)'
+      do L = 0,la
+        write(3,150) L, Int_Statedens_l(L,1:nspinp,iapr)
       end do
       write(3,160) Int_Statedens_t(1:nspinp,iapr)
     endif
 
     if( ia == iaabsi .and. Density .and. icheck > 1 ) then
-      call write_stdens(.false.,.false.,Energ(ie),i_self,iapr,ie_computer,la,Int_Statedens,Int_Statedens_t, &
-           Int_Statedens_l,lla_state,lla2_state,mpinodes,n_atom_0,n_atom_ind,nomfich_s,nspinp,Open_file,Statedens, &
-           Statedens_l)
+      call Write_stdens(.false.,.false.,Ylm_comp,Energ(ie),.false.,i_self,iapr,ie_computer,la, &
+           Int_Statedens_l,lla_state,lla2_state,mpinodes,n_atom_0,n_atom_ind,nomfich_s,nspin,nspinp, &
+           Open_file,Statedens,Statedens_l,Ylm_comp)
     endif
 
 ! Occupation matrix for Hubbard
@@ -755,14 +755,14 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
 
     if( .not. This_bulk_atom_done ) then
     
-      l = min( l_level_val(Z), lmaxat(ipr) )
+      L = min( l_level_val(Z), lmaxat(ipr) )
       do isp = 1,nspin
         if( SCF_mag_fix .and. ( ( isp == ispin_maj(iapr) .and. Fermi_maj ) .or. &
             ( isp /= ispin_maj(iapr) .and. Fermi_min ) ) ) cycle
         if( nspinp /= nspin ) then
-          pop_orb_val(iapr,isp) = sum( Int_statedens_l(l,:,iapr) )
+          pop_orb_val(iapr,isp) = sum( Int_statedens_l(L,:,iapr) )
         else
-          pop_orb_val(iapr,isp) = Int_statedens_l(l,isp,iapr)
+          pop_orb_val(iapr,isp) = Int_statedens_l(L,isp,iapr)
         endif
       end do
 
@@ -782,16 +782,18 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
         end if
       endif
 
-      if( nspinp == 1 ) then
+      if( nspin == 1 .and. .not. nspinp == 2 ) then
         ds = 2 * de
       else
         ds = de
       endif
-      do isp = 1,nspin
+   ! drho is in "solution" basis, here we make the approximation that it is like "spin" basis even if it is a bad quantum number
+      do isp = 1,nspinp
+        iss = min(isp,nspin)
         if( SCF_mag_fix .and. .not. Fermi_gen ) rho_self_t(1:nr,:,iapr) = rho_self_t(1:nr,:,iapr) &
                       + ds * drho_self(1:nr,:,isp,iapr,ie_computer)
         if( ( isp == ispin_maj(iapr) .and. Fermi_maj ) .or. ( isp /= ispin_maj(iapr) .and. Fermi_min ) ) cycle
-        rho_self(1:nr,:,isp,iapr) = rho_self(1:nr,:,isp,iapr) + ds * drho_self(1:nr,:,isp,iapr,ie_computer)
+        rho_self(1:nr,:,iss,iapr) = rho_self(1:nr,:,iss,iapr) + ds * drho_self(1:nr,:,isp,iapr,ie_computer)
       end do
 
     endif
@@ -828,14 +830,14 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
 
 ! Interpolation:
 ! E_f = E_i*(ch_ref - ch_i-1)/(ch_i-ch_i-1) + E_i-1*(ch_i - ch_ref)/(ch_i-ch_i-1)
-! ch_s, Enragr = nombre total d'electrons et l'Energie de l'agregat a l'iteration precedente
+! ch_s, Enragr = nombre total d'electrons et L'Energie de L'agregat a L'iteration precedente
 ! ch, enr = nombre total d'electrons et Energie courrantes
 ! Chg_reference = la charge qu'on va comparer avec la reference
 
 ! Fermi level evaluation
 
   Z = numat( itypei(iaabsi) )
-  l = l_level_val(Z)
+  L = l_level_val(Z)
   Charge = 0._db
   Charge_maj = 0._db
   Charge_min = 0._db
@@ -884,6 +886,7 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
 
   if( icheck > 1 ) then
     do iapr = n_atom_0_self,n_atom_ind_self
+      if( Energ(ie) < E_starta(iapr) ) cycle
       if( Full_atom) then
         it = itypei(iapr)
       else
@@ -893,19 +896,19 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
       endif
       if( .not. hubb(it) ) cycle
       Z = numat(it)
-      l = l_hubbard( Z )
+      L = l_hubbard( Z )
       if( nspinp == 1 ) then
-        write(3,266) Atom_kind, iapr, Z, ( m2, m2 = -l,l ) 
+        write(3,266) Atom_kind, iapr, Z, ( m2, m2 = -L,L ) 
       else
-        write(3,267) Atom_kind, iapr, Z, ( ( m2, isp2, m2 = -l,l ), isp2 = 1,nspinp )
+        write(3,267) Atom_kind, iapr, Z, ( ( m2, isp2, m2 = -L,L ), isp2 = 1,nspinp )
       endif
       do isp1 = 1,nspinp
-        do m1 = -l,l
+        do m1 = -L,L
           if( nspinp == 1 ) then
-            write(3,268) m1, (( occ_hubb(m1,m2,isp1,isp2,iapr), occ_hubb_i(m1,m2,isp1,isp2,iapr), m2 = -l,l ), &
+            write(3,268) m1, (( occ_hubb(m1,m2,isp1,isp2,iapr), occ_hubb_i(m1,m2,isp1,isp2,iapr), m2 = -L,L ), &
                                     isp2 = 1,nspinp )
           else
-            write(3,269) m1, isp1, (( occ_hubb(m1,m2,isp1,isp2,iapr), occ_hubb_i(m1,m2,isp1,isp2,iapr), m2 = -l,l ), &
+            write(3,269) m1, isp1, (( occ_hubb(m1,m2,isp1,isp2,iapr), occ_hubb_i(m1,m2,isp1,isp2,iapr), m2 = -L,L ), &
                                       isp2 = 1,nspinp )
           endif 
         end do
@@ -1007,7 +1010,7 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
           cycle
         case(2)
           E_Fermi = En_f
- ! On demand or when "calculation and SCF" excited and l = 2 or 3.
+ ! On demand or when "calculation and SCF" excited and L = 2 or 3.
           if( Open_val_exc .and. scf_elecabs ) then
             E_cut = E_Open_val_exc
           else
@@ -1085,13 +1088,13 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
             if( .not. Proto_calculated(ipr) ) cycle
           endif
           Z = numat( itypepr(ipr) )
-          l = min( l_level_val(Z), lmaxat(ipr) )
+          L = min( l_level_val(Z), lmaxat(ipr) )
           if( nspin == 2 ) then
             write(iprint,310) iapr, Z, Energ_self(iapr)*rydb, sum(chargat_self(iapr,:)), &
-                 chargat_self(iapr,2) - chargat_self(iapr,1), sum(pop_orb_val(iapr,:)), l, Rmtsd(ipr)*bohr
+                 chargat_self(iapr,2) - chargat_self(iapr,1), sum(pop_orb_val(iapr,:)), L, Rmtsd(ipr)*bohr
           else
             write(iprint,320) iapr, Z, Energ_self(iapr)*rydb, sum(chargat_self(iapr,:)), sum(pop_orb_val(iapr,:)), &
-                l, Rmtsd(ipr)*bohr
+                L, Rmtsd(ipr)*bohr
           endif
         end do
       end do
@@ -1130,11 +1133,11 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
         it = itypepr(ipr)
         Z = numat( it )
         if( .not. hubb(it) ) cycle
-        l = l_hubbard( Z )
+        L = l_hubbard( Z )
 
         Pop = 0._db
         do isp = 1,nspinp
-          do m = -l,l
+          do m = -L,L
             Pop = Pop + occ_hubb(m,m,isp,isp,iapr)
           end do
         end do
@@ -1145,17 +1148,17 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
         endif
         if( icheck > 0 ) then
           if( nspinp == 1 ) then
-            write(3,266) Atom_kind, iapr, Z, ( m2, m2 = -l,l ) 
+            write(3,266) Atom_kind, iapr, Z, ( m2, m2 = -L,L ) 
           else
-            write(3,267) Atom_kind, iapr, Z, ( ( m2, isp2, m2 = -l,l ), isp2 = 1,nspinp )
+            write(3,267) Atom_kind, iapr, Z, ( ( m2, isp2, m2 = -L,L ), isp2 = 1,nspinp )
           endif
           do isp1 = 1,nspinp
-            do m1 = -l,l
+            do m1 = -L,L
               if( nspinp == 1 ) then
-                write(3,268) m1, (( occ_hubb(m1,m2,isp1,isp2,iapr), occ_hubb_i(m1,m2,isp1,isp2,iapr), m2 = -l,l ), &
+                write(3,268) m1, (( occ_hubb(m1,m2,isp1,isp2,iapr), occ_hubb_i(m1,m2,isp1,isp2,iapr), m2 = -L,L ), &
                                         isp2 = 1,nspinp )
               else
-                write(3,269) m1, isp1, (( occ_hubb(m1,m2,isp1,isp2,iapr), occ_hubb_i(m1,m2,isp1,isp2,iapr), m2 = -l,l ), &
+                write(3,269) m1, isp1, (( occ_hubb(m1,m2,isp1,isp2,iapr), occ_hubb_i(m1,m2,isp1,isp2,iapr), m2 = -L,L ), &
                                           isp2 = 1,nspinp )
               endif 
             end do
@@ -1165,7 +1168,7 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
 
         occ_hubb(:,:,:,:,iapr) = - occ_hubb(:,:,:,:,iapr)
         do isp = 1,nspinp
-          do m = -l,l
+          do m = -L,L
             occ_hubb(m,m,isp,isp,iapr) = occ_hubb(m,m,isp,isp,iapr) + 0.5_db
           end do
         end do
@@ -1174,24 +1177,24 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
 
         if( icheck > 0 ) then
           if( nspinp == 1 ) then
-            write(3,360) iapr, Z, V_hubbard(it) * Rydb, ( m2, m2 = -l,l )
+            write(3,360) iapr, Z, V_hubbard(it) * Rydb, ( m2, m2 = -L,L )
           else
-            write(3,361) iapr, Z, V_hubbard(it) * Rydb, ( ( m2, isp2, m2 = -l,l ), isp2 = 1,nspin )
+            write(3,361) iapr, Z, V_hubbard(it) * Rydb, ( ( m2, isp2, m2 = -L,L ), isp2 = 1,nspin )
           endif
           do isp1 = 1,nspinp
-            do m1 = -l,l
+            do m1 = -L,L
               if( nspinp == 1 ) then
-                write(3,268) m1, (( V_hubb(m1,m2,isp1,isp2,iapr) * Rydb, m2 = -l,l ), isp2 = 1,nspinp )
+                write(3,268) m1, (( V_hubb(m1,m2,isp1,isp2,iapr) * Rydb, m2 = -L,L ), isp2 = 1,nspinp )
               else
-                write(3,269) m1, isp1, (( V_hubb(m1,m2,isp1,isp2,iapr) * Rydb, m2 = -l,l ), isp2 = 1,nspinp ) 
+                write(3,269) m1, isp1, (( V_hubb(m1,m2,isp1,isp2,iapr) * Rydb, m2 = -L,L ), isp2 = 1,nspinp ) 
               endif
             end do
           end do
         endif
 
-        boucle_m: do m1 = -l,l
+        boucle_m: do m1 = -L,L
           do isp1 = 1,nspinp
-            do m2 = -l,l
+            do m2 = -L,L
               do isp2 = 1,nspinp
                 if( m1 == m2 .and. isp1 == isp2 ) cycle
                 if( abs( V_hubb(m1,m2,isp1,isp2,iapr) ) < eps10 ) cycle
@@ -1211,7 +1214,7 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
   return
   110 format(/' ---- Search_Fermi ----',100('-'))
   120 format(/' Energy =',f10.3,' eV')
-  130 format(/'  l  m is  Density of states   Integral   ',a3,' =',i3)
+  130 format(/'  L  m is  Density of states   Integral   ',a3,' =',i3)
   140 format(3i3,3f15.7)
   150 format(i5,2f15.7)
   160 format(' Total =',f12.7,f15.7)
@@ -1675,21 +1678,21 @@ end
 
 ! Transformation base reelle vers base complexe
 
-subroutine Trans_rc(l,V)
+subroutine Trans_rc(L,V)
 
   use declarations
   implicit none
 
-  integer:: l, m1, m2
+  integer:: L, m1, m2
 
-  complex(kind=db), dimension(-l:l,-l:l):: V, W
+  complex(kind=db), dimension(-L:L,-L:L):: V, W
   complex(kind=db):: pm1_1, pm1_2, pm2_1, pm2_2
 
   real(kind=db):: r2
 
   r2 = 1 / sqrt(2._db)
 
-  do m1 = -l,l
+  do m1 = -L,L
     if( m1 < 0 ) then
       pm1_1 = cmplx( 0._db, -r2 * (-1)**m1, db )
       pm1_2 = cmplx( r2 * (-1)**m1, 0._db, db )
@@ -1700,7 +1703,7 @@ subroutine Trans_rc(l,V)
       pm1_1 = cmplx( r2, 0._db, db )
       pm1_2 = cmplx( 0._db, r2, db )
     endif
-    do m2 = -l,l
+    do m2 = -L,L
       if( m2 < 0 ) then
         pm2_1 = cmplx( 0._db, -r2 * (-1)**m2, db )
         pm2_2 = cmplx( r2 * (-1)**m2, 0._db, db )
@@ -1724,33 +1727,55 @@ end
 
 !***********************************************************************
 
-! Ecriture de la densite d'etat.
+! Writing of the DOS
 
-subroutine write_stdens(Abs_exc,Cal_xanes,Energ,i_self,iapr,ie_computer,la,Int_statedens,Int_statedens_t, &
-           Int_statedens_l,lla_state,lla2_state,mpinodes,n_atom_0,n_atom_ind,nomfich_s,nspinp,Open_file,Statedens, &
-           statedens_l)
+subroutine Write_stdens(Abs_exc,Cal_xanes,Density_comp,Energ,Harm_cubic,i_self,iapr,ie_computer,la, &
+           Int_statedens_l,lla_state,lla2_state,mpinodes,n_atom_0,n_atom_ind,nomfich_s,nspin,nspinp, &
+           Open_file,Statedens,statedens_l,Ylm_comp)
 
   use declarations
   implicit none
 
-  integer:: i, iapr, i_self, ie_computer, isp, l, la, lla_state, lla2_state, long, m, mpinodes, n_atom_0, &
-         n_atom_ind, nspinp
+  integer:: iapr, i_self, ie_computer, index, isp, L, la, lla_state, lla2_state, lm, long, length, m, mpinodes, n_atom_0, &
+         n_atom_ind, nspin, nspinp
 
+  character(len=1), dimension(0:4):: Orb_L
+  character(len=9), dimension(16):: Orb_Lm, Orb_Lm_D, Orb_Lm_K, Orb_Lm_Z
   character(len=13):: mot13
-  character(len=13), dimension(nspinp):: nomtIn
-  character(len=13), dimension(0:lla_state,nspinp):: nomln, nomlIn
-  character(len=13), dimension(0:lla_state,-lla_state:lla_state,nspinp):: nomn, nomIn
+  character(len=13), dimension((lla2_state+2*lla_state)*nspinp+2):: Col_name
   character(len=Length_name) nomfich_s, nomficht
 
-  logical:: Abs_exc, Cal_xanes, Open_file
+  logical:: Abs_exc, Cal_xanes, Density_comp, Harm_cubic, Open_file, Spin_out, Ylm_comp
 
-  real(kind=db):: Energ
-  real(kind=db), dimension(lla2_state,nspinp,n_atom_0:n_atom_ind):: Int_statedens
+  real(kind=db):: Energ, Int_rho, Rho
   real(kind=db), dimension(lla2_state,nspinp,lla2_state,nspinp,n_atom_0:n_atom_ind,0:mpinodes-1):: Statedens
   real(kind=db), dimension(0:lla_state,nspinp,n_atom_0:n_atom_ind):: Int_statedens_l
   real(kind=db), dimension(0:lla_state,nspinp):: statedens_l
-  real(kind=db), dimension(nspinp,n_atom_0:n_atom_ind):: Int_statedens_t
 
+  data Orb_L/'s','p','d','f','g'/
+  data Orb_Lm_K/'s','px','py','pz','dx2-y2','dz2','dyz','dxz','dxy','fxyz','fx3','fy3','fz3','fx(y2-z2)','fy(z2-x2)','fz(x2-y2)'/
+  data Orb_Lm_Z/'s','py','pz','px','dxy','dyz','dz2','dxz','dx2-y2','(3,-3)','fxyz','(3,-1)','fz3','(3,1)','fz(x2-y2)','(3,3)'/
+  data Orb_Lm_D/'(0,0)','(1,-1)','(1,0)','(1,1)','(2,-2)','(2,-1)','(2,0)','(2,1)','(2,2)','(3,-3)','(3,-2)','(3,-1)','(3,0)', &
+                '(3,1)','(3,2)','(3,3)'/
+
+  if( Cal_xanes ) then
+    if( Density_comp ) then
+      Orb_Lm(:) = Orb_Lm_D(:)
+    elseif( Harm_cubic ) then
+      Orb_Lm(:) = Orb_Lm_K(:)
+    else
+      Orb_Lm(:) = Orb_Lm_Z(:)
+    endif
+  else
+    if( Ylm_comp ) then
+      Orb_Lm(:) = Orb_Lm_D(:)
+    else
+      Orb_Lm(:) = Orb_Lm_Z(:)
+    endif
+  endif
+
+  Spin_out = nspin == 2 .or. ( nspinp == 2 .and. ( Density_comp .and. Cal_xanes ) .or. .not. Cal_xanes )
+    
   nomficht = nomfich_s
   long = len_trim(nomfich_s)
   nomficht(long+1:long+3) = '_sd'
@@ -1769,50 +1794,72 @@ subroutine write_stdens(Abs_exc,Cal_xanes,Energ,i_self,iapr,ie_computer,la,Int_s
 
     open(4, file = nomficht )
 
-    if( nspinp == 1 ) then
-      nomtIn(1) = '     Int_t   '
-    else
-      nomtIn(1) = '   Int_t(u)  '
-      nomtIn(nspinp) = '   Int_t(d)  '
-    endif
-    do l = 0,la
-      mot13 = 'n_l('
-      mot13(5:5) = achar(l+48)
-      if( nspinp == 1 ) then
-        mot13(6:6) = ')'
-        nomln(l,1) = '   ' // mot13(1:6)
-        nomlIn(l,1) = '  Int' // mot13(1:6)
+    index = 0
+    lm = 0    
+    do L = 0,la
+      if( .not. ( Spin_out .and. L == 0 ) ) then
+        do m = -L,L
+          mot13 = ' '
+          lm = lm + 1
+          index = index + 1
+          mot13 = Orb_lm(lm)
+          if( Spin_out ) then
+            length = len_trim(mot13)
+            mot13(length+1:length+3) = '_up'
+            call Center_word(mot13,13) 
+            Col_name(index) = mot13
+    
+            index = index + 1
+            mot13 = adjustl(mot13)
+            mot13(length+2:length+3) = 'dn'
+            call Center_word(mot13,13) 
+            Col_name(index) = mot13
+          else
+            call Center_word(mot13,13) 
+            Col_name(index) = mot13
+          endif
+        end do
       else
-        mot13(6:8) = ',u)'
-        nomln(l,1) = '   ' // mot13(1:8)
-        nomlIn(l,1) = '  Int' // mot13(1:8)
-        mot13(6:8) = ',d)'
-        nomln(l,nspinp) = '   ' // mot13(1:8)
-        nomlIn(l,nspinp) = '  Int' // mot13(1:8)
+        lm = lm + 1
       endif
-      do m = -l,l
-        mot13 = 'n('
-        call ad_number(l,mot13,13)
-        mot13(4:4) = ','
-        call ad_number(m,mot13,13)
-        i = len_trim(mot13)
-        if( nspinp == 1 ) then
-          mot13(i+1:i+1) = ')'
-          nomn(l,m,1) = '    ' // mot13(1:7)
-          nomIn(l,m,1) = '   Int' // mot13(1:7)
-        else
-          mot13(i+1:i+3) = ',u)'
-          nomn(l,m,1) = '   ' // mot13(1:9)
-          nomIn(l,m,1) = ' Int' // mot13(1:9)
-          mot13(i+2:i+2) = 'd'
-          nomn(l,m,nspinp) = '   ' // mot13(1:9)
-          nomIn(l,m,nspinp) = ' Int' // mot13(1:9)
-        endif
-      end do
+      if( L /= 0 .or. Spin_out ) then
+        mot13 = Orb_L(L)
+        if( Spin_out ) mot13(2:4) = '_up'
+        index = index + 1
+        call Center_word(mot13,13) 
+        Col_name(index) = mot13
+      endif
+      mot13 = 'Int( )'
+      mot13(5:5) = Orb_L(L)
+      if( Spin_out ) mot13(7:9) = '_up'
+      index = index + 1
+      call Center_word(mot13,13) 
+      Col_name(index) = mot13
+      if( Spin_out ) then
+        mot13 = Orb_L(L)
+        mot13(2:4) = '_dn'
+        index = index + 1
+        call Center_word(mot13,13) 
+        Col_name(index) = mot13
+        mot13 = 'Int( )'
+        mot13(5:5) = Orb_L(L)
+        mot13(7:9) = '_dn'
+        index = index + 1
+        call Center_word(mot13,13) 
+        Col_name(index) = mot13
+      endif
     end do
+    mot13 = 'total'
+    index = index + 1
+    call Center_word(mot13,13) 
+    Col_name(index) = mot13
 
-    write(4,110) (nomtIn(isp), isp = 1,nspinp), ( ( ( nomn(l,m,isp), nomIn(l,m,isp), isp = 1,nspinp), m = -l,l ), &
-      ( nomln(l,isp), nomlIn(l,isp), isp = 1,nspinp ), l = 0,la )
+    mot13 = 'Int(total)'
+    index = index + 1
+    call Center_word(mot13,13) 
+    Col_name(index) = mot13
+   
+    write(4,110) Col_name(1:index)
 
   else
 
@@ -1820,9 +1867,19 @@ subroutine write_stdens(Abs_exc,Cal_xanes,Energ,i_self,iapr,ie_computer,la,Int_s
 
   endif
 
-  write(4,120) Energ*rydb,(Int_statedens_t(isp,iapr),isp = 1,nspinp), &
-    (((Statedens(l**2+l+1+m,isp,l**2+l+1+m,isp,iapr,ie_computer), Int_statedens(l**2+l+1+m,isp,iapr), isp = 1,nspinp), &
-    m = -l,l ),(Statedens_l(l,isp), Int_statedens_l(l,isp,iapr),isp = 1,nspinp ), l = 0,la )
+  Rho = sum( Statedens_l(0:la,:) )
+  Int_Rho = sum( Int_statedens_l(0:la,:,iapr) )
+
+  if( Spin_out ) then
+     write(4,120) Energ*rydb, ( Statedens_l(0,isp), Int_statedens_l(0,isp,iapr), isp = 1,nspinp ), &
+      ((( Statedens(L**2+L+1+m,isp,L**2+L+1+m,isp,iapr,ie_computer), isp = 1,nspinp), m = -L,L ), &
+        ( Statedens_l(L,isp), Int_statedens_l(L,isp,iapr), isp = 1,nspinp ), L = 1,la ), Rho, Int_rho
+  else   
+     write(4,120) Energ*rydb, sum( Statedens_l(0,:) ), sum( Int_statedens_l(0,:,iapr) ), &
+      (( 2*Statedens(L**2+L+1+m,1,L**2+L+1+m,1,iapr,ie_computer), m = -L,L ), &
+         sum( Statedens_l(L,:) ), sum( Int_statedens_l(L,:,iapr) ), L = 1,la ), Rho, Int_rho
+  endif
+
   close(4)
 
   return
