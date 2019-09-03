@@ -197,7 +197,8 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
     endif
   endif
 
-  ! Les Taull_tdd sont les amplitudes "efficaces". On multiplie par "i" pour que que la partie imaginaire soit l'absorption
+! Taull_tdd are "efficient" scattering amplitudes
+! One multiplies by "i" to have the imaginary part the absorption soit l'absorption
   Taull_tdd(:,:,:,:,:) = img * Taull_tdd(:,:,:,:,:)
 
   allocate( V_hubb_t(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp) )
@@ -217,17 +218,17 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
   allocate( V0bdc(nspin,n_V) )
 
   allocate( Decal_initl(n_Ec) )
-! Epsii_moy est la moyenne pour le 2eme seuil (si 2 seuils) par exemple L3
+! Epsii_moy is the average for the second edge (when 2 edges) for example L3 in L23
   Decal_initl(:) = Epsii_a(:) - Epsii_moy
   Epsii(1) = Epsii_moy
 
-! Elaboration de la grille etendue pour la Tddft
+! Extended energy grid for TDDFT
   call dim_grille_tddft(Energ_s,Delta_Eseuil,Estart,nbseuil,nenerg,nenerg_s)
   allocate( Energ(nenerg) )
   allocate( Eimag(nenerg) )
   call grille_tddft(Energ,Energ_s,Delta_Eseuil,Estart,icheck(22),nbseuil,nenerg,nenerg_s)
 
-! On garde l'energie imaginaire nulle
+! We keep imaginary energy zero
   Eimag(:) = 0._db
   Solsing = .false.
 
@@ -290,7 +291,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
 
   nge = ( nenerg - 1 ) / mpinodes + 1
 
-! Boucle sur l'energie des photons ---------------------------------------------------------------------------------------
+! Loop over photon energy ---------------------------------------------------------------------------------------
 
   First_E = .true.
 
@@ -567,7 +568,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
       Time_rout(13) = Time_rout(13) + Time_loc(8) - Time_loc(7) ! Coabs
     endif
 
-  end do boucle_energ   ! Fin de la boucle sur l'energie.
+  end do boucle_energ   ! End of loop over energy
 
   deallocate( Decal_initl )
   deallocate( fppn )
@@ -594,13 +595,13 @@ subroutine dim_grille_tddft(Energ_s,Delta_Eseuil,Estart,nbseuil,nenerg,nenerg_s)
   use declarations
   implicit none
 
+  integer:: ie, je0
+
   integer,intent(in):: nbseuil, nenerg_s
   integer,intent(out):: nenerg
 
-  real(kind=db),intent(in):: Delta_Eseuil, Estart
-  real(kind=db),dimension(nenerg_s),intent(in):: Energ_s
-
-  integer ie, je0
+  real(kind=db), intent(in):: Delta_Eseuil, Estart
+  real(kind=db), dimension(nenerg_s), intent(in):: Energ_s
 
   real(kind=db):: Pasdeb
 
@@ -615,9 +616,15 @@ subroutine dim_grille_tddft(Energ_s,Delta_Eseuil,Estart,nbseuil,nenerg,nenerg_s)
       if( Energ_s(ie) - Energ_s(1) > Delta_Eseuil - eps10 ) exit
     end do
     je0 = ie - 1
-    do ie = 1,nenerg_s
-      if(  Delta_Eseuil + Energ_s(ie) > Energ_s(nenerg_s) ) exit
-    end do
+    if( Delta_Eseuil + Energ_s(1) > Energ_s(nenerg_s) ) then
+! no overlap between both ranges, one takes the edge range union
+      ie = nenerg_s
+    else
+! one keeps the intersection
+      do ie = 1,nenerg_s
+        if(  Delta_Eseuil + Energ_s(ie) > Energ_s(nenerg_s) ) exit
+      end do
+    endif
     nenerg = je0 + ie
 
   end if
@@ -675,7 +682,8 @@ subroutine grille_tddft(Energ,Energ_s,Delta_Eseuil,Estart,icheck, nbseuil,nenerg
     je0 = n + ie - 1
     do ie = 1,nenerg_s
       Energ( je0 + ie ) = Delta_Eseuil + Energ_s(ie)
-      if(  Delta_Eseuil + Energ_s(ie) > Energ_s(nenerg_s) ) exit
+      if( Delta_Eseuil + Energ_s(1) > Energ_s(nenerg_s) ) cycle
+      if( Delta_Eseuil + Energ_s(ie) > Energ_s(nenerg_s) ) exit
     end do
   end if
 

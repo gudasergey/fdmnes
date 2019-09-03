@@ -3294,102 +3294,103 @@ subroutine Radial_matrix_sd(Diagonale,drho,Full_potential,Harm_cubic,icheck,L,lm
         n_rk1 = 2
       endif
 
-      do i_k1 = 1,n_rk1
+      do isp1 = 1,nspinp
+      
+        n_k2 = 0
+        do L2 = 0,lmax
+          if( .not. Full_potential .and. L /= L2 ) cycle
+          do m_k2 = -L2,L2
+            n_k2 = n_k2 + 1
+            lm2 = lm0 + n_k2
 
-        call Trans_TtoK(c_cubic1,Harm_cubic,i_k1,L1,m_k1,m_r1)
+            if( .not. Harm_cubic .or. L2 /= 3 .or. ( m_k2 == -3 .or. m_k2 == 0 .or. m_k2 == 3 ) ) then
+              n_rk2 = 1
+            else
+              n_rk2 = 2
+            endif
+        
+            do isp2 = 1,nspinp
+        
+              do i_k1 = 1,n_rk1
 
-        do isg1 = -1,1,2
+                call Trans_TtoK(c_cubic1,Harm_cubic,i_k1,L1,m_k1,m_r1)
+
+                do isg1 = -1,1,2
  
-          if( ( .not. Comp_to_real .or. m_r1 == 0 ) .and. isg1 == -1 ) cycle
+                  if( ( .not. Comp_to_real .or. m_r1 == 0 ) .and. isg1 == -1 ) cycle
        
-          call Trans_CtoR(c_harm1,isg1,m1,m_r1,Comp_to_real)
+                  call Trans_CtoR(c_harm1,isg1,m1,m_r1,Comp_to_real)
 
-          np1 = 0
-          do Lp1 = 0,lmax
-            if( .not. Full_potential .and. Lp1 /= L1 ) cycle
+                  np1 = 0
+                  do Lp1 = 0,lmax
+                    if( .not. Full_potential .and. Lp1 /= L1 ) cycle
 
-            do mp1 = -Lp1, Lp1
-              if( nlm2 == 1 .and. mp1 /= m1 ) cycle
-              if( nlm2 == 1 ) then
-                np1 = 1
-              else
-                np1 = np1 + 1
-              endif
-
-              do iso1 = 1,nspino
-                do isp1 = 1,nspinp
-
-                  if( Spinorbite ) then
-                    is1 = iso1
-                  else
-                    is1 = isp1
-                  endif
-                  if( Diagonale ) then
-                    iss1 = isp1
-                  else
-                    iss1 = isp1
-                  endif
-
-                  if( Spinorbite .and. Diagonale ) then
-                    mv1 = m1 + iso1 - isp1
-                    if( mv1 > L1 .or. mv1 < - L1 ) cycle
-                  else
-                    mv1 = m1
-                  endif                  
-
-                  if( Full_potential ) then
-                    n1 = lma1
-                  elseif( nlm1 == 1 ) then
-                    n1 = 1
-                  else
-                    n1 = L1 + 1 + m1 
-                  endif
-
-                  lma1 = L1**2 + L1 + 1 + mv1
-
-                  n_k2 = 0
-                  do L2 = 0,lmax
-                    if( .not. Full_potential .and. L /= L2 ) cycle
-                    do m_k2 = -L2,L2
-                      n_k2 = n_k2 + 1
-                      lm2 = lm0 + n_k2
-        
-                      if( .not. Harm_cubic .or. L2 /= 3 .or. ( m_k2 == -3 .or. m_k2 == 0 .or. m_k2 == 3 ) ) then
-                        n_rk2 = 1
+                    do mp1 = -Lp1, Lp1
+                      if( nlm2 == 1 .and. mp1 /= m1 ) cycle
+                      if( nlm2 == 1 ) then
+                        np1 = 1
                       else
-                        n_rk2 = 2
+                        np1 = np1 + 1
                       endif
+
+                      do iso1 = 1,nspino
+  
+                        if( Spinorbite ) then
+                          is1 = iso1
+                        else
+                          is1 = isp1
+                        endif
+                        if( Diagonale ) then
+                          iss1 = isp1
+                        else
+                          iss1 = isp1
+                        endif
+
+                        if( Spinorbite .and. Diagonale ) then
+                          mv1 = m1 + iso1 - isp1
+                          if( mv1 > L1 .or. mv1 < - L1 ) cycle
+                        else
+                          mv1 = m1
+                        endif                  
+
+                        if( Full_potential ) then
+                          n1 = lma1
+                        elseif( nlm1 == 1 ) then
+                          n1 = 1
+                        else
+                          n1 = L1 + 1 + m1 
+                        endif
+
+                        lma1 = L1**2 + L1 + 1 + mv1
+
+                        do i_k2 = 1,n_rk2
         
-                      do i_k2 = 1,n_rk2
+                          call Trans_TtoK(c_cubic2,Harm_cubic,i_k2,L2,m_k2,m_r2)
         
-                        call Trans_TtoK(c_cubic2,Harm_cubic,i_k2,L2,m_k2,m_r2)
+                          do isg2 = -1,1,2
         
-                        do isg2 = -1,1,2
-        
-                          if( ( .not. Comp_to_real .or. m_r2 == 0 ) .and. isg2 == -1 ) cycle
+                            if( ( .not. Comp_to_real .or. m_r2 == 0 ) .and. isg2 == -1 ) cycle
                    
-                          call Trans_CtoR(c_harm2,isg2,m2,m_r2,Comp_to_real)
+                            call Trans_CtoR(c_harm2,isg2,m2,m_r2,Comp_to_real)
         
-                          c_harm = c_harm1 * c_cubic1 * conjg( c_harm2 * c_cubic2 )
+                            c_harm = c_harm1 * c_cubic1 * conjg( c_harm2 * c_cubic2 )
         
-                          np2 = 0
-                          do Lp2 = 0,lmax
-                            if( .not. Full_potential .and. Lp2 /= L2 ) cycle
-                            if( .not. Full_potential .and. Lp2 /= Lp1 ) cycle
+                            np2 = 0
+                            do Lp2 = 0,lmax
+                              if( .not. Full_potential .and. Lp2 /= L2 ) cycle
+                              if( .not. Full_potential .and. Lp2 /= Lp1 ) cycle
         
-                            do mp2 = -Lp2,Lp2
-                              if( nlm2 == 1 .and. mp2 /= m2 ) cycle
-                              if( .not. Full_potential .and. mp2 /= mp1 ) cycle
-                              if( nlm2 == 1 ) then
-                                np2 = 1
-                              elseif( .not. Full_potential ) then
-                                np2 = np1
-                              else
-                                np2 = np2 + 1
-                              endif
+                              do mp2 = -Lp2,Lp2
+                                if( nlm2 == 1 .and. mp2 /= m2 ) cycle
+                                if( nlm2 == 1 ) then
+                                  np2 = 1
+                                elseif( .not. Full_potential ) then
+                                  np2 = np1
+                                else
+                                  np2 = np2 + 1
+                                endif
         
-                              do iso2 = 1,nspino
-                                do isp2 = 1,nspinp
+                                do iso2 = 1,nspino
                                   if( isp1 /= isp2 ) cycle ! in a scalar product there is no spin-crossing (but there is solution crossing)
                                   if( .not. Spinorbite .and. isp1 /= isp2 ) cycle
  
@@ -3454,12 +3455,14 @@ subroutine Radial_matrix_sd(Diagonale,drho,Full_potential,Harm_cubic,icheck,L,lm
 
                                   lm = 0
                                   boucle_L3: do L3 = 0,lmax
-                                    if( nlm1 == 1 .and. L3 /= 0 ) cycle
+                                    if( ( nlm1 == 1 .or. Comp_to_real ) .and. L3 /= 0 ) cycle
                                     if( .not. Full_potential .and. L3 /= L1 .and. L3 /= 0 ) cycle
 
                                     do m3 = -L3,L3
                                       lm = lm + 1
-                                      if( Ylm_comp ) then
+                                      if( Comp_to_real ) then
+                                        g = 1._db
+                                      elseif( Ylm_comp ) then
                                         g = sqrt_4pi * gauntcp(L1,m1,L2,m2,L3,m3)
                                       else
                                         g = sqrt_4pi * Gaunt_r(L1,m1,L2,m2,L3,m3)
@@ -3506,21 +3509,23 @@ subroutine Radial_matrix_sd(Diagonale,drho,Full_potential,Harm_cubic,icheck,L,lm
                                     endif
                                   endif
         
-                                end do  ! boucle isp2
-                              end do  ! boucle iso2
-                            end do  ! boucle mp2
-                          end do  ! boucle Lp2
-                        end do  ! boucle isg2
-                      end do  ! boucle ik_2
-                    end do  ! boucle m_k2
-                  end do  ! boucle L2
+                                end do  ! boucle iso2
+                              end do  ! boucle mp2
+                            end do  ! boucle Lp2
+                          end do  ! boucle isg2
+                        end do  ! boucle ik_2
 
-                end do  ! boucle i_k1
-              end do  ! boucle isp1
-            end do  ! boucle iso1
-          end do  ! boucle mp1
-        end do  ! boucle isg1
-      end do  ! boucle i_k1
+                      end do  ! boucle i_k1
+                    end do  ! boucle iso1
+                  end do  ! boucle mp1
+                end do  ! boucle isg1
+              end do  ! boucle i_k1
+
+            end do  ! boucle isp2
+          end do  ! boucle m_k2
+        end do  ! boucle L2
+
+      end do  ! boucle isp1
     end do  ! boucle m_k1
   end do  ! boucle L1
 
@@ -4408,8 +4413,8 @@ subroutine Cal_COOP(Coop_z_along_bond,Coverlap,Density_comp,Dist_coop,Ecinetic,E
   complex(kind=db), dimension(:,:,:,:), allocatable:: Taull, V_hubb_t
   complex(kind=db), dimension(:,:,:,:,:), allocatable:: um
   
-  logical:: Absorbeur, Coop_z_along_bond, Density_comp, Density_real, Full_atom, Full_potential, Harm_cubic, Hubb_a, Hubb_d, &
-            Hubb_diag_abs, Relativiste, Renorm, Comp_to_real, Spino, Spinorbite, Ylm_comp 
+  logical:: Absorbeur, Comp_to_real, Coop_z_along_bond, Density_comp, Density_real, Full_atom, Full_potential, Harm_cubic, &
+            Hubb_a, Hubb_d, Hubb_diag_abs, Relativiste, Renorm, Spino, Spinorbite, Ylm_comp 
   logical, dimension(0:ntype):: Hubb
   logical, dimension(n_atom_0_self:n_atom_ind_self):: Hubb_diag
 
@@ -4511,7 +4516,7 @@ subroutine Cal_COOP(Coop_z_along_bond,Coverlap,Density_comp,Dist_coop,Ecinetic,E
   end do
   lmm = (lmaxm + 1)**2
 
-  allocate( um(lmm,nspinp,nspino,n_rad_m,n_atom_0:n_atom_ind) )
+  allocate( um(n_rad_m,lmm,nspinp,nspino,n_atom_0:n_atom_ind) )
   um(:,:,:,:,:) = (0._db, 0._db)
     
 ! Loop over non equivalent absorbing atoms
@@ -4664,19 +4669,19 @@ subroutine Cal_COOP(Coop_z_along_bond,Coverlap,Density_comp,Dist_coop,Ecinetic,E
         
         Rot_a = Matmul( Mat_rot, Rot_a )
         Rot_b = Matmul( Mat_rot, Rot_b )
-   
+        
       endif
 
       if( icheck > 1 .and. ie == 1 ) then
-        write(3,'(/3(a6,i3),a7,f10.5,a3)') ' iab =',iab,', ia =',ia,', ib =', ib,', Vol =', Vol, ' ua'
+        write(3,'(/3(a6,i3),a7,f10.5,a4)') ' iab =',iab,', ia =',ia,', ib =', ib,', Vol =', Vol*bohr**3, ' A^3'
         write(3,'(/a44,3(/17x,3f10.5))') ' Local basis:     Vx        Vy        Vz', ( Vx(i), Vy(i), Vz(i), i = 1,3 )
         do i_tr = 1,2
           do isa = 1,nspinp
             do isb = 1,nspinp
               if( nspinp == 1 ) then
-                write(3,'(/a25,4i3)') ' Tau_coop, iab, i_trans =', iab, i_tr
+                write(3,110) iab, i_tr
               else
-                write(3,'(/a35,4i3)') ' Tau_coop, iab, isa, isb, i_trans =', iab, isa, isb, i_tr
+                write(3,120) iab, isa, isb, i_tr
               endif
               write(3,'(6x,30(10x,2i3,10x))') (( lb, mb, mb = -lb,lb), lb = 0,lmaxb )
               lma = 0 
@@ -4722,60 +4727,78 @@ subroutine Cal_COOP(Coop_z_along_bond,Coverlap,Density_comp,Dist_coop,Ecinetic,E
         end do
       endif
       
-      call Dlmm_COOP(Dlmm_ia,icheck,lmaxa,Rot_a,Density_comp)
-      call Dlmm_COOP(Dlmm_ib,icheck,lmaxb,Rot_b,Density_comp)
-
       Tau_coop_r(:,:,:,:,:) = (0._db, 0._db)
 
-      do i_tr = 1,2
-        do isa = 1,nspinp
-          do isb = 1,nspinp
-            if( .not. Spinorbite .and. isa /= isb ) cycle
-            lma = 0
-            do la = 0,lmaxa
-              do ma = -la,la
-                lma = lma + 1
-                lmb = 0
-                do lb = 0,lmaxb
-                  do mb = -lb,lb
-                    lmb = lmb + 1
-                    do mpa = -la,la
-                      lm = la**2 + la + 1 + mpa
-                      do mpb = -lb,lb
-                        lmp = lb**2 + lb + 1 + mpb
-                        
-                        Tau_coop_r(lma,isa,lmb,isb,i_tr) = Tau_coop_r(lma,isa,lmb,isb,i_tr) + Dlmm_ia(ma,mpa,la) &
-                                                         * Tau_coop(lm,isa,lmp,isb,iab,i_tr) * conjg( Dlmm_ib(mb,mpb,lb) )  
-                      end do
-                    end do
-                  end do  
-                end do 
-              end do
-            end do
-          end do
-        end do
-      end do
-      
-      deallocate( Dlmm_ib )
-      
-      if( icheck > 1 .and. ie == 1 ) then
+      if( abs( Rot_a(1,1) - 1._db ) > eps10 .or. abs( Rot_a(2,2) - 1._db ) > eps10 .or. abs( Rot_a(3,3) - 1._db ) > eps10 &
+       .or. abs( Rot_b(1,1) - 1._db ) > eps10 .or. abs( Rot_b(2,2) - 1._db ) > eps10 .or. abs( Rot_b(3,3) - 1._db ) > eps10 ) then
+
+        call Dlmm_COOP(Dlmm_ia,icheck,lmaxa,Rot_a,Ylm_comp)
+        call Dlmm_COOP(Dlmm_ib,icheck,lmaxb,Rot_b,Ylm_comp)
+
         do i_tr = 1,2
           do isa = 1,nspinp
             do isb = 1,nspinp
-              write(3,'(/a38,3i2)') ' Tau_coop rotated, isa, isb, i_trans =', isa, isb, i_tr 
-              write(3,'(6x,30(10x,2i3,10x))') (( lb, mb, mb = -lb,lb), lb = 0,lmaxb )
-              lma = 0 
+              if( .not. Spinorbite .and. isa /= isb ) cycle
+              lma = 0
               do la = 0,lmaxa
                 do ma = -la,la
-                  lma = lma + 1 
-                  write(3,'(2i3,1p,100e13.5)') la, ma, (Tau_coop_r(lma,isa,lmb,isb,i_tr), lmb = 1,(lmaxb + 1)**2)
+                  lma = lma + 1
+                  lmb = 0
+                  do lb = 0,lmaxb
+                    do mb = -lb,lb
+                      lmb = lmb + 1
+                      do mpa = -la,la
+                        lm = la**2 + la + 1 + mpa
+                        do mpb = -lb,lb
+                          lmp = lb**2 + lb + 1 + mpb
+                          
+                          Tau_coop_r(lma,isa,lmb,isb,i_tr) = Tau_coop_r(lma,isa,lmb,isb,i_tr) + Dlmm_ia(ma,mpa,la) &
+                                                           * Tau_coop(lm,isa,lmp,isb,iab,i_tr) * conjg( Dlmm_ib(mb,mpb,lb) )  
+                        end do
+                      end do
+                    end do  
+                  end do 
                 end do
               end do
             end do
           end do
         end do
+        
+      else
+      
+        Tau_coop_r(:,:,:,:,:) = Tau_coop(:,:,:,:,iab,:)
+      
       endif
+      
+      deallocate( Dlmm_ib )        
 
+      if( abs( Rot_a(1,1) - 1._db ) > eps10 .or. abs( Rot_a(2,2) - 1._db ) > eps10 .or. abs( Rot_a(3,3) - 1._db ) > eps10 &
+       .or. abs( Rot_b(1,1) - 1._db ) > eps10 .or. abs( Rot_b(2,2) - 1._db ) > eps10 .or. abs( Rot_b(3,3) - 1._db ) > eps10 ) then
+
+        if( icheck > 1 .and. ie == 1 ) then
+          do i_tr = 1,2
+            do isa = 1,nspinp
+              do isb = 1,nspinp
+                if( nspinp == 1 ) then
+                  write(3,130) iab, i_tr
+                else
+                  write(3,140) iab, isa, isb, i_tr
+                endif 
+                write(3,'(6x,30(10x,2i3,10x))') (( lb, mb, mb = -lb,lb), lb = 0,lmaxb )
+                lma = 0 
+                do la = 0,lmaxa
+                  do ma = -la,la
+                    lma = lma + 1 
+                    write(3,'(2i3,1p,100e13.5)') la, ma, (Tau_coop_r(lma,isa,lmb,isb,i_tr), lmb = 1,(lmaxb + 1)**2)
+                  end do
+                end do
+              end do
+            end do
+          end do
+        endif
+
+      endif
+      
       if( Coop_z_along_bond ) then
 ! Points are in the rotated local basis
         Wx(1) = 1._db; Wx(2) = 0._db; Wx(3) = 0._db 
@@ -4787,7 +4810,7 @@ subroutine Cal_COOP(Coop_z_along_bond,Coverlap,Density_comp,Dist_coop,Ecinetic,E
         Wy(:) = Vy(:)
         Wz(:) = Vz(:)
       endif
-      
+
       n = 1
       do i_rad = 1,n_rad
         n = n + i_rad * n_angle  
@@ -4845,8 +4868,8 @@ subroutine Cal_COOP(Coop_z_along_bond,Coverlap,Density_comp,Dist_coop,Ecinetic,E
       end do ! end of loop over n_rad
 
       call Cal_COOP_state(Comp_to_real,Full_potential,Harm_cubic,iapra,iaprb,icheck,index_r_a,index_r_b,lmaxa,lmaxb,lmm, &
-                          nlmagm,nlmr,n_atom_0,n_atom_ind,n_pt_integr,n_rad_m,nspino,nspinp,Spinorbite,State,Tau_coop_r,um,Vol, &
-                          Ylm_a,Ylm_b,Ylm_comp)  
+                          nlmagm,nlmr,n_atom_0,n_atom_ind,n_pt_integr,n_rad_m,nspino,nspinp,Spinorbite,State, &
+                          Tau_coop_r,um,Vol,Ylm_a,Ylm_b,Ylm_comp)  
 
       Coverlap(:,:,:,:,iab,mpirank) = State(:,:,:,:)
   
@@ -4861,18 +4884,61 @@ subroutine Cal_COOP(Coop_z_along_bond,Coverlap,Density_comp,Dist_coop,Ecinetic,E
   deallocate( Radius_urm, um )
 
   return
-  105 format(i4,2(1x,2i3),1p,10e13.5)
-  107 format(i4,2(1x,3i3),1p,10e13.5)
+ 110 format(/' Tau_coop, iab =',i3,', i_trans =',i2)
+ 120 format(/' Tau_coop, iab =',i3,', isa, isb =',2i2,', i_trans =',i2)
+ 130 format(/' Tau_coop rotated, iab =',i3,', i_trans =',i2)
+ 140 format(/' Tau_coop rotated, iab =',i3,', isa, isb =',2i2,', i_trans =',i2)
+
 end
 
+
+!***********************************************************************
+
+! Spin rotation matrix
+! R = cos(Gamma/2).I + i sin(Gamma/2) Sigma.Axe
+! I: Identity matrix
+! Sigma: Pauli matrices.
+
+subroutine Cal_rot_spin(Gamma_rot,icheck,Mat_rot_spin,Axe)
+
+  use declarations
+  implicit none
+
+  integer:: icheck, isp
+  complex(kind=db), dimension(2,2):: Mat_rot_spin
+
+  real(kind=db):: Gamma_rot, sin_g, cos_g
+  real(kind=db), dimension(3):: Axe
+
+  cos_g = cos( Gamma_rot / 2 )
+  sin_g = sin( Gamma_rot / 2 )
+  
+  Mat_rot_spin(1,1) = cos_g + img * sin_g * Axe(3)
+  Mat_rot_spin(1,2) = sin_g * ( img * Axe(1) + Axe(2) )   
+  Mat_rot_spin(2,1) = sin_g * ( img * Axe(1) - Axe(2) )   
+  Mat_rot_spin(2,2) = cos_g - img * sin_g * Axe(3)
+
+  if( icheck > 1 ) then
+    write(3,110) Gamma_rot*180/pi, Axe(:)
+    Write(3,'(/A)') ' Spin rotation matrix ='  
+    do isp = 1,2 
+      write(3,120) Mat_rot_spin(isp,:)
+    end do 
+  endif
+
+ 110 format(/' Spin projection angle =',f9.3, / &
+             ' Rotation axe =',3f9.5)
+ 120 format(3x,2(1x,2f9.5))  
+  return
+end
 
 !***********************************************************************
 
 ! Calculation of the density of state for covelap
 
 subroutine Cal_COOP_state(Comp_to_real,Full_potential,Harm_cubic,iapra,iaprb,icheck,index_r_a,index_r_b,lmaxa,lmaxb,lmm, &
-                          nlmagm,nlmr,n_atom_0,n_atom_ind,n_pt_integr,n_rad_m,nspino,nspinp,Spinorbite,State,Taull,um,Vol, &
-                          Ylm_a,Ylm_b,Ylm_comp)
+                          nlmagm,nlmr,n_atom_0,n_atom_ind,n_pt_integr,n_rad_m,nspino,nspinp,Spinorbite,State, &
+                          Taull,um,Vol,Ylm_a,Ylm_b,Ylm_comp)
 
   use declarations
   implicit none
@@ -4886,7 +4952,8 @@ subroutine Cal_COOP_state(Comp_to_real,Full_potential,Harm_cubic,iapra,iaprb,ich
   integer, dimension(n_pt_integr):: index_r_a, index_r_b
   
   complex(kind=db):: c_harm, c_harm1, c_harm2, rof_sd, Sta_e, Sta_s, Yc, Ycompa, Ycompb
-  complex(kind=db), dimension(lmm,nspinp,nspino,n_rad_m,n_atom_0:n_atom_ind):: um
+  complex(kind=db), dimension(n_rad_m,lmm,nspinp,nspino,n_atom_0:n_atom_ind):: um
+  complex(kind=db), dimension(n_rad_m,lmm,nspinp,nspino,2):: ump
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,2):: Taull
   
   logical:: Comp_to_real, Ylm_comp, Full_potential, Harm_cubic, pDOS, Radial_comp, Spinorbite
@@ -4897,13 +4964,17 @@ subroutine Cal_COOP_state(Comp_to_real,Full_potential,Harm_cubic,iapra,iaprb,ich
 
 ! Some part are compatible with pDOS calculation
   pDOS = .false.
-  Radial_comp = abs( aimag( um(1,1,1,1,iapra) ) ) > eps10 .or. abs( aimag( um(1,1,1,1,iapra) ) ) > eps10
-  
+
+  ump(:,:,:,:,1) = um(:,:,:,:,iapra)
+  ump(:,:,:,:,2) = um(:,:,:,:,iaprb)
+
+  Radial_comp = abs( aimag( ump(1,1,1,1,1) ) ) > eps10 .or. abs( aimag( ump(1,1,1,1,2) ) ) > eps10
+    
   State(:,:,:,:) = 0._db
   State_i(:,:,:,:) = 0._db
   
   if( icheck > 1 ) then
-    write(3,'(/2(a6,i3),a7,f10.5,a4)') '  ia =',iapra,', ib =', iaprb,', Vol =', Vol*n_pt_integr*bohr**3, ' A^3'
+    write(3,110) iapra, iaprb
     if( Radial_comp ) then
       write(3,120)
     else
@@ -4998,6 +5069,9 @@ subroutine Cal_COOP_state(Comp_to_real,Full_potential,Harm_cubic,iapra,iaprb,ich
                                   if( isp1 /= isp2 ) cycle ! in a scalar product there is no spin-crossing (but there is solution crossing)
                                   if( .not. Spinorbite .and. isp1 /= isp2 ) cycle
 
+! Just because does not work when rotation...
+                                  if( Spinorbite .and. (isp1 /= iso1 .or. isp2 /= iso2 ) ) cycle
+
                                   if( Spinorbite ) then
                                     is2 = iso2
                                   else
@@ -5026,7 +5100,8 @@ subroutine Cal_COOP_state(Comp_to_real,Full_potential,Harm_cubic,iapra,iaprb,ich
                                     
                                       ira = index_r_a(i)
                                       irb = index_r_b(i)
-                                      rof_sd = um(n1,isp1,iso1,ira,iapra) * um(n2,isp2,iso2,irb,iaprb) * Vol
+                                      
+                                      rof_sd = ump(ira,n1,isp1,iso1,1) * ump(irb,n2,isp2,iso2,2) * Vol
                                     
                                     endif
                                     
@@ -5048,11 +5123,11 @@ subroutine Cal_COOP_state(Comp_to_real,Full_potential,Harm_cubic,iapra,iaprb,ich
                                     Sta_s = c_harm * g * rof_sd * conjg( Taull(lma2,is2,lma1,is1,2) )
 
                                     if( Ylm_comp ) then                               
-                                      Sta_r = 0.5_db * real( Sta_e - Sta_s, db)
                                       Sta_i = - 0.5_db * aimag( Sta_e - Sta_s )
+                                      Sta_r = 0.5_db * real( Sta_e - Sta_s, db)
                                     else
-                                      Sta_r = 0._db
                                       Sta_i = - aimag( Sta_e )
+                                      Sta_r = 0._db
                                     endif
                                 
                                     State(lm1,iss1,lm2,iss2) = State(lm1,iss1,lm2,iss2) + Sta_i
@@ -5061,16 +5136,18 @@ subroutine Cal_COOP_state(Comp_to_real,Full_potential,Harm_cubic,iapra,iaprb,ich
                                     if( icheck > 1 .and. abs( Sta_i ) > 1.e-15_db ) then
                                       if( Radial_comp ) then
                                         write(3,150) lm1, iss1, lm2, iss2, lma1, is1, lma2, is2, L1, m_k1, m_r1, m1, isp1, &
-                                          L2, m_k2, m_r2, m2, isp2, iso1, iso2, i, c_harm, Ycompa, Ycompb, &
-                                          um(n1,isp1,iso1,ira,iapra), &
-                                          um(n2,isp2,iso2,irb,iaprb), Taull(lma1,is1,lma2,is2,1), &
-                                          conjg( Taull(lma2,is2,lma1,is1,2) ), Sta_i, State(lm1,iss1,lm2,iss2)
+                                          L2, m_k2, m_r2, m2, isp2, iso1, iso2, i, Sta_i, State(lm1,iss1,lm2,iss2), &
+                                          c_harm, Ycompa, Ycompb, & 
+                                          ump(ira,n1,isp1,iso1,1), ump(irb,n2,isp2,iso2,2), &
+                                          g * c_harm * rof_sd, &
+                                          Taull(lma1,is1,lma2,is2,1),  conjg( Taull(lma2,is2,lma1,is1,2) )
                                       else
                                         write(3,155) lm1, iss1, lm2, iss2, lma1, is1, lma2, is2, L1, m_k1, m_r1, m1, isp1, &
-                                          L2, m_k2, m_r2, m2, isp2, iso1, iso2, i, c_harm, Ycompa, Ycompb, &
-                                          real(um(n1,isp1,iso1,ira,iapra),db),real(um(n2,isp2,iso2,irb,iaprb),db), &
-                                          Taull(lma1,is1,lma2,is2,1), conjg( Taull(lma2,is2,lma1,is1,2) ), &
-                                          Sta_i, State(lm1,iss1,lm2,iss2), g * c_harm * rof_sd
+                                          L2, m_k2, m_r2, m2, isp2, iso1, iso2, i, Sta_i, State(lm1,iss1,lm2,iss2), &
+                                          c_harm, Ycompa, Ycompb, & 
+                                          real(ump(ira,n1,isp1,iso1,1),db), real(ump(irb,n2,isp2,iso2,2),db), &
+                                          g * c_harm * rof_sd, &
+                                          Taull(lma1,is1,lma2,is2,1), conjg( Taull(lma2,is2,lma1,is1,2) )
                                       endif
                                     endif
 
@@ -5146,608 +5223,21 @@ subroutine Cal_COOP_state(Comp_to_real,Full_potential,Harm_cubic,iapra,iaprb,ich
   endif
   
   return
-  120 format(' lm1 iss1 lm2 iss2 lma1 is1 lma2 is2 L1 mk1 mr1 m1 isp1 L2 mk2 mr2 m2 isp2 iso1 iso2  i',13x,&
-             'c_harm',22x,'Ycompa',22x,'Ycompb',24x,'ura',25x,'urb',24x,'Taull',19x,'conj(Taull_tr)',13x,'dcoop',8x,'Coop')
-  130 format(' lm1 iss1 lm2 iss2 lma1 is1 lma2 is2 L1 mk1 mr1 m1 isp1 L2 mk2 mr2 m2 isp2 iso1 iso2  i',13x,&
-             'c_harm',22x,'Ycompa',22x,'Ycompb',17x,'ura',12x,'urb',18x,'Taull',19x,'conj(Taull_tr)',13x,'dcoop',8x,'Coop')
-  150 format(i3,i5,i4,i5,i5,i4,i5,i4,i4,1x,2(2i3,3i4,1x),2(i4,1x),1p,9(2x,2e13.5))
-  155 format(i3,i5,i4,i5,i5,i4,i5,i4,i4,1x,2(2i3,3i4,1x),2(i4,1x),1p,3(2x,2e13.5),2(2x,e13.5),8(2x,2e13.5))
+      
+  110 format(/' ia =',i3,', ib =',i3)
+  120 format(/' lm1 iss1 lm2 iss2 lma1 is1 lma2 is2 L1 mk1 mr1 m1 isp1 L2 mk2 mr2 m2 isp2 iso1 iso2  i',7x, &
+             'dcoop',9x,'Coop',15x,'c_harm',23x,'Ylma',23x,'Ylmb',24x,'ura',23x,'urb',11x, &
+             'c_harm.Ylma^*.Ylmb.ura.urb.dV',10x,'Taull',17x,'conj(Taull_tr)')
+  130 format(/' lm1 iss1 lm2 iss2 lma1 is1 lma2 is2 L1 mk1 mr1 m1 isp1 L2 mk2 mr2 m2 isp2 iso1 iso2  i',7x, &
+             'dcoop',9x,'Coop',15x,'c_harm',23x,'Ylma',23x,'Ylmb',16x,'ura',12x,'urb',4x, &
+             'c_harm.Ylma^*.Ylmb.ura.urb.dV',10x,'Taull',17x,'conj(Taull_tr)')
+  150 format(i3,i5,i4,i5,i5,i4,i5,i4,i4,1x,2(2i3,3i4,1x),2(i4,1x),1p,2(1x,e13.5),8(1x,2e13.5))
+  155 format(i3,i5,i4,i5,i5,i4,i5,i4,i4,1x,2(2i3,3i4,1x),2(i4,1x),1p,2(1x,e13.5),3(1x,2e13.5),2(1x,e13.5),3(1x,2e13.5))
   165 format('  L  m isp ',100(8x,3i3,10x))
   166 format('  L  m isp ',6x,'Taull_r',6x,'Taull_i')
   175 format(' L1 m1 isp1',7x,'Coop')
   180 format(3i3,1p,28(1x,2e13.5))
   190 format(/' drho before singul', /'   Radius   ',100(6x,i2,5x))
-end
-
-!***********************************************************************
-
-! Calculation of the Crystal Orbital Overlap Population
-
-subroutine Cal_COOP_old(Coop_z_along_bond,Coverlap,Density_comp,Dist_coop,Ecinetic,Eimag,Energ,Enervide, &
-            Full_atom,Full_potential,Harm_cubic,Hubb,Hubb_diag,Hubb_diag_abs,ia_coop,iaabsi,iaprotoi,icheck,ie,index_coop, &
-            iprabs,itypepr,lmax_pot,lmaxat,m_hubb,mpinodee,mpirank,n_atom_0,n_atom_0_self, &
-            n_atom_coop,n_atom_ind,n_atom_ind_self,n_atom_proto,nab_coop,natome,nlm_pot,nlmagm,nrato,nrm, &
-            nspin,nspino,nspinp,ntype,numat,Posi,rato,Relativiste,Renorm,Rmtg,Rmtg0,Rmtsd,Rot_atom,Spinorbite,Tau_coop,V_hubb, &
-            V_hubb_abs,V_intmax,V0bd,Vrato,Ylm_comp,Z_nospinorbite)
-
-  use declarations
-  implicit none
-
-  integer:: i, i_rad, ia, iaabsi, iab, iapr, iapra, iaprb, ib, icheck, ie, ipr, ipra, iprabs, iprb, ira, irb, isa, isb, &
-    isoa, isob, ispa, ispb, it, j, la, lb, lm, lm0a, lm0b, lma, lmax, lmax_coop, lmaxa, lmaxb, lmaxm, lmax_pot, &
-    lmb, lmm, lmp, m_hubb, ma, mb, mpa, mpb, mpinodee, mpirank, mva, mvb, &
-    n, n_angle, n_atom_0, n_atom_0_self, n_atom_coop, n_atom_ind, n_atom_ind_self, &
-    n_atom_proto, n_rad, n_rad_m, nab_coop, natome, nlm_pot, nlmagm, nlmc, nlmr, nr, nrm, nspin, nspino, nspinp, &
-    ntype, Z, Z_nospinorbite, Za, Zb
-
-  integer, dimension(n_atom_coop):: ia_coop
-  integer, dimension(natome):: iaprotoi
-  integer, dimension(n_atom_0:n_atom_ind):: n_radius
-  integer, dimension(0:ntype):: nrato, numat
-  integer, dimension(0:n_atom_proto):: itypepr, lmaxat
-  integer, dimension(2,nab_coop):: index_coop
-
-  complex(kind=db):: Yc, Ycompa, Ycompb, YlmaYlmb, YuaYub
-  complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb
-  complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb_abs
-  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp):: Tau_coop_r
-  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop):: Tau_coop
-  complex(kind=db), dimension(:), allocatable:: Ylmc
-  complex(kind=db), dimension(:,:,:), allocatable:: Dlmm_ia, Dlmm_ib
-  complex(kind=db), dimension(:,:,:,:), allocatable:: Taull, V_hubb_t
-  complex(kind=db), dimension(:,:,:,:,:), allocatable:: um
-  
-  logical:: Absorbeur, Coop_z_along_bond, Density_comp, Density_real, Full_atom, Full_potential, Harm_cubic, Hubb_a, Hubb_d, &
-            Hubb_diag_abs, Relativiste, Renorm, Comp_to_real, Spino, Spinorbite, Ylm_comp 
-  logical, dimension(0:ntype):: Hubb
-  logical, dimension(n_atom_0_self:n_atom_ind_self):: Hubb_diag
-
-  real(kind=db):: Angle, Dist, dOverlap, Eimag, Energ, Enervide, R_circle, Rad_max, Radius_coop, Step, Step_rad, &
-                  V_intmax, Vol
-  real(kind=db), dimension(2):: Dist_coop
-  real(kind=db), dimension(3):: V, Vx, Vy, Vz, Wx, Wy, Wz
-  real(kind=db), dimension(nspin):: Ecinetic, V0bd
-  real(kind=db), dimension(0:n_atom_proto):: Rmtg, Rmtg0, Rmtsd
-  real(kind=db), dimension(3,3):: Mat_rot, Rot_a, Rot_b
-  real(kind=db), dimension(3,3,natome):: rot_atom
-  real(kind=db), dimension(3,natome):: Posi
-  real(kind=db), dimension(0:nrm,0:ntype):: rato
-  real(kind=db), dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind):: Vrato 
-  real(kind=db), dimension(16,nspinp,16,nspinp,nab_coop,0:mpinodee-1):: Coverlap
-
-  real(kind=db), dimension(:), allocatable:: r, Ylmr
-  real(kind=db), dimension(:,:), allocatable:: Radius_urm, Ylma, Ylmb 
-  real(kind=db), dimension(:,:,:), allocatable:: Vrato_e
-
-  n_rad = 1
-  Rad_max = 0.20_db
-  Step_rad = Rad_max / max( n_rad, 1 )
-  n_angle = 8
-  Step = 2 * pi / max( n_angle, 1 )
-
-! Calculation of the radius where the radial functions must be calculated
-  do i = 1,2
-  
-    n_radius(:) = 0
-    
-    do ia = 1,natome
-
-     ipra = iaprotoi( ia )
-      if( Full_atom ) then
-        iapra = ia
-      else
-        iapra = ipra
-      endif
-
-      do ib = ia+1,natome
-
-        if( n_atom_coop > 0 ) then
-          do j = 1,n_atom_coop
-            if( ia_coop(j) == 0 ) cycle
-            if( ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
-          end do
-          if( j > n_atom_coop ) cycle
-        endif
-
-        iprb = iaprotoi( ib )
-        if( Full_atom ) then
-          iaprb = ib
-        else
-          iaprb = iprb
-        endif
-
-        Dist = sqrt( sum( ( Posi(:,ia) - Posi(:,ib) )**2 ) )
-        if( Dist < Dist_coop(1) - eps10 ) cycle
-        if( Dist_coop(2) > eps10 ) then
-          if( Dist > Dist_coop(2) + eps10 ) cycle
-        else
-          if( Dist > Rmtg( ipra ) + Rmtg( iprb ) ) cycle
-        endif
-
-        Radius_coop = ( Rmtg0( ipra ) + Rmtg0( iprb ) ) / 2 
-
-        do i_rad = 0,n_rad
-          n_radius(iapra) = n_radius(iapra) + 1
-          n_radius(iaprb) = n_radius(iaprb) + 1
-          if( i == 2 ) then
-            if( i_rad == 0 ) then 
-              Radius_urm(n_radius(iapra),iapra) = Rmtg0(ipra) 
-              Radius_urm(n_radius(iaprb),iaprb) = Rmtg0(iprb)
-            else 
-              Radius_urm(n_radius(iapra),iapra) = sqrt( Rmtg0(ipra)**2 + ( i_rad * Step_rad * Radius_coop )**2 ) 
-              Radius_urm(n_radius(iaprb),iaprb) = sqrt( Rmtg0(iprb)**2 + ( i_rad * Step_rad * Radius_coop )**2 )
-            endif
-          endif
-        end do 
-      end do
-    end do
-   
-    if( i == 2 ) exit
-    
-    n_rad_m = 0
-    do iapr = n_atom_0,n_atom_ind
-      n_rad_m = max( n_rad_m, n_radius(iapr) )
-    end do
-    allocate( Radius_urm(n_rad_m,n_atom_0:n_atom_ind) )
-    
-  end do
-  
-  lmaxm = 0
-  do ipr = 1,n_atom_proto
-    lmaxm = max( lmaxm, lmaxat(ipr) )
-    lmaxm = max( lmaxm, lmax_coop( numat( itypepr(ipr) ) ) )
-  end do
-  lmm = (lmaxm + 1)**2
-
-  allocate( um(lmm,nspinp,nspino,n_rad_m,n_atom_0:n_atom_ind) )
-  um(:,:,:,:,:) = (0._db, 0._db)
-    
-! Loop over non equivalent absorbing atoms
-
-  do iapr = n_atom_0,n_atom_ind
-
-    if( Full_atom ) then
-      ipr = iaprotoi( iapr )
-    else
-      ipr = iapr
-    endif
-    it = itypepr(ipr)
-    Z = numat( it )
-    if( Z == 0 ) cycle
-    if( Z == Z_nospinorbite ) then
-      Spino = .false.
-    else
-      Spino = Spinorbite
-    endif
-
-    allocate( V_hubb_t(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp))
-    if( Hubb(it) .and. iapr <= n_atom_ind_self ) then
-      Hubb_a = .true.
-      if( Full_atom ) then
-         Absorbeur = iapr == iaabsi
-      else
-         Absorbeur = iapr == iprabs
-      endif
-      if( Absorbeur ) then
-        V_Hubb_t(:,:,:,:) = V_Hubb_abs(:,:,:,:)
-        Hubb_d = Hubb_diag_abs
-      else
-        V_Hubb_t(:,:,:,:) = V_Hubb(:,:,:,:,iapr)
-        Hubb_d = Hubb_diag(iapr)
-      endif
-    else
-      Hubb_a = .false.
-      Hubb_d = .true.
-    end if
-
-    nr = nrato(it)
-    allocate( r(nr) )
-    allocate( Vrato_e(nr,nlm_pot,nspin) )
-    r(1:nr) = rato(1:nr,it)
-
-    lmax = lmaxat(ipr)
-
-    Vrato_e(1:nr,:,:) = Vrato(1:nr,:,:,iapr)
-
-    call Cal_urm(Ecinetic,Eimag,Energ,Enervide, &
-            Full_potential,Hubb_a,Hubb_d,iapr,icheck,lmax,lmax_pot,lmm,m_hubb,n_atom_0,n_atom_ind,n_rad_m,n_radius,nlm_pot, &
-            nr,nspin,nspino,nspinp,r,Radius_urm,Relativiste,Renorm,Rmtg(ipr),Rmtsd(ipr),Spinorbite,um,V_hubb, &
-            V_intmax,V0bd,Vrato_e,Ylm_comp,Z)
-
-    deallocate( r )
-    deallocate( Vrato_e, V_hubb_t )
-
-  end do
-
-  nlmr = ( lmaxm + 1 )**2
-  nlmc = ( ( lmaxm + 1 ) * ( lmaxm + 2 ) ) / 2
-  allocate( Ylmc(nlmc) )
-  allocate( Ylmr(nlmr) )
-  allocate( Ylma(nlmr,max( n_rad * n_angle, 1 )) )
-  allocate( Ylmb(nlmr,max( n_rad * n_angle, 1 )) )
-
-  COverlap(:,:,:,:,:,:) = 0._db
-  
-  iab = 0
-  n_radius(:) = 0
-
-  Density_real = .not. Density_comp
-  Comp_to_real = Ylm_comp .and. Density_real 
-  
-  do ia = 1,natome
-
-    ipra = iaprotoi( ia )
-    Za = numat( itypepr(ipra) )
-    if( Full_atom ) then
-      iapra = ia
-    else
-      iapra = ipra
-    endif
-    lmaxa = min( lmaxat( ipra ), lmax_coop( Za ) )
-    allocate( Dlmm_ia(-lmaxa:lmaxa,-lmaxa:lmaxa,0:lmaxa) )
-
-    do ib = ia+1,natome
-
-      if( n_atom_coop > 0 ) then
-        do j = 1,n_atom_coop
-          if( ia_coop(j) == 0 ) cycle
-          if( ia == ia_coop(j) .or. ib == ia_coop(j) ) exit
-        end do
-        if( j > n_atom_coop ) cycle
-      endif
-
-      iprb = iaprotoi( ib )
-      if( Full_atom ) then
-        iaprb = ib
-      else
-        iaprb = iprb
-      endif
-
-      Dist = sqrt( sum( ( Posi(:,ia) - Posi(:,ib) )**2 ) )
-      if( Dist < Dist_coop(1) - eps10 ) cycle
-      if( Dist_coop(2) > eps10 ) then
-        if( Dist > Dist_coop(2) + eps10 ) cycle
-      else
-        if( Dist > Rmtg( ipra ) + Rmtg( iprb ) ) cycle
-      endif
-
-      iab = iab + 1
-
-      Zb = numat( itypepr(iprb) )
-      lmaxb = min( lmaxat( iprb ), lmax_coop( Zb ) )
-      allocate( Dlmm_ib(-lmaxb:lmaxb,-lmaxb:lmaxb,0:lmaxb) )
-
-      index_coop(1,iab) = ia
-      index_coop(2,iab) = ib
-
-      Radius_coop = ( Rmtg0( ipra ) + Rmtg0( iprb ) ) / 2 
-      Vol = ( 4 * pi / 3._db ) * Radius_coop**3
-     
-      Rot_a(:,:) = rot_atom(:,:,ia)
-      Rot_b(:,:) = rot_atom(:,:,ib)
-      Rot_a = Transpose( Rot_a )
-      Rot_b = Transpose( Rot_b )
-      
-! Local basis with z axis along the bond direction
-      Vz(:) = Posi(:,ib) - Posi(:,ia)
-      Vz(:) = Vz(:) / sqrt( sum( Vz(:)**2 ) )
-            
-      if( abs( Vz(3) - 1._db ) > eps10 ) then
-
-        Vy(1) = - Vz(2) / sqrt( Vz(1)**2 + Vz(2)**2 ) 
-        Vy(2) = Vz(1) / sqrt( Vz(1)**2 + Vz(2)**2 )
-        Vy(3) = 0._db
-              
-        call prodvec( Vx, Vy, Vz )
-        Vx(:) = Vx(:) / sqrt( sum( Vx(:)**2 ) )
-
-      else
- 
-        Vx(1) = 1._db; Vx(2) = 0._db; Vx(3) = 0._db 
-        Vy(1) = 0._db; Vy(2) = 1._db; Vy(3) = 0._db 
- 
-      endif
-
-      if( Coop_z_along_bond .and. abs( Vz(3) - 1._db ) > eps10 ) then
-
-        Mat_rot(:,1) = Vx(:)  
-        Mat_rot(:,2) = Vy(:) 
-        Mat_rot(:,3) = Vz(:)              
-
-! It is the inverse rotation because it is the Ylm wich moves, not the space.
-        Mat_rot = Transpose( Mat_rot )
-        
-        Rot_a = Matmul( Mat_rot, Rot_a )
-        Rot_b = Matmul( Mat_rot, Rot_b )
-   
-      endif
-
-      if( icheck > 1 .and. ie == 1 ) then
-        write(3,'(/3(a6,i3),a7,f10.5,a3)') ' iab =',iab,', ia =',ia,', ib =', ib,', Vol =', Vol, ' ua'
-        write(3,'(/a44,3(/17x,3f10.5))') ' Local basis:     Vx        Vy        Vz', ( Vx(i), Vy(i), Vz(i), i = 1,3 )
-        do isa = 1,nspinp
-          do isb = 1,nspinp
-            write(3,'(/a26,3i3)') ' Tau_coop, iab, isa, isb =', iab, isa, isb
-            write(3,'(6x,30(10x,2i3,10x))') (( lb, mb, mb = -lb,lb), lb = 0,lmaxb )
-            lma = 0 
-            do la = 0,lmaxa
-              do ma = -la,la
-                lma = lma + 1 
-                write(3,'(2i3,1p,100e13.5)') la, ma, (Tau_coop(lma,isa,lmb,isb,iab), lmb = 1,(lmaxb + 1)**2)
-              end do
-            end do
-          end do
-        end do
-      endif
-
-      if( Comp_to_real .or. ( .not. Ylm_comp .and. Density_comp ) ) then
-        lma = (lmaxa + 1)**2 
-        lmb = (lmaxb + 1)**2 
-        allocate( Taull(lma,nspinp,lmb,nspinp) )
-        Taull(1:lma,:,1:lmb,:) = Tau_coop(1:lma,:,1:lmb,:,iab)
-        call Trans_Tau_ab(Comp_to_real,lmaxa,lmaxb,nspinp,Spinorbite,Taull)
-        Tau_coop(1:lma,:,1:lmb,:,iab) = Taull(1:lma,:,1:lmb,:)
-        deallocate( Taull )
-        if( icheck > 1 .and. ie == 1 ) then
-          do isa = 1,nspinp
-            do isb = 1,nspinp
-              if( Comp_to_real ) then
-                write(3,'(/A)') ' Tau_coop in real Ylm basis'
-              else
-                write(3,'(/A)') ' Tau_coop in complex Ylm basis'
-              endif 
-              lma = 0 
-              do la = 0,lmaxa
-                do ma = -la,la
-                  lma = lma + 1 
-                  write(3,'(2i3,1p,100e13.5)') la, ma, (Tau_coop(lma,isa,lmb,isb,iab), lmb = 1,(lmaxb + 1)**2)
-                end do
-              end do
-            end do
-          end do
-        endif
-      endif
-      
-      call Dlmm_COOP(Dlmm_ia,icheck,lmaxa,Rot_a,Density_comp)
-      call Dlmm_COOP(Dlmm_ib,icheck,lmaxb,Rot_b,Density_comp)
-
-      Tau_coop_r(:,:,:,:) = (0._db, 0._db)
-
-      do isa = 1,nspinp
-        do isb = 1,nspinp
-          if( .not. Spinorbite .and. isa /= isb ) cycle
-          lma = 0
-          do la = 0,lmaxa
-            do ma = -la,la
-              lma = lma + 1
-              lmb = 0
-              do lb = 0,lmaxb
-                do mb = -lb,lb
-                  lmb = lmb + 1
-                  do mpa = -la,la
-                    lm = la**2 + la + 1 + mpa
-                    do mpb = -lb,lb
-                      lmp = lb**2 + lb + 1 + mpb
-                      
-                      Tau_coop_r(lma,isa,lmb,isb) = Tau_coop_r(lma,isa,lmb,isb) &
-                                                  + Dlmm_ia(ma,mpa,la) * Tau_coop(lm,isa,lmp,isb,iab) * conjg( Dlmm_ib(mb,mpb,lb) )  
-                    end do
-                  end do
-                end do  
-              end do 
-            end do
-          end do
-        end do
-      end do
-      
-      deallocate( Dlmm_ib )
-      
-      if( icheck > 1 .and. ie == 1 ) then
-        do isa = 1,nspinp
-          do isb = 1,nspinp
-            write(3,'(/A)') ' Tau_coop rotated' 
-            write(3,'(6x,30(10x,2i3,10x))') (( lb, mb, mb = -lb,lb), lb = 0,lmaxb )
-            lma = 0 
-            do la = 0,lmaxa
-              do ma = -la,la
-                lma = lma + 1 
-                write(3,'(2i3,1p,100e13.5)') la, ma, (Tau_coop_r(lma,isa,lmb,isb), lmb = 1,(lmaxb + 1)**2)
-              end do
-            end do
-          end do
-        end do
-      endif
-
-      if( Harm_cubic ) then
-        lma = (lmaxa + 1)**2 
-        lmb = (lmaxb + 1)**2 
-        allocate( Taull(lma,nspinp,lmb,nspinp) )
-        Taull(1:lma,:,1:lmb,:) = Tau_coop_r(1:lma,:,1:lmb,:)
-        call Trans_Tau_ZtoK(lmaxa,lmaxb,nspinp,Spinorbite,Taull)
-        Tau_coop_r(1:lma,:,1:lmb,:) = Taull(1:lma,:,1:lmb,:)
-        deallocate( Taull )
-        if( icheck > 1 .and. ie == 1 ) then
-          do isa = 1,nspinp
-            do isb = 1,nspinp
-              write(3,'(/A)') ' Tau_coop in cubic Ylm basis'
-              lma = 0 
-              do la = 0,lmaxa
-                do ma = -la,la
-                  lma = lma + 1 
-                  write(3,'(2i3,1p,100e13.5)') la, ma, (Tau_coop_r(lma,isa,lmb,isb), lmb = 1,(lmaxb + 1)**2)
-                end do
-              end do
-            end do
-          end do
-        endif
-      endif 
- 
-      if( icheck > 1 ) then 
-        write(3,'(/3(a6,i3),a7,f10.5,a3)') ' iab =',iab,', ia =',ia,', ib =', ib,', Vol =', Vol, ' ua'
-        if( nspinp == 1 ) then 
-          write(3,'(/A,A)') '  ir  la ma  lb mb         Sum_Ya.Yb           um_r(ia)     um_i(ia)     um_r(ib)     um_i(ib)', &
-                            '           Tau_coop            COverlap'
-        else
-          write(3,'(/A,A)') '  ir  la ma sa  lb mb sb         Sum_Ya.Yb           um_r(ia)     um_i(ia)     um_r(ib)', &
-                            '     um_i(ib)           Tau_coop            COverlap'
-        endif
-      endif
-
-      if( Coop_z_along_bond ) then
-! Points are in the rotated local basis
-        Wx(1) = 1._db; Wx(2) = 0._db; Wx(3) = 0._db 
-        Wy(1) = 0._db; Wy(2) = 1._db; Wy(3) = 0._db
-        Wz(1) = 0._db; Wz(2) = 0._db; Wz(3) = 1._db
-      else
-! Points are in the cluster original basis
-        Wx(:) = Vx(:)
-        Wy(:) = Vy(:)
-        Wz(:) = Vz(:)
-      endif
-      
-      n = 1
-      do i_rad = 1,n_rad
-        n = n + i_rad * n_angle  
-      end do
-      Vol = Vol / n
-
-      do i_rad = 0,n_rad
-        n_radius(iapra) = n_radius(iapra) + 1
-        n_radius(iaprb) = n_radius(iaprb) + 1
-
-        R_circle = i_rad * Step_rad * Radius_coop
-         
-! One makes the average over i_rad * n_angle      
-        do i = 1,max( i_rad * n_angle, 1 )
-
-          if( i_rad == 0 ) then
-            V(:) = Rmtg0( ipra ) * Wz(:)          
-          else
-            Angle = i * Step / i_rad       
-            V(:) = Rmtg0( ipra ) * Wz(:) + R_circle * ( cos( Angle ) * Wx(:) + sin( Angle ) * Wy(:) )
-          endif
-              
-          ira = n_radius(iapra) 
-       
-          Dist = sqrt( sum( V(:)**2 ) )
-          call cYlm(lmaxm,V,Dist,Ylmc,nlmc)
-! Conversion in real Ylm
-          call Ylmcr(lmaxm,nlmc,nlmr,Ylmc,Ylmr)
-          if( Harm_cubic ) call Ylm_ZtoK(lmaxm,nlmr,Ylmr)
-          Ylma(1:nlmr,i) = Ylmr(1:nlmr)
-
-          if( i_rad == 0 ) then
-            V(:) = - Rmtg0( iprb ) * Wz(:)
-          else  
-            V(:) = - Rmtg0( iprb ) * Wz(:) + R_circle * ( cos( Angle ) * Wx(:) + sin( Angle ) * Wy(:) ) 
-          endif
- 
-          irb = n_radius(iaprb) 
-       
-          Dist = sqrt( sum( V(:)**2 ) )
-          call cYlm(lmaxm,V,Dist,Ylmc,nlmc)
-! Conversion in real Ylm
-          call Ylmcr(lmaxm,nlmc,nlmr,Ylmc,Ylmr)
-          if( Harm_cubic ) call Ylm_ZtoK(lmaxm,nlmr,Ylmr)
-          Ylmb(1:nlmr,i) = Ylmr(1:nlmr)
-        end do
-
-        do isa = 1,nspinp
-          lma = 0
-          do la = 0,min( lmaxat( ipra ), lmax_coop( Za ) )
-            do ma = -la,la
-              lma = lma + 1
-              do ispa = 1,nspinp
-!                if( .not. Spinorbite .and. ispa /= isa ) cycle
-                if( ispa /= isa ) cycle
-
-                isoa = min( ispa, nspino )
-
-                if( Spinorbite ) then
-                  mva = ma - isa + isoa
-                  if( mva > la .or. mva < -la ) cycle
-                else
-                  mva = ma
-                endif
-                if( Density_comp ) lm0a = la**2 + la + 1 + mva
-              
-                do isb = 1,nspinp
-                  if( isa /= isb ) cycle
-!                  if( .not. Spinorbite .and. isa /= isb ) cycle
-                  lmb = 0
-                  do lb = 0,min( lmaxat( iprb ), lmax_coop( Zb ) )
-                    do mb = -lb,lb
-                      lmb = lmb + 1
-         
-                      do ispb = 1,nspinp
-                        if( ispb /= isb ) cycle
-!                        if( .not. Spinorbite .and. ispb /= isb ) cycle
-
-                        isob = min( ispb, nspino )
-  
-                        if( Spinorbite ) then
-                          mvb = mb - isb + isob
-                          if( mvb > lb .or. mvb < -lb ) cycle
-                        else
-                          mvb = mb
-                        endif
-
-                        YlmaYlmb = (0._db, 0._db )
-                        do i = 1,max( i_rad * n_angle, 1 )
-                          if( Density_comp ) then
-                            if( mva /= 0 ) then
-                              Ycompa = Yc(mva,Ylma(lm0a,i),Ylma(lm0a-2*mva,i))
-                            else
-                              Ycompa = cmplx( Ylma(lm0a,i), 0._db, db )
-                            endif
-                            lm0b = lb**2 + lb + 1 + mvb
-                            if( mvb /= 0 ) then
-                              Ycompb = Yc(mvb,Ylmb(lm0b,i),Ylmb(lm0b-2*mvb,i))
-                            else
-                              Ycompb = cmplx( Ylmb(lm0b,i), 0._db, db )
-                            endif
-                            YlmaYlmb = YlmaYlmb + conjg( Ycompa ) * Ycompb
-                          else
-                            YlmaYlmb = YlmaYlmb + cmplx( Ylma(lma,i) * Ylmb(lmb,i), 0._db ) 
-                          endif
-                        end do
- 
-                        YuaYub = YlmaYlmb * um(lma,isa,isoa,ira,iapra) * um(lmb,isb,isob,irb,iaprb)
-                        dOverlap = - aimag( YuaYub * Tau_coop_r(lma,ispa,lmb,ispb) ) * Vol
-                        COverlap(lma,isa,lmb,isb,iab,mpirank) = COverlap(lma,isa,lmb,isb,iab,mpirank) + dOverlap
-                    
-                        if( icheck > 1 ) then
-                          if( nspinp == 1 ) then 
-                            write(3,105) i_rad, la, ma, lb, mb, YlmaYlmb, um(lma,isa,isoa,ira,iapra), um(lmb,isb,isob,irb,iaprb), &
-                                     Tau_coop_r(lma,ispa,lmb,ispb), COverlap(lma,isa,lmb,isb,iab,mpirank)
-                          else
-                            write(3,107) i_rad, la, ma, ispa, lb, mb, ispb, YlmaYlmb, um(lma,isa,isoa,ira,iapra), &
-                                  um(lmb,isb,isob,irb,iaprb), Tau_coop_r(lma,ispa,lmb,ispb), COverlap(lma,isa,lmb,isb,iab,mpirank)
-                          endif
-                        endif 
-                      end do
-                    end do
-                  end do
-                end do
-              end do
-       
-            end do
-          end do
-
-        end do ! end of loop over n_angle
-      end do ! end of loop over n_rad
-            
-    end do ! end of loop over atoms ib
-
-    deallocate( Dlmm_ia )
-
-  end do ! end of loop over atoms ia 
-  
-  deallocate( Radius_urm, um, Ylma, Ylmb, Ylmc, Ylmr )
-
-  return
-  105 format(i4,2(1x,2i3),1p,10e13.5)
-  107 format(i4,2(1x,3i3),1p,10e13.5)
 end
 
 !***********************************************************************
@@ -5985,14 +5475,14 @@ subroutine Cal_urm(Ecinetic,Eimag,Energ,Enervide, &
   use declarations
   implicit none
 
-  integer:: i, iapr, icheck, ir, L, l_hubbard, lfin, lm, lm0, lmax, lmax_pot, lmm, m, m_hubb, mp, n, n_atom_0, &
+  integer:: i, iapr, icheck, ir, iso, isp, L, l_hubbard, lfin, lm, lm0, lmax, lmax_pot, lmm, m, m_hubb, mp, n, n_atom_0, &
     n_atom_ind, n_rad_m, nlm, nlm_pot, nlm1, nlm2, np, nr, nrmtg, nrmtsd, nspin, nspino, nspinp, Z
 
   integer, dimension(n_atom_0:n_atom_ind):: n_radius
   integer, dimension(n_rad_m):: index_r
 
   complex(kind=db), dimension(nspin):: konde
-  complex(kind=db), dimension(lmm,nspinp,nspino,n_rad_m,n_atom_0:n_atom_ind):: um
+  complex(kind=db), dimension(n_rad_m,lmm,nspinp,nspino,n_atom_0:n_atom_ind):: um
   complex(kind=db), dimension(:,:,:,:), allocatable:: Tau
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
 
@@ -6092,7 +5582,7 @@ subroutine Cal_urm(Ecinetic,Eimag,Energ,Enervide, &
       if( Radial_comp ) then
         if( Full_potential ) then
           do lm = 1,nlm1
-            um(lm,:,:,i,iapr) = cmplx( p(i) * ur(ir,lm,lm,:,:) + (1 - p(i)) * ur(ir-1,lm,lm,:,:), &
+            um(i,lm,:,:,iapr) = cmplx( p(i) * ur(ir,lm,lm,:,:) + (1 - p(i)) * ur(ir-1,lm,lm,:,:), &
                                        p(i) * ui(ir,lm,lm,:,:) + (1 - p(i)) * ui(ir-1,lm,lm,:,:), db )
           end do
         else
@@ -6107,7 +5597,7 @@ subroutine Cal_urm(Ecinetic,Eimag,Energ,Enervide, &
 !              if( nlm2 == 1 .and. mp /= m ) cycle
               if( mp /= m ) cycle
               np = min(L + m + 1, nlm2 )
-              um(lm0+m,:,:,i,iapr) = cmplx( p(i) * ur(ir,n,np,:,:) + (1 - p(i)) * ur(ir-1,n,np,:,:), &
+              um(i,lm0+m,:,:,iapr) = cmplx( p(i) * ur(ir,n,np,:,:) + (1 - p(i)) * ur(ir-1,n,np,:,:), &
                                             p(i) * ui(ir,n,np,:,:) + (1 - p(i)) * ui(ir-1,n,np,:,:), db )
             end do
           end do
@@ -6115,7 +5605,7 @@ subroutine Cal_urm(Ecinetic,Eimag,Energ,Enervide, &
       else
         if( Full_potential ) then
           do lm = 1,nlm1
-            um(lm,:,:,i,iapr) = cmplx( p(i) * ur(ir,lm,lm,:,:) + (1 - p(i)) * ur(ir-1,lm,lm,:,:), 0._db, db )
+            um(i,lm,:,:,iapr) = cmplx( p(i) * ur(ir,lm,lm,:,:) + (1 - p(i)) * ur(ir-1,lm,lm,:,:), 0._db, db )
           end do
         else
           lm0 = L**2 + L + 1
@@ -6129,7 +5619,7 @@ subroutine Cal_urm(Ecinetic,Eimag,Energ,Enervide, &
 !              if( nlm2 == 1 .and. mp /= m ) cycle
               if( mp /= m ) cycle
               np = min(L + m + 1, nlm2 )
-              um(lm0+m,:,:,i,iapr) = cmplx( p(i) * ur(ir,n,np,:,:) + (1 - p(i)) * ur(ir-1,n,np,:,:), 0._db, db )
+              um(i,lm0+m,:,:,iapr) = cmplx( p(i) * ur(ir,n,np,:,:) + (1 - p(i)) * ur(ir-1,n,np,:,:), 0._db, db )
             end do
           end do
         endif
@@ -6142,9 +5632,18 @@ subroutine Cal_urm(Ecinetic,Eimag,Energ,Enervide, &
   end do   ! end of loop over L
 
   if( icheck > 1 ) then
-    write(3,'(/a34,i3)') ' Radius, (um, L = 0,lmax),   atom', iapr
-    do i = 1,n_radius(iapr) 
-      write(3,160) Radius_urm(i,iapr)*bohr, ( um(L**2+L+1,1,1,i,iapr), L = 0,lmax )
+    write(3,155) iapr
+    write(3,160) ( Radius_urm(i,iapr)*bohr, i = 1,n_radius(iapr) )
+    Lm = 0
+    do L = 0,lmax
+      do m = -L,L
+        Lm = Lm + 1
+        do isp = 1, nspinp
+          do iso = 1,nspino 
+            write(3,170) L, m, isp, iso, ( um(i,Lm,isp,iso,iapr), i = 1,n_radius(iapr) )
+          end do
+        end do
+      end do
     end do 
   endif
   
@@ -6156,7 +5655,9 @@ subroutine Cal_urm(Ecinetic,Eimag,Energ,Enervide, &
   130 format(' Ecinetic =',2f10.3)
   140 format(' V0bd  =',2f10.3)
   150 format(' konde =',2f12.5)
-  160 format(' Radius =',f8.5,' A, um =',1p,10e13.5)
+  155 format(/' Radial wave function for the coop versus radius, iapr =',i3)
+  160 format('  L  m is io',10(10x,f9.5,8x))
+  170 format(4i3,1p,20(1x,2e13.5))
 end
 
 !***********************************************************************
@@ -6223,9 +5724,7 @@ subroutine Dlmm_COOP(Dlmm,icheck,lmax,Mat_rot,Ylm_comp)
   do L = 0,lmax
     do m = -L,L
       do mp = -L,L
-!       Dlmm(m,mp,L) = exp(-img * ( m*alfa + mp*gamma) ) * R(m,mp,L)
-! Change of sign in order it works, I do not understand why
-        Dlmm(m,mp,L) = exp( img * ( m*alfa + mp*gamma) ) * R(m,mp,L)
+        Dlmm(m,mp,L) = exp( -img * ( m*alfa + mp*gamma) ) * R(m,mp,L)
       end do
     end do
   end do
@@ -6252,9 +5751,10 @@ subroutine Dlmm_COOP(Dlmm,icheck,lmax,Mat_rot,Ylm_comp)
       
     do L = 0,lmax
 
+! I do not really understand the conjg
       do m = -L,L
         do mp = -L,L
-          Mat(m,mp) = sum( Dlmm(m,-L:L,L) * Trans(-L:L,mp) )
+          Mat(m,mp) = sum( conjg( Dlmm(m,-L:L,L) ) * Trans(-L:L,mp) )
         end do
       end do
 
