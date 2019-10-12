@@ -2785,8 +2785,8 @@ subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_b
   use declarations
   implicit none
 
-  integer:: ia, iaabs, iaabsfirst, iabsorbeur, iabsfirst, icheck, igr, igr_dop, ipr, itabs, mpirank0, multi_run, n_atom_bulk, &
-            n_atom_int, &
+  integer:: ia, iaabs, iaabsfirst, iabsorbeur, iabsfirst, icheck, igr, igr_dop, ipr, itabs, mpirank0, multi_run, &
+            n_atom_bulk, n_atom_int, &
             n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, na, natomp, natomq, natomr, ngroup, ngroup_pdb, ngroup_taux
   integer, dimension(natomp):: iaproto, igroup, itypep
   integer, dimension(ngroup_pdb):: Kgroup
@@ -3018,7 +3018,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
           if( Sym_2D ) then
             if( ( igr > n_atom_per .and. iz /= 0 ) .or. iz < 0 ) cycle
  !           if( iabsfirst <= n_atom_per + n_atom_int .and. iz < 0 ) cycle
-         endif
+          endif
           if( ngroup_pdb > 0 ) then
             if( Kgroup(iabsorbeur) /= Kgroup(igr) .and. Kgroup(iabsorbeur) /= 0 .and. Kgroup(igr) /= 0 ) cycle
           endif
@@ -3083,13 +3083,24 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
                   call write_error
                   do iprint = 6,9,3
                     write(iprint,120)
-                    write(iprint,130) jgr, posn(1:3,jgr), igr, posn(1:3,igr)
+                    write(iprint,130) jgr, posn(1:3,jgr), 1._db, igr, posn(1:3,igr), 1._db
                   end do
                   stop
+                else
+                  if( Taux_oc( jgr ) + Taux_oc( igr ) > 1._db + eps10 ) then
+                    call write_error
+                    do iprint = 6,9,3
+                      write(iprint,120)
+                      write(iprint,130) jgr, posn(1:3,jgr), Taux_oc( jgr ), igr, posn(1:3,igr), Taux_oc( igr )
+                    end do
+                    stop
+                  elseif( Taux_oc( jgr ) > Taux_oc( igr ) - eps10 ) then
+                    cycle boucle_igr
+                  endif
                 endif
-                if( Taux_oc( jgr ) > Taux_oc( igr ) - eps10 ) cycle boucle_igr
               endif
             end do
+
             do ib = 1,ia
               if( sum( abs( pos(:,ib) - ps(:) ) ) < eps6 ) then
                 if( ngroup_taux == 0 ) then
@@ -3114,6 +3125,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
           else
             dist = Vnorme(Base_ortho_sur,dcosxyz_sur,ps)
           endif
+
           if( dist > Rmax + eps10 ) cycle
           ia = ia + 1
           pos(1:3,ia) = ps(1:3)
@@ -3122,6 +3134,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
           else
             igroup(ia) = igr
           endif
+
           if( Abs_case ) then
             itypep(ia) = itabs
             iaabs = ia
@@ -3247,9 +3260,9 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
 
   return
   110 format(/' There is no absorbing atom in the calculation sphere !')
-  120 format(//' Error in the indata file, two atoms are at the same position',/)
+  120 format(//' Error in the indata file, two atoms are at the same position with the sum of their occupancy > 1',/)
   125 format(' Possibly after a unit cell shift',/)
-  130 format(' Atoms',i5,' at p =',3f11.7,/'   and',i5,' at p =',3f11.7)
+  130 format(' Atoms',i5,' at p =',3f11.7,' with occupancy =',f7.3,/'   and',i5,' at p =',3f11.7,' with occupancy =',f7.3)
 end
 
 !*********************************************************************

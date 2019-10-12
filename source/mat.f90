@@ -381,22 +381,26 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
                 ampl2 = cmplx(smr(lmf,jj),smi(lmf,jj),db)
               endif
 
-              cfac = cfac + conjg( ampl1 ) * ampl2
+              cfac = cfac + ampl1 * conjg( ampl2 )
             end do
 
 ! One multiplies by -img in order -aimag(Taull) is the density of state
 ! Conjugate to get the real part same sign than Green
 !            cfac = - img * conjg( cfac )
 
-            Tau_coop(lm01,is1,lm02,is2,iab,1) = Tau_coop(lm01,is1,lm02,is2,iab,1) - img * conjg( cfac )
-            Tau_coop(lm02,is2,lm01,is1,iab,2) = Tau_coop(lm02,is2,lm01,is1,iab,2) - img * cfac
+            Tau_coop(lm01,is1,lm02,is2,iab,1) = Tau_coop(lm01,is1,lm02,is2,iab,1) - img * cfac
+            Tau_coop(lm02,is2,lm01,is1,iab,2) = Tau_coop(lm02,is2,lm01,is1,iab,2) - img * conjg( cfac )
 
             if( Repres_comp .and. .not. Spinorbite ) then
               lm01c = lm01 - 2 * m1
               lm02c = lm02 - 2 * m2
               isg = (-1)**(m1+m2)
-              Tau_coop(lm01c,is1,lm02c,is2,iab,1) = Tau_coop(lm01c,is1,lm02c,is2,iab,1) + isg * cfac
-              Tau_coop(lm02c,is2,lm01c,is1,iab,2) = Tau_coop(lm02c,is2,lm01c,is1,iab,2) + isg * conjg( cfac )
+ !             Tau_coop(lm01c,is1,lm02c,is2,iab,1) = Tau_coop(lm01c,is1,lm02c,is2,iab,1) + isg * cfac
+ !             Tau_coop(lm02c,is2,lm01c,is1,iab,2) = Tau_coop(lm02c,is2,lm01c,is1,iab,2) + isg * conjg( cfac )
+ !             Tau_coop(lm01c,is1,lm02c,is2,iab,1) = Tau_coop(lm01c,is1,lm02c,is2,iab,1) - img * isg * conjg( cfac )
+ !             Tau_coop(lm02c,is2,lm01c,is1,iab,2) = Tau_coop(lm02c,is2,lm01c,is1,iab,2) - img * isg * cfac
+              Tau_coop(lm01c,is1,lm02c,is2,iab,1) = Tau_coop(lm01c,is1,lm02c,is2,iab,1) - img * isg * cfac
+              Tau_coop(lm02c,is2,lm01c,is1,iab,2) = Tau_coop(lm02c,is2,lm01c,is1,iab,2) - img * isg * conjg( cfac )
             endif
           
           end do          
@@ -4197,7 +4201,7 @@ subroutine Tau_writing(Eimag,Energ,iprabs,ie_computer,itypepr,lmaxat,lmax_probe,
   write(3,'(/A)') '        Energ              Eimag'   
   write(3,'(1p,2e19.11)') Energ*rydb, Eimag*rydb
   write(3,'(/A)') ' Z, lmax  (1,... n_atom_proto)'   
-  write(3,'(100(i3,i2))') ( numat(itypepr(ipr)), lmaxat(ipr,ie_computer), ipr = 1,n_atom_proto )
+  write(3,'(10000(i3,i2))') ( numat(itypepr(ipr)), lmaxat(ipr,ie_computer), ipr = 1,n_atom_proto )
 
 ! To save space in the bav file one limits the printing down to 3.
 ! Tau_dft is just used to calculate cross section after extraction...
@@ -4239,13 +4243,19 @@ subroutine Tau_reading(icheck,ie,iaabsi,lmaxa,natome,nenerg,nlmagm,nspinp,Taull)
   include 'mpif.h'
 
   integer:: i, iaabsi, icheck, ie, isp, jsp, L, lm, lmax, lmaxa, lmp, m, natome, nenerg, nlm, nlma, nlmagm, nspinp
-  
+
+  character(len=20):: mot20
+    
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: Taull
 
   real(kind=db):: p
   real(kind=db), dimension(nlmagm,nspinp):: Taulli, Taullr
-  
-  read(1,*); read(1,*); read(1,*); read(1,*); read(1,*)
+
+  do
+    read(1,'(A)' ) mot20
+    if( mot20 == ' Multiple scattering' ) exit
+  end do
+
   read(1,*) lmax, nspinp
 
 ! lmaxa can be < lmax because lmax is defined by the max of the lmax of the atoms with same atomic numer than the absorbing one 

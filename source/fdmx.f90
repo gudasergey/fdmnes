@@ -1033,7 +1033,12 @@ do qint=1,80
        do jjj=1,2
           elfout2(iii) = elfout2(iii) + bestelf(iii*10-15+10*jjj,qint)*sp*0.5
        end do
-      bestelf2(iii,qint) = elfout2(iii)
+
+!!! Correction YJ 2019/09/27 because dimension bestelf2(0:120) 
+!!!!      bestelf2(iii,qint) = elfout2(iii)
+     if( iii <= 120 ) bestelf2(iii,qint) = elfout2(iii)
+!!!! End correction
+
    end do
 end do
 

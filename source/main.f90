@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 30th of August 2019, 12 Fructidor, An 227
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 27th of September 2019, 15 Vendemiaire, An 228
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -43,12 +43,12 @@ module declarations
   integer, parameter:: Z_Mendeleiev_max = 103   ! Number of chemical elements in the Mendeleiev table
   integer, parameter:: nrepm = 12    ! Max number of representation
   integer, parameter:: nopsm = 64    ! Number of symmetry operation
-  integer, parameter:: ngrptm = 32   ! Standard number of non magnetic ponctual groups
-  integer, parameter:: ngrptmagm = 90   ! Standard number of magnetic ponctual groups
-  integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic ponctual groups (with other orientation)
-  integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic ponctual groups (with other orientation)
+  integer, parameter:: ngrptm = 32   ! Standard number of non magnetic punctual groups
+  integer, parameter:: ngrptmagm = 90   ! Standard number of magnetic punctual groups
+  integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic punctual groups (with other orientation)
+  integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic punctual groups (with other orientation)
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 30th of August 2019'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 27th of September 2019'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )

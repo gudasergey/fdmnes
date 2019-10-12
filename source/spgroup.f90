@@ -201,13 +201,14 @@ subroutine symgrp(Cif,Cif_file,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans)
 
   integer:: i, i1, i2, ipr, istat, itape, j, k, l, nbsyop, sgnb, currentLineNum
 
-  logical:: Cif, pareil
+  logical:: Cif, index_sym, pareil
 
   real(kind=db), dimension(3,3,nmaxop):: Mat
   real(kind=db), dimension(3,nmaxop):: Trans
   real(kind=db), dimension(3,4):: Matrix(3,4)
 
   pareil = .false.
+  index_sym = .false.
 
   if( Cif ) then
     itape = 7
@@ -222,6 +223,7 @@ subroutine symgrp(Cif,Cif_file,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans)
        if( mot(i:i) == char(9) ) mot(i:i) = ' '
       end do
       mot = adjustl(mot)
+      if( mot(1:27) == '_symmetry_equiv_pos_site_id' ) index_sym = .true.
       if( mot(1:26) == '_symmetry_equiv_pos_as_xyz' .or. mot(1:32) == '_space_group_symop_operation_xyz' ) exit 
     end do
     
@@ -229,7 +231,16 @@ subroutine symgrp(Cif,Cif_file,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans)
 
       read(itape,'(A)' ) mot
       line = ' '
+
+      mot = adjustl(mot)
       
+      if( index_sym ) then
+        do j = 1,80
+          if( mot(j:j) == ' ' ) exit
+          mot(j:j) = ' '
+        end do
+      endif
+            
       do j = 1,80
         if( mot(j:j) == ',' ) exit
       end do
@@ -401,7 +412,7 @@ subroutine findop(line,matrix)
         Matrix(i,1) = -1._db
         Matrix(i,2) = 1._db
 
-      case('1/2+x','x+1/2')
+      case('1/2+x','x+1/2','+x+1/2')
         Matrix(i,1) = 1._db
         Matrix(i,4) = 0.5_db
 

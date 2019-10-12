@@ -1013,6 +1013,7 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
  ! On demand or when "calculation and SCF" excited and L = 2 or 3.
           if( Open_val_exc .and. scf_elecabs ) then
             E_cut = E_Open_val_exc
+            E_cut = max( E_cut, En_f - 2._db/Rydb ) ! when E_Open_val_exc too far from E_Fermi
           else
             E_cut = E_Fermi
           endif
