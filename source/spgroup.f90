@@ -230,6 +230,9 @@ subroutine symgrp(Cif,Cif_file,Space_Group,Mat,Trans,nbsyop,nmaxop,SGTrans)
     boucle_i: do i = 1,1000
 
       read(itape,'(A)' ) mot
+      do j = 1,80
+        if( mot(j:j) == char(9) ) mot(j:j) = ' '
+      end do
       line = ' '
 
       mot = adjustl(mot)

@@ -667,7 +667,7 @@ subroutine Search_ordering(Absauto,axyz,axyz_int,axyz_sur,Base_ortho,Base_ortho_
 
     do igr = n_atom_per + 1, n_atom_uc
       do jgr = igr + 1, n_atom_uc
-        if( pos(3,igr) > pos(3,jgr) + eps10 .or. ( igr <= n .and. jgr > n ) ) cycle
+        if( pos(3,igr) > pos(3,jgr) - eps10 .or. ( igr <= n .and. jgr > n ) ) cycle
         i = Ordering(igr)
         Ordering(igr) = Ordering(jgr)
         Ordering(jgr) = i

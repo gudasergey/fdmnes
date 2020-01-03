@@ -1754,7 +1754,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   real(kind=db), dimension(3,n_atom_bulk):: posn_bulk
   real(kind=db), dimension(3,n_atom_cap):: posn_cap
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_gr
-  real(kind=db), dimension(-m_hubb_e:m_hubb_e,-m_hubb_e:m_hubb_e,nspin,ngroup_taux):: occ_hubb_e
+  real(kind=db), dimension(-m_hubb_e:m_hubb_e,-m_hubb_e:m_hubb_e,nspin,ngroup_hubb):: occ_hubb_e
   real(kind=db), dimension(3,3,ngroup_m):: Rot_atom_gr
   real(kind=db), dimension(3,3,ngroup_lapw):: rotloc_lapw
   real(kind=db), dimension(npldafs_f):: Angle_or
@@ -4031,10 +4031,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         Axe_atom_gr(:,n) = Axe_atom_gr(:,igr_dop)
         Rot_atom_gr(:,:,n) = Rot_atom_gr(:,:,igr_dop)
       endif
-      if( ngroup_taux > 0 ) then
-        Taux_oc(n) = Taux_oc(igr_dop)
-        occ_hubb_e(:,:,:,n) = occ_hubb_e(:,:,:,igr_dop)
-      endif
+      if( ngroup_taux > 0 ) Taux_oc(n) = Taux_oc(igr_dop)
+      if( ngroup_hubb > 0 ) occ_hubb_e(:,:,:,n) = occ_hubb_e(:,:,:,igr_dop)
+
       if( ngroup_pdb > 0 ) Kgroup(n) = Kgroup(igr_dop)
       if( ngroup_temp > 0 ) Temp_coef(n) = Temp_coef(igr_dop)
     endif

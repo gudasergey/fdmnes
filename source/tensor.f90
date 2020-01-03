@@ -929,7 +929,8 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full_pote
   integer, dimension(ninitl,2), intent(in):: m_g
   integer, dimension(ninitl), intent(in):: is_g
 
-  integer:: i_g_1, i_g_2, initl1, initl2, initlr, is_dipmag, is_r1, is_r2, iseuil1, iseuil2, iso1, iso2, isp1, isp2, isp3, isp4, &
+  integer:: i_g_1, i_g_2, initl1, initl2, initlr, is_dipmag, is_r1, is_r2, iseuil1, iseuil2, iso1, iso2, &
+    isp1, isp2, isp3, isp4, &
     ispf1, ispf2, ispinf1, ispinf2, isping1, isping2, ispp_f1, ispp_f2, l_f1, l_f2, li, lm01, lm02, lm_f1, lm_f2, lmax, lmp01, &
     lmp02, lmp_f1, lmp_f2, lms_f1, lms_f2, lp_f1, lp_f2, m_f1, m_f2, mi1, mi2, mp_f1, mp_f2, mv1, mv2
 

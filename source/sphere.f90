@@ -3086,12 +3086,13 @@ subroutine Radial_sd(Classic_irreg,drho,Ecinetic,Eimag,Energ,Enervide,Full_poten
   use declarations
   implicit none
 
-  integer:: ia, icheck, L, l_hubbard, lfin, lmax, lmax_pot, m_hubb, nlm, nlm_pot, nlm1, nlm2, nlma, nr, &
+  integer:: ia, icheck, isp1, isp2, L, l_hubbard, lfin, lmax, lmax_pot, m, m_hubb, m1, m2, nlm, nlm_pot, nlm1, nlm2, nlma, nr, &
     nrs, nrmtg, nrmtsd, nspin, nspino, nspinp, numat
 
   complex(kind=db), dimension(nspin):: konde
-  complex(kind=db), dimension(nlma,nspinp,nlma,nspinp):: Taull
-  complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
+  complex(kind=db), dimension(nlma,nspinp,nlma,nspinp):: Taull, Taull_r
+  complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb, V_hubb_r 
+  complex(kind=db), dimension(:,:), allocatable:: Mat_c, Mat_r 
   complex(kind=db), dimension(:,:,:,:), allocatable:: Tau
 
   logical:: Classic_irreg, Diagonale, Ecomp, Full_potential, Harm_cubic, Hubb_a, Hubb_d, Hubb_m, Radial_comp, Relativiste, Renorm, &
@@ -3137,7 +3138,9 @@ subroutine Radial_sd(Classic_irreg,drho,Ecinetic,Eimag,Energ,Enervide,Full_poten
   else
     Ecomp = .false.
   endif
-  Radial_comp = Ecomp .or. ( Hubb_a .and. Ylm_comp )
+  
+!  Radial_comp = Ecomp .or. ( Hubb_a .and. Ylm_comp )
+  Radial_comp = Ecomp
 
   if( Full_potential ) then
     lfin = 0
@@ -3172,15 +3175,64 @@ subroutine Radial_sd(Classic_irreg,drho,Ecinetic,Eimag,Energ,Enervide,Full_poten
     allocate( ur(nr,nlm1,nlm2,nspinp,nspino) )
     allocate( Tau(nlm1,nspinp,nlm1,nspinp) )
 
-    call Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gpi,gso,Hubb_a,Hubb_d,icheck,konde,L,lmax,m_hubb, &
+    V_hubb_r(:,:,:,:) = V_hubb(:,:,:,:)
+    Taull_r(:,:,:,:) = Taull(:,:,:,:)
+
+    if( .not. Full_potential .and. Hubb_m .and. .not. Hubb_d .and. Ylm_comp ) then
+    
+      allocate( Mat_c(-L:L,-L:L) )
+      allocate( Mat_r(-L:L,-L:L) )
+ 
+      do isp1 = 1,nspinp
+        do isp2 = 1,nspinp
+          Mat_c(:,:) = V_hubb(:,:,isp1,isp2)
+          Call Trans_HarmoC_to_R(L,Mat_c,Mat_r)
+          V_hubb_r(:,:,isp1,isp2) = Mat_r(:,:)
+        end do
+      end do
+
+      do isp1 = 1,nspinp
+        do isp2 = 1,nspinp
+          do m = -L,L
+            Mat_c(:,m) = Taull(L**2+1:(L+1)**2,isp1,L**2+L+1+m,isp2)
+          end do
+          Call Trans_HarmoC_to_R(L,Mat_c,Mat_r)
+          do m1 = -L,L
+            do m2 = -L,L
+              if( ( m1 >= 0 .and. m2 < 0 ) .or. ( m1 < 0  .and. m2 >= 0 ) ) then 
+                Taull_r(L**2+L+1+m1,isp1,L**2+L+1+m2,isp2) = - Mat_r(m1,m2)
+              else
+                Taull_r(L**2+L+1+m1,isp1,L**2+L+1+m2,isp2) = Mat_r(m1,m2)
+              endif
+            end do
+          end do
+        end do
+      end do
+
+      deallocate( Mat_c, Mat_r )
+
+      call Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gpi,gso,Hubb_a,Hubb_d,icheck,konde,L,lmax,m_hubb, &
+         nlm,nlm1,nlm2,nr,nrmtg,nspin,nspino,nspinp,numat,r,Radial_comp,Relativiste,Renorm,Rmtg,Spinorbite,Tau,ui, &
+         ur,V,V_hubb_r)
+
+! Calculation of the radial integral
+      if( .not. Solsing_only ) &
+        call Radial_matrix_sd(Diagonale,drho,Full_potential,Harm_cubic,icheck,L,lmax,nlm_pot,nlm1,nlm2,nlma,nr,nrs,nrmtsd, &
+           nspin,nspino,nspinp,r,Radial_comp,Rmtsd,Spinorbite,State,State_i,Self,Taull_r,ui,ur,.false.,.false.)
+          
+    else
+
+      call Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gpi,gso,Hubb_a,Hubb_d,icheck,konde,L,lmax,m_hubb, &
          nlm,nlm1,nlm2,nr,nrmtg,nspin,nspino,nspinp,numat,r,Radial_comp,Relativiste,Renorm,Rmtg,Spinorbite,Tau,ui, &
          ur,V,V_hubb)
 
 ! Calculation of the radial integral
-    if( .not. Solsing_only ) &
-      call Radial_matrix_sd(Diagonale,drho,Full_potential,Harm_cubic,icheck,L,lmax,nlm_pot,nlm1,nlm2,nlma,nr,nrs,nrmtsd, &
-           nspin,nspino,nspinp,r,Radial_comp,Rmtsd,Spinorbite,State,State_i,Self,Taull,ui,ur,Ylm_comp,Comp_to_real)
+      if( .not. Solsing_only ) &
+        call Radial_matrix_sd(Diagonale,drho,Full_potential,Harm_cubic,icheck,L,lmax,nlm_pot,nlm1,nlm2,nlma,nr,nrs,nrmtsd, &
+           nspin,nspino,nspinp,r,Radial_comp,Rmtsd,Spinorbite,State,State_i,Self,Taull_r,ui,ur,Ylm_comp,Comp_to_real)
 
+    endif
+    
 ! Calculation of irregular solution 
     if( Solsing ) call Cal_Solsing_sd(Classic_irreg,drho,Ecomp,Eimag,f2,Full_potential,g0,gmi,gp,gso,Harm_cubic,Hubb_a,Hubb_d, &
           icheck,konde,L,lmax,m_hubb,nlm,nlm_pot,nlm1,nlm2,nlma,nr,nrmtsd,nrs,nspin,nspino,nspinp,numat,r,Radial_comp,Rmtsd,Self, &
@@ -3204,6 +3256,40 @@ end
 
 !********************************************************************************************************************************
 
+subroutine Trans_HarmoC_to_R(L,Mat_c,Mat_r)
+
+  use declarations
+  implicit none
+
+  integer:: is, L, m
+  
+  complex(kind=db), dimension(-L:L,-L:L):: Mat_c, Mat_r, Trans, Transi 
+      
+  Trans(:,:) = (0._db, 0._db)
+  Transi(:,:) = (0._db, 0._db)
+
+  do m = -L,L
+    if( m > 0 ) then
+      is = (-1)**m
+      Trans(m,m) = cmplx( is * sqrt_1o2, 0._db, db)
+      Trans(m,-m) = cmplx( 0._db, is * sqrt_1o2, db)
+    elseif( m == 0 ) then
+      Trans(0,0) = (1._db, 0._db)
+    else
+      Trans(m,-m) = cmplx(sqrt_1o2, 0._db, db)
+      Trans(m,m) = cmplx(0._db, -sqrt_1o2, db)
+    endif
+  end do
+  
+  Transi = Conjg( Transpose( Trans ) )
+
+  Mat_r = Matmul( Transi, Matmul( Mat_c, Trans ) )
+
+  return
+end
+
+!********************************************************************************************************************************
+
 ! Calculation of the radial integral for the density of state
 ! Comp_to_real = .true. corresponds to the calculation with complex harmo that we project to real harmo 
 
@@ -3213,7 +3299,8 @@ subroutine Radial_matrix_sd(Diagonale,drho,Full_potential,Harm_cubic,icheck,L,lm
   use declarations
   implicit none
 
-  integer:: i_k1, i_k2, icheck, ir, is1, is2, isg1, isg2, iso, iso1, iso2, isp, isp1, isp2, iss1, iss2, L, L1, L2, l3, lm, lm0, &
+  integer:: i_k1, i_k2, icheck, ir, is1, is2, isg1, isg2, iso, iso1, iso2, isp, isp1, isp2, iss1, iss2, &
+    L, L1, L2, l3, lm, lm0, &
     lm1, lm2, lma1, lma2, lmax, Lp1, Lp2, m1, m2, m3, m_k1, m_k2, mp1, mp2, m_r1, m_r2, mv1, mv2, n_rk1, n_rk2, n1, n2, &
     nlm_pot, nlm1, nlm2, nlma, np1, np2, nr, nrmtsd, nrs, nspin, nspino, nspinp
 
@@ -3347,10 +3434,12 @@ subroutine Radial_matrix_sd(Diagonale,drho,Full_potential,Harm_cubic,icheck,L,lm
                         endif
 
                         if( Spinorbite .and. Diagonale ) then
-                          mv1 = m1 + iso1 - isp1
+!                          mv1 = m1 + iso1 - isp1
+                          mv1 = mp1 + iso1 - isp1
                           if( mv1 > L1 .or. mv1 < - L1 ) cycle
                         else
-                          mv1 = m1
+!                          mv1 = m1
+                          mv1 = mp1
                         endif                  
 
                         if( Full_potential ) then
@@ -3384,8 +3473,6 @@ subroutine Radial_matrix_sd(Diagonale,drho,Full_potential,Harm_cubic,icheck,L,lm
                                 if( nlm2 == 1 .and. mp2 /= m2 ) cycle
                                 if( nlm2 == 1 ) then
                                   np2 = 1
-                                elseif( .not. Full_potential ) then
-                                  np2 = np1
                                 else
                                   np2 = np2 + 1
                                 endif
@@ -3406,10 +3493,12 @@ subroutine Radial_matrix_sd(Diagonale,drho,Full_potential,Harm_cubic,icheck,L,lm
                                   endif
 
                                   if( Spinorbite .and. Diagonale ) then
-                                    mv2 = m2 + iso2 - isp2
+                                    mv2 = mp2 + iso2 - isp2
+!                                    mv2 = m2 + iso2 - isp2
                                     if( mv2 > L2 .or. mv2 < - L2 ) cycle
                                   else
-                                    mv2 = m2
+!                                    mv2 = m2
+                                    mv2 = mp2
                                   endif                  
 
                                   if( Full_potential ) then
@@ -3421,29 +3510,52 @@ subroutine Radial_matrix_sd(Diagonale,drho,Full_potential,Harm_cubic,icheck,L,lm
                                   endif
                                   
                                   lma2 = L2**2 + L2 + 1 + mv2
-                
+
                                   if( nlm1 == 1 ) then
         
                                     rof_sd = rof_sd_l(isp1)
                                     if( Self .and. isp1 == isp2 .and. lm1 == lm2 ) fc(:) = fc_l(:,isp1)
         
                                   else
+                                    
+                                    if( nlm2 == 1 ) then
         
-                                    if( Radial_comp ) then
-                                      fcr(1:nrmtsd) = r2(1:nrmtsd) &
-                                                    * ( ur(1:nrmtsd,n1,np1,isp1,iso1) * ur(1:nrmtsd,n2,np2,isp2,iso2) &
-                                                      - ui(1:nrmtsd,n1,np1,isp1,iso1) * ui(1:nrmtsd,n2,np2,isp2,iso2) )
-                                      radlr = f_integr3(rr,fcr,1,nrmtsd,Rmtsd)
-                                      fci(1:nrmtsd) = r2(1:nrmtsd) &
-                                                       * ( ur(1:nrmtsd,n1,np1,isp1,iso1) * ui(1:nrmtsd,n2,np2,isp2,iso2) &
-                                                       + ui(1:nrmtsd,n1,np1,isp1,iso1) * ur(1:nrmtsd,n2,np2,isp2,iso2) )
-                                      radli = f_integr3(rr,fci,1,nrmtsd,Rmtsd)
-                                    else
-                                      fcr(1:nrmtsd) = r2(1:nrmtsd) * ur(1:nrmtsd,n1,np1,isp1,iso1) &
-                                                                   * ur(1:nrmtsd,n2,np2,isp2,iso2)
-                                      radlr = f_integr3(rr,fcr,1,nrmtsd, Rmtsd)
-                                      fci(:) = 0._db
-                                      radli = 0._db
+                                      if( Radial_comp ) then
+                                        fcr(1:nrmtsd) = r2(1:nrmtsd) &
+                                                      * ( ur(1:nrmtsd,n1,np1,isp1,iso1) * ur(1:nrmtsd,n2,np2,isp2,iso2) &
+                                                        - ui(1:nrmtsd,n1,np1,isp1,iso1) * ui(1:nrmtsd,n2,np2,isp2,iso2) )
+                                        radlr = f_integr3(rr,fcr,1,nrmtsd,Rmtsd)
+                                        fci(1:nrmtsd) = r2(1:nrmtsd) &
+                                                      * ( ur(1:nrmtsd,n1,np1,isp1,iso1) * ui(1:nrmtsd,n2,np2,isp2,iso2) &
+                                                        + ui(1:nrmtsd,n1,np1,isp1,iso1) * ur(1:nrmtsd,n2,np2,isp2,iso2) )
+                                        radli = f_integr3(rr,fci,1,nrmtsd,Rmtsd)
+                                      else
+                                        fcr(1:nrmtsd) = r2(1:nrmtsd) * ur(1:nrmtsd,n1,np1,isp1,iso1) &
+                                                                     * ur(1:nrmtsd,n2,np2,isp2,iso2)
+                                        radlr = f_integr3(rr,fcr,1,nrmtsd, Rmtsd)
+                                        fci(:) = 0._db
+                                        radli = 0._db
+                                      endif
+                                      
+                                    else ! seems not useful because u(m,mp) = conjg( u(mp,m) ) at least when Eimag = 0
+
+                                      if( Radial_comp ) then
+                                        fcr(1:nrmtsd) = r2(1:nrmtsd) &
+                                                      * ( ur(1:nrmtsd,np1,n1,isp1,iso1) * ur(1:nrmtsd,np2,n2,isp2,iso2) &
+                                                        - ui(1:nrmtsd,np1,n1,isp1,iso1) * ui(1:nrmtsd,np2,n2,isp2,iso2) )
+                                        radlr = f_integr3(rr,fcr,1,nrmtsd,Rmtsd)
+                                        fci(1:nrmtsd) = r2(1:nrmtsd) &
+                                                      * ( ur(1:nrmtsd,np1,n1,isp1,iso1) * ui(1:nrmtsd,np2,n2,isp2,iso2) &
+                                                        + ui(1:nrmtsd,np1,n1,isp1,iso1) * ur(1:nrmtsd,np2,n2,isp2,iso2) )
+                                        radli = f_integr3(rr,fci,1,nrmtsd,Rmtsd)
+                                      else
+                                        fcr(1:nrmtsd) = r2(1:nrmtsd) * ur(1:nrmtsd,np1,n1,isp1,iso1) &
+                                                                     * ur(1:nrmtsd,np2,n2,isp2,iso2)
+                                        radlr = f_integr3(rr,fcr,1,nrmtsd, Rmtsd)
+                                        fci(:) = 0._db
+                                        radli = 0._db
+                                      endif
+                                    
                                     endif
         
                                     rof_sd = cmplx( radlr, radli, db)
@@ -3453,34 +3565,34 @@ subroutine Radial_matrix_sd(Diagonale,drho,Full_potential,Harm_cubic,icheck,L,lm
         
                                   endif
 
-                                  lm = 0
-                                  boucle_L3: do L3 = 0,lmax
-                                    if( ( nlm1 == 1 .or. Comp_to_real ) .and. L3 /= 0 ) cycle
-                                    if( .not. Full_potential .and. L3 /= L1 .and. L3 /= 0 ) cycle
-
-                                    do m3 = -L3,L3
-                                      lm = lm + 1
-                                      if( Comp_to_real ) then
-                                        g = 1._db
-                                      elseif( Ylm_comp ) then
-                                        g = sqrt_4pi * gauntcp(L1,m1,L2,m2,L3,m3)
-                                      else
-                                        g = sqrt_4pi * Gaunt_r(L1,m1,L2,m2,L3,m3)
-                                      endif
-
-                                      if( abs( g ) < eps10 ) cycle
-                                         
-                                      Sta_e = c_harm * rof_sd * Taull(lma1,is1,lma2,is2)
-                                      Sta_s = conjg( c_harm ) * rof_sd * Taull(lma2,is2,lma1,is1)
+                                  Sta_e = c_harm * rof_sd * Taull(lma1,is1,lma2,is2)
+                                  Sta_s = conjg( c_harm ) * rof_sd * Taull(lma2,is2,lma1,is1)
         
-                                      Sta_r = 0.5_db * real( Sta_e - Sta_s, db)
-                                      Sta_i = 0.5_db * aimag( Sta_e + Sta_s )
+                                  Sta_r = 0.5_db * real( Sta_e - Sta_s, db)
+                                  Sta_i = 0.5_db * aimag( Sta_e + Sta_s )
         
-                                      State(lm1,iss1,lm2,iss2) = State(lm1,iss1,lm2,iss2) - g * Sta_i
-                                      State_i(lm1,iss1,lm2,iss2) = State_i(lm1,iss1,lm2,iss2) + g * Sta_r
-                                  
-                                      if( Self .and. iss1 == iss2 ) then
-                                        if( .not. Full_potential .and. l3 > 0 ) cycle                                  
+                                  State(lm1,iss1,lm2,iss2) = State(lm1,iss1,lm2,iss2) - Sta_i
+                                  State_i(lm1,iss1,lm2,iss2) = State_i(lm1,iss1,lm2,iss2) + Sta_r
+
+                                  if( Self .and. iss1 == iss2 ) then
+
+                                    lm = 0
+                                    boucle_L3: do L3 = 0,lmax
+                                      if( .not. Full_potential .and. l3 > 0 ) cycle                                  
+!                                    if( ( nlm1 == 1 .or. Diagonale .or. Comp_to_real ) .and. L3 /= 0 ) cycle
+!                                    if( .not. Full_potential .and. L3 /= L1 .and. L3 /= 0 ) cycle
+
+                                      do m3 = -L3,L3
+                                        lm = lm + 1
+!                                        if( Comp_to_real ) then
+ !                                         g = 1._db
+                                        if( Ylm_comp ) then
+                                          g = sqrt_4pi * gauntcp(L1,m1,L2,m2,L3,m3)
+                                        else
+                                          g = sqrt_4pi * Gaunt_r(L1,m1,L2,m2,L3,m3)
+                                        endif
+
+                                        if( abs( g ) < eps10 ) cycle 
                                       
                                         do ir = 1,nrmtsd
                                           Sta_e = c_harm * fc(ir) * Taull(lma1,is1,lma2,is2)
@@ -3488,11 +3600,12 @@ subroutine Radial_matrix_sd(Diagonale,drho,Full_potential,Harm_cubic,icheck,L,lm
                                           Sta_i = 0.5_db * aimag( Sta_e + Sta_s)
                                           drho(ir,lm,iss1) = drho(ir,lm,iss1) - g * Sta_i        
                                         end do
-                                      endif
                                       
-                                    end do
+                                      end do
         
-                                  end do boucle_L3
+                                    end do boucle_L3
+
+                                  endif
         
                                   if( icheck > 2 .and. abs( Taull(lma1,is1,lma2,is2) ) > 1.e-15_db ) then
                                     if( nlm2 > 1 ) then

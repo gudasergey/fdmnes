@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 14th of November 2019, 23 Brumaire, An 228
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 26th of November 2019, 5 Frimaire, An 228
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -48,7 +48,7 @@ module declarations
   integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic punctual groups (with other orientation)
   integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic punctual groups (with other orientation)
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 14th of November 2019'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 26th of November 2019'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -356,7 +356,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','nrixs_mon','occupancy','octupole ', &
      'old_zero ','one_run  ','one_scf  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ', &
      'pointgrou','polarized','quadmag  ','quadrupol','radius   ','range    ','rangel   ','ray_max_d','rcharge  ', &
-     'rcharge_z ','readfast ','relativis','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ', &
+     'rcharge_z','readfast ','relativis','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ', &
      'r_self   ','rydberg  ','self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
      'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spinorbit','step_azim','supermuf ','surface  ', &
      'surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','trace    ','vmax     ','v0imp    ', &
