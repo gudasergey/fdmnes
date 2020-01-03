@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 29th of October 2019, 7 Brumaire, An 228
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 14th of November 2019, 23 Brumaire, An 228
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -48,7 +48,7 @@ module declarations
   integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic punctual groups (with other orientation)
   integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic punctual groups (with other orientation)
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 29th of October 2019'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 14th of November 2019'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -261,7 +261,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 217
+  integer, parameter:: nkw_fdm = 218
   integer, parameter:: nkw_conv = 39
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_gaus = 1
@@ -348,16 +348,16 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'ephot_min','e_out_min','excited  ','extract  ','extract_t','extractpo','extractsy','fdm_comp ','film     ','film_cif_', &
      'film_pdb_','film_t   ','film_roug','film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ', &
      'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_bul','green_int','harm_tess', &
-     'hedin    ','helm_cos ','helmholtz','hkl_film ','hubbard  ','iord     ','kern_fac ','kern_fast', &
+     'hedin    ','helm_cos ','helmholtz','hkl_film ','hubbard  ','hubbard_z','iord     ','kern_fac ','kern_fast', &
      'lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ','mat_ub   ', &
      'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar','molecule ', &
      'molecule_','muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_dft   ','no_e1e1  ','no_e1e2  ', &
      'no_e1e3  ','no_e2e2  ','no_e3e3  ','no_fermi ','no_renorm','no_res_ma','no_res_mo','no_scf_bu','no_solsin','normaltau', &
      'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','nrixs_mon','occupancy','octupole ', &
      'old_zero ','one_run  ','one_scf  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ', &
-     'pointgrou','polarized','quadmag  ','quadrupol','radius   ','range    ','rangel   ','ray_max_d','raydem   ','rchimp   ', &
-     'readfast ','relativis','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ','r_self   ', &
-     'rydberg  ','self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
+     'pointgrou','polarized','quadmag  ','quadrupol','radius   ','range    ','rangel   ','ray_max_d','rcharge  ', &
+     'rcharge_z ','readfast ','relativis','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ','rpotmax  ', &
+     'r_self   ','rydberg  ','self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
      'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spinorbit','step_azim','supermuf ','surface  ', &
      'surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','trace    ','vmax     ','v0imp    ', &
      'xalpha   ','xan_atom ','ylm_comp ','z_absorbe','z_nospino','zero_azim'/
@@ -2004,8 +2004,10 @@ function Traduction(keyword)
       traduction = 'range'
     case('gammel')
       traduction = 'rangel'
-    case('raychimp')
-      traduction = 'rchimp'
+    case('rchimp')
+      traduction = 'rcharge'
+    case('rchimp_z','z_rcharge')
+      traduction = 'rcharge_z'
     case('relat')
       traduction = 'relativis'
     case('rmtimp','rmt_imp','rmtgimp','rmtg_imp')

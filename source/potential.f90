@@ -1974,8 +1974,7 @@ subroutine Raymuf(Cal_xanes,Chargat,Full_atom,i_self,iapot,iaproto,iaprotoi,iche
           Rmtg0(ipr) = Rn(ipr)
           Rmtg(ipr) = (1 + Overlap) * Rmtg0(ipr)
         case(3)
-          Rmtg0(ipr) = Rdem(ipr)
-          Rmtg(ipr) = (1 + Overlap) * Rmtg0(ipr)
+          ! Suppressed
         case(4)
           Rmtg0(ipr) = Rmtimp( itypepr(ipr) )
           Rmtg(ipr) = Rmtg0(ipr)
@@ -4266,6 +4265,8 @@ subroutine Writing_atom_carac(Cal_xanes,Full_atom,iapot,icheck,ipr1,iaprotoi,ity
   integer, dimension(0:ntype):: nrato, numat
   integer, dimension(0:n_atom_proto):: iapot, itypepr, nrmtg
 
+  character(len=1):: Star
+
   logical:: Cal_xanes, Full_atom
 
   real(kind=db):: f_integr3, p1, Rayion, V_intmax
@@ -4395,18 +4396,21 @@ subroutine Writing_atom_carac(Cal_xanes,Full_atom,iapot,icheck,ipr1,iaprotoi,ity
         it = itypepr(ipr)
         Z = numat( it )
         if( it > 0 ) then
-          write(iprt,140) ipr, Z, ' ', charge(ipr,1:nspin), charge_ion(ipr), VmftF(ipr,1:nspin) * rydb, Radius_ion(ipr) * bohr
+          Star = ' '
         else
-          write(iprt,140) ipr, Z, '*', charge(ipr,1:nspin), charge_ion(ipr), VmftF(ipr,1:nspin) * rydb, Radius_ion(ipr) * bohr
+          Star = '*'
         endif
+        write(iprt,140) ipr, Z, Star, Charge(ipr,1:nspin), Rchrg(ipr) * bohr, charge_ion(ipr),  Radius_ion(ipr) * bohr, &
+                          VmftF(ipr,1:nspin) * rydb
       end do
     end do
   endif
 
   return
-  120 format(/' ipr   Z   charge   ch_ion    Vmft   Ionic radius')
-  130 format(/' ipr   Z    ch(u)    ch(d)   ch_ion  Vmft(u)  Vmft(d)   Ionic radius')
-  140 format(i3,i5,a1,f8.3,4f9.3,2x,f9.3)
+  120 format(/' ipr   Z   Atom-Charge  Atom-Radius Ionic-Charge Ionic-Radius     Vmft')
+  130 format(/' ipr   Z   Atom-Ch(up)  Atom-Ch(dn)  Atom-Radius Ionic-Ch(up) Ionic-Ch(dn) Ionic-Radius       Vmft')
+  140 format(i3,i5,a1,f10.3,6f13.3)
+
 end
 
 !***********************************************************************

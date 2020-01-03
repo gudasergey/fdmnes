@@ -220,7 +220,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           Extract_ten = .true.
           Extract = .true.
 
-        case('hubbard')
+        case('hubbard','hubbard_z')
           Hubbard = .true.
 
         case('lmax_nrix')
@@ -1631,9 +1631,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     lmax_tddft_inp, lmaxat0, lmaxso0, lmaxso_max, long, lseuil, m, m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, &
     mpinodes0, mpirank, mpirank0, &
     mpirank_in_mumps_group, multi_run, multrmax, n, n_adp_type, n_adimp, n_atom_bulk, n_atom_cap, n_atom_coop, n_atom_int, &
-    n_atom_neq,  n_atom_neq_min, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_proto, n_atom_uc, n_B_iso, n_devide, &
-    n_file_dafs_exp, &
-    n_fract_x, n_fract_y, n_fract_z, n_label, n_mat_polar, n_multi_run_e, n_occupancy, n_radius, n_range, n_rmtg_Z, n_symbol, &
+    n_atom_neq,  n_atom_neq_min, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_proto, n_atom_uc, n_B_iso, n_rchimp_z, n_devide, &
+    n_file_dafs_exp, n_fract_x, n_fract_y, n_fract_z, &
+    n_hubbard_Z, n_label, n_mat_polar, n_multi_run_e, n_occupancy, n_radius, n_range, n_rmtg_Z, n_symbol, &
     n_Z_abs, n1, n2, natomsym, nb_atom_conf_m, nb_atom_nsph, nbseuil, &
     nchemin, necrantage, neimagent, nenerg, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_nonsph, &
     ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, nhybm, nlatm, nn, nnombre, non_relat, norb, norbdil, normrmt, &
@@ -1675,7 +1675,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   integer, dimension(ngroup_pdb):: Kgroup
   integer, dimension(n_atom_bulk):: Z_bulk
   integer, dimension(n_atom_cap):: Z_cap
-  integer, dimension(Z_Mendeleiev_max):: Z_rmtg
+  integer, dimension(Z_Mendeleiev_max):: Z_rchimp, Z_hubbard, Z_rmtg
 
   integer, dimension(0:ngroup_nonsph):: norbv
   integer, dimension(npldafs):: nphi_dafs
@@ -1740,7 +1740,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   real(kind=db), dimension(n_adimp):: E_adimp
   real(kind=db), dimension(n_radius):: E_radius
   real(kind=db), dimension(n_range):: E_max_range
-  real(kind=db), dimension(Z_Mendeleiev_max):: Rmtg_Z
+  real(kind=db), dimension(Z_Mendeleiev_max):: Rchimp_Z, Hubbard_Z, Rmtg_Z
   real(kind=db), dimension(3,nple):: polar, veconde
   real(kind=db), dimension(3,npldafs):: hkl_dafs
   real(kind=db), dimension(nple,2):: pdpolar
@@ -1917,7 +1917,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Monocrystal = .false.
   muffintin = .false.
   multrmax = 1
+  n_rchimp_Z = 0
   n_devide = 2
+  n_hubbard_Z = 0
   n_rmtg_Z = 0
   nchemin = - 1
   necrantage = 0
@@ -3007,7 +3009,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           read(itape4,*,iostat=ier) Ray_max_dirac
           if( ier > 0 ) call write_err_form(itape4,keyword)
 
-        case('rchimp')
+        case('rcharge')
           do it = 1,100000
             n = nnombre(itape4,132)
             if( n == 0 ) exit
@@ -3019,8 +3021,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             endif
           end do
 
-        case('raydem')
-          normrmt = 3
+        case('rcharge_z')
+          do i = 1,Z_Mendeleiev_max
+            read(itape4,*,iostat=ier) Z_rchimp(i), Rchimp_Z(i)
+            if( ier > 0 ) then
+              backspace(itape4)
+              exit
+            endif
+          end do
+          n_rchimp_Z = i - 1
 
         case('rmtg')
           normrmt = 4
@@ -3223,6 +3232,16 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
               exit
             endif
           end do
+
+        case('hubbard_z')
+          do i = 1,Z_Mendeleiev_max
+            read(itape4,*,iostat=ier) Z_hubbard(i), Hubbard_Z(i)
+            if( ier /= 0 ) then
+              backspace(itape4)
+              exit
+            endif
+          end do
+          n_hubbard_Z = i - 1
 
         case('full_atom')
           Full_atom_e = .true.
@@ -5070,11 +5089,32 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       end do
     end do
 
+   if( n_rchimp_Z > 0 ) then
+     do it = 1,ntype
+       do i = 1,n_rchimp_Z
+         if( numat(it) /= Z_rchimp(i) ) cycle
+         rchimp(it) = Rchimp_Z(i)
+         exit
+       end do
+     end do
+   endif
+
    if( n_rmtg_Z > 0 ) then
      do it = 1,ntype
        do i = 1,n_rmtg_Z
          if( numat(it) /= Z_rmtg(i) ) cycle
          rmtimp(it) = Rmtg_Z(i)
+         exit
+       end do
+     end do
+   endif
+
+   if( n_hubbard_Z > 0 ) then
+     do it = 1,ntype
+       do i = 1,n_hubbard_Z
+         if( numat(it) /= Z_hubbard(i) ) cycle
+         V_hubbard(it) = Hubbard_Z(i)
+         Hubb(it) = abs( V_hubbard(it) ) > eps10
          exit
        end do
      end do
@@ -5198,7 +5238,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             case(2)
               write(3,'(A)') '   Norman type muffin-tin radius'
             case(3)
-              write(3,'(A)') '   Half interatomic distance type muffin-tin radius'
+              ! suppressed
             case(4)
               write(3,420) rmtimp(1:ntype_mod)
             case(5)

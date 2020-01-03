@@ -3307,7 +3307,7 @@ subroutine Spherical_tensor_cal(Abs_U_iso,Bragg_abs,ct_nelec,Core_resolved,Volum
         end do
       end do
  
-      if( natomsym > 1 .and. ie == 1 ) then
+      if( natomsym > 1 .and. ie == 1 .and. icheck > 0 ) then
         Write_bav = .true.
         if( ipldafs > 1 ) then
           dph = sum( abs( Bragg_abs(:,ipldafs) - Bragg_abs(:,ipldafs-1) ) )
