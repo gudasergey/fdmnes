@@ -483,7 +483,7 @@ subroutine findop(line,matrix)
         Matrix(i,3) = 1._db
         Matrix(i,4) = 0.25_db
 
-      case('1/4-z','-z+1/4')
+      case('1/4-z','+1/4-z','-z+1/4')
         Matrix(i,3) = -1._db
         Matrix(i,4) = 0.25_db
 
@@ -491,23 +491,23 @@ subroutine findop(line,matrix)
         Matrix(i,1) = 1._db
         Matrix(i,4) = 0.75_db
 
-      case('3/4-x','-x+3/4')
+      case('3/4-x','+3/4-x','-x+3/4')
         Matrix(i,1) = -1._db
         Matrix(i,4) = 0.75_db
 
-      case('3/4+y','y+3/4','+y+3/4')
+      case('3/4+y','+3/4+y','y+3/4','+y+3/4')
         Matrix(i,2) = 1._db
         Matrix(i,4) = 0.75_db
 
-      case('3/4-y','-y+3/4')
+      case('3/4-y','+3/4-y','-y+3/4')
         Matrix(i,2) = -1._db
         Matrix(i,4) = 0.75_db
 
-      case('3/4+z','z+3/4','+z+3/4')
+      case('3/4+z','+3/4+z','z+3/4','+z+3/4')
         Matrix(i,3) = 1._db
         Matrix(i,4) = 0.75_db
 
-      case('3/4-z','-z+3/4')
+      case('3/4-z','+3/4-z','-z+3/4')
         Matrix(i,3) = -1._db
         Matrix(i,4) = 0.75_db
 
@@ -515,13 +515,21 @@ subroutine findop(line,matrix)
         Matrix(i,3) = 1._db
         Matrix(i,4) = 1/6._db
 
+      case('-z+1/6','+1/6-z','1/6-z')
+        Matrix(i,3) = -1._db
+        Matrix(i,4) = 1/6._db
+
       case('z+1/3','+z+1/3','1/3+z')
         Matrix(i,3) = 1._db
         Matrix(i,4) = 1/3._db
 
-      case('-z+1/3','1/3-z')
+      case('-z+1/3','1/3-z','+1/3-z')
         Matrix(i,3) = -1._db
         Matrix(i,4) = 1/3._db
+
+      case('-z+5/6','5/6-z','+5/6-z')
+        Matrix(i,3) = -1._db
+        Matrix(i,4) = 5/6._db
 
       case('z+2/3','+z+2/3','2/3+z')
         Matrix(i,3) = 1._db
@@ -531,11 +539,11 @@ subroutine findop(line,matrix)
         Matrix(i,3) = -1._db
         Matrix(i,4) = 2/3._db
 
-      case('z+5/6','+z+5/6','5/6+z')
+      case('z+5/6','+z+5/6','5/6+z','+5/6+z')
         Matrix(i,3) = 1.
         Matrix(i,4) = 5/6._db
 
-      case('x+1/3','+x+1/3','1/3+x')
+      case('x+1/3','+x+1/3','1/3+x','+1/3+x')
         Matrix(i,1) = 1._db
         Matrix(i,4) = 1/3._db
 

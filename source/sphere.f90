@@ -3012,7 +3012,8 @@ subroutine Cal_dens(Cal_xanes,Classic_irreg,Density_comp,drho_self,Ecinetic,Eima
     drho(:,:,:) = 0._db
     r(1:nr) = rato(1:nr,it)
     Vrato_t(1:nr,:,:) = Vrato(1:nr,:,:,iapr)
-    if( Hubb(it) .and. iapr <= n_atom_ind_self ) then
+    if( Hubb(it) .and. ( iapr <= n_atom_ind_self .or. Absorbeur ) ) then 
+   ! ".or. Absorber" is because in case of Extract, n_atom_ind_self == 0, and the test becomes false
       Hubb_a = .true.
       if( Absorbeur ) then
         V_Hubb_t(:,:,:,:) = V_Hubb_abs(:,:,:,:)
@@ -4011,7 +4012,7 @@ Subroutine Cal_Solsing_sd(Classic_irreg,drho,Ecomp,Eimag,f2,Full_potential,g0,gm
             if( icheck > 1 ) write(3,120) L, m, iss, Sing, State(lm,iss,lm,iss)
           end do
         else
-          lm = n0 + m
+          lm = n0 + m_k
           State(lm,iss,lm,iss) = State(lm,iss,lm,iss) + Sing
           if( Self ) drho(1:nrmtsd,1,iss) = drho(1:nrmtsd,1,iss) + fctt(1:nrmtsd)
           if( icheck > 2 ) write(3,110)

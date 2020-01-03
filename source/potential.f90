@@ -5286,6 +5286,7 @@ subroutine Potential_writing(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsi
     do isp = 1,nspinp
       do jsp = 1,nspinp
         do m = -m_hubb,m_hubb
+        ! it is the transpose but also in the reading !
           write(3,'(1p,28e19.11)') V_hubb_abs(-m_hubb:m_hubb,m,isp,jsp)*Rydb
         end do
       end do

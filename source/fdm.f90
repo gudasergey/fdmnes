@@ -2856,7 +2856,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
         endif
         V_hubb_abs(:,:,:,:) = V_hubb(:,:,:,:,iapr)
         Hubb_diag_abs = Hubb_diag(iapr)
-      elseif( .not. i_range > 1 ) then
+      elseif( .not. i_range > 1 .and. .not. extract ) then  ! read in the bav file
         Hubb_diag_abs = .true.
       endif
 
@@ -4744,7 +4744,7 @@ subroutine Potential_reading(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsi
   implicit none
   include 'mpif.h'
 
-  integer:: i, ir, isp, jsp, lmax_abs, m, m_hubb, mpierr, mpinodes, mpirank0, multi_run, n, ndim, ninitlr, nlm_pot, nnombre, &
+  integer:: i, ir, isp, jsp, lmax_abs, m, m_hubb, mp, mpierr, mpinodes, mpirank0, multi_run, n, ndim, ninitlr, nlm_pot, nnombre, &
             nrato_abs, nspin, nspinp
 
   character(len=15):: mot
@@ -4786,11 +4786,12 @@ subroutine Potential_reading(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsi
       read(1,*); read(1,*)
       do isp = 1,nspinp
         do jsp = 1,nspinp
-          do m = -m_hubb,m_hubb
-            read(1,*) V_hubb_abs(-m_hubb:m_hubb,m,isp,jsp)
+          do m = -m_hubb,m_hubb  ! it is the transpose but also in the writing
+            read(1,*) ( V_hubb_abs_r(mp,m,isp,jsp), V_hubb_abs_i(mp,m,isp,jsp), mp = -m_hubb,m_hubb )
           end do
         end do
       end do
+      V_hubb_abs(:,:,:,:) = cmplx( V_hubb_abs_r(:,:,:,:), V_hubb_abs_i(:,:,:,:), db )
     endif
 
     read(1,*); read(1,*)
@@ -4869,8 +4870,6 @@ subroutine Potential_reading(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsi
 
       call MPI_Bcast(V_hubb_abs_i,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
       call MPI_Bcast(V_hubb_abs_r,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-
-
 
     if( mpirank0 /= 0 ) V_hubb_abs(:,:,:,:) = cmplx( V_hubb_abs_r(:,:,:,:), V_hubb_abs_i(:,:,:,:), db )
 

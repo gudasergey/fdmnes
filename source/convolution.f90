@@ -16,7 +16,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
 
   integer:: Dafs_exp_type, eof, i, i_bulk_z, i_conv, i_hk, i_Trunc, i1, ical, icheck, ie, ie1, ie2, ifich, igr, ii, &
     initl, ip, ipar, ipas, ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, &
-    jfich, jpl, js, jseuil, k, kpl, Length, Length_line, mfich, n, n_bir, n_bulk_z, n_col, n_col_max, n_energ_tr, &
+    jfich, jpl, js, jseuil, k, kpl, L, Length, Length_line, mfich, n, n_bir, n_bulk_z, n_col, n_col_max, n_energ_tr, &
     n_mat_pol, n_selec_core, n_signal, n_Stokes, n_Trunc, &
     ncal, ne2, nef, nelor, nen2, nenerg, nenerge, nes, nes_in, nfich, &
     ngamh, ngroup_par, ninit, ninit1, ninitlm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
@@ -697,11 +697,26 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
 
   end do boucle_lect
 
+  if( Chem ) then
+    L = len_trim(chemin)
+    mot = fichin(1)
+    if( Chemin(L:L) /= '/' .and. fichin(1)(1:1) /= '/' ) then
+      L = L + 1
+      Chemin(L:L) = '/'
+    endif
+    do ifich = 1,nfich
+      mot = fichin(ifich)
+      Length = len_trim(mot)
+      fichin(ifich) = chemin(1:L) // mot(1:Length)
+    end do
+  endif
+  
 ! Test on input file names
   do ifich = 1,nfich
     open(2, file = fichin(ifich), status='old', iostat=istat)
     if( istat /= 0 ) then
       mot = fichin(ifich)
+
       Length = len_trim(mot)
       if( mot(Length-3:Length) /= '.txt' ) then
         mot(Length+1:Length+4) = '.txt'
@@ -2988,6 +3003,12 @@ end
   
   else
   
+    if( Chem ) then
+      long = len_trim(chemin)
+      longf = len_trim(convolution_out)
+      convolution_out = chemin(1:long) // convolution_out(1:longf)
+    endif
+
     Length = len_trim( convolution_out )
 
     if( Length > 5 ) then
@@ -3090,38 +3111,6 @@ end
       mot(Length-7:Length+5) = 'scan_conv.txt'
       fichscanout_all(ifich) = mot
     end do
-  endif
-
-  if( Chem ) then
-    long = len_trim(chemin)
-    do ifich = 1,nfich
-      mot = fichin(ifich)
-      longf = len_trim(mot)
-      fichin(ifich) = chemin(1:long) // mot(1:longf)
-    end do
-    longf = len_trim(convolution_out)
-    convolution_out = chemin(1:long) // convolution_out(1:longf)
-    do ifich = 1,nfich
-      if( nfich == 1 ) exit
-      longf = len_trim(convolution_out_all(ifich))
-      mot = convolution_out_all(ifich)
-      convolution_out_all(ifich) = chemin(1:long) // mot(1:longf)
-    end do
-    if( Scan_true ) then
-      do ifich = 1,nfich
-        mot = fichscanin(ifich)
-        longf = len_trim(mot)
-        fichscanin(ifich) = chemin(1:long) // mot(1:longf)
-      end do
-      longf = len_trim(fichscanout)
-      fichscanout = chemin(1:long) // fichscanout(1:longf)
-       do ifich = 1,nfich
-        if( nfich == 1 ) exit
-        longf = len_trim(fichscanout_all(ifich))
-        mot = fichscanout_all(ifich)
-        fichscanout_all(ifich) = chemin(1:long) // mot(1:longf)
-      end do
-   endif
   endif
 
   return
