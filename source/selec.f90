@@ -7,10 +7,13 @@ subroutine selec(itape5)
   use declarations
   implicit none
 
-  integer:: eof, i, ia, iaa, iang, ibeam, ie, igrdat, indm, iref, istat, itape5, l, n, n_ang, n1, nbeam, ne, nf, nnombre
+  integer:: eof, i, ia, iaa, iang, ibeam, ie, igrdat, indm, iref, istat, itape5, j, k, kk, l, Length, n, n_ang, n1, nbeam, ne, &
+            nf, nnombre
 
+  character(len=4):: mot4
   character(len=9):: keyword, keyword1
-  character(len=Length_word), dimension(:), allocatable:: nombeam
+  character(len=Length_word):: mot, mot15
+  character(len=Length_word), dimension(:), allocatable:: nombeam, beam_name
   character(len=132):: identmot, mots
   character(len=Length_name) file_in, file_out
 
@@ -354,6 +357,34 @@ subroutine selec(itape5)
   else        ! Spectre a plusieurs angles
     if( n_ang == 1 ) then
       write(2,160) (nombeam(iref), iref = 1,nf)
+    elseif( nf > 1 ) then
+      allocate( beam_name(nf*n_ang) )
+      j = 0
+      do iref = 1,nf
+        mot = ' '
+        mot = adjustl( nombeam(iref) )
+        Length = len_trim( mot )
+        do i = 1,n_ang
+          j = j + 1
+           mot15 = mot
+           mot4 = ' '
+          write(mot4,'(i4)') nint( ang(i) )
+          mot4 = adjustl( mot4 )
+          L = len_trim( mot4 )
+          do k = 1,L
+            kk = k + Length 
+            if( kk == Length_word ) exit
+            mot15(kk:kk) = mot4(k:k)
+          end do 
+
+          call center_word(mot15,Length_word)
+         
+          beam_name(j) = mot15
+          
+        end do
+      end do
+      write(2,160) (beam_name(j), j = 1,nf*n_ang)
+      deallocate( beam_name )
     else
       write(2,170) ang(1:n_ang)
     endif
@@ -379,10 +410,10 @@ subroutine selec(itape5)
   107 format(/' nbeam =',i4)
   108 format(' ibeam =',i4,',   n_angle =',i4)
   109 format(///' nb_angle(',i3,') =',i4,' /= n_ang =',i4///)
-  130 format('     Angle ',100f13.3)
-  140 format(f11.3,1p,100e13.5)
-  150 format('     Angle ',100a13)
-  160 format('   Energy ',100a13)
-  170 format('   Energy ',100f13.3)
+  130 format('      Angle',100f15.5)
+  140 format(f11.3,1p,100e15.7)
+  150 format('      Angle',100a15)
+  160 format('     Energy',100a15)
+  170 format('     Energy',100f15.5)
 end
 

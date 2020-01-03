@@ -908,7 +908,6 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     if( .not. Matper ) Space_Group = ' '
     if( Pdb ) Temp_B_iso = .true.
 
- !   if( Film .and. ( npldafs /= 0 .or. npldafs_2d /= 0 ) ) then
     if( ( npldafs /= 0 .or. npldafs_2d /= 0 ) .and. .not. Dafs_bio ) then
       Rewind(itape4)
       do igrdat = 1,100000
@@ -933,15 +932,31 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             case(5,6,7)
               read(itape4,*)
               npldafs_t = npldafs_t + 1
-            case(8,9,10,11,12,13)
-              read(itape4,*) r, r, p(:)
-              if( abs( p(2) ) < eps10 .or. ( keyword(1:7) == 'dafs_2d' .and. n < 12 ) ) then
+            case(8,9,10,11)
+              if( keyword(1:7) == 'dafs_2d' ) then
                 npldafs_t = npldafs_t + 1
+                read(itape4,*) r, r, r, i, j
+                if( i < 0 .or. j < 0 ) npldafs_t = npldafs_t + 1
               else
-                n = nint( ( p(3) - p(1) ) / p(2) ) + 1
-                n = max( 1, n )
-                npldafs_t = npldafs_t + n
+                read(itape4,*) r, r, p(:)
+                if( abs( p(2) ) < eps10 ) then
+                  npldafs_t = npldafs_t + 1
+                else
+                  k = nint( ( p(3) - p(1) ) / p(2) ) + 1
+                  k = max( 1, k )
+                  npldafs_t = npldafs_t + k
+                endif
               endif
+            case(12,13)
+              read(itape4,*) r, r, p(:), i, j
+              if( abs( p(2) ) < eps10 ) then
+                k = 1
+              else
+                k = nint( ( p(3) - p(1) ) / p(2) ) + 1
+                k = max( 1, k )
+              endif
+              npldafs_t = npldafs_t + k
+              if( keyword(1:7) == 'dafs_2d' .and. ( i < 0 .or. j < 0 ) ) npldafs_t = npldafs_t + k
           end select
         end do
         npldafs = npldafs_t
@@ -990,9 +1005,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
     if( Space_Group /= ' ' .or. ntype == 0 .or. Atom_conf ) then
       Very_fast = Readfast .or. Taux .or. Temp_B_iso .or. .not. ( Atom_nonsph .or. Atom_occ_hubb .or. Axe_loc)
-      call Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per, &
-                       n_atom_per_neq,n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,n_symbol,ntype,ntype_conf,Pdb, &
-                       Space_Group,Very_fast)
+      call Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,itype_dop,n_atom_bulk,n_atom_int, &
+                       n_atom_per,n_atom_per_neq,n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,n_symbol,ntype, &
+                       ntype_conf,Pdb,Space_Group,Very_fast)
     endif
     n_atom_uc = n_atom_per + n_atom_sur + n_atom_int
 
@@ -1000,7 +1015,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     if( nlatm > 0 .or. Screening ) nlatm = nlatm + 1
 
 ! ntype is the total number of atom types including the bulk atoms when existing
-    ntype = ntype + ntype_bulk
+!    ntype = ntype + ntype_bulk
 ! ngroup is the total number of atoms including the bulk atoms when existing
     ngroup = n_atom_uc + n_atom_bulk
     if( Doping ) ngroup = ngroup + 1
@@ -1256,19 +1271,19 @@ end
 
 !*********************************************************************
 
-subroutine Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,itype_dop,n_atom_int,n_atom_per, &
-                       n_atom_per_neq,n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,n_symbol,ntype,ntype_conf,Pdb, &
-                       Space_Group,Very_fast)
+subroutine Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichier_pdb,itape4,itype_dop,n_atom_bulk,n_atom_int, &
+                       n_atom_per,n_atom_per_neq,n_atom_sur,n_atom_neq,n_fract_x,n_fract_y,n_fract_z,n_label,n_symbol,ntype, &
+                       ntype_conf,Pdb,Space_Group,Very_fast)
 
   use declarations
   implicit none
 
-  integer:: eof, i, ier, igr, igrdat, io, ipr, istat, it, itape4, itype_dop, jgr, kgr, ligne, n, n_atom_neq, n_atom_int, &
-    n_atom_per, n_atom_per_neq, n_atom_sur, n_label, n_fract_x, n_fract_y, n_fract_z, na, n_symbol, nnombre, norbv, ntype, &
-    ntype_conf
+  integer:: eof, i, ier, igr, igrdat, io, ipr, istat, it, itape4, itype_dop, jgr, kgr, ligne, n, n_atom_bulk, n_atom_neq, &
+    n_atom_int, n_atom_per, n_atom_per_neq, n_atom_sur, n_label, n_fract_x, n_fract_y, n_fract_z, na, n_symbol, nnombre, norbv, &
+    ntype, ntype_conf
 
   integer, dimension(n_atom_per):: neq, numat
-  integer, dimension(n_atom_neq):: igra, itype
+  integer, dimension(n_atom_neq+n_atom_bulk):: igra, itype
 
   character(len=2):: Chemical_Symbol, Chemical_Symbol_c, Symbol
   character(len=6):: mot6
@@ -1522,7 +1537,25 @@ subroutine Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichie
 
     endif
 
-    boucle_1: do igr = 1, n_atom_neq
+    if( n_atom_bulk > 0 ) then
+
+      Rewind(itape4)
+
+      do igrdat = 1,100000
+        read(itape4,'(A)') mot
+        keyword = identmot(mot,9)
+        if( keyword(1:4) == 'bulk' ) exit
+      end do
+
+      read(itape4,*)
+
+      do igr = n_atom_neq + 1, n_atom_neq + n_atom_bulk
+        read(itape4,*) itype(igr)
+      end do
+
+    endif
+
+    boucle_1: do igr = 1, n_atom_neq + n_atom_bulk
       do kgr = 1,na
         if( igra(kgr) == igr ) cycle boucle_1
       end do
@@ -2869,6 +2902,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                 read(itape4,*,iostat=ier) hkl_dafs(:,ipl), Operation_mode(:,jpl), Angle_mode(1:n-8,jpl)
                 ipl = ipl + 1
                 hkl_dafs(:,ipl) = hkl_dafs(:,ipl-1)
+                if( Operation_mode(1,jpl) < 0 .or. Operation_mode(2,jpl) < 0 ) then
+                  ipl = ipl + 1
+                  hkl_dafs(:,ipl) = hkl_dafs(:,ipl-1)
+                  ipl = ipl + 1
+                  hkl_dafs(:,ipl) = hkl_dafs(:,ipl-1)
+                endif
               case(12,13)
                 read(itape4,*,iostat=ier) hkl_dafs(1:2,ipl), p(1:3), Operation_mode(:,jpl), Angle_mode(1:n-10,jpl)
                 hkl_dafs(3,ipl) = p(1)
@@ -2891,6 +2930,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
                   ipl = ipl + 1
                   hkl_dafs(:,ipl) = hkl_dafs(:,ipl-npl_2d(jpl))
                 end do
+                if( Operation_mode(1,jpl) < 0 .or. Operation_mode(2,jpl) < 0 ) then
+                  do j = 1,2
+                    do i = 1,npl_2d(jpl)
+                      ipl = ipl + 1
+                      hkl_dafs(:,ipl) = hkl_dafs(:,ipl-npl_2d(jpl))
+                    end do
+                  end do
+                endif
               case default
                 call write_error
                 do ipr = 6,9,3
@@ -4281,6 +4328,13 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       do i = 1,n_Z_abs
         do igr = 1,ngroup
           if( Atom .or. Atom_conf .or. Flapw ) then
+            if( abs( itype( igr ) ) > ntype ) then
+              call write_error
+              do ipr = ipr0,9,3
+                write(ipr,174) numat_abs(i)
+              end do
+              stop
+            endif
             if( numat( abs( itype( igr ) ) ) == numat_abs(i) ) exit
           else
             if( itype( igr ) == numat_abs(i) ) exit
@@ -5502,18 +5556,30 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         endif
       endif
       if( Bulk ) then
-       if( Bulk_roughness > eps10 ) write(3,'(a17,f10.5)') ' Bulk roughness =', Bulk_roughness
-       write(3,620) ' Bulk', axyz_bulk(:), Angxyz_bulk(:)
-        if( Atom_B_iso ) then
-          write(3,'(A)') '    Z         x              y              z      Typ   B_iso'
+        if( Bulk_roughness > eps10 ) write(3,'(a17,f10.5)') ' Bulk roughness =', Bulk_roughness
+        write(3,620) ' Bulk', axyz_bulk(:), Angxyz_bulk(:)
+        if( Taux .and. Atom_B_iso ) then
+          mot = ' Occupancy   B_iso'
+        elseif( Taux .and. Atom_U_iso ) then
+          mot = ' Occupancy   U_iso'
+        elseif( Taux ) then
+          mot = ' Occupancy'
+        elseif( Atom_B_iso ) then
+          mot = '   B_iso'
         elseif( Atom_U_iso ) then
-          write(3,'(A)') '    Z         x              y              z      Typ   U_iso'
+          mot = '   U_iso'
         else
-          write(3,'(A)') '    Z         x              y              z      Typ'
+          mot = ' '
         endif
+
+        write(3,560) mot
         do igr = 1,n_atom_bulk
           it = itype( ngroup - n_atom_bulk + igr )
-          if( Temp_B_iso ) then
+          if( Taux .and. Atom_B_iso ) then
+            write(3,625) Z_bulk(igr), posn_bulk(:,igr), it, Taux_oc(ngroup-n_atom_bulk+igr), Temp_coef(ngroup-n_atom_bulk+igr)
+          elseif( Taux ) then
+            write(3,625) Z_bulk(igr), posn_bulk(:,igr), it, Taux_oc(ngroup-n_atom_bulk+igr)
+          elseif( Temp_B_iso ) then
             write(3,625) Z_bulk(igr), posn_bulk(:,igr), it, Temp_coef(ngroup-n_atom_bulk+igr)
           else
             write(3,625) Z_bulk(igr), posn_bulk(:,igr), it
@@ -6262,6 +6328,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   170 format(//'  A parameter index for the fit is not possible !'/, &
                '  Check your indata file under the keyword ',a9,/ &
                '  The index is',i4//)
+  174 format(//' The atomic number given under keyword Z_absorber =',i4,' is not in the list of surface atoms !'//)
   175 format(//' The atomic number given under keyword Z_absorber =',i4,' is not in the list of atoms !'//)
   176 format(//' The first type number defined under "Crystal", "Film" or "Molecule" =',i4,',',/ &
                ' is higher than the number of atom types defined under "Atom" or "Atom_conf" =',i4,' !'//)

@@ -2428,7 +2428,7 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
         Different_slab, Doping, Flapw, Matper, Noncentre, One_run, Proto_all, Self_cons, Sym_2D
   logical, dimension(n_atom_proto):: ipr_ok
 
-  real(kind=db):: d_ecrant, cos_z, cos_z_b, cos_z_i, cos_z_s, Delta_bulk, Delta_film, Delta_int, Delta_sur, dist, &
+  real(kind=db):: d_ecrant, cos_z, cos_z_b, cos_z_i, cos_z_s, Dist_atom_min, Delta_bulk, Delta_film, Delta_int, Delta_sur, dist, &
     Film_thickness, r_self, Rmax, Rpotmax, Rsortm, Vnorme
   real(kind=db), dimension(n_radius):: rsorte_s
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_int, angxyz_sur, axyz, axyz_bulk, axyz_int, axyz_g, axyz_sur, &
@@ -2439,6 +2439,9 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
   real(kind=db), dimension(3,n_atom_bulk):: posg_bulk, posn_bulk
   real(kind=db), dimension(0:n_atom_proto):: chargat
   real(kind=db), dimension(:,:), allocatable:: posg
+
+! Minimum interatomic distance (distance H-H in H2 = 0.7414 A)
+  Dist_atom_min = 0.7_db / bohr
 
   if( Bulk_step ) then
     dcosxyz(:) = 2 * cos( angxyz_bulk(:) )
@@ -2631,7 +2634,7 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
                       .or. ( igr <= n_atom_per + n_atom_int .and. jgr > n_atom_per + n_atom_int ) &
                       .or. ( jgr <= n_atom_per + n_atom_int .and. igr > n_atom_per + n_atom_int )
               if( igr == jgr .or. Different_slab ) cycle
-              if( sum( abs( posg(:,igr) - posg(:,jgr) ) ) < eps6 )  cycle boucle_igr
+              if( sum( abs( posg(:,igr) - posg(:,jgr) ) ) < Dist_atom_min )  cycle boucle_igr
             end do
           endif
 
@@ -2684,7 +2687,8 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
         v(2) = iy * axyz_bulk(2)
         do iz = 0,-nzmaille,-1
           v(3) = iz * axyz_bulk(3)
-          do igr = 1,n_atom_bulk
+
+          boucle_igr_bulk: do igr = 1,n_atom_bulk
             ps(1:3) = posg_bulk(1:3,igr) + v(1:3)
 
             if( iabsfirst <= n_atom_per + n_atom_int ) then
@@ -2695,6 +2699,12 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
               ps(1:2) = ps(1:2) - Interface_shift(1:2) - Film_shift(1:2) - Surface_shift(1:2)
             endif
             ps(:) = ps(:) - deccent(:)
+
+            if( .not. ATA ) then
+              do jgr = igr0,igr-1
+               if( sum( abs( posg_bulk(:,igr) - posg_bulk(:,jgr) ) ) < Dist_atom_min )  cycle boucle_igr_bulk
+              end do
+            endif
 
             dist = Vnorme(Base_ortho_bulk,dcosxyz_bulk,ps)
             if( dist <= r_self + eps10 ) then
@@ -2713,7 +2723,8 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
             if( dist <= rmax + eps10 ) then
               natomp = natomp + 1
             endif
-          end do
+          end do boucle_igr_bulk
+
         end do
       end do
     end do
@@ -2915,8 +2926,8 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
   implicit none
 
   integer:: ia, ia1, ia2, iaabs, iaabsfirst, iabsorbeur, iabsfirst, ib, igr, igr0, igr_dop, igr12, ipr, iprint, itabs, ity12, &
-    ix, iy, iz, jgr, mpirank0, multi_run, n_atom_bulk, n_atom_int, n_atom_per, n_atom_sur, n_atom_uc, n_igr, natomp, ngroup, &
-    ngroup_pdb, ngroup_taux, nxmaille, nymaille, nzmaille
+    ix, iy, iz, jgr, kgr, mpirank0, multi_run, n_atom_bulk, n_atom_int, n_atom_per, n_atom_sur, n_atom_uc, n_igr, natomp, &
+    ngroup, ngroup_pdb, ngroup_taux, nxmaille, nymaille, nzmaille
   integer, dimension(ngroup):: itype
   integer, dimension(natomp):: igroup, itypep
   integer, dimension(ngroup_pdb):: Kgroup
@@ -2924,7 +2935,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
   logical:: Abs_case, ATA, Base_ortho, Base_ortho_bulk, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Center_s, &
     Different_slab, Doping, Matper, Noncentre, One_run, Sym_2D
 
-  real(kind=db):: cos_z, cos_z_b, cos_z_i, cos_z_s, Delta_bulk, Delta_film, Delta_int, Delta_sur, dist, &
+  real(kind=db):: cos_z, cos_z_b, cos_z_i, cos_z_s, Delta_bulk, Delta_film, Delta_int, Delta_sur, dist, Dist_atom_min, &
     dist12, Film_thickness, Rmax, Vnorme
   real(kind=db), dimension(3):: angxyz, angxyz_bulk, angxyz_int, angxyz_sur, axyz, axyz_bulk, axyz_int, axyz_sur, axyz_g, &
                                 dcosxyz, dcosxyz_bulk, dcosxyz_int, dcosxyz_sur, deccent, dpos, ps, v
@@ -2935,6 +2946,8 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
   real(kind=db), dimension(3,n_atom_bulk):: posg_bulk, posn_bulk
   real(kind=db), dimension(3,natomp):: pos
   real(kind=db), dimension(:,:), allocatable:: posg
+
+  Dist_atom_min = 0.7_db / bohr
 
   if( Bulk_step ) then
     igr0 = ngroup - n_atom_bulk + 1
@@ -3078,7 +3091,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
                       .or. ( igr <= n_atom_per + n_atom_int .and. jgr > n_atom_per + n_atom_int ) &
                       .or. ( jgr <= n_atom_per + n_atom_int .and. igr > n_atom_per + n_atom_int )
               if( igr == jgr .or. Different_slab ) cycle
-              if( sum( abs( posg(1:3,igr) - posg(1:3,jgr) ) ) < eps6 ) then
+              if( sum( abs( posg(1:3,igr) - posg(1:3,jgr) ) ) < Dist_atom_min ) then
                 if( ngroup_taux == 0 ) then
                   call write_error
                   do iprint = 6,9,3
@@ -3102,7 +3115,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
             end do
 
             do ib = 1,ia
-              if( sum( abs( pos(:,ib) - ps(:) ) ) < eps6 ) then
+              if( sum( abs( pos(:,ib) - ps(:) ) ) < Dist_atom_min ) then
                 if( ngroup_taux == 0 ) then
                   call write_error
                   do iprint = 6,9,3
@@ -3169,7 +3182,11 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
         v(2) = iy * axyz_bulk(2)
         do iz = 0,-nzmaille,-1
           v(3) = iz * axyz_bulk(3)
-          do igr = 1,n_atom_bulk
+
+          boucle_igr_bulk: do igr = 1,n_atom_bulk
+
+            kgr = ngroup - n_atom_bulk + igr
+
             ps(1:3) = posg_bulk(1:3,igr) + v(1:3)
 
             if( iabsfirst <= n_atom_per + n_atom_int ) then
@@ -3181,13 +3198,65 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
             endif
             ps(:) = ps(:) - deccent(:)
 
+            if( .not. ATA ) then
+              do jgr = igr0,igr-1
+                if( sum( abs( posg_bulk(:,igr) - posg_bulk(:,jgr) ) ) < Dist_atom_min )  then
+                  if( ngroup_taux == 0 ) then
+                    call write_error
+                    do iprint = 6,9,3
+                      write(iprint,122)
+                      write(iprint,130) jgr, posn_bulk(1:3,jgr), 1._db, igr, posn_bulk(1:3,igr), 1._db
+                    end do
+                    stop
+                  else
+                    if( Taux_oc( ngroup-n_atom_bulk+jgr ) + Taux_oc( kgr ) > 1._db + eps10 ) then
+                      call write_error
+                      do iprint = 6,9,3
+                        write(iprint,122)
+                        write(iprint,130) jgr, posn_bulk(1:3,jgr), Taux_oc( ngroup-n_atom_bulk+jgr ), igr, posn_bulk(1:3,igr), &
+                                          Taux_oc( kgr )
+                      end do
+                      stop
+                    elseif( Taux_oc( ngroup-n_atom_bulk+jgr ) > Taux_oc( kgr ) - eps10 ) then
+                      cycle boucle_igr_bulk
+                    endif
+                  endif
+                endif
+
+              end do
+
+              do ib = 1,ia
+                if( sum( abs( pos(:,ib) - ps(:) ) ) < Dist_atom_min ) then
+                  if( ngroup_taux == 0 ) then
+                    call write_error
+                    do iprint = 6,9,3
+                      write(iprint,120)
+                      write(iprint,125)
+                      if( igroup(ib) > ngroup-n_atom_bulk ) then
+                        write(iprint,130) igroup(ib), posn_bulk(1:3,-ngroup+n_atom_bulk+igroup(ib)), igr, posn_bulk(1:3,igr)
+                      else
+                        write(iprint,130) igroup(ib), posn(1:3,igroup(ib)), igr, posn_bulk(1:3,igr)
+                      endif
+                    end do
+                    stop
+                  endif
+                  if( Taux_oc( igroup(ib) ) <= Taux_oc( kgr ) - eps10 ) itypep(ib) = abs( itype(kgr) )
+                  cycle boucle_igr_bulk
+                endif
+              end do
+
+            endif
+
             dist = Vnorme(Base_ortho_bulk,dcosxyz_bulk,ps)
             if( dist > rmax + eps10 ) cycle
             ia = ia + 1
+
             pos(1:3,ia) = ps(1:3)
-            igroup(ia) = ngroup - n_atom_bulk + igr
-            itypep(ia) = abs( itype( ngroup - n_atom_bulk + igr ) )
-          end do
+            igroup(ia) = kgr
+            itypep(ia) = abs( itype( kgr ) )
+
+          end do boucle_igr_bulk
+
         end do
       end do
     end do
@@ -3260,7 +3329,10 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
 
   return
   110 format(/' There is no absorbing atom in the calculation sphere !')
-  120 format(//' Error in the indata file, two atoms are at the same position with the sum of their occupancy > 1',/)
+  120 format(//' Error in the indata file:',/ &
+               ' Two atoms are too close with the sum of their occupancy > 1',/)
+  122 format(//' Error in the indata file:',/ &
+               ' Two atoms in the bulk are too close with the sum of their occupancy > 1',/)
   125 format(' Possibly after a unit cell shift',/)
   130 format(' Atoms',i5,' at p =',3f11.7,' with occupancy =',f7.3,/'   and',i5,' at p =',3f11.7,' with occupancy =',f7.3)
 end

@@ -498,7 +498,7 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
   !DEC$ END OPTIONS
   
   integer:: nligne, nligne_i, nlmso, nlmso_i, MYID, mpirank0, mpirank_in_mumps_group, i, j, icheck, par, &
-            MPI_host_num_for_mumps
+            MPI_host_num_for_mumps, ipr
   integer*8:: nz
   integer, dimension(:), pointer:: rowIndexes, columnIndexes
   
@@ -554,7 +554,15 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
 !  Call package for solution
     zmumps_par%JOB = 4
     CALL ZMUMPS(zmumps_par)
-    if ( zmumps_par%INFOG(1) /= 0 ) stop 1
+    if ( zmumps_par%INFOG(1) /= 0 ) then
+      if ( zmumps_par%INFOG(1) == -13 ) then
+        call write_error
+        do ipr = 6,9,3
+          write(ipr,*) 'Not enough memory'
+        end do
+      endif
+      stop 1
+    endif
     IF ( MYID == 0 ) THEN
       DEALLOCATE( zmumps_par%IRN )
       DEALLOCATE( zmumps_par%JCN )
@@ -610,7 +618,15 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
 !  Call package for solution
     dmumps_par%JOB = 4
     CALL DMUMPS(dmumps_par)
-    if ( dmumps_par%INFOG(1) /= 0 ) stop 1
+    if ( dmumps_par%INFOG(1) /= 0 ) then
+      if ( dmumps_par%INFOG(1) == -13 ) then
+        call write_error
+        do ipr = 6,9,3
+          write(ipr,*) 'Not enough memory'
+        end do
+      endif
+      stop 1
+    endif
     if ( MYID == 0 ) then
       DEALLOCATE( dmumps_par%IRN )
       DEALLOCATE( dmumps_par%JCN )
@@ -664,7 +680,7 @@ subroutine getSolverParams(MPI_host_num_for_mumps,mpinodes0,Solver)
   if( mpi_split /= 0 ) then
     call write_error
     do ipr = 3,6,3
-      write(6,100) mpinodes0, MPI_host_num_for_mumps
+      write(ipr,100) mpinodes0, MPI_host_num_for_mumps
     end do
     stop 1
   endif

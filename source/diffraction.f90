@@ -1339,7 +1339,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
   use declarations
   implicit none
 
-  integer:: i, icheck, ipl, ipr, j, jpl, kpl, lpl, ni, npldafs, npldafs_2d, nphim
+  integer:: i, icheck, ipl, ipr, j, jpl, kpl, lpl, mpl, ni, npl, npldafs, npldafs_2d, nphim
 
   integer, dimension(3):: hkl_ref
   integer, dimension(5):: Operation_m
@@ -1349,9 +1349,9 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 
   complex(kind=db), dimension(3,npldafs,nphim):: Poldafse, Poldafss
 
-  logical:: Alfa_Beta, Alfa_fixed, Below, Beta_fixed, Bulk, Bulk_step, Chi_fixed, Column_reference, Column_detector, Delta_fixed, &
-            Detector_known, Eta_fixed, Eta_half_delta, Film, hkl_film, Mat_unit, Mu_fixed, Mu_half_nu, Naz_fixed, Nu_fixed, &
-            Phi_fixed, Psi_fixed, Q_par_n, Qaz_fixed, Ref_spec, Specular, UB_in
+  logical:: Alfa_Beta, Alfa_fixed, Below, Beta_fixed, Bulk, Bulk_step, Circular, Chi_fixed, Column_reference, Column_detector, &
+            Delta_fixed, Detector_known, Eta_fixed, Eta_half_delta, Film, hkl_film, Mat_unit, Mu_fixed, Mu_half_nu, Naz_fixed, &
+            Nu_fixed, Phi_fixed, Pol_pi, Psi_fixed, Q_par_n, Qaz_fixed, Ref_spec, Specular, UB_in
 
   real(kind=db):: a, b, alfa, Angfac, Angle, beta, c, c_cos_z, c_x, c_y, c_z, chi, cos_c, cos_d, cos_e, cos_k, &
         cos_m, cos_n, cos_p, cos_t, cos_tau, cos_tau_ref, cos_z, da, delta, Energy_photon, eta, Konde, ksi,  mu, Naz, nu, phi, &
@@ -1471,7 +1471,9 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
   ipl = 0
   do jpl = 1,npldafs_2d
 
-    Operation_m(:) = Operation_mode(:,jpl)
+    Circular = Operation_mode(1,jpl) < 0 .or. Operation_mode(2,jpl) < 0
+      
+    Operation_m(:) = abs( Operation_mode(:,jpl) ) ! because negative values means circular polarization
     Angle_m(:) = Angle_mode(:,jpl)
 
     call Operation_mode_eval(alfa,Alfa_beta,Alfa_fixed,Angle_m,beta,Beta_fixed,chi,Chi_fixed,Column_detector, &
@@ -1481,6 +1483,12 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
     do kpl = 1,npl_2d(jpl)
       ipl = ipl + 1
       lpl = ipl + npl_2d(jpl)
+      if( Circular ) then
+        mpl = lpl + npl_2d(jpl)
+        npl = mpl + npl_2d(jpl)
+      else
+        npl = lpl
+      endif
       Q(:) = hkl_dafs(:,ipl)
 
       Specular = abs( Q(1) ) < eps10 .and. abs( Q(2) ) < eps10
@@ -1491,6 +1499,10 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 ! Q modulus = mod(k_s - k_i) = 2 * k * sin( Theta_bragg )
       Q_mod(ipl) = sqrt( sum( H_phi(:)**2 ) )
       Q_mod(lpl) = Q_mod(ipl)
+      if( Circular ) then
+        Q_mod(mpl) = Q_mod(ipl)
+        Q_mod(npl) = Q_mod(ipl)
+      endif  
       H_phi_n(:) = H_phi(:) / Q_mod(ipl)
 
 ! Theta_Bragg determination
@@ -2391,13 +2403,29 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 
       endif
 
-      Vecdafse(:,ipl,1) = k_i(:)
-      Vecdafss(:,ipl,1) = k_s(:)
-      Poldafse(:,ipl,1) = cmplx( p_i(:), 0._db )
-      Vecdafse(:,lpl,1) = k_i(:)
-      Vecdafss(:,lpl,1) = k_s(:)
-      Poldafse(:,lpl,1) = cmplx( p_i(:), 0._db )
-
+      if( Circular ) then
+        call prodvec( p_i_p, p_i, k_i )
+        Poldafse(:,ipl,1) = cmplx( p_i(:), p_i_p(:) ) / sqrt_2
+        Poldafse(:,lpl,1) = cmplx( p_i(:), p_i_p(:) ) / sqrt_2
+        Poldafse(:,mpl,1) = cmplx( p_i(:), - p_i_p(:) ) / sqrt_2
+        Poldafse(:,npl,1) = cmplx( p_i(:), - p_i_p(:) ) / sqrt_2
+        Vecdafse(:,ipl,1) = k_i(:)
+        Vecdafss(:,ipl,1) = k_s(:)
+        Vecdafse(:,lpl,1) = k_i(:)
+        Vecdafss(:,lpl,1) = k_s(:)
+        Vecdafse(:,mpl,1) = k_i(:)
+        Vecdafss(:,mpl,1) = k_s(:)
+        Vecdafse(:,npl,1) = k_i(:)
+        Vecdafss(:,npl,1) = k_s(:)
+      else
+        Poldafse(:,ipl,1) = cmplx( p_i(:), 0._db )
+        Poldafse(:,lpl,1) = cmplx( p_i(:), 0._db )
+        Vecdafse(:,ipl,1) = k_i(:)
+        Vecdafss(:,ipl,1) = k_s(:)
+        Vecdafse(:,lpl,1) = k_i(:)
+        Vecdafss(:,lpl,1) = k_s(:)
+      endif
+      
       if( Film .or. Bulk ) then
         Vec(1:2) = 0._db; Vec(3) = 1._db
         call prodvec(p_s_s,Vec,k_s)
@@ -2422,6 +2450,9 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 ! The following establishment of isigpi and angpoldafs is for the Col_dafs_name routine
       if( Film .or. Bulk ) then
         cos_p = abs( sum( p_i(:) * Vec(:) ) )
+        call prodvec(W,p_i_s,k_i)
+        a = sqrt( sum( ( W(:) - p_i_p(:) )**2 ) )
+        Pol_pi = a < eps10
       else
         if( Q_mod(ipl) > eps10 ) then
           cos_p = abs( sum( p_i(:) * H_phi(:) ) ) / Q_mod(ipl)
@@ -2429,14 +2460,15 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
           cos_p = 0._db
         endif
       endif
-      if( cos_p < eps10 ) then
+      if( Circular ) then
+        isigpi(1,ipl) = 3
+        isigpi(1,lpl) = 3
+        isigpi(1,mpl) = 4
+        isigpi(1,npl) = 4
+      elseif( cos_p < eps10 ) then
         isigpi(1,ipl) = 1
         isigpi(1,lpl) = 1
-      elseif( ( Film .or. Bulk) .and. cos_p > 0.99390826_db ) then
-         ! cosp corresponds to 2 degres, it is the limit to write pi polarization... 
-        isigpi(1,ipl) = 2
-        isigpi(1,lpl) = 2
-      elseif( .not. ( Film .or. Bulk) .and. abs( cos_p - cos_t ) < eps10 ) then
+      elseif( ( ( Film .or. Bulk) .and. Pol_pi ) .or. ( .not. ( Film .or. Bulk) .and. abs( cos_p - cos_t ) < eps10 ) ) then
         isigpi(1,ipl) = 2
         isigpi(1,lpl) = 2
       else
@@ -2444,40 +2476,55 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
         isigpi(1,lpl) = 5
       endif
 
-      if( Film .or. Bulk ) then
+      if( .not. ( Film .or. Bulk ) .or. ( ( Film .or. Bulk ) .and. Specular ) ) then
+        isigpi(2,ipl) = 1
+      else
         cos_p = abs( sum( p_s_s(:) * Vec(:) ) )
+        call prodvec(W,p_s_s,k_s)
+        a = sqrt( sum( ( W(:) - p_s_p(:) )**2 ) )
+        Pol_pi = a < eps10
         if( cos_p < eps10 ) then
           isigpi(2,ipl) = 1
-        elseif( cos_p > 0.99390826_db ) then
-         ! cosp corresponds to 2 degres, it is the limit to write pi polarization... 
+        elseif( Pol_pi ) then
           isigpi(2,ipl) = 2
         else
           isigpi(2,ipl) = 5
         endif
-      else
-        isigpi(2,ipl) = 1
       endif
 
-      if( Film .or. Bulk ) then
+      if( .not. ( Film .or. Bulk ) .or. ( ( Film .or. Bulk ) .and. Specular ) ) then
+        isigpi(2,lpl) = 2
+      else
         cos_p = abs( sum( p_s_p(:) * Vec(:) ) )
         if( cos_p < eps10 ) then
           isigpi(2,lpl) = 1
-        elseif( cos_p > 0.99390826_db ) then
+!        elseif( cos_p > 0.99390826_db ) then
          ! cosp corresponds to 2 degres, it is the limit to write pi polarization... 
+        elseif( cos_p > 0.999999_db ) then
           isigpi(2,lpl) = 2
         else
           isigpi(2,lpl) = 5
         endif
-      else
-        isigpi(2,lpl) = 2
+      endif
+      if( Circular ) then
+        isigpi(2,mpl) = isigpi(2,ipl)
+        isigpi(2,npl) = isigpi(2,lpl)
       endif
 
       Poldafss(:,ipl,1) = cmplx( p_s_s(:), 0._db )
       Poldafss(:,lpl,1) = cmplx( p_s_p(:), 0._db )
+      if( Circular ) then
+        Poldafss(:,mpl,1) = cmplx( p_s_s(:), 0._db )
+        Poldafss(:,npl,1) = cmplx( p_s_p(:), 0._db )
+      endif
  
       if( Phi_fixed ) then
         angpoldafs(3,ipl) = phi
         angpoldafs(3,lpl) = phi
+        if( Circular ) then
+          angpoldafs(3,mpl) = phi
+          angpoldafs(3,npl) = phi
+        endif
       endif
 
       if( Film .and. alfa > eps10 .and. beta > eps10 ) then
@@ -2486,30 +2533,53 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
         Length_abs(ipl) = 1.e+20_db
       endif
       Length_abs(lpl) = Length_abs(ipl)
+      if( Circular ) then
+        Length_abs(mpl) = Length_abs(ipl)
+        Length_abs(npl) = Length_abs(ipl)
+      endif
 
       if( phi > pi ) phi = phi - 2 * pi
 
       if( icheck > 0 ) then
         if( kpl == 1 .or. ( icheck > 1 .and. .not. Mat_unit ) ) then
           write(3,'(/A)') ' Orthonormalized Surface basis'
-          write(3,150)
+          if( Circular ) then
+            write(3,150)
+          else
+            write(3,155)
+          endif
         endif
         if( Q_par_n .and. ( Naz_fixed .or. Qaz_fixed ) ) then
-          write(3,160) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
+          if( Circular ) then
+            write(3,160) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
+                     nu / radian, Qaz / radian, Naz / radian, &
+                     psi / radian, phi / radian, Vecdafse(:,ipl,1), Poldafse(:,ipl,1), &
+                     Vecdafss(:,ipl,1), real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+          else
+            write(3,165) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
                      nu / radian, Qaz / radian, Naz / radian, &
                      psi / radian, phi / radian, Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), &
                      Vecdafss(:,ipl,1), real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+          endif
         else
-          write(3,170) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
+          if( Circular ) then
+            write(3,170) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
+                     nu / radian, Qaz / radian, Naz / radian, &
+                     psi / radian, eta / radian, mu / radian, chi / radian, phi / radian, &
+                     Vecdafse(:,ipl,1), Poldafse(:,ipl,1), Vecdafss(:,ipl,1), &
+                     real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+          else
+            write(3,175) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
                      nu / radian, Qaz / radian, Naz / radian, &
                      psi / radian, eta / radian, mu / radian, chi / radian, phi / radian, &
                      Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), Vecdafss(:,ipl,1), &
                      real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+          endif
         endif
       endif
 
       if( icheck > 1 .and. .not. Mat_unit  ) then
-        do i = ipl,lpl,lpl-ipl
+        do i = ipl,npl,npl_2d(jpl)
           p(:) = real( Poldafse(:,i,1), db )
           p = matmul( Mat_K, p )
           Poldafse(:,i,1) = cmplx( p(:), 0._db )
@@ -2525,21 +2595,41 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
         end do
 
         write(3,'(/A)') ' Internal basis R1, z along c'
-        write(3,150)
+        if( Circular ) then
+          write(3,150)
+        else
+          write(3,155)
+        endif
+        
         if( Q_par_n .and. ( Naz_fixed .or. Qaz_fixed ) ) then
-          write(3,160) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
+          if( Circular ) then
+            write(3,160) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
+                     nu / radian, Qaz / radian, Naz / radian, &
+                     psi / radian, phi / radian, Vecdafse(:,ipl,1), Poldafse(:,ipl,1), &
+                     Vecdafss(:,ipl,1), real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+          else
+            write(3,165) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
                      nu / radian, Qaz / radian, Naz / radian, &
                      psi / radian, phi / radian, Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), &
                      Vecdafss(:,ipl,1), real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+          endif
         else
-          write(3,170) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
+          if( Circular ) then
+            write(3,170) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
+                     nu / radian, Qaz / radian, Naz / radian, &
+                     psi / radian, eta / radian, mu / radian, chi / radian, phi / radian, &
+                     Vecdafse(:,ipl,1), Poldafse(:,ipl,1), Vecdafss(:,ipl,1), &
+                     real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+          else
+            write(3,175) ipl, hkl_dafs(:,ipl), Theta_Bragg / radian, alfa / radian, beta / radian, delta / radian, &
                      nu / radian, Qaz / radian, Naz / radian, &
                      psi / radian, eta / radian, mu / radian, chi / radian, phi / radian, &
                      Vecdafse(:,ipl,1), real( Poldafse(:,ipl,1), db ), Vecdafss(:,ipl,1), &
                      real( Poldafss(:,ipl,1), db ), real( Poldafss(:,lpl,1), db )
+          endif
         endif
 
-        do i = ipl,lpl,lpl-ipl
+        do i = ipl,npl,npl_2d(jpl)
           p(:) = real( Poldafse(:,i,1), db )
           p = matmul( Mat_K_i, p )
           Poldafse(:,i,1) = cmplx( p(:), 0._db )
@@ -2580,7 +2670,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 
     end do
 
-    ipl = lpl
+    ipl = npl
 
   end do
   
@@ -2592,9 +2682,13 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
  125 format(/'   One gets a negative discriminant =',1p,e11.3,','/ &
              '   from wich angle cannot be calculated !'//)
  150 format(/'   ipl    h      k      l     theta_B   alfa    beta   delta    nu     Qaz     Naz     psi', &
-             '     eta      mu     chi      phi',16x,'k_i',24x,'Pol_i',24x,'k_s',23x,'Pol_s_1',22x,'Pol_s_2')
- 160 format(i5,2f7.2,f9.4,8f8.3,4x,'x',7x,'x',7x,'x',3x,f8.3,5(1x,3f9.5))
- 170 format(i5,2f7.2,f9.4,12f8.3,5(1x,3f9.5))
+             '     eta      mu     chi      phi',16x,'k_i',36x,'Pol_i',36x,'k_s',23x,'Pol_s_1',22x,'Pol_s_2')
+ 155 format(/'   ipl    h      k      l     theta_B   alfa    beta   delta    nu     Qaz     Naz     psi', &
+             '     eta      mu     chi      phi',16x,'k_i',24x,'Pol_i',23x,'k_s',23x,'Pol_s_1',21x,'Pol_s_2')
+ 160 format(i5,2f7.2,f9.4,8f8.3,4x,'x',7x,'x',7x,'x',3x,f8.3,1x,3f9.5,1x,3(f9.5,f8.4),3(1x,3f9.5))
+ 165 format(i5,2f7.2,f9.4,8f8.3,4x,'x',7x,'x',7x,'x',3x,f8.3,5(1x,3f9.5))
+ 170 format(i5,2f7.2,f9.4,12f8.3,1x,3f9.5,1x,3(f9.5,f8.5),3(1x,3f9.5))
+ 175 format(i5,2f7.2,f9.4,12f8.3,5(1x,3f9.5))
  180 format(/'   Normalized outgoing wave vector modulus =',f14.10,' different from one.')
  190 format(/'   When an experimental UB matrix is used,',/ &
              '   it is better to also use a reference axis not along 0 0 1, which is the default !', /'   ( keyword "setaz" )'//)

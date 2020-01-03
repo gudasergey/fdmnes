@@ -371,6 +371,8 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
                           .or. isym == 63 ) sec_md(:,:) = - sec_md(:,:)
           if( isymeq(ia) < 0 ) sec_md(:,:) = - sec_md(:,:)
           secmdia_m(:,:,initlr,ia) = sec_md(:,:)
+        else
+          secmdia_m(:,:,initlr,ia) = (0._db,0._db)
         endif
       endif
 
@@ -940,7 +942,7 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
                   sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia(:,ke,initlr,ia) ) &
                             - uae(ke) * sum( conjg(plas(:)) * secmdia(:,ke,initlr,ia) )  
   ! on met le signe plus devant uae car la partie reelle contient le terme magnetique, (le complexe conjugue est donc inutile)
-                  if( Green_int_mag ) sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia_m(:,ke,initlr,ia) ) &
+                  if( Magn_sens ) sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia_m(:,ke,initlr,ia) ) &
                                                 + uae(ke) * sum( conjg( plas(:) ) * secmdia_m(:,ke,initlr,ia) )
                 else
                   sec = sec + conjg( uas(ke) ) * sum( plae(:) * secmdia(:,ke,initlr,ia) ) &
@@ -1353,17 +1355,17 @@ subroutine Write_coabs(Abs_U_iso,Allsite,angxyz,axyz,Bragg_abs,Bulk_step,Cartesi
         Tens(ipl) = real( cf,db )
         ipl = ipl + 1
         Tens(ipl) = aimag( cf )
-        if( self_abs ) then
-          do i = 1,2
-            ipl = ipl + 1
-            Tens(ipl) = real( mu(ipldafs,1,i,initlr,ia), db )
-          end do
-        elseif( Full_self_abs ) then
+        if( Full_self_abs ) then
           do i = 1,2
             ipl = ipl + 1
             Tens(ipl) = real( mu(ipldafs,1,i,initlr,ia), db )
             ipl = ipl + 1
             Tens(ipl) = aimag( mu(ipldafs,1,i,initlr,ia) )
+          end do
+        elseif( self_abs ) then
+          do i = 1,2
+            ipl = ipl + 1
+            Tens(ipl) = real( mu(ipldafs,1,i,initlr,ia), db )
           end do
         endif
       end do

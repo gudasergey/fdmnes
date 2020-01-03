@@ -399,6 +399,32 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
           n = nnombre(itape1,132)
           read(itape1,'(A)') fichscanin(ifich)
           fichscanin(ifich) = adjustl( fichscanin(ifich) )
+
+          open(2, file = fichscanin(ifich), status='old',iostat=istat)
+          if( istat /= 0 ) then
+            mot = fichscanin(ifich)
+            Length = len_trim(mot)
+            if( mot(Length-3:Length) /= '.txt' ) then
+              mot(Length+1:Length+4) = '.txt'
+              Close(2) 
+              open(2, file = mot, status='old', iostat=istat)
+              if( istat /= 0 ) then
+                Length = len_trim(mot)
+                mot(Length-3:Length+2) = '_1.txt'
+                open(2, file = mot, status='old', iostat=istat)
+                if( istat == 0 ) then
+                  call write_error
+                  do ipr = 6,9,3
+                    write(ipr,112) fichin(ifich), mot
+                  end do
+                  stop
+                else
+                  call write_open_error(fichin(ifich),istat,1)
+                endif
+              endif
+            endif
+            fichscanin(ifich) = mot
+          endif
         end do
 
       case('scan')
@@ -3046,7 +3072,6 @@ end
   Dafs_bio = .false.
   if( Scan_true ) then
     open(2, file = fichscanin(1), status='old',iostat=istat)
-    if( istat /= 0 ) call write_open_error(fichscanin(1),istat,1)
     n = nnombre(2,Length_line)
     read(2,*) n
     if( n == 4 ) Dafs_bio = .true.
@@ -3101,6 +3126,9 @@ end
 
   return
   110 format(/' ---- Convolution ------',100('-'))
+  112 format(//' Error opening the file:',//3x,A,//  &
+           5x,'It does not exist but the following file is found existing: ',//3x,A,// &
+           5x,'Modify the input file and eventualy add other indata files with the convenient indexes !',//)
 end
 
 !********************************************************************************************************************
@@ -3653,6 +3681,7 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
 
           else
 
+            if( Full_self_abs .and. ii == 1 ) j = j - 4
             nomab = nom_col_in(j)
             nomab(1:1) = 'I'
             Length = len_trim( nomab )
@@ -3704,6 +3733,7 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
           endif
 
         end do
+        if( Full_self_abs ) j = j + 4
       endif
 
     end do
@@ -4528,6 +4558,8 @@ subroutine Corr_abs(angxyz,As,axyz,c_micro,d_dead,Double_cor,Eseuil,fpp_avantseu
     ipl_pas = 4
   endif
 
+  is = 0
+  
   do ipl = 1,npldafs,ipl_pas
 
     hkl(:) = hkl_dafs(:,ipl)
@@ -4690,7 +4722,7 @@ subroutine Corr_abs(angxyz,As,axyz,c_micro,d_dead,Double_cor,Eseuil,fpp_avantseu
 
             case default
 
-              is = ipl + indp - 5
+!              is = ipl + indp - 5
 
               eta = Stokes_param(4,indp-4)
               Brag_A = Stokes_param(5,indp-4)
@@ -4777,6 +4809,8 @@ subroutine Corr_abs(angxyz,As,axyz,c_micro,d_dead,Double_cor,Eseuil,fpp_avantseu
 
             case default
 
+              is = ( ( ipl + 3 ) / 4 - 1 ) * n_stokes + indp - 4
+              
               Icirccor(ie,ip,is) = Resultat
 
               if( Double_cor ) then
@@ -5368,9 +5402,9 @@ subroutine Write_transpose(Convolution_out,Energ_tr,Es,n_col,n_energ_tr,n_signal
   
   select case(Length_word)
     case(15)  
-      write(ipr,110) (( '       l_'//hk(i_hk), E_string(:,i_cor,i_hk), i_cor = 1,n_cor ), i_hk = 1,n_hk_tr )
+      write(ipr,110) (( '       L_'//hk(i_hk), E_string(:,i_cor,i_hk), i_cor = 1,n_cor ), i_hk = 1,n_hk_tr )
     case(17)  
-      write(ipr,120) (( '       l_'//hk(i_hk), E_string(:,i_cor,i_hk), i_cor = 1,n_cor ), i_hk = 1,n_hk_tr )
+      write(ipr,120) (( '       L_'//hk(i_hk), E_string(:,i_cor,i_hk), i_cor = 1,n_cor ), i_hk = 1,n_hk_tr )
   end select
 
   do index = 1,index_max
