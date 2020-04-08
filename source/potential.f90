@@ -42,7 +42,7 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
   logical, dimension(0:n_atom_proto):: Proto_calculated
 
   real(kind=db):: alfpot, Delta_helm, Dist, f_integr3, Overlap, Orig_helm, Rayint, Rsort, V_helm, V_intmax, V0bdcFimp, &
-                  Vsphere, Width_helm
+                  Vsphere, Width_helm, z_bulk, z_surf
   real(kind=db), dimension(3):: V_surf
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_init, chargat_self
   real(kind=db), dimension(npoint):: rs, Vh
@@ -132,6 +132,8 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
   if( i_self == 1 ) iapr0 = 0   ! index for excted atom
 
   Orig_helm = 0._db
+  z_bulk = - 1000._db
+  z_surf = - 1000._db
   if( abs( V_helm ) > eps10 ) then
     Orig_helm = -1000000._db
 ! V_surf is the direction perpendicular to the surface in the rotated cluster basis
@@ -147,6 +149,16 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
       end do
     endif
     if( icheck(13) > 0 .and. i_self == 1 ) write(3,'(/a12,f10.5,a2)') ' Orig_helm =',Orig_helm*bohr,' A'
+! Looking for the bulk atom, the closest from the suface
+    do ia = 1,natomp
+      ipr = iaproto( ia )
+      Dist = sum( V_surf(1:3) * pos(1:3,ia) )
+      if( ipr > n_atom_proto - n_atom_proto_bulk ) then
+        z_bulk = max( z_bulk, Dist )
+      else
+        z_surf = max( z_surf, Dist )
+      endif
+    end do
   endif
 
   if( icheck(13) > 2 ) write(3,110) i_self, Full_atom, iapr0, n_iapr
@@ -207,7 +219,7 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
         n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,nlm_pot,nonexc,nrato,nrm,nrm_self, &
         nspin,ntype,numat,Orig_helm,pos,posi,Rato,rho_chg_e,rho_no_sup_e,rho_self,rhoato_e,rhoato_init_e,rhoigr, &
         rhonspr(ipr),Rmtsd(ipr),rsato_e,SCF,Self_nonexc,Sym_2D,This_bulk_atom_done,V_helm,V_surf,Vato,Vcato_e, &
-        Vcato_init_e,Vhnspr(ipr),Vsphere,Vxcato_e,Width_helm)
+        Vcato_init_e,Vhnspr(ipr),Vsphere,Vxcato_e,Width_helm,z_bulk,z_surf)
 
     if( iapr >= n_atom_0 ) then
       rsato(:,iapr) = rsato_e(:)
@@ -276,7 +288,7 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
         ia_eq_inv,iaabs,iaproto,icheck(12),igreq,igroup,itypep,Magnetic,n_atom_0,n_atom_ind,n_atom_proto,n_atom_proto_bulk, &
         natomeq,natomp, &
         neqm,ngroup_m,Nonsph,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,Orig_helm,pos,Rato,rho,rhons,rs,rhoigr,rhomft, &
-        Rmtg0,Rmtsd,SCF,Sym_2D,V_helm,V_intmax,V_surf,Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,Width_helm,xyz)
+        Rmtg0,Rmtsd,SCF,Sym_2D,V_helm,V_intmax,V_surf,Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,Width_helm,xyz,z_bulk,z_surf)
 
 ! Writing: the atom charge is integrated up to Rmtsd, here before any superposition
   if( i_self == 1 .and. icheck(13) > 2 ) then
@@ -983,7 +995,7 @@ subroutine Pot0muffin(alfpot,Cal_xanes,Chargat,chargat_init,chargat_self, &
         n_atom_ind_self,n_atom_proto,natome,natome_self,natomeq,natomeq_self,natomp,nlm_pot,nonexc,nrato,nrm,nrm_self, &
         nspin,ntype,numat,Orig_helm,pos,posi,Rato,rho_chg,rho_no_sup,rho_self,rhoato,rhoato_init,rhoigr, &
         rhonspr,Rmtsd,rsato,SCF,Self_nonexc,Sym_2D,This_bulk_atom_done,V_helm,V_surf,Vato,Vcato,Vcato_init,Vhnspr, &
-        Vsphere,Vxcato,Width_helm)
+        Vsphere,Vxcato,Width_helm,z_bulk,z_surf)
 
   use declarations
   implicit none
@@ -1004,8 +1016,8 @@ subroutine Pot0muffin(alfpot,Cal_xanes,Chargat,chargat_init,chargat_self, &
   logical:: Atom_self, This_bulk_atom_done, Cal_xanes, Full_atom, Helm_cos, Magnetic, Nonexc, Self_nonexc, SCF, Sym_2D
 
   real(kind=db):: alfa, alfpot, Cos_theta, Dab, dab2, dabr, dch, Delta_V_helm, dist, drhm, dt2, dtheta, dvcm, f, &
-    fac, Orig_helm, p1, p2, ra1, ra2, ra3, Rayop, rhonspr, Rmtsd, rpotmin, Sin_theta, Theta, Tiers, V_helm, Vrop, Vsphere, &
-    Vhnspr, Width_helm, Width_p, x
+    fac, Orig_helm, p1, p2, ra1, ra2, ra3, Rayop, rhonspr, Rmtsd, rpotmin, Sin_theta, Smooth, Theta, Tiers, V_helm, Vrop, &
+    Vsphere, Vhnspr, Width_helm, Width_p, x, z_bulk, z_surf
 
   real(kind=db), dimension(3):: p, V_surf
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_init, chargat_self
@@ -1143,26 +1155,33 @@ subroutine Pot0muffin(alfpot,Cal_xanes,Chargat,chargat_init,chargat_self, &
       endif
       if( Sym_2D ) then
         Dist = sum( V_surf(1:3) * pos(1:3,ia) )
+        if( z_bulk > -999._db .and. z_surf > -999._db ) then
+          Smooth = ( Dist - z_bulk ) / ( z_surf - z_bulk )
+          Smooth = max( Smooth, 0._db )
+        else
+          Smooth = 1._db
+        endif
       else
         Dist = sqrt( sum( pos(:,ia)**2 ) )
+        Smooth = 1._db
       endif
       if( Helm_cos ) then
         if( dist > Orig_helm - Width_helm .and. dist < Orig_helm + Width_helm ) then
-          Delta_V_helm = 0.5_db * V_helm * ( 1 + cos( pi * ( dist - Orig_helm ) / Width_helm ) )
+          Delta_V_helm = Smooth * 0.5_db * V_helm * ( 1 + cos( pi * ( dist - Orig_helm ) / Width_helm ) )
           Vcato(0:nr,1) = Vcato(0:nr,1) + Delta_V_helm
           if( icheck > 1 ) write(3,*)
-          if( icheck > 0 ) write(3,115) ia, ipr, numat(itia), Delta_V_helm *rydb
+          if( icheck > 0 ) write(3,115) ia, ipr, numat(itia), Smooth, Delta_V_helm * rydb
         endif
       else
         x = ( dist - Orig_helm ) / Width_p
         if( abs( x ) < eps10 ) then
           Delta_V_helm = V_helm
         else
-          Delta_V_helm = fac * ( 1 - erfc( x ) ) / ( dist - Orig_helm )
+          Delta_V_helm = Smooth * fac * ( 1 - erfc( x ) ) / ( dist - Orig_helm )
         endif
         Vcato(0:nr,1) = Vcato(0:nr,1) + Delta_V_helm
         if( icheck > 1 ) write(3,*)
-        if( icheck > 0 ) write(3,115) ia, ipr, numat(itia), Delta_V_helm *rydb
+        if( icheck > 0 ) write(3,115) ia, ipr, numat(itia), Smooth, Delta_V_helm *rydb
       endif
     endif
 
@@ -1464,7 +1483,7 @@ subroutine Pot0muffin(alfpot,Cal_xanes,Chargat,chargat_init,chargat_self, &
 
   return
   110 format(/' ---- Pot0muffin ',98('-'))
-  115 format(' ia =',i3,', ipr =',i3,', Z =',i3,', Delta_V_helmholtz =',f10.5,' eV')
+  115 format(' ia =',i3,', ipr =',i3,', Z =',i3,', Smooth =',f6.3,', Delta_V_helmholtz =',f10.5,' eV')
   120 format(/' ia =',i3,', iapr =',i3,', ipr =',i3,', Z =',i3, '. Avant superposition')
   132 format(/' ia =',i3,', iapr =',i3)
   140 format(4x,'Radius     4pi*r2*rho    Vcato(lm=1,..nlm_pot)')
@@ -2208,7 +2227,7 @@ subroutine Pot0(alfpot,Axe_Atom_gr,Bulk_atom_done,Chargat,drhoato,dvcato,Full_at
         ia_eq_inv,iaabs,iaproto,icheck,igreq,igroup,itypep,Magnetic,n_atom_0,n_atom_ind,n_atom_proto,n_atom_proto_bulk, &
         natomeq,natomp, &
         neqm,ngroup_m,Nonsph,npoint,npoint_ns,npsom,nrato,nrm,nspin,ntype,Orig_helm,pos,Rato,rho,rhons,rs,rhoigr,rhomft, &
-        Rmtg0,Rmtsd,SCF,Sym_2D,V_helm,V_intmax,V_surf,Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,Width_helm,xyz)
+        Rmtg0,Rmtsd,SCF,Sym_2D,V_helm,V_intmax,V_surf,Vato,Vcmft,Vh,Vhns,Vsphere,Vxc,Width_helm,xyz,z_bulk,z_surf)
 
   use declarations
   implicit none
@@ -2226,8 +2245,8 @@ subroutine Pot0(alfpot,Axe_Atom_gr,Bulk_atom_done,Chargat,drhoato,dvcato,Full_at
   logical:: Bulk_atom_done, Full_atom, Helm_cos, Magnetic, Nonsph, SCF, Sym_2D, This_bulk_atom_done
   logical, dimension(npoint):: iok
 
-  real(kind=db):: alfa, alfpot, cosang, Delta_V_helm, drho, dist, dist_min, dv, f, fac, Orig_helm, p1, p2, Tiers, &
-    V_helm, V_intmax, Vsphere, Width_helm, Width_p, x
+  real(kind=db):: alfa, alfpot, cosang, Delta_V_helm, drho, dist, dist_min, dv, f, fac, Orig_helm, p1, p2, Smooth, Tiers, &
+    V_helm, V_intmax, Vsphere, Width_helm, Width_p, x, z_bulk, z_surf
 
   real(kind=db), dimension(3):: V, V_surf
   real(kind=db), dimension(npoint):: rs, Vh
@@ -2383,12 +2402,19 @@ subroutine Pot0(alfpot,Axe_Atom_gr,Bulk_atom_done,Chargat,drhoato,dvcato,Full_at
     do i = 1,npoint
       if( Sym_2D ) then
         dist = sum( V_surf(1:3) * xyz(1:3,i) )
+        if( z_bulk > -999._db .and. z_surf > -999._db .and. Dist < z_surf ) then
+          Smooth = ( Dist - z_bulk ) / ( z_surf - z_bulk )
+          Smooth = max( Smooth, 0._db )
+        else
+          Smooth = 1._db
+        endif
       else
+        Smooth = 1._db
         dist = xyz(4,i)
       endif
       if( Helm_cos ) then
         if( dist > Orig_helm - Width_helm .and. dist < Orig_helm + Width_helm ) then
-          Delta_V_helm = 0.5_db * V_helm * ( 1 + cos( pi * ( dist - Orig_helm ) / Width_helm ) )
+          Delta_V_helm = Smooth * 0.5_db * V_helm * ( 1 + cos( pi * ( dist - Orig_helm ) / Width_helm ) )
           Vh(i) = Vh(i) + Delta_V_helm
         endif
       else
@@ -2396,7 +2422,7 @@ subroutine Pot0(alfpot,Axe_Atom_gr,Bulk_atom_done,Chargat,drhoato,dvcato,Full_at
         if( abs( x ) < eps10 ) then
           Delta_V_helm = V_helm
         else
-          Delta_V_helm = fac * ( 1 - erfc( x ) ) / ( dist - Orig_helm )
+          Delta_V_helm = Smooth * fac * ( 1 - erfc( x ) ) / ( dist - Orig_helm )
         endif
         Vh(i) = Vh(i) + Delta_V_helm
       endif
@@ -5246,14 +5272,14 @@ end
 !***********************************************************************
 
 subroutine Potential_writing(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsii, &
-                             Epsii_moy,Hubb_abs,Hubb_diag_abs,lmax_abs,m_hubb,ninitlr,nlm_pot,nrato_abs,nspin,nspinp, &
+                             Epsii_moy,Hubb_abs,Hubb_diag_abs,lmax_abs,m_hubb,ninitr,nlm_pot,nrato_abs,nspin,nspinp, &
                              rato_abs,rhoato_abs,Rmtg_abs,Rmtsd_abs,rsato_abs,rsbdc,V_hubb_abs,V0muf,Vcato_abs,Vhbdc,Vxcato_abs, &
                              VxcbdcF)
 
   use declarations
   implicit none
 
-  integer:: i, ir, isp, jsp, lmax_abs, m, m_hubb, ninitlr, nlm_pot, nrato_abs, nspin, nspinp
+  integer:: i, ir, isp, jsp, lmax_abs, m, m_hubb, ninitr, nlm_pot, nrato_abs, nspin, nspinp
 
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb_abs
 
@@ -5261,15 +5287,15 @@ subroutine Potential_writing(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsi
 
   real(kind=db):: Delta_Eseuil, E_cut, E_Fermi, Ecineticmax, Epsii_moy, Rmtg_abs, Rmtsd_abs, rsbdc, V0muf, Vhbdc
   real(kind=db), dimension(nspin):: dV0bdcf, VxcbdcF
-  real(kind=db), dimension(ninitlr):: Epsii
+  real(kind=db), dimension(ninitr):: Epsii
   real(kind=db), dimension(nrato_abs):: rato_abs, rsato_abs
   real(kind=db), dimension(nrato_abs,nspin):: rhoato_abs
   real(kind=db), dimension(nrato_abs,nlm_pot):: Vcato_abs
   real(kind=db), dimension(nrato_abs,nlm_pot,nspin):: Vxcato_abs
 
   write(3,110)
-  write(3,'(/A)') '   nspin nspinp nrato_abs nlm_pot m_hubb lmax_abs ninitlr'
-  write(3,'(2i7,i9,4i7)') nspin, nspinp, nrato_abs, nlm_pot, m_hubb, lmax_abs, ninitlr
+  write(3,'(/A)') '   nspin nspinp nrato_abs nlm_pot m_hubb lmax_abs ninitr'
+  write(3,'(2i7,i9,4i7)') nspin, nspinp, nrato_abs, nlm_pot, m_hubb, lmax_abs, ninitr
 
   if( nspin == 2 ) then
     write(3,120)
@@ -5296,7 +5322,7 @@ subroutine Potential_writing(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsi
   write(3,'(/A)') '       Rmtg_abs          Rmtsd_abs'
   write(3,'(1p,5e19.11)') Rmtg_abs*bohr, Rmtsd_abs*bohr
 
-  write(3,140) ( 'Epsii_', i, i = 1,min(ninitlr,9) ), ( 'Epsii_', i, i = 10,ninitlr )
+  write(3,140) ( 'Epsii_', i, i = 1,min(ninitr,9) ), ( 'Epsii_', i, i = 10,ninitr )
   write(3,'(1p,8e19.11)') Epsii_moy*Rydb, Delta_Eseuil*Rydb, Epsii(:)*Rydb
 
   if( nspin == 2 ) then

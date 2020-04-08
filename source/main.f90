@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 30th of January 2020, 6 Pluviose, An 228
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 18th of February 2020, 25 Pluviose, An 228
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -48,7 +48,7 @@ module declarations
   integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic punctual groups (with other orientation)
   integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic punctual groups (with other orientation)
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 30th of January 2020'
+  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 18th of February 2020'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -260,9 +260,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   implicit none
   include 'mpif.h'
 
-  integer, parameter:: nkw_all = 38
-  integer, parameter:: nkw_fdm = 218
-  integer, parameter:: nkw_conv = 39
+  integer, parameter:: nkw_all = 39
+  integer, parameter:: nkw_fdm = 220
+  integer, parameter:: nkw_conv = 38
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_gaus = 1
   integer, parameter:: nkw_metric = 12
@@ -306,8 +306,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   integer, dimension(:), allocatable:: ifile_notskip, indparp, Length_block, npar, npbl, nparam
   integer, dimension(:,:), allocatable:: indice_par
 
-  logical:: bav_open, Bormann, Case_fdm, Check_file, Check_extract, Conv_done, &
-    Convolution_cal, Dafs_bio, E_cut_man, Fdmnes_cal, Fit_cal, Gamma_hole_man, Gamma_max_man, Gamma_tddft, Gaus_cal, Metric_cal, &
+  logical:: bav_open, Bormann, Case_fdm, Check_file, Check_extract, Conv_done, Convolution_cal, Dafs_bio, &
+    E_cut_man, Epsii_ref_man, Fdmnes_cal, Fit_cal, Gamma_hole_man, Gamma_max_man, Gamma_tddft, Gaus_cal, Metric_cal, &
     Minim_fdm_ok, minimok, Mult_cal, Scan_a, Selec_cal, &
     Use_FDMX, FDMX_only, cm2g, nobg, nohole, nodw, noimfp, imfp_inp, elf_inp, dwfactor_inp, tdebye_inp, tmeas_inp, &
     expntl, victoreen
@@ -315,7 +315,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   logical, dimension(:), allocatable:: block_sum
 
   real(kind=db):: Ang_borm, Delta_edge, E_cut_imp, e1, e2, Ecent, &
-    Elarg, Estart, Gamma_max, fac, Gmin, param_dep, prop, rtph, tp_deb, tp_fin, tpt, x, &
+    Elarg, Epsii_ref, Estart, Gamma_max, fac, Gmin, param_dep, prop, rtph, tp_deb, tp_fin, tpt, x, &
     dwfactor, tdebye, tmeas, expntlA, expntlB, victA, victB
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(nmetricm):: Dist_Min, Gen_Shift_min
@@ -327,12 +327,12 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 ! Keywords of the indata file
   data kw_all /  'bormann  ','check    ','check_all','check_coa','check_con', &
      'check_pot','check_mat','check_sph','check_tdd','check_ten','comment  ','delta_edg','ecent    ','e_cut    ','elarg    ', &
-     'estart   ','file_in  ','filout   ','fprime_at','gamma_hol','gamma_max','length_li','no_check ','imfpin   ','elfin    ', &
-     'dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
+     'epsii    ','estart   ','file_in  ','filout   ','fprime_at','gamma_hol','gamma_max','length_li','no_check ','imfpin   ', &
+     'elfin    ','dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
      'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/
 
   data kw_conv / 'abs_b_iso','abs_befor','abs_u_iso','all_conv ','cal_tddft','calculati','check_bir','circular ','conv_out ', &
-     'convoluti','dafs_exp_','dead_laye','dec      ','directory','double_co','eintmax  ','epsii    ','forbidden','fprime   ', &
+     'convoluti','dafs_exp_','dead_laye','dec      ','directory','double_co','eintmax  ','forbidden','fprime   ', &
      'gamma_fix','gamma_var','gaussian ','no_analyz','no_extrap','nxan_lib ','s0_2     ','selec_cor','sample_th','scan     ', &
      'scan_conv','scan_file','seah     ','stokes   ','stokes_na','surface_p','table    ','thomson  ','transpose','XES      '/
 
@@ -355,11 +355,11 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'no_e1e3  ','no_e2e2  ','no_e3e3  ','no_fermi ','no_renorm','no_res_ma','no_res_mo','no_scf_bu','no_solsin','normaltau', &
      'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','nrixs_mon','occupancy','octupole ', &
      'old_zero ','one_run  ','one_scf  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ', &
-     'pointgrou','polarized','quadmag  ','quadrupol','radius   ','range    ','rangel   ','ray_max_d','rcharge  ', &
-     'rcharge_z','readfast ','relativis','rixs     ','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ', &
+     'pointgrou','polarized','quadmag  ','quadrupol','radius   ','range    ','rangel   ','ray_max_d','rcharge  ','rcharge_z', &
+     'readfast ','relativis','rixs     ','rixs_core','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ', &
      'rpotmax  ','r_self   ','rydberg  ','self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
-     'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spinorbit','step_azim','supermuf ','surface  ', &
-     'surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','trace    ','vmax     ','v0imp    ', &
+     'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spin_chan','spinorbit','step_azim','supermuf ', &
+     'surface  ','surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','trace    ','vmax     ','v0imp    ', &
      'xalpha   ','xan_atom ','ylm_comp ','z_absorbe','z_nospino','zero_azim'/
 
   data kw_fit / 'parameter'/
@@ -394,6 +394,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   E1 = 0._db; E2 = 0._db
   Ecent = 30._db / Rydb
   Elarg = 30._db / Rydb
+  Epsii_ref = 0._db
+  Epsii_ref_man = .false.
   Estart = 100000._db / Rydb
   Fdmnes_cal = .false.
   Fit_cal = .false.
@@ -732,6 +734,13 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
           read(1,*) E_cut_imp
           E_cut_imp = E_cut_imp /rydb
           E_cut_man = .true.
+
+      case('epsii')
+          n = nnombre(1,132)
+          read(1,*,iostat=eof) Epsii_ref
+          if( eof > 0 ) call write_err_form(1,keyword)
+          Epsii_ref = Epsii_ref / rydb
+          Epsii_ref_man = .true.
 
         case('length_li')
           n = nnombre(1,132)
@@ -1197,6 +1206,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     call MPI_Bcast(e2,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Ecent,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Elarg,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Epsii_ref,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Epsii_ref_man,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Estart,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_shift,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nparm,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -1531,7 +1542,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     if( Fdmnes_cal .and. ifdm == 1 ) then
       if( ical > 1 ) Close(3)
 
-      call fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
+      call fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg, &
+          Epsii_ref,Epsii_ref_man,Estart,Fit_cal, &
           Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
           itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
           nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,Use_FDMX,FDMX_only, &
@@ -1548,7 +1560,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     if( mpirank0 /= 0 ) cycle
 
     if( Convolution_cal ) call Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge, &
-        E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max, &
+        E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max, &
         Gamma_max_man,ical,icheck(30),indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,ncal)
 
@@ -1652,7 +1664,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
     if( Fdmnes_cal .and. Minim_fdm_ok .and. ncal /= ncal_nonfdm ) then
       Close(3)
-      call fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal, &
+      call fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg, &
+        Epsii_ref,Epsii_ref_man,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
         itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
         nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,Use_FDMX,FDMX_only, &
@@ -1668,7 +1681,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
     if( mpirank0 == 0 ) then
       if( Convolution_cal ) call Convolution(bav_open,Bormann, .false.,convolution_out,Delta_edge, &
-        E_cut_imp,E_cut_man,Ecent, Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max, &
+        E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max, &
         Gamma_max_man,ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,Length_line,n_col_max, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,ncal)
 
@@ -1860,7 +1873,7 @@ function Traduction(keyword)
       traduction = 'coop'
     case('coop_z_fi','coop_fixe')
       traduction = 'coop_z_ax'
-    case('spinresol','spin_reso','coreresol')
+    case('spinresol','coreresol')
       traduction = 'core_reso'
     case('crist','cryst','cristallo','cristal')
       traduction = 'crystal'
@@ -2036,6 +2049,8 @@ function Traduction(keyword)
       traduction = 'solsing'
     case('spin_orbi')
       traduction = 'spinorbit'
+    case('spinchann','stoner','spin_reso')
+      traduction = 'spin_chan'
     case('stepazim','stepazimu','azim_step')
       traduction = 'step_azim'
     case('selfabsor','self_abso','selfabs')

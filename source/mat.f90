@@ -2,12 +2,12 @@
 
 ! Filling of FDM matrix and solving of the linear system of equation.
 
-subroutine mat(Adimp,Ampl_abs,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, &
+subroutine mat(Adimp,Ampl_dft,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, &
                       clapl,Classic_irreg,Dist_coop,distai,E_comp,Ecinetic_out,Eclie_out,Eimag,Eneg,Enervide, &
-                      FDM_comp_m,Full_atom,gradvr,ia_coop,iaabsi,iaprotoi,iato,ibord,icheck,ie,igroupi,igrph, &
-                      irep_util,isbord,iso,ispinin,isrt,ivois,isvois,karact,lato,lmaxa,lmaxso,lso,mato,mpirank0,mso,nab_coop, &
-                      natome,n_atom_0,n_atom_coop,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,nenerg_RIXS,ngroup_m,ngrph,nim, &
-                      nicm,nlm_probe,nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
+                      FDM_comp_m,Full_atom,gradvr,ia_coop,iaabsi,iaprotoi,iato,ibord,icheck,ie,igroupi,igrph,irep_util, &
+                      isbord,iso,ispinin,isrt,ivois,isvois,karact,lato,lmaxa,lmaxso,lso,mato,mpinodes,mpirank0,mso,nab_coop, &
+                      natome,n_atom_0,n_atom_coop,n_atom_ind,n_atom_proto,nbm,nbord,nbordf,nbtm,ngroup_m,ngrph,nim, &
+                      nicm,nlm_probe,nlm_rixs,nlmagm,nlmmax,nlmomax,nlmsa,nlmsam,nlmso,nphiato1,nphiato7,npoint,npr,npsom,nsm, &
                       nsort,nsortf,nso1,nspin,nspino,nspinp,nstm,numia,nvois,phiato,poidsa,poidso,Posi,R_rydb,Recop,Relativiste, &
                       Repres_comp,RIXS,Rmtg,Rsort,rvol,Rydberg,Solsing,Spinorbite,State_all_r,Sym_cubic,Tau_ato,Tau_coop, &
                       Taull,Time_fill,Time_tria,V0bd_out,Vr,xyz,Ylm_comp,Ylmato,Ylmso)
@@ -17,9 +17,10 @@ subroutine mat(Adimp,Ampl_abs,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xane
   
   integer:: i, ia, iaabsi, iab, ib, icheck, ie, igrph, ii, ipra, iprb, irep, is1, is2, isg, isp, ispinin, &
     j, jj, jsp, L, L1, L2, lm, lm01, lm01c, lm02, lm02c, lm1, lm2, lmaxso, lmf, lms, lmw, m, m1, m2, mpierr, &
-    MPI_host_num_for_mumps, mpirank0, natome, n_atom_0, n_atom_coop, nab_coop, n_atom_ind, n_atom_proto, nbm, nbtm, nenerg_RIXS, &
-    ngroup_m, ngrph, nim, nicm, nligne, nligne_i, nligneso, nlm_probe, nlmagm, nlmmax, nlmomax, nlmsam, nlmso, nlmso_i, nlmw, &
-    nphiato1, nphiato7,npoint, npr, npsom, nsm, nsort, nsort_c, nsort_r, nsortf, nso1, nspin, nspino, nspinp, nspinr, nstm, nvois
+    MPI_host_num_for_mumps, mpinodes, mpirank0, natome, n_atom_0, n_atom_coop, nab_coop, n_atom_ind, n_atom_proto, nbm, nbtm, &
+    ngroup_m, ngrph, nim, nicm, nligne, nligne_i, nligneso, nlm_probe, nlm_rixs, &
+    nlmagm, nlmmax, nlmomax, nlmsam, nlmso, nlmso_i, nlmw, nphiato1, nphiato7,npoint, npr, npsom, nsm, &
+    nsort, nsort_c, nsort_r, nsortf, nso1, nspin, nspino, nspinp, nspinr, nstm, nvois
 
   integer, dimension(0:npoint):: new
   integer, dimension(n_atom_coop):: ia_coop
@@ -35,7 +36,7 @@ subroutine mat(Adimp,Ampl_abs,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xane
 
   complex(kind=db):: ampl1, ampl2, cfac
   complex(kind=db), dimension(nopsm,nrepm):: karact
-  complex(kind=db), dimension(nenerg_RIXS,nlm_probe,nspinp,nlmomax,nspinp):: Ampl_abs
+  complex(kind=db), dimension(nlm_rixs,nspinp,nlmomax,nspinp,0:mpinodes-1):: Ampl_dft
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: Taull
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind):: Tau_ato
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop,nspino):: Tau_coop
@@ -342,16 +343,16 @@ subroutine mat(Adimp,Ampl_abs,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xane
          
          if( Basereel ) then
            if( Cal_comp ) then
-             Ampl_abs(ie,lm01,is1,lm02,is2) = sum( norm_t(1:nlmso,lmf) * cmplx( smr(1:nlmso,ii), smi(1:nlmso,ii), db ))
+             Ampl_dft(lm01,is1,lm02,is2,mpirank0) = sum( norm_t(1:nlmso,lmf) * cmplx( smr(1:nlmso,ii), smi(1:nlmso,ii), db ))
            else
-             Ampl_abs(ie,lm01,is1,lm02,is2) = sum( norm_t(1:nlmso,lmf) * smr(1:nlmso,ii) )
+             Ampl_dft(lm01,is1,lm02,is2,mpirank0) = sum( norm_t(1:nlmso,lmf) * smr(1:nlmso,ii) )
            endif
          else
-           Ampl_abs(ie,lm01,is1,lm02,is2) = cmplx(smr(lmf,ii),smi(lmf,ii),db)
+           Ampl_dft(lm01,is1,lm02,is2,mpirank0) = cmplx(smr(lmf,ii),smi(lmf,ii),db)
          endif
 
          if( Repres_comp .and. .not. Spinorbite ) &
-           Ampl_abs(ie,lm01-2*m1,is1,lm02-2*m2,is2) = (-1)**(m1+m2) * Ampl_abs(ie,lm01,is1,lm02,is2)
+           Ampl_dft(lm01-2*m1,is1,lm02-2*m2,is2,mpirank0) = (-1)**(m1+m2) * Ampl_dft(lm01,is1,lm02,is2,mpirank0)
 
       end do
           
@@ -4302,7 +4303,7 @@ end
 
 !**************************************************************************************************
 
-subroutine Tau_reading(icheck,ie,iaabsi,lmaxa,natome,nenerg,nlmagm,nspinp,Taull)
+subroutine Tau_reading(icheck,ie,iaabsi,lmaxa,natome,nenerg,nlmagm,nspinp,RIXS,Taull)
 
   use declarations
   implicit none
@@ -4314,6 +4315,8 @@ subroutine Tau_reading(icheck,ie,iaabsi,lmaxa,natome,nenerg,nlmagm,nspinp,Taull)
     
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: Taull
 
+  logical:: RIXS
+  
   real(kind=db):: p
   real(kind=db), dimension(nlmagm,nspinp):: Taulli, Taullr
 
@@ -4362,7 +4365,7 @@ subroutine Tau_reading(icheck,ie,iaabsi,lmaxa,natome,nenerg,nlmagm,nspinp,Taull)
     end do
   endif
   
-  if( ie == nenerg ) Close(1)
+  if( ie == nenerg .and. .not. RIXS ) Close(1)
   
   return
   270 format(2i4,' = lmax, nspinp / ( l, m)')
@@ -4370,6 +4373,167 @@ subroutine Tau_reading(icheck,ie,iaabsi,lmaxa,natome,nenerg,nlmagm,nspinp,Taull)
   290 format(2i4,' = lmax, nspinp / ( l, m, s)')
   300 format(2420(12x,3i3,10x))
   310 format(1p,2420(1x,2e15.7))
+end
+
+!**************************************************************************************************
+
+! Writing for extract
+
+subroutine Ampl_writing(Ampl_dft,ie_computer,lmaxat,lmax_probe,lmaxso,mpinodes, &
+                        nlm_rixs,nlmomax,nspinp)
+
+  use declarations
+  implicit none
+  include 'mpif.h'
+
+  integer:: ie_computer, isp, jsp, L, lm, lmax, lmax_probe, lmaxat, lmaxso, m, mpinodes, nlm, nlm_rixs, nlmo, &
+            nlmomax, nspinp
+ 
+  complex(kind=db), dimension(nlm_rixs,nspinp,nlmomax,nspinp,0:mpinodes-1):: Ampl_dft
+  
+  write(3,110)
+
+! To save space in the bav file one limits the printing down to 3.
+  lmax = max( lmax_probe, 3 )
+  lmax = min( lmaxat, lmax )
+  nlm = ( lmax + 1 )**2
+  nlmo = (lmaxso + 1)**2
+
+  write(3,260)
+  if( nspinp == 1 ) then
+    write(3,270) lmax, lmaxso, nspinp, nlmomax
+    write(3,280) (( L, m, m = -L,L ), L = 0,lmaxso )
+  else
+    write(3,290) lmax, lmaxso, nspinp, nlmomax
+    write(3,300) ((( L, m, isp, m = -L,L ), L = 0,lmaxso ), isp = 1,nspinp )
+  endif
+  do isp = 1,nspinp
+    do lm = 1,nlm
+      write(3,310) ( Ampl_dft(lm,isp,1:nlmo,jsp,ie_computer), jsp = 1,nspinp )
+    end do
+  end do
+
+  return
+  110 format(/' ---- Ampl --------',100('-'))
+  260 format(/' Atomic amplitude')
+  270 format(3i4,i6,' = lmax, lmxso, nspinp, nlmomax / ( l, m)')
+  280 format(24200(17x,2i3,16x))
+  290 format(3i4,i6,' = lmax, lmaxso, nspinp, nlmomax / ( l, m, s)')
+  300 format(24200(16x,3i3,14x))
+  310 format(1p,24200(1x,2e19.11))
+
+end
+
+!**************************************************************************************************
+
+function extract_nlmomax(multi_run,nom_fich_extract)
+
+  use declarations
+  implicit none
+
+  integer:: i, istat, multi_run, extract_nlmomax, nlmomax
+
+  character(len=17):: mot17
+  character(len=132):: mot
+  character(len=Length_name):: nom_fich_extract
+
+  open(1, file = nom_fich_extract, status='old', iostat=istat)
+  if( istat /= 0 ) call write_open_error(nom_fich_extract,istat,1)
+
+  i = 0
+  do
+    read(1,'(A)' ) mot
+    if( mot(2:15) /= 'Absorbing atom' ) cycle
+    i = i + 1
+    if( i == multi_run ) exit
+  end do
+
+  do
+    read(1,'(A)' ) mot17
+    if( mot17 == ' Atomic amplitude' ) exit
+  end do
+
+  read(1,*) i, i, i, nlmomax
+
+  extract_nlmomax = nlmomax
+     
+  Close(1)
+
+  return
+end
+
+!**************************************************************************************************
+
+subroutine Ampl_reading(Ampl_dft,icheck,ie,mpinodee,mpirank0,nenerg,nlm_rixs,nlmomax,nspinp)
+
+  use declarations
+  implicit none
+  include 'mpif.h'
+
+  integer:: icheck, ie, isp, jsp, L, lm, lmax, lmax_m, lmaxso, lmaxso_m, lmp, m, mpinodee, mpirank0, nenerg, nlm, &
+            nlm_rixs, nlma, nlmo, nlmso, nlmomax, nspinp
+
+  character(len=17):: mot17
+    
+  complex(kind=db), dimension(nlm_rixs,nspinp,nlmomax,nspinp,0:mpinodee-1):: Ampl_dft
+
+  real(kind=db):: p
+  real(kind=db), dimension(nlmomax,nspinp):: Ampli, Amplr
+
+  do
+    read(1,'(A)' ) mot17
+    if( mot17 == ' Atomic amplitude' ) exit
+  end do
+
+  read(1,*) lmax, lmaxso, nspinp
+
+! lmaxa can be < lmax because lmax is defined by the max of the lmax of the atoms with same atomic numer than the absorbing one 
+  nlma = ( lmax + 1 )**2
+  nlm = min( nlma, nlm_rixs )
+  lmax_m = nint( sqrt( real( nlma, db ) ) ) - 1
+  
+  nlmso = ( lmaxso + 1 )**2
+  nlmo = min( nlmso, nlmomax )
+  lmaxso_m = nint( sqrt( real( nlmo, db ) ) ) - 1
+
+  Ampl_dft(:,:,:,:,mpirank0) = ( 0._db, 0._db)
+
+  read(1,*)
+  
+  do isp = 1,nspinp
+    do lm = 1,nlma
+      read(1,*) ( ( Amplr(lmp,jsp),  Ampli(lmp,jsp), lmp = 1,nlmo ), ( p, p, lmp = nlmo+1,nlmso ), jsp = 1,nspinp )
+      Ampl_dft(lm,isp,1:nlmo,:,mpirank0) = cmplx( Amplr(1:nlmo,:),  Ampli(1:nlmo,:), db )
+    end do
+    do lm = nlma+1,nlm
+      read(1,*)
+    end do
+  end do
+
+  if( icheck > 0 ) then
+    write(3,*)
+    if( nspinp == 1 ) then
+      write(3,270) lmax_m, lmaxso_m, nspinp
+      write(3,280) (( L, m, m = -L,L ), L = 0,lmaxso_m )
+    else
+      write(3,290) lmax_m, lmaxso_m, nspinp
+      write(3,300) ((( L, m, isp, m = -L,L ), L = 0,lmaxso_m ), isp = 1,nspinp)
+    endif
+    do isp = 1,nspinp
+      do lm = 1,nlma
+        write(3,310) ( Ampl_dft(lm,isp,1:nlmo,jsp,mpirank0), jsp = 1,nspinp )
+      end do
+    end do
+  endif
+  
+  if( ie == nenerg ) Close(1)
+  
+  return
+  270 format(3i4,' = lmax, lmaxso, nspinp / ( l, m)')
+  280 format(24200(13x,2i3,12x))
+  290 format(3i4,' = lmax, lmaxso, nspinp / ( l, m, s)')
+  300 format(24200(12x,3i3,10x))
+  310 format(1p,24200(1x,2e15.7))
 end
 
 !**************************************************************************************************

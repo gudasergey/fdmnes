@@ -7,7 +7,7 @@
 !    Integration over energy for Dafs.
 
 subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
-        E_cut_imp,E_cut_man,Ecent,Elarg,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_max_man, &
+        E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_max_man, &
         ical,icheck,indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,ncal)
 
@@ -19,7 +19,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
     jfich, jpl, js, jseuil, k, kpl, L, Length, Length_line, mfich, n, n_bir, n_bulk_z, n_col, n_col_max, n_energ_tr, &
     n_mat_pol, n_selec_core, n_signal, n_Stokes, n_Trunc, &
     ncal, ne2, nef, nelor, nen2, nenerg, nenerge, nes, nes_in, nfich, &
-    ngamh, ngroup_par, ninit, ninit1, ninitlm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
+    ngamh, ngroup_par, ninit0, ninit1, ninitm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
     npldafs_t, npldafs_th, nseuil, nxan, nw
 
 ! njp : Points beyond the energy range to make the border effect less strong
@@ -29,7 +29,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
   integer, dimension(10):: num_core
   integer, dimension(ngroup_par):: npar
   integer, dimension(ngroup_par,nparm):: indice_par
-  integer, dimension(:), allocatable:: i_done, indf, n_index_hk, ne, ninitl, nphi, numat
+  integer, dimension(:), allocatable:: i_done, indf, n_index_hk, ne, ninit, nphi, numat
   integer, dimension(:,:), allocatable:: hkl_dafs, nsup, ne_initl
   integer, dimension(:), allocatable:: n_div_fpp
 
@@ -104,7 +104,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
   Double_cor = .false.
   E_cut = E_cut_imp * rydb
   E_cut_param = .false.
-  Epsii_ref_man = .false.
   eintmax = 1000000._db
   f0_forward = 0._db
   Fermip = .false.
@@ -270,15 +269,15 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
   allocate( fpp_avantseuil(nfich) )
   allocate( n_div_fpp(nfich) )
   allocate( ne(nfich) )
-  allocate( ninitl(nfich) )
+  allocate( ninit(nfich) )
   allocate( numat(nfich) )
   allocate( Pds(nfich) )
 
   Pds(1) = 1._db
   decal(:) = 0._db
   Efermip(1) = 0._db
-  ninitl(:) = 1
-  ninitlm = 1
+  ninit(:) = 1
+  ninitm = 1
   n_selec_core = 0
 
   if( ncal > 1 .and. ical == 1 ) then
@@ -621,13 +620,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
       case('XES')
         XES = .true.
 
-      case('epsii')
-        n = nnombre(itape1,132)
-        read(itape1,*,iostat=eof) Epsii_ref
-        if( eof > 0 ) call write_err_form(itape1,keyword)
-        Epsii_ref = Epsii_ref / rydb
-        Epsii_ref_man = .true.
-
       case('selec_cor')
         n_selec_core = nnombre(itape1,132)
         read(itape1,*,iostat=eof) num_core(1:n_selec_core)
@@ -784,29 +776,29 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
 
 ! -- Table dimensions -------------------------------------
 
-  ninitlm = 1
+  ninitm = 1
   do ifich = 1,nfich
     open(2, file = fichin(ifich), status='old', iostat=istat)
     n = nnombre(2,Length_line)
-    if( n > 8 ) read(2,*) Eseuil(ifich), numat(ifich), nseuil, jseuil, fpp_avantseuil(ifich), V0muf(ifich), En_fermi(ifich), ninit
-    if( n /= ninit + 11 .and. n /= ninit + 12 .and. n /= ninit + 13 .and. n /= ninit + 14 ) then
+    if( n > 8 ) read(2,*) Eseuil(ifich), numat(ifich), nseuil, jseuil, fpp_avantseuil(ifich), V0muf(ifich), En_fermi(ifich), ninit0
+    if( n /= ninit0 + 11 .and. n /= ninit0 + 12 .and. n /= ninit0 + 13 .and. n /= ninit0 + 14 ) then
       call write_error
       do ipr = 6,9,3
         write(ipr,'(///,A/)') ' Old format in the first line of not convoluted file !'
       end do
       stop
     endif
-    ninitlm = max( ninitlm, ninit )
+    ninitm = max( ninitm, ninit0 )
     Close(2)
   end do
 
   if( n_selec_core /= 0 ) then
     do i = 1,n_selec_core
-      if( num_core(i) > ninitlm ) then
+      if( num_core(i) > ninitm ) then
         call write_error
         do ipr = 6,9,3
           write(ipr,130) num_core(1:n_selec_core)
-          write(ipr,135) ninitlm
+          write(ipr,135) ninitm
         end do
         stop
       endif
@@ -818,11 +810,11 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
   allocate( Abs_U_iso(nfich) )
   allocate( Eph1(nfich) )
   allocate( Ephm(nfich) )
-  allocate( Epsii(ninitlm,nfich) )
-  allocate( decal_initl(ninitlm,nfich) )
+  allocate( Epsii(ninitm,nfich) )
+  allocate( decal_initl(ninitm,nfich) )
   allocate( natomsym_f(nfich) )
-  allocate( nsup(ninitlm,nfich) )
-  allocate( ne_initl(ninitlm,nfich) )
+  allocate( nsup(ninitm,nfich) )
+  allocate( ne_initl(ninitm,nfich) )
   allocate( Trunc(nfich) )
 
   Abs_U_iso(:) = 0._db
@@ -832,7 +824,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
 
   call Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm,Epsii,f0_forward,Fichin,Fichscanin, &
           fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_bulk_z,n_col_max,n_mat_pol,n_Trunc,natomsym_f,ne, &
-          nfich,ninit1,ninitl,ninitlm,nphim,npldafs,nseuil,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph, &
+          nfich,ninit1,ninit,ninitm,nphim,npldafs,nseuil,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph, &
           Surface_ref,Tenseur,Tenseur_car,Trunc,V0muf,Volume_maille,Volume_maille_bulk)
 
   if( .not. Cor_abs ) Double_cor = .false.
@@ -985,14 +977,14 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
 ! Elaboration of energy grid
 
   call Shift_eval(decal,decal_initl,delta_edge,Energphot,Eph1,Ephm,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Esmin, &
-                        n_selec_core,nfich,ninit1,ninitl,ninitlm,num_core)
+                        n_selec_core,nfich,ninit1,ninit,ninitm,num_core)
  
   pasdeb = 0.5_db / rydb
   nes_in = 100000
   allocate( Es_temp(nes_in) )
    
   call Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Estart,fichin,Length_line,n_selec_core, &
-                              ne,ne_initl,nes,nes_in,nfich,ninitl,ninitlm,nsup,num_core,pasdeb)  
+                              ne,ne_initl,nes,nes_in,nfich,ninit,ninitm,nsup,num_core,pasdeb)  
   allocate( Es(nes) )
   Es(1:nes) = Es_temp(1:nes)
   deallocate( Es_temp )
@@ -1079,7 +1071,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
 
 ! Preparation is done --------------------------------------
 
-  Sup_sufix = ninitl(1) > 1
+  Sup_sufix = ninit(1) > 1
    
   call Col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin(nfich),Fichscanin(nfich),fprim,Full_self_abs,hkl_dafs, &
       Length_line,n_bir,n_col,n_index_hk,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Self_abs,Signal_sph, &
@@ -1122,7 +1114,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
       E_cut_orig = En_fermi(ifich)
     endif
 
-    do initl = 1,ninitl(ifich)
+    do initl = 1,ninit(ifich)
 
       if( n_selec_core /= 0 ) then
         do i = 1,n_selec_core
@@ -1259,20 +1251,20 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
             endif
             do i = 1,nphi(ipl)
               if( Self_abs ) then
-                read(2,*) angle(i), ( a, b, a3, a4, j = 1,initl ), ( c, d, c, d, j = initl+1,ninitl(ifich) ), &
+                read(2,*) angle(i), ( a, b, a3, a4, j = 1,initl ), ( c, d, c, d, j = initl+1,ninit(ifich) ), &
                           a1, b1, a2, b2
                 mu(ie,i,ipl,1) = cmplx( a3, 0._db, db )
                 mu(ie,i,ipl,2) = cmplx( a4, 0._db, db )
               elseif( Full_self_abs ) then
-                read(2,*) angle(i), ( a, b, a3, b3, a4, b4, j = 1,initl ), ( c, d, c, d, c, d, j = initl+1,ninitl(ifich) ), &
+                read(2,*) angle(i), ( a, b, a3, b3, a4, b4, j = 1,initl ), ( c, d, c, d, c, d, j = initl+1,ninit(ifich) ), &
                           a1, b1, a2, b2
                 mu(ie,i,ipl,1) = cmplx( a3, b3, db )
                 mu(ie,i,ipl,2) = cmplx( a4, b4, db )
               else
                 if( Dafs_bio ) then
-                  read(2,*) ( a, b, j = 1,initl ), ( c, d, j = initl+1,ninitl(ifich) ), a1, b1, a2, b2
+                  read(2,*) ( a, b, j = 1,initl ), ( c, d, j = initl+1,ninit(ifich) ), a1, b1, a2, b2
                 else
-                  read(2,*) angle(i), ( a, b, j = 1,initl ), ( c, d, j = initl+1,ninitl(ifich) ), a1, b1, a2, b2
+                  read(2,*) angle(i), ( a, b, j = 1,initl ), ( c, d, j = initl+1,ninit(ifich) ), a1, b1, a2, b2
                 endif
               endif
               Adafs(ie,i,ipl) = cmplx( a, b, db)
@@ -1337,15 +1329,15 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
         endif
 
         if( .not. ( Gamma_hole_man .or. Gamma_hole_param ) ) then
-          if( ninitl(ifich) == 1 .or. ninit1 == ninitl(ifich) .or. initl <= ninit1 ) then
+          if( ninit(ifich) == 1 .or. ninit1 == ninit(ifich) .or. initl <= ninit1 ) then
             js = jseuil
           else
             js = jseuil + 1
           endif
           Gamma_h = Tab_width(Eseuil(ifich),js,nseuil,numat(ifich))
-        elseif( ngamh == 1 .or. ninitl(ifich) == 1 ) then
+        elseif( ngamh == 1 .or. ninit(ifich) == 1 ) then
           Gamma_h = Gamma_hole(1)
-        elseif( ngamh == ninitl(ifich) ) then
+        elseif( ngamh == ninit(ifich) ) then
           Gamma_h = Gamma_hole(initl)
         elseif( initl <= ninit1 ) then
           Gamma_h = Gamma_hole(1)
@@ -1371,11 +1363,11 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
                 Write(ipr,160) Gamma_max*rydb, Ecent*rydb, Elarg*rydb
               endif
             endif
-            if( nfich == 1 .and. ninitl(ifich) == 1 ) then
+            if( nfich == 1 .and. ninit(ifich) == 1 ) then
               Write(ipr,170) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb
             elseif( nfich == 1 ) then
               Write(ipr,172) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, initl
-            elseif( ninitl(ifich) == 1 ) then
+            elseif( ninit(ifich) == 1 ) then
               Write(ipr,174) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, ifich
             else
               Write(ipr,176) Gamma_h*rydb, E_cut_orig*rydb, decal_initl(initl,ifich)*rydb, ifich, initl
@@ -1450,24 +1442,24 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
   ! Temperature effect in the Debye model
         if( ( U_iso_man .and. Abs_U_iso_inp > eps10 ) .or. Abs_U_iso(ifich) > eps10   ) then
 
-        select case( ninitl(ifich) )
+        select case( ninit(ifich) )
           case(1)
-            n = ninitl(ifich)
+            n = ninit(ifich)
           case(2)
             if( ninit1 == 2 ) then
-              n = ninitl(ifich)
+              n = ninit(ifich)
             else
               n = 1
             endif
           case(4,6,10)
-            if( ninit1 /= ninitl(ifich) ) then
+            if( ninit1 /= ninit(ifich) ) then
               if( initl <= ninit1 ) then 
                 n = ninit1
               else
-                n = ninitl(ifich) - ninit1 
+                n = ninit(ifich) - ninit1 
               endif 
             else
-              n = ninitl(ifich)
+              n = ninit(ifich)
             endif
           end select
 
@@ -1526,8 +1518,8 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
         fprime_atom = icheck > 2 .and. ifich == 1 .and. i_conv == 0 .and. ( initl == 1 .or. initl == num_core(1) )
         if( Extrap .or. fprime_atom .or. Cor_abs .or. Stokes_xan ) then
           call Extrapat(bb(nenerg),dampl,Ephoton,Eseuil(ifich),Extrap,fpp0,fprime_atom,icheck,nenerg,numat(ifich))
-           dampl(:) = dampl(:) / ninitl(ifich)
-           fpp0 = fpp0 / ninitl(ifich)
+           dampl(:) = dampl(:) / ninit(ifich)
+           fpp0 = fpp0 / ninit(ifich)
         endif
 
 ! Convolution par la lorentzienne
@@ -2385,7 +2377,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
   deallocate( f0, f0scan, fi, Fichin, Fichscanin, Fichscanout_all, fpp_avantseuil, fr )
   deallocate( hkl_dafs )
   deallocate( Icirc, Icirccor, Icircdcor, Icor, Idcor, indf )
-  deallocate( Mu_mat_comp, Mus_mat, n_div_fpp, natomsym_f, ne, ne_initl, ninitl, nom_col, nphi, nsup, numat )
+  deallocate( Mu_mat_comp, Mus_mat, n_div_fpp, natomsym_f, ne, ne_initl, ninit, nom_col, nphi, nsup, numat )
   deallocate( p1f, p2f, Pds, phdtscan )
   deallocate( Run_done, Stokes_name, Stokes_param, Skip_run )
   deallocate( Trunc, V0muf, Xs )
@@ -2487,14 +2479,14 @@ end
 ! Evaluation of relative shifts between input data
 
   subroutine Shift_eval(decal,decal_initl,delta_edge,Energphot,Eph1,Ephm,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Esmin, &
-                        n_selec_core,nfich,ninit1,ninitl,ninitlm,num_core)
+                        n_selec_core,nfich,ninit1,ninit,ninitm,num_core)
   
   use declarations
   implicit none
 
-  integer:: i, ifich, jfich, n, n_selec_core, nfich, ninit1, ninitlm
+  integer:: i, ifich, jfich, n, n_selec_core, nfich, ninit1, ninitm
   
-  integer, dimension(nfich):: ninitl
+  integer, dimension(nfich):: ninit
   integer, dimension(10):: num_core
   
   logical:: Energphot, Epsii_ref_man
@@ -2502,7 +2494,7 @@ end
   
   real(kind=db):: decal_min, delta_edge, Epsii_moy, Epsii_ref, Esmin
   real(kind=db), dimension(nfich):: decal, decal_in, Eph1, Ephm, Eseuil 
-  real(kind=db), dimension(ninitlm,nfich):: decal_initl, Epsii 
+  real(kind=db), dimension(ninitm,nfich):: decal_initl, Epsii 
 
 ! At this stage contains only the imposed value.  
   decal_in(:) = decal(:)
@@ -2528,14 +2520,14 @@ end
     if( ok(ifich) ) cycle
     ok(ifich) = .true.
 
-    Epsii_moy = sum( Epsii(1:ninitl(ifich),ifich) )
-    n = ninitl(ifich) 
+    Epsii_moy = sum( Epsii(1:ninit(ifich),ifich) )
+    n = ninit(ifich) 
 
     do jfich = ifich+1,nfich
       if( abs( Eseuil(jfich) - Eseuil(ifich) ) > 1._db ) cycle
-      n = n + ninitl(jfich) 
+      n = n + ninit(jfich) 
       ok(jfich) = .true.
-      Epsii_moy = Epsii_moy + sum( Epsii(1:ninitl(jfich),jfich) )
+      Epsii_moy = Epsii_moy + sum( Epsii(1:ninit(jfich),jfich) )
     end do
     Epsii_moy = Epsii_moy / n
 
@@ -2544,7 +2536,7 @@ end
     decal_min = 0._db
     do jfich = ifich,nfich
       if( abs( Eseuil(jfich) - Eseuil(ifich) ) > 1._db ) cycle
-      decal(jfich) = decal(jfich) - Epsii_moy + sum( Epsii(1:ninitl(jfich),jfich) ) / ninitl(jfich)
+      decal(jfich) = decal(jfich) - Epsii_moy + sum( Epsii(1:ninit(jfich),jfich) ) / ninit(jfich)
       decal_min = min( decal(jfich), decal_min ) 
     end do
     if( .not. Epsii_ref_man ) then 
@@ -2562,13 +2554,13 @@ end
   
   decal_initl(:,:) = 0._db
   do ifich = 1,nfich
-    select case( ninitl(ifich) )
+    select case( ninit(ifich) )
       case(1)
         Epsii_moy = Epsii(1,ifich)
       case(2)
          if( ninit1 == 2 ) then
-           Epsii_moy = sum( Epsii(1:ninitl(ifich),ifich) ) / ninitl(ifich)
-         elseif( n_selec_core == 0 .or. n_selec_core == ninitl(ifich) ) then 
+           Epsii_moy = sum( Epsii(1:ninit(ifich),ifich) ) / ninit(ifich)
+         elseif( n_selec_core == 0 .or. n_selec_core == ninit(ifich) ) then 
            Epsii_moy = Epsii(2,ifich)
          elseif( num_core(1) == 2 ) then
            Epsii_moy = Epsii(2,ifich)
@@ -2576,26 +2568,26 @@ end
            Epsii_moy = Epsii(1,ifich)
          endif
       case(4,6,10)
-         if( ninit1 /= ninitl(ifich) ) then
+         if( ninit1 /= ninit(ifich) ) then
            if( n_selec_core == 0 ) then 
-             Epsii_moy = sum( Epsii(ninit1+1:ninitl(ifich),ifich) ) / ( ninitl(ifich) - ninit1 )
+             Epsii_moy = sum( Epsii(ninit1+1:ninit(ifich),ifich) ) / ( ninit(ifich) - ninit1 )
            else
              n = 0
              do i = 1, n_selec_core
                if( num_core(i) > ninit1 ) n = n + 1
              end do
              if( n /= 0 ) then
-               Epsii_moy = sum( Epsii(ninit1+1:ninitl(ifich),ifich) ) / ( ninitl(ifich) - ninit1 )
+               Epsii_moy = sum( Epsii(ninit1+1:ninit(ifich),ifich) ) / ( ninit(ifich) - ninit1 )
              else
                Epsii_moy = sum( Epsii(1:ninit1,ifich) ) / ninit1
              endif 
            endif
          else
-           Epsii_moy = sum( Epsii(1:ninitl(ifich),ifich) ) / ninitl(ifich)
+           Epsii_moy = sum( Epsii(1:ninit(ifich),ifich) ) / ninit(ifich)
          endif
     end select
-    decal_initl(1:ninitl(ifich),ifich) = Epsii(1:ninitl(ifich),ifich) - Epsii_moy + decal(ifich)
-    if( abs(Delta_edge) > eps10 .and. ( ninitl(ifich) /= ninit1 ) ) decal_initl(1:ninit1,ifich) &
+    decal_initl(1:ninit(ifich),ifich) = Epsii(1:ninit(ifich),ifich) - Epsii_moy + decal(ifich)
+    if( abs(Delta_edge) > eps10 .and. ( ninit(ifich) /= ninit1 ) ) decal_initl(1:ninit1,ifich) &
                = decal_initl(1:ninit1,ifich) + Delta_edge * Rydb
   end do
 
@@ -2605,17 +2597,17 @@ end
 !********************************************************************************************************************
 
 subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Estart,fichin,Length_line,n_selec_core, &
-                              ne,ne_initl,nes,nes_in,nfich,ninitl,ninitlm,nsup,num_core,pasdeb)
+                              ne,ne_initl,nes,nes_in,nfich,ninit,ninitm,nsup,num_core,pasdeb)
 
   use declarations
   implicit none
   
   integer:: i, ie, ifich, ifichref, initl, initlref, ipr, j, je, istat, Length_line, n, n_selec_core, &
-            nemax, nes, nes_in, nfich, ninitlm, nnombre 
+            nemax, nes, nes_in, nfich, ninitm, nnombre 
 
   integer, dimension(10):: num_core
-  integer, dimension(nfich):: ne, ninitl
-  integer, dimension(ninitlm,nfich):: ne_initl, nsup
+  integer, dimension(nfich):: ne, ninit
+  integer, dimension(ninitm,nfich):: ne_initl, nsup
   
   character(len=Length_name), dimension(nfich):: Fichin
   
@@ -2625,7 +2617,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
   real(kind=db):: d, dmin, E, Emax, Emin, Esmin, Estart, Estart_l, pasdeb
   real(kind=db), dimension(nes_in):: Es_temp 
   real(kind=db), dimension(nfich):: Eph1, Eseuil 
-  real(kind=db), dimension(ninitlm,nfich):: decal_initl 
+  real(kind=db), dimension(ninitm,nfich):: decal_initl 
   real(kind=db), dimension(:), allocatable:: Energ 
   real(kind=db), dimension(:,:,:), allocatable:: Ef 
 
@@ -2634,7 +2626,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
   
   Estart_l = Estart
   do ifich = 1,nfich
-    do initl = 1,ninitl(ifich)
+    do initl = 1,ninit(ifich)
     
       if( n_selec_core /= 0 ) then
         do i = 1,n_selec_core
@@ -2653,7 +2645,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
   end do
 
   do ifich = 1,nfich
-    do initl = 1,ninitl(ifich)
+    do initl = 1,ninit(ifich)
     
       if( n_selec_core /= 0 ) then
         do i = 1,n_selec_core
@@ -2679,7 +2671,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
 
   nemax = maxval( ne_initl )
 
-  allocate( Ef(nemax,ninitlm,nfich) )
+  allocate( Ef(nemax,ninitm,nfich) )
 
   do ifich = 1,nfich
 
@@ -2705,7 +2697,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
     
     Energ(:) = Energ(:) / Rydb
     
-    do initl = 1,ninitl(ifich)
+    do initl = 1,ninit(ifich)
 
       if( ne_initl(initl,ifich) == 0 ) cycle
       
@@ -2739,12 +2731,12 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
   end do
 
   if( j == 0 ) then
-    do initl = 1,ninitl(1)
+    do initl = 1,ninit(1)
       if( ne_initl(initl,1) /= 0 ) exit
     end do
     Emax = Ef(ne_initl(initl,1),initl,1)
   else
-    do initl = 1,ninitl(j)
+    do initl = 1,ninit(j)
       if( ne_initl(initl,j) /= 0 ) exit
     end do
     Emax = Ef(ne_initl(initl,j),initl,j)
@@ -2753,7 +2745,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
   Emin = Estart_l
   
   do ifich = 1,nfich
-    do initl = 1,ninitl(ifich)
+    do initl = 1,ninit(ifich)
     
       if( ne_initl(initl,ifich) == 0 ) cycle
          
@@ -2769,12 +2761,12 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
 
 ! Grid elaboration
 
-  allocate( Fichdone(ninitlm,nfich) )
+  allocate( Fichdone(ninitm,nfich) )
   Fichdone(:,:) = .false.
 
   dmin = 1000000000._db
   do ifich = 1,nfich
-    do initl = 1,ninitl(ifich)
+    do initl = 1,ninit(ifich)
       if( ne_initl(initl,1) == 0 ) cycle
       if( decal_initl(initl,ifich) > dmin - eps10 ) cycle
       ifichref = ifich
@@ -2810,7 +2802,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
     dmin = 1000000000._db
     File_change = .false.
     do ifich = 1,nfich
-      do initl = 1,ninitl(ifich)
+      do initl = 1,ninit(ifich)
         if( Fichdone(initl,ifich) ) cycle
         if( ne_initl(initl,ifich) == 0 ) cycle
         if( decal_initl(initl,ifich) < d + eps10 ) then
@@ -3131,15 +3123,15 @@ end
 
 subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm, Epsii,f0_forward,Fichin,Fichscanin, &
           fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_bulk_z,n_col_max,n_mat_pol,n_Trunc,natomsym_f,ne, &
-          nfich,ninit1,ninitl,ninitlm,nphim,npldafs,nseuil,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph, &
+          nfich,ninit1,ninit,ninitm,nphim,npldafs,nseuil,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph, &
           Surface_ref,Tenseur,Tenseur_car,Trunc,V0muf,Volume_maille,Volume_maille_bulk)
 
   use declarations
   implicit none
 
   integer:: eof, i, ie, ifich, ipl, ipr, istat, jseuil, Length, Length_line, n, n_bulk_z, n_col_max, n_mat_pol, n_mat_pol1, &
-            n_Trunc, nfich, ninit1, ninitlm, nnombre, nphi, nphim, nphim1, npldafs, npldafs1, nseuil, numat, nxan, nxan1
-  integer, dimension(nfich):: ne, ninitl
+            n_Trunc, nfich, ninit1, ninitm, nnombre, nphi, nphim, nphim1, npldafs, npldafs1, nseuil, numat, nxan, nxan1
+  integer, dimension(nfich):: ne, ninit
 
   character(len=15):: nomab
   character(len=132):: mot
@@ -3152,7 +3144,7 @@ subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ep
 
   real(kind=db):: Eintmax, Eph, Eseuil, f0_forward, fpp_avantseuil, mu_0_bulk, Sample_thickness, Surface_ref, Volume, &
                   Volume_maille, Volume_maille_bulk  
-  real(kind=db), dimension(ninitlm,nfich):: Epsii
+  real(kind=db), dimension(ninitm,nfich):: Epsii
   real(kind=db), dimension(nfich):: Abs_U_iso, En_Fermi, Eph1, Ephm, natomsym_f, V0muf
 
   n_Trunc = 0
@@ -3165,18 +3157,18 @@ subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ep
     open(2, file = fichin(ifich), status='old', iostat=istat)
 
     n = nnombre(2,Length_line)
-    if( n == 11 + ninitl(ifich) ) then
-      read(2,*) Eseuil, numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninitl(ifich), &
-        ninit1, Epsii(1:ninitl(ifich),ifich), Volume, f0_forward
-    elseif( n == 12 + ninitl(ifich) ) then
-      read(2,*) Eseuil, numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninitl(ifich), &
-        ninit1, Epsii(1:ninitl(ifich),ifich), Volume, f0_forward, natomsym_f(ifich)
-    elseif( n == 13 + ninitl(ifich) ) then
-      read(2,*) Eseuil, numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninitl(ifich), &
-        ninit1, Epsii(1:ninitl(ifich),ifich), Volume, Surface_ref, f0_forward, natomsym_f(ifich)
+    if( n == 11 + ninit(ifich) ) then
+      read(2,*) Eseuil, numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninit(ifich), &
+        ninit1, Epsii(1:ninit(ifich),ifich), Volume, f0_forward
+    elseif( n == 12 + ninit(ifich) ) then
+      read(2,*) Eseuil, numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninit(ifich), &
+        ninit1, Epsii(1:ninit(ifich),ifich), Volume, f0_forward, natomsym_f(ifich)
+    elseif( n == 13 + ninit(ifich) ) then
+      read(2,*) Eseuil, numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninit(ifich), &
+        ninit1, Epsii(1:ninit(ifich),ifich), Volume, Surface_ref, f0_forward, natomsym_f(ifich)
     else
-      read(2,*) Eseuil, numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninitl(ifich), &
-        ninit1, Epsii(1:ninitl(ifich),ifich), Volume, Surface_ref, f0_forward, natomsym_f(ifich), Abs_U_iso(ifich)
+      read(2,*) Eseuil, numat, nseuil, jseuil, fpp_avantseuil, V0muf(ifich), En_fermi(ifich), ninit(ifich), &
+        ninit1, Epsii(1:ninit(ifich),ifich), Volume, Surface_ref, f0_forward, natomsym_f(ifich), Abs_U_iso(ifich)
     endif
 
     if( ninit1 < 0 ) then
@@ -3242,7 +3234,7 @@ subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ep
     read(2,'(10x,a15)') nomab
     nomab = adjustl( nomab )
 
-    n = ( nnombre(2,Length_line) - 1 ) / ninitl(ifich)
+    n = ( nnombre(2,Length_line) - 1 ) / ninit(ifich)
     if( npldafs > 0 ) then
       if( Full_self_abs ) then
         nxan = n - 6 * npldafs

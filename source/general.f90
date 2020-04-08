@@ -714,16 +714,16 @@ end
 !*********************************************************************
 
 ! Give the dimmension of the initial (core) states
-! ninitl : total number of inital states
+! ninit : total number of inital states
 ! ninit1 : number of initial state of the first edge (in double edges such as L23, M45...)
 
-subroutine dim_init(jseuil,lseuil,nbseuil,ninit1,ninitl)
+subroutine dim_init(jseuil,lseuil,nbseuil,ninit1,ninit)
 
   use declarations
   implicit none
 
   integer,intent(in):: jseuil, lseuil, nbseuil
-  integer,intent(out):: ninitl, ninit1
+  integer,intent(out):: ninit, ninit1
 
   if( nbseuil == 1 ) then
 
@@ -743,23 +743,23 @@ subroutine dim_init(jseuil,lseuil,nbseuil,ninit1,ninitl)
       case( 7 )           !       N7
         ninit1 = 8
     end select
-    ninitl = ninit1
+    ninit = ninit1
 
   else
 
     select case( lseuil )
       case( 0 )           ! K or L1
         ninit1 = 2
-        ninitl = 2
+        ninit = 2
       case( 1 )           ! L23, M23
         ninit1 = 2
-        ninitl = 6
+        ninit = 6
       case( 2 )           ! M45
         ninit1 = 4
-        ninitl = 10
+        ninit = 10
       case( 3 )           ! N67
         ninit1 = 6
-        ninitl = 14
+        ninit = 14
     end select
 
   end if
@@ -771,21 +771,21 @@ end
 
 ! Calculation of m and of coefficients multiplying the Ylm for any state |j,mj>
 
-subroutine coef_init(coef_g,is_g,ninitl,jseuil,lseuil,m_g,nbseuil)
+subroutine coef_init(coef_g,is_g,ninit,jseuil,lseuil,m_g,nbseuil)
 
   use declarations
   implicit none
 
-  integer,intent(in):: ninitl, jseuil, lseuil, nbseuil
-  integer,dimension(ninitl),intent(out):: is_g
-  integer,dimension(ninitl,2),intent(out):: m_g
+  integer,intent(in):: ninit, jseuil, lseuil, nbseuil
+  integer,dimension(ninit),intent(out):: is_g
+  integer,dimension(ninit,2),intent(out):: m_g
 
   integer i, initl, isinitl, iseuil, is, isp, li, mi, ni
 
   real(kind=db) Ci2, J_initl, Jz, spin
-  real(kind=db),dimension(ninitl,2),intent(out):: coef_g
+  real(kind=db),dimension(ninit,2),intent(out):: coef_g
 
-! there is a redondancy bewtween the locale ninitl and the external ninit
+! there is a redondancy bewtween the locale ninit and the external ninit
   m_g(:,:) = 1000
   coef_g(:,:) = 0._db
 
@@ -2160,12 +2160,12 @@ end
 
 !***********************************************************************
 
-subroutine extract_Epsii(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,icheck,nbseuil,ninit1,ninitl,ninitlr)
+subroutine extract_Epsii(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,icheck,nbseuil,ninit1,ninit,ninitlr)
 
   use declarations
   implicit none
 
-  integer:: i, icheck, nbseuil, ninit1, ninitl, ninitlr
+  integer:: i, icheck, nbseuil, ninit1, ninit, ninitlr
 
   character(len=132) mot
 
@@ -2183,7 +2183,7 @@ subroutine extract_Epsii(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,
     read(1,'(A)' ) mot
     if( mot(5:9) == 'Epsii' ) then
       backspace(1)
-      do i = 1,ninitl
+      do i = 1,ninit
         read(1,'(11x,f10.3)') E
         if( icheck > 0 ) write(3,110) E, i
         if( Core_resolved ) then
@@ -2192,7 +2192,7 @@ subroutine extract_Epsii(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,
           if( i <= ninit1 ) then
             Epsii(1) = Epsii(1) + E / ninit1
           else
-            Epsii(2) = Epsii(2) + E / ( ninitl - ninit1 )
+            Epsii(2) = Epsii(2) + E / ( ninit - ninit1 )
           endif
         endif
       end do
@@ -2216,7 +2216,7 @@ subroutine extract_Epsii(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,
       endif
       if( Found ) then
         Epsii(1:ninitlr) = E
-        do i = 1,ninitl
+        do i = 1,ninit
           if( icheck > 0 ) write(3,110) E, i
         end do
         exit
@@ -2230,11 +2230,11 @@ subroutine extract_Epsii(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,
   Epsii(:) = Epsii(:) / rydb
 
   if( Core_resolved ) then
-    if( ninit1 /= ninitl ) then
-      Epsii_moy = sum( Epsii(ninit1+1:ninitl) ) / ( ninitl - ninit1 )
+    if( ninit1 /= ninit ) then
+      Epsii_moy = sum( Epsii(ninit1+1:ninit) ) / ( ninit - ninit1 )
       Ep_moy = sum( Epsii(1:ninit1) ) / ninit1
     else
-      Epsii_moy = sum( Epsii(1:ninitl) ) / ninitl
+      Epsii_moy = sum( Epsii(1:ninit) ) / ninit
       Ep_moy = Epsii_moy
     endif
   else
@@ -6833,7 +6833,7 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
     L, lf, lf1, lf2, lg, linitl, lo, lseuil, m, m_initl, mi, mm, mo, mpirank0, ms, nb_rep, nbseuil, ngrph, nlfm, nlfm0, &
     noperat, nselec, nsm, nspino
 
-  integer, dimension(2):: ninitl
+  integer, dimension(2):: ninit
   integer, dimension(6):: loperat, moperat
   integer, dimension(nopsm):: iopsymr
   integer, dimension(nrepm,2):: irep_util(nrepm,2)
@@ -6865,7 +6865,7 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
   do iseuil = 1,nbseuil
     if( iseuil == 2 ) isinitl = - isinitl
     jinitl(iseuil) = linitl + 0.5_db * isinitl
-    ninitl(iseuil) = nint( 2 * jinitl(iseuil) + 1 )
+    ninit(iseuil) = nint( 2 * jinitl(iseuil) + 1 )
   end do
 
   if( Ylm_comp ) then
@@ -6928,7 +6928,7 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
 
     do iseuil = 1,nbseuil
 
-      do initl = 1,ninitl(iseuil)
+      do initl = 1,ninit(iseuil)
         jzinitl = - jinitl(iseuil) + initl - 1
 
         do ispin = 1,2
@@ -10165,26 +10165,26 @@ end
 ! Calcul de L'energie du niveau de coeur initial.
 
 subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_moy,Eseuil,icheck,is_g, &
-           itabs_nonexc,lseuil,m_g,mpirank0,nbseuil,ninit1,ninitl,ninitlr,nr,nrm,nseuil,nspine,ntype,numat,psii,rato,Rmtg, &
+           itabs_nonexc,lseuil,m_g,mpirank0,nbseuil,ninit1,ninit,ninitlr,nr,nrm,nseuil,nspine,ntype,numat,psii,rato,Rmtg, &
            Rmtsd,V_abs_i,V_intmax,V0bde,WorkF)
 
   use declarations
   implicit none
 
-  integer icheck, initl, ipr, isol, isp, itabs_nonexc, jsp, lmax_pot_loc, lseuil, m, mpirank0, nbseuil, ninit1, ninitl, &
+  integer icheck, initl, ipr, isol, isp, itabs_nonexc, jsp, lmax_pot_loc, lseuil, m, mpirank0, nbseuil, ninit1, ninit, &
     ninitlr, nlm_pot_loc, nm1, nm2, nr, nrm, nseuil, nsol, nspin, nspine, nspino, nspinp, ntype, numat
 
   parameter(nspin = 2, nspino = 2, nspinp = 2)
 
   logical:: Core_resolved, Relativiste, Spinorbite, Ylm_comp
 
-  integer, dimension(ninitl):: is_g
-  integer, dimension(ninitl,2):: m_g
+  integer, dimension(ninit):: is_g
+  integer, dimension(ninit,2):: m_g
 
   real(kind=db):: Delta, Delta_Epsii, Delta_Eseuil, E_zero, Ep_moy, Epsii_moy, j, mj, psiHpsi, Rmtg, Rmtsd, V_intmax, WorkF
   real(kind=db), dimension(nbseuil):: Epsii_m, Eseuil
   real(kind=db), dimension(ninitlr):: Epsii
-  real(kind=db), dimension(ninitl):: dEpsii, Epsi
+  real(kind=db), dimension(ninit):: dEpsii, Epsi
   real(kind=db), dimension(nspine):: V0bde
   real(kind=db), dimension(nspin):: V0bd
   real(kind=db), dimension(nr):: psi, r
@@ -10220,7 +10220,7 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_
   nm1 = - lseuil - 1
   nm2 = lseuil
 
-  do initl = 1,ninitl
+  do initl = 1,ninit
 
     if( initl <= ninit1 ) then
       psi(1:nr) = psii(1:nr,1)
@@ -10265,27 +10265,27 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_
 
   Epsii_m(1) = sum( Epsi(1:ninit1) ) / ninit1
 
-  if( ninit1 < ninitl ) then
-    Epsii_m(2) = sum( Epsi(ninit1+1:ninitl) ) / ( ninitl - ninit1 )
+  if( ninit1 < ninit ) then
+    Epsii_m(2) = sum( Epsi(ninit1+1:ninit) ) / ( ninit - ninit1 )
     Delta = ( Eseuil(1) - Eseuil(2) ) - ( Epsii_m(1) - Epsii_m(2) )
     dEpsii(1:ninit1) = Epsi(1:ninit1)
-    dEpsii(ninit1+1:ninitl) = Epsi(ninit1+1:ninitl)
+    dEpsii(ninit1+1:ninit) = Epsi(ninit1+1:ninit)
   else
-    dEpsii(1:ninitl) = Epsi(1:ninitl)
+    dEpsii(1:ninit) = Epsi(1:ninit)
   endif
 
   if( Core_resolved ) then
-    Epsii(1:ninitl) = dEpsii(1:ninitl)
+    Epsii(1:ninit) = dEpsii(1:ninit)
   else
     Epsii(1:ninitlr) = Epsii_m(1:ninitlr)
   endif
 
   if( Core_resolved ) then
-    if( ninit1 /= ninitl ) then
-      Epsii_moy = sum( Epsii(ninit1+1:ninitl) ) / ( ninitl - ninit1 )
+    if( ninit1 /= ninit ) then
+      Epsii_moy = sum( Epsii(ninit1+1:ninit) ) / ( ninit - ninit1 )
       Ep_moy = sum( Epsii(1:ninit1) ) / ninit1
     else
-      Epsii_moy = sum( Epsii(1:ninitl) ) / ninitl
+      Epsii_moy = sum( Epsii(1:ninit) ) / ninit
       Ep_moy = Epsii_moy
     endif
   else
@@ -10306,7 +10306,7 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_
 
   do ipr = 3,6,3
 
-    if( lseuil == 0 .or. ninitl == 2*lseuil + 2 ) then
+    if( lseuil == 0 .or. ninit == 2*lseuil + 2 ) then
       j = lseuil + 0.5_db
     else
       j = lseuil - 0.5_db
@@ -10314,9 +10314,9 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_
 
     if( ( ipr == 3 .and. icheck > 0 ) .or. ( ipr == 6 .and. Core_resolved .and. mpirank0 == 0 ) ) then
       if( ipr == 3 ) write(ipr,115)
-      if( ipr == 3 .and. ninit1 /= ninitl ) write(ipr,120) Delta * rydb
+      if( ipr == 3 .and. ninit1 /= ninit ) write(ipr,120) Delta * rydb
       mj = - j - 1
-      do initl = 1,ninitl
+      do initl = 1,ninit
         mj = mj + 1
         if( initl == ninit1 + 1 ) then
           j = j + 1

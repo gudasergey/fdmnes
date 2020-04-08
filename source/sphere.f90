@@ -1454,7 +1454,7 @@ end
 ! Called by Tenseur_car and S_nrixs_cal
 
 subroutine radial(Classic_irreg,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft,Full_potential,Hubb_a,Hubb_d,icheck, &
-         initlv,ip_max,ip0,lmax,lmax_pot,m_hubb,nbseuil,ninit1,ninitlv,nlm_pot,nlma,nlma2,nr,NRIXS,nrm,nspin,nspino, &
+         initlv,ip_max,ip0,lmax,lmax_pot,m_hubb,nbseuil,ninit1,ninitv,nlm_pot,nlma,nlma2,nr,NRIXS,nrm,nspin,nspino, &
          nspinp,numat,psii,r,r_or_bess,Relativiste,Renorm,Rmtg,Rmtsd,rof,Singul,Solsing,Spinorbite,V_hubb,V_intmax,V0bd,Vrato, &
          Ylm_comp)
 
@@ -1463,15 +1463,15 @@ subroutine radial(Classic_irreg,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft
 
   integer:: i, icheck, initl, initlv, ip, ip_max, ip0, ip1, ip2, iseuil, isp, L, l_hubbard, L1, L2, lfin, lm, lm1, &
     lm2, lmax, &
-    lmax_pot, lmp, lp, m, m1, m2, m_hubb, nlm1, nlm2, mp, nbseuil, ninit1, ninitlv, nlm, nlm_pot, nlma, nlma2, nr, nrm, &
+    lmax_pot, lmp, lp, m, m1, m2, m_hubb, nlm1, nlm2, mp, nbseuil, ninit1, ninitv, nlm, nlm_pot, nlma, nlma2, nr, nrm, &
     nrmtsd, nrmtg, nspin, nspino, nspinp, numat
 
   character(len=2):: mot1, mot2
   character(len=104):: mot
 
   complex(kind=db), dimension(nspin):: konde
-  complex(kind=db), dimension(nlma,nspinp,nlma,nspinp,ip0:ip_max,ip0:ip_max,ninitlv):: Singul
-  complex(kind=db), dimension(nlma,nlma2,nspinp,nspino,ip0:ip_max,ninitlv):: rof
+  complex(kind=db), dimension(nlma,nspinp,nlma,nspinp,ip0:ip_max,ip0:ip_max,ninitv):: Singul
+  complex(kind=db), dimension(nlma,nlma2,nspinp,nspino,ip0:ip_max,ninitv):: rof
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
   complex(kind=db), dimension(:,:,:,:), allocatable:: Tau
 
@@ -1495,8 +1495,8 @@ subroutine radial(Classic_irreg,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft
   konde(:) = sqrt( cmplx(Ecinetic(:), Eimag,db) )
 
   if( nbseuil == 2 ) then
-    if( Final_tddft .and. nbseuil /= ninitlv ) then
-      ninit1 = ( ninitlv - 2 ) / 2
+    if( Final_tddft .and. nbseuil /= ninitv ) then
+      ninit1 = ( ninitv - 2 ) / 2
       if( initlv <= ninit1 ) then
         iseuil = 1
       else
@@ -1591,12 +1591,12 @@ subroutine radial(Classic_irreg,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft
 
 ! Radial integral for the golden rule
     call radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,L,nlm1,nlm2,nbseuil, &
-           ninitlv,nlma,nlma2,nr,NRIXS,nrm,nrmtsd,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)
+           ninitv,nlma,nlma2,nr,NRIXS,nrm,nrmtsd,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)
 
 ! Calculation of irregular solution
     if( Solsing ) call Cal_Solsing(Classic_irreg,Ecomp,Eimag,f2,Final_tddft,Full_potential,g0,gmi,gp,gso,Hubb_a,Hubb_d, &
          icheck,initlv,ip_max,ip0,iseuil,konde,L,lmax,m_hubb,nlm, &
-         nlm1,nlm2,nbseuil,ninitlv,nlma,nr,NRIXS,nrm,nrmtsd,nspin,nspino,nspinp, &
+         nlm1,nlm2,nbseuil,ninitv,nlma,nr,NRIXS,nrm,nrmtsd,nspin,nspino,nspinp, &
          numat,psii,r,r_or_bess,Radial_comp,Rmtsd,Singul,Spinorbite,Tau,ui,ur,V,V_hubb,Vecond)
 
     deallocate( Tau, ui, ur )
@@ -1766,15 +1766,15 @@ end
 ! psii, u and ur are wave functions time r.
 
 subroutine radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,L,nlm1,nlm2,nbseuil, &
-           ninitlv,nlma,nlma2,nr,NRIXS,nrm,nrmtsd,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)
+           ninitv,nlma,nlma2,nr,NRIXS,nrm,nrmtsd,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)
 
   use declarations
   implicit none
 
   integer initlv, ip, ip_max, ip0, iseuil, is, isol, isp, iss, L, lm, lm1, lm2, nlm1, nlm2, n1, n2, nbseuil, &
-    ninitlv, nlma, nlma2, nr, nrm, nrmtsd, ns1, ns2, nspino, nspinp
+    ninitv, nlma, nlma2, nr, nrm, nrmtsd, ns1, ns2, nspino, nspinp
 
-  complex(kind=db), dimension(nlma,nlma2,nspinp,nspino,ip0:ip_max, ninitlv):: rof
+  complex(kind=db), dimension(nlma,nlma2,nspinp,nspino,ip0:ip_max, ninitv):: rof
 
   logical:: Final_tddft, NRIXS, Radial_comp
 
@@ -1963,19 +1963,19 @@ end
 
 Subroutine Cal_Solsing(Classic_irreg,Ecomp,Eimag,f2,Final_tddft,Full_potential,g0,gm,gp,gso,Hubb_a,Hubb_d, &
          icheck,initlv,ip_max,ip0,iseuil,konde,LL,lmax,m_hubb,nlm, &
-         nlm1,nlm2,nbseuil,ninitlv,nlma,nr,NRIXS,nrm,nrmtsd,nspin,nspino,nspinp, &
+         nlm1,nlm2,nbseuil,ninitv,nlma,nr,NRIXS,nrm,nrmtsd,nspin,nspino,nspinp, &
          numat,psii,r,r_or_bess,Radial_comp,Rmtsd,Singul,Spinorbite,Tau,ui,ur,V,V_hubb,Vecond)
 
   use declarations
   implicit none
 
   integer:: icheck, initlv, ip_max, ip0, ip1, ip2, is, ise, iseuil, isol, isp1, isp2, iss, L, l_hubbard, LL, lmax, m_hubb, &
-    m1, m2, ms1, ms2, mv, n0, n1, n2, nbseuil, ninitlv, nlm, nlm1, nlm2, np, nlma, nr, nrm, nrmtsd, ns1, ns2, nspin, &
+    m1, m2, ms1, ms2, mv, n0, n1, n2, nbseuil, ninitv, nlm, nlm1, nlm2, np, nlma, nr, nrm, nrmtsd, ns1, ns2, nspin, &
     nspino, nspinp, numat, nv, nv1, nv2
 
   complex(kind=db):: integr_sing, Sing
   complex(kind=db), dimension(nspin):: konde
-  complex(kind=db), dimension(nlma,nspinp,nlma,nspinp,ip0:ip_max,ip0:ip_max,ninitlv):: Singul
+  complex(kind=db), dimension(nlma,nspinp,nlma,nspinp,ip0:ip_max,ip0:ip_max,ninitv):: Singul
   complex(kind=db), dimension(nrmtsd):: f_reg, f_irg
   complex(kind=db), dimension(nlm1,nspinp,nlm1,nspinp):: Tau
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
@@ -6250,19 +6250,19 @@ end
 !***********************************************************************
 
 subroutine Radial_wave(Ecinetic,Eimag,Energ,Enervide,Full_potential,Hubb_a,Hubb_d,icheck,initl,lmax,lmax_pot, &
-            m_hubb,nbseuil,ninit1,ninitlt,nlm_pot,nlmam,nlmam2,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Radial_comp, &
+            m_hubb,nbseuil,ninit1,ninitt,nlm_pot,nlmam,nlmam2,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Radial_comp, &
             Relativiste,Renorm,Rmtg,Rmtsd,rof_ph,Spinorbite,V_hubb,V_intmax,V0bd,Vrato,Ylm_comp,zet)
 
   use declarations
   implicit none
 
   integer:: icheck, initl, iseuil, iso, isp, L, l_hubbard, lfin, lm, lm0, lmax, lmax_pot, lmp, m, m_hubb, mp, &
-    n, nbseuil, ninit1, ninitlt, nlm, nlm_pot, nlm1, nlm2, nlmam, nlmam2, np, nr, nrm, nrmtg, nrmtsd, nspin, nspino, nspinp, numat
+    n, nbseuil, ninit1, ninitt, nlm, nlm_pot, nlm1, nlm2, nlmam, nlmam2, np, nr, nrm, nrmtg, nrmtsd, nspin, nspino, nspinp, numat
 
   complex(kind=db), dimension(nspin):: konde
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
   complex(kind=db), dimension(nlmam,nlmam2,nspinp,nspino,0:0,1):: rof
-  complex(kind=db), dimension(nlmam,nspinp,nspino,ninitlt):: rof_ph
+  complex(kind=db), dimension(nlmam,nspinp,nspino,ninitt):: rof_ph
   complex(kind=db), dimension(:,:,:,:), allocatable:: Tau
 
   logical:: Ecomp, Full_potential, Hubb_a, Hubb_d, Hubb_m, NRIXS, Radial_comp, Relativiste, Renorm, Spinorbite, Ylm_comp
@@ -6277,7 +6277,7 @@ subroutine Radial_wave(Ecinetic,Eimag,Energ,Enervide,Full_potential,Hubb_a,Hubb_
   real(kind=db), dimension(nr,nspin):: g0 , gm, gp
   real(kind=db), dimension(nr,nspino):: gso
   real(kind=db), dimension(nr,0:0):: r_or_bess
-  real(kind=db), dimension(nr,nlmam,nlmam2,nspinp,nspino,ninitlt):: zet
+  real(kind=db), dimension(nr,nlmam,nlmam2,nspinp,nspino,ninitt):: zet
 
   real(kind=db), dimension(:,:,:,:), allocatable:: V
   real(kind=db), dimension(:,:,:,:,:), allocatable:: ui, ur
@@ -6286,8 +6286,8 @@ subroutine Radial_wave(Ecinetic,Eimag,Energ,Enervide,Full_potential,Hubb_a,Hubb_
   konde(:) = sqrt( cmplx(Ecinetic(:), Eimag,db) )
 
   if( nbseuil == 2 ) then
-    if( nbseuil /= ninitlt ) then
-      ninit1 = ( ninitlt - 2 ) / 2
+    if( nbseuil /= ninitt ) then
+      ninit1 = ( ninitt - 2 ) / 2
       if( initl <= ninit1 ) then
         iseuil = 1
       else

@@ -11,7 +11,7 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
           jseuil,ldip,Length_abs,lmax_pot,lmax_probe,lmaxabs_t,lmaxat0,lmaxfree,lmoins1,loct,lplus1,lqua, &
           lseuil,ltypcal,m_hubb,Matper,Moyenne,mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq, &
           msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,multi_0,Multipole,n_bulk_sup,n_multi_run, &
-          n_oo,n_rel,n_rout,n_tens_max,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninitl,ninitlr,nlm_pot, &
+          n_oo,n_rel,n_rout,n_tens_max,natomsym,nbseuil,ncolm,ncolr,ncolt,nenerg_s,ninit1,ninit,ninitr,nlm_pot, &
           nlm_probe,nlmamax,nomabs,nomfich,nomfich_cal_conv,nomfich_s,nphi_dafs,nphim,npldafs,nplr,nplrm, &
           nr,nrm,nseuil,nspin,nspino,nspinp, &
           numat_abs,nxanout,pdp,phdf0t,phdt,pol,poldafse,poldafss,psii, &
@@ -32,15 +32,15 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
     lmax_probe, lmaxabs_t, lms1, lms2, lseuil, m_hubb, mpinodes, mpirank, mpirank0, &
     lmax_nrixs, lmaxat0, multi_0, n_abs_rgh, n_bulk_sup, n_Ec, n_multi_run, n_oo, n_rel, n_rout, &
     n_tens_max, n_V, natomsym, nbseuil, ncolm, ncolr, ncolt, &
-    ndim2, nenerg, nenerg_s, nenerg_tddft, nge, ninit1, ninitl, ninitlr, nlm_pot, nlm_probe, nlm_p_fp, &
+    ndim2, nenerg, nenerg_s, nenerg_tddft, nge, ninit1, ninit, ninitr, nlm_pot, nlm_probe, nlm_p_fp, &
     nlmamax, nphim, npldafs, nplr, nplrm, nq_nrixs, nr, nrm, ns_dipmag, nseuil, nspin, &
     nspino, nspinp, numat_abs, nxanout
 
   integer, dimension(30):: icheck
   integer, dimension(natomsym):: isymeq
-  integer, dimension(ninitl):: is_g
+  integer, dimension(ninit):: is_g
   integer, dimension(npldafs):: nphi_dafs
-  integer, dimension(ninitl,2):: m_g
+  integer, dimension(ninit,2):: m_g
   integer, dimension(2,npldafs):: isigpi
   integer, dimension(3):: ldip
   integer, dimension(3,3):: lqua, msymdd, msymddi
@@ -63,12 +63,12 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
   complex(kind=db), dimension(npldafs,n_max):: Sum_Bragg_bulk_abs_f0
   complex(kind=db), dimension(npldafs,n_bulk_z):: Sum_Bragg_nonabs_f
   complex(kind=db), dimension(3,npldafs,nphim):: poldafse, poldafss
-  complex(kind=db), dimension(3,3,n_rel,ninitlr,0:mpinodes-1):: secdd, secdd_m, secdd_t, secdd_m_t
-  complex(kind=db), dimension(3,3,ninitlr,0:mpinodes-1):: secmd, secmd_m, secmm, secmm_m, secmd_t, secmd_m_t, secmm_t, secmm_m_t
-  complex(kind=db), dimension(3,3,3,ninitlr,0:mpinodes-1):: secdq, secdq_m, secdq_t, secdq_m_t
-  complex(kind=db), dimension(3,3,3,3,ninitlr,0:mpinodes-1):: secdo, &
+  complex(kind=db), dimension(3,3,n_rel,ninitr,0:mpinodes-1):: secdd, secdd_m, secdd_t, secdd_m_t
+  complex(kind=db), dimension(3,3,ninitr,0:mpinodes-1):: secmd, secmd_m, secmm, secmm_m, secmd_t, secmd_m_t, secmm_t, secmm_m_t
+  complex(kind=db), dimension(3,3,3,ninitr,0:mpinodes-1):: secdq, secdq_m, secdq_t, secdq_m_t
+  complex(kind=db), dimension(3,3,3,3,ninitr,0:mpinodes-1):: secdo, &
     secdo_m, secqq, secqq_m, secdo_t, secdo_m_t, secqq_t, secqq_m_t
-  complex(kind=db), dimension(3,n_oo,3,n_oo,ninitlr,0:mpinodes-1):: secoo, secoo_m, secoo_t, secoo_m_t
+  complex(kind=db), dimension(3,n_oo,3,n_oo,ninitr,0:mpinodes-1):: secoo, secoo_m, secoo_t, secoo_m_t
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
   complex(kind=db), dimension(nenerg_s,nlmamax,nspinp,nlmamax,nspinp):: Taull_tdd
   complex(kind=db), dimension(:,:,:,:,:), allocatable:: rof0, S_nrixs
@@ -93,7 +93,7 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
   real(kind=db), dimension(nspin):: dv0bdcF, VxcbdcF
   real(kind=db), dimension(nenerg_s):: Energ_s
   real(kind=db), dimension(nbseuil):: Eseuil
-  real(kind=db), dimension(ninitlr):: Epsii, sec_atom
+  real(kind=db), dimension(ninitr):: Epsii, sec_atom
   real(kind=db), dimension(nr):: r
   real(kind=db), dimension(natomsym) :: Taux_eq
   real(kind=db), dimension(3,3):: rot_atom_abs, Rot_int
@@ -103,9 +103,9 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
   real(kind=db), dimension(npldafs):: Length_abs
   real(kind=db), dimension(n_bulk_z):: Length_rel
   real(kind=db), dimension(n_bulk_z_abs):: Length_rel_abs
-  real(kind=db), dimension(ninitl,2):: coef_g
+  real(kind=db), dimension(ninit,2):: coef_g
   real(kind=db), dimension(nrm,nbseuil):: psii
-  real(kind=db), dimension(n_tens_max*ninitlr,0:natomsym):: Int_tens
+  real(kind=db), dimension(n_tens_max*ninitr,0:natomsym):: Int_tens
   real(kind=db), dimension(nr,nlm_pot):: Vcato
   real(kind=db), dimension(3,npldafs,nphim):: vecdafse, vecdafss
   real(kind=db), dimension(nr,nlm_pot,nspin) :: Vxcato
@@ -287,7 +287,7 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
                 Eimag(ie),Energ(ie),Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
                 Hubb_d,icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
-                n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlr,nlm_pot,nlm_probe, &
+                n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninit,ninitr,ninitr,nlm_pot,nlm_probe, &
                 nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat_abs,psii,r,Relativiste,Renorm,.false., &  
                 Rmtg,Rmtsd,rof0,rot_atom_abs, &
                 Rot_int,secdd_t,secdd_m_t,secdo_t,secdo_m_t,secdq_t,secdq_m_t,secmd_t,secmd_m_t,secmm_t,secmm_m_t,secoo_t, &
@@ -322,8 +322,8 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
 
     if( mpinodes > 1 ) then
       l0_nrixs = 0; lmax_nrixs = 0; nq_nrixs = 0
-      allocate( S_nrixs(nq_nrixs,(lmax_nrixs+1)**2,(lmax_nrixs+1)**2,ninitlr,0:mpinodes-1) )
-      call MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,n_oo,n_rel,ninitlr, &
+      allocate( S_nrixs(nq_nrixs,(lmax_nrixs+1)**2,(lmax_nrixs+1)**2,ninitr,0:mpinodes-1) )
+      call MPI_RECV_all(l0_nrixs,lmax_nrixs,mpinodes,mpirank,mpirank0,Multipole,n_oo,n_rel,ninitr, &
                        nq_nrixs,S_nrixs,secdd,secdo,secdq,secmd,secmm,secoo,secqq)
       deallocate( S_nrixs )
     endif
@@ -346,7 +346,7 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
              Int_tens,isigpi,isymeq,jseuil,Length_abs,Length_rel,Length_rel_abs,ltypcal,Matper,Moyenne,mpinodes, &
              multi_0,Multipole,n_abs_rgh,n_bulk_sup,n_multi_run, &
              n_bulk_z,n_bulk_z_abs,n_bulk_z_max_abs,n_bulk_zc_abs,n_max,n_oo,n_rel,n_tens_max,natomsym,nbseuil, &
-             ncolm,ncolr,ncolt,nenerg,ninit1,ninitlr,nomabs,nomfich,nomfich_cal_conv,nomfich_s,nphi_dafs,npldafs, &
+             ncolm,ncolr,ncolt,nenerg,ninit1,ninitr,nomabs,nomfich,nomfich_cal_conv,nomfich_s,nphi_dafs,npldafs, &
              nphim,nplr,nplrm,nseuil,nspinp,numat_abs,nxanout,pdp,phdf0t,phdt,pol,poldafse,poldafss, &
              sec_atom,secdd,secdd_m,secdq,secdq_m,secdo,secdo_m, &
              secmd,secmd_m,secmm,secmm_m,secoo,secoo_m,secqq,secqq_m,Self_abs,Spherical_signal, &
