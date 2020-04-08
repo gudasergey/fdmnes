@@ -17,7 +17,8 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                 icheck,ie,ip_max,ip0,is_g,lmax,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
                 n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninitl,ninitlr,ninitlv,nlm_pot,nlm_probe, &
-                nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Renorm,Rmtg,Rmtsd,rof0,rot_atom_abs,Rot_int, &
+                nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Renorm,RIXS, &
+                Rmtg,Rmtsd,rof0,rot_atom_abs,Rot_int, &
                 secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m, &
                 secqq,secqq_m,Solsing,Solsing_only,Spinorbite,Taull,Tddft,V_hubb,V_intmax,V0bd,Vrato,Ylm_comp)
 
@@ -60,7 +61,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
   logical:: Classic_irreg, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, FDM_comp_m, Final_optic, &
     Final_tddft, Full_potential, Green, Green_int, Hubb_a, Hubb_d, lmoins1, lplus1, M_depend, M1M1, No_diag, NRIXS, Relativiste, &
-    Renorm, Solsing, Solsing_only, Spinorbite, Tddft, Ylm_comp
+    Renorm, RIXS, Solsing, Solsing_only, Spinorbite, Tddft, Ylm_comp
 
   logical, dimension(10):: Multipole
 

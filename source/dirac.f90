@@ -725,7 +725,8 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
                ' In n_orb_coeur, it is Z =',i12, ' !'//) 
   120 format(///'   n_ray =',i5,' > nrm =',i4,/ ' Use keyword n_ray in the indata file to decrease its value !')
   130 format(///'   n_orb > nnlm ',// ' Increase nnlm in lecture.f !')
-  135 format(/'  it =',i3,// '      rato    psi_coeur(n=',i1,',l=',i1,')  ', 'psi_val(n=',i1,',l=',i1,')')
+  135 format(/'  it =',i3,', highest core and lowest valence wave functions, time r:',// &
+              '       rato       psi(n=',i1,',l=',i1,')   psi(n=',i1,',l=',i1,')')
   137 format(1p,3e15.5)
   140 format(//' nlat =',i3,' > nlatm =',i3)
   150 format(/' Atom type',i3,',  Z =',i3, '   Non relativistic atomic calculation',/'   n  l     pop')

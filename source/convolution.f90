@@ -3099,18 +3099,23 @@ end
     close(2)
   endif
 
-  if( Scan_true .and. fichscanout == ' ' .and. .not. Dafs_bio ) then
-    mot = convolution_out
-    Length = len_trim(mot)
-    mot(Length-7:Length+5) = 'scan_conv.txt'
-    fichscanout = mot
-    do ifich = 1,nfich
-      if( nfich == 1 ) exit
-      mot = convolution_out_all(ifich)
+  if( Scan_true .and. .not. Dafs_bio ) then
+    if( fichscanout /= ' ' ) then
+      Length = len_trim(fichscanout)
+      if( Fichscanout(Length-3:Length-3) /= '.' ) Fichscanout(Length+1:Length+4) = '.txt' 
+    else
+      mot = convolution_out
       Length = len_trim(mot)
       mot(Length-7:Length+5) = 'scan_conv.txt'
-      fichscanout_all(ifich) = mot
-    end do
+      fichscanout = mot
+      do ifich = 1,nfich
+        if( nfich == 1 ) exit
+        mot = convolution_out_all(ifich)
+        Length = len_trim(mot)
+        mot(Length-7:Length+5) = 'scan_conv.txt'
+        fichscanout_all(ifich) = mot
+      end do
+    endif
   endif
 
   return
@@ -5426,7 +5431,8 @@ subroutine Main_gaussian(File_in,itape,File_out)
   integer:: eof, i, ier, ipr, istat, itape, Length, ligne, n, n_text, ncol, nnombre, nx
 
   character(len=9):: keyword
-  character(len=132):: identmot, mot, Title, Traduction
+  character(len=132):: identmot, mot, Traduction
+  character(len=1320):: Title
   character(len=Length_name):: File_in, File_out
 
   real(kind=db):: a, sigma
@@ -5529,7 +5535,10 @@ subroutine Main_gaussian(File_in,itape,File_out)
 
   Open(20, file = File_out )
 
-  if( n_text > 0 ) write(20,'(1x,A)') Title
+  if( n_text > 0 ) then
+    Length = len_trim(Title)
+    write(20,'(4x,A)') Title(1:Length)
+  endif
   
   do i = 1,nx
     write(20,130) x(i), z(i,:)

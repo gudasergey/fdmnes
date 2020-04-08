@@ -25,7 +25,7 @@ subroutine En_dep(Bulk_step,E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck
   logical:: Bulk_step, Full_atom, Relativiste, Ylm_comp
   logical, dimension(0:n_atom_proto):: Proto_calculated
 
-  real(kind=db):: E_marge, E_max_Fermi, E_start, Pas_SCF, psiHpsi, V_intmax, Vxc, Workf
+  real(kind=db):: E_marge, E_max_Fermi, E_start, Es, Pas_SCF, psiHpsi, V_intmax, Vxc, Workf
 
   real(kind=db), dimension(1):: V0bdm
   real(kind=db), dimension(0:n_atom_proto):: Rmtg, Rmtsd
@@ -92,6 +92,20 @@ subroutine En_dep(Bulk_step,E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck
     E_starta(iapr) = E_starta(iapr) - eps10
 
   end do boucle_agr
+
+! The following is to calculate also the states at lower energy for no cost. 
+! Safer for RuO3
+  do iapr = n_atom_0_self,n_atom_ind_self
+    if( .not. Full_atom ) then
+      ipr = iapr
+      if( Bulk_step .and. ipr <= n_atom_proto_uc ) cycle  
+      if( .not. Proto_calculated(ipr) ) cycle
+    endif
+    if( E_start > E_psi(1,iapr) .and. E_starta(iapr) > E_start + eps10 ) then
+      Es = max( E_start, E_psi(1,iapr) + E_marge )
+      E_starta(iapr) = min( Es, E_starta(iapr) ) 
+    endif    
+  end do
 
 ! les potentiels sont references en fonction du niveau du vide alors que
 ! la gamme d'energie commence dessous (workf)

@@ -8508,7 +8508,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     rot_atom(:,:,ia) = rot_a(:,:)
   end do
 
-! Atomes se trouvant sur L'axe de L'agregat
+! Atoms setting on the cluster axis
   do ia = 1,natome
     if( sum( abs( posi(1:2,ia) ) ) < eps10 ) then
       Atom_axe(ia) = .true.
@@ -8517,7 +8517,7 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     endif
   end do
 
-! Parametres du maillage
+! Parameters of the FDM grid of points
   if( Green ) then
     rsort = min( rsorte, distai(natome) ) + epspos
   else
@@ -8538,10 +8538,11 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     write(3,150) nx
     write(3,160) natome, igrpt0, Ylm_comp, Atom_mag(0)
     if( Full_atom ) then
-      write(3,'(A)') ' Full_atom mode'
+      write(3,'(/A)') '  Full atom mode: atomic basis corresponds to the local punctual group'
     else
-      write(3,'(A)') ' No Full_atom mode'
+      write(3,'(/A)') '  No full atom mode: atomic basis corresponds to the space group'
     endif
+    write(3,165)
     do ipr = 3,9,3
       if( ipr == 3 .and. icheck == 0 ) cycle
       if( ipr == 9 .and. istop == 0 ) cycle
@@ -8601,10 +8602,8 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
     end do
   endif
 
-! L'elaboration du reseau s'effectuant autour de chaque atome, en
-! definissant la zone atomique par la sphere muffin-tin, il est
-! necessaire d'avoir des rayons muffin-tin laissant L'espace a au moins
-! un point entre les atomes.
+! The elaboration of the grid of points is done around all the atoms, defining an atomic zone inside a small muffin-tin sphere.
+! These muffin-tin radius must be such that the interatomic space between the atoms must let the space for at least one FDM point.
 
   if( .not. Green ) then
     do ia1 = 1,natome
@@ -8654,6 +8653,14 @@ subroutine Atom_selec(Adimp,Atom_axe,Atom_with_axe,Nonsph,Atom_occ_mat,Axe_atom_
   140 format(/'  Rsort = ',f8.3,' A')
   150 format('  nx =',i4)
   160 format('  natome =',i4,', igrpt =',i4,', Cluster_comp =',l2,', Cluster_mag =',l2)
+  165 format(/'   ia: atom index in the symmetrized cluster',/ &
+              '   it: atom type index', / &
+              '   igr: atom index in the unit cell (for periodical system) or in the molecule', / &
+              '   ipr: non equivalent atom index in the unit cell or in the molecule', / &
+              '   iap: atom index in the cluster', / &
+              '   posx posy posz: position in angstroem in the cluster in orthonormal coordinates',/ &
+              '   PtGrName: atom ponctual group in the cluster, and igrpt its index in the code', / &
+              '   Comp (complex harmonics) Axe (atom on rotation axis)  Mag (magnetic atom), F (false), T (true)' )
   170 format(/'  ia   Z  it  igr ipr iap     posx      posy      posz   igrpt PtGrName Comp  Axe  Mag',9x,'Axe_atom')
   180 format(/'  ia   Z  it  igr ipr iap     posx      posy      posz   igrpt PtGrName Comp  Axe  Mag')
   190 format(i4,2i4,i5,2i4,3f10.5,i5,6x,a8,l1,2l5,3f10.5)
@@ -8755,9 +8762,7 @@ function nab_coop_ev(Dist_coop,ia_coop,iaprotoi,icheck,igroupi,iprabs_nonexc,ity
   use declarations
   implicit none
 
-  integer, parameter:: Length_ext = 22
-
-  integer:: ia, iab, ib, icheck, ipra, ipraa, iprabs_nonexc, iprb, iprbb, j, length, n_atom_coop, nab_coop_ev, natome, &
+  integer:: ia, iab, ib, icheck, ipra, ipraa, iprabs_nonexc, iprb, iprbb, j, L, Length, n_atom_coop, nab_coop_ev, natome, &
             n_atom_proto, ntype
 
   integer, dimension(0:ntype):: numat
@@ -8765,8 +8770,7 @@ function nab_coop_ev(Dist_coop,ia_coop,iaprotoi,icheck,igroupi,iprabs_nonexc,ity
   integer, dimension(natome):: iaprotoi, igroupi, itypei
 
   character(len=1):: Mark_exc_a, Mark_exc_b
-  character(len=Length_ext):: File_coop_ext
-  character(len=Length_name):: nomfich_s
+  character(len=Length_name):: File_coop_ext, nomfich_s
 
   real(kind=db):: Dist
   real(kind=db), dimension(2):: Dist_coop
@@ -8822,17 +8826,21 @@ function nab_coop_ev(Dist_coop,ia_coop,iaprotoi,icheck,igroupi,iprabs_nonexc,ity
         Mark_exc_b = ' '
       endif
 
-      length = len_trim(nomfich_s)
-      j = min(length,7)
       File_coop_ext = ' '
-      File_coop_ext(1:j) = nomfich_s(length-j+1:length)
-      File_coop_ext(j+1:j+5) = '_coop'
-      j = len_trim(File_coop_ext)
-      File_coop_ext(j+1:j+1) = '_'
-      call ad_number(ia,File_coop_ext,Length_ext)
-      j = len_trim(File_coop_ext)
-      File_coop_ext(j+1:j+1) = '_'
-      call ad_number(ib,File_coop_ext,Length_ext)
+      Length = len_trim(nomfich_s)
+      do L = Length,1,-1
+        if( nomfich_s(L:L) == '/' .or. nomfich_s(L:L) == '\' ) exit
+      end do
+      L = L + 1
+      File_coop_ext(1:Length-L+1) = nomfich_s(L:Length+1)
+      Length = len_trim(File_coop_ext)
+      File_coop_ext(Length+1:Length+5) = '_coop'
+      Length = Length + 6
+      File_coop_ext(Length:Length) = '_'
+      call ad_number(ia,File_coop_ext,Length_name)
+      Length = len_trim(File_coop_ext) + 1
+      File_coop_ext(Length:Length) = '_'
+      call ad_number(ib,File_coop_ext,Length_name)
 
       if( icheck > 0 ) then
         if( iab == 1 ) write(3,100)
@@ -8850,7 +8858,7 @@ function nab_coop_ev(Dist_coop,ia_coop,iaprotoi,icheck,igroupi,iprabs_nonexc,ity
   100 format(/' List of the couples of atoms:', // &
              '   ia  igr  ipr    Z        Position in cluster         ia  igr  ipr    Z        Position in cluster', &
              '        Distance      File_coop_name')
-  110 format(4i5,a1,3f10.5,2x,4i5,a1,3f10.5,f12.5,3x,'...',a22)
+  110 format(4i5,a1,3f10.5,2x,4i5,a1,3f10.5,f12.5,3x,A)
 end
 
 !***********************************************************************

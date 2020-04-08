@@ -660,7 +660,11 @@ subroutine Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a
 
   if( Spinorbite .and. .not. Full_potential ) deallocate( fac_m )
 
-  if( icheck > 2 ) call write_ur(Full_potential,li,lf,nlm1,nlm2,nr,nspinp,nspino,numat,r,Radial_comp,Rmtg,ui,ur,1)
+  if( icheck > 3 ) then
+    call write_ur(Full_potential,li,lf,nlm1,nlm2,nr,nspinp,nspino,numat,r,Radial_comp,10000._db,ui,ur,1)
+  elseif( icheck > 2 ) then 
+    call write_ur(Full_potential,li,lf,nlm1,nlm2,nr,nspinp,nspino,numat,r,Radial_comp,Rmtg,ui,ur,1)
+  endif
 
   do n = 1,nlm1
     do np = 1,nlm2
@@ -692,7 +696,11 @@ subroutine Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a
       ur(ir,:,:,:,:) = ur(ir,:,:,:,:) * r(ir)
       if( Radial_comp ) ui(ir,:,:,:,:) = ui(ir,:,:,:,:) * r(ir)
     end do
-    call write_ur(Full_potential,li,lf,nlm1,nlm2,nr,nspinp,nspino,numat,r,Radial_comp,Rmtg,ui,ur,2)
+    if( icheck > 3 ) then
+      call write_ur(Full_potential,li,lf,nlm1,nlm2,nr,nspinp,nspino,numat,r,Radial_comp,10000._db,ui,ur,2)
+    else 
+      call write_ur(Full_potential,li,lf,nlm1,nlm2,nr,nspinp,nspino,numat,r,Radial_comp,Rmtg,ui,ur,2)
+    endif
     do ir = 1,nr
       ur(ir,:,:,:,:) = ur(ir,:,:,:,:) / r(ir)
       if( Radial_comp ) ui(ir,:,:,:,:) = ui(ir,:,:,:,:) / r(ir)
@@ -4565,12 +4573,13 @@ subroutine Cal_COOP(Coop_z_along_bond,Coverlap,Density_comp_ext,Dist_coop,Ecinet
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop,nspino):: Tau_coop
   complex(kind=db), dimension(:), allocatable:: Ylmc
   complex(kind=db), dimension(:,:,:), allocatable:: Dlmm_ia, Dlmm_ib
-  complex(kind=db), dimension(:,:,:,:), allocatable:: V_hubb_t
+  complex(kind=db), dimension(:,:,:,:), allocatable:: Taull, V_hubb_t
   complex(kind=db), dimension(:,:,:,:,:), allocatable:: um
   
-  logical:: Absorbeur, Comp_to_real, Coop_z_along_bond, Density_comp_ext, Density_comp, Density_real, &
+  logical:: Absorbeur, Comp_to_real, Comp_to_real_out, Coop_z_along_bond, Density_comp_ext, Density_comp, &
+            Density_real, &
             Full_atom, Full_potential, Harm_cubic, Harm_cubic_ext, Hubb_a, Hubb_d, Hubb_diag_abs, &
-            Relativiste, Renorm, Spino, Rotation_bound, Spinorbite, Ylm_comp 
+            Relativiste, Renorm, Spino, Rotation_bound, Spinorbite, Ylm_comp, Ylm_comp_out 
   logical, dimension(0:ntype):: Hubb
   logical, dimension(n_atom_0_self:n_atom_ind_self):: Hubb_diag
 
@@ -4862,6 +4871,42 @@ subroutine Cal_COOP(Coop_z_along_bond,Coverlap,Density_comp_ext,Dist_coop,Ecinet
         end do
       endif
 
+      if( lmaxa == 10000 ) then   ! not used
+!      if( Comp_to_real .and. .not. Spinorbite ) then
+        lma = (lmaxa + 1)**2 
+        lmb = (lmaxb + 1)**2 
+        allocate( Taull(lma,nspinp,lmb,nspinp) )
+        do i_tr = 1,nspino
+          Taull(1:lma,:,1:lmb,:) = Tau_coop(1:lma,:,1:lmb,:,iab,i_tr)
+          call Trans_Tau_ab(Comp_to_real,lmaxa,lmaxb,nspinp,Spinorbite,Taull)
+          Tau_coop(1:lma,:,1:lmb,:,iab,i_tr) = Taull(1:lma,:,1:lmb,:)
+          deallocate( Taull )
+          if( icheck > 1 .and. ie == 1 ) then
+            do isa = 1,nspinp
+              do isb = 1,nspinp
+                if( Comp_to_real ) then
+                  write(3,'(/A)') ' Tau_coop in real Ylm basis'
+                else
+                  write(3,'(/A)') ' Tau_coop in complex Ylm basis'
+                endif 
+                lma = 0 
+                do la = 0,lmaxa
+                  do ma = -la,la
+                    lma = lma + 1 
+                    write(3,'(2i3,1p,100e13.5)') la, ma, (Tau_coop(lma,isa,lmb,isb,iab,i_tr), lmb = 1,(lmaxb + 1)**2)
+                  end do
+                end do
+              end do
+            end do  
+          endif
+        end do
+        Comp_to_real_out = .false.
+        Ylm_comp_out = .false.
+      else
+        Comp_to_real_out = Comp_to_real
+        Ylm_comp_out = Ylm_comp
+      endif
+      
       Tau_coop_r(:,:,:,:,:) = (0._db, 0._db)
 
       Rotation_bound = &
@@ -5004,9 +5049,9 @@ subroutine Cal_COOP(Coop_z_along_bond,Coverlap,Density_comp_ext,Dist_coop,Ecinet
         end do ! end of loop over n_angle
       end do ! end of loop over n_rad
 
-      call Cal_COOP_state(Comp_to_real,Full_potential,Harm_cubic,iapra,iaprb,icheck,index_r_a,index_r_b,lmaxa,lmaxb,lmm, &
+      call Cal_COOP_state(Comp_to_real_out,Full_potential,Harm_cubic,iapra,iaprb,icheck,index_r_a,index_r_b,lmaxa,lmaxb,lmm, &
                           nlmagm,nlmr,n_atom_0,n_atom_ind,n_pt_integr,n_rad_m,nspino,nspinp,Spinorbite,State, &
-                          Tau_coop_r,um,Vol,Ylm_a,Ylm_b,Ylm_comp)  
+                          Tau_coop_r,um,Vol,Ylm_a,Ylm_b,Ylm_comp_out)  
 
       Coverlap(:,:,:,iab,mpirank) = State(:,:,:)
   
@@ -6836,16 +6881,17 @@ subroutine Write_Density(Energ,Density_comp,Full_atom,Harm_cubic,iaabsi,iaprotoi
   implicit none
 
   integer:: i_self, ia, iaabsi, iapr, icheck, ie, ie_computer, ipr, iprabs, ir, isp, it, L, &
-    la, lamstdens, LL, lla_state, lla2_state, lm,lm1, lm2, lma, m, mpinodes, &
+    la, lamstdens, LL, lla_state, lla2_state, lm,lm1, lm2, lma, m, Long, mpinodes, &
     n_atom_0, n_atom_ind, n_atom_proto, natome, nenerg, nr, nrm, nspin, nspinp, ntype, Z
 
-  character(len=Length_name) nomfich_s
+  character(len=Length_name) nomfich_s, nomficht
+  character(len=28) mot28
 
   integer, dimension(0:ntype):: nrato, numat
   integer, dimension(0:n_atom_proto):: itypepr, la_ipr, ll_ipr, lmaxat
   integer, dimension(natome):: iaprotoi, itypei
 
-  logical:: Abs_exc, Density_comp, Full_atom, Harm_cubic, nonexc_g, Open_file, State_all
+  logical:: Abs_exc, Density_comp, First, Full_atom, Harm_cubic, nonexc_g, Open_file, State_all
   logical, dimension(0:n_atom_proto):: proto_done
 
   real(kind=db):: de
@@ -6896,6 +6942,7 @@ subroutine Write_Density(Energ,Density_comp,Full_atom,Harm_cubic,iaabsi,iaprotoi
     ll_ipr(ipr) = LL    
   end do
 
+  First = .true.
   boucle_ia: do ia = 1,natome
 
     ipr = iaprotoi(ia)
@@ -6978,12 +7025,44 @@ subroutine Write_Density(Energ,Density_comp,Full_atom,Harm_cubic,iaabsi,iaprotoi
     Open_file = ie == 1
     Abs_exc = Full_atom .and. ( ia == iaabsi )  .and. .not. nonexc_g
 
+    if( Open_file .and. icheck > 0 ) then
+      if( First ) then
+        write(3,230)
+        write(3,'(/A)') ' Output file name for the projected density of state:'
+        write(3,240) 
+      endif
+      nomficht = ' '
+      Long = len_trim(nomfich_s)
+      do L = Long,1,-1
+        if( nomfich_s(L:L) == '/' .or. nomfich_s(L:L) == '\' ) exit
+      end do
+      L = L + 1 
+      nomficht(1:Long-L+1) = nomfich_s(L:Long+1)
+      Long = len_trim(nomficht)
+      nomficht(Long+1:Long+3) = '_sd'
+
+      if( Abs_exc ) then
+        call ad_number(0,nomficht,Length_name)
+      else
+        call ad_number(iapr,nomficht,Length_name)
+      endif
+      if( Abs_exc ) then
+        mot28 = '     Excited absorbing atom:'
+      elseif( ia == iaabsi ) then
+        mot28 = ' Non-excited absorbing atom:'
+      else
+        mot28 = '                       Atom:'
+      endif
+      write(3,250) mot28, Z, ia, ipr, nomficht
+    endif
+    
   ! Writing file common with cal_state in SCF.f90
     call Write_stdens(Abs_exc,.true.,Density_comp,Energ(ie),Harm_cubic,i_self,iapr,ie_computer,la, &
            Int_Statedens_l,lla_state,lla2_state,mpinodes,n_atom_0,n_atom_ind,nomfich_s,nspin,nspinp, &
            Open_file,Statedens,Statedens_l,.false.)
 
     proto_done(ipr) = .true.
+    First = .false.
 
   end do boucle_ia
 
@@ -6995,6 +7074,10 @@ subroutine Write_Density(Energ,Density_comp,Full_atom,Harm_cubic,iaabsi,iaprotoi
   200 format(/'    L   sum_m(Integral)')
   210 format(i5,2f15.7)
   220 format(' Total =',f12.7,f15.7)
+  230 format(/120('-'))
+  240 format(/' See above, under "Atom_selec", index "ia" : the position of the atom in the symmetrized cluster',/ &
+              '            under "Symsite",    index "ipr": the position of the equivalent atom site for the space group',/ )
+  250 format(a28,' Z =',i3,', ia =',i3,', ipr =',i3,': ',A) 
 end
 
 !***********************************************************************

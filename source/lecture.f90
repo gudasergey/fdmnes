@@ -171,7 +171,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           Backspace(itape4)
           n_atom_cap = igr - 1
 
-        case('coop_atom')
+        case('coop')
           n_atom_coop = nnombre(itape4,132)
 
         case('doping')
@@ -1613,7 +1613,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     nvval,occ_hubb_e,Occupancy_first,Octupole,Old_zero,One_run,One_SCF,Operation_mode,Operation_mode_used,Optic,Overad,Overlap, &
     p_self_max,p_self0,p_self0_bulk,param,Pas_SCF,pdpolar,phi_0,PointGroup,PointGroup_Auto,polar,Polarise,poldafsem,poldafssm, &
     pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,q_nrixs,Quadmag,Quadrupole,R_rydb,R_self,R_self_bulk, &
-    r0_lapw,Ray_max_dirac,rchimp,Readfast,Relativiste,Renorm,Rlapw,Rmt,Rmtimp,Rot_Atom_gr,rotloc_lapw, &
+    r0_lapw,Ray_max_dirac,rchimp,Readfast,Relativiste,Renorm,RIXS,Rlapw,Rmt,Rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,rydberg,rsorte_s,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spinorbite,State_all, &
     State_all_out,Supermuf,Surface_shift,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef, &
@@ -1705,7 +1705,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     no_e1e3, no_e2e2, no_e3e3, No_renorm, No_SCF_bulk, No_solsing, noncentre, nonexc, nonexc_imp, &
     normaltau, Occupancy_first, Octupole, Old_zero, One_run, One_SCF, Operation_mode_used, Optic, Overad, &
     Pas_SCF_imp, Pdb, Perdew, PointGroup_Auto, Polarise, quadmag, Quadrupole, r_self_imp, Readfast, Relativiste, &
-    Renorm, rpalf, rydberg, SCF, SCF_bulk, SCF_elecabs, SCF_mag_free, Self_abs, Self_cons, Self_cons_bulk, SCF_exc_imp, &
+    Renorm, RIXS, rpalf, rydberg, SCF, SCF_bulk, SCF_elecabs, SCF_mag_free, Self_abs, Self_cons, Self_cons_bulk, SCF_exc_imp, &
     self_nonexc, self_nonexc_imp, solsing_only, solsing_s, spherical_signal, spherical_tensor, spherique, &
     Spinorbite, State_all, State_all_out, Supermuf, Surface_shift_given, Symauto, Symmol, Taux, Tddft, Temp_B_iso, &
     Trace_format_wien, Use_FDMX, Ylm_comp_inp
@@ -1985,6 +1985,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Ray_max_dirac = 0._db
   Relativiste = .false.
   Renorm = .false.
+  RIXS = .false.
   rlapw(:) = 0._db
   Rmt(:) = 0._db
   Rmtimp(:) = 0._db
@@ -2152,9 +2153,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         case('classic_i')
           Classic_irreg = .false.
 
-        case('coop_atom')
+        case('coop')
           n = nnombre(itape4,132)
-          COOP = n > 0
+          COOP = .true.
           if( n > 0 ) read(itape4,*,iostat=ier) igr_coop(1:n)
 
         case('coop_dist')
@@ -3879,6 +3880,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           Mat_UB(3,1:3) = x(7:9)
           deallocate( x )
 
+        case('rixs')
+          RIXS = .true.
+
         case('setaz')
           read(itape4,*) hkl_ref(:)
 
@@ -5138,6 +5142,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           if( mot(2:6) == 'Dipol'  ) exit
         end do
       else
+        if( RIXS ) write(3,'(/A)') ' RIXS calculation'
         do i = 1,n_Z_abs
           l2 = len_trim(seuil)
           mot = ' '
@@ -5774,6 +5779,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Ang_spin,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Atom_B_iso,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Atom_U_iso,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Atomic_scr,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Axe_spin,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(axyz,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(axyz_int,3,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -5997,9 +6003,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(Symauto,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Symmol,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Tddft,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Atomic_scr,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Test_dist_min,1,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(q_nrixs,4*nq_nrixs,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(RIXS,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Rpalf,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Temp,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Taux_cap,n_atom_cap,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
