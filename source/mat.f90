@@ -37,7 +37,7 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
   complex(kind=db), dimension(nopsm,nrepm):: karact
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: Taull
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind):: Tau_ato
-  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop,2):: Tau_coop
+  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop,nspino):: Tau_coop
   complex(kind=db), dimension(:,:), allocatable :: norm, norm_t
   complex(kind=db), dimension(:,:,:), allocatable :: Bessel, Neuman
   complex(kind=db), dimension(:,:,:,:), allocatable :: taull_tem
@@ -386,21 +386,17 @@ subroutine mat(Adimp,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xanes,cgrad, 
 
 ! One multiplies by -img in order -aimag(Taull) is the density of state
 ! Conjugate to get the real part same sign than Green
-!            cfac = - img * conjg( cfac )
+            cfac = - img * cfac
 
-            Tau_coop(lm01,is1,lm02,is2,iab,1) = Tau_coop(lm01,is1,lm02,is2,iab,1) - img * cfac
-            Tau_coop(lm02,is2,lm01,is1,iab,2) = Tau_coop(lm02,is2,lm01,is1,iab,2) - img * conjg( cfac )
+            Tau_coop(lm01,is1,lm02,is2,iab,1) = Tau_coop(lm01,is1,lm02,is2,iab,1) + cfac
+            if( Spinorbite ) Tau_coop(lm02,is2,lm01,is1,iab,2) = Tau_coop(lm02,is2,lm01,is1,iab,2) - conjg( cfac )
 
             if( Repres_comp .and. .not. Spinorbite ) then
               lm01c = lm01 - 2 * m1
               lm02c = lm02 - 2 * m2
               isg = (-1)**(m1+m2)
- !             Tau_coop(lm01c,is1,lm02c,is2,iab,1) = Tau_coop(lm01c,is1,lm02c,is2,iab,1) + isg * cfac
- !             Tau_coop(lm02c,is2,lm01c,is1,iab,2) = Tau_coop(lm02c,is2,lm01c,is1,iab,2) + isg * conjg( cfac )
- !             Tau_coop(lm01c,is1,lm02c,is2,iab,1) = Tau_coop(lm01c,is1,lm02c,is2,iab,1) - img * isg * conjg( cfac )
- !             Tau_coop(lm02c,is2,lm01c,is1,iab,2) = Tau_coop(lm02c,is2,lm01c,is1,iab,2) - img * isg * cfac
-              Tau_coop(lm01c,is1,lm02c,is2,iab,1) = Tau_coop(lm01c,is1,lm02c,is2,iab,1) - img * isg * cfac
-              Tau_coop(lm02c,is2,lm01c,is1,iab,2) = Tau_coop(lm02c,is2,lm01c,is1,iab,2) - img * isg * conjg( cfac )
+! Empirical finding of the power of img in order sym 2/m with Ycomp and 4/m give same result
+              Tau_coop(lm01c,is1,lm02c,is2,iab,1) = Tau_coop(lm01c,is1,lm02c,is2,iab,1) + isg * img**(-m2+1) * cfac
             endif
           
           end do          
@@ -2152,7 +2148,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag,Ful
   complex(kind=db), dimension(nopsm,nrepm):: karact
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,n_atom_0:n_atom_ind)::tau_ato
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: Taull
-  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop,2):: Tau_coop
+  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop,nspino):: Tau_coop
   complex(kind=db), dimension(:), allocatable:: bessel, neuman, ylmc
   complex(kind=db), dimension(:,:), allocatable:: hankelm, mat, matp, taullp, taullq
   complex(kind=db), dimension(:,:,:), allocatable:: Cmatr, Dlmm_ia, taup, taup_inv
@@ -3013,7 +3009,7 @@ subroutine Cal_Tau_coop(Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lm
   complex(kind=db), dimension(ndim,nlmch):: mat
   complex(kind=db), dimension(nlmsmax,nlmsmax):: taullp, taullq
   complex(kind=db), dimension(natome,nlmsamax,nb_sym_op,-lmaxg:lmaxg,nspino):: Cmat
-  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop,2):: Tau_coop
+  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,nab_coop,nspino):: Tau_coop
   complex(kind=db), dimension(:,:,:), allocatable:: Dlmm_ia
   complex(kind=db), dimension(:,:,:,:), allocatable:: Cmatr
 
@@ -3070,7 +3066,7 @@ subroutine Cal_Tau_coop(Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lm
     
       endif
 
-      do i_trans = 1,2 ! loop over transpose (usefull when spinorbit)
+      do i_trans = 1,nspino ! loop over transpose (usefull when spinorbit)
 
         if( i_trans == 1 ) then
           ia_tr = ia
@@ -3120,7 +3116,7 @@ subroutine Cal_Tau_coop(Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lm
             end do
           end do
     
-          if( i_trans == 2 ) deallocate( Cmatr )
+          if( i_trans == nspino ) deallocate( Cmatr )
     
         endif
     
@@ -3147,7 +3143,15 @@ subroutine Cal_Tau_coop(Cmat,Dist_coop,ia_coop,iaprotoi,iato,igrph,ispin,lato,lm
               lm01c = lm01 - 2 * m1
               lm02c = lm02 - 2 * m2
               isg = (-1)**(m1+m2)
-              Tau_coop(lm01c,is1,lm02c,is2,iab,i_trans) = Tau_coop(lm01c,is1,lm02c,is2,iab,i_trans) + isg * taullp(lm1,lm2)
+!              Tau_coop(lm01c,is1,lm02c,is2,iab,i_trans) = Tau_coop(lm01c,is1,lm02c,is2,iab,i_trans) + isg * taullp(lm1,lm2)
+! Empirical finding of the power of img in order sym 2/m with Ycomp and 4/m give same result
+              if( i_trans == 1 ) then
+                Tau_coop(lm01c,is1,lm02c,is2,iab,i_trans) = Tau_coop(lm01c,is1,lm02c,is2,iab,i_trans) &
+                                                          + isg * img**(-m2+1) * taullp(lm1,lm2)
+              else
+                Tau_coop(lm01c,is1,lm02c,is2,iab,i_trans) = Tau_coop(lm01c,is1,lm02c,is2,iab,i_trans) &
+                                                          + isg * img**(m1-1) * taullp(lm1,lm2)
+              endif
             endif
           end do
         end do

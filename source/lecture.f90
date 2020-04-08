@@ -4396,7 +4396,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       Fermi_auto = .false.
     endif
 
-    if( Spinorbite ) COOP_z_along_bond = .false.  ! because the rotation does not work in this case
+    if( Spinorbite ) COOP_z_along_bond = .false.  ! because the rotation does not work with spinorbit
 
     if( Atom_occ_hubb ) Fermi_auto = .false.
     if( Flapw .or. Extract .or. .not. Fermi_auto ) then

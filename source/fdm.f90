@@ -1087,8 +1087,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
   real(kind=db), dimension(:,:,:), allocatable:: gradvr, Int_statedens, rho_chg, rho_chg_bulk, rho_self_t, rhoato, rhoato_init, &
      rhoato_init_bulk, rot_atom, Vcato, Vcato_bulk, Vecdafse, Vecdafss, Vra, Vrato_e, Vxcato_abs, Ylmato
   real(kind=db), dimension(:,:,:,:), allocatable:: rho_self, rho_self_bulk, rho_self_s, Vrato, Vxcato
-  real(kind=db), dimension(:,:,:,:,:), allocatable:: drho_self, Occ_hubb, Occ_hubb_i
-  real(kind=db), dimension(:,:,:,:,:,:), allocatable:: Coverlap, phiato, Statedens, Statedens_i
+  real(kind=db), dimension(:,:,:,:,:), allocatable:: Coverlap, drho_self, Occ_hubb, Occ_hubb_i
+  real(kind=db), dimension(:,:,:,:,:,:), allocatable:: phiato, Statedens, Statedens_i
 
   real(kind=sg):: time
 
@@ -2191,7 +2191,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
             nab_coop = 0
             allocate( phiato(nphiato1,nlmagm,nspinp,nspino,natome,nphiato7) )
             allocate( Taull(nlmagm,nspinp,nlmagm,nspinp,natome) )
-            allocate( Tau_coop(nlmagm,nspinp,nlmagm,nspinp,nab_coop,2) )
+            allocate( Tau_coop(nlmagm,nspinp,nlmagm,nspinp,nab_coop,nspino) )
             phiato(:,:,:,:,:,:) = 0._db
             Tau_ato(:,:,:,:,:) = (0._db,0._db)
             Taull(:,:,:,:,:) = (0._db,0._db)
@@ -3194,7 +3194,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       allocate( drho_self(nrm_self,nlm_pot,nspinp,n_atom_0_self:n_atom_ind_self,0:mpinodee-1) )
       allocate( Statedens(lla2_state,nspinp,lla2_state,nspinp,n_atom_0:n_atom_ind,0:mpinodee-1) )
       allocate( Statedens_i(lla2_state,nspinp,lla2_state,nspinp,n_atom_0:n_atom_ind,0:mpinodee-1) )
-      allocate( Coverlap(16,nspinp,16,nspinp,nab_coop,0:mpinodee-1) )
+      allocate( Coverlap(16,16,nspinp,nab_coop,0:mpinodee-1) )
       allocate( index_coop(2,nab_coop) )
 
       if( i_range == 1 ) then
@@ -3443,7 +3443,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
           allocate( phiato(nphiato1,nlmagm,nspinp,nspino,natome,nphiato7) )
           allocate( Taull(nlmagm,nspinp,nlmagm,nspinp,natome) )
-          allocate( Tau_coop(nlmagm,nspinp,nlmagm,nspinp,nab_coop,2) )
+          allocate( Tau_coop(nlmagm,nspinp,nlmagm,nspinp,nab_coop,nspino) )
           phiato(:,:,:,:,:,:) = 0._db
           Tau_ato(:,:,:,:,:) = (0._db,0._db)
           Taull(:,:,:,:,:) = (0._db,0._db)
@@ -3905,8 +3905,15 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
                 itypei,itypepr,lamstdens,lla_state,lla2_state,lmaxat,mpinodee,n_atom_0,n_atom_ind,n_atom_proto,natome,nenerg, &
                 nomfich_s,nonexc_g,nrato,nrm,nspin,nspinp,ntype,numat,Rato,Rmtsd,State_all_out,Statedens)
 
-            if( COOP ) call Write_coop(Coverlap,Density_comp,Energ(ie),Harm_cubic,iaprotoi,ie,ie_computer,index_coop,itypepr, &
+            if( COOP ) then
+              if( Spinorbite ) then  ! because coop with real harmonics and spinorbit does not work
+                call Write_coop(Coverlap,.true.,Energ(ie),.false.,iaprotoi,ie,ie_computer,index_coop,itypepr, &
                                        mpinodee,n_atom_proto,nab_coop,natome,nomfich_s,nspin,nspinp,ntype,numat)
+              else
+                call Write_coop(Coverlap,Density_comp,Energ(ie),Harm_cubic,iaprotoi,ie,ie_computer,index_coop,itypepr, &
+                                       mpinodee,n_atom_proto,nab_coop,natome,nomfich_s,nspin,nspinp,ntype,numat)
+              endif
+            endif
 
             call CPU_TIME(time)
             Time_loc(3) = real(time,db)
@@ -4552,18 +4559,18 @@ subroutine MPI_RECV_COOP(mpinodes,mpirank,mpirank0,nab_coop,nspinp,Coverlap)
   integer:: mpirank_in_mumps_group
   integer:: idim, mpinodes, mpirank, mpirank0, nab_coop, nspinp
 
-  real(kind=db), dimension(16,nspinp,16,nspinp,nab_coop,0:mpinodes-1):: Coverlap
+  real(kind=db), dimension(16,16,nspinp,nab_coop,0:mpinodes-1):: Coverlap
 
   call MPI_Comm_Rank(MPI_COMM_MUMPS,mpirank_in_mumps_group,mpierr)
 
 ! MPI_GATHER: le choix lorsque tous les ordinateurs envoyent le meme nombre d'elements a l'ordinateur central
 
-  idim = nab_coop * ( 16 * nspinp )**2
+  idim = nab_coop * nspinp * (16)**2
 
   if( mpirank0 == 0 ) then
     call MPI_GATHER(MPI_IN_PLACE,idim,MPI_REAL8,Coverlap,idim,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
   elseif( mpirank_in_mumps_group == 0 ) then
-    call MPI_GATHER(Coverlap(1,1,1,1,1,mpirank),idim,MPI_REAL8,Coverlap,idim,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
+    call MPI_GATHER(Coverlap(1,1,1,1,mpirank),idim,MPI_REAL8,Coverlap,idim,MPI_REAL8,0,MPI_COMM_GATHER,mpierr)
   end if
 
   return
