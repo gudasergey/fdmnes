@@ -12,7 +12,7 @@ EXEC = ../fdmnes_gauss
 
 FFLAGS = -c  -O$(OPTLVL)  
 
-OBJ_GAUSS = main.o clemf0.o coabs.o convolution.o dirac.o fdm.o fprime.o general.o lecture.o mat.o metric.o \
+OBJ_GAUSS = main.o clemf0.o coabs.o convolution.o diffraction.o dirac.o fdm.o fdmx.o fprime.o fprime_data.o general.o lecture.o mat.o metric.o \
       minim.o optic.o potential.o selec.o scf.o spgroup.o sphere.o tab_data.o tddft.o tensor.o \
       not_mpi.o mat_solve_gaussian.o sub_util.o
 

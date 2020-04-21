@@ -763,9 +763,17 @@ subroutine locateSG(Space_Group,sgnbcar0)
   110 format(/' Space group is ',a13)
   120 format(/' Nb  Full Nb', ' Schoenfliess Hermann-Mauguin Long Hermann-Mauguin')
   130 format(i3,2x,a11,1x,a10,3x,a10,9x,a10)
-  140 format(//' Space group name, ',a13,', not found in the fdmnes basis',/ &
-               ' Check that the spelling is correct and corresponds to the Internationnal Tables convention.',/ &
-               ' If yes, contact the author of the code.'//)
+  140 format(//' Space-group name: ',a13, / &
+               ' not found in the fdmnes basis',// &
+               ' Check:', / &
+               ' 1) The spelling is correct and corresponds to the Internationnal Tables convention.',/ &
+               ' 2) Some space group can be defined in hexagonal or rhombohedral unit cell and must have',/ &
+               '    respectively :H or :R extention after the general name, (example R-3C:H or 167:H)',/ &
+               '    (groups 146, 148, 155, 160, 161, 166, 167).',/ &
+               ' 3) A number of other space-groups can be defined with different center or axis definition',/ &
+               '    which must be defined with :1, :2 (example Pn-3:1) or some others extensions', // &
+               ' See the International Tables for more details.', // &
+               ' Without answer after checking all this, contact the author of the code',//)
   150 format(/'   There are more than one possible definition of the group operations !',/, &
               ' To define completely the space group in the indata file, chose in the list above,'/ &
               ' one of the "Full Nb" or of the "Long Hermann-Mauguin" symbol.',// &

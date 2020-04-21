@@ -776,48 +776,48 @@ subroutine coef_init(coef_g,is_g,ninit,jseuil,lseuil,m_g,nbseuil)
   use declarations
   implicit none
 
-  integer,intent(in):: ninit, jseuil, lseuil, nbseuil
+  integer,intent(in):: ninit, jseuil, Lseuil, nbseuil
   integer,dimension(ninit),intent(out):: is_g
   integer,dimension(ninit,2),intent(out):: m_g
 
-  integer i, initl, isinitl, iseuil, is, isp, li, mi, ni
+  integer i, init, is_init, iseuil, is, isp, li, mi, ni
 
-  real(kind=db) Ci2, J_initl, Jz, spin
+  real(kind=db) Ci2, J_init, Jz, spin
   real(kind=db),dimension(ninit,2),intent(out):: coef_g
 
 ! there is a redondancy bewtween the locale ninit and the external ninit
   m_g(:,:) = 1000
   coef_g(:,:) = 0._db
 
-  initl = 0
+  init = 0
 
   select case(jseuil)
     case(1,3,5,7)
-      isinitl = 1
+      is_init = 1
     case default
-      isinitl = -1
+      is_init = -1
   end select
 
   do iseuil = 1, nbseuil
 
-    if( iseuil == 2 ) isinitl = - isinitl
-    li = lseuil
-    J_initl = li + 0.5_db * isinitl
-    ni = nint( 2*J_initl  + 1 )
+    if( iseuil == 2 ) is_init = - is_init
+    li = Lseuil
+    J_init = li + 0.5_db * is_init
+    ni = nint( 2*J_init  + 1 )
 
 ! Loop of core states |j,mj>, with multiplicity 2*j+1
 
     do i = 1,ni
 
-      initl = initl + 1
-      Jz = - J_initl + i - 1
-      is_g(initl) = isinitl
+      init = init + 1
+      Jz = - J_init + i - 1
+      is_g(init) = is_init
 
       do isp = 1,2
 
         if( isp == 1 ) then
           spin = 0.5_db
-          is = isinitl
+          is = is_init
         else
           spin = -0.5_db
           is = 1
@@ -826,11 +826,11 @@ subroutine coef_init(coef_g,is_g,ninit,jseuil,lseuil,m_g,nbseuil)
         mi = nint( Jz - spin )
         if( abs(mi) > li ) cycle
 
-        Ci2 = ( li + 0.5_db + 2*spin*isinitl*Jz ) / ( 2*li + 1 )
+        Ci2 = ( li + 0.5_db + 2*spin*is_init*Jz ) / ( 2*li + 1 )
         if( Ci2 < eps6 ) cycle
 
-        coef_g(initl,isp) = is * sqrt( Ci2 )
-        m_g(initl,isp) = mi
+        coef_g(init,isp) = is * sqrt( Ci2 )
+        m_g(init,isp) = mi
 
       end do
 
@@ -10162,101 +10162,194 @@ end
 
 !***********************************************************************
 
-! Calcul de L'energie du niveau de coeur initial.
+! Calculation of the energy of the initial core state
 
-subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_moy,Eseuil,icheck,is_g, &
-           itabs_nonexc,lseuil,m_g,mpirank0,nbseuil,ninit1,ninit,ninitlr,nr,nrm,nseuil,nspine,ntype,numat,psii,rato,Rmtg, &
-           Rmtsd,V_abs_i,V_intmax,V0bde,WorkF)
+subroutine Energseuil(Core_energ_tot,Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_moy,Eseuil,Exc_abs_i, &
+           icheck,is_g,itabs_nonexc,Jseuil,Lseuil,m_g,mpirank0,nbseuil,ninit1,ninit,ninitlr,nr,nrm,nseuil, &
+           nspin,ntype,numat,psii,rato,Rmtg,Rmtsd,V_abs_i,V_intmax,Vc_abs_i,V0bd,WorkF)
 
   use declarations
   implicit none
 
-  integer icheck, initl, ipr, isol, isp, itabs_nonexc, jsp, lmax_pot_loc, lseuil, m, mpirank0, nbseuil, ninit1, ninit, &
-    ninitlr, nlm_pot_loc, nm1, nm2, nr, nrm, nseuil, nsol, nspin, nspine, nspino, nspinp, ntype, numat
+  integer, parameter:: nspino = 2
+  integer, parameter:: nspinp = 2
 
-  parameter(nspin = 2, nspino = 2, nspinp = 2)
+  integer:: i, icheck, init, ipr, ir, isol, isp, itabs_nonexc, Jseuil, lmax_pot_loc, L, Lseuil, m, mpirank0, n, nbseuil, &
+    ninit1, ninit, ninitlr, nlm_pot_loc, nm1, nm2, nr, nrm, nseuil, nsol, nspin, ntype, numat, Z
 
-  logical:: Core_resolved, Relativiste, Spinorbite, Ylm_comp
+  logical:: Core_energ_tot, Core_resolved, Relativiste, Spinorbite, Ylm_comp
 
   integer, dimension(ninit):: is_g
   integer, dimension(ninit,2):: m_g
 
-  real(kind=db):: Delta, Delta_Epsii, Delta_Eseuil, E_zero, Ep_moy, Epsii_moy, j, mj, psiHpsi, Rmtg, Rmtsd, V_intmax, WorkF
-  real(kind=db), dimension(nbseuil):: Epsii_m, Eseuil
+  real(kind=db):: Charge, Delta, Delta_Epsii, Delta_Eseuil, E_elec, E_exc, E_KS_Dirac, E_VXC, E_T, E_zero, Ep_moy, Epsii_moy, &
+                  f_integr3, J, mj, psiHpsi, Rmtg, Rmtsd, V_intmax, WorkF
+  real(kind=db), dimension(nbseuil):: Delta_E, E_KS, Epsii_m, Eseuil
   real(kind=db), dimension(ninitlr):: Epsii
   real(kind=db), dimension(ninit):: dEpsii, Epsi
-  real(kind=db), dimension(nspine):: V0bde
   real(kind=db), dimension(nspin):: V0bd
-  real(kind=db), dimension(nr):: psi, r
-  real(kind=db), dimension(nrm,nbseuil):: psii
-  real(kind=db), dimension(nrm,nspine):: V_abs_i
+  real(kind=db), dimension(nr):: fct, psi, r, rho
+  real(kind=db), dimension(nrm,nbseuil):: psi_o, psii
+  real(kind=db), dimension(nrm):: Exc_abs_i, Vc_abs_i
+  real(kind=db), dimension(nrm,nspin):: V_abs_i
   real(kind=db), dimension(nr,1,nspin):: V_abs
   real(kind=db), dimension(0:nrm,0:ntype):: rato
+  real(kind=db), dimension(nr,nspin):: Vrs
 
   if( icheck > 0 ) write(3,110)
 
-  if( numat < 3 ) then
-  ! Because, bad value with spinorbit for H and He
-    Spinorbite = .false.
-    Relativiste = .false.
-  else
-    Spinorbite = .true.
-    Relativiste = .true.
-  endif
-
-! La contribution non diagonale du potentiel est negligee
-  Ylm_comp = .false.
-  lmax_pot_loc = 0
-  nlm_pot_loc = 1
-  do isp = 1,nspin
-    jsp = min(isp,nspine)
-    V0bd(isp) = V0bde(jsp)
-    V_abs(1:nr,1,isp) = V_abs_i(1:nr,jsp)
-  end do
+  Z = numat
 
   r(1:nr) = rato(1:nr,itabs_nonexc)
+! In the subroutine potential is in Hartree
+  do isp = 1,nspin
+    Vrs(1:nr,isp) = 0.5_db * r(1:nr) * V_abs_i(1:nr,isp)
+  end do
+
+  n = nseuil
+  L = Lseuil
+
+  do i = 1,nbseuil
+
+    psi(1:nr) = psii(1:nr,i)
+
+    if( Jseuil /= 2 * L ) then
+      J = 0.5_db * Jseuil
+    elseif( i == 1 ) then
+      J = L - 0.5_db
+    else
+      J = L + 0.5_db
+    endif
+
+! we take these energies as positive
+    E_KS(i) = E_KS_Dirac(.true.,icheck,J,L,n,nr,nspin,Z,Vrs,psi,r,rho)
+
+    fct(1:nr) = rho(1:nr) * Exc_abs_i(1:nr)
+    E_exc = f_integr3(r,fct,1,nr,Rmtsd)
+
+!  Hartree potential is the coulonmb potential of just the electrons, not the nucleus
+    fct(1:nr) = rho(1:nr) * ( Vc_abs_i(1:nr) + 2 * Z / r(1:nr) )
+    E_elec = 0.5_db * f_integr3(r,fct,1,nr,Rmtsd)
+
+    E_Vxc = 0._db
+    do isp = 1,nspin
+      fct(1:nr) = rho(1:nr) * ( V_abs_i(1:nr,isp) - Vc_abs_i(1:nr) )
+      E_Vxc = E_Vxc + f_integr3(r,fct,1,nrm,Rmtsd) / nspin
+    end do
+
+    E_T = E_KS(i) - E_elec + E_exc - E_Vxc
+
+    if( icheck > 1 ) write(3,111) E_T*rydb, E_KS(i)*rydb, E_elec*rydb, E_exc*rydb, E_Vxc*rydb
+    if( icheck > 2 ) then
+      write(3,112) Z, n, L, nint(2*J)
+      do ir = 1,nr-1
+        if( ir == 1 ) then
+          Charge = 0.5_db * ( r(1) + r(2) ) * rho(ir)
+        else
+          Charge = Charge + 0.5_db * ( r(ir+1) - r(ir-1) ) * rho(ir)
+        endif
+        write(3,113) r(ir)*bohr, psi(ir), psii(ir,i), rho(ir), Charge
+      end do
+    end if
+
+    if( Core_energ_tot ) then
+      E_KS(i) = - E_T
+    else
+      E_KS(i) = - E_KS(i)
+    endif
+
+    if( nspin == 2 ) psi_o(:,i) = psi(:)
+  end do
+
+! Correction for the splitting due to magnetism
+  if( nspin == 2 ) then
+
+    if( numat < 3 ) then
+    ! Because, bad value with spinorbit for H and He
+      Spinorbite = .false.
+      Relativiste = .false.
+    else
+      Spinorbite = .true.
+      Relativiste = .true.
+    endif
+
+! La contribution non diagonale du potentiel est negligee
+    Ylm_comp = .false.
+    lmax_pot_loc = 0
+    nlm_pot_loc = 1
+    V_abs(1:nr,1,:) = V_abs_i(1:nr,:)
 
 ! The calculation of the core levels is always with spin-orbit
-  nm1 = - lseuil - 1
-  nm2 = lseuil
+    nm1 = - lseuil - 1
+    nm2 = lseuil
 
-  do initl = 1,ninit
+    do init = 1,ninit
 
-    if( initl <= ninit1 ) then
-      psi(1:nr) = psii(1:nr,1)
-    else
-      psi(1:nr) = psii(1:nr,2)
-    endif
-    if( .not. spinorbite ) then
-  ! Corresponds to 1s of H and He
-      m = 0
-      nsol = 1
-      isol = 1
-    else
-      if( m_g(initl,1) == 1000 ) then
-        m = nm1
-        nsol = 1
-        isol = 2
-      elseif( m_g(initl,2) == 1000 ) then
-        m = nm2
+      if( init <= ninit1 ) then
+        psi(:) = psi_o(:,1)
+      else
+        psi(:) = psi_o(:,2)
+      endif
+      if( .not. spinorbite ) then
+    ! Corresponds to 1s of H and He
+        m = 0
         nsol = 1
         isol = 1
       else
-        m = m_g(initl,1)
-        nsol = 2
-        if( is_g(initl) == 1 ) then
+        if( m_g(init,1) == 1000 ) then
+          m = nm1
+          nsol = 1
+          isol = 2
+        elseif( m_g(init,2) == 1000 ) then
+          m = nm2
+          nsol = 1
           isol = 1
         else
-          isol = 2
+          m = m_g(init,1)
+          nsol = 2
+          if( is_g(init) == 1 ) then
+            isol = 1
+          else
+            isol = 2
+          endif
         endif
       endif
+
+      if( init == 1 .and. icheck > 0 ) write(3,*)
+
+      Epsi(init) = - psiHpsi(.true.,icheck,isol,L,lmax_pot_loc,m,n,nlm_pot_loc,nr,nr,nsol,nspin, &
+                 nspino,nspinp,numat,V0bd,V_abs,psi,r,Relativiste,Rmtg,Rmtsd,Spinorbite,V_intmax,Ylm_comp)
+    end do
+
+    Delta_E(1) = E_KS(1) - sum( Epsi(1:ninit1) ) / ninit1
+    do init = 1,ninit1
+      Epsi(init) = Epsi(init) + Delta_E(1)
+    end do
+    if( nbseuil == 2 ) then
+      Delta_E(2) = E_KS(2) - sum( Epsi(ninit1+1:ninit) ) / ( ninit - ninit1 )
+      do init = ninit1+1,ninit
+        Epsi(init) = Epsi(init) + Delta_E(2)
+      end do
     endif
 
-    if( initl == 1 .and. icheck > 0 ) write(3,*)
+    if( icheck > 1 ) then
+      write(3,'(/A)') ' Difference between Dirac and internal KS energies'
+      write(3,'(A)') '      E_KS_dirac    E_KS_int     Difference'
+      do i = 1,nbseuil
+        write(3,'(2x,3f13.3)') E_KS(i)*rydb, ( E_KS(i) + Delta_E(i) ) * rydb, Delta_E(i) * rydb
+      end do
+    endif
 
-    Epsi(initl) = - psiHpsi(.true.,icheck,isol,lseuil,lmax_pot_loc,m,nseuil,nlm_pot_loc,nr,nr,nsol,nspin, &
-               nspino,nspinp,numat,V0bd,V_abs,psi,r,Relativiste,Rmtg,Rmtsd,Spinorbite,V_intmax,Ylm_comp)
-  end do
+  else
+
+    do init = 1,ninit1
+      Epsi(init) = E_KS(1)
+    end do
+    do init = ninit1+1,ninit
+      Epsi(init) = E_KS(2)
+    end do
+
+  endif
 
 ! Epsii is versus the Fermi energy, but taken as positive
 ! E_zero = E_cut if Old_zero; E_zero = 0. in the other case (default is Old_zero = false).
@@ -10306,26 +10399,26 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_
 
   do ipr = 3,6,3
 
-    if( lseuil == 0 .or. ninit == 2*lseuil + 2 ) then
-      j = lseuil + 0.5_db
+    if( L == 0 .or. ninit == 2*lseuil + 2 ) then
+      J = L + 0.5_db
     else
-      j = lseuil - 0.5_db
+      J = L - 0.5_db
     endif
 
     if( ( ipr == 3 .and. icheck > 0 ) .or. ( ipr == 6 .and. Core_resolved .and. mpirank0 == 0 ) ) then
-      if( ipr == 3 ) write(ipr,115)
+      if( ipr == 3 ) write(ipr,'(/A/)') ' Kohn-Scham energy of the initial states:'
       if( ipr == 3 .and. ninit1 /= ninit ) write(ipr,120) Delta * rydb
       mj = - j - 1
-      do initl = 1,ninit
+      do init = 1,ninit
         mj = mj + 1
-        if( initl == ninit1 + 1 ) then
-          j = j + 1
-          mj = - lseuil - 0.5_db
+        if( init == ninit1 + 1 ) then
+          J = J + 1
+          mj = - L - 0.5_db
         endif
         if( Delta_Epsii < 100000._db .and. nbseuil > 1 ) then
-          write(ipr,130) dEpsii(initl)*rydb, Epsi(initl)*rydb, initl, j, mj
+          write(ipr,130) dEpsii(init)*rydb, Epsi(init)*rydb, init, J, mj
         else
-          write(ipr,135) dEpsii(initl)*rydb, initl, j, mj
+          write(ipr,135) dEpsii(init)*rydb, init, J, mj
         endif
       end do
     endif
@@ -10350,10 +10443,14 @@ subroutine Energseuil(Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_
 
   return
   110 format(/' ---- Energseuil ---',100('-'))
-  115 format(/' Kohn-Scham energy of the initial states:',/)
+  111 format(/' E_T =',f13.3,',  E_KS =',f13.3,', E_elec =',f13.3, / &
+                          21x ,'E_exc =',f13.3,',  E_Vxc =',f13.3,' eV')
+  112 format(/'  Z =',i4,', n =',i2,', L =',i2,', J =',i2,'/2',// &
+              '     Radius      psi_new        psi          rho      integral')
+  113 format(f13.7,1p,4e13.5)
   120 format(4x,'Edge(1) - E_edge(2) - ( <E_KS(1)> - <E_KS(2)> ) =', f6.3,' eV',/)
-  130 format(4x,'Epsii =',f10.3,' eV,  E_KS =',f10.3, ' eV,  State',i3,', j =',f5.1,', mj =',f5.1)
-  135 format(4x,'Epsii =',f10.3, ' eV,  State',i3,', j =',f5.1,', mj =',f5.1)
+  130 format(4x,'Epsii =',f10.3,' eV,  E_KS =',f10.3, ' eV,  State',i3,', J =',f5.1,', Jz =',f5.1)
+  135 format(4x,'Epsii =',f10.3, ' eV,  State',i3,', J =',f5.1,', Jz =',f5.1)
   140 format(/7x,'Epsii used =',f10.3,' eV')
   150 format(/7x,'Epsii used =',f10.3,'  and',f10.3,' eV')
   160 format(' Epsii used =',f10.3,' eV')
@@ -10658,6 +10755,435 @@ function psiHpsi(Cal_psi,icheck,isol,L,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
   psiHpsi =  E  ! Values, at this step are negative
 
   deallocate( V )
+
+  return
+  110 format(/' Core wave function : n =',i2,', L =',i2,', m =',i2/)
+  115 format(/' Core wave function : n =',i2,', L =',i2/)
+  120 format(' Cycle',2i4,',  E = ',f10.3,' eV,  <psi.psi> =',f10.7)
+  125 format('   Nodes =',i2,' >',i2,' -->  E = ',f10.3,' eV')
+  130 format('    rato        psi      psi_new(up)   psi_new(dn)       Vr_up       Vr_dn')
+  135 format('    rato        psi        psi_new        V')
+  140 format(f10.5,1p,5e13.5)
+end
+
+!***********************************************************************
+
+! Calculation of the Kohhn-Sham energy of a core level by E = <psi|H|psi> / <psi|psi>
+! When relativistic, one needs self-consistency because Hamiltonian depends on the calculated energy
+
+function psiHpsi_n(Cal_psi,icheck,isol,L,lmax_pot,m,n,nlm_pot,nr,nrm,nsol,nspin, &
+              nspino,nspinp,numat,V0bd,Vrato,psi,r,Relativiste,Rmtg,Rmtsd,Spinorbite,V_intmax,Ylm_comp)
+
+  use declarations
+  implicit none
+
+  integer:: icheck, ie_cycle, im, ip, ip_cycle, ir, isol, is, isp, ispp, L, l2, lmax, lmax_pot, m, m_hubb, m1, m2, n, nie_cycle, &
+    nip_cycle, nlm, nlm_pot, nodes, nr, nr_max, nr_pos, nrm, nrmtg, nrmtsd, nsol, nspin, nspino, nspinp, numat
+
+  parameter(m_hubb = 0)
+
+  logical:: Cal_psi, Ecomp, Full_potential, Hubb_a, Hubb_d, Radial_comp, Relativiste, Renorm, Spinorbite, Ylm_comp
+
+  complex(kind=db), dimension(nspin):: konde
+  complex(kind=db), dimension(2*L+1,nspin,2*L+1,nspin):: Tau
+  complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
+
+  real(kind=db):: E, Eimag, Ep, Epp, f_integr, f_so, Hpsi, &
+    k_onde, php, pp, psiHpsi_n, Rmtg, Rmtsd, spp, td, V_intmax, vme
+  real(kind=db), dimension(nspino):: fac
+  real(kind=db), dimension(nspin)::  Ecinetic, V0bd
+  real(kind=db), dimension(nrm):: dr, f2, psi, psi2, r
+!  real(kind=db), dimension(nrm,nspin):: g0, gm, gp, gpi, ur
+  real(kind=db), dimension(nrm,nspin):: g0, gm, gp, gpi
+  real(kind=db), dimension(nrm,nspino):: ur
+  real(kind=db), dimension(nrm,nlm_pot,nspin):: Vrato
+  real(kind=db), dimension(nrm,nspino):: gso
+  real(kind=db), dimension(:,:,:,:), allocatable:: V
+  real(kind=db), dimension(:,:,:,:,:), allocatable:: uis, urs
+
+  if( icheck > 1 ) then
+    if( Spinorbite ) then
+      write(3,110) n, L, m
+    else
+      write(3,115) n, L
+    endif
+  endif
+
+  Eimag = 0._db
+  Ecomp = .false.
+! For the core level orbital energy calculation, one neglects the  non-spherical aspect
+  Full_potential = .false.
+  Hubb_a = .false.
+  Hubb_d = .true.
+  m2 = 1
+  m1 = 2 * L + 1
+  lmax = L
+  Renorm = .false.
+  Radial_comp = .false.
+
+  if( Full_potential ) then
+    nlm = ( lmax + 1 )**2
+  else
+    nlm = 1
+  endif
+  allocate( V(nr,nlm,nlm,nspin) )
+
+  call mod_V(icheck,lmax,lmax_pot,nlm,nlm_pot,nrm,nrmtg,nrmtsd,nspin,r,Rmtg,Rmtsd,V,V_intmax,V0bd,Vrato,Ylm_comp)
+
+  dr(1) = 0.5_db * ( r(2) + r(1) )
+  do ir = 2,nrmtg-1
+    dr(ir) = 0.5_db * ( r(ir+1) - r(ir-1) )
+  end do
+  dr(nrmtg) = Rmtg - 0.5_db * ( r(nrmtg-2) + r(nrmtg-1) )
+
+  nip_cycle = 200
+
+  if( Relativiste .or. Spinorbite ) then
+    nie_cycle = 10
+  else
+    nie_cycle = 1
+  endif
+
+  Epp = 0._db
+
+  l2 = L**2 + L
+
+  ur(:,:) = 0._db
+
+  if( Spinorbite ) then
+    if( m == -L-1 ) then
+      isp = 2
+      ur(:,isp) = psi(:)
+    elseif( m == L ) then
+      isp = 1
+      ur(:,isp) = psi(:)
+    else
+      ur(:,1) = psi(:) * sqrt_1o2
+      ur(:,2) = ur(:,1)
+    endif
+    f_so = sqrt( (L - m) * ( L + m + 1._db) )
+  else
+    isp = 1
+    ur(:,isp) = psi(:)
+  endif
+  psi2(1:nrm) = psi(1:nrm)**2
+  pp = f_integr(r,psi2,nrmtg,1,nrm,Rmtg)
+  ur(:,:) = ur(:,:) / sqrt( pp )
+
+  E = 0._db
+
+! loop for the calculation of the wave function
+  do ip_cycle = 1,nip_cycle
+
+    do ie_cycle = 1,nie_cycle  ! loop for the energy calculation
+
+      if( ip_cycle == 1 .and. ie_cycle == 1 ) then
+        call coef_sch_rad(E,f2,g0,gm,gp,gso,nlm,nr,nspin,nspino,numat,r,.false.,.false.,V)
+        gpi(1:nr-1,:) = 1 / gp(1:nr-1,:)
+      elseif( Relativiste .or. Spinorbite ) then
+        call coef_sch_rad(E,f2,g0,gm,gp,gso,nlm,nr,nspin,nspino,numat,r,Relativiste,Spinorbite,V)
+        gpi(1:nr-1,:) = 1 / gp(1:nr-1,:)
+      endif
+
+      php = 0._db
+
+      do isp = 1,nspino
+        ispp = min( isp, nspin )
+        if( Spinorbite ) then
+          if( m == -L-1 .and. isp == 1 ) cycle
+          if( m == L .and. isp == 2 ) cycle
+        endif
+        do ir = 2,nrmtg
+! one must add E because g0 contains V - E
+          td = g0(ir,ispp) + l2 * f2(ir) + E
+          if( Spinorbite .and. (ip_cycle > 1 .or. ie_cycle >1)) then
+            if( isp == 1 ) then
+              td = td + m * gso(ir,isp)
+            else
+              td = td - ( m + 1 ) * gso(ir,isp)
+            endif
+          endif
+
+          Hpsi = gm(ir,ispp) * ur(ir-1,isp) +  td * ur(ir,isp) + gp(ir,ispp) * ur(ir+1,isp)
+          if( nsol > 1 .and. (ip_cycle > 1 .or. ie_cycle >1) ) Hpsi = Hpsi + f_so * gso(ir,isp) * ur(ir,3-isp)
+          php = php + ur(ir,isp) * Hpsi * dr(ir)
+        end do
+      end do
+
+      Ep = E
+      E =  php
+
+      if( icheck > 1 ) write(3,120) ip_cycle, ie_cycle, E*Rydb, pp
+
+      if( ie_cycle == 1 ) cycle
+
+      if( abs( Ep - E ) < 0.001_db ) exit
+
+    end do
+
+    if( .not. cal_psi ) exit
+
+    if( abs( Epp - E ) < 0.001_db ) exit
+
+    Epp = E
+
+    Ecinetic(:) = E - V0bd(:)
+
+    do
+
+! Konde is not useful, because one does not calculate the scattering amplitude Tau
+      konde(:) = sqrt( cmplx(E - V0bd(:), Eimag,db) )
+
+      allocate( urs(nr,m1,m2,nspinp,nspino) )
+      allocate( uis(nr,m1,m2,nspinp,nspino) )
+      call Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gpi,gso,Hubb_a,Hubb_d,icheck,konde, &
+         L,lmax,m_hubb,nlm,m1,m2,nr,nrmtg,nspin,nspino,nspinp,numat,r,Radial_comp,Relativiste,Renorm,Rmtg,Spinorbite,Tau, &
+         uis,urs,V,V_hubb)
+
+      if( Spinorbite ) then
+        if( m == -L-1 ) then
+          ur(:,1) = 0._db
+          ur(:,2) = urs(:,1,m2,2,nspino) * r(:)
+        elseif( m == L ) then
+          ur(:,1) = urs(:,m1,m2,1,1) * r(:)
+          ur(:,2) = 0._db
+        else
+          ur(:,1) = urs(:,L+1+m,m2,1,isol) * r(:)
+          ur(:,2) = urs(:,L+1+m+1,m2,2,isol) * r(:)
+        endif
+      else
+        ur(:,1) = urs(:,min(L+1+m,m1),m2,isp,1) * r(:)
+      endif
+      deallocate( urs, uis )
+
+      do ir = nrmtg,1,-1
+        if( V(ir,1,1,1) < E .or. V(ir,1,1,nspin) < E ) exit
+      end do
+      nr_pos = ir
+      nr_pos = min(nr_pos,nr-2)
+
+      nodes = 0
+      if( m == -L-1 ) then
+        isp = 2
+      else
+        isp = 1
+      endif
+      do ir = 2,min(nr_pos,nrmtg)
+        if( ur(ir,isp)*ur(ir-1,isp) < 0._db ) nodes = nodes + 1
+      end do
+      if( nodes == n - L - 1 .or. E > V(nrmtg,1,1,1) ) exit
+
+      if( nodes > n - L - 1 ) then
+        E = E - 0.1_db * abs(E)
+      else
+        E = E + 0.1_db * abs(E)
+      endif
+      if( icheck > 1 ) write(3,125) nodes, n-L-1, E*Rydb
+    end do
+
+    if( E < V(nrmtg,1,1,1) ) then
+
+! Inward integration
+      do ir = nr,1,-1
+        if( ( V(ir,1,1,1) - E ) * r(ir)**2 < 625._db ) exit
+      end do
+      nr_max = ir
+
+      do ir = nr_max+1,nr
+        ur(ir,:) = 0._db
+      end do
+
+! because dirac takes the other sign
+      if( mod(n+L,2) == 1 ) then
+        is = 1
+      else
+        is = -1
+      endif
+      do isp = 1,nspino ! it is anyway the spin
+        ispp = min( isp, nspin )
+        if( Spinorbite ) then
+          if( m == -L-1 .and. isp == 1 ) cycle
+          if( m == L .and. isp == 2 ) cycle
+        endif
+
+        do ir = nr_max,nr_max-1,-1
+          VmE = V(ir,1,1,ispp) - E
+          VmE = Max( VmE, 0.000001_db )
+          k_onde = sqrt( VmE )
+          ur(ir,isp) = is * exp( - k_onde * r(ir) ) / r(ir)**(L+1)
+        end do
+      end do
+
+      fac(:) = ur(nr_pos+1,:)
+
+      do ir = nr_max-1,nr_pos+2,-1
+        im = ir - 1
+        ip = ir + 1
+        do isp = 1,nspino ! it is anyway the spin
+          ispp = min( isp,nspin)
+          td = g0(ir,ispp) + l2 * f2(ir)
+          if( Spinorbite ) then
+            if( isp == 1 ) then
+              td = td + m * gso(ir,isp)
+            else
+              td = td - ( m + 1 ) * gso(ir,isp)
+            endif
+          endif
+          ur(im,isp) = - ( td * ur(ir,isp) + gp(ir,ispp) * ur(ip,isp) ) / gm(ir,ispp)
+          if( nsol == 2 ) ur(im,isp) = ur(im,isp) - f_so * gso(ir,isp) * ur(ir,3-isp) / gm(ir,ispp)
+        end do
+      end do
+
+      do isp = 1,nspino
+        if( Spinorbite ) then
+          if( m == -L-1 .and. isp == 1 ) cycle
+          if( m == L .and. isp == 2 ) cycle
+        endif
+        fac(isp) = fac(isp) / ur(nr_pos+1,isp)
+        do ir = nr_pos+1,nr_max
+          ur(ir,:) = fac(isp) * ur(ir,isp)
+        end do
+      end do
+
+    else
+
+      nr_max = nrmtg
+
+    endif
+
+    psi2(:) = 0._db
+    do isp = 1,nspino
+      psi2(1:nrm) = psi2(1:nrm) + ur(1:nrm,isp)**2
+    end do
+
+    pp = f_integr(r,psi2,nr,1,nrm,r(nr_max))
+    spp = sqrt( pp )
+
+    do isp = 1,nspino
+      if( Spinorbite ) then
+        if( m == -L-1 .and. isp == 1 ) cycle
+        if( m == L .and. isp == 2 ) cycle
+      endif
+      ur(:,isp) = ur(:,isp) / spp
+    end do
+
+  end do
+
+  if( icheck > 2 ) then
+    if( nspino == 2 ) then
+      write(3,130)
+    else
+      write(3,135)
+    endif
+    do ir = 1,nr
+      write(3,140) r(ir)*bohr, psi(ir), ur(ir,:), V(ir,1,1,:)*Rydb
+    end do
+  endif
+
+  psiHpsi_n =  E  ! Values, at this step are negative
+
+  if( Cal_psi ) psi(:) = ur(:,isol)
+
+  deallocate( V )
+
+  return
+  110 format(/' Core wave function : n =',i2,', L =',i2,', m =',i2/)
+  115 format(/' Core wave function : n =',i2,', L =',i2/)
+  120 format(' Cycle',2i4,',  E = ',f10.3,' eV,  <psi.psi> =',f10.7)
+  125 format('   Nodes =',i2,' >',i2,' -->  E = ',f10.3,' eV')
+  130 format('    rato        psi      psi_new(up)   psi_new(dn)       Vr_up       Vr_dn')
+  135 format('    rato        psi        psi_new        V')
+  140 format(f10.5,1p,5e13.5)
+end
+
+!***********************************************************************
+
+! Calculation of the Kohhn-Sham energy of the core orbitals
+
+function E_KS_Dirac(Cal_psi,icheck,J,L,n,nr,nspin,Z,Vrs,psi,r,rho)
+
+  use declarations
+  implicit none
+
+  integer:: icheck, ir, L, n, npts, nr, nspin, Z
+
+  logical:: Cal_psi
+
+  real(kind=db):: Ch, deta, detb, detc, det, E, E_KS_Dirac, f_integr3, h, h_ray, h3, rn, eps, del, fj, &
+                  J, ra, rb, rc, vbar, fk, cs, g, q11, q22, ta, tb, tc, tcs, v0, Zn
+  real(kind=db), dimension(5):: da, dbb, voc
+  real(kind=db), dimension(9):: ha
+  real(kind=db), dimension(15):: a0, b0
+  real(kind=db), dimension(nr):: a, b, psi, r, rho, Vr
+  real(kind=db), dimension(nr,nspin):: Vrs
+
+  do ir = 1,nr
+    Vr(ir) = sum( Vrs(ir,:) ) / nspin   ! Vr in Hartree
+  end do
+
+  h_ray = nr * 54._db / 600  ! log step
+  h = h_ray
+  h = 1 / h
+  h3 = h / 3
+  ha(1) = 8 * h3
+  ha(2) = 1.125_db * h3
+  ha(3) = 2.375_db * h3
+  ha(4) = 0.625_db * h3
+  ha(5) = 0.125_db * h3
+  ha(6) = h3 / 240
+  ha(7) = h3 / 120
+  ha(8) = h3 / 80
+  ha(9) = h3 / 60
+
+  rn = r(nr)
+  eps = 2500._db
+  del = 0.1_db
+  fj = J
+
+  Zn = real( Z, db )
+
+  ra = r(1)
+  rb = r(2) / ra
+  rc = r(3) / ra
+
+  ta = vr(1) + Zn
+  tb = (vr(2) + Zn) / rb
+  tc = (vr(3) + Zn) / rc
+
+  voc(1) = - Zn
+  voc(2) = 0._db
+
+  ra = 1._db
+  deta = rb * rc * (rc - rb)
+  detb = ra * rc * (ra - rc)
+  detc = ra * rb * (rb - ra)
+  det = deta + detb + detc
+!     TEMPORARILY STORED IN VOC(5) UNTIL E CAN BE ADDED
+  voc(5) = ( ta * deta + tb * detb + tc * detc ) / det
+
+  deta = ra**2
+  detb = rb**2
+  detc = rc**2
+  voc(3) = ( ta * (detb - detc) + tb * (detc - deta) + tc * (deta - detb) ) / det
+  voc(4) = (ta * (rc - rb) + tb * (ra - rc) + tc * (rb - ra)) / det
+  voc(1:5) = - voc(1:5) * alfa_sf
+
+  vbar = 0._db
+  fk = 0._db; cs = 0._db; g = 0._db; q11 = 0._db; q22 = 0._db; tcs = 0._db
+
+  a(:) = psi(:)
+  b(:) = 0._db
+
+ ! subroutine in Dirac.f90
+  call didif(a,b,E,3,icheck,.true.,L,nr,n,r,Vr,rho,Zn,npts,ha,rn,h,eps,del,fj,v0,da,dbb,a0,b0,voc, &
+                   vbar,fk,cs,g,q11,q22,tcs)
+
+  if( Cal_psi ) psi(:) = a(:)
+
+  E_KS_Dirac =  2 * E  ! Values, at this step are negative and convertion from Hartree to rydberg
+
+  Ch = f_integr3(r,rho,1,nr,r(nr))
+  rho(:) = rho(:) / Ch
 
   return
   110 format(/' Core wave function : n =',i2,', L =',i2,', m =',i2/)
@@ -11048,80 +11574,83 @@ end
 ! Only m >= 0 are calculated
 ! The index of Ylm is lm = L(L+1)/2 + 1 + m
 
-subroutine cylm(lmax,v,r,ylmc,nlm)
+subroutine cylm(Lmax,V,r,Ylmc,nlm)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
 
-  complex(kind=db):: ylmc(nlm), exphi, sint_exphi
+  integer:: L, Lm, Lm0, Lm1, Lm2, Lmax, m, nlm
 
-  real(kind=db), dimension(3):: v
+  complex(kind=db):: Ylmc(nlm), exphi, Sin_t_exp_phi
+
+  real(kind=db):: Cos_t, Cot_t, den, f, g, r, Sin_t
+  real(kind=db), dimension(3):: V
 
   if( r > eps6 ) then
-    cost = v(3) / r
+    Cos_t = V(3) / r
   else
-    cost = 1._db
+    Cos_t = 1._db
   endif
 
-  den = sqrt( v(1)**2 + v(2)**2 )
+  den = sqrt( V(1)**2 + V(2)**2 )
   if( den > eps6 ) then
-    exphi = cmplx( v(1), v(2), db ) / den
-    sint = sqrt( 1 - cost**2 )
-    sint_exphi = cmplx( v(1), v(2), db ) / r
-    cott = cost / sint
+    exphi = cmplx( V(1), V(2), db ) / den
+    Sin_t = sqrt( 1 - Cos_t**2 )  ! Theta is between 0 and pi
+    Sin_t_exp_phi = cmplx( V(1), V(2), db ) / r
+    Cot_t = Cos_t / Sin_t
   else
     exphi = (1._db,0._db)
-    sint = 0._db
-    sint_exphi = (0._db,0._db)
+    Sin_t = 0._db
+    Sin_t_exp_phi = (0._db,0._db)
   endif
 
 ! Calcul de Y(0,0) :
-  ylmc(1) = 1 / sqrt( quatre_pi )
+  Ylmc(1) = 1._db / sqrt( quatre_pi )
 
 ! Calcul des Y(L,L) :
-  do L = 1,lmax
-    lm = ((L+1)*(L+2)) / 2
-    lm1 = (L*(L+1)) / 2
-    f = - sqrt(1 + 0.5_db/L)
-    ylmc(lm) = f * sint_exphi * ylmc(lm1)
+  do L = 1,Lmax
+    Lm = ( ( L + 1 ) * ( L + 2 ) ) / 2
+    Lm1 = ( L * ( L + 1 ) ) / 2
+    f = - sqrt( 1 + 0.5_db / L )
+    Ylmc(Lm) = f * Sin_t_exp_phi * Ylmc(Lm1)
   end do
 
 ! Calcul de Y(1,0) :
-  if( lmax > 0 ) ylmc(2) = sqrt( 3 / quatre_pi ) * cost
+  if( Lmax > 0 ) Ylmc(2) = sqrt( 3._db / quatre_pi ) * Cos_t
 
 ! Calcul des Y(L,L-1) :
-  do L = 2,lmax
-    lm = ( ( L + 1 ) * ( L + 2 ) ) / 2 - 1
-    lm1 = ( L**2 + L ) / 2 - 1
+  do L = 2,Lmax
+    Lm = ( ( L + 1 ) * ( L + 2 ) ) / 2 - 1
+    Lm1 = ( L**2 + L ) / 2 - 1
     f = - sqrt( (2*L + 1._db) / (2*L - 2) )
-    ylmc(lm) = f * sint_exphi * ylmc(lm1)
+    Ylmc(Lm) = f * Sin_t_exp_phi * Ylmc(Lm1)
   end do
 
 ! Calcul des Y(L,m) :
   exphi = conjg( exphi )
 
-  do L = 2,lmax
-    lm0 = ( L**2 + L ) / 2
+  do L = 2,Lmax
+    Lm0 = ( L**2 + L ) / 2
     do m = L-2,1,-1
-      lm = lm0 + m + 1
+      Lm = Lm0 + m + 1
       f = - 2 * (m + 1._db) / sqrt( L*(L+1._db) - m*(m+1._db) )
       g = - sqrt( ( L*(L+1._db) - (m+1._db)*(m+2._db) ) / ( L*(L+1._db) - m*(m+1._db) ) )
-      if( abs(sint) > eps10 ) then
-        ylmc(lm) = exphi*( cott*f*ylmc(lm+1) + exphi*g*ylmc(lm+2) )
+      if( abs(Sin_t) > eps10 ) then
+        Ylmc(Lm) = exphi*( Cot_t * f * Ylmc(Lm+1) + exphi * g * Ylmc(Lm+2) )
       else
-        ylmc(lm) = (0._db,0._db)
+        Ylmc(Lm) = ( 0._db, 0._db )
       endif
     end do
   end do
 
 ! Calcul des Y(L,0) :
-  do L = 2,lmax
-    lm = ( L * (L+1) ) / 2 + 1
-    lm1 = ( (L-1)*L ) / 2 + 1
-    lm2 = ( (L-2)*(L-1) ) / 2 + 1
+  do L = 2,Lmax
+    Lm = ( L * (L+1) ) / 2 + 1
+    Lm1 = ( (L-1)*L ) / 2 + 1
+    Lm2 = ( (L-2)*(L-1) ) / 2 + 1
     f = sqrt( (2*L + 1._db) / (2*L - 1._db) ) * (2*L - 1._db) / L
     g = - sqrt( (2*L + 1._db) / (2*L - 3._db) ) * (L - 1._db) / L
-    ylmc(lm) = f * cost * ylmc(lm1) + g * ylmc(lm2)
+    Ylmc(Lm) = f * Cos_t * Ylmc(Lm1) + g * Ylmc(Lm2)
   end do
 
   return
@@ -11131,33 +11660,33 @@ end
 
 ! Convertion from complex Ylm to real Ylm
 
-subroutine ylmcr(lmax,nlmc,nlmr,ylmc,ylmr)
+subroutine ylmcr(Lmax,nlmc,nlmr,ylmc,ylmr)
 
   use declarations
   implicit none
 
-  integer:: L, l2, lm, lm0, lmax, m, nlmc, nlmr
+  integer:: L, l2, Lm, Lm0, Lmax, m, nlmc, nlmr
 
   complex(kind=db), dimension(nlmc):: ylmc
 
   real(kind=db), dimension(nlmr):: ylmr
 
-  lm = 0
-  do L = 0,lmax
+  Lm = 0
+  do L = 0,Lmax
 
     l2 = ( L**2 + L ) / 2 + 1
 
     do m = -L,L
 
-      lm = lm + 1
-      lm0 = l2 + abs(m)
+      Lm = Lm + 1
+      Lm0 = l2 + abs(m)
 
       if( m < 0 ) then
-        ylmr(lm) = (-1)**m * sqrt_2 * aimag( ylmc(lm0) )
+        ylmr(Lm) = (-1)**m * sqrt_2 * aimag( ylmc(Lm0) )
       elseif( m == 0 ) then
-        ylmr(lm) = real( ylmc(lm0), db )
+        ylmr(Lm) = real( ylmc(Lm0), db )
       else
-        ylmr(lm) = (-1)**m * sqrt_2 * real( ylmc(lm0), db )
+        ylmr(Lm) = (-1)**m * sqrt_2 * real( ylmc(Lm0), db )
       endif
 
     end do
@@ -11170,12 +11699,12 @@ end
 
 ! Convertion from complex Ylm to real Ylm
 
-subroutine Ylm_ZtoK(lmax,nlmr,Ylm)
+subroutine Ylm_ZtoK(Lmax,nlmr,Ylm)
 
   use declarations
   implicit none
 
-  integer:: i, L, lm_K, lm0, lmax, m, m_K, n, nlmr
+  integer:: i, L, lm_K, Lm0, Lmax, m, m_K, n, nlmr
 
   real(kind=db):: c_cubic
 
@@ -11186,9 +11715,9 @@ subroutine Ylm_ZtoK(lmax,nlmr,Ylm)
   Ylm(:) = 0._db
   lm_K = 0
 
-  do L = 0,lmax
+  do L = 0,Lmax
 
-    lm0 = L**2 + L + 1
+    Lm0 = L**2 + L + 1
 
     do m_K = -L,L
 
@@ -11202,7 +11731,7 @@ subroutine Ylm_ZtoK(lmax,nlmr,Ylm)
 
       do i = 1,n
         call Trans_TtoK(c_cubic,.true.,i,l,m_K,m)
-        Ylm(lm_K) = Ylm(lm_K) + c_cubic * Rlm( lm0 + m )
+        Ylm(lm_K) = Ylm(lm_K) + c_cubic * Rlm( Lm0 + m )
       end do
 
     end do

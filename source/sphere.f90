@@ -417,7 +417,7 @@ subroutine Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a
   real(kind=db), dimension(nr,nspino):: gso
   real(kind=db), dimension(nr,nlm,nlm,nspin):: V
   real(kind=db), dimension(nr,nlm1,nlm2,nspinp,nspino):: ui, ur
-  real(kind=db), dimension(:,:), allocatable:: fac_m
+  real(kind=db), dimension(-LL:LL,2):: fac_m
 
   Full_potential_loc = Full_potential
   Failed = .false.
@@ -535,10 +535,9 @@ subroutine Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a
 
   if( Spinorbite .and. .not. Full_potential ) then
     L = LL
-    allocate( fac_m(-L:L,2) )
-    do m = -li,li
-       fac_m(m,1) = sqrt( ( L - m ) * ( L + m + 1._db ) )
-       fac_m(m,2) = sqrt( ( L + m ) * ( L - m + 1._db ) )
+    do m = -L,L
+      fac_m(m,1) = sqrt( ( L - m ) * ( L + m + 1._db ) )
+      fac_m(m,2) = sqrt( ( L + m ) * ( L - m + 1._db ) )
     end do
   endif
 
@@ -657,8 +656,6 @@ subroutine Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a
       end do
     end do
   end do
-
-  if( Spinorbite .and. .not. Full_potential ) deallocate( fac_m )
 
   if( icheck > 3 ) then
     call write_ur(Full_potential,li,lf,nlm1,nlm2,nr,nspinp,nspino,numat,r,Radial_comp,10000._db,ui,ur,1)

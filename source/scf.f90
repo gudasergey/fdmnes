@@ -4,16 +4,16 @@
 
 ! Calculation of the starting energy for the self-consistency, to get at the end the Fermi energy
 
-subroutine En_dep(Bulk_step,E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck,itypepr,lcoeur,n_atom_0, &
+subroutine Starting_energ(Bulk_step,E_start,E_starta,Full_atom,iaprotoi,icheck,itypepr,lcoeur,n_atom_0, &
               n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_uc,natome,ncoeur,nenerg_coh,nlm_pot, &
-              nrato,nrm,numat,nspin,ntype,Pas_SCF,Proto_calculated,psi_coeur,relativiste,rato,Rmtg,Rmtsd,V_intmax,Vcato,Vxcato, &
+              nrato,nrm,numat,nspin,ntype,Pas_SCF,Proto_calculated,psi_coeur,rato,Vcato,Vxcato, &
               Workf)
 
   use declarations
   implicit none
 
-  integer:: i, iapr, icheck, ipr, ir, it, lmax_pot_loc, n_atom_0, n_atom_0_self, &
-     n_atom_ind, n_atom_ind_self, n_atom_proto, n_atom_proto_uc, natome, nenerg_coh, nlm_pot, nlm_pot_loc, nr, nrm, nspin, ntype
+  integer:: i, iapr, icheck, ipr, ir, it, L, n, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, &
+     n_atom_proto, n_atom_proto_uc, natome, nenerg_coh, nlm_pot, nr, nrm, nspin, ntype, Z
 
   integer, dimension(2,0:ntype):: lcoeur, ncoeur
   integer, dimension(0:ntype):: nrato, numat
@@ -22,35 +22,28 @@ subroutine En_dep(Bulk_step,E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck
 
   character(len=3):: Atom_kind
   
-  logical:: Bulk_step, Full_atom, Relativiste, Ylm_comp
+  logical:: Bulk_step, Full_atom
   logical, dimension(0:n_atom_proto):: Proto_calculated
 
-  real(kind=db):: E_marge, E_max_Fermi, E_start, Es, Pas_SCF, psiHpsi, V_intmax, Vxc, Workf
+  real(kind=db):: E_KS_Dirac, E_marge, E_max_Fermi, E_start, Es, J, Pas_SCF, Workf
 
-  real(kind=db), dimension(1):: V0bdm
-  real(kind=db), dimension(0:n_atom_proto):: Rmtg, Rmtsd
   real(kind=db), dimension(0:nrm,0:ntype):: rato
-  real(kind=db), dimension(nrm):: r, psi
-  real(kind=db), dimension(nrm,1,1):: pot
-  real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: E_coeur_s, E_starta
+  real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: E_starta
   real(kind=db), dimension(0:nrm,nlm_pot,n_atom_0:n_atom_ind):: Vcato
-  real(kind=db), dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind) :: Vxcato
+  real(kind=db), dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind):: Vxcato
   real(kind=db), dimension(0:nrm,2,0:ntype):: psi_coeur
-  real(kind=db), dimension(2,n_atom_0_self:n_atom_ind_self):: E_psi
+  real(kind=db), dimension(2,n_atom_0_self:n_atom_ind_self):: E_KS
+  real(kind=db), dimension(:), allocatable:: r, rho, psi
+  real(kind=db), dimension(:,:), allocatable:: Vrs
 
 ! One selects the core level of highest energy and the valence level of lowest energy 
-! The levels are ordered along the usual atomic order. Some could be inverted when the atom is in  the cluster 
-! E_psi is the storage of these energies
+! The levels are ordered along the usual atomic order. Some could be inverted when the atom is in the cluster 
+! E_KS is the storage of these energies
 
 ! Index 1 is for the top most core orbital
 ! Index 2 is for thelowest valence orbital
 
   if( icheck > 0 ) write (3,110)
-
-! One keeps the atomic potential spherical
-  Ylm_comp = .false.
-  lmax_pot_loc = 0
-  nlm_pot_loc = 1
 
   E_marge = 10._db / rydb
   E_start = 10000._db
@@ -64,45 +57,65 @@ subroutine En_dep(Bulk_step,E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck
       if( .not. Proto_calculated(ipr) ) cycle
     endif
     it = itypepr(ipr)
-    r(1:nrm) = rato(1:nrm,it)
+    Z = numat(it)
     nr = nrato(it)
+    allocate( r(nr) )
+    allocate( Vrs(nr,nspin) )
+    allocate( psi(nr) )
+    allocate( rho(nr) )
+
+    r(1:nr) = rato(1:nr,it)
+  ! In the subroutine potential is in Hartree
+    do ir = 1,nr
+      Vrs(ir,:) = 0.5_db * r(ir) * ( Vcato(ir,1,iapr) + Vxcato(ir,1,:,iapr) )
+      psi(ir) = psi_coeur(ir,1,it)
+    end do
 
     do i = 1,2
-      psi(1:nrm) = psi_coeur(1:nrm,i,it)
+      psi(1:nr) = psi_coeur(1:nr,i,it)
+      n = ncoeur(i,it)
+      L = Lcoeur(i,it)
 
-! When needed one keep only the avrage on both spins
-     do ir = 1,nrm
-       Vxc = sum( Vxcato(ir,1,:,iapr) ) / nspin
-       pot(ir,1,1) = Vcato(ir,1,iapr) + Vxc
-     end do
-     V0bdm(1) = 0._db
-     E_psi(i,iapr) =  psiHpsi(.false.,icheck,1,lcoeur(i,it),lmax_pot_loc,0,ncoeur(i,it),nlm_pot_loc,nr,nrm,1,1, &
-            1,1,numat(it),V0bdm,pot,psi,r,Relativiste,Rmtg(ipr),Rmtsd(ipr),.false.,V_intmax,Ylm_comp)
+      if( i == 1 .or. L == 0 ) then
+        J = 0.5_db * ( 2 * L + 1 )
+      else
+        J = 0.5_db * ( 2 * L - 1 )
+      endif
+
+      E_KS(i,iapr) = E_KS_Dirac(.true.,icheck,J,L,n,nr,nspin,Z,Vrs,psi,r,rho)
+
+      if( icheck > 2 ) then
+        write(3,120) Z, n, L, nint(2*J)
+        do ir = 1,nr
+          write(3,130) r(ir)*bohr, psi(ir), psi_coeur(ir,i,it)
+        end do
+      end if
+
     end do
 
 ! In case of H or He there is one single core level
-    if( E_psi(2,iapr) - E_psi(1,iapr) > 2*E_marge .or. numat(it) < 3 ) then
-      E_starta(iapr) = E_psi(2,iapr) - E_marge
+    if( E_KS(2,iapr) - E_KS(1,iapr) > 2*E_marge .or. numat(it) < 3 ) then
+      E_starta(iapr) = E_KS(2,iapr) - E_marge
     else
-      E_starta(iapr) = 0.5_db * ( E_psi(1,iapr) + E_psi(2,iapr) )
+      E_starta(iapr) = 0.5_db * ( E_KS(1,iapr) + E_KS(2,iapr) )
     endif
 
     E_start = min( E_start, E_starta(iapr) )
 
     E_starta(iapr) = E_starta(iapr) - eps10
 
+    deallocate( psi, r, rho, Vrs )
+    
   end do boucle_agr
 
-! The following is to calculate also the states at lower energy for no cost. 
-! Safer for RuO3
   do iapr = n_atom_0_self,n_atom_ind_self
     if( .not. Full_atom ) then
       ipr = iapr
       if( Bulk_step .and. ipr <= n_atom_proto_uc ) cycle  
       if( .not. Proto_calculated(ipr) ) cycle
     endif
-    if( E_start > E_psi(1,iapr) .and. E_starta(iapr) > E_start + eps10 ) then
-      Es = max( E_start, E_psi(1,iapr) + E_marge )
+    if( E_start > E_KS(1,iapr) .and. E_starta(iapr) > E_start + eps10 ) then
+      Es = max( E_start, E_KS(1,iapr) + E_marge )
       E_starta(iapr) = min( Es, E_starta(iapr) ) 
     endif    
   end do
@@ -112,8 +125,6 @@ subroutine En_dep(Bulk_step,E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck
   E_start = E_start + Workf
   E_starta(:) = E_starta(:) + Workf
   
-  E_coeur_s(:) = E_psi(1,:)
-
   E_max_Fermi = 30._db / rydb
 
 ! Evaluation du nombre de points pour la grille en energie
@@ -125,7 +136,7 @@ subroutine En_dep(Bulk_step,E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck
     else
       Atom_kind = 'ipr'
     endif
-    write(3,120) Atom_kind
+    write(3,140) Atom_kind
     do iapr = n_atom_0_self,n_atom_ind_self
       if( Full_atom ) then
         ipr = iaprotoi(iapr)
@@ -135,29 +146,20 @@ subroutine En_dep(Bulk_step,E_coeur_s,E_start,E_starta,Full_atom,iaprotoi,icheck
         if( .not. Proto_calculated(ipr) ) cycle
       endif
       it = itypepr(ipr)
-      write(3,130) iapr, numat(it), ( ncoeur(i,it), lcoeur(i,it), E_psi(i,iapr)*rydb, i = 1,2), E_starta(iapr)*rydb
+      write(3,150) iapr, numat(it), ( ncoeur(i,it), lcoeur(i,it), E_KS(i,iapr)*rydb, i = 1,2), E_starta(iapr)*rydb
     end do
   end if
 
-  if( icheck > 2 ) then
-    do it = 0,ntype
-      write(3,135) numat(it), (ncoeur(i,it), lcoeur(i,it), i = 1,2)
-      do ir = 1,nrato(it)
-        write(3,137) ( psi_coeur(ir,i,it), i = 1,2 )
-      end do
-    end do
-  end if
-
-  if( icheck > 0 ) write(3,150) E_start * rydb, - Workf *rydb
+  if( icheck > 0 ) write(3,160) E_start * rydb
 
   return
   110 format(/' ---- En_dep --------',100('-'))
-  120 format(/1x,a3,'     Z    n  l     E_core  n  l     E_val    E_starta')
-  130 format(i4,3x,i3,2x,2(i3,i3,f11.3),f11.3)
-  135 format(/'  Z = ',i3,3x,'n_coeur = ',i1,3x,'l_coeur = ',i1,3x, 'n_val = ',i1,3x,'l_val = ',i1// &
-            4x,'psi_coeur    ','psi_val    '/)
-  137 format(1p,2e14.6)
-  150 format(/' Starting energy = ',f8.3,' eV,    zero at',f7.2,' eV, E_core, E_val zero at infinity.')
+  120 format(/'  Z =',i4,', n =',i2,', L =',i2,', J =',i2,'/2',// &
+              '     Radius      psi_new        psi')
+  130 format(f13.7,1p,2e13.5)
+  140 format(/1x,a3,'     Z    n  l     E_core  n  l     E_val    E_starta')
+  150 format(i4,3x,i3,2x,2(i3,i3,f11.3),f11.3)
+  160 format(/' Starting energy = ',f8.3,' eV')
 end
 
 !***********************************************************************
@@ -481,7 +483,7 @@ end
 ! ch_ia = total number of electrons including the core ones at the current iteration.
 
 subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,chargat_self,Density,Doping,drho_self,E_cut, &
-                E_Open_val,E_Open_val_exc,E_starta,Energ,E_Fermi,Enragr,Energ_self,Fermi,Full_atom,hubb,Hubb_diag,iaabsi, &
+                E_Open_val,E_Open_val_exc,E_starta,Energ,E_Fermi,Energ_self,Fermi,Full_atom,hubb,Hubb_diag,iaabsi, &
                 iaprotoi,i_self,icheck,ie,ie_computer,Int_statedens,ipr_dop,ispin_maj,itypei,itypepr,lamstdens, &
                 Open_val,Open_val_exc,lla_state,lla2_state,lmaxat,m_hubb,mpinodes,n_atom_0,n_atom_0_self, &
                 n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,natome,nb_eq,nb_eq_2D,nenerg,ngreq, &
@@ -515,7 +517,7 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
   logical, dimension(n_atom_0_self:n_atom_ind_self):: Hubb_diag
 
   real(kind=db):: ch, ch_s, Charge, Charge_maj, Charge_min, Charge_val_abs, chg_lim, D_Energ, de, Dens, ds, E_cut, E_Fermi, &
-    E_Open_val, E_Open_val_exc, En_f, Enragr, Enragr_s, f_integr3, poids, Pop
+    E_Open_val, E_Open_val_exc, En_f, f_integr3, poids
 
   real(kind=db), save:: Charge_maj_s, Charge_min_s, Charge_s, Charge_val_abs_e_s, Charge_val_abs_s, E_Fermi_maj, E_Fermi_min
 
@@ -576,7 +578,6 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
   ch_ia(:,:) = 0._db
   ch_ia_t(:) = 0._db
   rho_self_s(:,:,:,:) = rho_self(:,:,:,:)
-  Enragr_s = Enragr
   Energ_self_s(:) = Energ_self(:)
   pop_orb_val_s(:,:) = pop_orb_val(:,:)
 
@@ -753,13 +754,6 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
       end do
       D_Energ = ds * Energ(ie) * Dens
       Energ_self(iapr) =  Energ_self(iapr) + D_Energ
-      if( Full_atom ) then
-        Enragr = Enragr + nb_eq(iapr) * D_Energ
-      elseif( Sym_2D ) then
-        Enragr = Enragr + nb_eq_2D(iapr) * D_Energ
-      else
-        Enragr = Enragr + ngreq(iapr) * D_Energ
-      endif
     end do
 
     if( SCF_mag_fix .and. First_loop ) rho_self_t(:,:,iapr) = rho_self(:,:,1,iapr) + rho_self(:,:,nspin,iapr)
@@ -825,9 +819,9 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
 
     if( icheck > 1 ) then
       if( nspin == 1 ) then
-        write(3,200) Atom_kind,iapr, chargat_self(iapr,1), ch_ia(iapr,1), Int_statedens_t(1,iapr)
+        write(3,200) Atom_kind, iapr, chargat_self(iapr,1), ch_ia(iapr,1), Int_statedens_t(1,iapr)
       else
-        write(3,210) Atom_kind,iapr, ( isp, chargat_self(iapr,isp), ch_ia(iapr,isp), &
+        write(3,210) Atom_kind, iapr, ( isp, chargat_self(iapr,isp), ch_ia(iapr,isp), &
                      Int_statedens_t(min(isp,nspin),iapr), isp = 1,nspin )
       endif
     endif
@@ -844,9 +838,9 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
 
 ! Interpolation:
 ! E_f = E_i*(ch_ref - ch_i-1)/(ch_i-ch_i-1) + E_i-1*(ch_i - ch_ref)/(ch_i-ch_i-1)
-! ch_s, Enragr = nombre total d'electrons et L'Energie de L'agregat a L'iteration precedente
-! ch, enr = nombre total d'electrons et Energie courrantes
-! Chg_reference = la charge qu'on va comparer avec la reference
+! ch_s = total number of electrons at previous iteration
+! ch = total number of electrons
+! Chg_reference = charge to compare with the reference
 
 ! Fermi level evaluation
 
@@ -911,22 +905,7 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
       if( .not. hubb(it) ) cycle
       Z = numat(it)
       L = l_hubbard( Z )
-      if( nspinp == 1 ) then
-        write(3,266) Atom_kind, iapr, Z, ( m2, m2 = -L,L ) 
-      else
-        write(3,267) Atom_kind, iapr, Z, ( ( m2, isp2, m2 = -L,L ), isp2 = 1,nspinp )
-      endif
-      do isp1 = 1,nspinp
-        do m1 = -L,L
-          if( nspinp == 1 ) then
-            write(3,268) m1, (( occ_hubb(m1,m2,isp1,isp2,iapr), occ_hubb_i(m1,m2,isp1,isp2,iapr), m2 = -L,L ), &
-                                    isp2 = 1,nspinp )
-          else
-            write(3,269) m1, isp1, (( occ_hubb(m1,m2,isp1,isp2,iapr), occ_hubb_i(m1,m2,isp1,isp2,iapr), m2 = -L,L ), &
-                                      isp2 = 1,nspinp )
-          endif 
-        end do
-      end do
+      call Write_occ_hubb(Atom_kind,iapr,L,m_hubb,n_atom_0_self,n_atom_ind_self,nspinp,occ_hubb,occ_hubb_i,Z)
     end do
   endif
 
@@ -1063,7 +1042,6 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
 
       if( .not. Fermi ) cycle
 
-      Enragr = Enragr * poids + Enragr_s * ( 1 - poids )
       Energ_self(:) = Energ_self(:) * poids + Energ_self_s(:) * ( 1 - poids )
 
       if( Full_atom ) then
@@ -1072,23 +1050,25 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
         Charge_val_abs = sum( pop_orb_val(iprabs,:) )
       endif
 
-      if( icheck == 1 ) write(3,110)
+      if( icheck == 1 .and. i_self == 1 ) write(3,110)
 
       do iprint = 3,6,3
         if( icheck == 0 .and. iprint == 3 ) cycle
         if( SCF_mag_fix ) then
-          write(iprint,289) i_self, E_Fermi*rydb, E_Fermi_maj*rydb, E_Fermi_min*rydb, Enragr*rydb
+          write(iprint,289) i_self, E_Fermi*rydb, E_Fermi_maj*rydb, E_Fermi_min*rydb, Charge_val_abs 
         else
-          write(iprint,290) i_self, E_Fermi*rydb, Enragr*rydb
+          write(iprint,290) i_self, E_Fermi*rydb, Charge_val_abs
         endif
-        if( Open_val_exc .and. .not. self_nonexc ) then
-          write(iprint,292) E_Open_val_exc*rydb
-          write(iprint,293) E_Open_val*rydb
-        elseif( Open_val ) then
-          write(iprint,293) E_Open_val*rydb
-        else
-          write(iprint,294) Charge_val_abs
+        if( icheck > 1 .and. iprint == 3 ) then
+          if( Open_val_exc .and. .not. self_nonexc ) then
+            write(iprint,292) E_Open_val_exc*rydb
+            write(iprint,293) E_Open_val*rydb
+          elseif( Open_val ) then
+            write(iprint,293) E_Open_val*rydb
+          endif
         endif
+        
+        if( icheck < 2 .and. iprint == 3 ) cycle
         if( nspin == 1 ) then
           write(iprint,300) Atom_kind
         else
@@ -1150,61 +1130,22 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
         if( .not. hubb(it) ) cycle
         L = l_hubbard( Z )
 
-        Pop = 0._db
-        do isp = 1,nspinp
-          do m = -L,L
-            Pop = Pop + occ_hubb(m,m,isp,isp,iapr)
-          end do
-        end do
-
+! Occupancy counts for exchange, it is thus per spin
         if( nspinp == 1 ) then
           occ_hubb(:,:,:,:,iapr) = 0.5_db * occ_hubb(:,:,:,:,iapr)
           occ_hubb_i(:,:,:,:,iapr) = 0.5_db * occ_hubb_i(:,:,:,:,iapr)
         endif
-        if( icheck > 0 ) then
-          if( nspinp == 1 ) then
-            write(3,266) Atom_kind, iapr, Z, ( m2, m2 = -L,L ) 
-          else
-            write(3,267) Atom_kind, iapr, Z, ( ( m2, isp2, m2 = -L,L ), isp2 = 1,nspinp )
-          endif
-          do isp1 = 1,nspinp
-            do m1 = -L,L
-              if( nspinp == 1 ) then
-                write(3,268) m1, (( occ_hubb(m1,m2,isp1,isp2,iapr), occ_hubb_i(m1,m2,isp1,isp2,iapr), m2 = -L,L ), &
-                                        isp2 = 1,nspinp )
-              else
-                write(3,269) m1, isp1, (( occ_hubb(m1,m2,isp1,isp2,iapr), occ_hubb_i(m1,m2,isp1,isp2,iapr), m2 = -L,L ), &
-                                          isp2 = 1,nspinp )
-              endif 
-            end do
-          end do
-          write(3,350) Pop
-        endif
 
-        occ_hubb(:,:,:,:,iapr) = - occ_hubb(:,:,:,:,iapr)
+        V_hubb(:,:,:,:,iapr) = - V_hubbard(it) * cmplx( occ_hubb(:,:,:,:,iapr), occ_hubb_i(:,:,:,:,iapr) )
         do isp = 1,nspinp
           do m = -L,L
-            occ_hubb(m,m,isp,isp,iapr) = occ_hubb(m,m,isp,isp,iapr) + 0.5_db
+            V_hubb(m,m,isp,isp,iapr) = V_hubb(m,m,isp,isp,iapr) + 0.5_db * V_hubbard(it)
           end do
         end do
 
-        V_hubb(:,:,:,:,iapr) = V_hubbard(it) * cmplx( occ_hubb(:,:,:,:,iapr), occ_hubb_i(:,:,:,:,iapr) )
-
-        if( icheck > 0 ) then
-          if( nspinp == 1 ) then
-            write(3,360) iapr, Z, V_hubbard(it) * Rydb, ( m2, m2 = -L,L )
-          else
-            write(3,361) iapr, Z, V_hubbard(it) * Rydb, ( ( m2, isp2, m2 = -L,L ), isp2 = 1,nspin )
-          endif
-          do isp1 = 1,nspinp
-            do m1 = -L,L
-              if( nspinp == 1 ) then
-                write(3,268) m1, (( V_hubb(m1,m2,isp1,isp2,iapr) * Rydb, m2 = -L,L ), isp2 = 1,nspinp )
-              else
-                write(3,269) m1, isp1, (( V_hubb(m1,m2,isp1,isp2,iapr) * Rydb, m2 = -L,L ), isp2 = 1,nspinp ) 
-              endif
-            end do
-          end do
+        if( icheck > 1 ) then
+          call Write_occ_hubb(Atom_kind,iapr,L,m_hubb,n_atom_0_self,n_atom_ind_self,nspinp,occ_hubb,occ_hubb_i,Z)
+          call Write_V_hubb(Atom_kind,iapr,it,L,m_hubb,n_atom_0_self,n_atom_ind_self,nspinp,ntype,V_hubb,V_hubbard,Z)
         endif
 
         boucle_m: do m1 = -L,L
@@ -1241,25 +1182,244 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
   220 format(/' Total charge at the current iteration =',f10.3,', Reference charge =',f10.3,', Sum of atomic numbers =',i5)
   230 format(/' Total charge at the current iteration =',f10.3,', Reference charge =',f10.3, &
               ', spin maj, spin min =',2f10.3,', Sum of atomic numbers =',i5)
+  289 format(/' Cycle',i4,',  Fermi Energy =',f8.3,' eV,  maj, min =',2f8.3,' eV, occupancy val abs =',f7.3)
+  290 format(/' Cycle',i4,',  Fermi energy =',f8.3,' eV, Occupancy val abs =',f7.3)
+  292 format(9x,'Level val excite =',f8.3,' eV')
+  293 format(9x,'Level val absorb =',f8.3,' eV')
+  300 format(/6x,a3,'   Z   Energy_KS      Charge  pop_orb_val(L)   L    Radius')
+  305 format(/6x,a3,'   Z   Energy_KS      Charge       up-dn  pop_orb_val(L)   L    Radius')
+  310 format(5x,2i4,4f12.3,i8,f10.5)
+  320 format(5x,2i4,3f12.3,i8,f10.5)
+end
+
+!********************************************************************************
+
+subroutine Write_occ_hubb(Atom_kind,iapr,L,m_hubb,n_atom_0_self,n_atom_ind_self,nspinp,occ_hubb,occ_hubb_i,Z)
+
+  use declarations
+  implicit none
+
+  character(len=3):: Atom_kind
+
+  integer:: iapr, isp, isp1, isp2, L, m, m_hubb, m1, m2, n_atom_0_self, n_atom_ind_self, nspinp, Z
+
+  real(kind=db):: Pop 
+  real(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: occ_hubb, occ_hubb_i
+
+  Pop = 0._db
+  do isp = 1,nspinp
+    do m = -L,L
+      Pop = Pop + occ_hubb(m,m,isp,isp,iapr)
+    end do
+  end do
+! Occupancy count for exchange, it is thus per spin. Pop is the total occupancy
+  if( nspinp == 1 ) Pop = 2._db * Pop
+
+  if( nspinp == 1 ) then
+    write(3,266) Atom_kind, iapr, Z, ( m2, m2 = -L,L ) 
+  else
+    write(3,267) Atom_kind, iapr, Z, ( ( m2, isp2, m2 = -L,L ), isp2 = 1,nspinp )
+  endif
+  do isp1 = 1,nspinp
+    do m1 = -L,L
+      if( nspinp == 1 ) then
+        write(3,268) m1, (( occ_hubb(m1,m2,isp1,isp2,iapr), occ_hubb_i(m1,m2,isp1,isp2,iapr), m2 = -L,L ), &
+                                isp2 = 1,nspinp )
+      else
+        write(3,269) m1, isp1, (( occ_hubb(m1,m2,isp1,isp2,iapr), occ_hubb_i(m1,m2,isp1,isp2,iapr), m2 = -L,L ), &
+                                  isp2 = 1,nspinp )
+      endif 
+    end do
+  end do
+  write(3,350) Pop
+
+  return
   266 format(/' Hubbard occupation matrix for ',a3,' =',i3,', Z =',i3,/'  m',2(1x,7(10x,i3,10x)))
   267 format(/' Hubbard occupation matrix for ',a3,' =',i3,', Z =',i3,/' m1 s1',2(1x,7(9x,2i3,8x)))
   268 format(i3,7(1x,2f11.7))
   269 format(2i3,2(1x,7(1x,2f11.7)))
-  289 format(/' Cycle',i4,',  Fermi Energy =',f8.3,' eV,  maj, min =',2f8.3,' eV', &
-                      ',  Cluster Energy_KS =',f11.3,' eV')
-  290 format(/' Cycle',i4,',  Fermi Energy =',f8.3,' eV,  Cluster Energy_KS =',f11.3,' eV')
-  292 format(9x,'Level val excite =',f8.3,' eV')
-  293 format(9x,'Level val absorb =',f8.3,' eV')
-  294 format(9x,'Popul val absorb =',f8.3)
-  300 format(/6x,a3,'   Z   Energy_KS      Charge  pop_orb_val(l)   l    Radius')
-  305 format(/6x,a3,'   Z   Energy_KS      Charge       up-dn  pop_orb_val(l)   l    Radius')
-  310 format(5x,2i4,4f12.3,i8,f10.5)
-  320 format(5x,2i4,3f12.3,i8,f10.5)
   350 format(/' Total number of electron, summed over spin:',f9.5)
-  360 format(/' Hubbard potential for ia =',i3,', Z =',i3,', Hubbard parameter U - J =',f5.2,' eV',/ &
+end
+
+!********************************************************************************
+
+subroutine Write_V_hubb(Atom_kind,iapr,it,L,m_hubb,n_atom_0_self,n_atom_ind_self,nspinp,ntype,V_hubb,V_hubbard,Z)
+
+  use declarations
+  implicit none
+
+  integer:: iapr, isp1, isp2, it, L, m_hubb, m1, m2, n_atom_0_self, n_atom_ind_self, nspinp, ntype, Z
+
+  character(len=3):: Atom_kind
+
+  complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb
+
+  real(kind=db), dimension(0:ntype):: V_hubbard
+
+  if( nspinp == 1 ) then
+    write(3,360) Atom_kind, iapr, Z, V_hubbard(it) * Rydb, ( m2, m2 = -L,L )
+  else
+    write(3,361) Atom_kind, iapr, Z, V_hubbard(it) * Rydb, ( ( m2, isp2, m2 = -L,L ), isp2 = 1,nspinp )
+  endif
+  do isp1 = 1,nspinp
+    do m1 = -L,L
+      if( nspinp == 1 ) then
+        write(3,268) m1, (( V_hubb(m1,m2,isp1,isp2,iapr) * Rydb, m2 = -L,L ), isp2 = 1,nspinp )
+      else
+        write(3,269) m1, isp1, (( V_hubb(m1,m2,isp1,isp2,iapr) * Rydb, m2 = -L,L ), isp2 = 1,nspinp ) 
+      endif
+    end do
+  end do
+
+  return
+  268 format(i3,7(1x,2f11.7))
+  269 format(2i3,2(1x,7(1x,2f11.7)))
+  360 format(/' Hubbard potential for ',a3,' =',i3,', Z =',i3,', Hubbard parameter U - J =',f5.2,' eV',/ &
               '  m',2(1x,7(10x,i3,10x)))
-  361 format(/' Hubbard potential for ia =',i3,', Z =',i3,', Hubbard parameter U - J =',f5.2,' eV',/ &
+  361 format(/' Hubbard potential for ',a3,' =',i3,', Z =',i3,', Hubbard parameter U - J =',f5.2,' eV',/ &
               ' m1 s1',2(1x,7(9x,2i3,8x)))
+end
+
+!********************************************************************************
+
+! Routine calcculating the Kohn Sham energy of the top most core orbital;
+! One considers that the wave function of this orbital is not modified along the SCF cycles. 
+! Nevertheless the potential and thus its energy is changing.
+! The Approximation is that thie shift is the same for all the core levels.
+
+! Result will be used to calculate the cluster (or unit cell) energy
+! Chg_coeur is the total charge of the core, that is the number of electrons which are not valence
+
+subroutine Energ_KS_core(Bulk_step,E_KS_core,Full_atom,iaprotoi,icheck,itypepr,Jseuil,lcoeur,Lseuil,n_atom_0, &
+              n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_uc,natome,ncoeur,nlm_pot,nrato, &
+              nrm,nspin,nseuil,ntype,numat,Proto_calculated,psi_coeur,rato,Vcato,Vxcato)
+
+  use declarations
+  implicit none
+
+  integer i_j, iapr, icheck, ipr, ir, it, Jseuil, L, Lseuil, n, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, &
+          n_atom_proto, n_atom_proto_uc, natome, nlm_pot, nr, nrm, nseuil, nspin, nspino, nspinp, ntype, Z
+  integer,dimension(2,0:ntype):: lcoeur, ncoeur
+  integer,dimension(natome):: iaprotoi
+  integer,dimension(0:n_atom_proto):: itypepr
+  integer,dimension(0:ntype):: nrato, numat
+
+  logical:: Bulk_step, Full_atom, Ylm_comp
+  logical, dimension(0:n_atom_proto):: Proto_calculated
+            
+  real(kind=db):: E_KS_Dirac, E_KS, J, Level_occupancy 
+  real(kind=db), dimension(nspin):: V0bd
+  real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: Core_occupancy, E_KS_core, E_KS_core_s
+  real(kind=db), dimension(0:nrm,0:ntype):: rato
+  real(kind=db), dimension(0:nrm,nlm_pot,n_atom_0:n_atom_ind):: Vcato
+  real(kind=db), dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind):: Vxcato
+  real(kind=db), dimension(0:nrm,2,0:ntype):: psi_coeur
+  real(kind=db), dimension(:), allocatable:: r, psi, psi_s, rho
+  real(kind=db), dimension(:,:), allocatable:: Vrs
+
+! Only the spherical part of the potential
+  Ylm_comp = .false.
+  V0bd(:) = 0._db
+  nspino = 2
+  nspinp = 2
+  
+  E_KS_core_s(:) = E_KS_core(:)
+  E_KS_core(:) = 0._db
+  Core_occupancy(:) = 0._db
+
+  do iapr = n_atom_0_self,n_atom_ind_self
+
+    if( Full_atom ) then
+      ipr = iaprotoi(iapr)
+    else
+      if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
+      ipr = iapr
+      if( .not. Proto_calculated(ipr) ) cycle
+    endif
+    it = itypepr(ipr)
+    Z = numat(it)
+    nr = nrato(it)
+    allocate( r(nr) )
+    allocate( Vrs(nr,nspin) )
+    allocate( psi(nr) )
+    allocate( psi_s(nr) )
+    allocate( rho(nr) )
+    
+    r(1:nr) = rato(1:nr,it)
+
+  ! In the subroutine potential is in Hartree
+    do ir = 1,nr
+      Vrs(ir,:) = 0.5_db * r(ir) * ( Vcato(ir,1,iapr) + Vxcato(ir,1,:,iapr) )
+      psi(ir) = psi_coeur(ir,1,it)
+    end do
+
+    do n = 1,ncoeur(1,it)
+      do L = 0,n-1
+      
+        do i_j = 1,2  
+
+          if( L == 0 .and. i_j == 1 ) cycle
+
+          if( i_j == 1 ) then
+            J = 0.5_db * ( 2 * L - 1 )
+          else
+            J = 0.5_db * ( 2 * L + 1 )
+          endif 
+
+          if( it == 0 .and. L == Lseuil .and. n == nseuil .and. &
+             ( ( Jseuil == 1 .or. Jseuil == 2 .or. Jseuil == 4 .or. Jseuil == 6 ) .and. i_j == 1 ) ) then
+            Level_occupancy = 2*J    ! missing electron 
+          else 
+            Level_occupancy = 2*J + 1
+          endif
+
+          Core_occupancy(iapr) = Core_occupancy(iapr) + Level_Occupancy
+          
+          psi_s(:) = psi(:)
+        
+          E_KS =  E_KS_Dirac(.true.,icheck,J,L,n,nr,nspin,Z,Vrs,psi,r,rho)
+
+          E_KS_core(iapr) = E_KS_core(iapr) + Level_occupancy * E_KS
+          if( icheck > 1 ) then
+            write(3,*) 
+            write(3,110) Z, n, L, nint(2*J), E_KS * rydb 
+          endif
+          if( icheck > 2 ) then
+            write(3,'(/A)') '    Radius      old_psi      new_psi' 
+            do ir = 1,nr
+              write(3,'(f11.7,1p,2e13.5)') r(ir)*bohr, psi_s(ir), psi(ir) 
+            end do
+          endif        
+        
+        end do
+     
+        if( n == ncoeur(1,it) .and. L == Lcoeur(1,it) ) exit
+      end do
+    end do
+    
+    deallocate( psi, psi_s, r, rho, Vrs )
+    
+  end do ! en of loop over atoms
+
+  if( icheck > 1 ) then
+    write(3,'(/A)') ' iapr  Z  Occ.     E_KS      Delta E_KS'
+    do iapr = n_atom_0_self,n_atom_ind_self
+      if( Full_atom ) then
+        ipr = iaprotoi(iapr)
+      else
+        if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
+        ipr = iapr
+        if( .not. Proto_calculated(ipr) ) cycle
+      endif
+      it = itypepr(ipr)
+      Z = numat(it)
+      write(3,120) iapr, Z, nint(Core_occupancy(iapr)), E_KS_core(iapr) * rydb, ( E_KS_core(iapr) - E_KS_core_s(iapr) ) * rydb
+    end do
+  endif
+  
+  return
+  110 format(' Z =',i3,' n =',i2,', L =',i2,', J =',i2,'/2, E =',f15.5,' eV')
+  120 format(2i4,i5,2f13.3)
 end
 
 !********************************************************************************
@@ -1331,20 +1491,26 @@ subroutine Eps_coeur(Bulk_step,Chg_coeur,E_coeur,E_coeur_s,Full_atom,iaprotoi,ic
               1,1,numat(it),V0bd,pot,psi,r,Relativiste,Rmtg(ipr),Rmtsd(ipr),.false.,V_intmax,Ylm_comp)
     res = res - E_coeur_s(iapr)
     E_coeur(iapr) = res * nint( Chg_coeur(iapr) )
+
+    if( icheck > 1 ) then
+      if( iapr == 1 ) write(3,'(/A)') ' iapr      E_KS      Delta E_KS'
+      write(3,110) iapr, ( E_coeur(iapr) + E_coeur_s(iapr)*nint( Chg_coeur(iapr) ) ) * rydb, E_coeur(iapr) * rydb
+    endif
+
   end do
 
   return
+  110 format(i4,2f13.3)
 end
 
 !***********************************************************************
 
-! subroutine making the correction of the energy
-! Energies are in rydb
+! Calculation of the total energy
 
-subroutine Energ_DFT(Bulk_step,Doping,En_cluster,Energ_self,E_coeur,Excato,Full_atom,Hubb,iaprotoi,icheck,ipr_dop, &
+subroutine Energ_DFT(Bulk_step,Doping,En_cluster,Energ_self,E_KS_core,Excato,Full_atom,Hubb,iaprotoi,icheck,ipr_dop, &
            itypepr,m_hubb,n_atom_0,n_atom_0_self,n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_uc,natome,nb_eq,nb_eq_2D, &
-           ngreq,nlm_pot,nrm,nrm_self,nrato,nspin,nspinp,ntype,numat,Proto_calculated,rato,rho_self,rmtsd,Sym_2D,V_hubb,Vcato, &
-           Vxcato)
+           ngreq,nlm_pot,nrm,nrm_self,nrato,nspin,nspinp,ntype,numat,occ_hubb,Proto_calculated,rato,rho_self,rmtsd,Sym_2D, &
+           V_hubb,Vcato,Vxcato)
 
   use declarations
   implicit none
@@ -1365,22 +1531,22 @@ subroutine Energ_DFT(Bulk_step,Doping,En_cluster,Energ_self,E_coeur,Excato,Full_
   logical, dimension(0:ntype):: Hubb
   logical, dimension(0:n_atom_proto):: Proto_calculated
 
-  real(kind=db):: Delta_E_coeur_agr, E_coul_agr, E_exc_agr, E_hubbard_agr, E_Vxc_agr, En_cluster, Energ_self_KS_agr, f_integr3, fac
+  real(kind=db):: E_elec_agr, E_exc_agr, E_hubbard_agr, E_kin_agr, E_KS_core_agr, E_Vxc_agr, En_cluster, &
+                  Energ_self_KS_agr, f_integr3, fac, U_agr
 
   real(kind=db), dimension(0:nrm_self,nlm_pot,nspin, n_atom_0_self:n_atom_ind_self):: rho_self
   real(kind=db), dimension(nrm,n_atom_0:n_atom_ind):: Excato
-  real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: E_coeur, Energ_self, Energ_self_KS, &
-                     E_exc, E_coul, E_hubbard, E_Vxc
+  real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: E_KS_core, Energ_self, Energ_self_KS, &
+                     E_exc, E_elec, E_hubbard, E_kin, E_Vxc, U
   real(kind=db), dimension(0:nrm,0:ntype):: rato
   real(kind=db), dimension(0:nrm,nlm_pot,nspin,n_atom_0:n_atom_ind) :: Vxcato
-  real(kind=db), dimension(0:nrm,n_atom_0:n_atom_ind):: Vhartree
+  real(kind=db), dimension(nrm):: Vhartree, V_Z
   real(kind=db), dimension(0:nrm,nlm_pot,n_atom_0:n_atom_ind)::Vcato
-  real(kind=db), dimension(0:nrm):: fct1, fct2, fct3, r, r2
+  real(kind=db), dimension(0:nrm):: fct1, fct2, r, r2
   real(kind=db), dimension(0:n_atom_proto):: rmtsd
+  real(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: occ_hubb
 
-! Enragr: la somme des valeurs propres pour les orbitales Kohn Sham occupees
-
-  if( nrm /= nrm_self ) return  ! car rho_self n'est pas calcule
+  if( nrm /= nrm_self ) return  ! because rho_self is not calculated
 
   Energ_self_KS(:) = Energ_self(:)
 
@@ -1398,29 +1564,28 @@ subroutine Energ_DFT(Bulk_step,Doping,En_cluster,Energ_self,E_coeur,Excato,Full_
     r2(1:nr) = r(1:nr)**2
     r2(0) = 0._db
 
-    fct1(:) = 0._db; fct2(:) = 0._db; fct3(:) = 0._db
-
-! le potentiel dont on a besoin pour la correction est le vrai Hartree,
-!  c'est a dire il faut enlever la contribution des noyaux
-
-    Vhartree(1:nr,iapr) = Vcato(1:nr,1,iapr) + 2 * numat(it) / r(1:nr)
-
+    fct1(:) = 0._db; fct2(:) = 0._db
     do ir = 1,nr
-      fac = sum( rho_self(ir,1,1:nspin,iapr) ) * r2(ir)
-      fct1(ir) = Excato(ir,iapr) * fac
-      fct2(ir) = Vhartree(ir,iapr) * fac
+      fct1(ir) = sum( rho_self(ir,1,1:nspin,iapr) ) * r2(ir)
     end do
 
-    E_exc(iapr) = quatre_pi * f_integr3(r,fct1,0,nrm,Rmtsd(ipr))
-    E_coul(iapr) = quatre_pi * f_integr3(r,fct2,0,nrm,Rmtsd(ipr))
-    E_coul(iapr) = 0.5_db * E_coul(iapr)
+!  Hartree potential is the coulonmb potential of just the electrons, not the nucleus.
+    V_Z(1:nr) = - 2 * numat(it) / r(1:nr)
+    Vhartree(1:nr) = Vcato(1:nr,1,iapr) - V_Z(1:nr)
+    
+    fct2(1:nr) = fct1(1:nr) * Excato(1:nr,iapr)
+    E_exc(iapr) = quatre_pi * f_integr3(r,fct2,0,nrm,Rmtsd(ipr))
+
+    fct2(1:nr) = fct1(1:nr) * Vhartree(1:nr)
+    E_elec(iapr) = 0.5_db * quatre_pi * f_integr3(r,fct2,0,nrm,Rmtsd(ipr))
+   
+    fct2(1:nr) = fct1(1:nr) * ( Vcato(1:nr,1,iapr) + V_Z(1:nr) )
+    U(iapr) = 0.5_db * quatre_pi * f_integr3(r,fct2,0,nrm,Rmtsd(ipr)) 
 
     E_Vxc(iapr) = 0._db
     do ispin = 1, nspin
-      do ir = 1,nr
-        fct3(ir) = Vxcato(ir,1,ispin,iapr) * rho_self(ir,1,ispin,iapr) * r2(ir)
-      end do
-      E_Vxc(iapr) = E_Vxc(iapr) + quatre_pi * f_integr3(r,fct3,0,nrm,Rmtsd(ipr))
+      fct2(1:nr) = Vxcato(1:nr,1,ispin,iapr) * rho_self(1:nr,1,ispin,iapr) * r2(1:nr)
+      E_Vxc(iapr) = E_Vxc(iapr) + quatre_pi * f_integr3(r,fct2,0,nrm,Rmtsd(ipr))
     end do
 
     E_hubbard(iapr) = 0._db
@@ -1428,24 +1593,26 @@ subroutine Energ_DFT(Bulk_step,Doping,En_cluster,Energ_self,E_coeur,Excato,Full_
     if( Hubb(it) ) then
       do isp = 1,nspinp
         do m = -m_hubb,m_hubb
-          E_hubbard(iapr) = E_hubbard(iapr) + real( V_hubb(m,m,isp,isp,iapr), db )
+          E_hubbard(iapr) = E_hubbard(iapr) + occ_hubb(m,m,isp,isp,iapr) * real( V_hubb(m,m,isp,isp,iapr), db )
         end do
       end do
     endif
 
-! E_coeur: energie des orbitales KS correspondant aux etats de coeur, pour chaque atome;
+! Becareful to the signs
+    Energ_self(iapr) = Energ_self_KS(iapr) + E_KS_core(iapr) + E_exc(iapr) - E_elec(iapr) - E_Vxc(iapr) + E_hubbard(iapr)
+    E_kin(iapr) = Energ_self(iapr) - U(iapr) - E_exc(iapr) 
 
-! ATTENTION aux signes
-    Energ_self(iapr) = Energ_self_KS(iapr) + E_coeur(iapr) + E_exc(iapr) - E_coul(iapr) - E_Vxc(iapr) + E_hubbard(iapr)
   end do boucle_ia
 
   Energ_self_KS_agr = 0._db
-  Delta_E_coeur_agr = 0._db
   E_exc_agr = 0._db
-  E_coul_agr = 0._db
+  E_elec_agr = 0._db
+  E_KS_core_agr = 0._db
   E_Vxc_agr = 0._db
   En_cluster = 0._db
   E_hubbard_agr = 0._db
+  E_kin_agr = 0._db
+  U_agr = 0._db
 
   do iapr = n_atom_0_self,n_atom_ind_self
     if( Full_atom ) then
@@ -1461,16 +1628,18 @@ subroutine Energ_DFT(Bulk_step,Doping,En_cluster,Energ_self,E_coeur,Excato,Full_
       if( Doping .and. iapr == ipr_dop ) n = n - 1
     endif
     Energ_self_KS_agr = Energ_self_KS_agr + n * Energ_self_KS(iapr)
-    Delta_E_coeur_agr = Delta_E_coeur_agr + n * E_coeur(iapr)
     E_exc_agr = E_exc_agr + n * E_exc(iapr)
-    E_coul_agr = E_coul_agr + n * E_coul(iapr)
+    E_elec_agr = E_elec_agr + n * E_elec(iapr)
     E_Vxc_agr = E_Vxc_agr + n * E_Vxc(iapr)
     E_hubbard_agr = E_hubbard_agr + n * E_hubbard(iapr)
     En_cluster = En_cluster + n * Energ_self(iapr)
+    E_kin_agr = E_kin_agr + n * E_kin(iapr)
+    E_KS_core_agr = E_KS_core_agr + n * E_KS_core(iapr)
+    U_agr = U_agr + n * U(iapr)
   end do
 
-  if( icheck > 0 ) then
-    if( icheck > 1 ) write(3,100)
+  if( icheck > 1 ) then
+    write(3,100)
     if( Full_atom ) then
       Atom_kind = ' ia'
     else
@@ -1486,20 +1655,21 @@ subroutine Energ_DFT(Bulk_step,Doping,En_cluster,Energ_self,E_coeur,Excato,Full_
         if( .not. Proto_calculated(ipr) ) cycle
      endif
       it = itypepr( ipr )
-      write(3,510) iapr, numat(it), Energ_self(iapr) * rydb, Energ_self_KS(iapr) * rydb, E_coeur(iapr) * rydb, &
-         E_exc(iapr) * rydb, E_coul(iapr) * rydb, E_Vxc(iapr) * rydb, E_hubbard(iapr) * rydb
+      write(3,510) iapr, numat(it), Energ_self(iapr) * rydb, Energ_self_KS(iapr) * rydb, E_KS_core(iapr) * rydb, &
+         E_elec(iapr) * rydb, E_exc(iapr) * rydb, E_Vxc(iapr) * rydb, E_hubbard(iapr) * rydb, E_kin(iapr) * rydb, &
+         U(iapr) * rydb
     end do
-    write(3,520) En_cluster * rydb, Energ_self_KS_agr * rydb, Delta_E_coeur_agr * rydb, &
-         E_exc_agr * rydb, E_coul_agr * rydb, E_Vxc_agr * rydb, E_hubbard_agr * rydb
+    write(3,520) En_cluster * rydb, Energ_self_KS_agr * rydb, E_KS_core_agr * rydb, &
+         E_elec_agr * rydb, E_exc_agr * rydb, E_Vxc_agr * rydb, E_hubbard_agr * rydb, E_kin_agr * rydb, U_agr * rydb
   end if
 
   return
 
   100 format(/' ---- Energ_DFT ---',100('-'))
-  500 format(/1x,a3,'   Z    Energ_atom      Energ_KS    Delta_E_coeur     E_exc        E_coul        E_Vxc', &
-    '        E_hubbard')
-  510 format(2i4,7f14.3)
-  520 format(/' Total =',7f14.3)
+  500 format(/1x,a3,'   Z    Energ_atom      E_KS_val     E_KS_core        E_elec        E_exc        E_Vxc', &
+    '        E_hubbard       E_kin    E_elec + E_Z')
+  510 format(2i4,9f14.3)
+  520 format(/' Total =',9f14.3)
 end
 
 !***********************************************************************
@@ -1507,33 +1677,40 @@ end
 ! Preparation of next iteration
 
 subroutine prep_next_iter(Bulk_step,chargat_self,chargat_self_s,Convergence,Delta_En_conv,Delta_energ,Delta_energ_s, &
-               Doping,En_cluster,En_cluster_s,Energ_self,Energ_self_s,Fermi,Fermi_first,Full_atom, &
-               Hubbard,i_self,iaprotoi,icheck,ipr_dop,itypepr,m_hubb,mpirank,n_atom_0_self,n_atom_ind_self, &
+               Doping,En_cluster,En_cluster_s,Energ_self,Energ_self_s,Fermi,Fermi_first,Full_atom,Hubb, &
+               Hubbard,i_self,iaprotoi,icheck,ipr_dop,itypepr,Lmaxat,m_hubb,mpirank,n_atom_0_self,n_atom_ind_self, &
                n_atom_proto,n_atom_proto_uc,n_devide,natome,nb_eq,nb_eq_2D,ngreq,nlm_pot,nrm_self,nself,nspin,nspinp, &
-               ntype,numat,p_self,p_self_max,p_self0,Proto_calculated,rho_self,rho_self_s,Sym_2D,V_Hubb,V_Hubb_s) 
+               ntype,numat,Occ_hubb,Occ_hubb_i,p_self,p_self_max,p_self0,pop_orb_val,Proto_calculated,rho_self,rho_self_s, &
+               Rmtsd,Sym_2D,V_Hubb,V_Hubb_s,V_hubbard) 
 
   use declarations
   implicit none
 
-  integer:: i_self, iapr, icheck, ipr, ipr_dop, m_hubb, mpirank, n, n_atom_0_self, n_atom_ind_self, n_atom_proto, &
-    n_atom_proto_uc, natome, n_devide, nlm_pot, nrm_self, nself, nspin, nspinp, ntype, Z
+  integer:: i_self, iapr, icheck, ipr, ipr_dop, it, L, L_hubbard, L_level_val, m_hubb, mpirank, n, n_atom_0_self, &
+    n_atom_ind_self, n_atom_proto, n_atom_proto_uc, natome, n_devide, nlm_pot, nrm_self, nself, nspin, nspinp, ntype, Z
   integer, save:: Mod_p
   
-  integer, dimension(0:n_atom_proto):: itypepr, nb_eq_2D, ngreq
+  integer, dimension(0:n_atom_proto):: itypepr, Lmaxat, nb_eq_2D, ngreq
   integer, dimension(natome):: iaprotoi, nb_eq
   integer, dimension(0:ntype):: numat
+
+  character(len=3):: Atom_kind
 
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: V_hubb, V_hubb_s
 
   logical:: Bulk_step, Convergence, Doping, Fermi, Fermi_first, Full_atom, Hubbard, Sym_2D
   logical, dimension(0:n_atom_proto):: Proto_calculated
+  logical, dimension(0:ntype):: Hubb
 
   real(kind=db):: Delta_En_conv, Delta_energ, Delta_energ_s, Delta_lim, En_cluster, En_cluster_s, &
     p_self, p_self_max, p_self_s, p_self0, pds
   real(kind=db), save:: Delta_energ_min
+  real(kind=db), dimension(0:n_atom_proto):: Rmtsd
+  real(kind=db), dimension(0:ntype):: V_hubbard
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: Energ_self, Energ_self_s
   real(kind=db), dimension(0:nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self):: rho_self, rho_self_s
-  real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_self, chargat_self_s
+  real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_self, chargat_self_s, pop_orb_val
+  real(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: occ_hubb, occ_hubb_i
 
   if( .not. Fermi .and. mpirank == 0 ) then
     call write_error
@@ -1541,14 +1718,6 @@ subroutine prep_next_iter(Bulk_step,chargat_self,chargat_self_s,Convergence,Delt
       if( icheck > 0 .or. ipr > 3 ) write(ipr,110)
     end do
     stop
-  endif
-
-  if( mpirank == 0 ) then
-    if( Full_atom ) then
-      write(6,120) i_self, En_cluster * rydb
-    else
-      write(6,130) i_self, En_cluster * rydb
-    endif
   endif
 
 ! Interpolation between 2 last iterations
@@ -1615,10 +1784,11 @@ subroutine prep_next_iter(Bulk_step,chargat_self,chargat_self_s,Convergence,Delt
     if( Convergence ) then
 
       if( icheck > 0 ) then
-        write(3,*)
-        write(3,150) Delta_energ*rydb, '<', Delta_lim*rydb, p_self
+        if( icheck > 1 ) write(3,*)
+        write(3,150) En_cluster*rydb, Delta_energ*rydb, '<', Delta_lim*rydb, p_self
       endif
-      if( mpirank == 0 ) write(6,150) Delta_energ*rydb, '<', Delta_lim*rydb, p_self, Mod_p
+
+      if( mpirank == 0 ) write(6,155) i_self, En_cluster*rydb, Delta_energ*rydb, '<', Delta_lim*rydb, p_self
       
       if( Fermi_first ) then
         Convergence = .false.
@@ -1631,10 +1801,10 @@ subroutine prep_next_iter(Bulk_step,chargat_self,chargat_self_s,Convergence,Delt
     else
 
       if( icheck > 0 ) then
-        write(3,*)
-        write(3,150) Delta_energ*rydb, '>', Delta_lim*rydb, p_self, Mod_p
+        if( icheck > 1 ) write(3,*)
+        write(3,162) En_cluster*rydb, Delta_energ*rydb, '>', Delta_lim*rydb, p_self, Mod_p
       endif
-      if( mpirank == 0 ) write(6,150) Delta_energ*rydb, '>', Delta_lim*rydb, p_self, Mod_p
+      if( mpirank == 0 ) write(6,165) i_self, En_cluster*rydb, Delta_energ*rydb, '>', Delta_lim*rydb, p_self, Mod_p
 
       if( i_self == nself .and. mpirank == 0 ) then
         if( icheck > 0 ) write(3,'(/A)') ' Calculation has not converged !'
@@ -1663,8 +1833,11 @@ subroutine prep_next_iter(Bulk_step,chargat_self,chargat_self_s,Convergence,Delt
     endif
   endif
 
-  rho_self(:,:,:,:) = p_self * rho_self(:,:,:,:) + ( 1 - p_self ) * rho_self_s(:,:,:,:)
-  chargat_self(:,:) = p_self * chargat_self(:,:) + ( 1 - p_self ) * chargat_self_s(:,:)
+  if( p_self > eps10 ) then
+! In the other case, no self-consistency, chargat_self is just calculated for the fermi evaluation and not kept for potential calculation in xanes step 
+    rho_self(:,:,:,:) = p_self * rho_self(:,:,:,:) + ( 1 - p_self ) * rho_self_s(:,:,:,:)
+    chargat_self(:,:) = p_self * chargat_self(:,:) + ( 1 - p_self ) * chargat_self_s(:,:)
+  endif
 
   if( Hubbard .and. i_self > 1 ) V_hubb(:,:,:,:,:) =  p_self * V_hubb(:,:,:,:,:) + ( 1 - p_self ) * V_hubb_s(:,:,:,:,:)
 
@@ -1679,14 +1852,69 @@ subroutine prep_next_iter(Bulk_step,chargat_self,chargat_self_s,Convergence,Delt
     Delta_energ_min = min( Delta_energ, Delta_energ_min )
   endif
 
+  if( icheck == 1 .and. ( Convergence .or. i_self == nself ) ) then
+    if( Full_atom ) then
+      Atom_kind = ' ia'
+    else
+      Atom_kind = 'ipr'
+    endif
+    if( nspin == 1 ) then
+      write(3,300) Atom_kind
+    else
+      write(3,305) Atom_kind
+    endif
+    do iapr = n_atom_0_self,n_atom_ind_self
+      if( Full_atom ) then
+        ipr = iaprotoi(iapr)
+      else
+        if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
+        ipr = iapr
+        if( .not. Proto_calculated(ipr) ) cycle
+      endif
+      Z = numat( itypepr(ipr) )
+      L = min( l_level_val(Z), lmaxat(ipr) )
+      if( nspin == 2 ) then
+        write(3,310) iapr, Z, Energ_self(iapr)*rydb, sum(chargat_self(iapr,:)), &
+             chargat_self(iapr,2) - chargat_self(iapr,1), sum(pop_orb_val(iapr,:)), L, Rmtsd(ipr)*bohr
+      else
+        write(3,320) iapr, Z, Energ_self(iapr)*rydb, sum(chargat_self(iapr,:)), sum(pop_orb_val(iapr,:)), &
+            L, Rmtsd(ipr)*bohr
+      endif
+    end do
+
+    do iapr = n_atom_0_self,n_atom_ind_self
+      if( Full_atom ) then
+        ipr = iaprotoi(iapr)
+      else
+        if( Bulk_step .and. iapr <= n_atom_proto_uc ) cycle  
+        ipr = iapr
+        if( .not. Proto_calculated(ipr) ) cycle
+      endif
+      it = itypepr(ipr)
+      if( .not. Hubb(it) ) cycle
+      Z = numat( itypepr(ipr) )
+      L = L_hubbard( Z )
+      call Write_occ_hubb(Atom_kind,iapr,L,m_hubb,n_atom_0_self,n_atom_ind_self,nspinp,occ_hubb,occ_hubb_i,Z)
+      call Write_V_hubb(Atom_kind,iapr,it,L,m_hubb,n_atom_0_self,n_atom_ind_self,nspinp,ntype,V_hubb,V_hubbard,Z)
+    end do
+
+  endif
+
   return
   110 format(/' The Fermi level was not reached ! ')
   120 format(/' Cycle',i4,', Total Cluster energy =',f14.3,' eV')
   130 format(/' Cycle',i4,', Total Unit cell energy =',f14.3,' eV')
   140 format(/'----- prep_next_iter ', 100('-'))
-  150 format(12x,'Delta_energ =',f11.3, ' eV ',a1,' Delta =',f8.3,' eV,  Weight =',f8.5,', Mod_p =',i2)
+  150 format(12x,' Total energy =',f13.3,' eV, Delta energy =',f11.3,' ',a1,f8.3,' eV,  Weight =',f8.5,'. Converged !')
+  155 format(/' Cycle',i4,': Total energy =',f13.3,' eV, Delta energy =',f11.3,' ',a1,f8.3,' eV,  Weight =',f8.5,'. Converged !')
   160 format(/' New Fermi optimization with imaginary energy divided by',i2)
-  170 format(57x,' Next weight =',f8.5,', Mod_p =',i2)
+  162 format(12x,' Total energy =',f13.3,' eV, Delta energy =',f11.3,' ',a1,f8.3,' eV,  Weight =',f8.5,', Mod_p =',i2)
+  165 format(/' Cycle',i4,': Total energy =',f13.3,' eV, Delta energy =',f11.3,' ',a1,f8.3,' eV,  Weight =',f8.5,', Mod_p =',i2)
+  170 format(79x,' Next weight =',f8.5,', Mod_p =',i2)
+  300 format(/6x,a3,'   Z       Energy       Charge  pop_orb_val(L)   L    Radius')
+  305 format(/6x,a3,'   Z       Energy       Charge       up-dn  pop_orb_val(L)   L    Radius')
+  310 format(5x,2i4,f14.3,3f12.3,i8,f10.5)
+  320 format(5x,2i4,f14.3,2f12.3,i8,f10.5)
 end
 
 !***********************************************************************

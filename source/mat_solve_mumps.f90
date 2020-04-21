@@ -257,8 +257,8 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   endif
   
   return
-  100 format(/' FDM matrix: number of line =',i7,',  number of not zero terms =',i8)
-  110 format(/' FDM matrix, igrph =',i2,' : number of line =',i7,',  number of not zero terms =',i8)
+  100 format(/' FDM matrix: number of line =',i7,',  number of not zero terms =',i15)
+  110 format(/' FDM matrix, igrph =',i2,' : number of line =',i7,',  number of not zero terms =',i15)
 end
 
 !**************************************************************************************************************
@@ -458,7 +458,7 @@ subroutine gather_sm(smr,smi,nlmso,nligne,nlmso_i,nligne_i,mpinodes,mpirank,Cal_
   implicit none
   include 'mpif.h'
   
-  integer:: mpirank, mpinodes, nlmso, nlmso_i, nligne, nligne_i, i, j, rank, mpierr
+  integer:: mpirank, mpinodes, nlmso, nlmso_i, nligne, nligne_i, i, j, rank, mpierr, nligne2
   real(kind=db), dimension(nlmso,nligne):: smr
   real(kind=db), dimension(:,:), allocatable:: recvBuf
   real(kind=db), dimension(nlmso_i,nligne_i):: smi
@@ -466,19 +466,47 @@ subroutine gather_sm(smr,smi,nlmso,nligne,nlmso_i,nligne_i,mpinodes,mpirank,Cal_
   logical:: Cal_comp
   
   if ( mpinodes == 1 ) return
-  allocate(recvBuf(nlmso,nligne))
+  nligne2 = nligne
+  if(INT8(nlmso)*INT8(nligne) .gt. Z'7FFFFFFF') nligne2 = nligne/2 + 1
+  allocate(recvBuf(nlmso,nligne2))
   if ( mpirank == 0 ) then
     do rank = 1,mpinodes-1
-      call MPI_recv(recvBuf, nlmso*nligne, MPI_REAL8, rank, 100, MPI_COMM_MUMPS, status, mpierr)
-      smr(:,rank+1:nligne:mpinodes) = recvBuf(:,rank+1:nligne:mpinodes)
-      if ( Cal_comp ) then
+      if(nligne2 .eq. nligne) then
         call MPI_recv(recvBuf, nlmso*nligne, MPI_REAL8, rank, 100, MPI_COMM_MUMPS, status, mpierr)
-        smi(:,rank+1:nligne:mpinodes) = recvBuf(:,rank+1:nligne:mpinodes)
+        smr(:,rank+1:nligne:mpinodes) = recvBuf(:,rank+1:nligne:mpinodes)
+      else
+        call MPI_recv(recvBuf, nlmso*nligne2, MPI_REAL8, rank, 100, MPI_COMM_MUMPS, status, mpierr)
+        smr(:,rank+1:nligne2:mpinodes) = recvBuf(:,rank+1:nligne2:mpinodes)
+        call MPI_recv(recvBuf, nlmso*(nligne-nligne2), MPI_REAL8, rank, 100, MPI_COMM_MUMPS, status, mpierr)
+        smr(:,rank+1+nligne2+1:nligne:mpinodes) = recvBuf(:,rank+1:nligne-nligne2:mpinodes)
+      endif
+      if ( Cal_comp ) then
+        if(nligne2 .eq. nligne) then
+          call MPI_recv(recvBuf, nlmso*nligne, MPI_REAL8, rank, 100, MPI_COMM_MUMPS, status, mpierr)
+          smi(:,rank+1:nligne:mpinodes) = recvBuf(:,rank+1:nligne:mpinodes)
+        else
+          call MPI_recv(recvBuf, nlmso*nligne2, MPI_REAL8, rank, 100, MPI_COMM_MUMPS, status, mpierr)
+          smi(:,rank+1:nligne2:mpinodes) = recvBuf(:,rank+1:nligne2:mpinodes)
+          call MPI_recv(recvBuf, nlmso*(nligne-nligne2), MPI_REAL8, rank, 100, MPI_COMM_MUMPS, status, mpierr)
+          smi(:,rank+1+nligne2+1:nligne:mpinodes) = recvBuf(:,rank+1:nligne-nligne2:mpinodes)
+        endif
       endif
     end do
   else
-    call MPI_send(smr, nlmso*nligne, MPI_REAL8, 0, 100, MPI_COMM_MUMPS, mpierr)
-    if ( Cal_comp ) call MPI_send(smi, nlmso*nligne, MPI_REAL8, 0, 100, MPI_COMM_MUMPS, mpierr)
+    if(nligne2 .eq. nligne) then
+      call MPI_send(smr, nlmso*nligne, MPI_REAL8, 0, 100, MPI_COMM_MUMPS, mpierr)
+    else
+      call MPI_send(smr, nlmso*nligne2, MPI_REAL8, 0, 100, MPI_COMM_MUMPS, mpierr)
+      call MPI_send(smr(:,nligne2+1:nligne), nlmso*(nligne-nligne2), MPI_REAL8, 0, 100, MPI_COMM_MUMPS, mpierr)
+    endif
+    if ( Cal_comp ) then
+      if(nligne2 .eq. nligne) then
+        call MPI_send(smi, nlmso*nligne, MPI_REAL8, 0, 100, MPI_COMM_MUMPS, mpierr)
+      else
+        call MPI_send(smi, nlmso*nligne2, MPI_REAL8, 0, 100, MPI_COMM_MUMPS, mpierr)
+        call MPI_send(smi(:,nligne2+1:nligne), nlmso*(nligne-nligne2), MPI_REAL8, 0, 100, MPI_COMM_MUMPS, mpierr)
+      endif
+    endif
   endif
   deallocate(recvBuf)
   return
@@ -497,9 +525,9 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
   INCLUDE 'zmumps_struc.h'
   !DEC$ END OPTIONS
   
-  integer:: nligne, nligne_i, nlmso, nlmso_i, MYID, mpirank0, mpirank_in_mumps_group, i, j, icheck, par, &
+  integer:: nligne, nligne_i, nlmso, nlmso_i, MYID, mpirank0, mpirank_in_mumps_group, icheck, par, &
             MPI_host_num_for_mumps, ipr
-  integer*8:: nz
+  integer*8:: nz, nligne8, i, j, nhelp8, nhelp8a
   integer, dimension(:), pointer:: rowIndexes, columnIndexes
   
   logical:: Cal_comp
@@ -513,7 +541,7 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
   TYPE (ZMUMPS_STRUC) zmumps_par
   
   character(len=255):: str
-  
+
   par = 1
 ! for many nodes release root node from calculation to save memory
   if ( MPI_host_num_for_mumps > 4 ) par = mpirank_in_mumps_group
@@ -523,6 +551,7 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
     if ( i == 0 ) par = mpirank_in_mumps_group
   endif
   
+  nligne8 = nligne
   
   if ( Cal_comp ) then
 ! Complex case ========================================================
@@ -547,6 +576,8 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
       zmumps_par%LRHS = nligne
       zmumps_par%NRHS = nlmso
       zmumps_par%NZ = nz
+! For next MUMPs version, done by Rainer Wilcke
+!      zmumps_par%NNZ = nz
       zmumps_par%IRN => rowIndexes
       zmumps_par%JCN => columnIndexes
       zmumps_par%A => AZ
@@ -567,10 +598,10 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
       DEALLOCATE( zmumps_par%IRN )
       DEALLOCATE( zmumps_par%JCN )
       DEALLOCATE( zmumps_par%A   )
-      ALLOCATE( zmumps_par%RHS ( nligne*nlmso ) )
+      ALLOCATE( zmumps_par%RHS ( nligne8*INT8(nlmso) ) )
       do i = 1, nligne
         do j = 1, nlmso
-          zmumps_par%RHS(i+nligne*(j-1)) = CMPLX( b(j,i), b_im(j,i), db )
+          zmumps_par%RHS(i+nligne8*(j-1)) = CMPLX( b(j,i), b_im(j,i), db )
         end do
       end do
     endif
@@ -579,8 +610,10 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
 !  Solution has been assembled on the host
     IF ( MYID == 0 ) THEN
       do j = 1, nlmso
-        b(j,1:nligne) = real(zmumps_par%RHS(1+nligne*(j-1) : nligne*j), db)
-        b_im(j,1:nligne) = aimag(zmumps_par%RHS(1+nligne*(j-1) : nligne*j))
+        nhelp8 = 1+nligne8*(j-1)
+        nhelp8a = nligne8*j
+        b(j,1:nligne) = real(zmumps_par%RHS(nhelp8 : nhelp8a), db)
+        b_im(j,1:nligne) = aimag(zmumps_par%RHS(nhelp8 : nhelp8a))
       end do
 !  Deallocate user data
       DEALLOCATE( zmumps_par%RHS )
@@ -611,6 +644,8 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
       dmumps_par%LRHS = nligne
       dmumps_par%NRHS = nlmso
       dmumps_par%NZ = nz
+! For next MUMPs version, done by Rainer Wilcke
+!      dmumps_par%NNZ = nz
       dmumps_par%IRN => rowIndexes
       dmumps_par%JCN => columnIndexes
       dmumps_par%A => A
@@ -631,10 +666,10 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
       DEALLOCATE( dmumps_par%IRN )
       DEALLOCATE( dmumps_par%JCN )
       DEALLOCATE( dmumps_par%A   )
-      ALLOCATE( dmumps_par%RHS ( nligne*nlmso ) )
+      ALLOCATE( dmumps_par%RHS ( nligne8*INT8(nlmso) ) )
       do i = 1, nligne
         do j = 1, nlmso
-          dmumps_par%RHS(i+nligne*(j-1)) = b(j,i)
+          dmumps_par%RHS(i+nligne8*(j-1)) = b(j,i)
         end do
       end do
     endif
@@ -643,7 +678,7 @@ subroutine mat_solver(A, AZ, rowIndexes, columnIndexes, b, b_im, nligne, nligne_
 !  Solution has been assembled on the host
     IF ( MYID == 0 ) THEN
       do j = 1, nlmso
-        b(j,1:nligne) = dmumps_par%RHS(1+nligne*(j-1) : nligne*j)
+        b(j,1:nligne) = dmumps_par%RHS(1+nligne8*(j-1) : nligne8*j)
       end do
 !  Deallocate user data
       DEALLOCATE( dmumps_par%RHS )

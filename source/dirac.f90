@@ -958,7 +958,7 @@ subroutine dirac(E_total,h_ray,icheck,ibav,Dirac_eq,lqn,n_orb,n_ray,nnlm,nqn,pop
   last = .false.
 
   call dinpt(Delta_rv,h_ray,ibav,icheck,Dirac_eq,lqn,n_orb,n_ray,nnlm,nqn,ph,pop,ray,ray_max,rh,rj,rqn,vr,vs, &
-         xe,xj,xl,xn,xz,Zn,nc1,jspn,ha, rn,h,xion,phi,eps,del,xalph,rnuc,voc,anuc,sumel, rbar,rba2,vbar,h3)
+         xe,xj,xl,xn,xz,Zn,nc1,jspn,ha,rn,h,xion,phi,eps,del,xalph,rnuc,voc,anuc,sumel,rbar,rba2,vbar,h3)
 
 ! ITERATION TIE POINT HERE...
   do ncycl = nc1,0,-1
@@ -983,6 +983,11 @@ subroutine dirac(E_total,h_ray,icheck,ibav,Dirac_eq,lqn,n_orb,n_ray,nnlm,nqn,pop
       lq = xl(i)
       fj = xj(i)
       e = xe(i)
+
+! a: wave function
+! b: small component
+! Convr, Delta_rv: pour convergence
+! RH=ELECTR.DENS. RJ=SPIN.DENS. VR=R*POT.
 
       if( i == jspn + 1 ) then
         call dipot(a,b,Convr,Delta_rv,E_v,E_Vxc,E_xc,E_Z,ibav,icheck,Dirac_eq,2,n_orb,n_ray,Q,ray,rh,rj,vr,vs,xte,y,Zn, &
@@ -1019,6 +1024,8 @@ subroutine dirac(E_total,h_ray,icheck,ibav,Dirac_eq,lqn,n_orb,n_ray,nnlm,nqn,pop
 
     end do
 
+! 0.5*(E_v - E_Z) is the coulomb energy for 1 electron comming from the other electron (and not the nucleus) 
+! which must be substracted, because E_total is the energy of 1 electron while E_v - E_Z comes from both spin type electrons 
     E_total = Summa - 0.5_db * (E_v - E_Z) - E_Vxc + E_xc
 
     if( icheck > 2 ) write(ibav,23) E_Vxc, E_v, E_Z, Summa, rh(1), E_total
@@ -1031,6 +1038,13 @@ subroutine dirac(E_total,h_ray,icheck,ibav,Dirac_eq,lqn,n_orb,n_ray,nnlm,nqn,pop
   call diout(E_total,E_v,E_Vxc,E_xc,E_Z,ibav,icheck,Dirac_eq,n_orb,n_ray,nnlm,psi,psi_small,Q,ray,rh,rho, &
              Summa,Vrf,xe,xj,xl,xn,xte,xz,Z)
 
+  if( icheck > 1 ) then
+    write(ibav,'(/A)') '   Radius       Potential'
+    do i = 1,n_ray
+      write(ibav,'(1p,2e13.5)') ray(i)*bohr, Vr(i) * 2 * Rydb / ( ray(i) * bohr )
+    end do
+  endif
+  
   return
    20 format(' CYCLE ',i5,'  DENSITY AVERAGING ',f10.7)
    23 format(' E_Vxc, E_V, E_Z ,E_sum, Rho(1), E_total =',1p,7e14.6)
@@ -1345,8 +1359,8 @@ subroutine dipot(a,b,Convr,Delta_rv,E_v,E_Vxc,E_xc,E_Z,ibav,icheck,Dirac_eq,isw,
         r = ray(k)
         dbb(3) = h3 * rh(k)
         da(3) = dbb(3) * r
-        a(k) = ((a(k - 2) + da(3)) + (4 * da(2))) + da(1)
-        b(k) = ((b(k - 2) + dbb(3)) + (4 * dbb(2))) + dbb(1)
+        a(k) = a(k - 2) + da(3) + 4 * da(2) + da(1)
+        b(k) = b(k - 2) + dbb(3) + 4 * dbb(2) + dbb(1)
         if( r <= rnuc ) nc = k
         da(1) = da(2)
         dbb(1) = dbb(2)
@@ -1357,6 +1371,7 @@ subroutine dipot(a,b,Convr,Delta_rv,E_v,E_Vxc,E_xc,E_Z,ibav,icheck,Dirac_eq,isw,
       nc = nc + 1
 !...RENORMALIZE TOTAL CHARGE
       Q = a(n_ray)
+! sumel = number of electron in the atom
       ren = sumel / Q
 !...FORM AND SAVE COULOMB POTENTIAL...
       bn = b(n_ray)
@@ -1526,13 +1541,17 @@ function funnel(r, rbar, rba2, vbar)
   use declarations
   implicit real(kind=db) (a-h,o-z)
 
-  parameter(abz = 1.5_db, agz = 0.5_db)
+!  parameter(abz = 1.5_db, agz = 0.5_db)
 
   funnel = 0._db
   if( (rbar <= 0._db) .or. (r > rba2) ) return
   funnel = vbar
-  if( r > rbar ) funnel = ( vbar * (r - rba2) * (r - rba2) * ( r - abz * rbar + agz * rba2 ) ) &
-           / ( ( rbar - rba2 ) * ( rbar - rba2 ) * ( agz * rba2 - agz * rbar ) )
+!  if( r > rbar ) funnel = ( vbar * (r - rba2) * (r - rba2) * ( r - abz * rbar + agz * rba2 ) ) &
+!           / ( ( rbar - rba2 ) * ( rbar - rba2 ) * ( agz * rba2 - agz * rbar ) )
+
+  if( r > rbar ) funnel = - vbar * ( 2*r - 3 * rbar + rba2 ) * ( r - rba2 )**2 &
+                                 / ( rbar - rba2 )**3
+
   funnel = r * funnel
 
   return
@@ -1757,7 +1776,7 @@ end
 !     USES HAMMING'S PREDICTOR-CORRECTOR INTEGRATION SCHEME (MODIFIED)
 !     MODIFIED FOR CONTINUUM STATES 1978....GREG BENESH...
 
-subroutine hsdif(a,b,e,ibav,icheck,last,lq,n_ray,nq,ray,vr,y,Zn, npts,ha,rn,h,del,v0,da,dbb,a0,b0,voc,rbar,vbar)
+subroutine hsdif(a,b,e,ibav,icheck,last,lq,n_ray,nq,ray,vr,y,Zn,npts,ha,rn,h,del,v0,da,dbb,a0,b0,voc,rbar,vbar)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
@@ -2146,6 +2165,30 @@ end
 
 !  CONTROL SUBROUTINE FOR THE INTEGRATION OF THE DIRAC-SLATER EQUATIONS.
 !  FINDS EIGENVALUES. NORMALIZES ORBITAL FUNCTIONS.
+! 
+! a, b: large end small components
+! ibav: for writing
+! last: =.true. when convergence achieved
+! e: energy
+! lq: L
+! n_ray: number of radial points
+! nq: n
+! ray: value of radius in the grid 
+! vr = V*r
+! y: electron density = a**2 + b**2
+! Zn: Z
+! npts: ?
+! h = h_ray = n_ray * 54._db / 600  ! log step
+! ha: parameters related to h
+! rn = ray_max
+! eps = 2500
+! dell: (= 0.1) POTENTIAL EXPANSION COEFFICIENTS FOR SMALL R
+! fj: J
+! v0 = x/ra  (out)
+! da, dbb, a0, b0: (out)
+! voc: related to radius and potential
+! vbar = 0
+! fk, csg, g, q11, q22, tcs: not used outside
 
 subroutine didif(a,b,e,ibav,icheck,last,lq,n_ray,nq,ray,vr,y,Zn,npts,ha,rn,h,eps,del,fj,v0,da,dbb,a0,b0,voc, &
                    vbar,fk,cs,g,q11,q22,tcs)
@@ -2199,6 +2242,7 @@ subroutine didif(a,b,e,ibav,icheck,last,lq,n_ray,nq,ray,vr,y,Zn,npts,ha,rn,h,eps
 
   do
 
+! da and dbb are calculated in didf1
     call didf1(a,b,e,ki,lq,n_ray,nb_nodes,ray,vr, ha,da,dbb,a0,b0,voc,fk,cs,g,q11,q22,tcs)
 
 !  nb_nodes = Number of nodes + l + 1. nb_nodes SHOULD EQUAL nq.
@@ -2550,7 +2594,8 @@ subroutine diout(E_total,E_v,E_Vxc,E_xc,E_Z,ibav,icheck,Dirac_eq,n_orb,n_ray,nnl
 ! E_v = Integrale( (Z/r + V_hartree)*rho*d3r )
 ! E_Z = Integrale( (Z/r)*rho*d3r )
   Ekin = Summa - E_v - E_Vxc - xte
-  U = 0.5_db * ( E_v - E_Z )
+! Coulomb energy for 1 electron coming from all the electrons
+  E_e = 0.5_db * ( E_v - E_Z )
 
   Hartree = 2 * Rydb
 
@@ -2560,8 +2605,8 @@ subroutine diout(E_total,E_v,E_Vxc,E_xc,E_Z,ibav,icheck,Dirac_eq,n_orb,n_ray,nnl
       ni = nist(i)
       write(ibav,14) nlj(ni), xn(i), xl(i), xj(i), xz(i), Hartree * xe(i)
     end do
-    write(ibav,15) Z, Q, Hartree * E_total, Hartree * (E_Z + U), Hartree * E_xc, Hartree * Ekin, &
-                   Hartree * Summa, Hartree * U, Hartree * E_Vxc
+    write(ibav,15) Z, Q, Hartree * E_total, Hartree * Summa, Hartree * E_e, Hartree * E_Vxc, Hartree * E_xc, &
+                   Hartree * Ekin, Hartree * ( E_e + E_Z ) 
   endif
 
   rho(1:n_ray) = p4 * rh(1:n_ray) / ray(1:n_ray)**2
@@ -2583,11 +2628,15 @@ subroutine diout(E_total,E_v,E_Vxc,E_xc,E_Z,ibav,icheck,Dirac_eq,n_orb,n_ray,nnl
 
    12 format(/' Orbital  n  l  j    Electron  Eigenvalue(eV)')
    14 format(a6,i5,i3,f4.1,f10.3,3f15.3)
-   15 format(/' Nuclear charge                  =',i12/, ' Integral of charge density      =',f12.3/, &
-          ' Total energy = Ue + U + Exc + T =',f12.3/, ' Potential energy = U + Ue       =',f12.3/, &
-          ' Exchange energy = Exc           =',f12.3/, ' Kinetic energy = T              =',f12.3/, &
-          ' Sum of the energy eigenvalues   =',f12.3/, ' 0.5*Integral(Vh.rho.dr)         =',f12.3/, &
-          ' Integral(Vxc.rho.dr)            =',f12.3)
+   15 format(/' Nuclear charge             =',i7 /, &
+              ' Integral of charge density =',f7.2 /, &
+              ' Total energy = E_KS - E_e - Vxc + Exc = T + U + Exc =',f12.3,' eV' /, &
+              ' Sum of the energy eigenvalues = E_KS                =',f12.3,' eV' /, &
+              ' Coulomb electron energy = E_e = 0.5(E_V - E_Z)      =',f12.3,' eV' /, &
+              ' Vxc                                                 =',f12.3,' eV' /, &
+              ' Exchange energy = Exc                               =',f12.3,' eV' /, &
+              ' Kinetic energy = T                                  =',f12.3,' eV' /, &
+              ' Total coulomb energy = U = E_e + E_Z                =',f12.3,' eV' )
   110 format(/'      Radius    Potential  4*pi*r2*Rho ',36(4x,a6,3x))
   120 format(f13.6,1p,38e13.5)
   130 format(/'  Small component:',// '      Radius    Potential  4*pi*r2*Rho ',36(4x,a6,3x))

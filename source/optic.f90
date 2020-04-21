@@ -25,7 +25,7 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
   integer, parameter:: n_bulk_z = 0
   integer, parameter:: n_bulk_z_abs = 0
   integer, parameter:: n_bulk_z_max_abs = 0
-  integer, parameter:: n_max = 0
+  integer, parameter:: n_max = 1
 
   integer:: i_range, iabsorig, icheck_s, ie, ie_computer, ie_q, ie_s, ie_t, ip_max, ip0, &
     iso1, iso2, isp, isp1, isp2, iss1, iss2, je, jseuil, l0_nrixs, lm1, lm2, lmax, lmax_pot, &
@@ -185,10 +185,10 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
   boucle_energ: do je = 1,nge
 
     ie = ( je - 1 ) * mpinodes + mpirank + 1
-
-    if( Energ(ie) < Ephot_min - eps10 ) cycle
     
     if( ie <= nenerg ) then
+
+      if( Energ(ie) < Ephot_min - eps10 ) cycle
 
       secdd(:,:,:,:,mpirank) = (0._db,0._db)
       secmm(:,:,:,mpirank) = (0._db,0._db)

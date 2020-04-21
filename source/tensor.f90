@@ -5,7 +5,7 @@
 ! < g_1 | o*( l_s m_s, k_s, j_s, l_s, irang ) | f_1 > < f_2 | o*( l_i, m_i, k_i, j_i, l_i, jrang  ) | g_2 >  
 
 ! n_Ec = ninit si TDDFT et XANES et Core_resolved
-!      = nbseuil si TDDFT et XANES sans core_recolved
+!      = nbseuil si TDDFT et XANES sans core_resolved
 !      = 1 en DFT XANES
 !      = 2 en Optic
 ! n_V = ninit si TDDFT et Core_resolved mais pas Optic
@@ -989,6 +989,8 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full_pote
 
     if( ninitv == ninit .and. Final_tddft ) then
       is_r1 = i_g_1
+    elseif( RIXS ) then
+      is_r1 = 2
     else
       is_r1 = iseuil1
     endif
@@ -1028,6 +1030,8 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full_pote
 
         if( ninitv == ninit .and. Final_tddft ) then
           is_r2 = i_g_2
+        elseif( RIXS ) then
+          is_r2 = 1
         else
           is_r2 = iseuil2
         endif
@@ -3037,4 +3041,5 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
   160 format(/' l_s, m_s =',2i3,',  l_i, m_i =',2i3,', dfac =',1p,2e15.7,', S_nrixs(1..ninitr) =',28e15.7)
 
 end
+
 

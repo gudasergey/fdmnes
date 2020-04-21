@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 18th of February 2020, 25 Pluviose, An 228
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 17th of April 2020, 28 Germinal, An 228
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -48,7 +48,7 @@ module declarations
   integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic punctual groups (with other orientation)
   integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic punctual groups (with other orientation)
 
-  character(len=50), parameter:: Revision = 'FDMNES II program, Revision 18th of February 2020'
+  character(len=50), parameter:: Revision = 'FDMNES program, Revision 17th of April 2020'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -260,8 +260,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   implicit none
   include 'mpif.h'
 
-  integer, parameter:: nkw_all = 39
-  integer, parameter:: nkw_fdm = 220
+  integer, parameter:: nkw_all = 40
+  integer, parameter:: nkw_fdm = 228
   integer, parameter:: nkw_conv = 38
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_gaus = 1
@@ -325,8 +325,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   real(kind=sg) time
 
 ! Keywords of the indata file
-  data kw_all /  'bormann  ','check    ','check_all','check_coa','check_con', &
-     'check_pot','check_mat','check_sph','check_tdd','check_ten','comment  ','delta_edg','ecent    ','e_cut    ','elarg    ', &
+  data kw_all /  'bormann  ','check    ','check_all','check_coa','check_con','check_pot','check_mat', &
+     'check_rix','check_sph','check_tdd','check_ten','comment  ','delta_edg','ecent    ','e_cut    ','elarg    ', &
      'epsii    ','estart   ','file_in  ','filout   ','fprime_at','gamma_hol','gamma_max','length_li','no_check ','imfpin   ', &
      'elfin    ','dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
      'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/
@@ -341,7 +341,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'atomic_sc','axe_spin ','atom_u_is', &
      'base_comp','base_reel','bond     ','bulk     ','bulk_roug','cap_b_iso','cap_layer','cap_rough','cap_shift', &
      'cap_thick','cap_u_iso','cartesian','center   ','center_ab','center_s ','chlib    ','cif_file ','classic_i','clementi ', &
-     'coop     ','coop_dist','coop_z_ax','core_reso','crystal  ', &
+     'coop     ','coop_dist','coop_z_ax','core_ener','core_reso','crystal  ', &
      'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_2d  ','dafs_exp ','debye    ','delta_en_','dip_rel  ','e1e1     ', &
      'delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ', &
      'edge     ','e1e2     ','e1e3     ','e1m1     ','e1m2     ','e2e2     ','e3e3     ','eimag    ','eneg     ','energphot', &
@@ -350,17 +350,18 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_bul','green_int','harm_tess', &
      'hedin    ','helm_cos ','helmholtz','hkl_film ','hubbard  ','hubbard_z','iord     ','kern_fac ','kern_fast', &
      'lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ','mat_ub   ', &
-     'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar','molecule ', &
+     'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar','molecule ','no_e1e3  ', &
      'molecule_','muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_dft   ','no_e1e1  ','no_e1e2  ', &
-     'no_e1e3  ','no_e2e2  ','no_e3e3  ','no_fermi ','no_renorm','no_res_ma','no_res_mo','no_scf_bu','no_solsin','normaltau', &
+     'no_e2e2  ','no_e3e3  ','no_fermi ','no_moment','no_renorm','no_res_ma','no_res_mo','no_scf_bu','no_solsin','normaltau', &
      'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','nrixs_mon','occupancy','octupole ', &
      'old_zero ','one_run  ','one_scf  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ', &
-     'pointgrou','polarized','quadmag  ','quadrupol','radius   ','range    ','rangel   ','ray_max_d','rcharge  ','rcharge_z', &
-     'readfast ','relativis','rixs     ','rixs_core','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ', &
+     'pointgrou','polarized','powder   ','quadmag  ','quadrupol','radius   ','range    ','rangel   ','ray_max_d','rcharge  ', &
+     'rcharge_z','readfast ','relativis','rixs     ','rixs_core','rixs_ener', &
+     'rixs_fast','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ', &
      'rpotmax  ','r_self   ','rydberg  ','self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
-     'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spin_chan','spinorbit','step_azim','supermuf ', &
-     'surface  ','surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','trace    ','vmax     ','v0imp    ', &
-     'xalpha   ','xan_atom ','ylm_comp ','z_absorbe','z_nospino','zero_azim'/
+     'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spin_chan','spinorbit','step_loss','step_azim', &
+     'supermuf ','surface  ','surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','theta_in ','trace    ', &
+     'two_theta','vmax     ','v0imp    ','xalpha   ','xan_atom ','ylm_comp ','z_absorbe','z_nospino','zero_azim'/
 
   data kw_fit / 'parameter'/
 
@@ -646,68 +647,31 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
             endif
           end do
 
-        case('check_pot')
+        case('check_pot','check_sph','check_mat','check_rix','check_tdd','check_ten','check_coa','check_con')
           n = nnombre(1,132)
           if( n == 0 ) then
             n = 3
           else
            read(1,*) n
          endif
-         icheck(10:13) = n; icheck(16) = n
-
-        case('check_sph')
-          n = nnombre(1,132)
-          if( n == 0 ) then
-            n = 3
-          else
-           read(1,*) n
-          endif
-          icheck(18) = n
-
-        case('check_mat')
-          n = nnombre(1,132)
-          if( n == 0 ) then
-            n = 3
-          else
-           read(1,*) n
-          endif
-          icheck(19) = n
-
-        case('check_tdd')
-          n = nnombre(1,132)
-          if( n == 0 ) then
-            n = 3
-          else
-           read(1,*) n
-          endif
-          icheck(22:25) = n
-
-        case('check_ten')
-          n = nnombre(1,132)
-          if( n == 0 ) then
-            n = 3
-          else
-           read(1,*) n
-          endif
-          icheck(20) = n
-
-        case('check_coa')
-          n = nnombre(1,132)
-          if( n == 0 ) then
-            n = 3
-          else
-           read(1,*) n
-          endif
-          icheck(21) = n
-
-        case('check_con')
-          n = nnombre(1,132)
-          if( n == 0 ) then
-            n = 3
-          else
-           read(1,*) n
-          endif
-          icheck(30) = n
+         select case(keyword)
+           case('check_pot')
+             icheck(10:13) = n; icheck(16) = n
+           case('check_sph')
+             icheck(18) = n
+           case('check_mat')
+             icheck(19) = n
+           case('check_rix')
+             icheck(29) = n
+           case('check_tdd')
+             icheck(22:25) = n
+           case('check_ten')
+             icheck(20) = n
+           case('check_coa')
+             icheck(21) = n
+           case('check_con')
+             icheck(30) = n
+         end select
 
         case('fprime_at')
           n = nnombre(1,132)
@@ -2021,6 +1985,8 @@ function Traduction(keyword)
       traduction = 'rangel'
     case('rchimp')
       traduction = 'rcharge'
+    case('energ_rix','energ_in_','ener_rixs','rixs_rang','range_rix')
+      traduction = 'rixs_ener'
     case('rchimp_z','z_rcharge')
       traduction = 'rcharge_z'
     case('relat')
@@ -2059,6 +2025,8 @@ function Traduction(keyword)
       traduction = 'pointgrou'
     case('sym_mol')
       traduction = 'symmol'
+    case('2_theta','2_teta','two_teta','two-theta','two-teta','2theta','2teta','twotheta','twoteta')
+      traduction = 'two_theta'
     case('fileout','file_out')
       traduction = 'filout'
     case('sphere_si')
@@ -2067,6 +2035,8 @@ function Traduction(keyword)
       traduction = 'tddft'
     case('testdistm','dist_min','distmin','distamin')
       traduction = 'test_dist'
+    case('theta_i','teta_i','teta_in','theta-i','theta-in','teta-i','teta-in')
+      traduction = 'theta_in'
     case('voimp','v0bdcfim','vmoyf','korigimp')
       traduction = 'v0imp'
     case('v_intmax','v_max')
