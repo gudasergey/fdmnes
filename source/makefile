@@ -18,7 +18,7 @@ FFLAGS = -c  -O$(OPTLVL) -I$(INCDIR)
 
 OBJ = main.o clemf0.o coabs.o convolution.o diffraction.o dirac.o fdm.o fdmx.o fprime.o fprime_data.o general.o lecture.o mat.o metric.o \
       minim.o optic.o potential.o selec.o scf.o spgroup.o sphere.o tab_data.o tddft.o tensor.o \
-      mat_solve_mumps.o
+      mat_solve_mumps.o RIXS.o
 
 all: $(EXEC)
 

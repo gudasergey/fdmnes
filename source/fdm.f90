@@ -2558,7 +2558,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_
 
     endif
 
-! For H2, N2, O2, F2, Cl2 and the rare gaz, the tabulated Edge values are versus vacuum. We shift it to be verus Fermi
+! For H2, N2, O2, F2, Cl2 and the rare gaz, the tabulated Edge values are versus vacuum. We shift it to be versus Fermi
     if( .not. Optic ) then
       Z = numat_abs
       if( Z == 1 .or. Z == 2 .or. Z == 7 .or. Z == 8 .or. Z == 9 .or. Z == 10 .or. Z == 17 .or. Z == 18 .or. Z == 36 &

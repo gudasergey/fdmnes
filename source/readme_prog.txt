@@ -35,14 +35,14 @@ mpif.h
 zmumps_root.h
 zmumps_struc.h
 
-If no MUMS library are avalable
+If no MUMS library are avalable (calculation will be far more CPU and time demanding)
    mat_solve_mumps.f90 must be replaced by mat_solve_gaussian.f90
    With sequential calculations not_mpi.f90 must also be compiled and linked.
 
    when no LAPAK and BLAS libraries are avalable, they can be replaced by
    sub_util.f (only without MUMPS)
 
-le makefile for sequential code using MUMPS library.
+The makefile for sequential code using MUMPS library.
 Makefile_gaussian is an example of very simple makefile for sequential code using
 Gaussian solver without any library.
 

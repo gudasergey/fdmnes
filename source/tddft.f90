@@ -1465,6 +1465,7 @@ subroutine kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ,Full
 
               isp2 = min(isf2,nspinp)
 
+              Lms1 = 0
               do L1 = 0,Lmax
                 do m1 = -L1,L1
 
@@ -1486,11 +1487,16 @@ subroutine kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ,Full
                           mv1 = m1
                         endif
                         Lmv1 = L1**2 + L1 + 1 + mv1
-                        Lms1 = nspino * ( Lmp01 + m1 - 1 ) + iso1
+                        if( nlm_fp == 1 ) then
+                          Lms1 = Lms1 + 1
+                        else
+                          Lms1 = nspino * ( Lmp01 + m1 - 1 ) + iso1
+                        endif
                         l_val(Lms1,isf1) = L1
                         m_val(Lms1,isf1) = m1
                         i_val(Lms1,isf1) = iso1
 
+                        Lms2 = 0
                         do L2 = 0,Lmax
 
                           do m2 = -L2,L2
@@ -1512,7 +1518,11 @@ subroutine kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ,Full
                                     mv2 = m2
                                   endif
                                   Lmv2 = L2**2 + L2 + 1 + mv2
-                                  Lms2 = nspino * ( Lmp02 + mv2 - 1 ) + iso2
+                                  if( nlm_fp == 1 ) then
+                                    Lms2 = Lms2 + 1
+                                  else
+                                    Lms2 = nspino * ( Lmp02 + m2 - 1 ) + iso2
+                                  endif
 ! Atomic screening
                                   if( Atomic_scr .and. L1 /= Lg + 1 .and. L2 /= Lg + 1 ) cycle
 
