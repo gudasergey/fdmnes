@@ -9,7 +9,7 @@
 subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
         E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_max_man, &
         ical,icheck,indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
-        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,typepar,ncal)
+        n_shift_core,ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,Shift_core,Typepar,ncal)
 
   use declarations
   implicit none
@@ -17,7 +17,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
   integer:: Dafs_exp_type, eof, i, i_bulk_z, i_conv, i_hk, i_Trunc, i1, ical, icheck, ie, ie1, ie2, ifich, igr, ii, &
     initl, ip, ipar, ipas, ipl, ipr, ipr1, ipr2, is, iscr, iscratchconv, istop, istat, itape1, j, &
     jfich, jpl, js, jseuil, k, kpl, L, Length, Length_line, mfich, n, n_bir, n_bulk_z, n_col, n_col_max, n_energ_tr, &
-    n_mat_pol, n_selec_core, n_signal, n_Stokes, n_Trunc, &
+    n_mat_pol, n_selec_core, n_shift_core, n_signal, n_Stokes, n_Trunc, &
     ncal, ne2, nef, nelor, nen2, nenerg, nenerge, nes, nes_in, nfich, &
     ngamh, ngroup_par, ninit0, ninit1, ninitm, nkw_conv, nnombre, np_stokes, nparm, nphim, npldafs, npldafs_b, &
     npldafs_t, npldafs_th, nseuil, nxan, nw
@@ -69,6 +69,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
   real(kind=db), dimension(3):: angxyz, axyz
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(ngroup_par,nparm) :: param
+  real(kind=db), dimension(n_shift_core):: Shift_core
   real(kind=db), dimension(:), allocatable:: Abs_U_iso, angle, bb, betalor, decal, e1, e2, Efermip, Elor, En_fermi, Energ, &
         Energe, Energ_tr, Ep, Eph1, Ephm, Ephoton, Es, Es_temp, Eseuil, fpp_avantseuil, fi, fr, l_dafs, Length_abs, lori, & 
         lorix, lorr, lorrx, natomsym_f, Pds, p1f, p2f, Tens, V0muf, Ts, Yr, Yi
@@ -977,7 +978,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
 ! Elaboration of energy grid
 
   call Shift_eval(decal,decal_initl,delta_edge,Energphot,Eph1,Ephm,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Esmin, &
-                        n_selec_core,nfich,ninit1,ninit,ninitm,num_core)
+                        n_selec_core,n_shift_core,nfich,ninit1,ninit,ninitm,num_core,Shift_core)
  
   pasdeb = 0.5_db / rydb
   nes_in = 100000
@@ -2479,12 +2480,12 @@ end
 ! Evaluation of relative shifts between input data
 
   subroutine Shift_eval(decal,decal_initl,delta_edge,Energphot,Eph1,Ephm,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Esmin, &
-                        n_selec_core,nfich,ninit1,ninit,ninitm,num_core)
+                        n_selec_core,n_shift_core,nfich,ninit1,ninit,ninitm,num_core,Shift_core)
   
   use declarations
   implicit none
 
-  integer:: i, ifich, jfich, n, n_selec_core, nfich, ninit1, ninitm
+  integer:: i, ifich, jfich, n, n_selec_core, n_shift_core, nfich, ninit1, ninitm
   
   integer, dimension(nfich):: ninit
   integer, dimension(10):: num_core
@@ -2494,6 +2495,7 @@ end
   
   real(kind=db):: decal_min, delta_edge, Epsii_moy, Epsii_ref, Esmin
   real(kind=db), dimension(nfich):: decal, decal_in, Eph1, Ephm, Eseuil 
+  real(kind=db), dimension(n_shift_core):: Shift_core
   real(kind=db), dimension(ninitm,nfich):: decal_initl, Epsii 
 
 ! At this stage contains only the imposed value.  
@@ -2517,6 +2519,12 @@ end
   ok(:) = .false.
  
   do ifich = 1,nfich
+  
+    if( nfich == n_shift_core ) then
+      decal(ifich) = decal(ifich) + shift_core(ifich)
+      cycle
+    endif
+
     if( ok(ifich) ) cycle
     ok(ifich) = .true.
 

@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 6th of May 2020, 17 Floreal, An 228
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 15th of May 2020, 26 Floreal, An 228
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -48,7 +48,7 @@ module declarations
   integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic punctual groups (with other orientation)
   integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic punctual groups (with other orientation)
 
-  character(len=50), parameter:: Revision = 'FDMNES program, Revision 6th of May 2020'
+  character(len=50), parameter:: Revision = 'FDMNES program, Revision 15th of May 2020'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -260,7 +260,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   implicit none
   include 'mpif.h'
 
-  integer, parameter:: nkw_all = 41
+  integer, parameter:: nkw_all = 42
   integer, parameter:: nkw_fdm = 232
   integer, parameter:: nkw_conv = 38
   integer, parameter:: nkw_fit = 1
@@ -277,7 +277,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   integer:: eof, i, i1, ibl, ical, ifdm, igr, index_Met_Fit, indpar, &
     inotskip, ip, ipar, ipbl, ipr, istat, istop, itape, itape_minim, itape1, itape2, itape3, itape4, itape5, itape6, itape7, &
     itph, itpj, itpm, itps, iscratch, iscratchconv, j, jgr, jpar, k, l, Length_line, &
-    ligne, ligne2, m, mpierr, mpirank0, mpinodes0, n, n_atom_proto_p, n_col_max, n_shift, n1, n2, &
+    ligne, ligne2, m, mpierr, mpirank0, mpinodes0, n, n_atom_proto_p, n_col_max, n_shift, n_shift_core, n1, n2, &
     nb_datafile, nblock, ncal, ncal_nonfdm, ndem, ndm, ng, ngamh, ngroup_par, ngroup_par_conv, &
     nmetric, nn, nnombre, nnotskip, nnotskipm, nparm, npm, mermrank
 
@@ -319,7 +319,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     dwfactor, tdebye, tmeas, expntlA, expntlB, victA, victB
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(nmetricm):: Dist_Min, Gen_Shift_min
-  real(kind=db), dimension(:), allocatable:: par_op, parsum, RapIntegrT_min_g
+  real(kind=db), dimension(:), allocatable:: par_op, parsum, RapIntegrT_min_g, Shift_core
   real(kind=db), dimension(:,:), allocatable:: Dist_min_g, par, param, parmax, parmin
 
   real(kind=sg) time
@@ -328,7 +328,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   data kw_all /  'bormann  ','check    ','check_all','check_coa','check_con','check_pot','check_mat', &
      'check_rix','check_sph','check_tdd','check_ten','comment  ','delta_edg','ecent    ','e_cut    ','elarg    ', &
      'epsii    ','estart   ','file_in  ','filout   ','fprime_at','gamma_hol','gamma_max','length_li','no_check ','imfpin   ', &
-     'elfin    ','dwfactor ','only_rixs','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
+     'elfin    ','dwfactor ','rixs_only','shift_cor','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
      'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/
 
   data kw_conv / 'abs_b_iso','abs_befor','abs_u_iso','all_conv ','cal_tddft','calculati','check_bir','circular ','conv_out ', &
@@ -337,7 +337,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'scan_conv','scan_file','seah     ','stokes   ','stokes_na','surface_p','table    ','thomson  ','transpose','XES      '/
 
   data kw_fdm/  &
-     'absorbeur','adimp    ','all_nrixs','all_site_','allsite  ','ampl_rixs','ata      ','atom     ','atom_b_is','atom_conf', &
+     'absorbeur','adimp    ','all_nrixs','all_site_','allsite  ','ata      ','atom     ','atom_b_is','atom_conf', &
      'atom_nsph','ang_spin ','atomic_sc','axe_spin ','atom_u_is', &
      'base_comp','base_reel','bond     ','bulk     ','bulk_roug','cap_b_iso','cap_layer','cap_rough','cap_shift', &
      'cap_thick','cap_u_iso','cartesian','center   ','center_ab','center_s ','chlib    ','cif_file ','classic_i','clementi ', &
@@ -356,11 +356,11 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','nrixs_mon','occupancy','octupole ', &
      'old_zero ','one_run  ','one_scf  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ', &
      'pointgrou','polarized','powder   ','quadmag  ','quadrupol','radius   ','range    ','rangel   ','ray_max_d','rcharge  ', &
-     'rcharge_z','readfast ','relativis','rixs     ','rixs_core','rixs_ener', &
-     'rixs_fast','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ', &
+     'rcharge_z','readfast ','relativis','rixs     ','rixs_ampl','rixs_core','rixs_ener', &
+     'rixs_fast','rixs_sum ','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ', &
      'rpotmax  ','r_self   ','rydberg  ','self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
      'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spin_chan','spinorbit','step_loss','step_azim', &
-     'sum_rixs ','supermuf ','surface  ','surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','theta_in ', &
+     'supermuf ','surface  ','surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','theta_in ', &
      'trace    ','two_theta','vmax     ','v0imp    ','write_mod','xalpha   ','xan_atom ','ylm_comp ','z_absorbe','z_nospino', &
      'zero_azim'/
 
@@ -439,6 +439,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   n_col_max = 10001
 !
   n_shift = 1
+  n_shift_core = 0
   nb_datafile = 0
   ng = 0
   ngamh = 1
@@ -473,6 +474,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   open(1, file=fdmnes_inp, status = 'old')
 
   mot = ' '
+
+  allocate( Shift_core(n_shift_core) )
 
   boucle_ligne: do ligne = 1,100000
 
@@ -702,7 +705,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
           E_cut_imp = E_cut_imp /rydb
           E_cut_man = .true.
 
-      case('epsii')
+        case('epsii')
           n = nnombre(1,132)
           read(1,*,iostat=eof) Epsii_ref
           if( eof > 0 ) call write_err_form(1,keyword)
@@ -795,8 +798,34 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
           n = nnombre(1,132)
           read(1,*) hkl_borm(:), Ang_borm
 
-        case('only_rixs')
+        case('rixs_only')
           Only_rixs = .true.
+
+        case('shift_cor')
+          n_shift_core = 0
+          L = 0
+          do
+            n = nnombre(1,132)
+            if( n == 0 ) exit
+            read(1,*)
+            L = L + 1
+            n_shift_core = n_shift_core + n
+          end do
+
+          deallocate( Shift_core )
+          allocate( Shift_core(n_shift_core) )
+
+          do i = 1,L+1
+            Backspace(1)
+          end do
+
+          n1 = 0
+          do i = 1,L
+            n = nnombre(1,132)
+            n2 = n1 + n
+            read(1,*) Shift_core(n1+1:n2)
+            n1 = n2
+          end do
 
 !*** JDB
         case('imfpin')
@@ -940,6 +969,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
         n = nnombre(itape2,132)
         read(itape2,*) e1, e2, n_shift
       elseif( mot9 == 'experimen' ) then
+        ng = 0
         boucle_i: do i = 1,100000
           n = nnombre(itape2,132)
           read(itape2,'(A)',iostat=eof) File_name
@@ -966,12 +996,20 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
           if( n == 0 ) then
             nb_datafile = nb_datafile + 1  ! number of files
             Fichier = Adjustl( File_name )
-            l = len_trim(Fichier)
-            if( l > 4 ) then
-             if( Fichier(l-3:l-3) /= '.' ) Fichier(l+1:l+4) = '.txt'
-            endif
             open(99, file=Fichier, status='old',iostat=istat)
-            if( istat /= 0 ) call write_open_error(Fichier,istat,1)
+            if( istat /= 0 ) then
+              L = len_trim(Fichier)
+              if( L > 4 ) then
+                if( File_name(L-3:L-3) == '.' ) L = L - 4
+              endif
+              Fichier(L+1:L+4) = '.txt'
+              open(99, file=Fichier, status='old',iostat=istat)
+              if( istat /= 0 ) then
+                Fichier(L+1:L+4) = '.dat'
+                open(99, file=Fichier, status='old',iostat=istat)
+                if( istat /= 0 ) call write_open_error(File_name,istat,1)
+              endif
+            endif
             n = nnombre(99,Length_line)
             if( n == 0 ) then
               ng = ng + 1
@@ -984,7 +1022,6 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
         end do boucle_i
         backspace(itape2)
       elseif( mot9 == 'file_met' ) then
-        nb_datafile = 1
         read(itape2,'(A)') File_name
         Fichier = Adjustl( File_name )
         l = len_trim(Fichier)
@@ -994,10 +1031,12 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
         open(99, file=Fichier, status='old',iostat=istat)
         if( istat /= 0 ) call write_open_error(Fichier,istat,1)
         read(99,*)
-        ng = nnombre(99,Length_line) - 1
+        if( ng == 0 ) ng = nnombre(99,Length_line) - 1
       endif
     end do boucle_m
   endif
+
+  if( Metric_cal ) nb_datafile = max( 1, nb_datafile ) ! For when there is no keyword experiment
 
   nblock = 0
   if( Fit_cal ) then
@@ -1151,6 +1190,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
   if( mpinodes0 > 1 ) then
     call MPI_Bcast(Mult_cal,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(n_shift_core,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+
+  if( mpirank0 > 0 ) allocate( Shift_core(n_shift_core) )
 
   endif
 
@@ -1192,7 +1234,10 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     call MPI_Bcast(Fdmnes_cal,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ngamh,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Use_fdmx,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Shift_core,n_shift_core,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
   endif
+
+  if( n_shift_core > 0 ) Shift_core(:) = Shift_core(:) / Rydb
 
   if( mpirank0 > 0 ) then
     allocate( npar(ngroup_par) )
@@ -1515,8 +1560,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
       call fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg, &
           Epsii_ref,Epsii_ref_man,Estart,Fit_cal, &
           Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
-          itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-          nomfich,nomfichbav,npar,nparm,Only_rixs,param,Scan_a,TypePar,Use_FDMX,FDMX_only, &
+          itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,n_shift_core,ngamh,ngroup_par,nnotskip,nnotskipm, &
+          nomfich,nomfichbav,npar,nparm,Only_rixs,param,Scan_a,Shift_core,TypePar,Use_FDMX,FDMX_only, &
           fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
           tdebye,tmeas_inp,tmeas,expntl,expntlA,expntlB,victoreen,victA,victB,mermrank)
 
@@ -1532,7 +1577,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     if( Convolution_cal .and. .not. Only_rixs ) call Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge, &
         E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max, &
         Gamma_max_man,ical,icheck(30),indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
-        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,ncal)
+        n_shift_core,ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,Shift_core,TypePar,ncal)
 
     if( Metric_cal ) then
 
@@ -1637,8 +1682,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
       call fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg, &
         Epsii_ref,Epsii_ref_man,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
-        itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-        nomfich,nomfichbav,npar,nparm,Only_rixs,param,Scan_a,TypePar,Use_FDMX,FDMX_only, &
+        itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,n_shift_core,ngamh,ngroup_par,nnotskip,nnotskipm, &
+        nomfich,nomfichbav,npar,nparm,Only_rixs,param,Scan_a,Shift_core,TypePar,Use_FDMX,FDMX_only, &
         fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
         tdebye,tmeas_inp,tmeas,expntl,expntlA,expntlB,victoreen,victA,victB,mermrank)
 
@@ -1653,7 +1698,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
       if( Convolution_cal .and. .not. Only_rixs ) call Convolution(bav_open,Bormann, .false.,convolution_out,Delta_edge, &
         E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max, &
         Gamma_max_man,ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,Length_line,n_col_max, &
-        ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,ncal)
+        n_shift_core,ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,Shift_core,TypePar,ncal)
 
       call Metric(comt,convolution_out,Dafs_bio,Dist_min, Dist_min_g,fdmfit_out,Fit_cal,Gen_Shift_min,ical, &
              ical_Met_min,index_Met_Fit,iscratchconv,itape_minim,itape2,Length_line,Length_block,nb_datafile,ncal,ndm, &
@@ -1664,22 +1709,15 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
   if( Metric_cal .and. mpirank0 == 0 ) close(itape_minim)
 
+  deallocate( Shift_core )
   deallocate( par_op )
   deallocate( ifile_notskip )
 
   deallocate( block_sum )
   deallocate( npbl )
   deallocate( Length_block )
-  deallocate( npar )
-  deallocate( param )
-  deallocate( parmax )
-  deallocate( parmin )
-  deallocate( parsum )
-  deallocate( nparam )
-  deallocate( indice_par )
-  deallocate( TypePar )
-  deallocate( TypeParc )
-  deallocate( TypeParg )
+  deallocate( npar, param, parmax, parmin, parsum, nparam, indice_par )
+  deallocate( TypePar, TypeParc, TypeParg )
 
   if( mpirank0 /= 0 ) return
 
@@ -1865,7 +1903,7 @@ function Traduction(keyword)
       traduction = 'delta_en_'
     case('dilat','dilatati','dilat_or')
       traduction = 'dilatorb'
-   case('dip_relat')
+    case('dip_relat')
       traduction = 'dip_rel'
     case('magdip','dip_mag','mag_dip')
       traduction = 'dipmag'
@@ -1894,7 +1932,7 @@ function Traduction(keyword)
     case('enrgphot','energpho','energphot','ephoton')
       traduction = 'energphot'
     case('extractio')
-      traduction = 'extrac'
+      traduction = 'extract'
     case('greenbulk','bulk_gree','bulkgreen')
       traduction = 'green_bul'
     case('lapw','wien')
@@ -1993,6 +2031,12 @@ function Traduction(keyword)
       traduction = 'rangel'
     case('rchimp')
       traduction = 'rcharge'
+    case('ampl_rixs')
+      traduction = 'rixs_ampl'
+    case('sum_rixs')
+      traduction = 'rixs_sum'
+    case('only_rixs')
+      traduction = 'rixs_only'
     case('energ_rix','energ_in_','ener_rixs','rixs_rang','range_rix')
       traduction = 'rixs_ener'
     case('rchimp_z','z_rcharge')
@@ -2115,6 +2159,8 @@ function Traduction(keyword)
       traduction = 'e_cut'
     case('e_start')
       traduction = 'estart'
+    case('shift_eps','shift_e_c')
+      traduction = 'shift_cor'
 
   end select
 

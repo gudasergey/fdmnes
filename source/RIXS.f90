@@ -11,11 +11,11 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
         Gamma_hole_man,Hubb_a,Hubb_d,iabsorig, &
         icheck,igreq,iprabs_nonexc,isymeq,ip0,ip_max,is_g,jseuil,lmoins1,lplus1,lseuil,m_g,m_hubb, &
         Moment_conservation,multi_run, &
-        Multipole,n_atom_proto,n_atom_uc,n_multi_run,n_oo,n_q_rixs,n_rel,n_theta_in,n_two_theta,natomsym,nbseuil, &
+        Multipole,n_atom_proto,n_atom_uc,n_multi_run,n_oo,n_q_rixs,n_rel,n_shift_core,n_theta_in,n_two_theta,natomsym,nbseuil, &
         nenerg_in_rixs,nenerg_s,neqm,ngamh,ninit1,ninit,ninitr,nlm_pot,nlm_probe,nlm_f,nomfich, &
         nr,nrm,ns_dipmag,nseuil,nspin,nspino,nspinp,numat,Orthmati,Posn,Powder, &
-        psii,q_rixs,r,Relativiste,Renorm,RIXS_fast,Rmtg,Rmtsd,Rot_atom_abs,Rot_int,Spin_channel,Spinorbite, &
-        Step_loss,Theta_in,Two_theta,V_intmax,V_hubb,Vcato,Vhbdc,VxcbdcF,Vxcato,Ylm_comp)
+        psii,q_rixs,r,Relativiste,Renorm,RIXS_fast,Rmtg,Rmtsd,Rot_atom_abs,Rot_int,Shift_core,Spin_channel, &
+        Spinorbite,Step_loss,Theta_in,Two_theta,V_intmax,V_hubb,Vcato,Vhbdc,VxcbdcF,Vxcato,Ylm_comp)
 
   use declarations
   implicit none
@@ -29,8 +29,8 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
   
   integer:: iabsorig, i_q, i_Spin_channel, i_theta, i_theta_1, i_theta_2, ia, ich, icheck, ie, &
      ie_fast, ie_loss, ie_not_fast, ie_oc, ie_s, ii, ip0, ip_max, initr, iprabs_nonexc, iseuil, isp, isym, &
-     js, jseuil, Length, lmax_pot, lmax, lseuil, m_hubb, multi_run, n_atom_proto, n_atom_uc, &
-     n_isc, n_multi_run, n_oo, n_q_dim, n_q_rixs, n_rel, n_Spin_channel, n_theta_in, n_two_theta, n_theta, natomsym, nbseuil, &
+     js, jseuil, Length, lmax_pot, lmax, lseuil, m_hubb, multi_run, n_atom_proto, n_atom_uc, n_isc, n_multi_run, &
+     n_oo, n_q_dim, n_q_rixs, n_rel, n_shift_core, n_Spin_channel, n_theta_in, n_two_theta, n_theta, natomsym, nbseuil, &
      ne, ne_loss, nenerg_in, nenerg_in_rixs, nenerg_oc, nenerg_unoc, nenerg_s, neqm, ngamh, ninit, ninit1, ninitr, nlm_f, &
      nlm_p_fp, nlm_pot, nlm_probe, npl, nr, nrm, &
      ns_dipmag, nseuil, nspin, nspino, nspinp, numat
@@ -100,6 +100,7 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
   real(kind=db), dimension(n_theta_in):: Theta_in
   real(kind=db), dimension(n_two_theta):: Two_theta
   real(kind=db), dimension(nenerg_in_rixs):: Energ_rixs
+  real(kind=db), dimension(n_shift_core):: Shift_core
   real(kind=db), dimension(3,3):: Mat_orth, matopsym , Orthmat, Orthmati, Rot_atom, Rot_atom_abs, Rot_int, &
                                   Trans_Lab_Dir_Q, Trans_rec_dir, Trans_rec_lab
   real(kind=db), dimension(3,n_atom_uc):: posn
@@ -190,7 +191,7 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
   n_isc = ninitr * n_Spin_channel
 
   allocate( Shift(ninitr) )
-  call Cal_shift(Epsii,Epsii_ref,Epsii_ref_RIXS_man,icheck,ninit,ninit1,ninitr,Shift)
+  call Cal_shift(Epsii,Epsii_ref,Epsii_ref_RIXS_man,icheck,multi_run,n_shift_core,ninit,ninit1,ninitr,Shift,Shift_core)
 
   lmax = nint( sqrt( real( nlm_probe ) ) ) - 1
   lmax_pot = nint( sqrt( real( nlm_pot ) ) ) - 1
@@ -740,17 +741,18 @@ end
 
 ! Calculation of the shifts
 
-subroutine Cal_shift(Epsii,Epsii_ref,Epsii_ref_RIXS_man,icheck,ninit,ninit1,ninitr,Shift)
+subroutine Cal_shift(Epsii,Epsii_ref,Epsii_ref_RIXS_man,icheck,multi_run,n_shift_core,ninit,ninit1,ninitr,Shift,Shift_core)
 
   use declarations
   implicit none
 
-  integer:: icheck, ninit, ninit1, ninitr
+  integer:: icheck, multi_run, n_shift_core, ninit, ninit1, ninitr
   
   logical:: Epsii_ref_RIXS_man
   
   real(kind=db):: Epsii_moy, Epsii_ref
   real(kind=db), dimension(ninitr):: Epsii, Shift
+  real(kind=db), dimension(n_shift_core):: Shift_core
    
   if( .not. Epsii_ref_RIXS_man ) then
     select case(ninitr)
@@ -771,9 +773,10 @@ subroutine Cal_shift(Epsii,Epsii_ref,Epsii_ref_RIXS_man,icheck,ninit,ninit1,nini
         endif
     end select
     Epsii_ref = Epsii_moy
-    Epsii_ref_RIXS_man = .true.
+    if( n_shift_core == 0 )Epsii_ref_RIXS_man = .true.
   endif
   Shift(:) = Epsii(:) - Epsii_ref 
+  if( multi_run <= n_shift_core ) Shift(:) = Shift(:) + Shift_core(multi_run) 
 
   if( icheck > 0 ) then
     write(3,110) 

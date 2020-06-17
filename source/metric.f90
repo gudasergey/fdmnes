@@ -28,8 +28,8 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
   character(len=132):: comt, identmot, mot
   character(len=Length_name):: convolution_out, fdmfit_out, File_name
   character(len=length_line):: motl
-  character(len=2), dimension(nmetricm) :: Nom_Met
-  character(len=9), dimension(ngroup_par,nparm) :: typepar
+  character(len=2), dimension(nmetricm):: Nom_Met
+  character(len=9), dimension(ngroup_par,nparm):: typepar
   character(len=Length_name), dimension(nb_datafile,2):: File_dat
 
   integer, dimension(nmetricm) :: ical_Met_min, i_Shift_Met, indparMet, jMet
@@ -128,7 +128,6 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
         end do
 
       case('file_met')
-        Simple_comp = .true.
         do i = 1,2
           File_name = ' '
           read(itape2,'(A)') File_name
@@ -137,7 +136,20 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
           if( l > 4 ) then
            if( File_name(l-3:l-3) /= '.' ) File_name(l+1:l+4) = '.txt'
           endif
-          File_dat(1,i) = File_name
+
+          if( nb_datafile > 0 ) then
+            File_dat(:,2) = File_name
+            if( Fdmfit_out == 'fdmfit_out.txt' ) then
+              Fdmfit_out = File_name
+              L = len_trim(fdmfit_out)
+              Fdmfit_out(l-3:l+4) = '_fit.txt'
+            endif
+            exit
+          else
+            Simple_comp = .true.
+            File_dat(1,i) = File_name
+          endif
+          
           if( i == 2 ) then
             open(99,file = File_dat(1,i),status = 'old', iostat = istat)
             if( istat /= 0 ) call write_open_error(File_dat(1,i),istat,1)
@@ -152,9 +164,11 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
             endif
             Close(99)
           endif
+  
           do ig = 1,ng
             numcol(ig,:) = 1 + ig
           end do
+  
         end do
 
       case('gen_shift')
@@ -230,6 +244,30 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
 
   end do
 
+! test on the spectra file name
+  do i_data = 1,nb_datafile
+    do ifich = 1,2
+      if( fit_cal .and. ifich == 2 ) exit
+      open(99,file = File_dat(i_data,ifich),status = 'old', iostat = istat)
+      if( istat /= 0 ) then
+        File_name = File_dat(i_data,ifich) 
+        L = len_trim( File_name )
+        if( L > 4 ) then
+          if( File_name(L-3:L-3) == '.' ) L = L - 4
+        endif
+        File_name(L+1:L+4) = '.txt'
+        open(99, file=File_name, status='old',iostat=istat)
+        if( istat /= 0 ) then
+          File_name(L+1:L+4) = '.dat'
+          open(99, file=File_name, status='old',iostat=istat)
+          if( istat /= 0 ) call write_open_error(File_dat(i_data,ifich),istat,1)
+        endif
+        File_dat(i_data,ifich) = File_name
+      endif
+      Close(99)
+    end do
+  end do
+  
   nmetric = 1
   Nom_Met(1) = 'D1'
 
@@ -300,7 +338,6 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
       else
         ipr = 2
         open(ipr,file = File_dat(i_data,ifich),status = 'old', iostat = istat)
-        if( istat /= 0 ) call write_open_error(File_dat(i_data,ifich),istat,1)
       endif
       if( Dafs_bio .and. ifich == 1 ) then
         read(ipr,*)
@@ -758,14 +795,26 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
     immax = nmetric
   endif
   if( ng > 1 .and. Print_all ) then
+    fac = 0_db
+    do im = 1,immax
+      fac = max( fac, abs( decalE(i_Shift_Met(im)) ) ) 
+    end do  
 
     if( immax == 3 ) then
-      write(4,210) ( Nom_Met(im), decalE(i_Shift_Met(im)), im = 1,immax )
+      if( fac < 10._db ) then
+        write(4,210) ( Nom_Met(im), decalE(i_Shift_Met(im)), im = 1,immax )
+      else
+        write(4,212) ( Nom_Met(im), decalE(i_Shift_Met(im)), im = 1,immax )
+      endif
       do ig = 1,ng
         write(4,220) ig, ( Met(ig,i_Shift_Met(im),im), im = 1,immax), RapIntegrT(ig,i_Shift_Met(1))
       end do
     else
-      write(4,215) ( Nom_Met(im), decalE(i_Shift_Met(im)), im = 1,immax )
+      if( fac < 10._db ) then
+        write(4,215) ( Nom_Met(im), decalE(i_Shift_Met(im)), im = 1,immax )
+      else
+        write(4,217) ( Nom_Met(im), decalE(i_Shift_Met(im)), im = 1,immax )
+      endif
       do ig = 1,ng
         write(4,225) ig, ( Met(ig,i_Shift_Met(im),im), im = 1,immax), RapIntegrT(ig,i_Shift_Met(1))
       end do
@@ -877,14 +926,26 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
     end do
 
     if( ng > 1 ) then
+      fac = 0._db
+      do im = 1,immax
+        fac = max( fac, abs( Gen_Shift_min(im) ) ) 
+      end do  
       do ipr = 4,6,3
         if( immax == 3 ) then
-          write(ipr,210) ( Nom_Met(im), Gen_Shift_min(im), im = 1,immax )
+          if( fac < 10._db ) then
+            write(ipr,210) ( Nom_Met(im), Gen_Shift_min(im), im = 1,immax )
+          else
+            write(ipr,212) ( Nom_Met(im), Gen_Shift_min(im), im = 1,immax )
+          endif
           do ig = 1,ng
             write(ipr,220) ig, ( Dist_min_g(ig,im), im = 1,immax), RapIntegrT_min_g(ig)
           end do
         else
-          write(ipr,215) ( Nom_Met(im), Gen_Shift_min(im), im = 1,immax )
+          if( fac < 10._db ) then
+            write(ipr,215) ( Nom_Met(im), Gen_Shift_min(im), im = 1,immax )
+          else
+            write(ipr,217) ( Nom_Met(im), Gen_Shift_min(im), im = 1,immax )
+          endif
           do ig = 1,ng
             write(ipr,225) ig, ( Dist_min_g(ig,im), im = 1,immax), RapIntegrT_min_g(ig)
           end do
@@ -923,7 +984,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
   deallocate( Yl )
 
   return
-  110 format(///' Number of column must be greater than 1, first is', ' the energy'///)
+  110 format(///' Number of column must be greater than 1, first is the energy'///)
   115 format(///' There is not the same number of columns in the 2 files:',i4,' and',i4,' !'///)
   120 format(///' Unknown keyword in the indata file :'//1x,A)
   125 format(///' In then metric calculation, there is no overlap',/ &
@@ -931,39 +992,41 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
                 ' Check the keywords Emin, Emax, the energy range (photon or photoelectron energy), the unit (eV, keV ...', // &
                 ' ig   Emin(1)   Emin(2)   Emax(1)   Emax(2)   E_met_min    E_met_max ')
   126 format(i3,4f10.3,2f13.3)
-  130 format(/' Metric distance calculation between :')
-  144 format('  the actual calculation and the experimental files :')
+  130 format(/' Metric distance calculation between:')
+  144 format('  the actual calculation and the experimental files:')
   145 format(/' Number of parameter =',i3)
-  146 format(/' Parameter',i2,' / first value / last value /', ' number of value',/,3x,100(2x,a9))
+  146 format(/' Parameter',i2,' / first value / last value / number of value',/,3x,100(2x,a9))
   147 format(3x,100f11.5)
   148 format(3x,100i11)
   150 format('  and :')
-  155 format(//80('-')//' Calculation with optimized parameters :')
-  160 format(/3x,'Calculation',i6,' /',i6,10x,' Parameters :')
+  155 format(//80('-')//' Calculation with optimized parameters:')
+  160 format(/3x,'Calculation',i6,' /',i6,10x,' Parameters:')
   180 format(3x,100(2x,a9,' =',f11.5,','))
   190 format(3x,a2,' =',f9.5,',  general shift =',f9.2,' eV,', '   ... up to now, best value !')
   200 format(3x,a2,' =',f9.5,',  general shift =',f9.2,' eV')
   205 format(17x,'  General ratio =',1p,e13.5)
-  210 format(/'   Spectra  ',3(2x,a2,'(',f9.2,')'),7x,'Rap')
-  215 format(/'   Spectra  ',2(2x,a2,'(',f9.2,')'),7x,'Rap')
+  210 format(/'   Spectra  ',3(3x,a2,'(',f6.3,')  '),6x,'Ratio')
+  212 format(/'   Spectra  ',3(2x,a2,'(',f9.2,')'),6x,'Ratio')
+  215 format(/'   Spectra  ',2(3x,a2,'(',f6.3,')  '),6x,'Ratio')
+  217 format(/'   Spectra  ',2(2x,a2,'(',f9.2,')'),6x,'Ratio')
   220 format(i8,2f15.5,f15.7,1p,e17.3)
   225 format(i8,f15.5,f15.7,1p,e17.3)
-  310 format(/4x,'Gen_Shift',4(5x,a2,3x), '    Range     <Rap>       Rapg      Ecart')
-  315 format(/4x,'Gen_Shift',3(5x,a2,3x), '    Range     <Rap>       Rapg      Ecart')
+  310 format(/4x,'Gen_Shift',4(5x,a2,3x), '    Range    <Ratio>     Ratiog    St.dev.')
+  315 format(/4x,'Gen_Shift',3(5x,a2,3x), '    Range    <Ratio>     Ratiog    St.dev.')
   320 format(f13.2,2f10.5,2f10.6,f10.2,1p,3e11.2)
   325 format(f13.2,f10.5,2f10.6,f10.2,1p,3e11.2)
-  330 format(/4x,'Gen_Shift',3(5x,a2,3x), '    Range     <Rap>      Ecart')
-  335 format(/4x,'Gen_Shift',2(5x,a2,3x), '    Range     <Rap>      Ecart')
+  330 format(/4x,'Gen_Shift',3(5x,a2,3x), '    Range     Ratio     St.dev.')
+  335 format(/4x,'Gen_Shift',2(5x,a2,3x), '    Range     Ratio     St.dev.')
   340 format(f13.2,2f10.5,f10.6,f10.2,1p,2e11.2)
   345 format(f13.2,f10.5,f10.6,f10.2,1p,2e11.2)
   350 format(/'  ig =',i3,' :')
-  360 format(/'    Gen_Shift',5x,a2,6x,a3,5x,a2,'   Weights    Rap')
-  365 format(/'    Gen_Shift',5x,a2,6x,a2,'   Weights    Rap')
+  360 format(/'    Gen_Shift',5x,a2,6x,a3,5x,a2,'   Weights   Ratio')
+  365 format(/'    Gen_Shift',5x,a2,6x,a2,'   Weights   Ratio')
   370 format(f13.2,f8.2,f8.3,f8.4,f8.3,1p,e11.2)
   375 format(f13.2,f8.2,f8.4,f8.3,1p,e11.2)
-  450 format(//80('-')//,'  Minimum in the grid of parameters :',// 18x,4(4x,a2,'min',3x))
-  460 format(16x,2f12.5,2f12.6,'   Rapg =',1p,e13.5/)
-  462 format(16x,f12.5,2f12.6,'   Rapg =',1p,e13.5/)
+  450 format(//80('-')//,'  Minimum in the grid of parameters:',// 18x,4(4x,a2,'min',3x))
+  460 format(16x,2f12.5,2f12.6,'  Ratiog =',1p,e13.5/)
+  462 format(16x,f12.5,2f12.6,'  Ratiog =',1p,e13.5/)
   465 format(16x,2f12.5,f12.6/)
   467 format(16x,f12.5,f12.6/)
   470 format(5x,a9,' =',4f12.5)

@@ -2166,7 +2166,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
         case('all_site_')
           All_site_rixs = .true.
 
-        case('ampl_rixs')
+        case('rixs_ampl')
           Ampl_rixs = .true.
 
         case('ata')
@@ -2675,7 +2675,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
             ecrantage(1) = ecrantage(nspin)
           endif
 
-        case('sum_rixs')
+        case('rixs_sum')
           Sum_rixs = .true.
 
         case('tddft')

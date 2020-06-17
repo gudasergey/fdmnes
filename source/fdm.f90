@@ -4,8 +4,8 @@
 subroutine fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg, &
         Epsii_ref,Epsii_ref_man,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
-        itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-        nomfich,nomfichbav,npar,nparm,Only_rixs,param,Scan_a,typepar,Use_FDMX,FDMX_only, &
+        itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,n_shift_core,ngamh,ngroup_par,nnotskip,nnotskipm, &
+        nomfich,nomfichbav,npar,nparm,Only_rixs,param,Scan_a,Shift_core,typepar,Use_FDMX,FDMX_only, &
         fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
         tdebye,tmeas_inp,tmeas,expntl,expntlA,expntlB,victoreen,victA,victB,mermrank)
 
@@ -20,9 +20,9 @@ subroutine fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_
     itype_dop, j, jgr, jseuil, l, lamstdens, lecrantage, Length_line, Lin_gam, Lmax_nrixs, Lmax_pot, &
     Lmax_tddft_inp, Lmaxat0, Lmaxso_max, Lmaxso0, Lseuil, m_hubb_e, mermrank, mpierr, mpinodes, mpinodes0, mpirank, mpirank0, &
     multi_run, multi_run_e, multrmax, n, n_abs_rgh, n_atom_bulk, n_atom_cap, n_atom_coop, n_atom_int, n_atom_neq, n_atom_per, &
-    n_atom_per_neq, &
-    n_atom_proto, n_atom_proto_bulk, n_atom_proto_p, n_atom_proto_uc, n_atom_sur, n_atom_uc, n_devide, n_file_dafs_exp, &
-    n_mat_polar, n_multi_run, n_multi_run_e, natomsym_max, n_adimp, n_bulk_sup, n_q_rixs, n_radius, n_range, n_theta_in, &
+    n_atom_per_neq, n_atom_proto, n_atom_proto_bulk, n_atom_proto_p, n_atom_proto_uc, &
+    n_atom_sur, n_atom_uc, n_devide, n_file_dafs_exp, n_mat_polar, n_multi_run, n_multi_run_e, &
+    natomsym_max, n_adimp, n_bulk_sup, n_q_rixs, n_radius, n_range, n_shift_core, n_theta_in, &
     n_two_theta, n_Z_abs, nb_atom_conf_m, nbseuil, nchemin, ncolm, necrantage, neimagent, nenerg_in_rixs, nenerg_s, neqm, &
     ngamh, ngamme, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_nonsph, ngroup_par, ngroup_pdb, &
     ngroup_taux, ngroup_temp, nhybm, nklapw, nlatm, nlm_pot, nlmlapwm, nmatsym, nnotskip, nnotskipm, norbdil, normrmt, &
@@ -97,6 +97,7 @@ subroutine fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_
   real(kind=db), dimension(3,3):: Mat_or, Mat_UB
   real(kind=db), dimension(n_rout):: Time_rout
   real(kind=db), dimension(ngroup_par,nparm):: param
+  real(kind=db), dimension(n_shift_core):: Shift_core
 
   real(kind=db), dimension(:), allocatable:: Adimp_e, Angle_or, cdil, E_adimp, E_max_range, E_radius, Ecrantage, &
      Eeient, Egamme, Eimagent, Energ_rixs, r0_lapw, r0_lapw_temp, Rchimp, rchimp_temp, Rlapw, rlapw_temp, rmt, rmt_temp, &
@@ -679,8 +680,8 @@ subroutine fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_
       Lmax_pot,Lmax_tddft_inp,lmaxfree,Lmaxso_max,Lmaxso0,Lmaxat0,lmoins1,lplus1,Lseuil,lvval,m_hubb_e, &
       Magnetic,Mat_or,Mat_UB,Matper,Moment_conservation,mpinodes,mpinodes0,mpirank,mpirank0,Muffintin,Multipole,multrmax, &
       n_abs_rgh,n_adimp,n_atom_bulk,n_atom_cap,n_atom_coop,n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc, &
-      n_atom_sur,n_atom_uc,n_bulk_sup,n_devide,n_mat_polar,n_multi_run,n_q_rixs,n_radius,n_range,n_rout,n_theta_in,n_two_theta, &
-      natomeq_s,natomsym_max,nbseuil,nchemin,ncolm,necrantage, &
+      n_atom_sur,n_atom_uc,n_bulk_sup,n_devide,n_mat_polar,n_multi_run,n_q_rixs,n_radius,n_range,n_rout,n_shift_core,n_theta_in, &
+      n_two_theta,natomeq_s,natomsym_max,nbseuil,nchemin,ncolm,necrantage, &
       neimagent,nenerg_in_rixs,nenerg_s,neqm,ngamh,ngamme,ngreq,ngroup,ngroup_hubb,ngroup_lapw, &
       ngroup_m,ngroup_nonsph,ngroup_pdb,ngroup_taux,ngroup_temp,nhybm,nklapw,nlm_pot,nlmlapwm,nlat,nlatm,nmatsym,No_DFT, &
       No_solsing,nom_fich_extract,nomfich,nomfich_cal_conv,nomfich_cal_tddft_conv,Noncentre, &
@@ -691,7 +692,7 @@ subroutine fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_
       p_self0,p_self0_bulk,Pas_SCF,pdpolar,phi_0,PointGroup,PointGroup_Auto,Polar,Polarise,poldafsem,poldafssm, &
       pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,Powder,q_nrixs,q_rixs,Quadrupole,R_rydb,R_self,R_self_bulk, &
       r0_lapw,Ray_max_dirac,Rchimp,Relativiste,Renorm,RIXS,RIXS_core,RIXS_fast,Rlapw,rmt,Rmtimp,Rot_Atom_gr,rotloc_lapw, &
-      roverad,RPALF,rpotmax,Rydberg,Rsorte_s,SCF_log,Self_abs,Skip,Solsing_s,Solsing_only,Spherical_signal, &
+      roverad,RPALF,rpotmax,Rydberg,Rsorte_s,SCF_log,Self_abs,Shift_core,Skip,Solsing_s,Solsing_only,Spherical_signal, &
       Spherical_tensor,Spin_channel,Spinorbite,State_all,State_all_out,Step_loss,Sum_rixs,Supermuf,Surface_shift,Symmol, &
       Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef,Temp_B_iso,Tensor_imp,Test_dist_min,Theta_in,Time_rout,Trace_format_wien, &
       Trace_k,Trace_p,Two_theta,V_helm,V_hubbard,V_intmax,Vec_orig,Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Width_helm,Wien_file, &
@@ -887,8 +888,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_
       Lmax_pot,Lmax_tddft_inp,lmaxfree,Lmaxso_max,Lmaxso0,Lmaxat0,lmoins1,lplus1,Lseuil,lvval,m_hubb_e, &
       Magnetic,Mat_or,Mat_UB,Matper,Moment_conservation,mpinodes,mpinodes0,mpirank,mpirank0,Muffintin,Multipole,multrmax, &
       n_abs_rgh,n_adimp,n_atom_bulk,n_atom_cap,n_atom_coop,n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc, &
-      n_atom_sur,n_atom_uc,n_bulk_sup,n_devide,n_mat_polar,n_multi_run,n_q_rixs,n_radius,n_range,n_rout,n_theta_in,n_two_theta, &
-      natomeq_s,natomsym_max,nbseuil,nchemin,ncolm,necrantage, &
+      n_atom_sur,n_atom_uc,n_bulk_sup,n_devide,n_mat_polar,n_multi_run,n_q_rixs,n_radius,n_range,n_rout,n_shift_core,n_theta_in, &
+      n_two_theta,natomeq_s,natomsym_max,nbseuil,nchemin,ncolm,necrantage, &
       neimagent,nenerg_in_rixs,nenerg_s,neqm,ngamh,ngamme,ngreq,ngroup,ngroup_hubb,ngroup_lapw, &
       ngroup_m,ngroup_nonsph,ngroup_pdb,ngroup_taux,ngroup_temp,nhybm,nklapw,nlm_pot,nlmlapwm,nlat,nlatm,nmatsym,No_DFT, &
       No_solsing,nom_fich_extract,nomfich,nomfich_cal_conv,nomfich_cal_tddft_conv,Noncentre, &
@@ -899,7 +900,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_
       p_self0,p_self0_bulk,Pas_SCF,pdpolar,phi_0,PointGroup,PointGroup_Auto,Polar,Polarise,poldafsem,poldafssm, &
       pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,Powder,q_nrixs,q_rixs,Quadrupole,R_rydb,R_self,R_self_bulk, &
       r0_lapw,Ray_max_dirac,Rchimp,Relativiste,Renorm,RIXS,RIXS_core,RIXS_fast,Rlapw,rmt,Rmtimp,Rot_Atom_gr,rotloc_lapw, &
-      roverad,RPALF,rpotmax,Rydberg,Rsorte_s,SCF_log,Self_abs,Skip,Solsing_s,Solsing_only,Spherical_signal, &
+      roverad,RPALF,rpotmax,Rydberg,Rsorte_s,SCF_log,Self_abs,Shift_core,Skip,Solsing_s,Solsing_only,Spherical_signal, &
       Spherical_tensor,Spin_channel,Spinorbite,State_all,State_all_out,Step_loss,Sum_rixs,Supermuf,Surface_shift,Symmol, &
       Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef,Temp_B_iso,Tensor_imp,Test_dist_min,Theta_in,Time_rout,Trace_format_wien, &
       Trace_k,Trace_p,Two_theta,V_helm,V_hubbard,V_intmax,Vec_orig,Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Width_helm,Wien_file, &
@@ -928,8 +929,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_
     multi_0, multi_imp, multi_run, multi_run_e, multrmax, n, n_abs_bulk,n_abs_rgh, n_adimp, n_atom_0, n_atom_0_self, n_atom_bulk, &
     n_atom_cap, n_atom_coop, n_atom_ind, n_atom_ind_self, n_atom_int, n_atom_per, n_atom_proto, n_atom_proto_bulk, &
     n_atom_proto_uc, n_atom_sur, n_atom_uc, n_bulk_sup, n_bulk_z, n_bulk_z_abs, n_bulk_z_max, n_bulk_z_max_abs, n_devide, n_Ec, &
-    n_mat_polar, n_max, n_multi_run, n_oo, n_orb_rel, n_orbexc, n_q_rixs, n_radius, n_range, n_rel, n_rout, n_tens_max, &
-    n_theta_in, n_two_theta, n_V, &
+    n_mat_polar, n_max, n_multi_run, n_oo, n_orb_rel, n_orbexc, n_q_rixs, n_radius, n_range, n_rel, n_rout, n_shift_core, &
+    n_tens_max, n_theta_in, n_two_theta, n_V, &
     n_vr_0, n_vr_ind, n1, nab_coop, natome, natome_cal, natome_self, natomsym_max, natomeq, natomeq_coh, natomeq_self, &
     natomp, natomsym, nb_rep, nb_sym_op, nbbseuil, nbm, nbseuil, nbtm, nbtm_fdm, nchemin, ncolm, ncolr, ncolt, &
     ndim2, necrantage, neimagent, nenerg, nenerg_coh, nenerg_in_rixs, nenerg_rixs, nenerg_s, nenerg_tddft, nenerg0, neqm, ngamh, &
@@ -1083,6 +1084,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_
   real(kind=db), dimension(ngamme):: Egamme
   real(kind=db), dimension(nenerg_in_rixs):: Energ_rixs
   real(kind=db), dimension(npldafs):: Length_abs
+  real(kind=db), dimension(n_shift_core):: Shift_core
   real(kind=db), dimension(3,npldafs):: hkl_dafs
   real(kind=db), dimension(3,npldafs_e):: Vecdafsem, Vecdafssm
   real(kind=db), dimension(-m_hubb_e:m_hubb_e,-m_hubb_e:m_hubb_e,nspin,ngroup_hubb):: occ_hubb_e
@@ -2554,6 +2556,13 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_
       endif
       E_cut = E_Fermi
 
+    endif
+
+! For H2, N2, O2, F2, Cl2 and the rare gaz, the tabulated Edge values are versus vacuum. We shift it to be verus Fermi
+    if( .not. Optic ) then
+      Z = numat_abs
+      if( Z == 1 .or. Z == 2 .or. Z == 7 .or. Z == 8 .or. Z == 9 .or. Z == 10 .or. Z == 17 .or. Z == 18 .or. Z == 36 &
+               .or. Z == 54 .or. Z == 86 ) Eseuil(:) = Eseuil(:) + E_Fermi
     endif
 
 !------ XANES----------------------------------------------------------------------------------------------------------------------------------
@@ -4092,11 +4101,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_
         Gamma_hole_man,Hubb_abs,Hubb_diag_abs,iabsorig(multi_run), &
         icheck(29),igreq,iprabs_nonexc,isymeq,ip0,ip_max,is_g,jseuil,lmoins1,lplus1,Lseuil,m_g,m_hubb, &
         Moment_conservation,multi_run, &
-        Multipole,n_atom_proto,n_atom_uc,n_multi_run,n_oo,n_q_rixs,n_rel,n_theta_in,n_two_theta,natomsym,nbseuil, &
+        Multipole,n_atom_proto,n_atom_uc,n_multi_run,n_oo,n_q_rixs,n_rel,n_shift_core,n_theta_in,n_two_theta,natomsym,nbseuil, &
         nenerg_in_rixs,nenerg_s,neqm,ngamh,ninit1,ninit,ninitr,nlm_pot,nlm_probe,nlmomax,nomfich, &
         nrato_abs,nrm,ns_dipmag,nseuil,nspin,nspino,nspinp,numat_abs,Orthmati,Posn,Powder, &
-        psii,q_rixs,rato_abs,Relativiste,Renorm,RIXS_fast,Rmtg_abs,Rmtsd_abs,Rot_atom_abs,Rot_int,Spin_channel,Spinorbite, &
-        Step_loss,Theta_in,Two_theta,V_intmax,V_hubb,Vcato_abs,Vhbdc,VxcbdcF,Vxcato_abs,Ylm_comp)
+        psii,q_rixs,rato_abs,Relativiste,Renorm,RIXS_fast,Rmtg_abs,Rmtsd_abs,Rot_atom_abs,Rot_int,Shift_core,Spin_channel, &
+        Spinorbite,Step_loss,Theta_in,Two_theta,V_intmax,V_hubb,Vcato_abs,Vhbdc,VxcbdcF,Vxcato_abs,Ylm_comp)
 
       if( All_site_rixs .and. n_multi_run > 1 .and. mpirank0 == 0 ) then
         allocate( File_name(1) )

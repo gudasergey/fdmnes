@@ -40,6 +40,8 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,mpirank)
 ! Pu K: Canada et al, Nucl. Instr. Meth. (1973)
 ! Actinides : http://www.ruppweb.org/Xray/elements.html
 
+! For H2, N2, O2, F2, Cl2 and rare gaz it is from vaccum 
+
   data ek1/     13.6,    24.6,    54.7,   111.5,   188.0,   284.2,   409.9,   543.1,   696.7,   870.2, &
               1070.8,  1303.0,  1559.0,  1839.0,  2145.5,  2472.0,  2822.4,  3205.9,  3608.4,  4038.5, &
               4492.0,  4966.0,  5465.0,  5989.0,  6539.0,  7112.0,  7709.0,  8333.0,  8979.0,  9659.0, &
