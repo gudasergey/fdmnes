@@ -3553,7 +3553,7 @@ subroutine Write_rixs(Angle,Deltar,E_cut,E_loss,Energ_in,Epsii,Eseuil,File_name_
   open(2, file = File_name_rixs )
   write(2,110) Eseuil*rydb, numat, nseuil, jseuil, i_Monocrystal, nenerg_in, ne_loss, npl, n_theta, n_q_dim, ninit1, ninitr, &
                n_Spin_channel, Epsii(:)*rydb
-  write(2,115) Gamma_hole, Gamma_max, E_cut, Deltar 
+  write(2,115) Gamma_hole, Gamma_max, E_cut*rydb, Deltar 
   write(2,'(A)') ' Theta_in, 2.Theta'
   write(2,120) ( Angle(:,i_t) / radian, i_t = 1,n_theta )
   if( Monocrystal ) then
@@ -3822,7 +3822,6 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
       
           mot10 = adjustl( mot10 )   
           L = len_trim( mot10 )
-          if( i > 0 ) mot10(L-i:L-i) = 'p'
      
           select case(k)
             case(1)          

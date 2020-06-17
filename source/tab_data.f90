@@ -419,11 +419,11 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,mpirank)
 
   Eseuil(:) = Eseuil(:) / rydb
 
-  if( nseuil /= 0 ) then  
+!  if( nseuil /= 0 ) then  
  ! Shift of the conventional edge energy in order its value correspond to the Fermi energy or the HOMO.
-    Shift = Shift_edge(icheck,numat)
-    Eseuil(:) = Eseuil(:) + Shift
-  endif
+!    Shift = Shift_edge(icheck,numat)
+!    Eseuil(:) = Eseuil(:) + Shift
+!  endif
 
   return
   105 format(//' Z =',i12,' < 0 or > Z_Mendeleiev_max =',i4,' in routine Esdata !'//)
@@ -434,6 +434,8 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,mpirank)
 end
 
 !***********************************************************************
+
+! Not anymore used, replaced by the shift coming from the Fermi energy versus vaccum
 
 function Shift_edge(icheck,Z) 
 

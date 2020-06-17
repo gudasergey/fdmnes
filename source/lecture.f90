@@ -5279,51 +5279,53 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
 
 ! Reduction of the number of atom type
     ntype_mod = ntype
-    Suppress(:) = .false.
-    do it = 1,ntype
-      boucle_jt: do jt = it + 1,ntype
-        if( Suppress(jt) ) cycle
-        if( numat(it) /= numat(jt) ) cycle
-        if( nlat(it) /= nlat(jt) ) cycle
-        do l = 1,nlat(it)
-          if( sum ( abs( popval(it,l,:) - popval(jt,l,:) ) ) > eps10 ) cycle boucle_jt
-        end do
-        ntype_mod = ntype_mod - 1
-        Suppress(jt) = .true.
-        where( itype == jt ) itype = it
-      end do boucle_jt
-    end do
-    do it = 1,ntype
-      if( .not. Suppress(it) ) cycle
-      n = 0
-      do jt = it,ntype-1
-        if( Suppress( jt+1 ) ) then
-          n = n + 1
-          cycle
-        endif
-        kt = jt - n
-        where( itype == jt+1 ) itype = itype - n - 1
-        Ang_base_loc(:,kt) = Ang_base_loc(:,jt+1)
-        com(kt) = com(jt+1)
-        Hubb(kt) = Hubb(jt+1)
-        icom(kt) = icom(jt+1)
-        lvval(kt,:) = lvval(jt+1,:)
-        nlat(kt) = nlat(jt+1)
-        nrato(kt) = nrato(jt+1)
-        nrato_lapw(kt) = nrato_lapw(jt+1)
-        numat(kt) = numat(jt+1)
-        nvval(kt,:) = nvval(jt+1,:)
-        popval(kt,:,:) = popval(jt+1,:,:)
-        r0_lapw(kt) = r0_lapw(jt+1)
-        rchimp(kt) = rchimp(jt+1)
-        rlapw(kt) = rlapw(jt+1)
-        rmt(kt) = rmt(jt+1)
-        rmtimp(kt) = rmtimp(jt+1)
-        V_hubbard(kt) = V_hubbard(jt+1)
+    if( .not. Flapw ) then
+      Suppress(:) = .false.
+      do it = 1,ntype
+        boucle_jt: do jt = it + 1,ntype
+          if( Suppress(jt) ) cycle
+          if( numat(it) /= numat(jt) ) cycle
+          if( nlat(it) /= nlat(jt) ) cycle
+          do l = 1,nlat(it)
+            if( sum ( abs( popval(it,l,:) - popval(jt,l,:) ) ) > eps10 ) cycle boucle_jt
+          end do
+          ntype_mod = ntype_mod - 1
+          Suppress(jt) = .true.
+          where( itype == jt ) itype = it
+        end do boucle_jt
       end do
-    end do
+      do it = 1,ntype
+        if( .not. Suppress(it) ) cycle
+        n = 0
+        do jt = it,ntype-1
+          if( Suppress( jt+1 ) ) then
+            n = n + 1
+            cycle
+          endif
+          kt = jt - n
+          where( itype == jt+1 ) itype = itype - n - 1
+          Ang_base_loc(:,kt) = Ang_base_loc(:,jt+1)
+          com(kt) = com(jt+1)
+          Hubb(kt) = Hubb(jt+1)
+          icom(kt) = icom(jt+1)
+          lvval(kt,:) = lvval(jt+1,:)
+          nlat(kt) = nlat(jt+1)
+          nrato(kt) = nrato(jt+1)
+          nrato_lapw(kt) = nrato_lapw(jt+1)
+          numat(kt) = numat(jt+1)
+          nvval(kt,:) = nvval(jt+1,:)
+          popval(kt,:,:) = popval(jt+1,:,:)
+          r0_lapw(kt) = r0_lapw(jt+1)
+          rchimp(kt) = rchimp(jt+1)
+          rlapw(kt) = rlapw(jt+1)
+          rmt(kt) = rmt(jt+1)
+          rmtimp(kt) = rmtimp(jt+1)
+          V_hubbard(kt) = V_hubbard(jt+1)
+        end do
+      end do
+    endif
 
-   if( n_rchimp_Z > 0 ) then
+    if( n_rchimp_Z > 0 ) then
      do it = 1,ntype
        do i = 1,n_rchimp_Z
          if( numat(it) /= Z_rchimp(i) ) cycle
