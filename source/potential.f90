@@ -3215,7 +3215,7 @@ subroutine Potlapw(axyz,Chargat,Coupelapw,deccent,Exc_abs_i,Flapw_new,Full_atom,
 
   Vc_abs_i(1:nr) = Vcato(1:nr,1,iprabs)
   do ispin = 1,nspin
-    V_abs_i(1:nr,ispin) = Vc_abs_i(1:nr) +  Vxcato(1:n,1,ispin,iprabs)
+    V_abs_i(1:nr,ispin) = Vc_abs_i(1:nr) +  Vxcato(1:nr,1,ispin,iprabs)
   end do
   if( nspin == 1 ) then
     Exc_abs_i(1:nr) = Vxcato(1:nr,1,1,iprabs)

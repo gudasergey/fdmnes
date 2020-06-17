@@ -108,8 +108,8 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
   real(kind=db), dimension(nr,nlm_pot):: Vcato
   real(kind=db), dimension(nr,nlm_pot,nspin):: Vrato, Vxcato
 
-  real(kind=db), dimension(:), allocatable:: E_inf, E_loss, E_sup, Energ_in, Energ_oc, Gamma, Shift
-  real(kind=db), dimension(:,:), allocatable:: Angle, Conv_nelec
+  real(kind=db), dimension(:), allocatable:: Conv_nelec, E_inf, E_loss, E_sup, Energ_in, Energ_oc, Gamma, Shift
+  real(kind=db), dimension(:,:), allocatable:: Angle
   real(kind=db), dimension(:,:,:,:), allocatable:: Mod_k
 
   if( icheck > 0 ) write(3,110)
@@ -274,7 +274,7 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
   allocate( Energ_in(nenerg_in) )
   allocate( Gamma(ninitr) )
   allocate( E_loss(ne_loss) )
-  allocate( Conv_nelec(nenerg_in,ninitr) )
+  allocate( Conv_nelec(nenerg_in) )
 
   if( E1E1 ) then
     allocate( RIXS_E1E1_tens(3,3,n_rel,n_isc,nenerg_in*ne_loss,natomsym) )
@@ -345,18 +345,19 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
     endif
     Gamma(initr) = 0.5_db * Gamma(initr)  ! It is in fact Gamma / 2 in the formula  
 
-! Conversion factor in number of electron
-    do ie = 1,nenerg_in
-      Ephoton = Eseuil(iseuil) + Energ_in(ie) + Shift(initr)
-! For very low energy edges
-      Ephoton = max(0.001_db/Rydb, Ephoton)
-! alfa_sf = e*e/(2*epsilon0*h*c) is the fine structure constant
-      cst = quatre_pi * pi * alfa_sf * Ephoton
-! To get result in Mbarn (10E-18 cm2)
-      cst = 100 * bohr**2 * cst
-      Conv_nelec(ie,initr) = cst * conv_mbarn_nelec(Ephoton) / pi
-    end do
+  end do
 
+! Conversion factor in number of electron
+! There is no shift because Energ_in is the energy of the photon, not the one of electron
+  do ie = 1,nenerg_in
+    Ephoton = Eseuil(iseuil) + Energ_in(ie)
+! For very low energy edges
+    Ephoton = max(0.001_db/Rydb, Ephoton)
+! alfa_sf = e*e/(2*epsilon0*h*c) is the fine structure constant
+    cst = quatre_pi * pi * alfa_sf * Ephoton
+! To get result in Mbarn (10E-18 cm2)
+    cst = 100 * bohr**2 * cst
+    Conv_nelec(ie) = cst * conv_mbarn_nelec(Ephoton) / pi
   end do
 
 ! One takes the exchange correlation potential independant from energy
@@ -585,7 +586,7 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
                   ie = ie_not_fast
                 endif
 
-! The factor CFac = Delta_E / (  Energ_in(ie) - Energ_unoc + Shift(initr) + img * Gamma(initr) )
+! The factor CFac = Delta_E / (  Energ_in(ie) - Energ_unoc - Shift(initr) + img * Gamma(initr) )
 ! is replaced by the corresponding integral over energy for this energy step
                 Delta_E_inf = E_loss(ie_loss) + E_inf(ie_oc) - Energ_in(ie) - Shift(initr)
                 Delta_E_sup = E_loss(ie_loss) + E_sup(ie_oc) - Energ_in(ie) - Shift(initr)
@@ -614,7 +615,7 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
 
                 Lorentzian = cmplx( Lorentzian_r, Lorentzian_i, db )                               
 
-                CFac = Lorentzian * Conv_nelec(ie,initr)
+                CFac = Lorentzian * Conv_nelec(ie)
                  
                 Omega_i = E_i / quatre_mc2 
                 Omega_s = E_s / quatre_mc2
@@ -2905,7 +2906,10 @@ subroutine Tens_ab_rixs(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full
                       if( FDM_comp_m ) then
                         Tau_rad = rof_1 * rof_2 * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
                       else
+
                         Tau_rad = conjg( rof_1 ) * rof_2 * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
+!                        Tau_rad = img * aimag( conjg( rof_1 ) * rof_2 &
+!                                             * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag) )
                       endif
                       
                       Ten(initr) = Ten(initr) + Cg * Tau_rad
@@ -3592,13 +3596,13 @@ end
 
 !*****************************************************************************************************************
 
-subroutine Write_Int_rixs(File_name,n_File,RIXS_core)
+subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_modQ)
 
   use declarations
   implicit none
  
-  integer:: i, i_File, i_q, i_Monocrystal, i_t, ie, ie_loss, i_Spin_channel, ii, initr, ipl, ipr, istat, je_loss, &
-            jseuil, k, L, Length, &
+  integer:: i, i_amp, i_File, i_q, i_Monocrystal, i_t, ie, ie_loss, i_Spin_channel, ii, initr, ipl, ipr, istat, je_loss, &
+            jseuil, k, L, Length, n_amp, &
             n_File, n_i, n_isc, n_Spin_channel, n_Spin_channel_out, n_theta, n_q_dim, ne_loss, nenerg_in, ninit1, ninitr, npl, &
             npl_out, nseuil, numat  
  
@@ -3616,12 +3620,12 @@ subroutine Write_Int_rixs(File_name,n_File,RIXS_core)
   character(len=Length_name):: File_name_int_sum, File_name_o, File_name_out, mot
   character(len=Length_name), dimension(n_File):: File_name
   character(len=13), dimension(:), allocatable:: E_string, E_string_full
-  character(len=Length_name), dimension(:,:), allocatable:: File_name_int
+  character(len=Length_name), dimension(:,:,:), allocatable:: File_name_int
     
   complex(kind=db), dimension(:,:,:,:,:), allocatable:: RIXS_ampl
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: RIXS_ampl_tot
 
-  logical:: E_cut_man, Gamma_hole_man, Gamma_max_man, Powder, RIXS_core
+  logical:: Ampl_rixs, E_cut_man, Gamma_hole_man, Gamma_max_man, Powder, RIXS_core, Sum_rixs, Write_modQ
   
   real(kind=db):: E, Delta_E, Deltar, E_cut, Eseuil, Gamma_hole, Gamma_max, Range_E_in, Range_E_Loss, x, y 
   real(kind=db), dimension(:), allocatable:: Ampl_i, Ampl_r, E_loss, Energ_in
@@ -3638,6 +3642,12 @@ subroutine Write_Int_rixs(File_name,n_File,RIXS_core)
                  '    right-pi ', '    left-pi  ' /
   data pol_suf/ '_ss', '_sp', '_ps', '_pp','_rs', '_ls', '_rp', '_lp' /
 
+  if( Ampl_rixs ) then
+    n_amp = 3  ! to write real and imaginary part
+  else
+    n_amp = 1
+  endif
+  
 ! Check of input file names 
   do i_File = 1,n_File
     open(2, file = File_name(i_File), status='old', iostat=istat)
@@ -3699,7 +3709,7 @@ subroutine Write_Int_rixs(File_name,n_File,RIXS_core)
     n_Spin_channel_out = n_Spin_channel + 2 
   endif
   allocate( RIXS_ampl_tot(nenerg_in,npl,n_theta,n_q_dim,0:n_i,n_Spin_channel_out) )
-  allocate( File_name_int(n_q_dim,n_Spin_channel_out) )
+  allocate( File_name_int(n_q_dim,n_Spin_channel_out,n_amp) )
   
   open(2, file = File_name(1), status='old')
   read(2,*)  
@@ -3736,103 +3746,115 @@ subroutine Write_Int_rixs(File_name,n_File,RIXS_core)
   
   File_name_o = File_name(1)
   Length = len_trim(File_name_o)
-  if( File_name_o(Length-5:Length-4) == '_1') then
+  if( n_file > 1 .and. File_name_o(Length-5:Length-4) == '_1') then
     File_name_o(Length-5:Length) = '      '
   else
     File_name_o(Length-3:Length) = '    '
   endif
 
   File_name_int_sum = File_name_o
-   
-  do i_Spin_channel = 1,n_Spin_channel_out
+ 
+  do i_amp = 1,n_amp
+    
+    do i_Spin_channel = 1,n_Spin_channel_out
        
-    do i_q = 1,n_q_dim
+      do i_q = 1,n_q_dim
 
-      File_name_out = File_name_o
-      Length = len_trim(File_name_out)
-
-      if( n_q_dim > 1 ) then
-        File_name_out(Length+1:Length+3) = '_iq'
-        call ad_number(i_q,File_name_out,Length_name)
+        File_name_out = File_name_o
         Length = len_trim(File_name_out)
-      endif
 
-      if( i_Spin_channel > 1 ) then
-        File_name_out(Length+1:Length+3) = suf_spin( i_Spin_channel )
-        Length = len_trim(File_name_out)
-      endif
+        if( n_q_dim > 1 ) then
+          File_name_out(Length+1:Length+3) = '_iq'
+          call ad_number(i_q,File_name_out,Length_name)
+          Length = len_trim(File_name_out)
+        endif
 
-      do k = 1,4
-      
-        select case(k)
-          case(1)
-           if( .not. E_cut_man ) cycle
-           y = E_cut
-          case(2)
-           if( .not. Gamma_max_man ) cycle
-           y = Gamma_max
-          case(3)
-           if( .not. Gamma_hole_man ) cycle
-           y = Gamma_hole
-          case(4)
-           if( abs( Deltar ) < eps10 ) cycle
-           y = Deltar          
-       end select
-      
-        x = y / 10
-        do i = 0,4
-          x = 10 * x
-          if( abs( x - nint(x) ) < eps10 ) exit
-        end do
-      
-        select case(i)
-          case(0)
-            write(mot10,'(i10)') nint( y )
-          case(1)
-            write(mot10,'(f10.1)') y
-          case(2)
-            write(mot10,'(f10.2)') y
-          case(3)
-            write(mot10,'(f10.3)') y
-          case default
-            write(mot10,'(f10.4)') y
-        end select
-      
-        mot10 = adjustl( mot10 )   
-        L = len_trim( mot10 )
-        if( i > 0 ) mot10(L-i:L-i) = 'p'
-     
-        select case(k)
-          case(1)          
-            mot3 = '_EF'
-          case(2)
-            mot3 = '_Gm'
-          case(3)
-            mot3 = '_GH'
-          case(4)
-            mot3 = '_Ga'
-        end select
-      
-        Length = len_trim( File_name_out )
-        File_name_out(Length+1:Length+3) = mot3
-        Length = Length + 3
-        File_name_out(Length+1:Length+L) = mot10(1:L)
+        if( i_Spin_channel > 1 ) then
+          File_name_out(Length+1:Length+3) = suf_spin( i_Spin_channel )
+          Length = len_trim(File_name_out)
+        endif
 
-        if( i_spin_channel > 1 .or. i_q > 1 ) cycle
+        if( i_amp == 2 ) then
+          File_name_out(Length+1:Length+2) = '_R'
+          Length = len_trim(File_name_out)
+        elseif( i_amp == 3 ) then
+          File_name_out(Length+1:Length+2) = '_I'
+          Length = len_trim(File_name_out)
+        endif
+
+        do k = 1,4
+      
+          select case(k)
+            case(1)
+             if( .not. E_cut_man ) cycle
+             y = E_cut
+            case(2)
+             if( .not. Gamma_max_man ) cycle
+             y = Gamma_max
+            case(3)
+             if( .not. Gamma_hole_man ) cycle
+             y = Gamma_hole
+            case(4)
+             if( abs( Deltar ) < eps10 ) cycle
+             y = Deltar          
+         end select
         
-        Length = len_trim( File_name_int_sum )
-        File_name_int_sum(Length+1:Length+3) = mot3
-        Length = Length + 3
-        File_name_int_sum(Length+1:Length+L) = mot10(1:L)
-              
-      end do
-
-      Length = len_trim(File_name_out)
-          
-      File_name_out(Length+1:Length+8) = '_int.txt'
-      File_name_int(i_q,i_spin_channel) = File_name_out 
+          x = y / 10
+          do i = 0,4
+            x = 10 * x
+            if( abs( x - nint(x) ) < eps10 ) exit
+          end do
+        
+          select case(i)
+            case(0)
+              write(mot10,'(i10)') nint( y )
+            case(1)
+              write(mot10,'(f10.1)') y
+            case(2)
+              write(mot10,'(f10.2)') y
+            case(3)
+              write(mot10,'(f10.3)') y
+            case default
+              write(mot10,'(f10.4)') y
+          end select
       
+          mot10 = adjustl( mot10 )   
+          L = len_trim( mot10 )
+          if( i > 0 ) mot10(L-i:L-i) = 'p'
+     
+          select case(k)
+            case(1)          
+              mot3 = '_EF'
+            case(2)
+              mot3 = '_Gm'
+            case(3)
+              mot3 = '_GH'
+            case(4)
+              mot3 = '_Ga'
+          end select
+      
+          Length = len_trim( File_name_out )
+          File_name_out(Length+1:Length+3) = mot3
+          Length = Length + 3
+          File_name_out(Length+1:Length+L) = mot10(1:L)
+
+          if( i_spin_channel > 1 .or. i_q > 1 .or. i_amp > 1 ) cycle
+        
+          Length = len_trim( File_name_int_sum )
+          File_name_int_sum(Length+1:Length+3) = mot3
+          Length = Length + 3
+          File_name_int_sum(Length+1:Length+L) = mot10(1:L)
+              
+        end do
+
+        Length = len_trim(File_name_out)
+          
+        File_name_out(Length+1:Length+8) = '_int.txt'
+        File_name_int(i_q,i_spin_channel,i_amp) = File_name_out 
+      
+      end do
     end do
+  
   end do
   
   Length = len_trim(File_name_int_sum)
@@ -3935,19 +3957,40 @@ subroutine Write_Int_rixs(File_name,n_File,RIXS_core)
       close(2)
     end do ! end of loop on files
 
+    do i_amp = 1,n_amp
     do i_Spin_channel = 1,n_Spin_channel_out
+
+      RIXS_int(:,:,:,:,:) = 0._db
    
-      if( Powder ) then
+      select case( i_amp )
+        case(1)
+          if( Powder ) then
 ! summation on the tensors components (fake polarization directions)
-        RIXS_int(:,:,:,:,:) = 0._db
-        do ipl = 1,npl
-          RIXS_int(:,1,:,:,:) = RIXS_int(:,1,:,:,:) + real( RIXS_ampl_tot(:,ipl,:,:,:,i_Spin_channel), db )**2 &
-                                                       + aimag( RIXS_ampl_tot(:,ipl,:,:,:,i_Spin_channel) )**2  
-        end do
-      else
-        RIXS_int(:,:,:,:,:) = real( RIXS_ampl_tot(:,:,:,:,:,i_Spin_channel), db )**2 &
-                            + aimag( RIXS_ampl_tot(:,:,:,:,:,i_Spin_channel) )**2 
-      endif
+            do ipl = 1,npl
+              RIXS_int(:,1,:,:,:) = RIXS_int(:,1,:,:,:) + real( RIXS_ampl_tot(:,ipl,:,:,:,i_Spin_channel), db )**2 &
+                                                        + aimag( RIXS_ampl_tot(:,ipl,:,:,:,i_Spin_channel) )**2  
+            end do
+          else
+            RIXS_int(:,:,:,:,:) = real( RIXS_ampl_tot(:,:,:,:,:,i_Spin_channel), db )**2 &
+                                + aimag( RIXS_ampl_tot(:,:,:,:,:,i_Spin_channel) )**2 
+          endif
+        case(2)
+          if( Powder ) then
+            do ipl = 1,npl
+              RIXS_int(:,1,:,:,:) = real( RIXS_ampl_tot(:,ipl,:,:,:,i_Spin_channel), db )  
+            end do
+          else
+            RIXS_int(:,:,:,:,:) = real( RIXS_ampl_tot(:,:,:,:,:,i_Spin_channel), db )
+          endif
+        case(3)
+          if( Powder ) then
+            do ipl = 1,npl
+              RIXS_int(:,1,:,:,:) = aimag( RIXS_ampl_tot(:,ipl,:,:,:,i_Spin_channel) )  
+            end do
+          else
+            RIXS_int(:,:,:,:,:) = aimag( RIXS_ampl_tot(:,:,:,:,:,i_Spin_channel) )
+          endif
+      end select
 
       if( nenerg_in > 1 ) then
         Sum_E_in(:,:,:,:) = 0._db
@@ -3963,7 +4006,7 @@ subroutine Write_Int_rixs(File_name,n_File,RIXS_core)
         end do
       endif
 
-      if( ne_loss > 1 ) then
+      if( ne_loss > 1 .and. i_amp == 1 ) then
         if( ie_loss == 1 ) then
           Delta_E = E_loss(2) - E_loss(1) 
         elseif( ie_loss == ne_loss ) then
@@ -3980,13 +4023,13 @@ subroutine Write_Int_rixs(File_name,n_File,RIXS_core)
 
         if( ie_loss == 1 ) then    
 
-          open(2, file = File_name_int(i_q,i_spin_channel) )
+          open(2, file = File_name_int(i_q,i_spin_channel,i_amp) )
         
           write(2,'(a15,a19,a24)') ' RIXS intensity', com_date, com_time
           write(2,120) nenerg_in, ne_loss, npl_out, n_theta, n_q_dim, n_i, n_Spin_channel
     
           if( i_Spin_channel > 1 ) write(2,130) '  Channel: ', Channel_name(i_spin_Channel) 
-          if( n_q_dim > 1 ) write(2,130) '  q index =', i_q 
+          if( n_q_dim > 1 ) write(2,'(a11,i3)') '  Q index =', i_q 
 
           if( n_i > 0 ) write(2,130) ' init:    ', (((( init_name(initr), ie = 1,nenerg_in+1 ), ipl = 1,npl_out ), &
                                                                                              i_t = 1,n_theta ), initr = 0, n_i ) 
@@ -3999,7 +4042,7 @@ subroutine Write_Int_rixs(File_name,n_File,RIXS_core)
          
         else
         
-          open(2, file = File_name_int(i_q,i_spin_channel), position='append' )
+          open(2, file = File_name_int(i_q,i_spin_channel,i_amp), position='append' )
         
         endif
 
@@ -4034,11 +4077,12 @@ subroutine Write_Int_rixs(File_name,n_File,RIXS_core)
 
       end do ! end of loop on i_q
     end do
+    end do ! end of loop on i_amp
     
   end do ! end of loop on ie_loss
 
 ! Writing of the average over energy loss
-  if( ne_loss > 1 ) then
+  if( ne_loss > 1 .and. Sum_rixs ) then
     open(2, file = File_name_int_sum)
     write(2,'(a38,a19,a24)') ' RIXS, average along loss energy range', com_date, com_time
     if( npl_out == 1 .and. n_theta == 1 .and. n_i == 0 .and. n_q_dim == 1 .and. n_spin_channel_out == 1 ) then
@@ -4076,7 +4120,7 @@ subroutine Write_Int_rixs(File_name,n_File,RIXS_core)
   endif
 
 ! Writing of Mod(Q)  
-  if( .not. Powder ) then
+  if( .not. Powder .and. Write_modQ ) then
   
     do i_q = 1,n_q_dim
 

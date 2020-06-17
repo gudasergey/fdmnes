@@ -1667,7 +1667,8 @@ end
 ! Angle are in degrees
 ! They are converted in this routine in atomic units (Bohr radius and Rydberg).
 
-subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,Angle_mode,Angle_or,Angpoldafs,Angxyz,Angxyz_bulk, &
+subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rixs,Ang_borm,Ang_rotsup,Angle_mode,Angle_or, &
+    Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk, &
     axyz_cap,axyz_int,axyz_sur,Basereel,Bormann,Bulk,Bulk_roughness,Cap_B_iso,Cap_layer,Cap_roughness, &
     Cap_shift,Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre,Charge_free,Check_extract,Classic_irreg,Clementi,Com,Comt, &
@@ -1696,11 +1697,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     r0_lapw,Ray_max_dirac,rchimp,Readfast,Relativiste,Renorm,RIXS,RIXS_core,RIXS_fast,Rlapw,Rmt,Rmtimp,Rot_Atom_gr,rotloc_lapw, &
     roverad,RPALF,rpotmax,rydberg,rsorte_s,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spin_channel,Spinorbite,State_all,State_all_out, &
-    Step_loss,Supermuf,Surface_shift,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef,Temp_B_iso, &
+    Step_loss,Sum_rixs,Supermuf,Surface_shift,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef,Temp_B_iso, &
     Tensor_imp,Test_dist_min,Theta_in,Trace_format_wien,Trace_k,Trace_p,Two_theta,Typepar,Use_FDMX,V_helm,V_hubbard,V_intmax, &
-    Vec_orig, &
-    Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Width_helm,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Ylm_comp_inp,Z_bulk,Z_cap, &
-    Z_nospinorbite)
+    Vec_orig,Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Width_helm,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Write_modQ, &
+    Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
 
   use declarations
   implicit none
@@ -1774,7 +1774,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   complex(kind=db), dimension(3,npldafs_e):: Poldafsem, Poldafssm
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph):: Hybrid
 
-  logical:: Absauto, Absorber, adimpin, All_nrixs, Allsite, Apostrophe,ATA, Atom, Atom_B_iso, Atom_conf, Atom_nonsph, &
+  logical:: Absauto, Absorber, adimpin, All_nrixs, All_site_rixs, Allsite, Ampl_rixs, Apostrophe, ATA, Atom, Atom_B_iso, &
+    Atom_conf, Atom_nonsph, &
     Atom_occ_hubb, Atomic_scr, Atom_U_iso, Avoid, Axe_loc, Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, Centre_auto, &
     Centre_auto_abs, Center_s, Check_extract, Classic_irreg, Clementi, COOP, Core_energ_tot, Core_resolved, COOP_z_along_bond, &
     Core_resolved_e, Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
@@ -1787,10 +1788,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     normaltau, Occupancy_first, Octupole, Old_zero, One_run, One_SCF, Operation_mode_used, Optic, Overad, &
     Pas_SCF_imp, Pdb, Perdew, PointGroup_Auto, Polarise, Powder, quadmag, Quadrupole, r_self_imp, Readfast, Relativiste, &
     Renorm, RIXS, RIXS_core, RIXS_fast, rpalf, rydberg, SCF, SCF_bulk, SCF_elecabs, SCF_mag_free, Self_abs, Self_cons, &
-    Self_cons_bulk, &
-    SCF_exc_imp, Self_nonexc, Self_nonexc_imp, solsing_only, solsing_s, spherical_signal, spherical_tensor, spherique, &
-    Spin_channel, Spinorbite, State_all, State_all_out, Supermuf, Surface_shift_given, Symauto, Symmol, Taux, Tddft, Temp_B_iso, &
-    Trace_format_wien, Use_FDMX, Ylm_comp_inp
+    Self_cons_bulk, SCF_exc_imp, Self_nonexc, Self_nonexc_imp, &
+    solsing_only, solsing_s, spherical_signal, spherical_tensor, spherique, Spin_channel, Spinorbite, &
+    State_all, State_all_out, Sum_rixs, Supermuf, Surface_shift_given, Symauto, Symmol, Taux, Tddft, Temp_B_iso, &
+    Trace_format_wien, Use_FDMX, Write_modQ, Ylm_comp_inp
 
   logical, dimension(7):: SCF_log
   logical, dimension(10):: Multipole
@@ -1868,7 +1869,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   adimpin = .false. !*** JDB
   alfpot = 0._db
   All_nrixs = .false.
+  All_site_rixs = .false.
   Allsite = .false.
+  Ampl_rixs = .false.
   Ang_base_loc(1,:) = -10000._db; Ang_base_loc(2:3,:) = 0._db
   Ang_base_loc_gr(1,:) = -10000._db; Ang_base_loc_gr(2:3,:) = 0._db
   Ang_rotsup(:) = 0._db
@@ -2002,7 +2005,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   M2M2 = .false.
   Mat_UB(:,:) = 0._db
   Matper = .false.
-  Moment_conservation = .true.
+  Moment_conservation = .false.
   Monocrystal = .false.
   muffintin = .false.
   multrmax = 1
@@ -2109,6 +2112,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   State_all_out = .false.
   Step_loss = -1._db
   Spin_channel = .false.
+  Sum_rixs = .false.
   Supermuf = .false.
   Surface_shift(:) = 0._db
   Surface_shift_given = .false.
@@ -2130,6 +2134,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   Vec_orig(1:2) = 0._db; Vec_orig(3) = 1._db
   Veconde(:,:) = 0._db
   Ylm_comp_inp = .false.
+  Write_modQ = .false.
   Z_nospinorbite = 0
 
 !Wien_file(1): struct, (2): vcoul, (3): r2v, (4): r2vdn, (5,6,7): clm(isp), (8) psii, (9) Save_potlapw
@@ -2157,6 +2162,12 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       if( keyword(1:1) /= ' ' ) write(6,'(3x,A)') keyword
 
       select case(keyword)
+
+        case('all_site_')
+          All_site_rixs = .true.
+
+        case('ampl_rixs')
+          Ampl_rixs = .true.
 
         case('ata')
           ATA = .true.
@@ -2663,6 +2674,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
             ecrantage(nspin) = ecrantage(1) / nspin
             ecrantage(1) = ecrantage(nspin)
           endif
+
+        case('sum_rixs')
+          Sum_rixs = .true.
 
         case('tddft')
           tddft = .true.
@@ -4033,8 +4047,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           Mat_UB(3,1:3) = x(7:9)
           deallocate( x )
 
-        case('no_moment')
-          Moment_conservation = .false.
+        case('moment_co')
+          Moment_conservation = .true.
 
         case('rixs')
           RIXS = .true.
@@ -4085,6 +4099,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           n = nnombre(itape4,132)
           Pas_SCF_imp = .true.
           read(itape4,*) Pas_SCF
+
+        case('write_mod')
+          Write_modQ = .true.
 
 ! Parameters already red in lectdim
         case('full_self','magnetism','memory_sa','occupancy','self_abs','readfast')
@@ -5990,7 +6007,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(adimp,n_adimp,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(alfpot,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(All_nrixs,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(All_site_rixs,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(allsite,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Ampl_rixs,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Angle_mode,3*npldafs_2d,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Angle_or,npldafs_f,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     if( npldafs > 0 ) call MPI_Bcast(angpoldafs,3*npldafs, MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -6242,6 +6261,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(RIXS_core,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(RIXS_fast,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Rpalf,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Sum_rixs,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Temp,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Taux_cap,n_atom_cap,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Taux_oc,ngroup_taux,MPI_REAL8,0,MPI_COMM_WORLD, mpierr)
@@ -6280,6 +6300,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     call MPI_Bcast(rchimp,n,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(rmt,n,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(rmtimp,n,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Write_modQ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
 
 
     if( Flapw ) then

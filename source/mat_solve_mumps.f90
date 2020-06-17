@@ -468,6 +468,16 @@ subroutine gather_sm(smr,smi,nlmso,nligne,nlmso_i,nligne_i,mpinodes,mpirank,Cal_
   if ( mpinodes == 1 ) return
   nligne2 = nligne
   if(INT8(nlmso)*INT8(nligne) .gt. Z'7FFFFFFF') nligne2 = nligne/2 + 1
+
+! ESRF change start
+! Test on number higher that what is allowed by the number of digit for integer
+  if( nligne2 .gt. Z'7FFFFFFF' ) then
+    call write_error
+    write(9,'(" gather_sm: nligne2 =",i12," (> positive integer)")') nligne2
+    stop
+  endif
+! ESRF change end
+
   allocate(recvBuf(nlmso,nligne2))
   if ( mpirank == 0 ) then
     do rank = 1,mpinodes-1
@@ -478,7 +488,7 @@ subroutine gather_sm(smr,smi,nlmso,nligne,nlmso_i,nligne_i,mpinodes,mpirank,Cal_
         call MPI_recv(recvBuf, nlmso*nligne2, MPI_REAL8, rank, 100, MPI_COMM_MUMPS, status, mpierr)
         smr(:,rank+1:nligne2:mpinodes) = recvBuf(:,rank+1:nligne2:mpinodes)
         call MPI_recv(recvBuf, nlmso*(nligne-nligne2), MPI_REAL8, rank, 100, MPI_COMM_MUMPS, status, mpierr)
-        smr(:,rank+1+nligne2+1:nligne:mpinodes) = recvBuf(:,rank+1:nligne-nligne2:mpinodes)
+        smr(:,rank+1+nligne2:nligne:mpinodes) = recvBuf(:,rank+1:nligne-nligne2:mpinodes)
       endif
       if ( Cal_comp ) then
         if(nligne2 .eq. nligne) then
@@ -488,7 +498,7 @@ subroutine gather_sm(smr,smi,nlmso,nligne,nlmso_i,nligne_i,mpinodes,mpirank,Cal_
           call MPI_recv(recvBuf, nlmso*nligne2, MPI_REAL8, rank, 100, MPI_COMM_MUMPS, status, mpierr)
           smi(:,rank+1:nligne2:mpinodes) = recvBuf(:,rank+1:nligne2:mpinodes)
           call MPI_recv(recvBuf, nlmso*(nligne-nligne2), MPI_REAL8, rank, 100, MPI_COMM_MUMPS, status, mpierr)
-          smi(:,rank+1+nligne2+1:nligne:mpinodes) = recvBuf(:,rank+1:nligne-nligne2:mpinodes)
+          smi(:,rank+1+nligne2:nligne:mpinodes) = recvBuf(:,rank+1:nligne-nligne2:mpinodes)
         endif
       endif
     end do

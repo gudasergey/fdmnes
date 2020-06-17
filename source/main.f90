@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 30th of April 2020, 11 Floreal, An 228
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 6th of May 2020, 17 Floreal, An 228
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -48,7 +48,7 @@ module declarations
   integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic punctual groups (with other orientation)
   integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic punctual groups (with other orientation)
 
-  character(len=50), parameter:: Revision = 'FDMNES program, Revision 30th of April 2020'
+  character(len=50), parameter:: Revision = 'FDMNES program, Revision 6th of May 2020'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -260,8 +260,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   implicit none
   include 'mpif.h'
 
-  integer, parameter:: nkw_all = 40
-  integer, parameter:: nkw_fdm = 228
+  integer, parameter:: nkw_all = 41
+  integer, parameter:: nkw_fdm = 232
   integer, parameter:: nkw_conv = 38
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_gaus = 1
@@ -308,7 +308,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
   logical:: bav_open, Bormann, Case_fdm, Check_file, Check_extract, Conv_done, Convolution_cal, Dafs_bio, &
     E_cut_man, Epsii_ref_man, Fdmnes_cal, Fit_cal, Gamma_hole_man, Gamma_max_man, Gamma_tddft, Gaus_cal, Metric_cal, &
-    Minim_fdm_ok, minimok, Mult_cal, Scan_a, Selec_cal, &
+    Minim_fdm_ok, minimok, Mult_cal, Only_rixs, Scan_a, Selec_cal, &
     Use_FDMX, FDMX_only, cm2g, nobg, nohole, nodw, noimfp, imfp_inp, elf_inp, dwfactor_inp, tdebye_inp, tmeas_inp, &
     expntl, victoreen
 
@@ -328,7 +328,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   data kw_all /  'bormann  ','check    ','check_all','check_coa','check_con','check_pot','check_mat', &
      'check_rix','check_sph','check_tdd','check_ten','comment  ','delta_edg','ecent    ','e_cut    ','elarg    ', &
      'epsii    ','estart   ','file_in  ','filout   ','fprime_at','gamma_hol','gamma_max','length_li','no_check ','imfpin   ', &
-     'elfin    ','dwfactor ','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
+     'elfin    ','dwfactor ','only_rixs','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
      'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/
 
   data kw_conv / 'abs_b_iso','abs_befor','abs_u_iso','all_conv ','cal_tddft','calculati','check_bir','circular ','conv_out ', &
@@ -337,8 +337,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'scan_conv','scan_file','seah     ','stokes   ','stokes_na','surface_p','table    ','thomson  ','transpose','XES      '/
 
   data kw_fdm/  &
-     'absorbeur','adimp    ','all_nrixs','allsite  ','ata      ','atom     ','atom_b_is','atom_conf','atom_nsph','ang_spin ', &
-     'atomic_sc','axe_spin ','atom_u_is', &
+     'absorbeur','adimp    ','all_nrixs','all_site_','allsite  ','ampl_rixs','ata      ','atom     ','atom_b_is','atom_conf', &
+     'atom_nsph','ang_spin ','atomic_sc','axe_spin ','atom_u_is', &
      'base_comp','base_reel','bond     ','bulk     ','bulk_roug','cap_b_iso','cap_layer','cap_rough','cap_shift', &
      'cap_thick','cap_u_iso','cartesian','center   ','center_ab','center_s ','chlib    ','cif_file ','classic_i','clementi ', &
      'coop     ','coop_dist','coop_z_ax','core_ener','core_reso','crystal  ', &
@@ -350,9 +350,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_bul','green_int','harm_tess', &
      'hedin    ','helm_cos ','helmholtz','hkl_film ','hubbard  ','hubbard_z','iord     ','kern_fac ','kern_fast', &
      'lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ','mat_ub   ', &
-     'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar','molecule ','no_e1e3  ', &
+     'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar','molecule ','moment_co','no_e1e3  ', &
      'molecule_','muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_dft   ','no_e1e1  ','no_e1e2  ', &
-     'no_e2e2  ','no_e3e3  ','no_fermi ','no_moment','no_renorm','no_res_ma','no_res_mo','no_scf_bu','no_solsin','normaltau', &
+     'no_e2e2  ','no_e3e3  ','no_fermi ','no_renorm','no_res_ma','no_res_mo','no_scf_bu','no_solsin','normaltau', &
      'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','nrixs_mon','occupancy','octupole ', &
      'old_zero ','one_run  ','one_scf  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ', &
      'pointgrou','polarized','powder   ','quadmag  ','quadrupol','radius   ','range    ','rangel   ','ray_max_d','rcharge  ', &
@@ -360,8 +360,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'rixs_fast','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ', &
      'rpotmax  ','r_self   ','rydberg  ','self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
      'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spin_chan','spinorbit','step_loss','step_azim', &
-     'supermuf ','surface  ','surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','theta_in ','trace    ', &
-     'two_theta','vmax     ','v0imp    ','xalpha   ','xan_atom ','ylm_comp ','z_absorbe','z_nospino','zero_azim'/
+     'sum_rixs ','supermuf ','surface  ','surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','theta_in ', &
+     'trace    ','two_theta','vmax     ','v0imp    ','write_mod','xalpha   ','xan_atom ','ylm_comp ','z_absorbe','z_nospino', &
+     'zero_azim'/
 
   data kw_fit / 'parameter'/
 
@@ -431,6 +432,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   Mult_cal = .false.
   Minim_fdm_ok = .false.
   Minimok = .false.
+  Only_rixs = .false.
+
 ! number max of columns in output files
 !  n_col_max = 2101
   n_col_max = 10001
@@ -791,6 +794,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
           Bormann = .true.
           n = nnombre(1,132)
           read(1,*) hkl_borm(:), Ang_borm
+
+        case('only_rixs')
+          Only_rixs = .true.
 
 !*** JDB
         case('imfpin')
@@ -1510,7 +1516,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
           Epsii_ref,Epsii_ref_man,Estart,Fit_cal, &
           Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
           itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-          nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,Use_FDMX,FDMX_only, &
+          nomfich,nomfichbav,npar,nparm,Only_rixs,param,Scan_a,TypePar,Use_FDMX,FDMX_only, &
           fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
           tdebye,tmeas_inp,tmeas,expntl,expntlA,expntlB,victoreen,victA,victB,mermrank)
 
@@ -1523,7 +1529,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
     if( mpirank0 /= 0 ) cycle
 
-    if( Convolution_cal ) call Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge, &
+    if( Convolution_cal .and. .not. Only_rixs ) call Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge, &
         E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max, &
         Gamma_max_man,ical,icheck(30),indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,ncal)
@@ -1632,7 +1638,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
         Epsii_ref,Epsii_ref_man,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
         itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,ngamh,ngroup_par,nnotskip,nnotskipm, &
-        nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,Use_FDMX,FDMX_only, &
+        nomfich,nomfichbav,npar,nparm,Only_rixs,param,Scan_a,TypePar,Use_FDMX,FDMX_only, &
         fdmnes_inp,cm2g,nobg,nohole,nodw,noimfp,imfp_inp,imfp_infile,elf_inp,elf_infile,dwfactor_inp,dwfactor,tdebye_inp, &
         tdebye,tmeas_inp,tmeas,expntl,expntlA,expntlB,victoreen,victA,victB,mermrank)
 
@@ -1644,7 +1650,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     endif
 
     if( mpirank0 == 0 ) then
-      if( Convolution_cal ) call Convolution(bav_open,Bormann, .false.,convolution_out,Delta_edge, &
+      if( Convolution_cal .and. .not. Only_rixs ) call Convolution(bav_open,Bormann, .false.,convolution_out,Delta_edge, &
         E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max, &
         Gamma_max_man,ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,Length_line,n_col_max, &
         ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,TypePar,ncal)
@@ -1779,6 +1785,8 @@ function Traduction(keyword)
   traduction = keyword
 
   select case(keyword)
+    case('allsite_r','rixs_all_','all_file_','allfile_r')
+      traduction = 'rixs_all_'
     case('iabsorbeu','absorbor','assorbito','absorber')
       traduction = 'absorbeur'
     case('interpoin','inter_poi')
@@ -2047,6 +2055,8 @@ function Traduction(keyword)
       traduction = 'ylm_comp'
     case('zabsorber','zabsorbeu','numatabs','numat_abs')
       traduction = 'z_absorbe'
+    case('write_q','rixs_q','rixs_modq')
+      traduction = 'write_mod'
 
 ! Convolution
     case('conv_all')
