@@ -554,11 +554,11 @@ subroutine Symsite(Absauto,angxyz,angxyz_int,angxyz_sur,Atom_with_axe,Atom_nonsp
   return
   110 format(/' ---- Symsite ------',100('-'))
   120 format(/3x,'ipr =',i4,', Z =',i3,', natomsym =',i6,'      - Bulk -',//, &
-             '  igr      posx     posy     posz          sym    code')
+             '  igr       posx        posy        posz            sym    code')
   125 format(/3x,'ipr =',i4,', Z =',i3,', natomsym =',i6,'   - Surface -',//, &
-             '  igr      posx     posy     posz          sym    code')
-  130 format(/3x,'ipr =',i4,', Z =',i3,', natomsym =',i6//, '  igr      posx     posy     posz          sym    code')
-  140 format(i5,2x,3f9.5,2x,a11,3x,129i3)
+             '  igr       posx        posy        posz            sym    code')
+  130 format(/3x,'ipr =',i4,', Z =',i3,', natomsym =',i6//, '  igr        posx        posy        posz           sym    code')
+  140 format(i5,2x,3f12.8,2x,a11,3x,129i3)
   150 format(/3x,'ipr =',i4,', Z =',i3,', natomsym =',i6,'      - Bulk -',//,'  igr...')
   160 format(/3x,'ipr =',i4,', Z =',i3,', natomsym =',i6//,'  igr...')
 end
@@ -717,17 +717,17 @@ end
 ! ninit : total number of inital states
 ! ninit1 : number of initial state of the first edge (in double edges such as L23, M45...)
 
-subroutine dim_init(jseuil,lseuil,nbseuil,ninit1,ninit)
+subroutine dim_init(Jseuil,Lseuil,nbseuil,ninit1,ninit)
 
   use declarations
   implicit none
 
-  integer,intent(in):: jseuil, lseuil, nbseuil
+  integer,intent(in):: Jseuil, Lseuil, nbseuil
   integer,intent(out):: ninit, ninit1
 
   if( nbseuil == 1 ) then
 
-    select case( jseuil )
+    select case( Jseuil )
       case( 1 )           ! edges K, L1, M1 ...
         ninit1 = 2
       case( 2 )           ! edges L2, M2
@@ -747,7 +747,7 @@ subroutine dim_init(jseuil,lseuil,nbseuil,ninit1,ninit)
 
   else
 
-    select case( lseuil )
+    select case( Lseuil )
       case( 0 )           ! K or L1
         ninit1 = 2
         ninit = 2
@@ -771,12 +771,12 @@ end
 
 ! Calculation of m and of coefficients multiplying the Ylm for any state |j,mj>
 
-subroutine coef_init(coef_g,is_g,ninit,jseuil,lseuil,m_g,nbseuil)
+subroutine coef_init(coef_g,is_g,ninit,Jseuil,Lseuil,m_g,nbseuil)
 
   use declarations
   implicit none
 
-  integer,intent(in):: ninit, jseuil, Lseuil, nbseuil
+  integer,intent(in):: ninit, Jseuil, Lseuil, nbseuil
   integer,dimension(ninit),intent(out):: is_g
   integer,dimension(ninit,2),intent(out):: m_g
 
@@ -791,7 +791,7 @@ subroutine coef_init(coef_g,is_g,ninit,jseuil,lseuil,m_g,nbseuil)
 
   init = 0
 
-  select case(jseuil)
+  select case(Jseuil)
     case(1,3,5,7)
       is_init = 1
     case default
@@ -917,34 +917,34 @@ end
 
 !***********************************************************************
 
-subroutine init_run(cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Doping,Ecrantage,Flapw,Force_ecr,Hubb,iabsorbeur, &
-      iabsorig,icheck,icom,igreq,iprabs,iprabs_nonexc,itabs,itdil,itype,itype_dop,itypepr,jseuil,lcoeur,ldil, &
-      lecrantage,lseuil,lvval,mpinodes0,mpirank0,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage,neqm,ngreq,ngroup, &
-      nlat,nlatm,nnlm,nomfich_s,Nonexc,norbdil,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,numat_abs,nvval, &
-      pop_open_val,popatm,popats,popatv,popval,psi_coeur,psii,psi_open_val,psival,r0_lapw,rato,Ray_max_dirac,rchimp,Relativiste, &
-      rho_coeur,rhoit,rlapw,Rmt,Rmtimp,Self_nonexc,V_hubbard,nompsii)
+subroutine init_run(Bulk_step,cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Doping,Ecrantage,Flapw,Force_ecr,Hubb, &
+      iabsorbeur,iabsorig,icheck,icom,igreq,iprabs,iprabs_nonexc,itabs,itdil,itype,itype_dop,itypepr,Jseuil,Lcoeur, &
+      Ldil,Lecrantage,Lseuil,Lvval,mpinodes0,mpirank0,n_atom_bulk,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage, &
+      neqm,ngreq,ngroup,nlat,nlatm,nnlm,nomfich_s,Nonexc,norbdil,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat, &
+      numat_abs,nvval,pop_open_val,popatm,popats,popatv,popval,psi_coeur,psii,psi_open_val,psival,r0_lapw,rato,Ray_max_dirac, &
+      rchimp,Relativiste,rho_coeur,rhoit,rlapw,Rmt,Rmtimp,Self_nonexc,V_hubbard,nompsii)
 
   use declarations
   implicit none
   include 'mpif.h'
 
-  integer:: i, iabsorig, iabsorbeur, icheck, igr, ipr, iprabs, iprabs_nonexc, it, itabs, itype_dop, jseuil, L, lecrantage, lseuil, &
-      mpinodes0, mpirank0, n_atom_proto, n_multi_run, n_orbexc, nbseuil, necrantage, neqm, ngroup, nlatm, nnlm, norbdil, &
-      nrato_dirac, nr, nrm, nseuil, nspin, ntype, numat_abs
+  integer:: i, iabsorig, iabsorbeur, icheck, igr, ipr, iprabs, iprabs_nonexc, it, itabs, itype_dop, Jseuil, L, Lecrantage, Lseuil, &
+      mpinodes0, mpirank0, n_atom_bulk, n_atom_proto, n_multi_run, n_orbexc, nbseuil, necrantage, neqm, ngroup, nlatm, nnlm, &
+      norbdil, nrato_dirac, nr, nrm, nseuil, nspin, ntype, numat_abs
 
   character(len=Length_name):: nomfich_s, nompsii
   character(len=35), dimension(0:ntype):: com
 
-  integer, dimension(norbdil):: itdil, ldil
+  integer, dimension(norbdil):: itdil, Ldil
   integer, dimension(ngroup):: itype
-  integer, dimension(nnlm):: lqnexc, nqnexc
+  integer, dimension(nnlm):: Lqnexc, nqnexc
   integer, dimension(0:n_atom_proto):: itypepr, ngreq
   integer, dimension(0:n_atom_proto,neqm):: igreq
   integer, dimension(0:ntype):: icom, nlat, nrato, nrato_lapw, numat
-  integer, dimension(2,0:ntype):: lcoeur, ncoeur
-  integer, dimension(0:ntype,nlatm):: lvval, nvval
+  integer, dimension(2,0:ntype):: Lcoeur, ncoeur
+  integer, dimension(0:ntype,nlatm):: Lvval, nvval
 
-  logical:: Charge_free, Clementi, Doping, Flapw, Force_ecr, Nonexc, Relativiste, Self_nonexc
+  logical:: Bulk_step, Charge_free, Clementi, Doping, Flapw, Force_ecr, Nonexc, Relativiste, Self_nonexc
   logical, dimension(0:ntype):: hubb
 
   real(kind=db):: Chargm, Chargm_SCF, Ray_max_dirac
@@ -988,11 +988,12 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Dopi
   endif
 
 ! Atomic electron density
-  call atom(Clementi,com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpirank0,nbseuil,ncoeur,ngroup,nlat, &
+  call atom(Clementi,com,icheck,icom,itype,Jseuil,Lcoeur,Lseuil,Lvval,mpirank0,nbseuil,ncoeur,ngroup,nlat, &
         nlatm,nnlm,Nonexc,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,nvval,popatc,popats, &
         popatv,popexc,popval,psi_coeur,psii,psival,r0_lapw,rato,Ray_max_dirac,Relativiste,rho_coeur,rhoit,rlapw)
 
-  call pop_group(Chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,ngroup,nlat,nlatm,nspin,ntype,numat,popatc,popats)
+  call pop_group(Bulk_step,Chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,n_atom_bulk,ngroup,nlat,nlatm,nspin,ntype, &
+                 numat,popatc,popats)
 
   do ipr = 1,n_atom_proto
     igr = igreq(ipr,1)
@@ -1003,8 +1004,8 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Dopi
   end do
 
 ! Absorbing atom electron density
-  call Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,itabs,itype,itype_dop,jseuil,lcoeur,lecrantage, &
-        lqnexc,lseuil,lvval,mpinodes0,mpirank0,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,Nonexc,nqnexc, &
+  call Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,itabs,itype,itype_dop,Jseuil,Lcoeur,Lecrantage, &
+        Lqnexc,Lseuil,Lvval,mpinodes0,mpirank0,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,Nonexc,nqnexc, &
         nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popatc,popats,popatv,popexc,popval, &
         psi_coeur,psii,psi_open_val,psival,rato,Ray_max_dirac,rchimp,Relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
 
@@ -1012,12 +1013,12 @@ subroutine init_run(cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Dopi
     do it = min(itabs,1),ntype
       nr = nrato(it)
       r(:) = rato(:,it)
-      call dilatorb(cdil,icheck,it,itdil,ldil,nlatm,norbdil,nr,nrm,ntype,popatv,psival,r,rhoit)
+      call dilatorb(cdil,icheck,it,itdil,Ldil,nlatm,norbdil,nr,nrm,ntype,popatv,psival,r,rhoit)
     end do
   endif
 
-  call Pop_mod(Chargat,Chargm,Chargm_SCF,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,iprabs_nonexc,itype,itype_dop,itypepr,lqnexc, &
-        lvval,n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,Nonexc,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc, &
+  call Pop_mod(Chargat,Chargm,Chargm_SCF,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,iprabs_nonexc,itype,itype_dop,itypepr,Lqnexc, &
+        Lvval,n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,Nonexc,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc, &
         Self_nonexc)
 
   return
@@ -1026,7 +1027,7 @@ end
 
 !***********************************************************************
 
-subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpirank0,nbseuil,ncoeur,ngroup,nlat, &
+subroutine atom(Clementi,Com,icheck,icom,itype,Jseuil,Lcoeur,Lseuil,Lvval,mpirank0,nbseuil,ncoeur,ngroup,nlat, &
         nlatm,nnlm,Nonexc,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,nvval,popatc,popats, &
         popatv,popexc,popval,psi_coeur,psii,psival,r0_lapw,rato,Ray_max_dirac,Relativiste,rho_coeur,rhoit,rlapw)
 
@@ -1034,18 +1035,18 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
   implicit none
   include 'mpif.h'
 
-  integer:: icheck, igr, ipr, it, j, jseuil, k, L, lseuil, mpirank0, n, n_orbexc, &
+  integer:: icheck, igr, ipr, it, j, Jseuil, k, L, Lseuil, mpirank0, n, n_orbexc, &
     nbseuil, ngroup, nlatm, nnlm, nr, nrato_dirac, nrm, nseuil, nspin, ntype
 
   real(kind=db):: dr, drmax, dx, Ray_max_dirac, Rmax
 
   character(len=35), dimension(0:ntype) :: com
 
-  integer, dimension(nnlm):: lqnexc, nqnexc
+  integer, dimension(nnlm):: Lqnexc, nqnexc
   integer, dimension(ngroup):: itype
   integer, dimension(0:ntype):: icom, nlat, nrato, nrato_lapw, numat
-  integer, dimension(2,0:ntype):: lcoeur, ncoeur
-  integer, dimension(0:ntype,nlatm):: lvval, nvval
+  integer, dimension(2,0:ntype):: Lcoeur, ncoeur
+  integer, dimension(0:ntype,nlatm):: Lvval, nvval
 
   logical:: Clementi, Nonexc, Relativiste
 
@@ -1078,10 +1079,10 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
       case(1)
 
 ! Value for the excited atom not yet used
-        lqnexc(:) = 0
+        Lqnexc(:) = 0
         nqnexc(:) = 0
 
-        call dirgen(icheck,it,0,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank0,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
+        call dirgen(icheck,it,0,Jseuil,Lcoeur,Lqnexc,Lseuil,Lvval,mpirank0,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
           nnlm,nonexc,nqnexc,nr,nrato_dirac,nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
           popexc,popval,psi_coeur,psii,psi_open_val,psival,ra,Ray_max_dirac,rho_coeur,rhoit,numat(it),Relativiste)
 
@@ -1098,7 +1099,7 @@ subroutine atom(Clementi,Com,icheck,icom,itype,jseuil,lcoeur,lseuil,lvval,mpiran
 
       case(2)
 
-        call clem(icheck,it,0,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,nonexc,nr,nrm,nseuil,ntype,nvval,popatc, &
+        call clem(icheck,it,0,Lseuil,Lvval,mpirank0,nbseuil,nlat,nlatm,nonexc,nr,nrm,nseuil,ntype,nvval,popatc, &
                popatv,psii,psival,ra,rhoit,numat(it))
         nrato(it) = nr
         rato(1:nr,it) = ra(1:nr)
@@ -1180,7 +1181,7 @@ end
 !   ESP   Exponential constant for the basis function
 !   CON   Coefficient which multiplies the basis function
 !
-subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,Nonexc,nrato,nrm,nseuil,ntype,nvval,popatc, &
+subroutine clem(icheck,it,itabs,Lseuil,Lvval,mpirank0,nbseuil,nlat,nlatm,Nonexc,nrato,nrm,nseuil,ntype,nvval,popatc, &
               popatv,psii,psival,rato,rhoit,Z)
 
   use declarations
@@ -1189,13 +1190,13 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,Nonexc,
   integer, parameter:: norbm = 11
   integer, parameter:: ntrm = 11
 
-  integer:: i, icalc, icheck, io, io0, ipr, ir, it, itabs, iv, j, lseuil, mpirank0, nbseuil, ncalc, nlatm, norb, norb0, nr, &
+  integer:: i, icalc, icheck, io, io0, ipr, ir, it, itabs, iv, j, Lseuil, mpirank0, nbseuil, ncalc, nlatm, norb, norb0, nr, &
     nrato, nrm, nseuil, ntype, Z, Zp
 
   integer, dimension(norbm):: nazim, nazim0, nconf, nconf0, nprin, nprin0, nterm, nterm0
   integer, dimension(norbm,ntrm) :: nexp, nexp0
   integer, dimension(0:ntype):: nlat
-  integer, dimension(0:ntype,nlatm):: lvval, nvval
+  integer, dimension(0:ntype,nlatm):: Lvval, nvval
 
   logical:: Nonexc
 
@@ -1267,7 +1268,7 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,Nonexc,
       else
         ch = 0._db
         do io = 1,norb
-          if( nprin(io) == nseuil .and. nazim(io) == lseuil ) exit
+          if( nprin(io) == nseuil .and. nazim(io) == Lseuil ) exit
         end do
         do i = 1,Nterm(io)
           alfa =  ( 2 * esp(io,i) )**( nexp(io,i) + 0.5_db )
@@ -1300,8 +1301,8 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,Nonexc,
         con0(1:norb,:) = con(1:norb,:)
       else
         do io = 1,norb
-          if( nprin(io) == nseuil .and. nazim(io) == lseuil ) nconf(io) = nconf(io) - 1
-          if( nprin(io) > nseuil .or. ( nprin(io) == nseuil .and. nazim(io) >= lseuil ) ) cycle
+          if( nprin(io) == nseuil .and. nazim(io) == Lseuil ) nconf(io) = nconf(io) - 1
+          if( nprin(io) > nseuil .or. ( nprin(io) == nseuil .and. nazim(io) >= Lseuil ) ) cycle
           do io0 = 1,norb0
             if( nprin0(io0) /= nprin(io) .or. nazim0(io0) /= nazim(io) ) cycle
             nconf(io) = nconf0(io0)
@@ -1319,13 +1320,13 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,Nonexc,
 
   do io = 1,nlat(it)
     do i = 1,norb
-      if( nprin(i) == nvval(it,io) .and. nazim(i) == lvval(it,io)) exit
+      if( nprin(i) == nvval(it,io) .and. nazim(i) == Lvval(it,io)) exit
     end do
     if( i == norb+1 .and. mpirank0 == 0 ) then
       call write_error
       do ipr = 3,9,3
         if( ipr == 3 .and. icheck == 0 ) cycle
-        write(ipr,110) it, nvval(it,io), lvval(it,io)
+        write(ipr,110) it, nvval(it,io), Lvval(it,io)
       end do
       stop
     endif
@@ -1350,7 +1351,7 @@ subroutine clem(icheck,it,itabs,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,Nonexc,
   rhoit(:,it) = 0._db
   do io = 1,norb
     do iv = 1,nlat(it)
-      if( nprin(io) == nvval(it,iv) .and. nazim(io) == lvval(it,iv) ) exit
+      if( nprin(io) == nvval(it,iv) .and. nazim(io) == Lvval(it,iv) ) exit
     end do
     if( iv == nlat(it)+1 ) iv = 0
     ch = 0._db
@@ -1378,18 +1379,19 @@ end
 
 !***********************************************************************
 
-! Charge et population de chaque atome de la maille
+! Charge and occupancy of the atoms in the unit cell or cluster
 
-subroutine pop_group(chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,ngroup,nlat,nlatm,nspin,ntype,numat,popatc,popats)
+subroutine pop_group(Bulk_step,chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,n_atom_bulk,ngroup,nlat,nlatm,nspin,ntype, &
+                     numat,popatc,popats)
 
   use declarations
   implicit none
 
-  integer:: icheck, igr, ipr, it, L, mpirank0, ngroup, nlatm, nspin, ntype
+  integer:: icheck, igr, ipr, it, L, mpirank0, n_atom_bulk, ngroup, nlatm, nspin, ntype
   integer, dimension(0:ntype) :: nlat, numat
   integer, dimension(ngroup):: itype
 
-  logical:: Charge_free, Flapw
+  logical:: Bulk_step, Charge_free, Flapw
 
   real(kind=db):: Chargm
   real(kind=db), dimension(ngroup):: chargatg
@@ -1406,7 +1408,7 @@ subroutine pop_group(chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,ngr
   do igr = 1,ngroup
     it = abs( itype(igr) )
     if( nlat(it) > 0 ) then
-        chargatg(igr) = numat(it) - popatc(it) - sum( popats(igr,1:nlat(it),1:nspin) )
+      chargatg(igr) = numat(it) - popatc(it) - sum( popats(igr,1:nlat(it),1:nspin) )
     else
       chargatg(igr) = numat(it) - popatc(it)
     endif
@@ -1418,15 +1420,26 @@ subroutine pop_group(chargatg,Charge_free,Chargm,Flapw,icheck,itype,mpirank0,ngr
     else
       write(3,140)
     endif
-    do igr = 1,ngroup
-      it = abs( itype(igr) )
-      write(3,150) igr, chargatg(igr), ( popats(igr,L,1:nspin), L = 1,nlat(it) )
-    end do
+    if( Bulk_step ) then
+      do igr = ngroup - n_atom_bulk + 1, ngroup
+        it = abs( itype(igr) )
+        write(3,150) igr, chargatg(igr), ( popats(igr,L,1:nspin), L = 1,nlat(it) )
+      end do
+    else
+      do igr = 1,ngroup - n_atom_bulk
+        it = abs( itype(igr) )
+        write(3,150) igr, chargatg(igr), ( popats(igr,L,1:nspin), L = 1,nlat(it) )
+      end do
+    endif
   endif
 
 ! Test on neutrality of the unit cell or the cluster
-  Chargm = sum( chargatg( 1:ngroup ) )
-  if( abs(Chargm) > 0.0001 .and. mpirank0 == 0 ) then
+  if( Bulk_step ) then
+    Chargm = sum( chargatg(ngroup-n_atom_bulk+1:ngroup ) )
+  else
+    Chargm = sum( chargatg(1:ngroup-n_atom_bulk) )
+  endif
+  if( abs(Chargm) > 0.0001_db .and. mpirank0 == 0 ) then
     if( icheck > 0 ) write(3,120) Chargm
     write(6,120) Chargm
     if( .not. Charge_free ) then
@@ -1449,16 +1462,16 @@ end
 
 !*********************************************************************
 
-subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,itabs,itype,itype_dop,jseuil,lcoeur,lecrantage, &
-        lqnexc,lseuil,lvval,mpinodes0,mpirank0,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,nonexc,nqnexc, &
+subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,itabs,itype,itype_dop,Jseuil,Lcoeur,Lecrantage, &
+        Lqnexc,Lseuil,Lvval,mpinodes0,mpirank0,n_orbexc,nbseuil,ncoeur,necrantage,ngroup,nlat,nlatm,nnlm,nompsii,nonexc,nqnexc, &
         nrato,nrato_dirac,nrm,nseuil,nspin,ntype,numat,nvval,pop_open_val,popatc,popats,popatv,popexc,popval, &
-        psi_coeur,psii,psi_open_val,psival,rato,Ray_max_dirac,rchimp,relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
+        psi_coeur,psii,psi_open_val,psival,rato,Ray_max_dirac,rchimp,Relativiste,rho_coeur,rhoit,rmt,rmtimp,V_hubbard)
 
   use declarations
   implicit none
   include 'mpif.h'
 
-  integer:: iabsorbeur, icheck, igr, ipr, ir, irt, istat, it, itabs, itabs_t, itype_dop, jseuil, L, lecrantage, lseuil, &
+  integer:: iabsorbeur, icheck, igr, ipr, ir, irt, istat, it, itabs, itabs_t, itype_dop, Jseuil, L, Lecrantage, Lseuil, &
      mpinodes0, mpirank0, mpierr, n_orbexc, nbseuil, necrantage, ngroup, nlatm, nnlm, nr, nrato_dirac, nrm, nseuil, nspin, &
      ntype
 
@@ -1466,13 +1479,13 @@ subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
   character(len=Length_name):: nompsii
 
   integer, dimension(ngroup):: itype
-  integer, dimension(nnlm):: lqnexc, nqnexc
+  integer, dimension(nnlm):: Lqnexc, nqnexc
   integer, dimension(0:ntype):: icom, nlat, nrato, numat
-  integer, dimension(0:ntype,nlatm):: lvval, nvval
-  integer, dimension(2,0:ntype):: lcoeur, ncoeur
+  integer, dimension(0:ntype,nlatm):: Lvval, nvval
+  integer, dimension(2,0:ntype):: Lcoeur, ncoeur
   logical, dimension(0:ntype):: hubb
 
-  logical:: Doping, Force_ecr, nonexc, relativiste
+  logical:: Doping, Force_ecr, nonexc, Relativiste
 
   real(kind=db):: p1, p2, Ray_max_dirac
 
@@ -1512,8 +1525,8 @@ subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
   nlat(0) = nlat( itabs )
   nvval(0,:) = nvval(itabs,:)
   ncoeur(:,0) = ncoeur(:,itabs)
-  lcoeur(:,0) = lcoeur(:,itabs)
-  lvval(0,:) = lvval(itabs,:)
+  Lcoeur(:,0) = Lcoeur(:,itabs)
+  Lvval(0,:) = Lvval(itabs,:)
   popval(0,:,:) = popval(itabs,:,:)
   com(0) = com(itabs)
   icom(0) = icom(itabs)
@@ -1522,7 +1535,7 @@ subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
   Hubb(0) = Hubb(itabs)
   V_hubbard(0) = V_hubbard(itabs)
 
-  call Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,mpirank0,n_orbexc,necrantage, &
+  call Screendef(Ecrantage,Force_ecr,icheck,Lecrantage,Lqnexc,Lseuil,Lvval,mpirank0,n_orbexc,necrantage, &
         nlat,nlatm,nnlm,nqnexc,nseuil,nspin,ntype,nvval,popexc,popval,numat(itabs))
 
 ! itabs est remis a la valeur initiale a la fin de la routine si on est en nonexc
@@ -1533,12 +1546,12 @@ subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
 
   if( icom(itabs) == 2 .or. nompsii == 'clementi' ) then
 
-    call clem(icheck,itabs,itabs,lseuil,lvval,mpirank0,nbseuil,nlat,nlatm,nonexc,nr,nrm,nseuil,ntype,nvval,popatc, &
+    call clem(icheck,itabs,itabs,Lseuil,Lvval,mpirank0,nbseuil,nlat,nlatm,nonexc,nr,nrm,nseuil,ntype,nvval,popatc, &
           popatv,psii,psival,rr,rhoit,numat(itabs))
 
   elseif( icom(itabs) == 1 .or. nompsii == 'dirac' ) then
 
-    call dirgen(icheck,itabs,itabs,jseuil,lcoeur,lqnexc, lseuil,lvval,mpirank0,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
+    call dirgen(icheck,itabs,itabs,Jseuil,Lcoeur,Lqnexc, Lseuil,Lvval,mpirank0,n_orbexc,nbseuil,ncoeur,nlat,nlatm, &
          nnlm,nonexc,nqnexc,nr,nrato_dirac,nrm,nseuil,nspin,ntype,nvval,pop_open_val,popatc,popatv, &
          popexc,popval,psi_coeur,psii,psi_open_val,psival,rr,Ray_max_dirac,rho_coeur,rhoit,numat(itabs),Relativiste)
 
@@ -1596,9 +1609,9 @@ subroutine Type_work(com,Doping,Ecrantage,force_ecr,hubb,iabsorbeur,icheck,icom,
     write(3,120)
     do it = 0,ntype
       if( nonexc .and. it == 0 ) cycle
-      write(3,130) it, com(it), numat(it), ( nvval(it,L), lvval(it,L), popatv(it,L), L = 1,nlat(it))
+      write(3,130) it, com(it), numat(it), ( nvval(it,L), Lvval(it,L), popatv(it,L), L = 1,nlat(it))
     end do
-    if( .not. nonexc ) write(3,140) necrantage, lecrantage, Ecrantage(1:nspin)
+    if( .not. nonexc ) write(3,140) necrantage, Lecrantage, Ecrantage(1:nspin)
   endif
   if( icheck > 1 ) then
     write(3,150)
@@ -1627,18 +1640,18 @@ end
 
 ! Calculation of the electronic configuration of the excited atom
 
-subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,mpirank0,n_orbexc,necrantage, &
+subroutine Screendef(Ecrantage,Force_ecr,icheck,Lecrantage,Lqnexc,Lseuil,Lvval,mpirank0,n_orbexc,necrantage, &
         nlat,nlatm,nnlm,nqnexc,nseuil,nspin,ntype,nvval,popexc,popval,Z)
 
   use declarations
   implicit none
 
-  integer:: i, iaug, icheck, io, ip, ipr, ispin, it, L, lecrantage, lseuil, mpirank0, n_coeur, n_orbexc, necrantage, &
+  integer:: i, iaug, icheck, io, ip, ipr, ispin, it, L, Lecrantage, Lseuil, mpirank0, n_coeur, n_orbexc, necrantage, &
             nlatm, nmax, nnlm, nseuil, nspin, ntype, Z
 
-  integer, dimension(nnlm):: lqnexc, nqnexc
+  integer, dimension(nnlm):: Lqnexc, nqnexc
   integer, dimension(0:ntype):: nlat
-  integer, dimension(0:ntype,nlatm):: lvval, nvval
+  integer, dimension(0:ntype,nlatm):: Lvval, nvval
 
   logical:: Dirac_eq, Force_ecr
 
@@ -1652,55 +1665,55 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
     select case( Z )
       case(1,2,3)
         necrantage = 2
-        lecrantage = 0
+        Lecrantage = 0
       case(4,5,6,7,8,9)
         necrantage = 2
-        lecrantage = 1
+        Lecrantage = 1
       case(10,11)
         necrantage = 3
-        lecrantage = 0
+        Lecrantage = 0
       case(12,13,14,15,16,17)
         necrantage = 3
-        lecrantage = 1
+        Lecrantage = 1
       case(18,19,20)
         necrantage = 4
-        lecrantage = 0
+        Lecrantage = 0
       case(21,22,23,24,25,26,27,28,29,30)
         necrantage = 3
-        lecrantage = 2
+        Lecrantage = 2
       case(31,32,33,34,35)
         necrantage = 4
-        lecrantage = 1
+        Lecrantage = 1
       case(36,37,38)
         necrantage = 5
-        lecrantage = 0
+        Lecrantage = 0
       case(39,40,41,42,43,44,45,46,47,48)
         necrantage = 4
-        lecrantage = 2
+        Lecrantage = 2
       case(49,50,51,52,53)
         necrantage = 5
-        lecrantage = 1
+        Lecrantage = 1
       case(54,55,56)
         necrantage = 6
-        lecrantage = 0
+        Lecrantage = 0
       case(57,58,59,60,61,62,63,64,65,66,67,68,69,70,71)
         necrantage = 4
-        lecrantage = 3
+        Lecrantage = 3
       case(72,73,74,75,76,77,78,79,80)
         necrantage = 5
-        lecrantage = 2
+        Lecrantage = 2
       case(81,82,83,84,85)
         necrantage = 6
-        lecrantage = 1
+        Lecrantage = 1
       case(86,87,88)
         necrantage = 7
-        lecrantage = 0
+        Lecrantage = 0
       case(89,90,91,92,93,94,95,96,97,98,99,100,101)
         necrantage = 5
-        lecrantage = 3
+        Lecrantage = 3
       case(102,103)
         necrantage = 6
-        lecrantage = 2
+        Lecrantage = 2
       case default
         call write_error
         do ipr = 3,9,3
@@ -1713,7 +1726,7 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
   endif
 
   Dirac_eq = .false.
-  call config(Z,Dirac_eq,n_coeur,n_orbexc,nnlm,nqnexc,lqnexc,rqn,nel)
+  call config(Z,Dirac_eq,n_coeur,n_orbexc,nnlm,nqnexc,Lqnexc,rqn,nel)
 
   do ispin = 1,nspin
     popexc(1:n_orbexc,ispin) = nel(1:n_orbexc) / nspin
@@ -1721,16 +1734,16 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
 
   if( Force_ecr ) then
     do L = 1,nlat(0)
-      if( nvval(0,L) == necrantage .and. lvval(0,L) == lecrantage ) exit
+      if( nvval(0,L) == necrantage .and. Lvval(0,L) == Lecrantage ) exit
     end do
     if( L > nlat(0) ) then
       nlat(0) = L
       nvval(0,L) = necrantage
-      lvval(0,L) = lecrantage
+      Lvval(0,L) = Lecrantage
 
       popval(0,L,1:nspin) = 0._db
       do ip = 1,n_orbexc
-        if( nqnexc(ip) /= necrantage .or. lqnexc(ip) /= lecrantage ) cycle
+        if( nqnexc(ip) /= necrantage .or. Lqnexc(ip) /= Lecrantage ) cycle
         popval(0,L,1:nspin) = popexc(ip,1:nspin)
         exit
       end do
@@ -1743,7 +1756,7 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
 ! On modifie la configuration electronique, compte tenu des entrees
   boucle_io: do io = 1,nlat(it)
     do ip = 1,n_orbexc
-      if( nqnexc(ip) /= nvval(it,io) .or. lqnexc(ip) /= lvval(it,io)) cycle
+      if( nqnexc(ip) /= nvval(it,io) .or. Lqnexc(ip) /= Lvval(it,io)) cycle
       popexc(ip,1:nspin) = popval(it,io,1:nspin)
       cycle boucle_io
     end do
@@ -1759,13 +1772,13 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
       stop
     endif
     nqnexc(n_orbexc) = nvval(it,io)
-    lqnexc(n_orbexc) = lvval(it,io)
+    Lqnexc(n_orbexc) = Lvval(it,io)
     popexc(n_orbexc,1:nspin) = popval(it,io,1:nspin)
   end do boucle_io
 
 ! On enleve L'electron de coeur
   do io = 1,n_orbexc
-    if( nqnexc(io) /= nseuil .or. lqnexc(io) /= lseuil ) cycle
+    if( nqnexc(io) /= nseuil .or. Lqnexc(io) /= Lseuil ) cycle
     do ispin = 1,nspin
       popexc(io,ispin) = popexc(io,ispin) - 1._db / nspin
     end do
@@ -1777,7 +1790,7 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
   if( Force_ecr ) then
 
     do io = 1,n_orbexc
-      if( necrantage /= nqnexc(io) .or. lecrantage /= lqnexc(io) ) cycle
+      if( necrantage /= nqnexc(io) .or. Lecrantage /= Lqnexc(io) ) cycle
       popexc(io,1:nspin) = popexc(io,1:nspin) + ecrantage(1:nspin)
       exit
     end do
@@ -1785,7 +1798,7 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
     if( io > n_orbexc ) then
       n_orbexc = n_orbexc + 1
       nqnexc(n_orbexc) = necrantage
-      lqnexc(n_orbexc) = lecrantage
+      Lqnexc(n_orbexc) = Lecrantage
       popexc(n_orbexc,1:nspin) = ecrantage(1:nspin)
     endif
 
@@ -1795,12 +1808,12 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
 
     boucle_i: do i = 1,2
       do io = 1,n_orbexc
-        if( nqnexc(io) < nseuil .or. ( nqnexc(io) == nseuil .and. lqnexc(io) <= lseuil ) ) cycle
+        if( nqnexc(io) < nseuil .or. ( nqnexc(io) == nseuil .and. Lqnexc(io) <= Lseuil ) ) cycle
 
-        if( i == 1 .and. ( necrantage /= nqnexc(io) .or. lecrantage /= lqnexc(io) ) ) cycle
-        if( i == 2 .and. ( necrantage == nqnexc(io) .and. lecrantage == lqnexc(io) ) ) cycle
+        if( i == 1 .and. ( necrantage /= nqnexc(io) .or. Lecrantage /= Lqnexc(io) ) ) cycle
+        if( i == 2 .and. ( necrantage == nqnexc(io) .and. Lecrantage == Lqnexc(io) ) ) cycle
 
-        Occupancy_max = ( 2 + 4._db * lqnexc(io) ) / nspin
+        Occupancy_max = ( 2 + 4._db * Lqnexc(io) ) / nspin
         do ispin = 1,nspin
           dpp(ispin) = min(Occupancy_max - popexc(io,ispin), dp(ispin) )
           popexc(io,ispin) = popexc(io,ispin) + dpp(ispin)
@@ -1829,7 +1842,7 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
       else
         iaug = 0
         do io = 1,n_orbexc
-          if( nqnexc(io) == nmax .and. lqnexc(io) == 1 ) then
+          if( nqnexc(io) == nmax .and. Lqnexc(io) == 1 ) then
             iaug = 1
             exit
           endif
@@ -1838,13 +1851,13 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
       n_orbexc = n_orbexc + 1
       if( iaug == 1 ) then
         nqnexc(n_orbexc) = nmax + 1
-        lqnexc(n_orbexc) = 0
+        Lqnexc(n_orbexc) = 0
       elseif( Z == 20 .or. Z == 38 .or.Z == 56 .or. Z == 88 ) then
         nqnexc(n_orbexc) = nmax - 1
-        lqnexc(n_orbexc) = 2
+        Lqnexc(n_orbexc) = 2
       else
         nqnexc(n_orbexc) = nmax
-        lqnexc(n_orbexc) = 1
+        Lqnexc(n_orbexc) = 1
       endif
       do ispin = 1,nspin
         if( dp(ispin) > eps10 ) then
@@ -1859,7 +1872,7 @@ subroutine Screendef(Ecrantage,Force_ecr,icheck,lecrantage,lqnexc,lseuil,lvval,m
   if( icheck > 1 ) then
     write(3,120)
     do io = 1,n_orbexc
-      write(3,130) nqnexc(io), lqnexc(io), popexc(io,1:nspin)
+      write(3,130) nqnexc(io), Lqnexc(io), popexc(io,1:nspin)
     end do
   endif
 
@@ -1874,19 +1887,19 @@ end
 
 ! Allocation des tableaux itypepr et popatm pour L'excite
 
-subroutine Pop_mod(chargat,Chargm,Chargm_SCF,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,iprabs,itype,itype_dop,itypepr,lqnexc, &
-        lvval,n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,Nonexc,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc, &
+subroutine Pop_mod(chargat,Chargm,Chargm_SCF,Doping,Flapw,iabsorbeur,icheck,igreq,itabs,iprabs,itype,itype_dop,itypepr,Lqnexc, &
+        Lvval,n_atom_proto,n_orbexc,neqm,ngreq,ngroup,nlat,nlatm,nnlm,Nonexc,nqnexc,nspin,ntype,numat_abs,nvval,popatm,popexc, &
         Self_nonexc)
 
   use declarations
   implicit real(kind=db) (a-h,o-z)
 
-  integer, dimension(nnlm):: lqnexc, nqnexc
+  integer, dimension(nnlm):: Lqnexc, nqnexc
   integer, dimension(ngroup):: itype
   integer, dimension(0:n_atom_proto):: itypepr, ngreq
   integer, dimension(0:n_atom_proto,neqm):: igreq
   integer, dimension(0:ntype):: nlat
-  integer, dimension(0:ntype,nlatm):: lvval, nvval
+  integer, dimension(0:ntype,nlatm):: Lvval, nvval
 
   logical:: Doping, Flapw, Nonexc, Self_nonexc
 
@@ -1927,7 +1940,7 @@ subroutine Pop_mod(chargat,Chargm,Chargm_SCF,Doping,Flapw,iabsorbeur,icheck,igre
 
     do io = 1,nlat(itabs)
       do jo = 1,n_orbexc
-        if( nvval(itabs,io) /= nqnexc(jo) .or. lvval(itabs,io) /= lqnexc(jo) ) cycle
+        if( nvval(itabs,io) /= nqnexc(jo) .or. Lvval(itabs,io) /= Lqnexc(jo) ) cycle
         popatm(0,io,1:nspin) = popexc(jo,1:nspin)
         exit
       end do
@@ -1965,14 +1978,14 @@ end
 
 ! Dilatation of the atomic orbitals (can be usefull for anions)
 
-subroutine dilatorb(cdil,icheck,it,itdil,ldil,nlatm,norbdil,nr,nrm,ntype,popatv,psival,r,rhoit)
+subroutine dilatorb(cdil,icheck,it,itdil,Ldil,nlatm,norbdil,nr,nrm,ntype,popatv,psival,r,rhoit)
 
   use declarations
   implicit none
 
   integer:: icheck, io, ir, it, jr, jr1, L, nlatm, norbdil, nr, nrm, ntype
 
-  integer, dimension(norbdil):: itdil, ldil
+  integer, dimension(norbdil):: itdil, Ldil
 
   real(kind=db):: cd, charge, dc, f_integr3, p1, p2, uns4pi
 
@@ -1988,7 +2001,7 @@ subroutine dilatorb(cdil,icheck,it,itdil,ldil,nlatm,norbdil,nr,nrm,ntype,popatv,
   do io = 1,norbdil
 
     if( itdil(io) /= it ) cycle
-    L = ldil(io)
+    L = Ldil(io)
 
 ! Orbital expansion
     cd = 1 + cdil(io)
@@ -2160,19 +2173,19 @@ end
 
 !***********************************************************************
 
-subroutine extract_Epsii(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,icheck,nbseuil,ninit1,ninit,ninitlr)
+subroutine extract_Epsii(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,icheck,nbseuil,ninit1,ninit,ninitr)
 
   use declarations
   implicit none
 
-  integer:: i, icheck, nbseuil, ninit1, ninit, ninitlr
+  integer:: i, icheck, nbseuil, ninit1, ninit, ninitr
 
   character(len=132) mot
 
   logical:: Core_resolved, Found
 
   real(kind=db):: Delta, Delta_Epsii, Delta_Eseuil, E, E_up, E_dn, Ep_moy, Epsii_moy
-  real(kind=db), dimension(ninitlr):: Epsii
+  real(kind=db), dimension(ninitr):: Epsii
 
   Found = .false.
   Epsii(:) = 0._db
@@ -2215,7 +2228,7 @@ subroutine extract_Epsii(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,
         Found = .true.
       endif
       if( Found ) then
-        Epsii(1:ninitlr) = E
+        Epsii(1:ninitr) = E
         do i = 1,ninit
           if( icheck > 0 ) write(3,110) E, i
         end do
@@ -2238,7 +2251,7 @@ subroutine extract_Epsii(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,
       Ep_moy = Epsii_moy
     endif
   else
-    Epsii_moy = Epsii(ninitlr)
+    Epsii_moy = Epsii(ninitr)
     Ep_moy = Epsii(1)
   endif
   Delta_Eseuil = Ep_moy - Epsii_moy
@@ -2248,13 +2261,13 @@ subroutine extract_Epsii(Core_resolved,Delta_Epsii,Delta_Eseuil,Epsii,Epsii_moy,
       Delta = Delta_Epsii - Delta_Eseuil
       Epsii(1:ninit1) = Epsii(1:ninit1) + Delta
     else
-      Epsii(1) = Epsii(ninitlr) + Delta_Epsii
+      Epsii(1) = Epsii(ninitr) + Delta_Epsii
     endif
     Delta_Eseuil = Delta_Epsii
   endif
 
   if( .not. Core_resolved .and. icheck > 0 ) then
-    if( ninitlr == 1 ) then
+    if( ninitr == 1 ) then
       Write(3,120) Epsii(:) * Rydb
     else
       Write(3,130) Epsii(:) * Rydb
@@ -2405,10 +2418,10 @@ end
 
 subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho_int, &
         Base_ortho_sur,Bulk,Bulk_step,Center_s,Centre,Chargat,d_ecrant,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
-        dpos,Film_shift,Film_thickness,Flapw,iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift, &
+        dpos,Film_shift,Film_thickness,First_run,Flapw,iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift, &
         itabs,itype,Kgroup,Matper,mpirank0,multi_run,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_uc, &
         n_atom_sur,n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
-        Noncentre,posn,posn_bulk,One_run,Proto_all,r_self,rsorte_s,rmax,rpotmax,Self_cons,Surface_shift,Sym_2D, &
+        Noncentre,posn,posn_bulk,Proto_all,r_self,rsorte_s,rmax,rpotmax,Self_cons,Surface_shift,Sym_2D, &
         Taux_oc)
 
   use declarations
@@ -2425,7 +2438,7 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
   integer, dimension(0:n_atom_proto,neqm):: igreq
 
   logical:: Abs_case, ATA, Base_ortho, Base_ortho_bulk, Base_ortho_int, Base_ortho_sur,Bulk, Bulk_step, Center_s, &
-        Different_slab, Doping, Flapw, Matper, Noncentre, One_run, Proto_all, Self_cons, Sym_2D
+        Different_slab, Doping, First_run, Flapw, Matper, Noncentre, Proto_all, Self_cons, Sym_2D
   logical, dimension(n_atom_proto):: ipr_ok
 
   real(kind=db):: d_ecrant, cos_z, cos_z_b, cos_z_i, cos_z_s, Dist_atom_min, Delta_bulk, Delta_film, Delta_int, Delta_sur, dist, &
@@ -2744,10 +2757,10 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
     rsortm = max( r_self, rsorte_s(1) )
     call Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
             Base_ortho_sur,Bulk,Bulk_step,Center_s,chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
-            Doping,dpos,Film_shift, &
-            Film_thickness,iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0,multi_run, &
+            Doping,dpos,Film_shift,Film_thickness,First_run, &
+            iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0,multi_run, &
             n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb, &
-            ngroup_taux,Noncentre,One_run,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
+            ngroup_taux,Noncentre,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
     natomp = natomr
   endif
 
@@ -2788,10 +2801,10 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
 
 subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
             Base_ortho_sur,Bulk,Bulk_step,Center_s,chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
-            Doping,dpos,Film_shift, &
-            Film_thickness,iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0,multi_run, &
+            Doping,dpos,Film_shift,Film_thickness,First_run, &
+            iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0,multi_run, &
             n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb, &
-            ngroup_taux,Noncentre,One_run,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
+            ngroup_taux,Noncentre,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
 
   use declarations
   implicit none
@@ -2805,8 +2818,8 @@ subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_b
   integer, dimension(0:n_atom_proto):: ngreq
   integer, dimension(0:n_atom_proto,ngroup):: igreq
 
-  logical:: ATA, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Center_s, Doping, Matper, Noncentre, One_run, OK, &
-            Sym_2D
+  logical:: ATA, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Center_s, Doping, First_run, Matper, Noncentre, &
+            OK, Sym_2D
 
   real(kind=db):: Ch, Ch_min, Ch_test, Chagreg, Chg, d_ecrant, Delta_bulk, Delta_film, Delta_int, Delta_sur, &
     Film_thickness, Rmax, Rsortm
@@ -2824,10 +2837,10 @@ subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_b
 
   call Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
               Base_ortho_sur,Bulk,Bulk_step,Center_s,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
-              dista,Doping,dpos,Film_shift,Film_thickness, &
+              dista,Doping,dpos,Film_shift,Film_thickness,First_run, &
               iaabs,iaabsfirst,iabsorbeur,iabsfirst,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
               multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
-              One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
+              pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
   do ia = 1,natomp
     boucle_i: do ipr = 1,n_atom_proto
@@ -2917,10 +2930,10 @@ end
 
 subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
               Base_ortho_sur,Bulk,Bulk_step,Center_s,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
-              dista,Doping,dpos,Film_shift,Film_thickness, &
+              dista,Doping,dpos,Film_shift,Film_thickness,First_run, &
               iaabs,iaabsfirst,iabsorbeur,iabsfirst,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
               multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
-              One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
+              pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
   use declarations
   implicit none
@@ -2933,7 +2946,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
   integer, dimension(ngroup_pdb):: Kgroup
 
   logical:: Abs_case, ATA, Base_ortho, Base_ortho_bulk, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Center_s, &
-    Different_slab, Doping, Matper, Noncentre, One_run, Sym_2D
+    Different_slab, Doping, First_run, Matper, Noncentre, Sym_2D
 
   real(kind=db):: cos_z, cos_z_b, cos_z_i, cos_z_s, Delta_bulk, Delta_film, Delta_int, Delta_sur, dist, Dist_atom_min, &
     dist12, Film_thickness, Rmax, Vnorme
@@ -3271,7 +3284,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
     stop
   endif
 
-  if( .not. One_run .or. ( One_run .and. multi_run == 1 ) ) iaabsfirst = iaabs
+  if( First_run ) iaabsfirst = iaabs
 
   if( .not. Bulk_step ) then
     if( Noncentre ) then
@@ -3344,11 +3357,11 @@ end
 subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn, &
           axyz,axyz_bulk,axyz_int,axyz_sur,Base_hexa,Base_ortho_int,Base_ortho_sur,Bulk,Bulk_step,Center_s, &
           Chargat,Cubmat,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,dista, &
-          Doping,dpos,Film_shift,Film_thickness,iaabs,iaabsfirst,iabsorbeur,iabsfirst, &
+          Doping,dpos,Film_shift,Film_thickness,First_run,iaabs,iaabsfirst,iabsorbeur,iabsfirst, &
           iaproto,iapot,icheck,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,Interface_shift,iopsymc,iopsymr,itabs,itype,itypep, &
           karact,Kgroup,Magnetic,Matper,mpirank0,multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc, &
           natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat, &
-          One_run,Orthmat,Orthmati,Orthmatt,PointGroup,PointGroup_Auto,popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc, &
+          Orthmat,Orthmati,Orthmatt,PointGroup,PointGroup_Auto,popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc, &
           Spinorbite,Rot_Atom_gr,Struct,Surface_shift,Sym_2D,Sym_4,Sym_cubic,Symmol,Taux,Taux_oc,Test_dist_min)
 
   use declarations
@@ -3373,7 +3386,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
   character(len=5):: Struct, Struct_bulk
 
   logical:: ATA, Atom_mag_cal, Atom_nonsph, Base_hexa, Base_ortho, Base_ortho_int, Base_ortho_sur, Bulk, Bulk_step, Center_s, &
-    Doping, Magnetic, Matper, Noncentre, One_run, PointGroup_Auto, Self_nonexc, Spinorbite, Sym_2D, Sym_4, &
+    Doping, First_run, Magnetic, Matper, Noncentre, PointGroup_Auto, Self_nonexc, Spinorbite, Sym_2D, Sym_4, &
     Sym_cubic, Symmol, Taux
   logical, dimension(0:ngroup_m):: Atom_with_axe
 
@@ -3417,10 +3430,10 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
 
   call Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
               Base_ortho_sur,Bulk,Bulk_step,Center_s,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
-              dista,Doping,dpos,Film_shift,Film_thickness, &
+              dista,Doping,dpos,Film_shift,Film_thickness,First_run, &
               iaabs,iaabsfirst,iabsorbeur,iabsfirst,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
               multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
-              One_run, pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
+              pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
   if( icheck > 0 ) write(3,130) iaabs
 
@@ -3502,7 +3515,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
   rotmat(:,:) = rot_un(:,:)
 
 ! The spin axis of the absorbing atom is taken as the z axis
-! Wrong when working in "one_run" with spiin axis not parallel.
+! Wrong when working in "one_run" with spin axis not parallel.
   Axe_spin(:) = 0._db
   Atom_with_axe(0) = .false.
   if( Magnetic .or. Atom_nonsph ) then
@@ -5488,7 +5501,7 @@ end
 ! Sousprogramme calculant la forme des tenseurs
 
 subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Dipmag, &
-               E1E2e,Green,iaabs,icheck,igroup,igrpt0,iopsymc,iopsymr,itype,itypep,ldip,loct,lqua,lseuil,magnetic,mpirank0,&
+               E1E2e,Green,iaabs,icheck,igroup,igrpt0,iopsymc,iopsymr,itype,itypep,ldip,loct,lqua,Lseuil,magnetic,mpirank0,&
                msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo, msymooi,msymqq,msymqqi,Multipole,n_oo,natomp,ngroup, &
                ngroup_m,nlat,nlatm,nspin,ntype,numat,octupole,popats,pos,quadrupole,rot_atom_abs,Rot_int, &
                Spinorbite,State_all,Symmol,Tensor_imp)
@@ -5565,7 +5578,7 @@ subroutine Tensor_shape(Atom_with_axe,Nonsph,Axe_atom_clu,Dipmag, &
       iaabs,iaabs,icheck,igroup,igroup(iaabs),igrpt,igrpt0,iopsymt,iopsymr,itype,itypep,Magnetic,mpirank0, &
       natomp,ngroup,ngroup_m,nlat,nlatm,nspin,ntype,numat,popats,pos,ps,rot_atom_abs,Spinorbite,Symmol,.false.)
 
-  if( spinorbite .or. ( nspin == 2 .and. lseuil > 0 ) ) then
+  if( spinorbite .or. ( nspin == 2 .and. Lseuil > 0 ) ) then
     magnet = .true.
   else
     magnet = .false.
@@ -6823,14 +6836,14 @@ end
 
 ! Subroutine giving the probed orbitals from the selection rules
 
-subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,lplus1,lqua,lseuil, &
+subroutine Etafin(E1M1,icheck,iopsymr,irep_util,Jseuil,karact,ldip,lmoins1,loct,lplus1,lqua,Lseuil, &
                   M1M1,mpirank0,nb_rep,nbseuil,ngrph,nspino,Spinorbite,State_all,Sym_cubic,Ylm_comp)
 
   use declarations
   implicit none
 
-  integer:: icheck, initl, iseuil, iop, isinitl, ism, ispin, ispo, jseuil, jspin, kpl, kspin, kv2, kvo, &
-    L, lf, lf1, lf2, lg, linitl, lo, lseuil, m, m_initl, mi, mm, mo, mpirank0, ms, nb_rep, nbseuil, ngrph, nlfm, nlfm0, &
+  integer:: icheck, init, iseuil, iop, isinitl, ism, ispin, ispo, Jseuil, jspin, kpl, kspin, kv2, kvo, &
+    L, lf, lf1, lf2, lg, linitl, lo, Lseuil, m, m_initl, mi, mm, mo, mpirank0, ms, nb_rep, nbseuil, ngrph, nlfm, nlfm0, &
     noperat, nselec, nsm, nspino
 
   integer, dimension(2):: ninit
@@ -6852,10 +6865,10 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
 
   if( icheck > 0 )  write(3,110)
 
-  linitl = lseuil
+  linitl = Lseuil
 
 ! Calcul du (L,m) = (linitl,minitl) de L'etat initial
-  select case(jseuil)
+  select case(Jseuil)
     case(1,3,5,7)
       isinitl = 1
     case default
@@ -6928,8 +6941,8 @@ subroutine Etafin(E1M1,icheck,iopsymr,irep_util,jseuil,karact,ldip,lmoins1,loct,
 
     do iseuil = 1,nbseuil
 
-      do initl = 1,ninit(iseuil)
-        jzinitl = - jinitl(iseuil) + initl - 1
+      do init = 1,ninit(iseuil)
+        jzinitl = - jinitl(iseuil) + init - 1
 
         do ispin = 1,2
           m_initl = nint( jzinitl + ispin - 1.5_db )
@@ -10165,7 +10178,7 @@ end
 ! Calculation of the energy of the initial core state
 
 subroutine Energseuil(Core_energ_tot,Core_resolved,Delta_Epsii,Delta_Eseuil,E_zero,Epsii,Epsii_moy,Eseuil,Exc_abs_i, &
-           icheck,is_g,itabs_nonexc,Jseuil,Lseuil,m_g,mpirank0,nbseuil,ninit1,ninit,ninitlr,nr,nrm,nseuil, &
+           icheck,is_g,itabs_nonexc,Jseuil,Lseuil,m_g,mpirank0,nbseuil,ninit1,ninit,ninitr,nr,nrm,nseuil, &
            nspin,ntype,numat,psii,rato,Rmtg,Rmtsd,V_abs_i,V_intmax,Vc_abs_i,V0bd,WorkF)
 
   use declarations
@@ -10175,7 +10188,7 @@ subroutine Energseuil(Core_energ_tot,Core_resolved,Delta_Epsii,Delta_Eseuil,E_ze
   integer, parameter:: nspinp = 2
 
   integer:: i, icheck, init, ipr, ir, isol, isp, itabs_nonexc, Jseuil, lmax_pot_loc, L, Lseuil, m, mpirank0, n, nbseuil, &
-    ninit1, ninit, ninitlr, nlm_pot_loc, nm1, nm2, nr, nrm, nseuil, nsol, nspin, ntype, numat, Z
+    ninit1, ninit, ninitr, nlm_pot_loc, nm1, nm2, nr, nrm, nseuil, nsol, nspin, ntype, numat, Z
 
   logical:: Core_energ_tot, Core_resolved, Relativiste, Spinorbite, Ylm_comp
 
@@ -10185,7 +10198,7 @@ subroutine Energseuil(Core_energ_tot,Core_resolved,Delta_Epsii,Delta_Eseuil,E_ze
   real(kind=db):: Charge, Delta, Delta_Epsii, Delta_Eseuil, E_elec, E_exc, E_KS_Dirac, E_VXC, E_T, E_zero, Ep_moy, Epsii_moy, &
                   f_integr3, J, mj, psiHpsi, Rmtg, Rmtsd, V_intmax, WorkF
   real(kind=db), dimension(nbseuil):: Delta_E, E_KS, Epsii_m, Eseuil
-  real(kind=db), dimension(ninitlr):: Epsii
+  real(kind=db), dimension(ninitr):: Epsii
   real(kind=db), dimension(ninit):: dEpsii, Epsi
   real(kind=db), dimension(nspin):: V0bd
   real(kind=db), dimension(nr):: fct, psi, r, rho
@@ -10280,8 +10293,8 @@ subroutine Energseuil(Core_energ_tot,Core_resolved,Delta_Epsii,Delta_Eseuil,E_ze
     V_abs(1:nr,1,:) = V_abs_i(1:nr,:)
 
 ! The calculation of the core levels is always with spin-orbit
-    nm1 = - lseuil - 1
-    nm2 = lseuil
+    nm1 = - Lseuil - 1
+    nm2 = Lseuil
 
     do init = 1,ninit
 
@@ -10370,7 +10383,7 @@ subroutine Energseuil(Core_energ_tot,Core_resolved,Delta_Epsii,Delta_Eseuil,E_ze
   if( Core_resolved ) then
     Epsii(1:ninit) = dEpsii(1:ninit)
   else
-    Epsii(1:ninitlr) = Epsii_m(1:ninitlr)
+    Epsii(1:ninitr) = Epsii_m(1:ninitr)
   endif
 
   if( Core_resolved ) then
@@ -10382,7 +10395,7 @@ subroutine Energseuil(Core_energ_tot,Core_resolved,Delta_Epsii,Delta_Eseuil,E_ze
       Ep_moy = Epsii_moy
     endif
   else
-    Epsii_moy = Epsii(ninitlr)
+    Epsii_moy = Epsii(ninitr)
     Ep_moy = Epsii(1)
   endif
   Delta_Eseuil = Ep_moy - Epsii_moy
@@ -10392,14 +10405,14 @@ subroutine Energseuil(Core_energ_tot,Core_resolved,Delta_Epsii,Delta_Eseuil,E_ze
       Delta = Delta_Epsii - Delta_Eseuil
       Epsii(1:ninit1) = Epsii(1:ninit1) + Delta
     else
-      Epsii(1) = Epsii(ninitlr) + Delta_Epsii
+      Epsii(1) = Epsii(ninitr) + Delta_Epsii
     endif
     Delta_Eseuil = Delta_Epsii
   endif
 
   do ipr = 3,6,3
 
-    if( L == 0 .or. ninit == 2*lseuil + 2 ) then
+    if( L == 0 .or. ninit == 2*Lseuil + 2 ) then
       J = L + 0.5_db
     else
       J = L - 0.5_db
@@ -10425,13 +10438,13 @@ subroutine Energseuil(Core_energ_tot,Core_resolved,Delta_Epsii,Delta_Eseuil,E_ze
 
     if( .not. Core_resolved .and. ( ( ipr == 3 .and. icheck > 0) .or. ( ipr == 6 .and. mpirank0 == 0 ) ) ) then
       if( ipr == 3 ) then
-        if( ninitlr == 1 ) then
+        if( ninitr == 1 ) then
           Write(ipr,140) Epsii(:) * Rydb
         else
           Write(ipr,150) Epsii(:) * Rydb
         endif
       else
-        if( ninitlr == 1 ) then
+        if( ninitr == 1 ) then
           Write(ipr,160) Epsii(:) * Rydb
         else
           Write(ipr,170) Epsii(:) * Rydb
@@ -11173,6 +11186,7 @@ function E_KS_Dirac(Cal_psi,icheck,J,L,n,nr,nspin,Z,Vrs,psi,r,rho)
 
   a(:) = psi(:)
   b(:) = 0._db
+  E = 0._db
 
  ! subroutine in Dirac.f90
   call didif(a,b,E,3,icheck,.true.,L,nr,n,r,Vr,rho,Zn,npts,ha,rn,h,eps,del,fj,v0,da,dbb,a0,b0,voc, &

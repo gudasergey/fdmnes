@@ -590,7 +590,6 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
               deallocate( pop )
             endif
           end do
-!          ntype = ntype_conf
 
         case('atom_nsph')
           do
@@ -1092,7 +1091,6 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     if( nlatm > 0 .or. Screening ) nlatm = nlatm + 1
 
 ! ntype is the total number of atom types including the bulk atoms when existing
-!    ntype = ntype + ntype_bulk
 ! ngroup is the total number of atoms including the bulk atoms when existing
     ngroup = n_atom_uc + n_atom_bulk
     if( Doping ) ngroup = ngroup + 1
@@ -1776,8 +1774,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   complex(kind=db), dimension(3,npldafs_e):: Poldafsem, Poldafssm
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph):: Hybrid
 
-  logical:: Absauto, adimpin, All_nrixs, Allsite, Apostrophe,ATA, Atom, Atom_B_iso, Atom_conf, Atom_nonsph, Atom_occ_hubb, &
-    Atomic_scr, Atom_U_iso, Avoid, Axe_loc, Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, Centre_auto, &
+  logical:: Absauto, Absorber, adimpin, All_nrixs, Allsite, Apostrophe,ATA, Atom, Atom_B_iso, Atom_conf, Atom_nonsph, &
+    Atom_occ_hubb, Atomic_scr, Atom_U_iso, Avoid, Axe_loc, Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, Centre_auto, &
     Centre_auto_abs, Center_s, Check_extract, Classic_irreg, Clementi, COOP, Core_energ_tot, Core_resolved, COOP_z_along_bond, &
     Core_resolved_e, Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
     Dip_rel, Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Fcif, Film, &
@@ -1865,6 +1863,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   n_atom_neq_min = min( n_atom_neq, n_atom_uc ) ! because of the fake cif_file from Vista...
 
 ! Default values of parametres
+  Absorber = .false.
   adimp(:) = 0.25_db
   adimpin = .false. !*** JDB
   alfpot = 0._db
@@ -3406,11 +3405,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           Full_atom_e = .true.
 
         case('absorbeur')
-          if( Doping ) then
-            Error_message = ' Absorber keyword not authorized when Doping keyword present !'
-            call write_error_message(Error_message,6,istop)
-            stop
-          endif
+          Absorber = .true.
           k = 0
           do i = 1,100000
             n = nnombre(itape4,132)
@@ -4204,7 +4199,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           popats(n,:,:) =  popval(1,:,:)
         endif
       else
-        itype(n) = ntype - ntype_bulk
+        itype(n) = ntype
         popats(n,:,:) =  popval(itype(n),:,:)
         if( .not. Atom_conf ) itype(n) = itype_dop
       endif
@@ -4396,14 +4391,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       deallocate( itZ )
 
       boucle_ig: do igr = 1,n_atom_bulk
-        do jgr = 1,igr-1
-          if( Z_bulk(igr) == Z_bulk(jgr) ) cycle boucle_ig
+        do it = ntype_conf+1,jt
+          if( Z_bulk(igr) == numat(it) ) cycle boucle_ig
         end do
+
         jt = jt + 1
         numat(jt) = Z_bulk(igr)
       end do boucle_ig
 
-      if( itype_dop /= 1 ) itype_dop = ntype - ntype_bulk
+      if( itype_dop /= 1 ) itype_dop = ntype
 
     endif
 
@@ -4711,6 +4707,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       do jgr = n_atom_per+n_atom_int+1, n_atom_uc
         posn(3,jgr) = posn(3,jgr) - z_min
       end do
+      if( Noncentre ) Centre(3) = Centre(3) - z_min
     endif
     if( Cap_layer ) then
       z_min = 10000._db
@@ -4857,24 +4854,36 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       nlat(1:jt) = 0
     endif
 
-    if( ntype_bulk > 0 ) then
-      it = ntype - ntype_bulk + 1
-      itype( ngroup - n_atom_bulk + 1 ) = it
-      numat(it) = Z_bulk( 1 )
-      do igr = 2,n_atom_bulk
-        do jgr = 1,igr - 1
-          if( Z_bulk(igr) == Z_bulk(jgr) ) then
-            itype( ngroup - n_atom_bulk + igr ) = itype( ngroup - n_atom_bulk + jgr )
-            exit
-          endif
-        end do
-        if( jgr > igr - 1 ) then
-          it = it + 1
-          itype( ngroup - n_atom_bulk + igr ) = it
-          numat(it) = Z_bulk(igr)
+    Loop_bulk: do igr = 1,n_atom_bulk
+      do it = 1,jt
+        if( Z_bulk(igr) == numat(it) .and. nlat(it) == 0 ) then
+          itype(ngroup - n_atom_bulk + igr) = it
+          cycle Loop_bulk
         endif
       end do
-    endif
+      jt = jt + 1
+      numat(jt) = Z_bulk(igr)
+      itype( ngroup - n_atom_bulk + igr ) = jt
+    end do Loop_bulk
+
+ !   if( ntype_bulk > 0 ) then
+ !     it = ntype - ntype_bulk + 1
+ !     itype( ngroup - n_atom_bulk + 1 ) = it
+ !     numat(it) = Z_bulk( 1 )
+ !     do igr = 2,n_atom_bulk
+ !       do jgr = 1,igr - 1
+ !         if( Z_bulk(igr) == Z_bulk(jgr) ) then
+ !           itype( ngroup - n_atom_bulk + igr ) = itype( ngroup - n_atom_bulk + jgr )
+ !           exit
+ !         endif
+ !       end do
+ !       if( jgr > igr - 1 ) then
+ !         it = it + 1
+ !         itype( ngroup - n_atom_bulk + igr ) = it
+ !         numat(it) = Z_bulk(igr)
+ !       endif
+ !     end do
+ !   endif
 
     do igr = 1,ngroup
       it = abs( itype(igr) )
@@ -4970,6 +4979,18 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         write(ipr,100)
         write(ipr,180) Seuil
       end do
+      stop
+    endif
+
+    if( Doping .and. Absorber ) then
+      Error_message = ' Absorber keyword not authorized when Doping keyword is used !'
+      call write_error_message(Error_message,6,istop)
+      stop
+    endif
+
+    if( One_run .and. Absorber ) then
+      Error_message = ' Absorber keyword not authorized when One_run keyword is used !'
+      call write_error_message(Error_message,6,istop)
       stop
     endif
 
@@ -5225,7 +5246,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
 ! Default energy grid
     if( lin_gam == - 1 ) then
-      lin_gam = 1
+      lin_gam = 0
       Egamme(1) = -2.0_db; Egamme(2) =  0.5_db
       Egamme(3) = Egamme(1) + ( nenerg_s - 1 ) * Egamme(2)
     endif
@@ -5861,7 +5882,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         write(3,650) V_helm, Delta_helm, Width_helm
         if( Helm_cos ) write(3,'(A)') '    with cosine model'
       endif
-      if( abs( V_helm ) > eps10 ) write(3,650) V_helm, Delta_helm, Width_helm
       if( Flapw ) then
         if( Hedin .or. Perdew ) then
           write(3,'(/A)') ' FLAPW potential energy dependant'
@@ -6294,15 +6314,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       endif
     end do
 
-    if( One_run .and. Taux ) then
-      do igr = 1,ngroup_taux
-        if( abs( Taux_oc(igr) - 1 ) > 0.000001_db ) exit
-      end do
-      if( igr <= ngroup_taux ) then
-        Error_message = ' It is not possible to have at the same time One_run and Crystal_t keywords !'
-        call write_error_message(Error_message,ipr0,istop)
-      endif
-    endif
+!    if( One_run .and. Taux ) then
+!      do igr = 1,ngroup_taux
+!        if( abs( Taux_oc(igr) - 1 ) > 0.000001_db ) exit
+!      end do
+!      if( igr <= ngroup_taux ) then
+!        Error_message = ' It is not possible to have at the same time One_run mode and occupancy different from 1 !'
+!        call write_error_message(Error_message,ipr0,istop)
+!      endif
+!    endif
 
     if( Film_roughness > eps10 ) then
       do igr = n_atom_per + 1, n_atom_uc

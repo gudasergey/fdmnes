@@ -4000,29 +4000,30 @@ subroutine Write_Int_rixs(File_name,n_File,RIXS_core)
         
         endif
 
+        E = - E_loss(ie_loss) 
         if( nenerg_in > 1 ) then        
-          if( abs( E_loss(ie_loss) ) < 9.999995_db ) then
-            write(2,160) E_loss(ie_loss), ((( RIXS_int(:,ipl,i_t,i_q,initr), Sum_E_in(ipl,i_t,i_q,initr), ipl = 1,npl_out ), &
+          if( abs( E ) < 9.999995_db ) then
+            write(2,160) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), Sum_E_in(ipl,i_t,i_q,initr), ipl = 1,npl_out ), &
                                                                                         i_t = 1,n_theta ), initr = 0, n_i ) 
-          elseif( abs( E_loss(ie_loss) ) < 99.99995_db ) then
-            write(2,170) E_loss(ie_loss), ((( RIXS_int(:,ipl,i_t,i_q,initr), Sum_E_in(ipl,i_t,i_q,initr), ipl = 1,npl_out ), &
+          elseif( abs( E ) < 99.99995_db ) then
+            write(2,170) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), Sum_E_in(ipl,i_t,i_q,initr), ipl = 1,npl_out ), &
                                                                                         i_t = 1,n_theta ), initr = 0, n_i )
-          elseif( abs( E_loss(ie_loss) ) < 999.9995_db ) then
-            write(2,180) E_loss(ie_loss), ((( RIXS_int(:,ipl,i_t,i_q,initr), Sum_E_in(ipl,i_t,i_q,initr), ipl = 1,npl_out ), &
+          elseif( abs( E ) < 999.9995_db ) then
+            write(2,180) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), Sum_E_in(ipl,i_t,i_q,initr), ipl = 1,npl_out ), &
                                                                                         i_t = 1,n_theta ), initr = 0, n_i )
           else
-            write(2,190) E_loss(ie_loss), ((( RIXS_int(:,ipl,i_t,i_q,initr), Sum_E_in(ipl,i_t,i_q,initr), ipl = 1,npl_out ), &
+            write(2,190) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), Sum_E_in(ipl,i_t,i_q,initr), ipl = 1,npl_out ), &
                                                                                         i_t = 1,n_theta ), initr = 0, n_i ) 
           endif
         else
-          if( abs( E_loss(ie_loss) ) < 9.999995_db ) then
-            write(2,160) E_loss(ie_loss), ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta ), initr = 0, n_i ) 
-          elseif( abs( E_loss(ie_loss) ) < 99.99995_db ) then
-            write(2,170) E_loss(ie_loss), ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta ), initr = 0, n_i )
-          elseif( abs( E_loss(ie_loss) ) < 999.9995_db ) then
-            write(2,180) E_loss(ie_loss), ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta ), initr = 0, n_i )
+          if( abs( E ) < 9.999995_db ) then
+            write(2,160) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta ), initr = 0, n_i ) 
+          elseif( abs( E ) < 99.99995_db ) then
+            write(2,170) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta ), initr = 0, n_i )
+          elseif( abs( E ) < 999.9995_db ) then
+            write(2,180) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta ), initr = 0, n_i )
           else
-            write(2,190) E_loss(ie_loss), ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta ), initr = 0, n_i ) 
+            write(2,190) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta ), initr = 0, n_i ) 
           endif
         endif 
 
@@ -4099,14 +4100,15 @@ subroutine Write_Int_rixs(File_name,n_File,RIXS_core)
       write(2,140) '   E_loss ', ( Energ_in(:), ii = 1, n_theta ) 
   
       do ie_loss = 1,ne_loss
-        if( abs( E_loss(ie_loss) ) < 9.999995_db ) then
-          write(2,160) E_loss(ie_loss), ( Mod_k(:,ie_loss,i_t,i_q), i_t = 1,n_theta ) 
-        elseif( abs( E_loss(ie_loss) ) < 99.99995_db ) then
-          write(2,170) E_loss(ie_loss), ( Mod_k(:,ie_loss,i_t,i_q), i_t = 1,n_theta )
-        elseif( abs( E_loss(ie_loss) ) < 999.9995_db ) then
-          write(2,180) E_loss(ie_loss), ( Mod_k(:,ie_loss,i_t,i_q), i_t = 1,n_theta )
+        E = - E_loss(ie_loss) 
+        if( abs( E ) < 9.999995_db ) then
+          write(2,160) E, ( Mod_k(:,ie_loss,i_t,i_q), i_t = 1,n_theta ) 
+        elseif( abs( E ) < 99.99995_db ) then
+          write(2,170) E, ( Mod_k(:,ie_loss,i_t,i_q), i_t = 1,n_theta )
+        elseif( abs( E ) < 999.9995_db ) then
+          write(2,180) E, ( Mod_k(:,ie_loss,i_t,i_q), i_t = 1,n_theta )
         else
-          write(2,190) E_loss(ie_loss), ( Mod_k(:,ie_loss,i_t,i_q), i_t = 1,n_theta ) 
+          write(2,190) E, ( Mod_k(:,ie_loss,i_t,i_q), i_t = 1,n_theta ) 
         endif 
       end do
   

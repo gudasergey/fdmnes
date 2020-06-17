@@ -921,7 +921,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     Lmax_comp, Lmax_g, Lmax_nrixs, Lmax_pot, Lmax_probe, Lmax_tddft, Lmax_tddft_inp, Lmax_max, Lmaxat0, Lmaxso, &
     Lmaxso_m, Lmaxso_max, Lmaxso0, Lms1, Lms2, Lseuil, m, m_hubb, m_hubb_e, m1, m2, &
     mpierr, mpinodee, mpinodee0, mpinodes, mpinodes0, mpirank, mpirank0, mpirank_in_mumps_group, &
-    multi_0, multi_imp, multi_run, multi_run_e, multrmax, n, n_abs_rgh, n_adimp, n_atom_0, n_atom_0_self, n_atom_bulk, &
+    multi_0, multi_imp, multi_run, multi_run_e, multrmax, n, n_abs_bulk,n_abs_rgh, n_adimp, n_atom_0, n_atom_0_self, n_atom_bulk, &
     n_atom_cap, n_atom_coop, n_atom_ind, n_atom_ind_self, n_atom_int, n_atom_per, n_atom_proto, n_atom_proto_bulk, &
     n_atom_proto_uc, n_atom_sur, n_atom_uc, n_bulk_sup, n_bulk_z, n_bulk_z_abs, n_bulk_z_max, n_bulk_z_max_abs, n_devide, n_Ec, &
     n_mat_polar, n_max, n_multi_run, n_oo, n_orb_rel, n_orbexc, n_q_rixs, n_radius, n_range, n_rel, n_rout, n_tens_max, &
@@ -1014,14 +1014,14 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
      Density_comp, Devide_Ei, Dip_rel, Dipmag, Doping, Dyn_eg, Dyn_g, E_comp, E1E1, E1E2, E1E2e, E1E3, E1M1, E2E2, E3E3, &
      E_cut_man, Eneg, Eneg_i, Eneg_n_i, Energphot, Epsii_ref_man, Extract, &
      Extract_ten, FDM_comp, FDM_comp_m, Fermi, Fermi_first, Film, Final_optic, Final_tddft, First_E, First_Bulk_step, &
-     Flapw, Flapw_new, Force_ecr, Full_atom, Full_atom_e, Full_atom_gen, Full_potential, Full_self_abs, &
+     First_run, Flapw, Flapw_new, Force_ecr, Full_atom, Full_atom_e, Full_atom_gen, Full_potential, Full_self_abs, &
      Gamma_hole_man, Gamma_tddft, Green, Green_bulk, Green_i, Green_int, Green_s, Green_self, &
-     Harm_cubic, Helm_cos, hkl_film, Hubb_a, Hubb_abs, Hubb_d, Hubb_diag_abs, Hubbard, Kern_fast, &
-     korigimp, Level_val_abs, Level_val_exc, lmaxfree, lmoins1, lplus1, M1M1, Magnetic, Matper, Moment_conservation, Moy_cluster, &
-     Moy_loc, Moyenne, Muffintin, No_DFT, No_solsing, Noncentre, Nonexc_g, Nonexc, Nonsph, Normaltau, NRIXS, Octupole, &
-     Old_zero, One_run, One_SCF, Operation_mode_used, Optic, Optic_xanes, Overad, PointGroup_Auto, Polarise, Powder, Proto_all, &
-     Quadrupole, Recop, Relativiste, Renorm, Renorm_SCF, RIXS, RIXS_core, RIXS_fast, RPALF, Rydberg, SCF, SCF_bulk, SCF_c, &
-     SCF_elecabs, &
+     Harm_cubic, Helm_cos, hkl_film, Hubb_a, Hubb_abs, Hubb_d, Hubb_diag_abs, Hubbard, Kern_fast, korigimp, Level_val_abs, &
+     Level_val_exc, lmaxfree, lmoins1, lplus1, M1M1, Magnetic, Matper, Moment_conservation, Moy_cluster, Moy_loc, Moyenne, &
+     Muffintin, No_DFT, No_solsing, Noncentre, Nonexc_g, Nonexc, Nonsph, Normaltau, Not_centered, NRIXS, Octupole, &
+     Old_zero, One_run, One_run_L, One_SCF, Operation_mode_used, Optic, Optic_xanes, Overad, PointGroup_Auto, Polarise, Powder, &
+     Proto_all, Quadrupole, Recop, Relativiste, Renorm, Renorm_SCF, RIXS, RIXS_core, RIXS_fast, RPALF, Rydberg, SCF, SCF_bulk, &
+     SCF_c, SCF_elecabs, &
      SCF_mag_fix, SCF_mag_free, Second_run, Second_SCF, Self_abs, Self_cons, Self_cons_bulk, Self_cons_c, Self_nonexc, &
      Solsing, Solsing_s, Solsing_o, Solsing_only, Spherical_signal, Spherical_tensor, Spin_channel, Spino, Spinorbite, State_all, &
      State_all_out, Supermuf, Sym_2D, Sym_4, Sym_cubic, Symmol, Tau_nondiag, Taux, Tddft, &
@@ -1229,6 +1229,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
   multi_0 = 0
 
+  n_abs_bulk = 0
+  do multi_run = 1,n_multi_run
+    if( iabsm(multi_run) > ngroup - n_atom_bulk ) n_abs_bulk = n_abs_bulk + 1
+  end do
+
 !- Loop over non equivalent atoms ---------------------------------------------------------------------------
 
   boucle_multi: do multi_run_e = 1,n_multi_run
@@ -1246,8 +1251,36 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
     if( icheck(4) > 0 ) write(3,110) iabsorig(multi_run)
 
-    Second_run = multi_run_e > 1 .and. One_run
-    Second_SCF = multi_run_e > 1 .and. One_SCF
+    iabsorbeur = iabsm(multi_run)
+
+    Bulk_step = Bulk .and.  iabsorbeur > ngroup - n_atom_bulk
+
+! The One-run option, when used, is not used in the bulk.
+    if( Bulk_step ) then
+      One_run_L = .false.
+    else
+      One_run_L = One_run
+    endif
+
+    if( Doping ) then
+! Used just for the atom position
+      iabsfirst = igr_dop
+    elseif( One_run_L ) then
+      if( Abs_in_Bulk ) then
+        iabsfirst = iabsm( n_multi_run - n_abs_bulk )
+      else
+        iabsfirst = iabsm(1)
+      endif
+    else
+      iabsfirst = iabsorbeur
+    endif
+
+    First_run = .not. One_run_L &
+                .or. ( One_run_L .and. ( ( multi_run_e == 1 .and. .not. Abs_in_bulk ) .or. &
+                        ( multi_run == n_multi_run - n_abs_bulk .and. Abs_in_bulk ) ) )
+
+    Second_run = multi_run_e > n_abs_bulk + 1 .and. One_run_L
+    Second_SCF = multi_run_e > n_abs_bulk + 1 .and. One_SCF
 
     multi_imp = nposextract(multi_run_e)
 
@@ -1256,7 +1289,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     else
       Tau_nondiag = .false.
     endif
-    iabsorbeur = iabsm(multi_run)
     if( Doping ) then
       itabs_nonexc = abs( itype_dop )
     else
@@ -1313,7 +1345,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       nnlm = max( nnlm, n )
     end do
 
-    Bulk_step = Bulk .and.  iabsorbeur > ngroup - n_atom_bulk
     Sym_2D = iabsorbeur > n_atom_per .and. .not. Bulk_step .and. .not. Doping
     Abs_in_Bulk_roughness = Bulk_step .and. Bulk_roughness > eps10
     Bulk_atom_done = Sym_2D .and. Abs_in_bulk .and. .not. Full_atom_gen .and. SCF .and. Self_nonexc
@@ -1335,12 +1366,12 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     else
       V_helm_t = 0._db
     endif
-    call init_run(cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Doping,Ecrantage,Flapw,Force_ecr,Hubb,iabsorbeur, &
-      iabsorig(multi_run),icheck(4),icom,igreq,iprabs,iprabs_nonexc,itabs,itdil,itype,itype_dop,itypepr,jseuil,lcoeur,ldil, &
-      lecrantage,Lseuil,lvval,mpinodee0,mpirank0,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage,neqm,ngreq,ngroup, &
-      nlat,nlatm,nnlm,nomfich_s,Nonexc,norbdil,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat,numat_abs,nvval, &
-      pop_open_val,popatm,popats,popatv,popval,psi_coeur,psii,psi_open_val,psival,r0_lapw,Rato,Ray_max_dirac,Rchimp,Relativiste, &
-      rho_coeur,rhoit,Rlapw,Rmt,Rmtimp,Self_nonexc,V_hubbard,Wien_file(8))
+    call init_run(Bulk_step,cdil,Chargat,Charge_free,Chargm,Chargm_SCF,Clementi,Com,Doping,Ecrantage,Flapw,Force_ecr,Hubb, &
+      iabsorbeur,iabsorig(multi_run),icheck(4),icom,igreq,iprabs,iprabs_nonexc,itabs,itdil,itype,itype_dop,itypepr,jseuil,lcoeur, &
+      ldil,lecrantage,Lseuil,lvval,mpinodee0,mpirank0,n_atom_bulk,n_atom_proto,n_multi_run,n_orbexc,nbseuil,ncoeur,necrantage, &
+      neqm,ngreq,ngroup,nlat,nlatm,nnlm,nomfich_s,Nonexc,norbdil,nrato,nrato_dirac,nrato_lapw,nrm,nseuil,nspin,ntype,numat, &
+      numat_abs,nvval,pop_open_val,popatm,popats,popatv,popval,psi_coeur,psii,psi_open_val,psival,r0_lapw,Rato,Ray_max_dirac, &
+      Rchimp,Relativiste,rho_coeur,rhoit,Rlapw,Rmt,Rmtimp,Self_nonexc,V_hubbard,Wien_file(8))
 
     nrato_abs = nrato(itabs)
 
@@ -1360,7 +1391,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     endif
 
     if( Taux ) then
-      Taux_eq(1:natomsym) = Taux_oc( abs( igreq(iprabs_nonexc,1:natomsym) ) )
+      Taux_eq(1:natomsym) = Taux_oc( abs( igreq(iprabs_nonexc,1) ) )
     else
       Taux_eq(1:natomsym) = 1._db
     endif
@@ -1443,22 +1474,15 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
     endif
 
-    if( Doping ) then
-! Used just for the atom position
-      iabsfirst = igr_dop
-    elseif( One_run ) then
-      iabsfirst = iabsm(1)
-    else
-      iabsfirst = iabsorbeur
-    endif
-
     if( Bulk_step ) then
       call Cal_Cubmat(angxyz_bulk,Cubmat,Struct)
+      Not_centered = .false.
     else
       call Cal_Cubmat(angxyz,Cubmat,Struct)
+      Not_centered = Noncentre
     endif
 
-    if( ( .not. One_run ) .or. multi_run_e == 1 ) then
+    if( ( multi_run_e == 1 .and. .not. Abs_in_bulk ) .or. First_run ) then
       d_ecrant = 1 - sum( Ecrantage(:) )
       if( Bulk_step ) then
         R_SCF_c = R_self_bulk
@@ -1467,10 +1491,10 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       endif
       call natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho_int, &
         Base_ortho_sur,Bulk,Bulk_step,Center_s,Centre,Chargat,d_ecrant,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
-        dpos,Film_shift,Film_thickness,Flapw,iabsorbeur,iabsfirst,icheck(5),igr_dop,igreq,Interface_shift, &
+        dpos,Film_shift,Film_thickness,First_run,Flapw,iabsorbeur,iabsfirst,icheck(5),igr_dop,igreq,Interface_shift, &
         itabs,itype,Kgroup,Matper,mpirank0,multi_run_e,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_uc, &
         n_atom_sur,n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
-        Noncentre,posn,posn_bulk,One_run,Proto_all,R_SCF_c,rsorte_s,rmax,rpotmax,Self_cons_c,Surface_shift,Sym_2D, &
+        Not_centered,posn,posn_bulk,Proto_all,R_SCF_c,rsorte_s,rmax,rpotmax,Self_cons_c,Surface_shift,Sym_2D, &
         Taux_oc)
     endif
 
@@ -1490,11 +1514,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     call agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn, &
           axyz,axyz_bulk,axyz_int,axyz_sur,Base_hexa,Base_ortho_int,Base_ortho_sur,Bulk,Bulk_step,Center_s, &
           Chargat,Cubmat,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,dista, &
-          Doping,dpos,Film_shift,Film_thickness,iaabs,iaabsfirst,iabsorbeur,iabsfirst, &
+          Doping,dpos,Film_shift,Film_thickness,First_run,iaabs,iaabsfirst,iabsorbeur,iabsfirst, &
           iaproto,iapot,ich,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,Interface_shift,iopsymc,iopsymr,itabs,itype,itypep, &
           karact,Kgroup,Magnetic,Matper,mpirank0,multi_run_e,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc, &
-          natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat, &
-          One_run,Orthmat,Orthmati,Orthmatt,PointGroup,PointGroup_Auto,popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc, &
+          natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat,nlatm,Not_centered,nspin,ntype,numat, &
+          Orthmat,Orthmati,Orthmatt,PointGroup,PointGroup_Auto,popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc, &
           Spinorbite,Rot_Atom_gr,Struct,Surface_shift,Sym_2D,Sym_4,Sym_cubic,Symmol,Taux,Taux_oc,Test_dist_min)
 
     if( Ylm_comp_inp .and. .not. ( Atom_comp_cal(igrpt0) .or. igrpt_nomag <= 5 ) ) then
@@ -1508,8 +1532,6 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     endif
 
     Ylm_comp = Ylm_comp_inp .or. Atom_comp_cal(igrpt0)
-
-!    if( .not. One_run .or. ( One_run .and. multi_run_e == 1 ) ) iaabsfirst = iaabs
 
     FDM_comp_m = FDM_comp
 ! FDM_comp_m = .false. ! annule l'effet FDM_comp
@@ -1632,7 +1654,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       allocate( Exc_abs_i(nrm) )
       allocate( V_abs_i(nrm,nspin) )
       allocate( Vc_abs_i(nrm) )
-      if( .not. Bulk_step .and. .not. Full_atom .and. Self_nonexc ) then
+      if( .not. Bulk_step .and. .not. Full_atom .and. Self_nonexc .and. Self_cons_c ) then
         do ipr = n_atom_proto-n_atom_proto_bulk+1, n_atom_proto
           Chargat_init(ipr,:) = chargat_init_bulk(ipr,:)
           Chargat_self(ipr,:) = chargat_self_bulk(ipr,:)
@@ -3332,8 +3354,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       nge = ( nenerg0 - ie0 ) / mpinodee + 1
 
 ! One makes the storage only when mpinodee > 1, otherwise the writing is a temporary file
-      if( One_run .and. multi_run_e == 1 .and. i_range == 1 ) &
-        allocate( Taull_stk(nlm_probe,nspinp,nlm_probe,nspinp,2:n_multi_run,nge) )
+      if( One_run_L .and. First_run .and. i_range == 1 ) &
+        allocate( Taull_stk(nlm_probe,nspinp,nlm_probe,nspinp,n_multi_run-n_abs_bulk-1,nge) )
       index_e = 0
 
       First_E = .true.
@@ -3639,9 +3661,9 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
           endif
 
-          if( One_run .and. .not. Extract ) &
-            call Data_one_run(iabsm,icheck(19),igreq,index_e,igroupi,ipr1,Lmax_probe,Lmaxa, &
-              multi_run_e,n_atom_proto,n_multi_run,natome,neqm,nge,ngreq,nlm_probe,nlmagm,nspinp, &
+          if( One_run_L .and. .not. Extract ) &
+            call Data_one_run(First_run,iabsm,icheck(19),igreq,index_e,igroupi,ipr1,Lmax_probe,Lmaxa, &
+              multi_run,n_abs_bulk,n_atom_proto,n_multi_run,natome,neqm,nge,ngreq,nlm_probe,nlmagm,nspinp, &
               Rot_atom,Rot_int,Spinorbite,Taull,Taull_stk,Ylm_comp)
 
           if( Extract ) call Tau_reading(icheck(19),ie,iaabsi,Lmaxa(iaabsi),natome,nenerg,nlmagm,nspinp,RIXS,Taull)
@@ -4009,12 +4031,14 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       deallocate( ibord, isbord, imoy, imoy_out, isrt, nbord, nbordf )
       deallocate( poidsa, poidso, poidsov, poidsov_out, rho, rhons, Vr, Vrato )
 
-      if( .not. ( ( One_run .and. multi_run_e /= n_multi_run ) .or. Extract ) ) &
+      if( .not. ( ( One_run_L .and. ( ( .not. Abs_in_bulk .and. multi_run /= n_multi_run ) &
+                                 .or. ( Abs_in_bulk .and. multi_run /= 1 ) ) .or. Extract ) ) ) &
         deallocate( Excato, rs, rhoato, rsato, Vcato, Vh, Vhns, Vxc, Vxcato )
 
     end do boucle_i_range
 
-    if( One_run .and. multi_run_e == n_multi_run ) deallocate( Taull_stk )
+    if( One_run_L .and. ( ( .not. Abs_in_bulk .and. multi_run == n_multi_run ) .or. ( Abs_in_bulk .and. multi_run == 1 ) ) ) &
+      deallocate( Taull_stk )
 
     deallocate( S_nrixs, S_nrixs_m )
     deallocate( secdd, secmd, secmm, secdq, secdo, secoo, secqq )
@@ -4175,7 +4199,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     if( Self_cons_c .and. .not. Second_run .and. .not. Second_SCF ) deallocate( Energ_coh, Eimag_coh, posi_self  )
 
     if( .not. Extract ) then
-      if( Bulk_step .and. .not. Full_atom .and. Self_nonexc ) then
+      if( Bulk_step .and. .not. Full_atom .and. Self_nonexc .and. self_cons_c ) then
    ! One keeps the bulk atom potentials
         chargat_init_bulk(iprabs_nonexc,:) = Chargat_init(iprabs_nonexc,:)
         chargat_self_bulk(iprabs_nonexc,:) = Chargat_self(iprabs_nonexc,:)
@@ -4211,7 +4235,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
     deallocate( Hubb_diag, V_hubb_abs )
     deallocate( V_hubb )
 
-    if( ( .not. One_run .or. multi_run_e == n_multi_run ) .and. .not. Extract ) then
+    if( ( .not. One_run_L .or. multi_run_e == n_multi_run ) .and. .not. Extract ) then
       deallocate( xyz )
       deallocate( cgrad, clapl, ivois, isvois )
       deallocate( numia, rvol )

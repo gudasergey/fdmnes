@@ -4071,8 +4071,8 @@ end
 
 ! Writing or lecture of the scattering amplitudes when calculation is done using One run.
 
-subroutine Data_one_run(iabsm,icheck,igreq,index_e,igroupi,ipr1,lmax_probe,Lmaxa, &
-                multi_run,n_atom_proto,n_multi_run,natome,neqm,nge,ngreq,nlm_probe,nlmagm,nspinp, &
+subroutine Data_one_run(First_run,iabsm,icheck,igreq,index_e,igroupi,ipr1,lmax_probe,Lmaxa, &
+                multi_run,n_abs_bulk,n_atom_proto,n_multi_run,natome,neqm,nge,ngreq,nlm_probe,nlmagm,nspinp, &
                 Rot_atom,Rot_int,Spinorbite,Taull,Taull_stk,Ylm_comp)
 
   use declarations
@@ -4080,19 +4080,19 @@ subroutine Data_one_run(iabsm,icheck,igreq,index_e,igroupi,ipr1,lmax_probe,Lmaxa
   include 'mpif.h'
 
   integer:: i, ia, icheck, igr, index_e, ipr, ipr1, is1, is2, L, L1, L2, lm1, lm2, lmax_probe, lmx, m, m1, m2, &
-            mu, multi_run, n_atom_proto, n_multi_run, natome, neqm, nge, nlm_probe, nlmagm, nlmw, nspinp
+            mu, mv, multi_run, n_abs_bulk, n_atom_proto, n_multi_run, natome, neqm, nge, nlm_probe, nlmagm, nlmw, nspinp
   integer, dimension(natome):: igroupi, Lmaxa
   integer, dimension(n_multi_run):: iabsm
   integer, dimension(0:n_atom_proto):: ngreq
   integer, dimension(0:n_atom_proto,neqm):: igreq
 
-  complex(kind=db), dimension(nlm_probe,nspinp,nlm_probe,nspinp,2:n_multi_run,nge):: Taull_stk
+  complex(kind=db), dimension(nlm_probe,nspinp,nlm_probe,nspinp,n_multi_run-n_abs_bulk-1,nge):: Taull_stk
 
   complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: Taull
   complex(kind=db), dimension(:,:), allocatable:: Mat, Mat_1, Mat_2
   complex(kind=db), dimension(:,:,:), allocatable:: Dlmm
 
-  logical:: Found, Spinorbite, Ylm_comp
+  logical:: First_run, Found, Spinorbite, Ylm_comp
 
   real(kind=db), dimension(3,3):: Mat_rot, Rot_int
   real(kind=db), dimension(3,3,natome):: Rot_atom
@@ -4105,7 +4105,11 @@ subroutine Data_one_run(iabsm,icheck,igreq,index_e,igroupi,ipr1,lmax_probe,Lmaxa
 !    endif
 !  endif
 
-  do mu = 2,n_multi_run
+  mv = 0
+  do mu = 1,n_multi_run
+    if( n_abs_bulk == 0 .and. mu == 1 ) cycle
+    if( n_abs_bulk /= 0 .and. mu >= n_multi_run - n_abs_bulk ) exit
+    mv = mv + 1
     Found = .false.
 
     do ipr = ipr1,n_atom_proto
@@ -4132,8 +4136,8 @@ subroutine Data_one_run(iabsm,icheck,igreq,index_e,igroupi,ipr1,lmax_probe,Lmaxa
         Mat_rot = Rot_int
       endif
 
-! When writing, one apply the inverse rotation --> Transpose
-      if( multi_run == 1 ) Mat_rot = Transpose( Mat_rot )
+! When writing, one applies the inverse rotation --> Transpose
+      if( First_run ) Mat_rot = Transpose( Mat_rot )
 
       Allocate( Dlmm(-lmx:lmx,-lmx:lmx,0:lmx) )
       call Rotation_mat(Dlmm,icheck,Mat_rot,lmx,Ylm_comp)
@@ -4154,7 +4158,7 @@ subroutine Data_one_run(iabsm,icheck,igreq,index_e,igroupi,ipr1,lmax_probe,Lmaxa
               Mat_2(-L2:L2,-L2:L2) = Dlmm(-L2:L2,-L2:L2,L2)
               Allocate( Mat(-L1:L1,-L2:L2) )
 
-              if( multi_run == 1 ) then
+              if( First_run ) then
 
                 do m1 = -L1,L1
                   do m2 = -L2,L2
@@ -4167,7 +4171,7 @@ subroutine Data_one_run(iabsm,icheck,igreq,index_e,igroupi,ipr1,lmax_probe,Lmaxa
 !                else
                   do m1 = -L1,L1
                     do m2 = -L2,L2
-                      Taull_stk(lm1+m1,is1,lm2+m2,is2,mu,index_e) = Mat(m1,m2)
+                      Taull_stk(lm1+m1,is1,lm2+m2,is2,mv,index_e) = Mat(m1,m2)
                     end do
                   end do
 !                endif
@@ -4179,7 +4183,7 @@ subroutine Data_one_run(iabsm,icheck,igreq,index_e,igroupi,ipr1,lmax_probe,Lmaxa
 !                else
                   do m1 = -L1,L1
                     do m2 = -L2,L2
-                      Mat(m1,m2) = Taull_stk(lm1+m1,is1,lm2+m2,is2,mu,index_e)
+                      Mat(m1,m2) = Taull_stk(lm1+m1,is1,lm2+m2,is2,mv,index_e)
                     end do
                   end do
 !                endif
@@ -4216,7 +4220,7 @@ subroutine Data_one_run(iabsm,icheck,igreq,index_e,igroupi,ipr1,lmax_probe,Lmaxa
 
   end do
 
-  if( icheck > 1 .and. multi_run > 1 ) then
+  if( icheck > 1 .and. .not. First_run ) then
 
     do ia = 1,natome
       if( igroupi(ia) /= iabsm(multi_run) ) cycle

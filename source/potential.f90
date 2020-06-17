@@ -216,6 +216,7 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
       endif
       rhoato_init_e(:,:) = rhoato_init(:,:,japr)
     else
+      rho_chg_e(:,:) = 0._db
       rhoato_init_e(:,:) = 0._db
     endif
 
@@ -1404,7 +1405,9 @@ subroutine Pot0muffin(alfpot,Cal_xanes,Chargat,chargat_init,chargat_self, &
 ! l'agregat et la distance pour l'atome le plus eloigne du petit agregat:
 ! natome = nombre d'atomes dans l'agregat symetrise
 ! natomeq = nombre d'atomes dans le petit agregat
-      if( i_self == 1 .and. ib == natomeq ) rho_chg(:,:) = rhoato(:,:)
+      if( i_self == 1 .and. ib == natomeq ) then
+        rho_chg(:,:) = rhoato(:,:)
+      endif
 
     endif
 
@@ -5373,9 +5376,9 @@ subroutine Potential_writing(Delta_Eseuil,dV0bdcf,E_cut,E_Fermi,Ecineticmax,Epsi
   return
   110 format(/' ---- Potential data --',100('-'))
   120 format(/'        E_cut             E_Fermi            V0muf              Vhbdc            VxbdcF_up          VxcbdcF_dn', &
-              '         dV0bdcF_up         dV0bdcF_dn            rsbdc         Ecinematicmax')
+              '         dV0bdcF_up         dV0bdcF_dn            rsbdc          E_kin_max')
   130 format(/'        E_cut             E_Fermi            V0muf              Vhbdc             VxcbdcF             dV0bdcF', &
-              '             rsbdc          Ecinematicmax')
+              '             rsbdc           E_kin_max')
   140 format(/6x,'Epsii_moy',9x,'Delta_Eseuil',3x,9(6x,a6,i1,6x),20(5x,a6,i2,6x))
 end
 
