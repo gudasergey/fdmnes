@@ -12,7 +12,7 @@ subroutine Starting_energ(Bulk_step,E_start,E_starta,Full_atom,iaprotoi,icheck,i
   use declarations
   implicit none
 
-  integer:: i, iapr, icheck, ipr, ir, it, L, n, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, &
+  integer:: i, iapr, icheck, ipr, ir, isp, it, L, n, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, &
      n_atom_proto, n_atom_proto_uc, natome, nenerg_coh, nlm_pot, nr, nrm, nspin, ntype, Z
 
   integer, dimension(2,0:ntype):: lcoeur, ncoeur
@@ -25,7 +25,7 @@ subroutine Starting_energ(Bulk_step,E_start,E_starta,Full_atom,iaprotoi,icheck,i
   logical:: Bulk_step, Full_atom
   logical, dimension(0:n_atom_proto):: Proto_calculated
 
-  real(kind=db):: E_KS_Dirac, E_marge, E_max_Fermi, E_start, Es, J, Pas_SCF, Workf
+  real(kind=db):: a, b, E_KS_Dirac, E_marge, E_max_Fermi, E_start, Es, J, Pas_SCF, Workf
 
   real(kind=db), dimension(0:nrm,0:ntype):: rato
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: E_starta
@@ -70,7 +70,42 @@ subroutine Starting_energ(Bulk_step,E_start,E_starta,Full_atom,iaprotoi,icheck,i
       Vrs(ir,:) = 0.5_db * r(ir) * ( Vcato(ir,1,iapr) + Vxcato(ir,1,:,iapr) )
       psi(ir) = psi_coeur(ir,1,it)
     end do
+    
+    do ir = 1,nr
+      Vrs(ir,:) = Vcato(ir,1,iapr) + Vxcato(ir,1,:,iapr)
+      psi(ir) = psi_coeur(ir,1,it)
+    end do
 
+! We modifie the potential when this one is not anymore increasing, due to the neighboring atoms    
+    do isp = 1,nspin
+      do ir = 3,nr
+        if( Vrs(ir,isp) < Vrs(ir-1,isp) + eps10 ) exit
+      end do
+      if( ir >= nr ) exit
+ ! we use V(r) = a / r + b
+      i = ir - 2 
+      a = Vrs(i,isp) * r(i) * r(nr) / ( r(nr) - r(i) )
+      b =  - a / r(nr)
+      do ir = i + 1, nr
+        Vrs(ir,isp) = a / r(ir) + b
+      end do
+    end do
+
+    if( icheck > 2 ) then
+      if( nspin == 1 ) then
+        write(3,'(/a20,i1,a1)') '   Radius         V(', iapr, ')'
+      else
+        write(3,'(/a18,i1,a12,i1,a4)') '   Radius       V(', iapr, ')_up      V(', iapr, ')_dn'
+      endif
+      do ir = 1,nr
+        write(3,'(f13.8,1p,2e13.5)') r(ir)*bohr, Vrs(ir,:)*rydb
+      end do
+    endif
+
+    do isp = 1,nspin
+      Vrs(:,isp) = 0.5_db * r(:) * Vrs(:,isp)
+    end do
+     
     do i = 1,2
       psi(1:nr) = psi_coeur(1:nr,i,it)
       n = ncoeur(i,it)
@@ -127,7 +162,7 @@ subroutine Starting_energ(Bulk_step,E_start,E_starta,Full_atom,iaprotoi,icheck,i
   
   E_max_Fermi = 30._db / rydb
 
-! Evaluation du nombre de points pour la grille en energie
+! Evaluation of the number of points for the energy grid
   nenerg_coh = nint( ( E_max_Fermi - E_start ) / Pas_SCF ) + 1
 
   if( icheck > 0 ) then
@@ -153,11 +188,11 @@ subroutine Starting_energ(Bulk_step,E_start,E_starta,Full_atom,iaprotoi,icheck,i
   if( icheck > 0 ) write(3,160) E_start * rydb
 
   return
-  110 format(/' ---- En_dep --------',100('-'))
+  110 format(/' ---- Starting_energ ',100('-'))
   120 format(/'  Z =',i4,', n =',i2,', L =',i2,', J =',i2,'/2',// &
               '     Radius      psi_new        psi')
   130 format(f13.7,1p,2e13.5)
-  140 format(/1x,a3,'     Z    n  l     E_core  n  l     E_val    E_starta')
+  140 format(/1x,a3,'     Z    n  l     E_core  n  l     E_val     E_start')
   150 format(i4,3x,i3,2x,2(i3,i3,f11.3),f11.3)
   160 format(/' Starting energy = ',f8.3,' eV')
 end
@@ -535,12 +570,12 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
   real(kind=db), dimension(nspinp,n_atom_0:n_atom_ind):: Int_Statedens_t
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self):: ch_ia_t, Energ_self, Energ_self_s
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: ch_ia, chargat_self, chargat_self_s, pop_orb_val_s, pop_orb_val
-  real(kind=db), dimension(0:nrm):: r, r2, rh
   real(kind=db), dimension(0:nrm,0:ntype):: rato
   real(kind=db), dimension(0:nrm_self,nlm_pot,n_atom_0_self:n_atom_ind_self):: rho_self_t
   real(kind=db), dimension(0:nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self):: rho_self, rho_self_s
   real(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: occ_hubb, occ_hubb_i, &
                                                                                                         occ_hubb_i_s, occ_hubb_s
+  real(kind=db), dimension(:), allocatable:: r, r2, rh
 
   if( icheck > 1 )  then
     write(3,110)
@@ -657,6 +692,13 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
     end do
     nr = ir
 
+    allocate( r(nr) )
+    allocate( r2(nr) )    
+    allocate( rh(nr) )
+
+    r(1:nr) = rato(1:nr,it)
+    r2(:) = r(:)**2
+
     lma = (ll + 1)**2
 
     Statedens_l(:,:) = 0._db
@@ -758,9 +800,6 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
 
     if( SCF_mag_fix .and. First_loop ) rho_self_t(:,:,iapr) = rho_self(:,:,1,iapr) + rho_self(:,:,nspin,iapr)
 
-     r(:) = rato(:,it)
-     r2(:) = rato(:,it)**2
-
     if( .not. This_bulk_atom_done ) then
     
       L = min( l_level_val(Z), lmaxat(ipr) )
@@ -776,8 +815,8 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
 
       if( First_loop ) then
         do isp = 1, nspin
-          rh(0:nr) = rho_self(0:nr,1,isp,iapr) * r2(0:nr)
-          chargat_self(iapr,isp) = Real( Z, db ) / nspin - quatre_pi * f_integr3(r,rh,0,nrm,Rmtsd(ipr))
+          rh(1:nr) = rho_self(1:nr,1,isp,iapr) * r2(1:nr)
+          chargat_self(iapr,isp) = Real( Z, db ) / nspin - quatre_pi * f_integr3(r,rh,1,nr,Rmtsd(ipr))
           chargat_self_s(iapr,isp) = chargat_self(iapr,isp)
         end do
 
@@ -808,13 +847,13 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
 
 ! Calculation of atomic charge
     do isp = 1,nspin
-      rh(0:nr) = rho_self(0:nr,1,isp,iapr) * r2(0:nr)
-      ch_ia(iapr,isp) = quatre_pi * f_integr3(r,rh,0,nrm,Rmtsd(ipr))
+      rh(1:nr) = rho_self(1:nr,1,isp,iapr) * r2(1:nr)
+      ch_ia(iapr,isp) = quatre_pi * f_integr3(r,rh,1,nr,Rmtsd(ipr))
       if( .not. This_bulk_atom_done ) chargat_self(iapr,isp) = Real( Z, db ) / nspin - ch_ia(iapr,isp)
     end do
     if( SCF_mag_fix .and. .not. Fermi_gen ) then
-      rh(0:nr) = rho_self_t(0:nr,1,iapr) * r2(0:nr)
-      ch_ia_t(iapr) = quatre_pi * f_integr3(r,rh,0,nrm,Rmtsd(ipr))
+      rh(1:nr) = rho_self_t(1:nr,1,iapr) * r2(1:nr)
+      ch_ia_t(iapr) = quatre_pi * f_integr3(r,rh,1,nr,Rmtsd(ipr))
     endif
 
     if( icheck > 1 ) then
@@ -832,6 +871,8 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
       end do
     end if
 
+    deallocate( r, r2, rh )
+    
     proto_done(ipr) = .true.
 
   end do boucle_ia
@@ -1902,14 +1943,14 @@ subroutine prep_next_iter(Bulk_step,chargat_self,chargat_self_s,Convergence,Delt
 
   return
   110 format(/' The Fermi level was not reached ! ')
-  120 format(/' Cycle',i4,', Total Cluster energy =',f14.3,' eV')
-  130 format(/' Cycle',i4,', Total Unit cell energy =',f14.3,' eV')
+  120 format(/' Cycle',i4,', Total Cluster energy =',1pe14.5,' eV')
+  130 format(/' Cycle',i4,', Total Unit cell energy =',1pe14.5,' eV')
   140 format(/'----- prep_next_iter ', 100('-'))
-  150 format(12x,' Total energy =',f13.3,' eV, Delta energy =',f11.3,' ',a1,f8.3,' eV,  Weight =',f8.5,'. Converged !')
-  155 format(/' Cycle',i4,': Total energy =',f13.3,' eV, Delta energy =',f11.3,' ',a1,f8.3,' eV,  Weight =',f8.5,'. Converged !')
+  150 format(12x,' Total energy =',1pe13.5,' eV, Delta energy =',f11.3,' ',a1,f8.3,' eV,  Weight =',f8.5,'. Converged !')
+  155 format(/' Cycle',i4,': Total energy =',1pe13.5,' eV, Delta energy =',f11.3,' ',a1,f8.3,' eV,  Weight =',f8.5,'. Converged !')
   160 format(/' New Fermi optimization with imaginary energy divided by',i2)
-  162 format(12x,' Total energy =',f13.3,' eV, Delta energy =',f11.3,' ',a1,f8.3,' eV,  Weight =',f8.5,', Mod_p =',i2)
-  165 format(/' Cycle',i4,': Total energy =',f13.3,' eV, Delta energy =',f11.3,' ',a1,f8.3,' eV,  Weight =',f8.5,', Mod_p =',i2)
+  162 format(12x,' Total energy =',1pe13.5,' eV, Delta energy =',f11.3,' ',a1,f8.3,' eV,  Weight =',f8.5,', Mod_p =',i2)
+  165 format(/' Cycle',i4,': Total energy =',1pe13.5,' eV, Delta energy =',f11.3,' ',a1,f8.3,' eV,  Weight =',f8.5,', Mod_p =',i2)
   170 format(79x,' Next weight =',f8.5,', Mod_p =',i2)
   300 format(/6x,a3,'   Z       Energy       Charge  pop_orb_val(L)   L    Radius')
   305 format(/6x,a3,'   Z       Energy       Charge       up-dn  pop_orb_val(L)   L    Radius')

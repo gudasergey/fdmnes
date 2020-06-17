@@ -1110,11 +1110,11 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
   real(kind=db), dimension(:), allocatable:: Chg_coeur, cgrad, clapl, dExc_ex_nex, dista, distai, dvc_ex_nex, &
      E_KS_core, E_starta, Eimag, Eimag_coh, Eimag_s, Energ, Energ_coh, Energ_s, Energ_self, &
-     Energ_self_s, Enervide_t, Epsii, Exc_abs_i, Length_rel, Length_rel_abs, poidso, poidsov, poidsov_out, r, &
-     rato_abs, rsato_abs, rhons, rs, rvol, sec_atom, Taux_eq, Taux_ipr, Vc_abs_i, Vh, Vhns
+     Energ_self_s, Enervide_t, Epsii, Exc, Exc_abs_i, Length_rel, Length_rel_abs, poidso, poidsov, poidsov_out, r, &
+     rato_abs, rsato_abs, rhons, rs, rvol, sec_atom, Taux_eq, Taux_ipr, Vc, Vc_abs_i, Vh, Vhns
   real(kind=db), dimension(:,:), allocatable:: coef_g, Axe_atom_clu, Chargat_init, chargat_init_bulk, Chargat_self, &
      chargat_self_bulk, chargat_self_s, drho_ex_nex, dv_ex_nex, Excato, Int_tens, pdp, poidsa, pop_orb_val, pop_orb_val_bulk, pos, &
-     posi, posi_self, rho, rhoato_abs,rsato, V_abs_i, Vcato_abs, Vcato_init, Vcato_init_bulk, Vr, Vxc, vec, xyz, Ylmso
+     posi, posi_self, rho, rhoato_abs,rsato, V_abs_i, Vcato_abs, Vcato_init, Vcato_init_bulk, Vr, Vxc, Vxc_a, Vec, xyz, Ylmso
   real(kind=db), dimension(:,:,:), allocatable:: gradvr, Int_statedens, rho_chg, rho_chg_bulk, rho_self_t, rhoato, rhoato_init, &
      rhoato_init_bulk, rot_atom, Vcato, Vcato_bulk, Vecdafse, Vecdafss, Vra, Vrato_e, Vxcato_abs, Ylmato
   real(kind=db), dimension(:,:,:,:), allocatable:: rho_self, rho_self_bulk, rho_self_s, Vrato, Vxcato
@@ -3088,11 +3088,32 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
 ! Non excited absorbing atom potential (used in Energseuil)
         if( Second_run .or. Second_SCF ) then
-          do ispin = 1,nspin
-            V_abs_i(1:nrm,ispin) = Vcato(1:nrm,1,iaprabs_nonexc) + Vxcato(1:nrm,1,ispin,iaprabs_nonexc)
-          end do
-          Vc_abs_i(1:nrm) = Vcato(1:nrm,1,iaprabs_nonexc)
-          Exc_abs_i(1:nrm) = Excato(1:nrm,iaprabs_nonexc)
+          if( Flapw ) then
+            Exc_abs_i(:) = 0._db
+            Vc_abs_i(:) = 0._db
+            V_abs_i(:,:) = 0._db
+            nr = nrato( itypepr(iaprabs) )
+            Vc_abs_i(1:nr) = Vcato(1:nr,1,iaprabs)
+            do ispin = 1,nspin
+              V_abs_i(1:nr,ispin) = Vc_abs_i(1:nr) +  Vxcato(1:n,1,ispin,iaprabs)
+            end do
+            if( nspin == 1 ) then
+              Exc_abs_i(1:nr) = Vxcato(1:nr,1,1,iaprabs)
+            else
+              Exc_abs_i(1:nr) = ( Vxcato(1:nr,1,1,iaprabs) + Vxcato(1:nr,1,nspin,iaprabs) ) / nspin
+            endif
+          else
+            allocate( Exc(nrm) )
+            allocate( r(nrm) )
+            allocate( Vc(nrm) )
+            allocate( Vxc_a(nrm,nspin) )
+            Vc(1:nrm) = Vcato(1:nrm,1,iaprabs_nonexc)
+            Vxc_a(1:nrm,1:nspin) = Vxcato(1:nrm,1,1:nspin,iaprabs_nonexc)
+            Exc(1:nrm) = Excato(1:nrm,iaprabs_nonexc)
+            r(1:nrm) = rato(1:nrm,itab)
+            call mod_V_abs(Exc,Exc_abs_i,icheck(13),nrm,nspin,r,V_abs_i,Vc,Vc_abs_i,Vxc_a)
+            deallocate( Exc, r, Vc, Vxc_a )
+          endif
         endif
 
 ! Calculation of the core level (Kohn-Sham) energy (Epsii)

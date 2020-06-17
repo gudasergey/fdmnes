@@ -642,8 +642,7 @@ subroutine phiso(Adimp,Bessel,Besselr,E_comp,Ecinetic_out,Eclie_out,Eimag, &
   endif
 
   if( Rydberg ) then
-
-!    E_min = eps1
+  
     E_min = 1.e-06_db / Rydb   
     if( abs( Enervide ) < E_min ) then
       ee = E_min
@@ -655,7 +654,11 @@ subroutine phiso(Adimp,Bessel,Besselr,E_comp,Ecinetic_out,Eclie_out,Eimag, &
     else
       Rmax = 100._db / bohr
     endif
-
+  
+  else
+  
+    Rmax = 0._db
+  
   endif
 
   if( Rydberg .and. Rmax >= Rsort ) then

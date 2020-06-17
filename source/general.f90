@@ -2887,7 +2887,7 @@ subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_b
       ipr = iaproto(ia+1)
       ch = ch - chargat(ipr)
     endif
-    if( abs( dista(ia+1) - dista(ia) ) > eps10 ) then
+    if( abs( dista(ia+1) - dista(ia) ) > 1.e-08_db ) then
       if( abs( ch - d_ecrant ) > eps10  ) cycle
       na = ia
       chg = ch
@@ -2905,7 +2905,7 @@ subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_b
         ipr = iaproto(ia+1)
         chg = chg - chargat(ipr)
       endif
-      if( abs( dista(ia+1) - dista(ia) ) < eps10 ) cycle
+      if( abs( dista(ia+1) - dista(ia) ) < 1.e-08_db ) cycle
       ch_test = chg - d_ecrant
       if( abs(ch_test) > abs(ch_min) - eps10 ) cycle
       ch_min = ch_test
@@ -10251,7 +10251,7 @@ subroutine Energseuil(Core_energ_tot,Core_resolved,Delta_Epsii,Delta_Eseuil,E_ze
     E_Vxc = 0._db
     do isp = 1,nspin
       fct(1:nr) = rho(1:nr) * ( V_abs_i(1:nr,isp) - Vc_abs_i(1:nr) )
-      E_Vxc = E_Vxc + f_integr3(r,fct,1,nrm,Rmtsd) / nspin
+      E_Vxc = E_Vxc + f_integr3(r,fct,1,nr,Rmtsd) / nspin
     end do
 
     E_T = E_KS(i) - E_elec + E_exc - E_Vxc
@@ -12067,7 +12067,7 @@ end
   use declarations
   implicit none
 
-  integer:: i, ir0, nrm
+  integer:: i, ipr, ir0, nrm
 
   logical:: This_is_the_end
 
@@ -12075,9 +12075,20 @@ end
                   rap34, rm, rp, Tiers
   real(kind=db), dimension(ir0:nrm):: fct, r
 
+  f_integr3 = 0._db
+
+  if( Radius < eps10 ) return
+
+  if( nrm < 4 ) then
+    call write_error
+    do ipr = 6,9,3
+      write(ipr,110) nrm
+    end do
+    stop
+  endif
+
   Tiers = 1._db / 3
   This_is_the_end = .false.
-  f_integr3 = 0._db
 
   do i = 1,nrm-1
     if( i == 1 ) then
@@ -12112,6 +12123,16 @@ end
     elseif( i == nrm-1 .or. r(i+1) > Radius ) then
       rm = r(i)
       rp = r(nrm)
+      if( i < 3 ) then
+        r1 = r(i-1)
+        f1 = fct(i-1)
+        r2 = r(i)
+        f2 = fct(i)
+        r3 = r(i+1)
+        f3 = fct(i+1)
+        r4 = r(i+2)
+        f4 = fct(i+2)
+      endif
     else
       r1 = r(i-1)
       f1 = fct(i-1)
@@ -12148,6 +12169,7 @@ end
   end do
 
   return
+  110 format(/' Call to function f_integr3 needs a number of point higher than 3, here it is =',i2,' !')
 end
 
 !***********************************************************************

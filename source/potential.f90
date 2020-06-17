@@ -55,8 +55,8 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_gr
   real(kind=db), dimension(0:nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self):: rho_self
   real(kind=db), dimension(0:nrm_self,nspin,n_atom_0_self:n_atom_ind_self):: rho_chg, rhoato_init
-  real(kind=db), dimension(nrm):: dExc_ex_nex, dvc_ex_nex, Exc, Exc_abs_i, Vc_abs_i
-  real(kind=db), dimension(nrm,nspin):: drho_ex_nex, dv_ex_nex, V_abs_i
+  real(kind=db), dimension(nrm):: dExc_ex_nex, dvc_ex_nex, Exc, Exc_abs_i, Vc, Vc_abs_i
+  real(kind=db), dimension(nrm,nspin):: drho_ex_nex, dv_ex_nex, V_abs_i, Vxc_a
   real(kind=db), dimension(0:nrm_self,n_atom_0_self:n_atom_ind_self):: Vcato_init
   real(kind=db), dimension(npoint,nspin):: Vxc, rho
   real(kind=db), dimension(3,3):: Rot_int
@@ -79,8 +79,9 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
   real(kind=db), dimension(0:n_atom_proto,nlatm,nspin):: popatm
   real(kind=db), dimension(0:nrm,0:ntype):: Rato, rhoit
   real(kind=db), dimension(0:nrm,nlatm,0:ntype):: psival
-  real(kind=db), dimension(0:nrm):: drhoato_e, dvcato_e, r, rhr2, Vcato_init_e
+  real(kind=db), dimension(0:nrm):: drhoato_e, dvcato_e, rhr2, Vcato_init_e
   real(kind=db), dimension(n_atom_0:n_atom_ind):: ch
+  real(kind=db), dimension(:), allocatable:: r
 
   drhoato_e(:)= 0._db
 
@@ -265,17 +266,26 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
     endif
 
     if( ( ( .not. Cal_xanes .and. Self_nonexc ) .or. i_self == 1 ) .and. iapr == iaprabs ) then
-      do ispin = 1,nspin
-        V_abs_i(1:nrm,ispin) = Vcato_e(1:nrm,1) + Vxcato_e(1:nrm,1,ispin)
-      end do
-      Vc_abs_i(1:nrm) = Vcato_e(1:nrm,1)
-      Exc_abs_i(1:nrm) = Exc(1:nrm)
+
+      allocate( r(nrm) )
+      Vc(1:nrm) = Vcato_e(1:nrm,1)
+      Vxc_a(1:nrm,1:nspin) = Vxcato_e(1:nrm,1,1:nspin)
+      r(1:nrm) = rato(1:nrm,itab)
+      call mod_V_abs(Exc,Exc_abs_i,icheck(13),nrm,nspin,r,V_abs_i,Vc,Vc_abs_i,Vxc_a)
+      deallocate( r )
+
     elseif( .not. Cal_xanes .and. .not. Self_nonexc .and. iapr == iaprex ) then
+
+      allocate( r(nrm) )
+      Vc(1:nrm) = Vcato_e(1:nrm,1) - dvc_ex_nex(1:nrm)
       do ispin = 1,nspin
-        V_abs_i(1:nrm,ispin) = Vcato_e(1:nrm,1) + Vxcato_e(1:nrm,1,ispin) - dv_ex_nex(1:nrm,ispin)
+        Vxc_a(1:nrm,ispin) = Vxcato_e(1:nrm,1,ispin) - dv_ex_nex(1:nrm,ispin) + dvc_ex_nex(1:nrm)
       end do
-      Vc_abs_i(1:nrm) = Vcato_e(1:nrm,1) - dvc_ex_nex(1:nrm)
-      Exc_abs_i(1:nrm) = Exc(1:nrm) - dExc_ex_nex(1:nrm)
+      Exc(1:nrm) = Exc(1:nrm) - dExc_ex_nex(1:nrm)
+      r(1:nrm) = rato(1:nrm,itab)
+      call mod_V_abs(Exc,Exc_abs_i,icheck(13),nrm,nspin,r,V_abs_i,Vc,Vc_abs_i,Vxc_a)
+      deallocate( r )
+
     endif
 
   end do ! end of loop on the atoms
@@ -315,6 +325,7 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
 
 ! Writing: the atom charge is integrated up to Rmtsd, here before any superposition
   if( i_self == 1 .and. icheck(13) > 2 ) then
+    allocate( r(0:nrm) )
     ch(:) = 0._db
     write(3,140); write(3,150)
     do iapr = n_atom_0,n_atom_ind
@@ -333,6 +344,7 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
       end do
       write(3,160) iapr, ch(iapr)
     end do
+    deallocate( r )
   end if
 
   return
@@ -1686,6 +1698,77 @@ subroutine Force_pot_eq(Do_init,drhoato,dVcato,Excato,iaprotoi,n_atom_0,n_atom_0
 end
 
 !***********************************************************************
+
+! Modification of the superposed potential of the non excited absorbing atom
+! to have it increasing up to zero at r(nr)
+! When becoming constant, we use V(r) = a / r + b
+! Used to calculated Epsii
+
+subroutine mod_V_abs(Exc,Exc_abs_i,icheck,nr,nspin,r,V_abs_i,Vc,Vc_abs_i,Vxc)
+
+  use declarations
+  implicit none
+
+  integer:: i, icheck, ir, j, nr, nspin
+
+  real(kind=db):: a, b
+  real(kind=db), dimension(nr):: Exc, Exc_abs_i, r, V, Vc, Vc_abs_i
+  real(kind=db), dimension(nr,nspin):: V_abs_i, Vxc
+
+  do j = 1,2+nspin
+
+    select case(j)
+      case(1)
+        V(:) = Vc(:)
+      case(2)
+        V(:) = Exc(:)
+      case(3)
+        V(:) = Vc(:) + Vxc(:,1)
+      case(4)
+        V(:) = Vc(:) + Vxc(:,nspin)
+    end select
+
+    do ir = 3,nr
+      if( V(ir) < V(ir-1) + eps10 ) exit
+    end do
+    if( ir < nr ) then
+      i = ir - 2
+      a = V(i) * r(i) * r(nr) / ( r(nr) - r(i) )
+      b =  - a / r(nr)
+      do ir = i + 1, nr
+        V(ir) = a / r(ir) + b
+      end do
+    endif
+
+    select case(j)
+      case(1)
+        Vc_abs_i(:) = V(:)
+      case(2)
+        Exc_abs_i(:) = V(:)
+      case(3)
+        V_abs_i(:,1) = V(:)
+      case(4)
+        V_abs_i(:,2) = V(:)
+    end select
+
+  end do
+
+  if( icheck > 2 ) then
+    write(3,'(/A)') '   Non excited absorbing atom potential, for the calculation of Epsii'
+    if( nspin == 1 ) then
+      write(3,'(/A)') '     Radius        V           Vc           Exc'
+    else
+      write(3,'(/A)') '     Radius       V_up        V_dn           Vc          Exc'
+    endif
+    do ir = 1,nr
+      write(3,'(f13.8,1p,4e13.5)') r(ir)*bohr, V_abs_i(ir,:)*rydb, Vc_abs_i(ir)*rydb, Exc_abs_i(ir)*rydb
+    end do
+  endif
+
+  return
+end
+
+!************************************************************************************
 
 subroutine Raymuf(Cal_xanes,Chargat,Full_atom,i_self,iapot,iaproto,iaprotoi,icheck,iprabs, &
         ipr1,itab,itypei,itypep,itypepr,n_atom_0,n_atom_ind,n_atom_proto,natome,natomeq,natomp,nlm_pot, &
@@ -3123,13 +3206,22 @@ subroutine Potlapw(axyz,Chargat,Coupelapw,deccent,Exc_abs_i,Flapw_new,Full_atom,
   endif
 
 ! Absorbing atom potential for calculation of Epsii
-  Exc_abs_i(1:nrm) = 0._db
+
+  Exc_abs_i(:) = 0._db
+  Vc_abs_i(:) = 0._db
+  V_abs_i(:,:) = 0._db
+
+  nr = nrato( itypepr(iprabs) )
+
+  Vc_abs_i(1:nr) = Vcato(1:nr,1,iprabs)
   do ispin = 1,nspin
-    V_abs_i(1:nrm,ispin) = Vcato(1:nrm,1,iprabs) + Vxcato(1:nrm,1,ispin,iprabs)
- ! I take the same than Vxc, because I am lazy... Effect is only for the calculation of total energy for core level (which is not the default option)
-    Exc_abs_i(1:nrm) = Exc_abs_i(1:nrm) + Vxcato(1:nrm,1,ispin,iprabs) / nspin
+    V_abs_i(1:nr,ispin) = Vc_abs_i(1:nr) +  Vxcato(1:n,1,ispin,iprabs)
   end do
-  Vc_abs_i(1:nrm) = Vcato(1:nrm,1,iprabs)
+  if( nspin == 1 ) then
+    Exc_abs_i(1:nr) = Vxcato(1:nr,1,1,iprabs)
+  else
+    Exc_abs_i(1:nr) = ( Vxcato(1:nr,1,1,iprabs) + Vxcato(1:nr,1,nspin,iprabs) ) / nspin
+  endif
 
   if( icheck > 1 ) then
     if( nspin == 1 ) then

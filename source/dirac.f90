@@ -336,9 +336,8 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
 
   if( icheck > 0 .and. it /= 0 ) then
     if( nlat(it) /= 0 ) then
-      write(3,'(/A/A/A)') ' The occupancies below are the one used for the self-consistent calculation', &
-                      ' of the atomic radial wave functions of the occupied levels', &
-       ' The real occupancy corresponding to the demand in the indata file can be different and is applied afterwards'
+      write(3,'(/A/A)') ' The occupancies below are the one used for the calculation of the isolated atom', &
+       ' The real occupancy corresponding to the indata file can be different, and is applied afterwards'
     endif
       
     if( .not. Dirac_eq ) then

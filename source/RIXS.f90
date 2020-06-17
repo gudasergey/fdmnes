@@ -461,7 +461,7 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
                 write(3,130) ie_not_fast, ie_oc, ie_loss, E_i*rydb
               endif
             endif 
-            write(3,140) Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, E_loss(ie_loss)*rydb
+            if( icheck > 0 ) write(3,140) Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, E_loss(ie_loss)*rydb
               
             Write_bav = icheck > 1 .or. ( icheck == 1 .and. ie_not_fast == 1 .and. ie_oc == 1 .and. ie_loss == 1 )
                         
@@ -1002,7 +1002,7 @@ subroutine radial_RIXS(E_Fermi,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft,
 
 ! Radial integral for the golden rule
     call radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,L,nlm1,nlm2,nbseuil, &
-           ninitv,nlma,nlma2,nr,NRIXS,nrm,nrmtsd,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)
+           ninitv,nlma,nlma2,nr,NRIXS,nrm,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)
 
     deallocate( Tau, ui, ur )
 
@@ -1482,13 +1482,16 @@ subroutine Cal_Pol(icheck,Pol_i_s,Pol_i_p,Pol_s_s,Pol_s_p,Theta,Trans_Lab_Dir_Q,
   Cos_2t = cos( Two_theta_L )
   Sin_2t = sin( Two_theta_L )
 
-! Wave vector and polarization in lab frame
+! Wave vector and polarization in lab frame with 
+! x vertical, y along the incoming beam, z horizontal perp to the incoming beam
+! The scheme corresponds to a vertical sample, sigma polarization is perpendicular to the scattering plane,
+! that is vertical in the lab, along x
   Vec_i(1) = 0._db;   Vec_i(2) = 1._db;  Vec_i(3) = 0._db  
   Vec_s(1) = 0._db;   Vec_s(2) = Cos_2t; Vec_s(3) = Sin_2t
-  Pol_i_s(1) = 0._db; Pol_i_s(2) = 0._db; Pol_i_s(3) = 1._db   
-  Pol_i_p(1) = 1._db; Pol_i_p(2) = 0._db; Pol_i_p(3) = 0._db   
-  Pol_s_s(1) = 0._db; Pol_s_s(2) = - Sin_2t; Pol_s_s(3) = Cos_2t   
-  Pol_s_p(1) = 1._db; Pol_s_p(2) = 0._db; Pol_s_p(3) = 0._db   
+  Pol_i_s(1) = 1._db; Pol_i_s(2) = 0._db; Pol_i_s(3) = 0._db   
+  Pol_i_p(1) = 0._db; Pol_i_p(2) = 0._db; Pol_i_p(3) = 1._db   
+  Pol_s_s(1) = 1._db; Pol_s_s(2) = 0._db; Pol_s_s(3) = 0._db   
+  Pol_s_p(1) = 0._db; Pol_s_p(2) = - Sin_2t; Pol_s_p(3) = Cos_2t   
 
   Cos_t = cos( pi/2 - Theta )
   Sin_t = sin( pi/2 - Theta )  
@@ -3733,7 +3736,7 @@ subroutine Write_Int_rixs(File_name,n_File,RIXS_core)
   
   File_name_o = File_name(1)
   Length = len_trim(File_name_o)
-  if( File_name_o(Length-5:Length-3) == '_1') then
+  if( File_name_o(Length-5:Length-4) == '_1') then
     File_name_o(Length-5:Length) = '      '
   else
     File_name_o(Length-3:Length) = '    '

@@ -2374,6 +2374,9 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
         k_i(:) = Mat_p(:,2)
         p_i(:) = Mat_p(:,3)
 
+        p_i_s(:) = p_i(:)
+        call prodvec(p_i_p,k_i,p_i_s)
+
       endif
 
       k_s(:) = H_phi(:) / konde + k_i(:)
@@ -2450,10 +2453,11 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 ! The following establishment of isigpi and angpoldafs is for the Col_dafs_name routine
       if( Film .or. Bulk ) then
         cos_p = abs( sum( p_i(:) * Vec(:) ) )
-        call prodvec(W,p_i_s,k_i)
+        call prodvec(W,k_i,p_i_s)
         a = sqrt( sum( ( W(:) - p_i_p(:) )**2 ) )
         Pol_pi = a < eps10
       else
+        Pol_pi = .false.
         if( Q_mod(ipl) > eps10 ) then
           cos_p = abs( sum( p_i(:) * H_phi(:) ) ) / Q_mod(ipl)
         else

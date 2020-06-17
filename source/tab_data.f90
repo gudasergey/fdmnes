@@ -986,9 +986,14 @@ function n_orb_coeur(Z)
   integer:: n_orb_coeur, Z
   integer, dimension(Z_Mendeleiev_max):: nc
 
-  data nc/ 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, &
-     7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10, &
-             12,12,12,12,12,12,12,12,12,12,12,12,13,13,13, 14,14,14,14,14,14,14,15,15,15,15,15,15,15,15,15,15/
+  data nc/ 0,                                                 0, &
+           1, 1,                               1, 1, 1, 1, 2, 2, &
+           3, 3,                               3, 3, 3, 3, 3, 3, &
+           4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, &
+           7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, &
+          10,10, 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10, &
+                 12,12,12,12,12,12,12,12,12, 12,12,12,13,13,13, &
+          14,14, 14,14,14,14,14,15,15,15,15,15,15,15,15,15,15/
 
   n_orb_coeur = nc(Z)
 
@@ -997,21 +1002,50 @@ end
 
 !*********************************************************************
 
-! Index l of the valence orbital, by default partialy occupied
+! Not used: for test
+! Index of the last core orbital. Called by dirgen.
+! Order of the occupancy orbital: 1s[He]2s2p[Ne]3s3p[Ar]4s3d4p[Kr]5s4d5p[Xe]6s4f5d6p[Rn]7s6d5f
+! inversion: 6s2 4f0 5d1, then one fills the 4f, then the 6p
 
-function l_level_val(Z)
+function n_orb_coeur_test(Z)
 
-  integer:: Z, l_level_val
+  use declarations
+  implicit none
+  
+  integer:: n_orb_coeur_test, Z
+  integer, dimension(Z_Mendeleiev_max):: nc
+
+  data nc/ 0,                                                 0, &
+           1, 1,                               1, 1, 1, 1, 1, 2, &
+           3, 3,                               3, 3, 3, 3, 3, 3, &
+           5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, &
+           8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, &
+          11,11, 11,11,11,11,11,11,11,11,11,11,11,11,11,11, &
+                 11,11,11,11,11,11,11,11,11,11, 12,12,12,12,12,12, &
+          15,15, 15,15,15,15,15,15,15,15,15,15,15,15,15,15,15/
+
+  n_orb_coeur_test = nc(Z)
+
+  return
+end
+
+!*********************************************************************
+
+! Index L of the valence orbital, by default partialy occupied
+
+function L_level_val(Z)
+
+  integer:: Z, L_level_val
 
   select case( Z )
     case(1,2,3,4,11,12,19,20,37,38,55,56,87,88)
-      l_level_val = 0
+      L_level_val = 0
     case(5,6,7,8,9,13,14,15,16,17,18,31,32,33,34,35,36, 49,50,51,52,53,54,81,82,83,84,85,86)
-      l_level_val = 1
+      L_level_val = 1
     case(21,22,23,24,25,26,27,28,29,30,39,40,41,42,43,44,45, 46,47,48,57,72,73,74,75,76,77,78,79,80,89)
-      l_level_val = 2
+      L_level_val = 2
     case default
-      l_level_val = 3
+      L_level_val = 3
   end select
 
   return
@@ -1160,9 +1194,9 @@ end
 
 !*********************************************************************
 
-! lmax value for the COOP
+! Lmax value for the COOP
 
-function lmax_coop(Z)
+function Lmax_coop(Z)
 
   use declarations
   implicit none
@@ -1186,7 +1220,7 @@ function lmax_coop(Z)
     stop
   endif
 
-  lmax_coop = lmax_c(Z)
+  Lmax_coop = lmax_c(Z)
 
   return
   110 format(//' Z =',i12,' < 0 or > Z_Mendeleiev_max =',i4,' in function lmax_coop !'//)

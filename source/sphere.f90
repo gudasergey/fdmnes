@@ -1588,7 +1588,7 @@ subroutine radial(Classic_irreg,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft
 
 ! Radial integral for the golden rule
     call radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,L,nlm1,nlm2,nbseuil, &
-           ninitv,nlma,nlma2,nr,NRIXS,nrm,nrmtsd,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)
+           ninitv,nlma,nlma2,nr,NRIXS,nrm,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)
 
 ! Calculation of irregular solution
     if( Solsing ) call Cal_Solsing(Classic_irreg,Ecomp,Eimag,f2,Final_tddft,Full_potential,g0,gmi,gp,gso,Hubb_a,Hubb_d, &
@@ -1763,13 +1763,13 @@ end
 ! psii, u and ur are wave functions time r.
 
 subroutine radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,L,nlm1,nlm2,nbseuil, &
-           ninitv,nlma,nlma2,nr,NRIXS,nrm,nrmtsd,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)
+           ninitv,nlma,nlma2,nr,NRIXS,nrm,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)
 
   use declarations
   implicit none
 
   integer initlv, ip, ip_max, ip0, iseuil, is, isol, isp, iss, L, lm, lm1, lm2, nlm1, nlm2, n1, n2, nbseuil, &
-    ninitv, nlma, nlma2, nr, nrm, nrmtsd, ns1, ns2, nspino, nspinp
+    ninitv, nlma, nlma2, nr, nrm, ns1, ns2, nspino, nspinp
 
   complex(kind=db), dimension(nlma,nlma2,nspinp,nspino,ip0:ip_max, ninitv):: rof
 
@@ -1780,7 +1780,7 @@ subroutine radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,L,nlm1,nlm2,nbseui
   real(kind=db), dimension(nr):: r, fct
   real(kind=db), dimension(nrm,nbseuil):: psii
   real(kind=db), dimension(nr,ip0:ip_max):: r_or_bess
-  real(kind=db), dimension(nrmtsd,nbseuil):: psiir
+  real(kind=db), dimension(nr,nbseuil):: psiir
   real(kind=db), dimension(nr,nlm1,nlm2,nspinp,nspino):: ui, ur
 
   if( Final_tddft ) then
@@ -1792,7 +1792,7 @@ subroutine radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,L,nlm1,nlm2,nbseui
   endif
 
   do is = 1,nbseuil
-    psiir(1:nrmtsd,is) =  psii(1:nrmtsd,is) * r(1:nrmtsd) 
+    psiir(1:nr,is) =  psii(1:nr,is) * r(1:nr) 
   end do
 
   lm1 = L**2
@@ -1829,10 +1829,10 @@ subroutine radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,L,nlm1,nlm2,nbseui
           do isol = 1,nspino
             do n2 = 1,nlm2
 
-              fct(1:nrmtsd) = psiir(1:nrmtsd,iseuil) * ur(1:nrmtsd,n1,n2,isp,isol) * r_or_bess(1:nrmtsd,ip)
+              fct(1:nr) = psiir(1:nr,iseuil) * ur(1:nr,n1,n2,isp,isol) * r_or_bess(1:nr,ip)
               radlr = fac * f_integr3(r,fct,1,nr,Rmtsd)
               if( Radial_comp ) then
-                fct(1:nrmtsd) = psiir(1:nrmtsd,iseuil) * ui(1:nrmtsd,n1,n2,isp,isol) * r_or_bess(1:nrmtsd,ip)
+                fct(1:nr) = psiir(1:nr,iseuil) * ui(1:nr,n1,n2,isp,isol) * r_or_bess(1:nr,ip)
                 radli = fac * f_integr3(r,fct,1,nr,Rmtsd)
               else
                 radli = 0._db
@@ -1880,7 +1880,8 @@ subroutine radial_matrix_optic(ip_max,ip0,ne,nlm1g,nlm_fp,nr,nrmtsd,nspinp,nspin
   logical:: Radial_comp
 
   real(kind=db):: f_integr3, fac, Rmtsd, Vecond
-  real(kind=db), dimension(nr):: r, rp, fct
+  real(kind=db), dimension(nr):: r
+  real(kind=db), dimension(nrmtsd):: rp, fct
   real(kind=db), dimension(nr,nlm1g,nlm_fp,nspinp,nspino,ne):: ui, ur
   real(kind=db), dimension(nlm1g,nlm1g,nlm_fp,nlm_fp,nspinp**2,nspino**2,ip0:ip_max):: roff_ii, roff_ir, roff_ri, roff_rr
 
@@ -1917,26 +1918,26 @@ subroutine radial_matrix_optic(ip_max,ip0,ne,nlm1g,nlm_fp,nr,nrmtsd,nspinp,nspin
                       fct(ir) = ur(ir,n1i,n2i,ispi,isoli,1) * ur(ir,n1f,n2f,ispf,isolf,2) * rp(ir)
                     end do
 
-                    roff_rr(n1i,n1f,n2i,n2f,isp,isol,ip) = fac * f_integr3(r,fct,1,nr,Rmtsd)
+                    roff_rr(n1i,n1f,n2i,n2f,isp,isol,ip) = fac * f_integr3(rp,fct,1,nrmtsd,Rmtsd)
 
                     if( Radial_comp ) then
                       do ir = 1,nrmtsd
                         fct(ir) = ur(ir,n1i,n2i,ispi,isoli,1) * ui(ir,n1f,n2f,ispf,isolf,2) * rp(ir)
                       end do
 
-                      roff_ri(n1i,n1f,n2i,n2f,isp,isol,ip) = fac * f_integr3(r,fct,1,nr,Rmtsd)
+                      roff_ri(n1i,n1f,n2i,n2f,isp,isol,ip) = fac * f_integr3(rp,fct,1,nrmtsd,Rmtsd)
 
                       do ir = 1,nrmtsd
                         fct(ir) = ui(ir,n1i,n2i,ispi,isoli,1) * ur(ir,n1f,n2f,ispf,isolf,2) * rp(ir)
                       end do
 
-                      roff_ir(n1i,n1f,n2i,n2f,isp,isol,ip) = fac * f_integr3(r,fct,1,nr,Rmtsd)
+                      roff_ir(n1i,n1f,n2i,n2f,isp,isol,ip) = fac * f_integr3(rp,fct,1,nrmtsd,Rmtsd)
 
                       do ir = 1,nrmtsd
                         fct(ir) = ui(ir,n1i,n2i,ispi,isoli,1) * ui(ir,n1f,n2f,ispf,isolf,2) * rp(ir)
                       end do
 
-                      roff_ii(n1i,n1f,n2i,n2f,isp,isol,ip) = fac * f_integr3(r,fct,1,nr,Rmtsd)
+                      roff_ii(n1i,n1f,n2i,n2f,isp,isol,ip) = fac * f_integr3(rp,fct,1,nrmtsd,Rmtsd)
 
                     endif
 
@@ -3539,7 +3540,7 @@ subroutine Radial_matrix_sd(Diagonale,drho,Full_potential,Harm_cubic,icheck,L,lm
                                       else
                                         fcr(1:nrmtsd) = r2(1:nrmtsd) * ur(1:nrmtsd,n1,np1,isp1,iso1) &
                                                                      * ur(1:nrmtsd,n2,np2,isp2,iso2)
-                                        radlr = f_integr3(rr,fcr,1,nrmtsd, Rmtsd)
+                                        radlr = f_integr3(rr,fcr,1,nrmtsd,Rmtsd)
                                         fci(:) = 0._db
                                         radli = 0._db
                                       endif
@@ -6366,7 +6367,7 @@ subroutine Radial_wave(Ecinetic,Eimag,Energ,Enervide,Full_potential,Hubb_a,Hubb_
 
 ! Integrale radiale pour la regle d'or de Fermi
     call radial_matrix(.true.,1,0,0,iseuil,L,nlm1,nlm2,nbseuil, &
-           1,nlmam,nlmam2,nr,NRIXS,nrm,nrmtsd,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)
+           1,nlmam,nlmam2,nr,NRIXS,nrm,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)
 
 ! Recopie
     if( Full_potential ) then
@@ -6575,7 +6576,7 @@ end
 
 !***********************************************************************
 
-! Calcul L'integrale de 0 a r (is=1) ou r a Rmtsd (is=-1) de fct
+! Calculation of the integral from 0 to r (is=1) or from r to Rmtsd (is=-1) of fct
 
 subroutine ffintegr2_r(fint,fct,r,n,is,Rmtsd)
 
@@ -6589,6 +6590,8 @@ subroutine ffintegr2_r(fint,fct,r,n,is,Rmtsd)
   real(kind=db), dimension(n):: r
 
   tiers = 1._db / 3._db
+
+  dintegr(:) = 0._db
 
   if( is == 1 ) then
     i1 = 1

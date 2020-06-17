@@ -5492,15 +5492,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
           if( lmaxso_max < 1000000 ) write(3,455) lmaxso_max
           if( Muffintin ) write(3,'(A)') '   Muffin-tin potential'
           if( Rydberg ) write(3,460) R_rydb
-          if( Noncentre ) write(3,'(A)') '   Non centered absorbing atom'
-          if( Center_s ) write(3,'(A)') '   No surface centering'
-          if( sum( abs(Centre(:)) ) > epspos ) then
-            if( Center_s ) then
-              write(3,470) Centre(1:2)
-            else
-              write(3,470) Centre(:)
-            endif
-          endif
           if( .not. Eneg_i ) write(3,480) Eclie, Eclie_out
           if( V_intmax < 100000._db ) write(3,490) V_intmax
         endif
@@ -5878,6 +5869,14 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
         elseif( Cap_B_iso > eps10 ) then
           write(3,640) 'B_iso    ', Cap_B_iso
         endif
+      endif
+
+      if( Center_s ) then
+        write(3,'(/A)') '   No surface centering'
+        write(3,'(a11,2f10.3)') '   Center =', Centre(1:2)
+      elseif( Noncentre ) then
+        write(3,'(/A)') '   Cluster not automatically centered on the absorbing atom'
+        write(3,'(a11,2f10.3)') '   Center =', Centre(:)
       endif
 
 ! About potential
@@ -6667,7 +6666,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
   450 format('   lmaxso0 =',i3)
   455 format('   lmaxso_max =',i5)
   460 format('   R_rydb =',f7.3,' A')
-  470 format('   Center =',3f7.3)
   480 format('   E_ato_min, E_out_min =',2f7.3,' eV')
   490 format('   V_intmax =',f7.3,' eV')
   500 format(/' Temperature =',f6.1,' K')
