@@ -2419,7 +2419,7 @@ end
 subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho_int, &
         Base_ortho_sur,Bulk,Bulk_step,Center_s,Centre,Chargat,d_ecrant,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
         dpos,Film_shift,Film_thickness,First_run,Flapw,iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift, &
-        itabs,itype,Kgroup,Matper,mpirank0,multi_run,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_uc, &
+        itabs,itype,Kgroup,Matper,mpirank0,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_uc, &
         n_atom_sur,n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
         Noncentre,posn,posn_bulk,Proto_all,r_self,rsorte_s,rmax,rpotmax,Self_cons,Surface_shift,Sym_2D, &
         Taux_oc)
@@ -2427,7 +2427,7 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
   use declarations
   implicit none
 
-  integer:: i_radius, iabsfirst, iabsorbeur, icheck, igr, igr_dop, igr0, ipr, itabs, ix, iy, iz, jgr, mpirank0, multi_run, &
+  integer:: i_radius, iabsfirst, iabsorbeur, icheck, igr, igr_dop, igr0, ipr, itabs, ix, iy, iz, jgr, mpirank0, &
      multrmax, n_atom_bulk, n_atom_int, n_atom_per, n_atom_proto, n_atom_proto_uc, n_atom_sur, n_atom_uc, n_igr, n_radius, &
      natomeq_coh, natomp, natomr, neqm, ngroup, ngroup_pdb, ngroup_taux, nxmaille, nymaille, nzmaille
 
@@ -2758,7 +2758,7 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
     call Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
             Base_ortho_sur,Bulk,Bulk_step,Center_s,chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
             Doping,dpos,Film_shift,Film_thickness,First_run, &
-            iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0,multi_run, &
+            iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0, &
             n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb, &
             ngroup_taux,Noncentre,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
     natomp = natomr
@@ -2802,14 +2802,14 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
 subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho,Base_ortho_int, &
             Base_ortho_sur,Bulk,Bulk_step,Center_s,chargat,d_ecrant,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
             Doping,dpos,Film_shift,Film_thickness,First_run, &
-            iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0,multi_run, &
+            iabsorbeur,iabsfirst,icheck,igr_dop,igreq,Interface_shift,itabs,itype,Kgroup,matper,mpirank0, &
             n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc,natomp,natomr,ngreq,ngroup,ngroup_pdb, &
             ngroup_taux,Noncentre,posn,posn_bulk,Rmax,Rsortm,Surface_shift,Sym_2D,Taux_oc)
 
   use declarations
   implicit none
 
-  integer:: ia, iaabs, iaabsfirst, iabsorbeur, iabsfirst, icheck, igr, igr_dop, ipr, itabs, mpirank0, multi_run, &
+  integer:: ia, iaabs, iaabsfirst, iabsorbeur, iabsfirst, icheck, igr, igr_dop, ipr, itabs, mpirank0, &
             n_atom_bulk, n_atom_int, &
             n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, na, natomp, natomq, natomr, ngroup, ngroup_pdb, ngroup_taux
   integer, dimension(natomp):: iaproto, igroup, itypep
@@ -2839,7 +2839,7 @@ subroutine Reduc_natomp(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_b
               Base_ortho_sur,Bulk,Bulk_step,Center_s,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
               dista,Doping,dpos,Film_shift,Film_thickness,First_run, &
               iaabs,iaabsfirst,iabsorbeur,iabsfirst,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
-              multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
+              n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
               pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
   do ia = 1,natomp
@@ -2932,14 +2932,14 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
               Base_ortho_sur,Bulk,Bulk_step,Center_s,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
               dista,Doping,dpos,Film_shift,Film_thickness,First_run, &
               iaabs,iaabsfirst,iabsorbeur,iabsfirst,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
-              multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
+              n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
               pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
   use declarations
   implicit none
 
   integer:: ia, ia1, ia2, iaabs, iaabsfirst, iabsorbeur, iabsfirst, ib, igr, igr0, igr_dop, igr12, ipr, iprint, itabs, ity12, &
-    ix, iy, iz, jgr, kgr, mpirank0, multi_run, n_atom_bulk, n_atom_int, n_atom_per, n_atom_sur, n_atom_uc, n_igr, natomp, &
+    ix, iy, iz, jgr, kgr, mpirank0, n_atom_bulk, n_atom_int, n_atom_per, n_atom_sur, n_atom_uc, n_igr, natomp, &
     ngroup, ngroup_pdb, ngroup_taux, nxmaille, nymaille, nzmaille
   integer, dimension(ngroup):: itype
   integer, dimension(natomp):: igroup, itypep
@@ -3352,14 +3352,18 @@ end
 
 !*********************************************************************
 
-! Cluster building
+! Cluster building and ponctual group evaluation
+
+! The punctual group of the cluster is evaluated with the absorbing atom eventually excited including for the ground state SCF step
+! Nevertheless the reduction of symmetry is only when the absorbing atom is not at the center
+! In the same way, "Atom_nonsph" is usuefull only for XANES step, not SCF
 
 subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn, &
           axyz,axyz_bulk,axyz_int,axyz_sur,Base_hexa,Base_ortho_int,Base_ortho_sur,Bulk,Bulk_step,Center_s, &
           Chargat,Cubmat,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,dista, &
           Doping,dpos,Film_shift,Film_thickness,First_run,iaabs,iaabsfirst,iabsorbeur,iabsfirst, &
           iaproto,iapot,icheck,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,Interface_shift,iopsymc,iopsymr,itabs,itype,itypep, &
-          karact,Kgroup,Magnetic,Matper,mpirank0,multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc, &
+          karact,Kgroup,Magnetic,Matper,mpirank0,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc, &
           natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat,nlatm,Noncentre,nspin,ntype,numat, &
           Orthmat,Orthmati,Orthmatt,PointGroup,PointGroup_Auto,popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc, &
           Spinorbite,Rot_Atom_gr,Struct,Surface_shift,Sym_2D,Sym_4,Sym_cubic,Symmol,Taux,Taux_oc,Test_dist_min)
@@ -3369,7 +3373,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
 
   integer:: i, ia, iaabs, iaabsfirst, iabsorbeur, iabsfirst, ib, ic, icheck, igr, igr_dop, igrpt, igrpt_nomag, igrpt_sg, &
     igrpt_sg_cmp, &
-    igrpt_sg_cal, igrpt_sg_so, igrpt0, igrptn, ipr, ired, istop, it, itabs, k, mpirank0, multi_run, n_atom_bulk, n_atom_int, &
+    igrpt_sg_cal, igrpt_sg_so, igrpt0, igrptn, ipr, ired, istop, it, itabs, k, mpirank0, n_atom_bulk, n_atom_int, &
     n_atom_per, n_atom_proto, n_atom_sur, n_atom_uc, natomp, nb_rep, nb_sym_op, neqm, ngroup, ngroup_m, ngroup_pdb, ngroup_taux, &
     nlatm, npr1, nspin, ntype, Za, Zb
 
@@ -3432,7 +3436,7 @@ subroutine agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,At
               Base_ortho_sur,Bulk,Bulk_step,Center_s,dcosxyz,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur, &
               dista,Doping,dpos,Film_shift,Film_thickness,First_run, &
               iaabs,iaabsfirst,iabsorbeur,iabsfirst,igr_dop,igroup,Interface_shift,itabs,itype,itypep,Kgroup,Matper,mpirank0, &
-              multi_run,n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
+              n_atom_bulk,n_atom_int,n_atom_per,n_atom_sur,n_atom_uc,natomp,ngroup,ngroup_pdb,ngroup_taux,Noncentre, &
               pos,posn,posn_bulk,Rmax,Surface_shift,Sym_2D,Taux_oc)
 
   if( icheck > 0 ) write(3,130) iaabs

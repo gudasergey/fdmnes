@@ -4108,39 +4108,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
 ! End of lecture.
 
-!*** JDB
-    if (.NOT. adimpin .AND. Use_FDMX) then
-      adimp(1:5) = (/ 0.24, 0.20, 0.16, 0.12, 0.08 /)
-      E_adimp(1:4) = (/ 100.0, 250.0, 400.0, 500.0 /)
-    endif
-!*** JDB
-
-    if( .not. Extract ) then
-
-      if( n_range > 1 ) then
-        i = 1
-        j = 1
-        do i_range = 1,n_range-1
-          if( i < n_adimp .and. j < n_radius ) then
-            E_max_range(i_range) = min( E_adimp(i), E_radius(j) )
-            if( abs( E_adimp(i) - E_radius(j) ) < eps10 ) then
-              i = i + 1
-              j = j + 1
-            elseif( E_adimp(i) < E_radius(j) ) then
-              i = i + 1
-            else
-              j = j + 1
-            endif
-          elseif( i < n_adimp ) then
-            E_max_range(i_range) = E_adimp(i)
-            i = i + 1
-          elseif( j < n_radius ) then
-            E_max_range(i_range) = E_radius(j)
-            j = j + 1
-          endif
-        end do
-      endif
-    endif
+! Talkative ("bav" for bavard in French !) file opening
 
     Length = len_trim(nomfich)
     write(6,'(/a9,A)') ' Filout: ',nomfich(1:Length)
@@ -4177,6 +4145,50 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
       ipr0 = 3
     else
       ipr0 = 6
+    endif
+
+! For potential coming from Wien2k, the structure is read just here
+    if( Flapw ) then
+      nrm = nrato_dirac
+      call lect_struct_lapw(angxyz,axyz,iabsm,iabsorig,icheck(1),its_lapw,itype,n_multi_run_e,n_atom_per,ngroup_lapw,Wien_file(1), &
+                            nrato_lapw,nrm,nslapwm,ntype,ntype_bulk,numat,posn,r0_lapw,rlapw,rotloc_lapw,Wien_matsym,Wien_taulap)
+      if( normrmt == 1 ) normrmt = 2
+    elseif( nrm == 0 ) then
+      nrm = nrato_dirac
+    endif
+
+!*** JDB
+    if( .not. adimpin .and. Use_FDMX ) then
+      adimp(1:5) = (/ 0.24_db, 0.20_db, 0.16_db, 0.12_db, 0.08_db /)
+      E_adimp(1:4) = (/ 100.0_db, 250.0_db, 400.0_db, 500.0_db /)
+    endif
+!*** JDB
+
+    if( .not. Extract ) then
+
+      if( n_range > 1 ) then
+        i = 1
+        j = 1
+        do i_range = 1,n_range-1
+          if( i < n_adimp .and. j < n_radius ) then
+            E_max_range(i_range) = min( E_adimp(i), E_radius(j) )
+            if( abs( E_adimp(i) - E_radius(j) ) < eps10 ) then
+              i = i + 1
+              j = j + 1
+            elseif( E_adimp(i) < E_radius(j) ) then
+              i = i + 1
+            else
+              j = j + 1
+            endif
+          elseif( i < n_adimp ) then
+            E_max_range(i_range) = E_adimp(i)
+            i = i + 1
+          elseif( j < n_radius ) then
+            E_max_range(i_range) = E_radius(j)
+            j = j + 1
+          endif
+        end do
+      endif
     endif
 
     if( Doping ) then
@@ -4333,7 +4345,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
 
       do it = 1,ntype_conf
         if( igra(1,it) == 0 ) then
-          numat(it) = itype(ngroup)    ! Case of atom_cong on doping atom
+          numat(it) = itype(ngroup)    ! Case of atom_conf on doping atom
           itype_dop = 1
         else
           numat(it) = itype(igra(1,it))
@@ -4504,15 +4516,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,Allsite,Ang_borm,Ang_rotsup,An
     if( Doping ) iabsm(1) = n_atom_uc + 1
     if( .not. Taux ) ATA = .FALSE.
     if( COOP ) Normaltau = .false. ! Normaltau is used in MSM. I do not remember well when it can be usefull...
-
-    if( Flapw ) then
-      nrm = nrato_dirac
-      call lect_struct_lapw(angxyz,axyz,iabsm,iabsorig,icheck(1),its_lapw,itype,n_multi_run_e,n_atom_per,ngroup_lapw,Wien_file(1), &
-                            nrato_lapw,nrm,nslapwm,ntype,ntype_bulk,numat,posn,r0_lapw,rlapw,rotloc_lapw,Wien_matsym,Wien_taulap)
-      if( normrmt == 1 ) normrmt = 2
-    elseif( nrm == 0 ) then
-      nrm = nrato_dirac
-    endif
 
     if( RIXS ) then
       Green_s = .false.

@@ -1492,7 +1492,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
       call natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axyz_int,axyz_sur,Base_ortho_int, &
         Base_ortho_sur,Bulk,Bulk_step,Center_s,Centre,Chargat,d_ecrant,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,Doping, &
         dpos,Film_shift,Film_thickness,First_run,Flapw,iabsorbeur,iabsfirst,icheck(5),igr_dop,igreq,Interface_shift, &
-        itabs,itype,Kgroup,Matper,mpirank0,multi_run_e,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_uc, &
+        itabs,itype,Kgroup,Matper,mpirank0,multrmax,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_uc, &
         n_atom_sur,n_atom_uc,n_radius,natomeq_s,natomeq_coh,natomp,neqm,ngreq,ngroup,ngroup_pdb,ngroup_taux, &
         Not_centered,posn,posn_bulk,Proto_all,R_SCF_c,rsorte_s,rmax,rpotmax,Self_cons_c,Surface_shift,Sym_2D, &
         Taux_oc)
@@ -1508,15 +1508,13 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
     ich = icheck(5)
 
-! Le groupe ponctuel de l'agregat est calcule avec l'absorbeur eventuellement excite meme pour le calcul SCF non excite.
-! L'abaissement de symmetrie n'est effectif que si l'absorbeur est non centre
-! De meme "Atom_nonsph" n'est utile que pour le Xanes
+! Elaboration of the cluster for SCF and XANES steps. Their radius can be different
     call agregat(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,Atom_with_axe,Atom_nonsph,Axe_atom_clu,Axe_atom_gr,Axe_atom_grn, &
           axyz,axyz_bulk,axyz_int,axyz_sur,Base_hexa,Base_ortho_int,Base_ortho_sur,Bulk,Bulk_step,Center_s, &
           Chargat,Cubmat,deccent,Delta_bulk,Delta_film,Delta_int,Delta_sur,dista, &
           Doping,dpos,Film_shift,Film_thickness,First_run,iaabs,iaabsfirst,iabsorbeur,iabsfirst, &
           iaproto,iapot,ich,igr_dop,igreq,igroup,igrpt_nomag,igrpt0,Interface_shift,iopsymc,iopsymr,itabs,itype,itypep, &
-          karact,Kgroup,Magnetic,Matper,mpirank0,multi_run_e,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc, &
+          karact,Kgroup,Magnetic,Matper,mpirank0,n_atom_bulk,n_atom_int,n_atom_per,n_atom_proto,n_atom_sur,n_atom_uc, &
           natomp,nb_rep,nb_sym_op,neqm,ngreq,ngroup,ngroup_m,ngroup_pdb,ngroup_taux,nlat,nlatm,Not_centered,nspin,ntype,numat, &
           Orthmat,Orthmati,Orthmatt,PointGroup,PointGroup_Auto,popats,pos,posn,posn_bulk,Rmax,Rot_int,Self_nonexc, &
           Spinorbite,Rot_Atom_gr,Struct,Surface_shift,Sym_2D,Sym_4,Sym_cubic,Symmol,Taux,Taux_oc,Test_dist_min)
@@ -3013,12 +3011,12 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,Allsite,Ang_rotsup,Angle_mo
 
 ! Potential calculation
         if( Flapw ) then
-          call potlapw(axyz,Chargat,Coupelapw,deccent,Flapw_new,Full_atom,iapot, &
+          call Potlapw(axyz,Chargat,Coupelapw,deccent,Exc_abs_i,Flapw_new,Full_atom,iapot, &
             iaproto,iaprotoi,icheck(13),igroup,iprabs_nonexc,ipr1,itabs,its_lapw,itypei,itypep,itypepr,Magnetic,mpinodes0, &
             mpirank0,n_atom_0,n_atom_ind,n_atom_proto,natome,natomeq,natomp,ngroup,ngroup_lapw,nklapw,nlm_pot, &
             nlmlapwm,nmatsym,normrmt,npoint,npsom,nrato,nrato_lapw,nrm,nslapwm,nspin,ntype, &
             numat,Orthmat,Overlap,pos,Rato,rho,rhoato,Rlapw,Rmtg,Rmtg0,Rmtimp,rmtsd,Rot_int,rotloc_lapw,rs,rsato,Rsort, &
-            Trace_format_wien,Trace_k,Trace_p,V0bdcFimp(1),Vcato,Vh,Vxc,Vxcato,Wien_file,Wien_matsym, &
+            Trace_format_wien,Trace_k,Trace_p,V_abs_i,V0bdcFimp(1),Vc_abs_i,Vcato,Vh,Vxc,Vxcato,Wien_file,Wien_matsym, &
             Wien_save,Wien_taulap,xyz)
         else
 

@@ -55,11 +55,10 @@ subroutine Potsup(alfpot,Axe_atom_gr,Bulk_atom_done,Cal_xanes,Chargat,chargat_in
   real(kind=db), dimension(3,ngroup_m):: Axe_atom_gr
   real(kind=db), dimension(0:nrm_self,nlm_pot,nspin,n_atom_0_self:n_atom_ind_self):: rho_self
   real(kind=db), dimension(0:nrm_self,nspin,n_atom_0_self:n_atom_ind_self):: rho_chg, rhoato_init
-  real(kind=db), dimension(nrm):: dExc_ex_nex, dvc_ex_nex, Exc_abs_i, Vc_abs_i
+  real(kind=db), dimension(nrm):: dExc_ex_nex, dvc_ex_nex, Exc, Exc_abs_i, Vc_abs_i
   real(kind=db), dimension(nrm,nspin):: drho_ex_nex, dv_ex_nex, V_abs_i
   real(kind=db), dimension(0:nrm_self,n_atom_0_self:n_atom_ind_self):: Vcato_init
   real(kind=db), dimension(npoint,nspin):: Vxc, rho
-  real(kind=db), dimension(nrm):: exc
   real(kind=db), dimension(3,3):: Rot_int
   real(kind=db), dimension(nrm,n_atom_0:n_atom_ind):: Excato
   real(kind=db), dimension(nhybm,ngroup_nonsph) :: pop_nonsph
@@ -2723,12 +2722,12 @@ end
 
 ! Routine of projection of the potentials coming from FLAPW Wien2k, on the FDM grid and in the atomic sphere.
 
-subroutine potlapw(axyz,Chargat,Coupelapw,deccent,Flapw_new,Full_atom,iapot, &
+subroutine Potlapw(axyz,Chargat,Coupelapw,deccent,Exc_abs_i,Flapw_new,Full_atom,iapot, &
             iaproto,iaprotoi,icheck,igroup,iprabs,ipr1,itabs,its_lapw,itypei,itypep,itypepr,Magnetic,mpinodes0, &
             mpirank,n_atom_0,n_atom_ind,n_atom_proto,natome,natomeq,natomp,ngroup,ngroup_lapw,nklapw,nlm_pot, &
             nlmlapwm,nmatsym,normrmt,npoint,npsom,nrato,nrato_lapw,nrm,nslapwm,nspin,ntype, &
             numat,Orthmat,Overlap,pos,Rato,rho,rhoato,rlapw,Rmtg,Rmtg0,Rmtimp,Rmtsd,Rot_int,rotloc_lapw,rs,rsato,Rsort, &
-            Trace_format_wien,Trace_k,Trace_p,V0bdcFimp,Vcato,Vh,Vxc,Vxcato,Wien_file,Wien_matsym, &
+            Trace_format_wien,Trace_k,Trace_p,V_abs_i,V0bdcFimp,Vc_abs_i,Vcato,Vh,Vxc,Vxcato,Wien_file,Wien_matsym, &
             Wien_save,Wien_taulap,xyz)
 
   use declarations
@@ -2773,7 +2772,9 @@ subroutine potlapw(axyz,Chargat,Coupelapw,deccent,Flapw_new,Full_atom,iapot, &
   real(kind=db), dimension(0:ntype):: Rmtimp
   real(kind=db), dimension(0:n_atom_proto):: Chargat, Rmtg, Rmtg0, Rmtsd, Vcmft
   real(kind=db), dimension(0:n_atom_proto,nspin):: rhomft, Vxcmft
+  real(kind=db), dimension(nrm):: Exc_abs_i, Vc_abs_i
   real(kind=db), dimension(3,nslapwm):: Wien_taulap
+  real(kind=db), dimension(nrm,nspin):: V_abs_i
   real(kind=db), dimension(0:nrm,n_atom_0:n_atom_ind):: rsato
   real(kind=db), dimension(0:nrm,nlm_pot,n_atom_0:n_atom_ind):: Vcato
   real(kind=db), dimension(0:nrm,nspin,n_atom_0:n_atom_ind):: rhoato
@@ -3120,6 +3121,15 @@ subroutine potlapw(axyz,Chargat,Coupelapw,deccent,Flapw_new,Full_atom,iapot, &
     call MPI_Bcast(rho,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Vxc,ndim,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
   endif
+
+! Absorbing atom potential for calculation of Epsii
+  Exc_abs_i(1:nrm) = 0._db
+  do ispin = 1,nspin
+    V_abs_i(1:nrm,ispin) = Vcato(1:nrm,1,iprabs) + Vxcato(1:nrm,1,ispin,iprabs)
+ ! I take the same than Vxc, because I am lazy... Effect is only for the calculation of total energy for core level (which is not the default option)
+    Exc_abs_i(1:nrm) = Exc_abs_i(1:nrm) + Vxcato(1:nrm,1,ispin,iprabs) / nspin
+  end do
+  Vc_abs_i(1:nrm) = Vcato(1:nrm,1,iprabs)
 
   if( icheck > 1 ) then
     if( nspin == 1 ) then
