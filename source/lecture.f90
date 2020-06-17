@@ -3290,7 +3290,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
           read(itape4,*,iostat=ier) lmaxso_max
           if( ier > 0 ) lmaxso_max = 28
 
-        case('chlib')
+        case('chfree')
           Charge_free = .true.
 
         case('hedin')

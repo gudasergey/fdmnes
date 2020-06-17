@@ -267,7 +267,7 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
   end do
 
   write(6,'(a30,i5)') ' Number of incoming energies =', nenerg_in
-  write(6,'(a43,i5)') ' Number of energies below the Fermi level =', nenerg_oc
+  write(6,'(a24,i5)') ' Number of energy loss =', ne_loss
   
   allocate( E_inf(nenerg_oc) )
   allocate( E_sup(nenerg_oc) )
@@ -438,17 +438,17 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
 
         if( .not. Run_fast ) then
           write(6,'(a27,f8.3,a3)') ' Incoming energy - E_edge =', Energ_in(ie_not_fast) * Rydb, ' eV' 
-          if( icheck > 0 ) then
+          if( icheck > 1 ) then
             write(3,'(/A)') ' ------------------------------------------------------------------------------------------ '
             write(3,'(/a27,f8.3,a3)') ' Incoming energy - E_edge =', Energ_in(ie_not_fast) * Rydb, ' eV'
           endif 
           E_i = Eseuil(nbseuil) + Energ_in(ie_not_fast)
         endif
       
-        do ie_oc = nenerg_oc,1,-1 ! Loop over occupied states
-
-          Loop_loss: do ie_loss = 1,ne_loss
+        Loop_loss: do ie_loss = 1,ne_loss
           
+          Loop_oc: do ie_oc = nenerg_oc,1,-1 ! Loop over occupied states
+
             Energ_unoc = Energ_oc(ie_oc) + E_loss(ie_loss)
 
             if( Energ_unoc < E_cut_RIXS - eps10 ) cycle
@@ -462,8 +462,8 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
               else
                 write(3,130) ie_not_fast, ie_oc, ie_loss, E_i*rydb
               endif
+              write(3,140) Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, E_loss(ie_loss)*rydb
             endif 
-            if( icheck > 0 ) write(3,140) Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, E_loss(ie_loss)*rydb
               
             Write_bav = icheck > 1 .or. ( icheck == 1 .and. ie_not_fast == 1 .and. ie_oc == 1 .and. ie_loss == 1 )
                         
@@ -540,7 +540,7 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
                         nlm_probe,ns_dipmag,nspin,nspino,nspinp,Probed_L,Q_vec,Rot_atom, &
                         Spinorbite,Taull_Spin_channel,Time_reversal,Ylm_comp)
 
-              if( k_not_possible ) cycle Loop_loss
+              if( k_not_possible ) cycle Loop_oc
 
               do i_Spin_channel = 1,n_Spin_channel       ! ----------> Loop over spin transition channels
       
@@ -642,18 +642,17 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
                   RIXS_ampl(ie_loss,ie,:,i_theta,i_q,ii) = RIXS_ampl(ie_loss,ie,:,i_theta,i_q,ii) + Amplitude(:)   
 
                 end do
-
               end do   ! end of loop on ie_fast
 
             end do  ! end of loop over initr      
  
-          end do Loop_loss ! end of loop over ie_loss
-
-          write(6,'(a13,f8.3)') ' E_oc - E_F =', Energ_oc(ie_oc) * Rydb 
-
-        end do  ! end of loop over ie_oc
+          end do Loop_oc ! end of loop over ie_oc
       
-      end do ! end of loop over incoming energy ie_fast
+          write(6,'(a9,f8.3)') ' E_loss =', E_loss(ie_loss) * Rydb 
+
+        end do Loop_loss ! end of loop over ie_loss
+
+      end do ! end of loop over incoming energy ie_not_fast
               
     end do ! end of loop over i_theta_2
     end do ! end of loop over i_theta_1
@@ -1525,7 +1524,7 @@ subroutine Cal_Pol(icheck,Pol_i_s,Pol_i_p,Pol_s_s,Pol_s_p,Theta,Trans_Lab_Dir_Q,
 
   if( icheck > 0 ) then
     write(3,110) Theta/radian, Two_theta_L/radian 
-    write(3,'(/A)') '   Pol_i_sig  Pol_i_pi   Pol_s_sig  Pol_s_pi   WaveVec_i  WaveVec_s    (in crytal basis)'
+    write(3,'(/A)') '   Pol_i_sig  Pol_i_pi   Pol_s_sig  Pol_s_pi   WaveVec_i  WaveVec_s    (in orthonormal unit cell basis)'
     do i = 1,3
       write(3,'(6f11.5)') Pol_i_s(i), Pol_i_p(i), Pol_s_s(i), Pol_s_p(i), Vec_i(i), Vec_s(i) 
     end do   
@@ -1857,7 +1856,7 @@ subroutine Cal_Tau_loss(Ampl_abs,E_loss,Energ_unoc,Energ_s,icheck,isym,k_elec_i,
                       do L_f = 0,Lmax_f
                         do m_f = -L_f,L_f
                           Lm_f = Lm_f + 1
-      
+
                           if( Monocrystal .and. Moment_conservation ) then
                             Cfac = d_solid * YlmYlm(Lm_f) * Ampl_oc(Lm1,iss1,Lm_f,isp_f) &
                                                           * Conjg( Ampl_unoc(je,Lm2,iss2,Lm_f,isp_f) )
@@ -1884,7 +1883,7 @@ subroutine Cal_Tau_loss(Ampl_abs,E_loss,Energ_unoc,Energ_s,icheck,isym,k_elec_i,
                             endif
                             Title = .false.
                           endif
-      
+  
                         end do
                       end do
                         

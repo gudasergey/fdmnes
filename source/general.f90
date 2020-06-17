@@ -1398,8 +1398,6 @@ subroutine pop_group(Bulk_step,chargatg,Charge_free,Chargm,Flapw,icheck,itype,mp
   real(kind=db), dimension(0:ntype):: popatc
   real(kind=db), dimension(ngroup,nlatm,nspin):: popats
 
-  if( icheck > 1 ) write(3,110)
-
   if( Flapw ) then
     chargatg(:) = 0
     return
@@ -1415,15 +1413,16 @@ subroutine pop_group(Bulk_step,chargatg,Charge_free,Chargm,Flapw,icheck,itype,mp
   end do
 
   if( icheck > 1 ) then
+    write(3,110)
     if( nspin == 1 ) then
-      write(3,130)
+      write(3,120)
     else
-      write(3,140)
+      write(3,130)
     endif
     if( Bulk_step ) then
       do igr = ngroup - n_atom_bulk + 1, ngroup
         it = abs( itype(igr) )
-        write(3,150) igr, chargatg(igr), ( popats(igr,L,1:nspin), L = 1,nlat(it) )
+        write(3,140) igr, chargatg(igr), ( popats(igr,L,1:nspin), L = 1,nlat(it) )
       end do
     else
       do igr = 1,ngroup - n_atom_bulk
@@ -1440,13 +1439,15 @@ subroutine pop_group(Bulk_step,chargatg,Charge_free,Chargm,Flapw,icheck,itype,mp
     Chargm = sum( chargatg(1:ngroup-n_atom_bulk) )
   endif
   if( abs(Chargm) > 0.0001_db .and. mpirank0 == 0 ) then
-    if( icheck > 0 ) write(3,120) Chargm
-    write(6,120) Chargm
-    if( .not. Charge_free ) then
+    if( Charge_free ) then
+      if( icheck > 0 ) write(3,150) Chargm
+      write(6,150) Chargm
+    else
       call write_error
       do ipr = 3,9,3
         if( ipr == 3 .and. icheck == 0 ) cycle
-        write(9,120) Chargm
+        write(ipr,150) Chargm
+        write(ipr,160)
       end do
       stop
     endif
@@ -1454,10 +1455,17 @@ subroutine pop_group(Bulk_step,chargatg,Charge_free,Chargm,Flapw,icheck,itype,mp
 
   return
   110 format(/' ---- Pop_group ----',100('-'))
-  120 format(/' Unit cell or molecule charge =',f8.4)
-  130 format(/'  igr    charge   popats(1)  popats(2)')
-  140 format(/'  igr    charge   popats(1,up)  popats(1,dn) ...')
-  150 format(i4,11f11.5)
+  120 format(/'  igr    charge   popats(1)  popats(2)')
+  130 format(/'  igr    charge   popats(1,up)  popats(1,dn) ...')
+  140 format(i4,11f11.5)
+  150 format(/' Unit cell or molecule charge =',f8.4)
+  160 format(//' By default the code does not accept non-neutral molecule or unit-cell,'/, &
+               ' because often it is a mistake in the use of "Atom" or "Atom_conf" keywords.',// &
+               ' If it is not a mistake, what is possible specially when working with molecule,'/, &
+               ' use the keyword: "Chfree".',/ &
+               ' The code will not stop anymore.',// &
+               ' Remark: avoid electronic configuration coresponding to the formal charges.'/, &
+               ' They are usually "too much", specially for the s and p orbitals.')
 end
 
 !*********************************************************************

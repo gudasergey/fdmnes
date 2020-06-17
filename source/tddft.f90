@@ -437,7 +437,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
       endif
 
 ! Kernel calculation
-      call kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ(ie),fxc,icheck(24),ie,Kern,Kern_fac, &
+      call kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ(ie),Full_potential,fxc,icheck(24),ie,Kern,Kern_fac, &
                 lmax,lseuil,m_g,nbseuil,ninit1,ninit,n_Ec,nlm,nlm_fp,nlms_f,nlms_g,nomfich,nr,nrm, &
                 ns_dipmag,nspino,nspinp,psii,r,Rmtsd,RPALF,Spinorbite,zet)
 
@@ -1356,18 +1356,17 @@ end
 ! Le developement en harmoniques spheriques du potentiel coulombien est pris d'apres J.Phys.A:Math. Gen. 39(2006) 8613-8630
 ! On le calcule dans le cas harmoniques complexe.
 
-subroutine kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ,fxc,icheck,ie,Kern,Kern_fac, &
+subroutine kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ,Full_potential,fxc,icheck,ie,Kern,Kern_fac, &
                 lmax,lseuil,m_g,nbseuil,ninit1,ninit,n_Ec,nlm,nlm_fp,nlms_f,nlms_g,nomfich,nr,nrm, &
                 ns_dipmag,nspino,nspinp,psii,r,Rmtsd,RPALF,Spinorbite,zet)
 
   use declarations
   implicit none
 
-  integer:: icheck, ie, lmax, lseuil, nbseuil, ninit1, ninit, n_Ec, nlm, nlm_fp, nlms_f, nlms_g, &
-     nr, nrm, ns_dipmag, nspinp, nspino
-   integer:: is_dipmag, is1, is2, isf1, isf2, isg1, isg2, iso1, iso2, isp1, isp2, ist1, ist2, iz1, iz2, l0, l1, &
-    l2, lcut, lg, lm1, lm2, lmg1, lmg2, lmp1, lmp2, lms1, lms2, lmv1, lmv2, lp1, lp2, m0, m1, m2, mg1, mg2, mp1, mp2, mv1, &
-    mv2
+  integer:: icheck, ie, is_dipmag, is1, is2, isf1, isf2, isg1, isg2, iso1, iso2, isp1, isp2, ist1, ist2, iz1, iz2, L0, L1, &
+    L2, Lcut, Lg, Lmax, Lmg1, Lmg2, Lmp01, Lmp02, Lmp1, Lmp2, Lms1, Lms2, Lmv1, Lmv2, Lp1, Lp2, lseuil, m0, m1, m2, mg1, mg2, &
+    mp1, mp2, mv1, mv2, nbseuil, ninit1, ninit, n_Ec, nlm, nlm_fp, nlms_f, nlms_g, &
+    nr, nrm, ns_dipmag, nspinp, nspino
   integer, dimension(ninit,2):: m_g
   integer, dimension(nlms_f,2):: i_val, l_val, m_val
 
@@ -1375,7 +1374,7 @@ subroutine kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ,fxc,
 
   complex(kind=db):: Gaunt_xcc
 
-  logical:: Atomic_scr, Core_resolved, Dipmag, Dyn_eg, Dyn_g, RPALF, Spinorbite, Ylm_comp
+  logical:: Atomic_scr, Core_resolved, Dipmag, Dyn_eg, Dyn_g, Full_potential, RPALF, Spinorbite, Ylm_comp
 
   real(kind=db), intent(in):: Energ, Kern_fac, Rmtsd
   real(kind=db), dimension(nr), intent(in):: r
@@ -1396,26 +1395,26 @@ subroutine kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ,fxc,
   Kern(:,:,:,:,:,:,:) = 0._db
   Ylm_comp = .true.
 
-! l'etat initial est calcule en corestate:
-  lg = lseuil
+! L'etat initial est calcule en corestate:
+  Lg = lseuil
 
 ! L'indice 0 porte sur le developpement du potentiel coulombien, et
-! l'indice g sur l'etat de coeur
+! L'indice g sur L'etat de coeur
 ! psii est reel
 
 ! le cut-off: voir les regles de selection pour les coef de gaunt
 
-  lcut = lg + lmax
+  Lcut = Lg + Lmax
 
 ! Boucle sur les etats initiaux
 
   do isg1 = 1,2
 
-    lmg1 = 0
+    Lmg1 = 0
     do ist1 = 1,ninit
 
       if( abs( coef_g(ist1,isg1) ) < eps10 ) cycle
-      lmg1 = lmg1 + 1
+      Lmg1 = Lmg1 + 1
       mg1 = m_g(ist1,isg1)
 
       if( ist1 > ninit1 ) then
@@ -1431,10 +1430,10 @@ subroutine kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ,fxc,
 
       do isg2 = 1,2
 
-        lmg2 = 0
+        Lmg2 = 0
         do ist2 = 1,ninit
           if( abs( coef_g(ist2,isg2) ) < eps10 ) cycle
-          lmg2 = lmg2 + 1
+          Lmg2 = Lmg2 + 1
           mg2 = m_g(ist2,isg2)
 
           if( ist2 > ninit1 ) then
@@ -1466,72 +1465,68 @@ subroutine kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ,fxc,
 
               isp2 = min(isf2,nspinp)
 
-              lm1 = 0
-              lms1 = 0
-              do l1 = 0,lmax
-                do m1 = -l1,l1
-                  lm1 = lm1 + 1
+              do L1 = 0,Lmax
+                do m1 = -L1,L1
 
-! boucle cas non spherique
-                  lmp1 = 0
-                  do lp1 = 0,lmax
+! Loop non spherical case, including Hubbard
+                  do Lp1 = 0,Lmax
+                    if( .not. Full_potential .and. Lp1 /= L1 ) cycle
+                    Lmp01 = Lp1**2 + Lp1 + 1
 
-                    do mp1 = -lp1,lp1
-                      if( nlm_fp == 1 .and. ( lp1 /= l1 .or. mp1 /= m1 ) ) cycle
-                      lmp1 = lmp1 + 1
+                    do mp1 = -Lp1,Lp1
+                      if( nlm_fp == 1 .and. mp1 /= m1 ) cycle
+                      Lmp1 = min( Lmp01 + mp1, nlm_fp )
 
                       do iso1 = 1,nspino
 
                         if( Spinorbite .and. nlm_fp == 1 ) then
                           mv1 = m1 + isf1 - iso1
-                          if( abs(mv1) > l1 ) cycle
+                          if( abs(mv1) > L1 ) cycle
                         else
                           mv1 = m1
                         endif
-                        lmv1 = l1**2 + l1 + 1 + mv1
-                        lms1 = lms1 + 1
-                        l_val(lms1,isf1) = l1
-                        m_val(lms1,isf1) = m1
-                        i_val(lms1,isf1) = iso1
+                        Lmv1 = L1**2 + L1 + 1 + mv1
+                        Lms1 = nspino * ( Lmp01 + m1 - 1 ) + iso1
+                        l_val(Lms1,isf1) = L1
+                        m_val(Lms1,isf1) = m1
+                        i_val(Lms1,isf1) = iso1
 
-                        lm2 = 0
-                        lms2 = 0
-                        do l2 = 0,lmax
+                        do L2 = 0,Lmax
 
-                          do m2 = -l2,l2
-                            lm2 = lm2 + 1
+                          do m2 = -L2,L2
 
-                            lmp2 = 0
-                            do lp2 = 0,lmax
+                            do Lp2 = 0,Lmax
+                              if( .not. Full_potential .and. Lp2 /= L2 ) cycle
+                              Lmp02 = Lp2**2 + Lp2 + 1
 
-                              do mp2 = -lp2,lp2
-                                if( nlm_fp == 1 .and. ( lp2 /= l2 .or. mp2 /= m2 ) ) cycle
-                                lmp2 = lmp2 + 1
+                              do mp2 = -Lp2,Lp2
+                                if( nlm_fp == 1 .and.  mp2 /= m2 ) cycle
+                                Lmp2 = min( Lmp02 + mp2, nlm_fp )
 
                                 do iso2 = 1,nspino
 
                                   if( Spinorbite .and. nlm_fp == 1 ) then
                                     mv2 = m2 + isf2 - iso2
-                                    if( abs(mv2) > l2 ) cycle
+                                    if( abs(mv2) > L2 ) cycle
                                   else
                                     mv2 = m2
                                   endif
-                                  lmv2 = l2**2 + l2 + 1 + mv2
-                                  lms2 = lms2 + 1
+                                  Lmv2 = L2**2 + L2 + 1 + mv2
+                                  Lms2 = nspino * ( Lmp02 + mv2 - 1 ) + iso2
 ! Atomic screening
-                                  if( Atomic_scr .and. l1 /= lg + 1 .and. l2 /= lg + 1 ) cycle
+                                  if( Atomic_scr .and. L1 /= Lg + 1 .and. L2 /= Lg + 1 ) cycle
 
-                                  zet_1(1:nr) = psii(1:nr,is1) * zet(1:nr,lmv1,lmp1,isp1,iso1,iz1)
-                                  zet_2(1:nr) = psii(1:nr,is2) * zet(1:nr,lmv2,lmp2,isp2,iso2,iz2)
+                                  zet_1(1:nr) = psii(1:nr,is1) * zet(1:nr,Lmv1,Lmp1,isp1,iso1,iz1)
+                                  zet_2(1:nr) = psii(1:nr,is2) * zet(1:nr,Lmv2,Lmp2,isp2,iso2,iz2)
 ! Noyau coulombien
-                                  do l0 = 0,lcut
-                                    if( l0 < abs(l1 - lg) .or. l0 > l1 + lg ) cycle
-                                    if( l0 < abs(l2 - lg) .or. l0 > l2 + lg ) cycle
-                                    if( mod( l1 + l0 + lg, 2 ) /= 0 ) cycle
-                                    if( mod( l2 + l0 + lg, 2 ) /= 0 ) cycle
+                                  do L0 = 0,Lcut
+                                    if( L0 < abs(L1 - Lg) .or. L0 > L1 + Lg ) cycle
+                                    if( L0 < abs(L2 - Lg) .or. L0 > L2 + Lg ) cycle
+                                    if( mod( L1 + L0 + Lg, 2 ) /= 0 ) cycle
+                                    if( mod( L2 + L0 + Lg, 2 ) /= 0 ) cycle
 
-                                    r1(1:nr) = r(1:nr)**(l0+1)
-                                    r2(1:nr) = r(1:nr)**(-l0)
+                                    r1(1:nr) = r(1:nr)**(L0+1)
+                                    r2(1:nr) = r(1:nr)**(-L0)
 
                                     f(1:nr) = r1(1:nr) * zet_2(1:nr)
 
@@ -1545,28 +1540,28 @@ subroutine kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ,fxc,
 
                                     intrad_r = f_integr3(r,f,1,nr,Rmtsd)
 ! le 2 de 2 / (r-r')
-                                    fac = 8 * pi * intrad_r / ( 2 * l0 + 1 )
+                                    fac = 8 * pi * intrad_r / ( 2 * L0 + 1 )
 
-                                    do m0 = -l0,l0
+                                    do m0 = -L0,L0
 
-                                      Angl1 = real( Gaunt_xcc(l1,mv1,l0,m0,lg,mg1,Ylm_comp), db)
+                                      Angl1 = real( Gaunt_xcc(L1,mv1,L0,m0,Lg,mg1,Ylm_comp), db)
                                       if( abs( Angl1 ) < eps10 ) cycle
-                                      Angl2 = real( conjg( Gaunt_xcc(l2,mv2,l0,m0,lg,mg2,Ylm_comp) ), db )
+                                      Angl2 = real( conjg( Gaunt_xcc(L2,mv2,L0,m0,Lg,mg2,Ylm_comp) ), db )
                                       if( abs( Angl2 ) < eps10 ) cycle
 
-                                      Kern(lms1,lms2,lmg1,lmg2,isf1,isf2,is_dipmag) &
-                                                                = Kern(lms1,lms2,lmg1,lmg2,isf1,isf2,is_dipmag) &
+                                      Kern(Lms1,Lms2,Lmg1,Lmg2,isf1,isf2,is_dipmag) &
+                                                                = Kern(Lms1,Lms2,Lmg1,Lmg2,isf1,isf2,is_dipmag) &
                                                                 + coef_g(ist1,isg1) * coef_g(ist2,isg2) * Angl1 * Angl2 * fac
 
                                     end do  ! fin boucle m0
-                                  end do    ! fin boucle l0
+                                  end do    ! fin boucle L0
 
 ! On rajoute la partie xc en LDA:
                                   if( .not. ( RPALF .or. (Dyn_g .and. ist1 /= ist2) .or. (Dyn_eg .and. is1 /= is2) ) ) then
 
 ! Les harmoniques sont supposees complexes
 ! Dans Gaunt4Y, ce sont les 2 premieres harmoniques qui sont complexe-conjuguees.
-                                    Angl = Gaunt4Y(lg,mg2,l1,mv1,l2,mv2,lg,mg1)
+                                    Angl = Gaunt4Y(Lg,mg2,L1,mv1,L2,mv2,Lg,mg1)
 
                                     if( Abs( Angl ) > eps10 ) then
 
@@ -1577,29 +1572,29 @@ subroutine kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ,fxc,
                                       endif
                                       fac = f_integr3(r,f,1,nr,Rmtsd)
 
-                                      Kern(lms1,lms2,lmg1,lmg2,isf1,isf2,is_dipmag) &
-                                                                      = Kern(lms1,lms2,lmg1,lmg2,isf1,isf2,is_dipmag) &
+                                      Kern(Lms1,Lms2,Lmg1,Lmg2,isf1,isf2,is_dipmag) &
+                                                                      = Kern(Lms1,Lms2,Lmg1,Lmg2,isf1,isf2,is_dipmag) &
                                                                       + coef_g(ist1,isg1) * coef_g(ist2,isg2) * Angl * fac
 
                                     endif
                                   endif
 
                                   if( ( ( icheck > 1 .and. ie == 1 ) .or. icheck > 2 ) &
-                                        .and. abs(Kern(lms1,lms2,lmg1,lmg2,isf1,isf2,is_dipmag) ) > eps10 ) &
-                                      write(3,120) isg1, ist1, isg2, ist2, isf1, isf2, l1, m1, iso1, l2, m2, iso2, is_dipmag, &
-                                                   Kern(lms1,lms2,lmg1,lmg2,isf1,isf2,is_dipmag)
+                                        .and. abs(Kern(Lms1,Lms2,Lmg1,Lmg2,isf1,isf2,is_dipmag) ) > eps10 ) &
+                                      write(3,120) isg1, ist1, isg2, ist2, isf1, isf2, L1, m1, iso1, L2, m2, iso2, is_dipmag, &
+                                                   Kern(Lms1,Lms2,Lmg1,Lmg2,isf1,isf2,is_dipmag)
 
                                 end do ! fin boucle iso2
                               end do   ! fin boucle mp2
-                            end do     ! fin boucle lp2
+                            end do     ! fin boucle Lp2
                           end do       ! fin boucle m2
-                        end do         ! fin boucle l2
+                        end do         ! fin boucle L2
 
                       end do ! fin boucle iso1
                     end do   ! fin boucle mp1
-                  end do     ! fin boucle lp1
+                  end do     ! fin boucle Lp1
                 end do       ! fin boucle m1
-              end do         ! fin boucle l1
+              end do         ! fin boucle L1
 
             end do   ! fin boucle isf2
           end do     ! fin boucle isf1
@@ -1616,7 +1611,7 @@ subroutine kernel(Atomic_scr,coef_g,Core_resolved,Dipmag,Dyn_eg,Dyn_g,Energ,fxc,
 
   return
   100 format(/' ---- Kernel -------',100('-'))
-  110 format(/' isg1 ist1 isg2 ist2 isf1 isf2   l1   m1 iso1   l2   m2 iso2 is_dipmag    Kern ')
+  110 format(/' isg1 ist1 isg2 ist2 isf1 isf2   L1   m1 iso1   L2   m2 iso2 is_dipmag    Kern ')
   120 format(13i5,1x,1p,100e11.3)
 end
 

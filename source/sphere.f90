@@ -6280,6 +6280,8 @@ subroutine Radial_wave(Ecinetic,Eimag,Energ,Enervide,Full_potential,Hubb_a,Hubb_
   real(kind=db), dimension(:,:,:,:), allocatable:: V
   real(kind=db), dimension(:,:,:,:,:), allocatable:: ui, ur
 
+  rof(:,:,:,:,:,:) = ( 0._db, 0._db )
+  
   NRIXS = .false.
   konde(:) = sqrt( cmplx(Ecinetic(:), Eimag,db) )
 

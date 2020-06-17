@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 15th of May 2020, 26 Floreal, An 228
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 25th of May 2020, 6 Prairial, An 228
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -10,7 +10,7 @@
 ! Main routines of the FDMNES package
 ! Need also :
 !   clemf0.f90, coabs.f90, convolution.f90, diffraction.f90, dirac.f90, fdm.f90, fprime.f90, frime_data.f90, general.f90,
-!   lecture.f90, mat.f90, metric.f90, minim.f90, optic.f90, potential.f90, scf.f90 selec.f90,
+!   lecture.f90, mat.f90, metric.f90, minim.f90, optic.f90, potential.f90, rixs.f90, scf.f90 selec.f90,
 !   spgroup.f90, sphere.f90, tab_data.f90, tensor.f90, tddft.f90
 
 ! When using the MUMPS library, one also needs:
@@ -48,7 +48,7 @@ module declarations
   integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic punctual groups (with other orientation)
   integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic punctual groups (with other orientation)
 
-  character(len=50), parameter:: Revision = 'FDMNES program, Revision 15th of May 2020'
+  character(len=50), parameter:: Revision = 'FDMNES program, Revision 25th of May 2020'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -340,7 +340,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'absorbeur','adimp    ','all_nrixs','all_site_','allsite  ','ata      ','atom     ','atom_b_is','atom_conf', &
      'atom_nsph','ang_spin ','atomic_sc','axe_spin ','atom_u_is', &
      'base_comp','base_reel','bond     ','bulk     ','bulk_roug','cap_b_iso','cap_layer','cap_rough','cap_shift', &
-     'cap_thick','cap_u_iso','cartesian','center   ','center_ab','center_s ','chlib    ','cif_file ','classic_i','clementi ', &
+     'cap_thick','cap_u_iso','cartesian','center   ','center_ab','center_s ','chfree   ','cif_file ','classic_i','clementi ', &
      'coop     ','coop_dist','coop_z_ax','core_ener','core_reso','crystal  ', &
      'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_2d  ','dafs_exp ','debye    ','delta_en_','dip_rel  ','e1e1     ', &
      'delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ', &
@@ -1853,8 +1853,8 @@ function Traduction(keyword)
       traduction = 'cap_u_iso'
     case('cartesien')
       traduction = 'cartesian'
-    case('chlibre','freech','free_char','free_ch')
-      traduction = 'chlib'
+    case('chlibre','ch_free','chlib','freech','free_char','free_ch','charge_fr','chargefre')
+      traduction = 'chfree'
     case('cristal_c','crystal_c','ciffile')
       traduction = 'cif_file'
     case('harmo_tes','harm_real','harmo_rea','harmo_ree','harm_reel','real_harm')
@@ -1885,6 +1885,8 @@ function Traduction(keyword)
       traduction = 'coop_z_ax'
     case('spinresol','coreresol')
       traduction = 'core_reso'
+    case('E_core_to','E_tot_cor','Etot_core','Ecore_tot','Epsii_tot')
+      traduction = 'core_ener'
     case('crist','cryst','cristallo','cristal')
       traduction = 'crystal'
     case('dmaxpot','dmax_pot','d_maxpot','distmaxpo','dist_maxp')
