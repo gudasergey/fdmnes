@@ -1713,7 +1713,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_bulk,Green_int,Green_s,Green_self,Harm_cubic,Helm_cos, &
     hkl_borm,hkl_dafs,hkl_film,hkl_ref,Hubb, &
     Hubbard,Hybrid,iabsm,iabsorig,icheck,icom,igr_coop,igr_dop,indice_par,Interface_shift,iscratch,isigpi,itdil,its_lapw,iord, &
-    itape4,itype,itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,lmax_nrixs,lamstdens,ldil,lecrantage,Length_line,lin_gam, &
+    itape4,itype,itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,Lmax_DOSout,lmax_nrixs,ldil,lecrantage,Length_line,lin_gam, &
     lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso_max,lmaxso0,lmaxat0,lmoins1,lplus1,Lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB, &
     Matper,Moment_conservation,mpinodes,mpinodes0,mpirank,mpirank0,Muffintin,Multipole, &
     multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_coop,n_atom_uc,n_atom_proto,n_devide,n_file_dafs_exp,n_mat_polar, &
@@ -1741,7 +1741,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
 
   integer:: eof, eoff, i, i_range, ier, ia, ie, igr, igr_dop, igrdat, io, iord, ip, ipar, ipl, ipl0, ipr, ipr0, &
     iscratch, isp, ispin, istat, istop, isymeq, it, itape4, itype_dop, j, jgr, jpl, jseuil, jt, k, kgr, kt, l, l_hubbard, &
-    l_level_val, l1, l2, lamstdens, lecrantage, Length, Length_line, lin_gam, lmax_nrixs, lmax_pot, lmax_pot_default, &
+    l_level_val, l1, l2, lecrantage, Length, Length_line, lin_gam, Lmax_DOSout, lmax_nrixs, lmax_pot, lmax_pot_default, &
     lmax_tddft_inp, lmaxat0, lmaxso0, lmaxso_max, long, Lseuil, m, m_hubb_e, MPI_host_num_for_mumps, mpierr, mpinodes, &
     mpinodes0, mpirank, mpirank0, &
     mpirank_in_mumps_group, multi_run, multrmax, n, n_adp_type, n_adimp, n_atom_bulk, n_atom_cap, n_atom_coop, n_atom_int, &
@@ -2021,7 +2021,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
   Kern_fac_default = .true.
   Kern_fast = .false.
   korigimp = .false.
-  lamstdens = -1
+  Lmax_DOSout = -1
   ldipimp(:) = -1
   lecrantage = 0
   lquaimp(:,:) = -1
@@ -3335,7 +3335,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
 
         case('lmaxstden')
           n = nnombre(itape4,132)
-          read(itape4,*,iostat=ier) lamstdens
+          read(itape4,*,iostat=ier) Lmax_DOSout
           if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('lmaxso')
@@ -6227,7 +6227,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     call MPI_Bcast(Kern_fast,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Kgroup,ngroup_pdb, MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(korigimp,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(lamstdens,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Lmax_DOSout,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ldil,norbdil,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ldipimp,3,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(lecrantage,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)

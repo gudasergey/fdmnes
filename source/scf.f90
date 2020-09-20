@@ -519,8 +519,8 @@ end
 
 subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,chargat_self,Density,Doping,drho_self,E_cut, &
                 E_Open_val,E_Open_val_exc,E_starta,Energ,E_Fermi,Energ_self,Fermi,Full_atom,hubb,Hubb_diag,iaabsi, &
-                iaprotoi,i_self,icheck,ie,ie_computer,Int_statedens,ipr_dop,ispin_maj,itypei,itypepr,lamstdens, &
-                Open_val,Open_val_exc,lla_state,lla2_state,lmaxat,m_hubb,mpinodes,n_atom_0,n_atom_0_self, &
+                iaprotoi,i_self,icheck,ie,ie_computer,Int_statedens,ipr_dop,ispin_maj,itypei,itypepr, &
+                Open_val,Open_val_exc,lla_state,lla2_state,Lmax_DOSout,lmaxat,m_hubb,mpinodes,n_atom_0,n_atom_0_self, &
                 n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,natome,nb_eq,nb_eq_2D,nenerg,ngreq, &
                 nlm_pot,nomfich_s,nrato, &
                 nrm,nrm_self,nspin,nspinp,ntype,numat,occ_hubb,occ_hubb_i,pop_orb_val,Proto_calculated,rato,rho_self,rho_self_t, &
@@ -530,7 +530,8 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
   implicit none
 
   integer:: i, i_self, ia, iaabsi, iapr, icheck, ie, ie_computer, imax, ipr, ipr_dop, iprabs, iprint, ir, isp, isp1, isp2, iss, &
-    it, L, l_hubbard, l_level_val, la, lamstdens, ll, lla_state, lla2_state, lh, lm, lm0, lm1, lm2, lma, m, m_hubb,mpinodes, m1, &
+    it, L, l_hubbard, l_level_val, la, ll, lla_state, lla2_state, lh, lm, lm0, lm1, lm2, lma, Lmax_DOSout, Lmax_pDOS, &
+    Lmax_print, m, m_hubb,mpinodes, m1, &
     m2, n, n_atom_0, n_atom_0_self, n_atom_ind, n_atom_ind_self, n_atom_proto, n_atom_proto_bulk, n_atom_proto_uc, natome, nenerg, &
     nlm_pot, nr, nrm, nrm_self, nspin, nspinp, ntype, Numat_tot, Z
 
@@ -629,30 +630,21 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
   endif
 
   do ipr = 0,n_atom_proto
-    if( lamstdens > -1 ) then
-      la = min(lamstdens,lmaxat(ipr))
-    else
-      Z = numat( itypepr(ipr) )
-      if( Z < 19 ) then
-        la = min(1,lmaxat(ipr))
-        ll = min(2,lmaxat(ipr))
-      elseif( Z > 18 .and. Z < 55 ) then
-        la = min(2,lmaxat(ipr))
-        ll = min(3,lmaxat(ipr))
-      else
-        la = min(3,lmaxat(ipr))
-        ll = min(4,lmaxat(ipr))
-      endif
-    end if
-    la_ipr(ipr) = la    ! maximum number of harmonics for the writing of the density of states
-    ll_ipr(ipr) = ll    ! maximum number of harmonics for the calculation of the density of states
+    Z = numat( itypepr(ipr) )
+    La = Lmax_print(Z)   ! in tab_data.f90
+    La = max( La, Lmax_DOSout ) 
+    La = min( La, lmaxat(ipr) )  
+    LL = Lmax_pDOS(Z)    ! in tab_data.f90
+    LL = min( LL, lmaxat(ipr) )
+    la_ipr(ipr) = La    ! maximum number of harmonics for the writing of the density of states
+    ll_ipr(ipr) = LL    ! maximum number of harmonics for the calculation of the density of states
   end do
 
   boucle_ia: do ia = 1,natome
 
     ipr = iaprotoi(ia)
-    la = la_ipr(ipr)
-    ll = ll_ipr(ipr)
+    La = la_ipr(ipr)
+    LL = ll_ipr(ipr)
 
     This_bulk_atom_done = Bulk_atom_done .and. ipr > n_atom_proto - n_atom_proto_bulk
 
@@ -699,10 +691,10 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
     r(1:nr) = rato(1:nr,it)
     r2(:) = r(:)**2
 
-    lma = (ll + 1)**2
+    lma = (LL + 1)**2
 
     Statedens_l(:,:) = 0._db
-    do L = 0,la
+    do L = 0,La
       lm1 = L**2 + 1
       lm2 = ( L + 1 )**2
       do isp = 1,nspinp
@@ -720,7 +712,7 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
       end do
     end do
 
-    do L = 0,ll
+    do L = 0,LL
       lm1 = L**2 + 1
       lm2 = ( L + 1 )**2
       do isp = 1,nspinp
@@ -737,7 +729,7 @@ subroutine Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,char
     if( icheck > 1 ) then
       write(3,130) Atom_kind, iapr
       lm = 0
-      do L = 0,ll
+      do L = 0,LL
         do m = -L,L
           lm = lm + 1
           do isp = 1,nspinp

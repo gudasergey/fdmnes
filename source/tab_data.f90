@@ -22,7 +22,7 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,mpirank)
 
   integer:: icheck, ipr, jseuil, mpirank, nbseuil, nseuil, numat, Zm
   
-  real(kind=db):: Shift, Shift_edge
+!  real(kind=db):: Shift, Shift_edge
   real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(Z_Mendeleiev_max):: ek1, el1, el2, el3
   real(kind=db), dimension(nm1:Z_Mendeleiev_max):: em1, em2, em3
@@ -1198,23 +1198,23 @@ end
 
 !*********************************************************************
 
-! Lmax value for the COOP
+! Lmax value for the calculation of the DOS 
 
-function Lmax_coop(Z)
+function Lmax_pDOS(Z)
 
   use declarations
   implicit none
 
-  integer:: ipr, lmax_coop, Z
-  integer, dimension(Z_Mendeleiev_max):: lmax_c
+  integer:: ipr, Lmax_pDOS, Z
+  integer, dimension(Z_Mendeleiev_max):: Lmax_c
 
-  data lmax_c/1,                                  1, &  ! He
-              1,1,                      2,2,2,2,2,2, &  ! Ne
+  data Lmax_c/2,                                  2, &  ! He
+              2,2,                      2,2,2,2,2,2, &  ! Ne
               2,2,                      2,2,2,2,2,2, &  ! Ar
-              2,2, 2,2,2,2,2,2,2,2,2,2, 2,2,2,2,2,2, &  ! Kr 36  
-              2,2, 2,2,2,2,2,2,2,2,2,2, 2,2,2,2,2,2, &  ! Xe 54   
-              3,3, 3,3,3,3,3,3,3,3,3,3,3,3,3,3, 3,3,3,3,3,3,3,3,3,3, 3,3,3,3,3,3, & ! Rn 86     
-              3,3, 3,3,3,3,3,3,3,3,3,3,3,3,3,3, 3/ ! Lw 103     
+              3,3, 3,3,3,3,3,3,3,3,3,3, 3,3,3,3,3,3, &  ! Kr 36  
+              3,3, 3,3,3,3,3,3,3,3,3,3, 3,3,3,3,3,3, &  ! Xe 54   
+              4,4, 4,4,4,4,4,4,4,4,4,4,4,4,4,4, 4,4,4,4,4,4,4,4,4,4, 4,4,4,4,4,4, & ! Rn 86     
+              4,4, 4,4,4,4,4,4,4,4,4,4,4,4,4,4, 4/      ! Lw 103     
 
   if( Z <= 0 .or. Z > Z_Mendeleiev_max ) then
     call write_error
@@ -1224,10 +1224,42 @@ function Lmax_coop(Z)
     stop
   endif
 
-  Lmax_coop = lmax_c(Z)
+  Lmax_pDOS = Lmax_c(Z)
 
   return
-  110 format(//' Z =',i12,' < 0 or > Z_Mendeleiev_max =',i4,' in function lmax_coop !'//)
+  110 format(//' Z =',i12,' < 0 or > Z_Mendeleiev_max =',i4,' in function Lmax_pDOS !'//)
 end
 
- 
+!*********************************************************************
+
+! Lmax value for the print of the pDOS and the COOP
+
+function Lmax_print(Z)
+
+  use declarations
+  implicit none
+
+  integer:: ipr, Lmax_print, Z
+  integer, dimension(Z_Mendeleiev_max):: Lmax_c
+
+  data Lmax_c/1,                                  1, &  ! He
+              1,1,                      1,1,1,1,1,1, &  ! Ne
+              1,1,                      1,1,1,1,1,1, &  ! Ar
+              2,2, 2,2,2,2,2,2,2,2,2,2, 2,2,2,2,2,2, &  ! Kr 36  
+              2,2, 2,2,2,2,2,2,2,2,2,2, 2,2,2,2,2,2, &  ! Xe 54   
+              3,3, 3,3,3,3,3,3,3,3,3,3,3,3,3,3, 3,3,3,3,3,3,3,3,3,3, 3,3,3,3,3,3, & ! Rn 86     
+              3,3, 3,3,3,3,3,3,3,3,3,3,3,3,3,3, 3/      ! Lw 103     
+
+  if( Z <= 0 .or. Z > Z_Mendeleiev_max ) then
+    call write_error
+    do ipr = 3,9,3
+      write(ipr,110) Z, Z_Mendeleiev_max
+    end do
+    stop
+  endif
+
+  Lmax_print = Lmax_c(Z)
+
+  return
+  110 format(//' Z =',i12,' < 0 or > Z_Mendeleiev_max =',i4,' in function Lmax_print !'//)
+end
