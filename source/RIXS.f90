@@ -6,16 +6,16 @@
 
 ! nlm_f = nlmomax: number of harmonics in the outer sphere (= number of states at the current energy)
 
-subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fermi,E_cut_man,Eclie,Eneg,Energ_rixs, &
-        Energ_s,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Estart,File_name_rixs,FDM_comp_m,Full_potential,Gamma_hole, &
-        Gamma_hole_man,Hubb_a,Hubb_d,iabsorig, &
+subroutine main_RIXS(Ampl_abs,Circular,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fermi,E_cut_man,Eclie,Eneg, &
+        Energ_loss_rixs,Energ_out_rixs,Energ_rixs,Energ_s,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Estart,File_name_rixs, &
+        FDM_comp_m,Full_potential,Gamma_hole,Gamma_hole_man,Hubb_a,Hubb_d,iabsorig, &
         icheck,igreq,iprabs_nonexc,isymeq,ip0,ip_max,is_g,jseuil,lmoins1,lplus1,lseuil,m_g,m_hubb, &
         Moment_conservation,multi_run, &
-        Multipole,n_atom_proto,n_atom_uc,n_multi_run,n_oo,n_q_rixs,n_rel,n_shift_core,n_theta_in,n_two_theta,natomsym,nbseuil, &
-        nenerg_in_rixs,nenerg_s,neqm,ngamh,ninit1,ninit,ninitr,nlm_pot,nlm_probe,nlm_f,nomfich, &
-        nr,nrm,ns_dipmag,nseuil,nspin,nspino,nspinp,numat,Orthmati,Posn,Powder, &
+        Multipole,n_atom_proto,n_atom_uc,n_multi_run,n_oo,n_q_rixs,n_rel,n_shift_core,n_theta_rixs,natomsym,nbseuil, &
+        nenerg_in_rixs,nenerg_loss_rixs,nenerg_out_rixs,nenerg_s,neqm,ngamh,ninit1,ninit,ninitr,nlm_pot,nlm_probe,nlm_f, &
+        nomfich,nr,nrm,ns_dipmag,nseuil,nspin,nspino,nspinp,numat,Orthmati,Posn,Powder, &
         psii,q_rixs,r,Relativiste,Renorm,RIXS_fast,Rmtg,Rmtsd,Rot_atom_abs,Rot_int,Shift_core,Spin_channel, &
-        Spinorbite,Step_loss,Theta_in,Two_theta,V_intmax,V_hubb,Vcato,Vhbdc,VxcbdcF,Vxcato,Ylm_comp)
+        Spinorbite,Step_loss,Theta_rixs,V_intmax,V_hubb,Vcato,Vhbdc,VxcbdcF,Vxcato,Ylm_comp)
 
   use declarations
   implicit none
@@ -27,12 +27,12 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
 
   real(kind=db), parameter:: quatre_mc2 = 4 * 2 / alfa_sf**2  ! in Rydberg
   
-  integer:: iabsorig, i_q, i_Spin_channel, i_theta, i_theta_1, i_theta_2, ia, ich, icheck, ie, &
+  integer:: iabsorig, i_q, i_q_g, i_Spin_channel, i_theta, i_theta_g, ia, ich, icheck, ie, &
      ie_in, ie_loss, ie_oc, ie_s, ii, ip0, ip_max, initr, iprabs_nonexc, iseuil, isp, isym, &
      js, jseuil, Length, lmax_pot, lmax, lseuil, m_hubb, multi_run, n_atom_proto, n_atom_uc, n_isc, n_multi_run, &
-     n_oo, n_q_dim, n_q_rixs, n_rel, n_shift_core, n_Spin_channel, n_theta_in, n_two_theta, n_theta, natomsym, nbseuil, &
-     ne, ne_loss, nenerg_in, nenerg_in_rixs, nenerg_oc, nenerg_unoc, nenerg_s, neqm, ngamh, ninit, ninit1, ninitr, nlm_f, &
-     nlm_p_fp, nlm_pot, nlm_probe, npl, nr, nrm, &
+     n_oo, n_q_dim, n_q_rixs, n_rel, n_shift_core, n_Spin_channel, n_theta_rixs, natomsym, nbseuil, &
+     ne, ne_loss, nenerg_in, nenerg_in_rixs, nenerg_loss_rixs, nenerg_oc, nenerg_out_rixs, nenerg_unoc, nenerg_s, neqm, ngamh, &
+     ninit, ninit1, ninitr, nlm_f, nlm_p_fp, nlm_pot, nlm_probe, npl, nr, nrm, &
      ns_dipmag, nseuil, nspin, nspino, nspinp, numat
 
   integer, dimension(natomsym):: isymeq
@@ -62,6 +62,7 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
   complex(kind=db), dimension(3,3,3,3,2):: RIXS_E1E3_tens_xtal
 
   complex(kind=db), dimension(:), allocatable:: Amplitude
+  complex(kind=db), dimension(:,:,:), allocatable:: Pol_i_s_g, Pol_i_p_g, Pol_s_s_g, Pol_s_p_g
   complex(kind=db), dimension(:,:,:,:,:), allocatable:: RIXS_E1M1_tens, RIXS_M1M1_tens
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: RIXS_ampl, RIXS_E1E1_tens, RIXS_E1E2_tens, rof, rof_e
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: RIXS_E1E3_tens, RIXS_E2E2_tens, RIXS_E3E3_tens
@@ -72,8 +73,8 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: secdo_xtal
 
   logical:: Circular, Core_resolved, Dip_rel, E_cut_man, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, &
-            Epsii_ref_man, Extract_ten, Eneg, FDM_comp_m, Final_optic, Final_tddft, Full_potential, Gamma_hole_man, &
-            Hubb_a, Hubb_d, k_not_possible, lmoins1, lplus1, M1M1, Magn_sens, Moment_conservation, &
+            Epsii_ref_man, Extract_ten, Eneg, Energ_emission, FDM_comp_m, Final_optic, Final_tddft, Full_potential, &
+            Gamma_hole_man, Hubb_a, Hubb_d, k_not_possible, lmoins1, lplus1, M1M1, Magn_sens, Moment_conservation, &
             Monocrystal, Only_Intensity, &
             Powder, Relativiste, Renorm, RIXS, RIXS_fast, Run_fast, Spin_channel, Spinorbite, Tddft, Time_reversal, Write_bav, &
             Ylm_comp 
@@ -86,9 +87,9 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
   logical, dimension(natomsym):: Atom_done
   
   real(kind=db):: conv_mbarn_nelec, cst, Delta_E_inf, Delta_E_sup, Deltar, E_cut, E_cut_imp, E_cut_o, E_cut_rixs, E_Fermi, E_i, &
-            E_max, E_out, E_s, Ecinetic_i, Ecinetic_s, Eclie, Eimag, Energ_unoc, Energ_unoc_1, Ephoton, Epsii_ref, Estart, &
-            Gamma_hole_o, Gamma_max, k_elec_i, k_elec_s, Lorentzian_i, Lorentzian_r, Mod_Q, Omega_i, Omega_s, Pas, pds, &
-            Rmtg, Rmtsd, Rot_sample, Step_loss, Tab_width, Theta, Two_theta_L, V_intmax, V0, Vhbdc
+      E_loss_g, E_max, E_out, E_s, Ecinetic_i, Ecinetic_s, Eclie, Eimag, Energ_unoc, Energ_unoc_1, Ephoton, Epsii_ref, Estart, &
+      Gamma_hole_o, Gamma_max, k_elec_i, k_elec_s, Lorentzian_i, Lorentzian_r, Mod_Q, Omega_i, Omega_s, Pas, pds, &
+      Rmtg, Rmtsd, Rot_sample, Step_loss, Tab_width, Theta, Two_theta, V_intmax, V0, Vhbdc
   real(kind=db), dimension(3):: Pol_i_s, Pol_i_p, Pol_s_s, Pol_s_p, Q_vec, Vec_i, Vec_s
   real(kind=db), dimension(10):: Gamma_hole
   real(kind=db), dimension(nenerg_s):: Energ_s
@@ -97,8 +98,9 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
   real(kind=db), dimension(ninit,2):: coef_g
   real(kind=db), dimension(nspin):: dV0bdcF, V0bdc, VxcbdcF
   real(kind=db), dimension(nr):: r
-  real(kind=db), dimension(n_theta_in):: Theta_in
-  real(kind=db), dimension(n_two_theta):: Two_theta
+  real(kind=db), dimension(n_theta_rixs,2):: Theta_rixs
+  real(kind=db), dimension(nenerg_loss_rixs):: Energ_loss_rixs
+  real(kind=db), dimension(nenerg_out_rixs):: Energ_out_rixs
   real(kind=db), dimension(nenerg_in_rixs):: Energ_rixs
   real(kind=db), dimension(n_shift_core):: Shift_core
   real(kind=db), dimension(3,3):: Mat_orth, matopsym , Orthmat, Orthmati, Rot_atom, Rot_atom_abs, Rot_int, &
@@ -110,14 +112,14 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
   real(kind=db), dimension(nr,nlm_pot,nspin):: Vrato, Vxcato
 
   real(kind=db), dimension(:), allocatable:: Conv_nelec, E_inf, E_loss, E_sup, Energ_in, Energ_oc, Gamma, Shift
-  real(kind=db), dimension(:,:), allocatable:: Angle
-  real(kind=db), dimension(:,:,:,:), allocatable:: Mod_k
+  real(kind=db), dimension(:,:,:), allocatable:: Mod_k, Vec_i_g, Vec_s_g
 
   if( icheck > 0 ) write(3,110)
   
 ! When no momentum transfer direction given, calculation is done for powder 
   Monocrystal = .not. Powder
 
+  Energ_emission = nenerg_out_rixs > 0
   Eimag = 0._db
   Extract_ten = .false.
   Final_optic = .false.
@@ -125,13 +127,15 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
   RIXS = .true.
   Tddft = .false.
   
- ! With Run_fast, Tau_loss does not depend on incoming energy, and consequently the tensors
-  Run_fast = Powder .or. RIXS_fast .or. .not. Moment_conservation 
+ ! With Run_fast, Tau_loss does not depend on incoming energy, and consequently also the tensors
+ ! nevertheless with Energ_emission, there is not the same E_loss for the different incoming energy
+ ! Thus the loop over energy must be outside
+  Run_fast = ( RIXS_fast .or. .not. Moment_conservation ) .and. .not. Energ_emission 
+ 
   if( multi_run == 1 ) Epsii_ref_RIXS_man = Epsii_ref_man
 
   ich = max(icheck-1,1)
   Magn_sens = nspin == 2 .or. Spinorbite
-  Circular = Magn_sens .and. Monocrystal
 
   Only_Intensity = .false.
 
@@ -207,7 +211,7 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
 
   if( E_cut_man ) then
     E_cut_rixs = E_cut_imp
-    E_cut_o = E_cut_imp
+    E_cut_o = E_cut_imp / rydb
   else
     E_cut_rixs = E_cut
     E_cut_o = - 1001._db / rydb
@@ -260,11 +264,17 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
 
   if( Step_loss < 0._db ) Step_loss = Energ_s(2) - Energ_s(1) 
 
-  do ie = nenerg_s, 1, -1
-    if( Energ_s(ie) > E_max ) cycle
-    ne_loss = nint( ( Energ_s(ie) - Energ_s(1) ) / Step_loss )
-    exit
-  end do
+  if( Energ_emission ) then
+    ne_loss = nenerg_out_rixs
+  elseif( nenerg_loss_rixs > 0 ) then
+    ne_loss = nenerg_loss_rixs
+  else
+    do ie = nenerg_s, 1, -1
+      if( Energ_s(ie) > E_max ) cycle
+      ne_loss = nint( ( Energ_s(ie) - Energ_s(1) ) / Step_loss )
+      exit
+    end do
+  endif
 
   write(6,'(a30,i5)') ' Number of incoming energies =', nenerg_in
   write(6,'(a24,i5)') ' Number of energy loss =', ne_loss
@@ -306,16 +316,21 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
     RIXS_M1M1_tens(:,:,:,:,:) = (0._db, 0._db)
   endif
 
-  n_theta = max( n_two_theta, 1 ) *  max( n_theta_in, 1 ) 
   n_q_dim = max( n_q_rixs, 1 )
-  allocate( Angle(2,n_theta) )
-  allocate( Mod_k(nenerg_in,ne_loss,n_theta,n_q_dim) )
+  allocate( Mod_k(nenerg_in,ne_loss,n_theta_rixs) )
   
-  allocate( RIXS_ampl(ne_loss,nenerg_in,npl,n_theta,n_q_dim,n_isc) )
-  RIXS_ampl(:,:,:,:,:,:) = (0._db, 0._db) 
+  allocate( RIXS_ampl(ne_loss,nenerg_in,npl,n_theta_rixs,n_q_dim,n_isc) )
+  RIXS_ampl(:,:,:,:,:,:) = (0._db, 0._db)
+  
+  allocate( Pol_i_s_g(3,n_theta_rixs,n_q_dim) ) 
+  allocate( Pol_i_p_g(3,n_theta_rixs,n_q_dim) ) 
+  allocate( Pol_s_s_g(3,n_theta_rixs,n_q_dim) ) 
+  allocate( Pol_s_p_g(3,n_theta_rixs,n_q_dim) ) 
+  allocate( Vec_i_g(3,n_theta_rixs,n_q_dim) ) 
+  allocate( Vec_s_g(3,n_theta_rixs,n_q_dim) ) 
 
-  call Energy_Grid_RIXS(E_loss,Energ_in,Energ_oc,Energ_rixs,Energ_s,icheck,ne_loss,nenerg_in,nenerg_in_rixs,nenerg_oc, &
-                        nenerg_s,Step_loss)
+  call Energy_Grid_RIXS(E_loss,Energ_emission,Energ_in,Energ_loss_rixs,Energ_oc,Energ_out_rixs,Energ_rixs,Energ_s,icheck, &
+                        ne_loss,nenerg_in,nenerg_in_rixs,nenerg_loss_rixs,nenerg_oc,nenerg_out_rixs,nenerg_s,Step_loss)
 
   do initr = 1,ninitr       ! ----------> Loop over edges or core states
     if( Core_resolved ) then
@@ -368,7 +383,7 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
   end do
 
 ! Calculation of the radial matrices
-  call cal_rof(E_Fermi,Eclie,Energ_s,Eseuil,Full_potential,Hubb_a,Hubb_d,icheck,ip0,ip_max,lmax,lmax_pot, &
+  call cal_rof(E_Fermi,Eclie,Eneg,Energ_s,Eseuil,Full_potential,Hubb_a,Hubb_d,icheck,ip0,ip_max,lmax,lmax_pot, &
                    m_hubb,n_Ec,nbseuil,nenerg_s,ninit1,nlm_pot,nlm_p_fp,nlm_probe,nr,nrm,nspin,nspino,nspinp,numat,psii,r, &
                    Relativiste,Renorm,Rmtg,Rmtsd,rof_e,Spinorbite,V_hubb,V_intmax,V0bdc,Vrato,Ylm_comp)
   
@@ -409,71 +424,88 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
 
     call Cal_Mat_rot(icheck,Mat_orth,Q_vec,Rot_sample,Trans_Lab_Dir_Q,Trans_rec_dir,Trans_rec_lab)      
 
-    i_theta = 0
-    do i_theta_1 = 1,max( n_theta_in, 1 )
-    do i_theta_2 = 1,max( n_two_theta, 1 )
-      i_theta = i_theta + 1
-      
-      if( n_two_theta == 0 .and. n_theta_in == 0) then
-        Theta = pi / 4._db
-        Two_theta_L = 2 * Theta   
-      elseif( n_theta_in == 0 ) then
-        Two_theta_L = Two_theta(i_theta_2)
-        Theta = Two_theta_L / 2   
-      elseif( n_two_theta == 0 ) then
-        Theta = Theta_in(i_theta_1)   
-        Two_theta_L = 2 * Theta   
-      else
-        Theta = Theta_in(i_theta_1)
-        Two_theta_L = Two_theta(i_theta_2)   
-      endif
-      Angle(1,i_theta) = Theta
-      Angle(2,i_theta) = Two_theta_L
-      
-      call Cal_Pol(icheck,Pol_i_s,Pol_i_p,Pol_s_s,Pol_s_p,Theta,Trans_Lab_Dir_Q,Two_theta_L,Vec_i,Vec_s)
+    do i_theta = 1,n_theta_rixs
 
+      Theta = Theta_rixs(i_theta,1)      
+      Two_theta = Theta_rixs(i_theta,2)   
+      
+      call Cal_Pol(icheck,Pol_i_s,Pol_i_p,Pol_s_s,Pol_s_p,Theta,Trans_Lab_Dir_Q,Two_theta,Vec_i,Vec_s)
+
+      Pol_i_s_g(:,i_theta,i_q) = Pol_i_s(:)     
+      Pol_i_p_g(:,i_theta,i_q) = Pol_i_p(:)     
+      Pol_s_s_g(:,i_theta,i_q) = Pol_s_s(:)     
+      Pol_s_p_g(:,i_theta,i_q) = Pol_s_p(:)     
+      Pol_i_s_g(:,i_theta,i_q) = Pol_i_s(:)     
+      Vec_i_g(:,i_theta,i_q) = Vec_i(:)     
+      Vec_s_g(:,i_theta,i_q) = Vec_s(:)
+           
+    end do
+  end do
+
+  do i_q_g = 1,n_q_dim
+    do i_theta_g = 1,n_theta_rixs
+     
       do ie_in = 1,nenerg_in  ! loop on incoming energy
 
-        write(6,'(a27,f8.3,a3)') ' Incoming energy - E_edge =', Energ_in(ie_in) * Rydb, ' eV' 
-        if( icheck > 1 ) then
-          write(3,'(/A)') ' ------------------------------------------------------------------------------------------ '
-          write(3,'(/a27,f8.3,a3)') ' Incoming energy - E_edge =', Energ_in(ie_in) * Rydb, ' eV'
+        if( Moment_conservation ) write(6,'(a6,i3,a17,2f8.3)') ' i_q =',i_q_g,', Theta, 2Theta =', Theta_rixs(i_theta_g,:)*180/pi 
+        if( .not. Run_fast ) then
+          write(6,'(a27,f8.3,a3)') ' Incoming energy - E_edge =', Energ_in(ie_in) * Rydb, ' eV' 
+          if( icheck > 1 ) then
+            write(3,'(/A)') ' ------------------------------------------------------------------------------------------ '
+            write(3,'(/a27,f8.3,a3)') ' Incoming energy - E_edge =', Energ_in(ie_in) * Rydb, ' eV'
+          endif
         endif 
-        E_i = Eseuil(nbseuil) + Energ_in(ie_in)
       
         Loop_loss: do ie_loss = 1,ne_loss
-          
-          E_out = Energ_in(ie_in) - E_loss(ie_loss)
+
+          if( Energ_emission ) then
+            E_loss_g = Energ_in(ie_in) - E_loss(ie_loss) ! fake E_loss, it is the electron energy corresponding to the emission energy
+          else          
+            E_loss_g = E_loss(ie_loss) 
+          endif
+
+          if( icheck > 1 ) then
+            write(3,'(/A)') ' ------------------------------------------------------------------------------------------ '
+            write(3,'(/a9,f8.3,a3)') ' E_loss =', E_loss_g * Rydb, ' eV'
+          endif 
             
           Loop_oc: do ie_oc = nenerg_oc,1,-1 ! Loop over occupied states
 
-            Energ_unoc = Energ_in(ie_in) + E_out - Energ_oc(ie_oc)
+            Energ_unoc = Energ_oc(ie_oc) + E_loss_g
 
             if( Energ_unoc < E_cut_RIXS - eps10 ) cycle
             if( Energ_unoc > Energ_s(nenerg_s) + eps10 ) cycle
 
             if( icheck > 1 ) then
-              write(3,130) ie_in, ie_oc, ie_loss, E_i*rydb
-              write(3,140) Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, E_loss(ie_loss)*rydb
+              write(3,130) ie_in, ie_oc, ie_loss
+              write(3,140) Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, E_loss_g*rydb
             endif 
               
             Write_bav = icheck > 1 .or. ( icheck == 1 .and. ie_in == 1 .and. ie_oc == 1 .and. ie_loss == 1 )
                         
-            E_s = E_i - E_loss(ie_loss)
-            Mod_Q = 0.5_db * alfa_sf * sqrt( E_s**2 + E_i**2 - 2 * E_s * E_i * cos( pi - Two_theta_L ) )
             if( Run_fast ) then
               do ie = 1,nenerg_in
                 if( abs( Energ_in(ie) - Energ_unoc ) < eps10 ) then
-                  Mod_k(ie,ie_loss,i_theta,i_q) = Mod_Q
-                  if( abs( Energ_unoc - Energ_unoc_1 ) < eps10 ) Mod_k(1:ie-1,ie_loss,i_theta,i_q) = Mod_Q
-                  if( ie_oc == nenerg_oc ) Mod_k(ie+1:nenerg_in,ie_loss,i_theta,i_q) = Mod_Q 
-                  if( ie == nenerg_in .and. ie_oc == nenerg_oc ) Mod_k(1:nenerg_in,ie_loss,i_theta,i_q) = Mod_Q
+                  E_i = Eseuil(nbseuil) + Energ_in(ie_in)
+                  E_s = E_i - E_loss_g
+                  do i_theta = 1,n_theta_rixs
+                    if( Moment_conservation .and. i_theta /= i_theta_g ) cycle
+                    Mod_Q = 0.5_db * alfa_sf * sqrt( E_s**2 + E_i**2 - 2 * E_s * E_i * cos( pi - Theta_rixs(i_theta,2) ) )
+                    Mod_k(ie,ie_loss,i_theta) = Mod_Q
+                    if( abs( Energ_unoc - Energ_unoc_1 ) < eps10 ) Mod_k(1:ie-1,ie_loss,i_theta) = Mod_Q
+                    if( ie_oc == nenerg_oc ) Mod_k(ie+1:nenerg_in,ie_loss,i_theta) = Mod_Q 
+                    if( ie == nenerg_in .and. ie_oc == nenerg_oc ) Mod_k(1:nenerg_in,ie_loss,i_theta) = Mod_Q
+                    if( .not. Moment_conservation .and. i_theta_g == 1 ) exit 
+                  end do
                 elseif( Energ_in(ie) > Energ_unoc ) then
                   exit
                 endif
               end do   
-            else
-              Mod_k(ie_in,ie_loss,i_theta,i_q) = Mod_Q
+            elseif( i_q_g == 1 ) then
+              E_i = Eseuil(nbseuil) + Energ_in(ie_in)
+              E_s = E_i - E_loss_g
+              Mod_Q = 0.5_db * alfa_sf * sqrt( E_s**2 + E_i**2 - 2 * E_s * E_i * cos( pi - Theta_rixs(i_theta_g,2) ) )
+              Mod_k(ie_in,ie_loss,i_theta_g) = Mod_Q
             endif
 
             V0 = sum( V0bdc(:) ) / nspin
@@ -567,103 +599,139 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
               
             end do  ! end of loop on ia
               
-            do initr = 1,ninitr       ! ----------> Loop over edges or core states
+            do ie = 1,nenerg_in
+              if( .not. Run_fast .and. ie /= ie_in ) cycle
+              E_i = Eseuil(nbseuil) + Energ_in(ie)
+              E_s = E_i - E_loss_g
+
+              if( Energ_emission ) then
+                E_out = E_loss(ie_loss) ! fake E_loss, it is the electron energy corresponding to the emission energy
+              else          
+                E_out = Energ_in(ie) - E_loss(ie_loss)
+              endif
+            
+              do initr = 1,ninitr       ! ----------> Loop over edges or core states
          
 ! The factor CFac = Delta_E / (  Energ_in(ie_in) - Energ_unoc - Shift(initr) + img * Gamma(initr) )
 ! is replaced by the corresponding integral over energy for this energy step
-!              Delta_E_sup = Energ_in(ie_in) + E_out - E_inf(ie_oc) - Energ_in(ie_in) - Shift(initr)
-
-              Delta_E_inf = E_out - E_sup(ie_oc) - Shift(initr)
-              Delta_E_sup = E_out - E_inf(ie_oc) - Shift(initr)
-
-              if( Gamma(initr) > eps10 ) then                 
-                Lorentzian_i = atan( Delta_E_inf / Gamma(initr) ) - atan( Delta_E_sup / Gamma(initr) )
-                Lorentzian_r = 0.5_db * log( ( Gamma(initr)**2 + Delta_E_inf**2 ) / ( Gamma(initr)**2 + Delta_E_sup**2 ) )
-              else
-                if( abs( Energ_in(ie_in) + Shift(initr) - Energ_unoc ) < eps10 ) then
-                  if( abs( Delta_E_inf + Delta_E_sup ) < eps10 ) then
-                    Lorentzian_r = 0._db
-                  elseif( abs( Delta_E_inf ) < eps10 ) then
-                    Lorentzian_r = - log( 4._db )   ! limitation on divergence
+!                Delta_E_sup = Energ_in(ie_in) + E_out - E_inf(ie_oc) - Energ_in(ie_in) - Shift(initr)
+         
+                Delta_E_inf = E_out - E_inf(ie_oc) - Shift(initr)
+                Delta_E_sup = E_out - E_sup(ie_oc) - Shift(initr)
+         
+                if( Gamma(initr) > eps10 ) then                 
+                  Lorentzian_i = atan( Delta_E_sup / Gamma(initr) ) - atan( Delta_E_inf / Gamma(initr) )
+                  Lorentzian_r = - 0.5_db * log( ( Gamma(initr)**2 + Delta_E_sup**2 ) / ( Gamma(initr)**2 + Delta_E_inf**2 ) )
+                else
+                  if( abs( Energ_in(ie) + Shift(initr) - Energ_unoc ) < eps10 ) then
+                    if( abs( Delta_E_inf + Delta_E_sup ) < eps10 ) then
+                      Lorentzian_r = 0._db
+                    elseif( abs( Delta_E_inf ) < eps10 ) then
+                      Lorentzian_r = - log( 4._db )   ! limitation on divergence
+                    else
+                      Lorentzian_r = log( - Delta_E_inf / Delta_E_sup )
+                    endif
                   else
-                    Lorentzian_r = log( - Delta_E_inf / Delta_E_sup )
+                    Lorentzian_r = log( Delta_E_inf / Delta_E_sup )
                   endif
-                else
-                  Lorentzian_r = log( Delta_E_inf / Delta_E_sup )
-                endif
-                if( Energ_in(ie_in) + Shift(initr) > Energ_unoc - eps10 ) then 
-                  Lorentzian_i = pi
-                else
-                  Lorentzian_i = 0._db
-                endif
-              endif  
-
-              Lorentzian = cmplx( Lorentzian_r, Lorentzian_i, db )                               
-
-              CFac = Lorentzian * Conv_nelec(ie_in)
-               
-              Omega_i = E_i / quatre_mc2 
-              Omega_s = E_s / quatre_mc2
-
-              do i_spin_channel = 1,n_spin_channel
-
-                if( E1E1 ) RIXS_E1E1_tens_xtal(:,:,:) = CFac * Secdd_xtal(:,:,:,initr,i_spin_channel)
-                if( E1E2 ) RIXS_E1E2_tens_xtal(:,:,:,:) = CFac * Secdq_xtal(:,:,:,:,initr,i_spin_channel)
-                if( E1M1 ) RIXS_E1M1_tens_xtal(:,:,:) = CFac * Secmd_xtal(:,:,:,initr,i_spin_channel)
-                if( E2E2 ) RIXS_E2E2_tens_xtal(:,:,:,:) = CFac * Secqq_xtal(:,:,:,:,initr,i_spin_channel)
-                if( E1E3 ) RIXS_E1E3_tens_xtal(:,:,:,:,:) = CFac * Secdo_xtal(:,:,:,:,:,initr,i_spin_channel)
-                if( E3E3 ) RIXS_E3E3_tens_xtal(:,:,:,:) = CFac * Secoo_xtal(:,:,:,:,initr,i_spin_channel)
-                if( M1M1 ) RIXS_M1M1_tens_xtal(:,:) = CFac * Secmm_xtal(:,:,initr,i_spin_channel)
+                  if( Energ_in(ie) + Shift(initr) > Energ_unoc - eps10 ) then 
+                    Lorentzian_i = pi
+                  else
+                    Lorentzian_i = 0._db
+                  endif
+                endif  
+         
+                Lorentzian = cmplx( Lorentzian_r, Lorentzian_i, db )                               
+         
+                CFac = Lorentzian * Conv_nelec(ie)
+                 
+                Omega_i = E_i / quatre_mc2 
+                Omega_s = E_s / quatre_mc2
+         
+                do i_spin_channel = 1,n_spin_channel
+         
+                  ii = initr + ( i_Spin_channel - 1 ) * ninitr 
+         
+                  if( E1E1 ) RIXS_E1E1_tens_xtal(:,:,:) = CFac * Secdd_xtal(:,:,:,initr,i_spin_channel)
+                  if( E1E2 ) RIXS_E1E2_tens_xtal(:,:,:,:) = CFac * Secdq_xtal(:,:,:,:,initr,i_spin_channel)
+                  if( E1M1 ) RIXS_E1M1_tens_xtal(:,:,:) = CFac * Secmd_xtal(:,:,:,initr,i_spin_channel)
+                  if( E2E2 ) RIXS_E2E2_tens_xtal(:,:,:,:) = CFac * Secqq_xtal(:,:,:,:,initr,i_spin_channel)
+                  if( E1E3 ) RIXS_E1E3_tens_xtal(:,:,:,:,:) = CFac * Secdo_xtal(:,:,:,:,:,initr,i_spin_channel)
+                  if( E3E3 ) RIXS_E3E3_tens_xtal(:,:,:,:) = CFac * Secoo_xtal(:,:,:,:,initr,i_spin_channel)
+                  if( M1M1 ) RIXS_M1M1_tens_xtal(:,:) = CFac * Secmm_xtal(:,:,initr,i_spin_channel)
 
 ! Calculation of RIXS amplitude
-                call Cal_RIXS_ampl(Amplitude,Dip_rel,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,M1M1, &
-                       Monocrystal,n_rel,npl,Omega_i,Omega_s,pol_i_s,pol_i_p,pol_s_s,pol_s_p, &
-                       RIXS_E1E1_tens_xtal,RIXS_E1E2_tens_xtal,RIXS_E1E3_tens_xtal,&
-                       RIXS_E2E2_tens_xtal,RIXS_E3E3_tens_xtal,RIXS_E1M1_tens_xtal,RIXS_M1M1_tens_xtal, &
-                       Theta,Vec_i,Vec_s)
- 
-                ii = initr + ( i_Spin_channel - 1 ) * ninitr 
-                RIXS_ampl(ie_loss,ie_in,:,i_theta,i_q,ii) = RIXS_ampl(ie_loss,ie_in,:,i_theta,i_q,ii) + Amplitude(:)   
+                  do i_q = 1,n_q_dim
+                    do i_theta = 1,n_theta_rixs
+                      if( Moment_conservation .and. ( i_q /= i_q_g .or. i_theta /= i_theta_g ) ) cycle
+            
+                      Pol_i_s(:) = Pol_i_s_g(:,i_theta,i_q)      
+                      Pol_i_p(:) = Pol_i_p_g(:,i_theta,i_q)     
+                      Pol_s_s(:) = Pol_s_s_g(:,i_theta,i_q)     
+                      Pol_s_p(:) = Pol_s_p_g(:,i_theta,i_q)     
+                      Pol_i_s(:) = Pol_i_s_g(:,i_theta,i_q)     
+                      Vec_i(:) = Vec_i_g(:,i_theta,i_q)     
+                      Vec_s(:) = Vec_s_g(:,i_theta,i_q)
+                      Theta = Theta_rixs(i_theta,1)
+            
+                      call Cal_RIXS_ampl(Amplitude,Dip_rel,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,M1M1, &
+                         Monocrystal,n_rel,npl,Omega_i,Omega_s,pol_i_s,pol_i_p,pol_s_s,pol_s_p, &
+                         RIXS_E1E1_tens_xtal,RIXS_E1E2_tens_xtal,RIXS_E1E3_tens_xtal,&
+                         RIXS_E2E2_tens_xtal,RIXS_E3E3_tens_xtal,RIXS_E1M1_tens_xtal,RIXS_M1M1_tens_xtal, &
+                         Theta,Vec_i,Vec_s)
+            
+                      RIXS_ampl(ie_loss,ie,:,i_theta,i_q,ii) = RIXS_ampl(ie_loss,ie,:,i_theta,i_q,ii) + Amplitude(:)   
+            
+                      if( icheck > 1 ) then
+                        if( n_theta_rixs == 1 .and. n_q_dim == 1 .and. n_isc == 1 ) then
+                          if( ie_oc*ie*ie_oc == 1 ) open(99,file='RIXS_detail.txt')
+                          if( ie_oc == 1 ) write(99,165)  
+                          write(99,167) ie_loss, ie, ie_oc, Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, &
+                                   Cfac, RIXS_ampl(ie_loss,ie,:,i_theta,i_q,ii)
+                          if( ie_oc == nenerg_oc .and. ie_loss == ne_loss .and. ie == nenerg_in ) Close(99) 
+                          write(3,170) ie_loss, ie, ie_oc, Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, &
+                                   Cfac, RIXS_ampl(ie_loss,ie,:,i_theta,i_q,ii)
+                        else
+                          write(3,180) i_theta, i_q, ie_loss, ie, ie_oc, initr, i_spin_channel, &
+                                             Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, Cfac, &
+                                             RIXS_ampl(ie_loss,ie,:,i_theta,i_q,ii)
+                        endif
+                      endif
+                      
+                    end do
+                  end do
+                end do
 
-                if( icheck > 1 ) then
-                  if( n_theta == 1 .and. n_q_dim == 1 .and. n_isc == 1 ) then
-                    if( ie_oc*ie_in*ie_oc == 1 ) open(99,file='RIXS_detail.txt')
-                    if( ie_oc == 1 ) write(99,165)  
-                    write(99,167) ie_loss, ie_in, ie_oc, Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, &
-                                 Cfac, RIXS_ampl(ie_loss,ie_in,:,i_theta,i_q,ii)
-                    if( ie_oc == nenerg_oc .and. ie_loss == ne_loss .and. ie_in == nenerg_in ) Close(99) 
-                    write(3,170) ie_loss, ie_in, ie_oc, Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, &
-                                 Cfac, RIXS_ampl(ie_loss,ie_in,:,i_theta,i_q,ii)
-                  else
-                    write(3,180) i_theta, i_q, ie_loss, ie_in, ie_oc, initr, i_spin_channel, &
-                                           Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, Cfac, &
-                                           RIXS_ampl(ie_loss,ie_in,:,i_theta,i_q,ii)
-                  endif
-                endif
-              end do
-
-            end do  ! end of loop over initr      
+              end do  ! end of loop over initr
+                  
+            end do ! end of loop over ie
  
           end do Loop_oc ! end of loop over ie_oc
       
-          write(6,'(a9,f8.3)') ' E_loss =', E_loss(ie_loss) * Rydb 
+          if( Energ_emission ) then
+            write(6,'(a9,f8.3)') ' E_emis =', E_loss(ie_loss) * Rydb 
+          else
+            write(6,'(a9,f8.3)') ' E_loss =', E_loss(ie_loss) * Rydb 
+          endif
 
         end do Loop_loss ! end of loop over ie_loss
 
+        if( Run_fast .and. ie_in == 1 ) exit
       end do ! end of loop over incoming energy ie_in
               
-    end do ! end of loop over i_theta_2
-    end do ! end of loop over i_theta_1
-  end do ! end of loop over i_q 
+      if( .not. Moment_conservation .and. i_theta_g == 1 ) exit 
+    end do ! end of loop over i_theta_g
+    if( .not. Moment_conservation .and. i_q_g == 1 ) exit 
+  end do ! end of loop over i_q_g 
 
 ! Writing
-  call Write_rixs(Angle,Deltar,E_cut_o,E_loss,Energ_in,Epsii,Eseuil(nbseuil),File_name_rixs,Gamma_hole_o,Gamma_max, &
-                  npl,jseuil,Mod_k,Monocrystal,n_q_dim,n_Spin_channel,n_theta,ne_loss,nenerg_in,ninit1,ninitr, &
-                  nseuil,numat,RIXS_ampl)
+  call Write_rixs(Deltar,E_cut_o,E_loss,Energ_emission,Energ_in,Epsii,Eseuil(nbseuil),File_name_rixs,Gamma_hole_o, &
+                  Gamma_max,npl,jseuil,Mod_k,Monocrystal,n_q_dim,n_Spin_channel,n_theta_rixs,ne_loss,nenerg_in,ninit1,ninitr, &
+                  nseuil,numat,RIXS_ampl,Theta_rixs)
   
-  deallocate( Amplitude, Angle, Conv_nelec, E_inf, E_sup, Energ_in, Energ_oc, E_loss, Gamma, Mod_k )
-  deallocate( Probed_L, RIXS_ampl, rof, rof_e, Shift )
-  deallocate( secdd_xtal, secmd_xtal, secmm_xtal, secdq_xtal, secdo_xtal, secqq_xtal, secoo_xtal )
+  deallocate( Amplitude, Conv_nelec, E_inf, E_sup, Energ_in, Energ_oc, E_loss, Gamma, Mod_k )
+  deallocate( Pol_i_s_g, Pol_i_p_g, Pol_s_s_g, Pol_s_p_g, Probed_L, RIXS_ampl, rof, rof_e, Shift )
+  deallocate( secdd_xtal, secmd_xtal, secmm_xtal, secdq_xtal, secdo_xtal, secqq_xtal, secoo_xtal, Vec_i_g, Vec_s_g )
   
   if( E1E1 ) deallocate( RIXS_E1E1_tens )
   if( E1E2 ) deallocate( RIXS_E1E2_tens )
@@ -675,7 +743,7 @@ subroutine main_RIXS(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fer
 
   return
   110 format(/150('-'),//' RIXS step')
-  130 format(/120('-'),//' ie_in =',i4,', ie_oc =',i4,', ie_loss =',i4,', E_in =',f9.3,' eV')
+  130 format(/120('-'),//' ie_in =',i4,', ie_oc =',i4,', ie_loss =',i4)
   140 format('    E_oc =',f7.3,', E_unoc =',f7.3,', E_loss =',f7.3,' eV')
   150 format(/2x,100('-'),//2x,'ia =',i3,', Sym = ',A) 
   160 format(/2x,100('-'),//2x,'ia =',i3,', Sym = ',A,' x Time reversal') 
@@ -690,19 +758,23 @@ end
 
 ! Energy grid for RIXS
 
-subroutine Energy_Grid_RIXS(E_loss,Energ_in,Energ_oc,Energ_rixs,Energ_s,icheck,ne_loss,nenerg_in,nenerg_in_rixs,nenerg_oc, &
-                            nenerg_s,Step_loss)
+subroutine Energy_Grid_RIXS(E_loss,Energ_emission,Energ_in,Energ_loss_rixs,Energ_oc,Energ_out_rixs,Energ_rixs,Energ_s,icheck, &
+                        ne_loss,nenerg_in,nenerg_in_rixs,nenerg_loss_rixs,nenerg_oc,nenerg_out_rixs,nenerg_s,Step_loss)
 
   use declarations
   implicit none
 
-  integer,intent(in):: icheck, ne_loss, nenerg_in, nenerg_in_rixs, nenerg_oc, nenerg_s
+  integer,intent(in):: icheck, ne_loss, nenerg_in, nenerg_in_rixs, nenerg_loss_rixs, nenerg_oc, nenerg_out_rixs, nenerg_s
   integer:: ie
 
+  logical:: Energ_emission
+  
   real(kind=db):: Step_loss
 
   real(kind=db), dimension(nenerg_s), intent(in):: Energ_s
-  real(kind=db), dimension(nenerg_in_rixs) :: Energ_rixs
+  real(kind=db), dimension(nenerg_in_rixs):: Energ_rixs
+  real(kind=db), dimension(nenerg_loss_rixs):: Energ_loss_rixs
+  real(kind=db), dimension(nenerg_out_rixs):: Energ_out_rixs
 
   real(kind=db), dimension(nenerg_in), intent(out):: Energ_in
   real(kind=db), dimension(nenerg_oc), intent(out):: Energ_oc
@@ -719,15 +791,25 @@ subroutine Energy_Grid_RIXS(E_loss,Energ_in,Energ_oc,Energ_rixs,Energ_s,icheck,n
     end do
   endif
 
-  do ie = 1,ne_loss
-    E_loss(ie) = ie * Step_loss 
-  end do
+  if( Energ_emission ) then
+    E_loss(:) = Energ_out_rixs(:)
+  elseif( nenerg_loss_rixs > 0 ) then
+    E_loss(:) = Energ_loss_rixs(:)
+  else
+    do ie = 1,ne_loss
+      E_loss(ie) = ie * Step_loss 
+    end do
+  endif
 
   if( icheck > 1 ) then
     write(3,100)
     write(3,'(/A)') '  Incoming energy grid:'
     write(3,110) Energ_in(:)*rydb
-    write(3,'(/A)') '  Energy loss grid:'
+    if( Energ_emission ) then
+      write(3,'(/A)') '  Energy emission grid:'
+    else
+      write(3,'(/A)') '  Energy loss grid:'
+    endif
     write(3,110) E_loss(:)*rydb
     write(3,'(/A)') '  Occupied state energy grid:'
     write(3,110) Energ_oc(:)*rydb
@@ -793,7 +875,7 @@ end
 
 ! Calculation of the radial matrix rof
 
-subroutine Cal_rof(E_Fermi,Eclie,Energ_s,Eseuil,Full_potential,Hubb_a,Hubb_d,icheck,ip0,ip_max,lmax,lmax_pot, &
+subroutine Cal_rof(E_Fermi,Eclie,Eneg,Energ_s,Eseuil,Full_potential,Hubb_a,Hubb_d,icheck,ip0,ip_max,lmax,lmax_pot, &
                    m_hubb,n_Ec,nbseuil,nenerg_s,ninit1,nlm_pot,nlm_p_fp,nlm_probe,nr,nrm,nspin,nspino,nspinp,numat,psii,r, &
                    Relativiste,Renorm,Rmtg,Rmtsd,rof_e,Spinorbite,V_hubb,V_intmax,V0bdc,Vrato,Ylm_comp)
 
@@ -807,7 +889,7 @@ subroutine Cal_rof(E_Fermi,Eclie,Energ_s,Eseuil,Full_potential,Hubb_a,Hubb_d,ich
   complex(kind=db), dimension(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,nenerg_s):: rof_e
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: rof
 
-  logical:: Final_tddft, Full_potential, Hubb_a, Hubb_d, NRIXS, Relativiste, Renorm, Spinorbite, Ylm_comp
+  logical:: Eneg, Final_tddft, Full_potential, Hubb_a, Hubb_d, NRIXS, Relativiste, Renorm, Spinorbite, Ylm_comp
        
   real(kind=db):: E_Fermi, Eclie, Eimag, Rmtg, Rmtsd, V_intmax
   real(kind=db), dimension(nspin,n_Ec):: Ecinetic
@@ -842,7 +924,8 @@ subroutine Cal_rof(E_Fermi,Eclie,Energ_s,Eseuil,Full_potential,Hubb_a,Hubb_d,ich
   do ie = 1,nenerg_s
 
     Enervide(1) = Energ_s(ie) + E_Fermi
-    Ecinetic(:,1) = max( Enervide(1) - V0bdc(:), Eclie )
+    Ecinetic(:,1) = Enervide(1) - V0bdc(:)
+    if( .not. Eneg ) Ecinetic(:,1) = max( Ecinetic(:,1), Eclie )
 
     rof(:,:,:,:,:,:) = (0._db, 0._db)
  
@@ -1526,9 +1609,9 @@ subroutine Cal_Pol(icheck,Pol_i_s,Pol_i_p,Pol_s_s,Pol_s_p,Theta,Trans_Lab_Dir_Q,
 
   if( icheck > 0 ) then
     write(3,110) Theta/radian, Two_theta_L/radian 
-    write(3,'(/A)') '   Pol_i_sig  Pol_i_pi   Pol_s_sig  Pol_s_pi   WaveVec_i  WaveVec_s    (in orthonormal unit cell basis)'
+    write(3,'(/A)') '   Pol_i_sig  Pol_i_pi   Pol_s_sig  Pol_s_pi   WaveVec_i  WaveVec_s  (in orthonormal unit cell basis)'
     do i = 1,3
-      write(3,'(6f11.5)') Pol_i_s(i), Pol_i_p(i), Pol_s_s(i), Pol_s_p(i), Vec_i(i), Vec_s(i) 
+      write(3,'(7f11.5)') Pol_i_s(i), Pol_i_p(i), Pol_s_s(i), Pol_s_p(i), Vec_i(i), Vec_s(i)  
     end do   
   endif
   return
@@ -3511,28 +3594,28 @@ end
 
 !*****************************************************************************************************************
 
-subroutine Write_rixs(Angle,Deltar,E_cut,E_loss,Energ_in,Epsii,Eseuil,File_name_rixs,Gamma_hole,Gamma_max, &
-                  npl,jseuil,Mod_k,Monocrystal,n_q_dim,n_Spin_channel,n_theta,ne_loss,nenerg_in,ninit1,ninitr, &
-                  nseuil,numat,RIXS_ampl)
+subroutine Write_rixs(Deltar,E_cut,E_loss,Energ_emission,Energ_in,Epsii,Eseuil,File_name_rixs,Gamma_hole, &
+                  Gamma_max,npl,jseuil,Mod_k,Monocrystal,n_q_dim,n_Spin_channel,n_theta_rixs,ne_loss,nenerg_in,ninit1,ninitr, &
+                  nseuil,numat,RIXS_ampl,Theta_rixs)
 
   use declarations
   implicit none
  
   character(len=Length_name):: File_name_rixs
   
-  integer:: i_q, i_Monocrystal, i_t, ie, ie_loss, ii, ipl, jseuil, n_isc, n_q_dim, &
-            n_Spin_channel, n_theta, ne_loss, nenerg_in, ninit1, ninitr, nseuil, numat, npl  
+  integer:: i_q, i_Energ_emission, i_Monocrystal, i_t, ie, ie_loss, ii, ipl, jseuil, n_isc, n_q_dim, &
+            n_Spin_channel, n_theta_rixs, ne_loss, nenerg_in, ninit1, ninitr, nseuil, numat, npl  
    
-  complex(kind=db), dimension(ne_loss,nenerg_in,npl,n_theta,n_q_dim,n_Spin_channel*ninitr):: RIXS_ampl
+  complex(kind=db), dimension(ne_loss,nenerg_in,npl,n_theta_rixs,n_q_dim,n_Spin_channel*ninitr):: RIXS_ampl
 
-  logical:: Monocrystal
+  logical:: Energ_emission, Monocrystal
    
   real(kind=db):: Deltar, E_cut, E_in, E_out, Eseuil, Fac, Gamma_hole, Gamma_max 
   real(kind=db), dimension(ninitr):: Epsii
   real(kind=db), dimension(nenerg_in):: Energ_in
   real(kind=db), dimension(ne_loss):: E_loss
-  real(kind=db), dimension(2,n_theta):: Angle
-  real(kind=db), dimension(nenerg_in,ne_loss,n_theta,n_q_dim):: Mod_k
+  real(kind=db), dimension(n_theta_rixs,2):: Theta_rixs
+  real(kind=db), dimension(nenerg_in,ne_loss,n_theta_rixs):: Mod_k
 
   do ie = 1,nenerg_in
     E_in = Eseuil + Energ_in(ie)
@@ -3545,6 +3628,12 @@ subroutine Write_rixs(Angle,Deltar,E_cut,E_loss,Energ_in,Epsii,Eseuil,File_name_
   
   n_isc = n_Spin_channel * ninitr
     
+  if( Energ_emission ) then
+    i_Energ_emission = 1
+  else
+    i_Energ_emission = 0
+  endif
+
   if( Monocrystal ) then
     i_Monocrystal = 1
   else
@@ -3552,21 +3641,21 @@ subroutine Write_rixs(Angle,Deltar,E_cut,E_loss,Energ_in,Epsii,Eseuil,File_name_
   endif
 
   open(2, file = File_name_rixs )
-  write(2,110) Eseuil*rydb, numat, nseuil, jseuil, i_Monocrystal, nenerg_in, ne_loss, npl, n_theta, n_q_dim, ninit1, ninitr, &
-               n_Spin_channel, Epsii(:)*rydb
-  write(2,115) Gamma_hole, Gamma_max, E_cut*rydb, Deltar 
+  write(2,110) Eseuil*rydb, numat, nseuil, jseuil, i_Energ_emission, i_Monocrystal, nenerg_in, ne_loss, npl, n_theta_rixs, &
+               n_q_dim, ninit1, ninitr, n_Spin_channel, Epsii(:)*rydb
+  write(2,115) Gamma_hole, Gamma_max, E_cut, Deltar 
   write(2,'(A)') ' Theta_in, 2.Theta'
-  write(2,120) ( Angle(:,i_t) / radian, i_t = 1,n_theta )
+  write(2,120) ( Theta_rixs(i_t,:) / radian, i_t = 1,n_theta_rixs )
   if( Monocrystal ) then
     write(2,'(A)') ' k'
-    write(2,125) ((( Mod_k(ie,:,i_t,i_q), i_t = 1,n_theta), i_q = 1,n_q_dim ), ie = 1,nenerg_in )
+    write(2,125) (( Mod_k(ie,:,i_t), i_t = 1,n_theta_rixs), ie = 1,nenerg_in )
   endif
   write(2,'(A)') ' Energy'
   write(2,120) Energ_in(:)*rydb
 
   do ie_loss = 1,ne_loss
     do ipl = 1,npl
-      do i_t = 1,n_theta 
+      do i_t = 1,n_theta_rixs 
         do i_q = 1,n_q_dim
           do ii = 1,n_isc
             if( abs( E_loss(ie_loss)*Rydb ) < 9.999995_db ) then
@@ -3587,7 +3676,7 @@ subroutine Write_rixs(Angle,Deltar,E_cut,E_loss,Energ_in,Epsii,Eseuil,File_name_
   Close(2)
 
   return
-  110 format(f10.3,i5,3i3,2i6,i3,i6,4i3,1p,10e15.7)
+  110 format(f10.3,i5,4i3,2i6,i3,i6,4i3,1p,10e15.7)
   115 format(10x,4f12.5,' = Gamma_hole, Gamma_max, E_cut, Deltar')
   120 format(10x,100000f15.5)
   125 format(10x,1p,100000e13.5)
@@ -3599,15 +3688,15 @@ end
 
 !*****************************************************************************************************************
 
-subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_modQ)
+subroutine Write_Int_rixs(Ampl_rixs,Analyzer,File_name,File_name_int_sum,n_File,RIXS_core,Sum_rixs,Write_modQ)
 
   use declarations
   implicit none
  
-  integer:: i, i_amp, i_File, i_q, i_Monocrystal, i_t, ie, ie_loss, i_Spin_channel, ii, initr, ipl, ipr, istat, je_loss, &
-            jseuil, k, L, Length, n_amp, &
-            n_File, n_i, n_isc, n_Spin_channel, n_Spin_channel_out, n_theta, n_q_dim, ne_loss, nenerg_in, ninit1, ninitr, npl, &
-            npl_out, nseuil, numat  
+  integer:: i, i_amp, i_File, i_q, i_Energ_emission, i_Monocrystal, i_t, ie, ie_loss, i_Spin_channel, ii, initr, ipl, ipr, &
+     istat, je_loss, jseuil, k, L, Length, n_amp, &
+     n_File, n_i, n_isc, n_Spin_channel, n_Spin_channel_out, n_theta_rixs, n_q_dim, ne, ne_loss, nenerg_in, ninit1, ninitr, npl, &
+     npl_out, nseuil, numat  
  
   character(len=3):: mot3
   character(len=8):: dat
@@ -3615,9 +3704,11 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
   character(len=13):: Word
   character(len=19):: com_date
   character(len=24):: com_time
+  character(len=2), dimension(4):: pol_suf_no_ana
   character(len=3), dimension(7):: suf_spin
   character(len=13), dimension(2:7):: Channel_name
   character(len=13), dimension(0:10):: init_name
+  character(len=13), dimension(4):: pol_name_in
   character(len=13), dimension(8):: pol_name
   character(len=13), dimension(8):: pol_suf
   character(len=Length_name):: File_name_int_sum, File_name_o, File_name_out, mot
@@ -3628,12 +3719,13 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
   complex(kind=db), dimension(:,:,:,:,:), allocatable:: RIXS_ampl
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: RIXS_ampl_tot
 
-  logical:: Ampl_rixs, E_cut_man, Gamma_hole_man, Gamma_max_man, Powder, RIXS_core, Sum_rixs, Write_modQ
+  logical:: Ampl_rixs, Analyzer, E_cut_man, Energ_emission, Gamma_hole_man, Gamma_max_man, Powder, RIXS_core, Sum_rixs, Write_modQ
   
   real(kind=db):: E, Delta_E, Deltar, E_cut, Eseuil, Gamma_hole, Gamma_max, Range_E_in, Range_E_Loss, x, y 
   real(kind=db), dimension(:), allocatable:: Ampl_i, Ampl_r, E_loss, Energ_in
-  real(kind=db), dimension(:,:), allocatable:: Angle
-  real(kind=db), dimension(:,:,:,:), allocatable:: Mod_k, Sum_E_in 
+  real(kind=db), dimension(:,:), allocatable:: Theta_rixs
+  real(kind=db), dimension(:,:,:), allocatable:: Mod_k 
+  real(kind=db), dimension(:,:,:,:), allocatable:: Sum_E_in 
   real(kind=db), dimension(:,:,:,:,:), allocatable:: RIXS_int
   real(kind=db), dimension(:,:,:,:,:,:), allocatable:: Sum_E_loss
 
@@ -3643,7 +3735,9 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
                   '      init_6 ','      init_7 ', '      init_8 ', '      init_9 ', '     init_10 '/
   data pol_name/ '  sigma-sigma', '    sigma-pi ', '    pi-sigma ', '     pi-pi   ','  right-sigma', '   left-sigma', &
                  '    right-pi ', '    left-pi  ' /
+  data pol_name_in/ '     sigma   ', '       pi    ', '     right   ', '      left   '/
   data pol_suf/ '_ss', '_sp', '_ps', '_pp','_rs', '_ls', '_rp', '_lp' /
+  data pol_suf_no_ana/ '_s', '_p', '_r', '_l' /
 
   if( Ampl_rixs ) then
     n_amp = 3  ! to write real and imaginary part
@@ -3671,14 +3765,17 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
         stop
       endif
     endif
-    read(2,*) Eseuil, numat, nseuil, jseuil, i_Monocrystal, nenerg_in, ne_loss, npl, n_theta, n_q_dim, ninit1, ninitr, &
-              n_Spin_channel
+    read(2,*) Eseuil, numat, nseuil, jseuil, i_Energ_emission, i_Monocrystal, nenerg_in, ne_loss, npl, n_theta_rixs, n_q_dim, &
+              ninit1, ninitr, n_Spin_channel
     Powder = i_Monocrystal == 0
+    Energ_emission = i_Energ_emission == 1
     Close(2)
   end do
   
   if( Powder ) then
     npl_out = 1
+  elseif( .not. Analyzer ) then
+    npl_out = npl / 2
   else
     npl_out = npl
   endif
@@ -3690,44 +3787,45 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
   endif
 
   n_isc = ninitr * n_Spin_channel
-   
-  allocate( Energ_in(nenerg_in) )
-  if( nenerg_in > 1 ) then
-    allocate( E_string(nenerg_in+1) )
-    allocate( E_string_full((nenerg_in+1)*npl_out) )
+
+  if( nenerg_in > 1 .and. .not. Energ_emission ) then
+    ne = nenerg_in+1
   else
-    allocate( E_string(nenerg_in) )
-    allocate( E_string_full(nenerg_in*npl_out) )
-  endif
+    ne = nenerg_in
+  endif         
+ 
+  allocate( Energ_in(nenerg_in) )
+  allocate( E_string(ne) )
+  allocate( E_string_full(ne*npl_out*n_theta_rixs) )
   allocate( E_loss(ne_loss) )
   allocate( Ampl_i(nenerg_in) )
   allocate( Ampl_r(nenerg_in) )
-  allocate( RIXS_ampl(nenerg_in,npl,n_theta,n_q_dim,n_isc) )
-  allocate( Angle(2,n_theta) )
-  if( .not. Powder ) allocate( Mod_k(nenerg_in,ne_loss,n_theta,n_q_dim) )
+  allocate( RIXS_ampl(nenerg_in,npl,n_theta_rixs,n_q_dim,n_isc) )
+  allocate( Theta_rixs(n_theta_rixs,2) )
+  if( .not. Powder ) allocate( Mod_k(nenerg_in,ne_loss,n_theta_rixs) )
 
   if( n_Spin_channel == 1 ) then
     n_Spin_channel_out = n_Spin_channel 
   else
     n_Spin_channel_out = n_Spin_channel + 2 
   endif
-  allocate( RIXS_ampl_tot(nenerg_in,npl,n_theta,n_q_dim,0:n_i,n_Spin_channel_out) )
+  allocate( RIXS_ampl_tot(nenerg_in,npl,n_theta_rixs,n_q_dim,0:n_i,n_Spin_channel_out) )
   allocate( File_name_int(n_q_dim,n_Spin_channel_out,n_amp) )
   
   open(2, file = File_name(1), status='old')
   read(2,*)  
   read(2,*) Gamma_hole, Gamma_max, E_cut, Deltar
   read(2,*) 
-  read(2,*) ( Angle(:,i_t), i_t = 1,n_theta )
+  read(2,*) ( Theta_rixs(i_t,:), i_t = 1,n_theta_rixs )
   if( .not. Powder ) then
     read(2,*) 
-    read(2,*) ((( Mod_k(ie,:,i_t,i_q), i_t = 1,n_theta), i_q = 1,n_q_dim ), ie = 1,nenerg_in )
+    read(2,*) (( Mod_k(ie,:,i_t), i_t = 1,n_theta_rixs), ie = 1,nenerg_in )
   endif
   read(2,*) 
   read(2,*) Energ_in(:)
   do ie_loss = 1,ne_loss
     do ipl = 1,npl
-      do i_t = 1,n_theta 
+      do i_t = 1,n_theta_rixs 
         do i_q = 1,n_q_dim
           do ii = 1,n_isc
             read(2,*) E_loss(ie_loss)
@@ -3864,47 +3962,64 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
   File_name_int_sum(Length+1:Length+17) = '_int_sum_loss.txt'
 
   i = 0
-  do ipl = 1,npl_out
-    do ie = 1,nenerg_in+1
-      if( nenerg_in == 1 .and. ie == 2 ) cycle
-      i = i + 1
-      Word = ' '
-      if( ie == nenerg_in+1 ) then 
-        Word = 'Av_on_Ei'
-      else
-        E = Energ_in(ie)
-        if( abs( nint( 10*E ) - 10*E ) < eps10 ) then
-          write(Word,'(f13.1)') E
-        elseif( abs( nint( 100*E ) - 100*E ) < eps10 ) then
-          write(Word,'(f13.2)') E
-        elseif( abs( nint( 1000*E ) - 1000*E ) < eps10 ) then
-          write(Word,'(f13.3)') E
-        elseif( abs( nint( 1000*E ) - 1000*E ) < eps10 ) then
-          write(Word,'(f13.4)') E
+  do i_t = 1,n_theta_rixs
+    do ipl = 1,npl_out
+      do ie = 1,ne
+        i = i + 1
+        Word = ' '
+        if( ie == nenerg_in+1 ) then 
+          Word = 'Av_on_Ei'
+        else
+          E = Energ_in(ie)
+          if( abs( nint( 10*E ) - 10*E ) < eps10 ) then
+            write(Word,'(f13.1)') E
+          elseif( abs( nint( 100*E ) - 100*E ) < eps10 ) then
+            write(Word,'(f13.2)') E
+          elseif( abs( nint( 1000*E ) - 1000*E ) < eps10 ) then
+            write(Word,'(f13.3)') E
+          elseif( abs( nint( 1000*E ) - 1000*E ) < eps10 ) then
+            write(Word,'(f13.4)') E
+          endif
         endif
-      endif
 
-      Word = adjustr(Word)
-      E_string(ie) = Word
+        Word = adjustr(Word)
+        E_string(ie) = Word
 
-      if( npl_out > 1 ) then
-        Word = adjustl(Word)
-        Length = len_trim(Word)
-        if( Length+3 < 13 ) Word(Length+1:Length+3) = pol_suf(ipl)
-      endif
+        if( npl_out > 1 ) then
+          Word = adjustl(Word)
+          Length = len_trim(Word)
+          if( Analyzer ) then
+            if( Length+3 < 13 ) Word(Length+1:Length+3) = pol_suf(ipl)
+          else
+            if( Length+2 < 13 ) Word(Length+1:Length+3) = pol_suf_no_ana(ipl)
+          endif
+        endif
       
-      Word = adjustr(Word)
-      E_string_full(i) = Word
+        if( n_theta_rixs > 1 ) then
+          Word = adjustl(Word)
+          Length = len_trim(Word)
+          if( Length+3 < 13 ) then 
+            Word(Length+1:Length+2) = '_t'
+            call ad_number(i_t,Word,13)
+          elseif( Length+3 < 12 ) then 
+            Word(Length+1:Length+1) = '_'
+            call ad_number(i_t,Word,13)
+          endif
+        endif
+      
+        Word = adjustr(Word)
+        E_string_full(i) = Word
+      end do
     end do
   end do
 
-  allocate( RIXS_int(nenerg_in,npl_out,n_theta,n_q_dim,0:n_i) )
-  allocate( Sum_E_in(npl_out,n_theta,n_q_dim,0:n_i) )
-  allocate( Sum_E_loss(nenerg_in,npl_out,n_theta,n_q_dim,0:n_i,n_spin_channel_out) )
+  allocate( RIXS_int(nenerg_in,npl_out,n_theta_rixs,n_q_dim,0:n_i) )
+  allocate( Sum_E_in(npl_out,n_theta_rixs,n_q_dim,0:n_i) )
+  allocate( Sum_E_loss(nenerg_in,npl_out,n_theta_rixs,n_q_dim,0:n_i,n_spin_channel_out) )
   Sum_E_loss(:,:,:,:,:,:) = 0._db
   if( ne_loss > 1 ) &
     Range_E_Loss = E_loss(ne_loss) - E_loss(1) + ( E_loss(2) - E_loss(1) + E_loss(ne_loss) - E_loss(ne_loss-1) ) / 2
-  if( nenerg_in > 1 ) &
+  if( nenerg_in > 1 .and. .not. Energ_emission ) &
     Range_E_in = Energ_in(nenerg_in) - Energ_in(1) + ( Energ_in(2) - Energ_in(1) + Energ_in(nenerg_in) - Energ_in(nenerg_in-1) ) / 2
 
   do ie_loss = 1,ne_loss
@@ -3920,11 +4035,11 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
         read(2,*)
         read(2,*)
       endif
-      do je_loss = 1,(ie_loss - 1) * npl * n_theta * n_q_dim * n_isc
+      do je_loss = 1,(ie_loss - 1) * npl * n_theta_rixs * n_q_dim * n_isc
         read(2,*) 
       end do
       do ipl = 1,npl
-        do i_t = 1,n_theta 
+        do i_t = 1,n_theta_rixs 
           do i_q = 1,n_q_dim
             do ii = 1,n_isc
               read(2,*) E_loss(ie_loss), ( Ampl_r(ie), Ampl_i(ie), ie = 1,nenerg_in )
@@ -3973,6 +4088,13 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
               RIXS_int(:,1,:,:,:) = RIXS_int(:,1,:,:,:) + real( RIXS_ampl_tot(:,ipl,:,:,:,i_Spin_channel), db )**2 &
                                                         + aimag( RIXS_ampl_tot(:,ipl,:,:,:,i_Spin_channel) )**2  
             end do
+          elseif( .not. Analyzer ) then
+            do ipl = 1,npl_out
+              RIXS_int(:,ipl,:,:,:) = RIXS_int(:,ipl,:,:,:) + real( RIXS_ampl_tot(:,2*ipl-1,:,:,:,i_Spin_channel), db )**2 &
+                                                            + aimag( RIXS_ampl_tot(:,2*ipl-1,:,:,:,i_Spin_channel) )**2 &
+                                                            + real( RIXS_ampl_tot(:,2*ipl,:,:,:,i_Spin_channel), db )**2 &
+                                                            + aimag( RIXS_ampl_tot(:,2*ipl,:,:,:,i_Spin_channel) )**2   
+            end do
           else
             RIXS_int(:,:,:,:,:) = real( RIXS_ampl_tot(:,:,:,:,:,i_Spin_channel), db )**2 &
                                 + aimag( RIXS_ampl_tot(:,:,:,:,:,i_Spin_channel) )**2 
@@ -3982,6 +4104,11 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
             do ipl = 1,npl
               RIXS_int(:,1,:,:,:) = real( RIXS_ampl_tot(:,ipl,:,:,:,i_Spin_channel), db )  
             end do
+          elseif( .not. Analyzer ) then
+            do ipl = 1,npl_out
+              RIXS_int(:,ipl,:,:,:) = RIXS_int(:,ipl,:,:,:) + real( RIXS_ampl_tot(:,2*ipl-1,:,:,:,i_Spin_channel), db ) &
+                                                            + real( RIXS_ampl_tot(:,2*ipl,:,:,:,i_Spin_channel), db )
+            end do
           else
             RIXS_int(:,:,:,:,:) = real( RIXS_ampl_tot(:,:,:,:,:,i_Spin_channel), db )
           endif
@@ -3990,12 +4117,17 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
             do ipl = 1,npl
               RIXS_int(:,1,:,:,:) = aimag( RIXS_ampl_tot(:,ipl,:,:,:,i_Spin_channel) )  
             end do
+          elseif( .not. Analyzer ) then
+            do ipl = 1,npl_out
+              RIXS_int(:,ipl,:,:,:) = RIXS_int(:,ipl,:,:,:) + aimag( RIXS_ampl_tot(:,2*ipl-1,:,:,:,i_Spin_channel) ) &
+                                                            + aimag( RIXS_ampl_tot(:,2*ipl,:,:,:,i_Spin_channel) )
+            end do
           else
             RIXS_int(:,:,:,:,:) = aimag( RIXS_ampl_tot(:,:,:,:,:,i_Spin_channel) )
           endif
       end select
 
-      if( nenerg_in > 1 ) then
+      if( nenerg_in > 1 .and. .not. Energ_emission ) then
         Sum_E_in(:,:,:,:) = 0._db
         do ie = 1,nenerg_in
           if( ie == 1 ) then
@@ -4029,50 +4161,66 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
           open(2, file = File_name_int(i_q,i_spin_channel,i_amp) )
         
           write(2,'(a15,a19,a24)') ' RIXS intensity', com_date, com_time
-          write(2,120) nenerg_in, ne_loss, npl_out, n_theta, n_q_dim, n_i, n_Spin_channel
+          write(2,120) nenerg_in, ne_loss, npl_out, n_theta_rixs, n_q_dim, n_i, n_Spin_channel
     
           if( i_Spin_channel > 1 ) write(2,130) '  Channel: ', Channel_name(i_spin_Channel) 
           if( n_q_dim > 1 ) write(2,'(a11,i3)') '  Q index =', i_q 
 
-          if( n_i > 0 ) write(2,130) ' init:    ', (((( init_name(initr), ie = 1,nenerg_in+1 ), ipl = 1,npl_out ), &
-                                                                                             i_t = 1,n_theta ), initr = 0, n_i ) 
-          if( npl_out > 1 ) write(2,130) ' Polariza:', (((( pol_name(ipl), ie = 1,nenerg_in+1 ), ipl = 1,npl_out ), &
-                                                                                             i_t = 1,n_theta ), initr = 0, n_i ) 
-          write(2,140) ' Theta_in:',(((( Angle(1,i_t), ie = 1,nenerg_in+1), ipl = 1,npl_out ), i_t = 1,n_theta ), initr = 0, n_i )
-          write(2,140) '  2.Theta:',(((( Angle(2,i_t), ie = 1,nenerg_in+1), ipl = 1,npl_out ), i_t = 1,n_theta ), initr = 0, n_i )
-          write(2,130) '   E_loss ', ( E_string(:), ii = 1, npl_out*n_theta*( 1 + n_i ) )
-          if( npl_out > 1 ) write(2,130) '   E_loss ', ( E_string_full(:), ii = 1, ( 1 + n_i )*n_theta )
-         
+          if( n_i > 0 ) write(2,130) ' init:    ', (((( init_name(initr), ie = 1,ne ), ipl = 1,npl_out ), &
+                                                                         i_t = 1,n_theta_rixs ), initr = 0, n_i ) 
+          if( npl_out > 1 ) then
+            if( Analyzer ) then
+              write(2,130) ' Polariza:', (((( pol_name(ipl), ie = 1,ne ), ipl = 1,npl_out ), &
+                                                                          i_t = 1,n_theta_rixs ), initr = 0, n_i )
+            else
+              write(2,130) ' Polariza:', (((( pol_name_in(ipl), ie = 1,ne ), ipl = 1,npl_out ), &
+                                                                          i_t = 1,n_theta_rixs ), initr = 0, n_i )
+            endif
+          endif 
+          write(2,140) ' Theta_in:',(((( Theta_rixs(i_t,1), ie = 1,ne), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), initr = 0, n_i )
+          write(2,140) '  2.Theta:',(((( Theta_rixs(i_t,2), ie = 1,ne), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), initr = 0, n_i )
+          if( Energ_emission ) then
+            write(2,130) '   E_emis ', ( E_string(:), ii = 1, npl_out*n_theta_rixs*( 1 + n_i ) )
+            if( npl_out > 1 ) write(2,130) '   E_emis ', ( E_string_full(:), ii = 1, 1 + n_i )
+          else
+            write(2,130) '   E_loss ', ( E_string(:), ii = 1, npl_out*n_theta_rixs*( 1 + n_i ) )
+            if( npl_out > 1 ) write(2,130) '   E_loss ', ( E_string_full(:), ii = 1, 1 + n_i )
+          endif
+          
         else
         
           open(2, file = File_name_int(i_q,i_spin_channel,i_amp), position='append' )
         
         endif
 
-        E = - E_loss(ie_loss) 
-        if( nenerg_in > 1 ) then        
+        if( Energ_emission ) then
+          E = E_loss(ie_loss)
+        else
+          E = - E_loss(ie_loss)
+        endif 
+        if( nenerg_in > 1 .and. .not. Energ_emission ) then        
           if( abs( E ) < 9.999995_db ) then
             write(2,160) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), Sum_E_in(ipl,i_t,i_q,initr), ipl = 1,npl_out ), &
-                                                                                        i_t = 1,n_theta ), initr = 0, n_i ) 
+                                                                                        i_t = 1,n_theta_rixs ), initr = 0, n_i ) 
           elseif( abs( E ) < 99.99995_db ) then
             write(2,170) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), Sum_E_in(ipl,i_t,i_q,initr), ipl = 1,npl_out ), &
-                                                                                        i_t = 1,n_theta ), initr = 0, n_i )
+                                                                                        i_t = 1,n_theta_rixs ), initr = 0, n_i )
           elseif( abs( E ) < 999.9995_db ) then
             write(2,180) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), Sum_E_in(ipl,i_t,i_q,initr), ipl = 1,npl_out ), &
-                                                                                        i_t = 1,n_theta ), initr = 0, n_i )
+                                                                                        i_t = 1,n_theta_rixs ), initr = 0, n_i )
           else
             write(2,190) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), Sum_E_in(ipl,i_t,i_q,initr), ipl = 1,npl_out ), &
-                                                                                        i_t = 1,n_theta ), initr = 0, n_i ) 
+                                                                                        i_t = 1,n_theta_rixs ), initr = 0, n_i ) 
           endif
         else
           if( abs( E ) < 9.999995_db ) then
-            write(2,160) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta ), initr = 0, n_i ) 
+            write(2,160) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), initr = 0, n_i ) 
           elseif( abs( E ) < 99.99995_db ) then
-            write(2,170) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta ), initr = 0, n_i )
+            write(2,170) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), initr = 0, n_i )
           elseif( abs( E ) < 999.9995_db ) then
-            write(2,180) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta ), initr = 0, n_i )
+            write(2,180) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), initr = 0, n_i )
           else
-            write(2,190) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta ), initr = 0, n_i ) 
+            write(2,190) E, ((( RIXS_int(:,ipl,i_t,i_q,initr), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), initr = 0, n_i ) 
           endif
         endif 
 
@@ -4088,35 +4236,35 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
   if( ne_loss > 1 .and. Sum_rixs ) then
     open(2, file = File_name_int_sum)
     write(2,'(a38,a19,a24)') ' RIXS, average along loss energy range', com_date, com_time
-    if( npl_out == 1 .and. n_theta == 1 .and. n_i == 0 .and. n_q_dim == 1 .and. n_spin_channel_out == 1 ) then
+    if( npl_out == 1 .and. n_theta_rixs == 1 .and. n_i == 0 .and. n_q_dim == 1 .and. n_spin_channel_out == 1 ) then
       write(2,'(A)') '  Energ_in Average_RIXS'
-    elseif( npl_out == 1 .and. n_theta == 1 .and. n_q_dim == 1 .and. n_spin_channel_out == 1 ) then
+    elseif( npl_out == 1 .and. n_theta_rixs == 1 .and. n_q_dim == 1 .and. n_spin_channel_out == 1 ) then
       write(2,'(a10,10(a12,i1))') ' Energ_in', ('   Av_RIXS_i',initr, initr = 0,n_i )
-    elseif( n_theta == 1 .and. n_i == 0 .and. n_q_dim == 1 .and. n_spin_channel_out == 1 ) then
+    elseif( n_theta_rixs == 1 .and. n_i == 0 .and. n_q_dim == 1 .and. n_spin_channel_out == 1 ) then
       write(2,'(a10,10(a10,a3))') ' Energ_in', ('  Av_RIXS',pol_suf(ipl), ipl = 1,npl_out )
     elseif( npl_out == 1 .and. n_i == 0 .and. n_q_dim == 1 .and. n_spin_channel_out == 1 ) then
-      write(2,'(a10,10(a12,i1))') ' Energ_in', ('   Av_RIXS_t',i_t, i_t = 1,n_theta )
-    elseif( npl_out == 1 .and. n_theta == 1 .and. n_i == 0 .and. n_spin_channel_out == 1 ) then
+      write(2,'(a10,10(a12,i1))') ' Energ_in', ('   Av_RIXS_t',i_t, i_t = 1,n_theta_rixs )
+    elseif( npl_out == 1 .and. n_theta_rixs == 1 .and. n_i == 0 .and. n_spin_channel_out == 1 ) then
       write(2,'(a10,10(a12,i1))') ' Energ_in', ('   Av_RIXS_q',i_q, i_q = 1,n_q_dim )
-    elseif( npl_out == 1 .and. n_theta == 1 .and. n_i == 0 .and. n_q_dim == 1 ) then
+    elseif( npl_out == 1 .and. n_theta_rixs == 1 .and. n_i == 0 .and. n_q_dim == 1 ) then
       write(2,'(a10,10(a10,a3))') ' Energ_in', ('   Av_RIXS', suf_spin(i_spin_channel), i_spin_channel = 1,n_spin_channel_out )
     else
       write(2,'(a10,10(a4,a3,3(a1,i1)))') ' Energ_in', (((('  AR',pol_suf(ipl),'_t',i_t,'i',i_t,'q',i_q, ipl = 1,npl_out ), &
-                                                           i_t = 1,n_theta ), initr = 0, n_i ),  i_q = 1,n_q_dim )
+                                                           i_t = 1,n_theta_rixs ), initr = 0, n_i ),  i_q = 1,n_q_dim )
     endif     
     do ie = 1,nenerg_in
       if( abs( Energ_in(ie) ) < 9.999995_db ) then
-        write(2,160) Energ_in(ie), ((((( Sum_E_loss(ie,ipl,i_t,i_q,initr,i_spin_channel), ipl = 1,npl_out ), i_t = 1,n_theta ), &
-                                                  initr = 0, n_i ), i_q = 1,n_q_dim ), i_spin_channel = 1,n_spin_channel_out )
+        write(2,160) Energ_in(ie), ((((( Sum_E_loss(ie,ipl,i_t,i_q,initr,i_spin_channel), ipl = 1,npl_out ), &
+                       i_t = 1,n_theta_rixs ), initr = 0, n_i ), i_q = 1,n_q_dim ), i_spin_channel = 1,n_spin_channel_out )
       elseif( abs( Energ_in(ie) ) < 99.99995_db ) then
-        write(2,170) Energ_in(ie), ((((( Sum_E_loss(ie,ipl,i_t,i_q,initr,i_spin_channel), ipl = 1,npl_out ), i_t = 1,n_theta ), &
-                                                  initr = 0, n_i ), i_q = 1,n_q_dim ), i_spin_channel = 1,n_spin_channel_out )
+        write(2,170) Energ_in(ie), ((((( Sum_E_loss(ie,ipl,i_t,i_q,initr,i_spin_channel), ipl = 1,npl_out ), &
+                       i_t = 1,n_theta_rixs ), initr = 0, n_i ), i_q = 1,n_q_dim ), i_spin_channel = 1,n_spin_channel_out )
       elseif( abs( Energ_in(ie) ) < 999.9995_db ) then
-        write(2,180) Energ_in(ie), ((((( Sum_E_loss(ie,ipl,i_t,i_q,initr,i_spin_channel), ipl = 1,npl_out ), i_t = 1,n_theta ), &
-                                                  initr = 0, n_i ), i_q = 1,n_q_dim ), i_spin_channel = 1,n_spin_channel_out )
+        write(2,180) Energ_in(ie), ((((( Sum_E_loss(ie,ipl,i_t,i_q,initr,i_spin_channel), ipl = 1,npl_out ), &
+                       i_t = 1,n_theta_rixs ), initr = 0, n_i ), i_q = 1,n_q_dim ), i_spin_channel = 1,n_spin_channel_out )
       else
-        write(2,190) Energ_in(ie), ((((( Sum_E_loss(ie,ipl,i_t,i_q,initr,i_spin_channel), ipl = 1,npl_out ), i_t = 1,n_theta ), &
-                                                  initr = 0, n_i ), i_q = 1,n_q_dim ), i_spin_channel = 1,n_spin_channel_out )
+        write(2,190) Energ_in(ie), ((((( Sum_E_loss(ie,ipl,i_t,i_q,initr,i_spin_channel), ipl = 1,npl_out ), &
+                       i_t = 1,n_theta_rixs ), initr = 0, n_i ), i_q = 1,n_q_dim ), i_spin_channel = 1,n_spin_channel_out )
       endif
     end do
     Close(2)
@@ -4130,12 +4278,6 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
       File_name_out = File_name_o
       Length = len_trim(File_name_o)
   
-      if( n_q_dim > 1 ) then
-        File_name_out(Length+1:Length+3) = '_iq'
-        call ad_number(i_q,File_name_out,Length_name)
-        Length = len_trim(File_name_out)
-      endif
-
       File_name_out = File_name_o 
       Length = len_trim(File_name_out)
 
@@ -4144,21 +4286,21 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
       open(2, file = File_name_out)
 
       write(2,'(a7,a19,a24)') ' Mod(Q)', com_date, com_time
-      write(2,200) nenerg_in, ne_loss, n_theta, n_q_dim
-      write(2,140) ' Theta_in:', (( Angle(1,i_t), ie = 1,nenerg_in), i_t = 1,n_theta )
-      write(2,140) '  2.Theta:', (( Angle(2,i_t), ie = 1,nenerg_in), i_t = 1,n_theta )
-      write(2,140) '   E_loss ', ( Energ_in(:), ii = 1, n_theta ) 
+      write(2,200) nenerg_in, ne_loss, n_theta_rixs, n_q_dim
+      write(2,140) ' Theta_in:', (( Theta_rixs(i_t,1), ie = 1,nenerg_in), i_t = 1,n_theta_rixs )
+      write(2,140) '  2.Theta:', (( Theta_rixs(i_t,2), ie = 1,nenerg_in), i_t = 1,n_theta_rixs )
+      write(2,140) '   E_loss ', ( Energ_in(:), ii = 1, n_theta_rixs ) 
   
       do ie_loss = 1,ne_loss
         E = - E_loss(ie_loss) 
         if( abs( E ) < 9.999995_db ) then
-          write(2,160) E, ( Mod_k(:,ie_loss,i_t,i_q), i_t = 1,n_theta ) 
+          write(2,160) E, ( Mod_k(:,ie_loss,i_t), i_t = 1,n_theta_rixs ) 
         elseif( abs( E ) < 99.99995_db ) then
-          write(2,170) E, ( Mod_k(:,ie_loss,i_t,i_q), i_t = 1,n_theta )
+          write(2,170) E, ( Mod_k(:,ie_loss,i_t), i_t = 1,n_theta_rixs )
         elseif( abs( E ) < 999.9995_db ) then
-          write(2,180) E, ( Mod_k(:,ie_loss,i_t,i_q), i_t = 1,n_theta )
+          write(2,180) E, ( Mod_k(:,ie_loss,i_t), i_t = 1,n_theta_rixs )
         else
-          write(2,190) E, ( Mod_k(:,ie_loss,i_t,i_q), i_t = 1,n_theta ) 
+          write(2,190) E, ( Mod_k(:,ie_loss,i_t), i_t = 1,n_theta_rixs ) 
         endif 
       end do
   
@@ -4168,13 +4310,13 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
     
   endif
   
-  deallocate( Ampl_i, Ampl_r, Angle, E_loss, E_string, E_string_full, Energ_in, File_name_int, RIXS_ampl, RIXS_ampl_tot, &
-              RIXS_int, Sum_E_in, Sum_E_loss )
+  deallocate( Ampl_i, Ampl_r, E_loss, E_string, E_string_full, Energ_in, File_name_int, RIXS_ampl, RIXS_ampl_tot, &
+              RIXS_int, Sum_E_in, Sum_E_loss, Theta_rixs )
   if( .not. Powder ) deallocate( Mod_k )
   
   return
   110 format(//' Error opening the file:',//3x,A,//)  
-  120 format(7i5,' / n_energy_in, n_energy_loss, npl, n_theta, n_q_dir, n_core-state_print, n_Spin_channel')
+  120 format(7i5,' / n_energy_in, n_energy_loss, npl, n_theta_rixs, n_q_dir, n_core-state_print, n_Spin_channel')
   130 format(a10,1000000a13)
   140 format(a10,1000000f13.5)
   150 format(a10,1p,1000000e13.5)
@@ -4182,59 +4324,58 @@ subroutine Write_Int_rixs(Ampl_rixs,File_name,n_File,RIXS_core,Sum_rixs,Write_mo
   170 format(f10.4,1p,100000e13.5)
   180 format(f10.3,1p,100000e13.5)
   190 format(f10.2,1p,100000e13.5)
-  200 format(4i5,' / n_energy_in, n_energy_loss, n_theta, n_q_dir')
+  200 format(4i5,' / n_energy_in, n_energy_loss, n_theta_rixs, n_q_dir')
 end
 
 !**********************************************************************************************************************
 
-subroutine RIXS_DoubleConv(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fermi,E_cut_man,Eclie,Eneg,Energ_rixs, &
-        Energ_s,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Estart,File_name_rixs,FDM_comp_m,Full_potential,Gamma_hole, &
-        Gamma_hole_man,Hubb_a,Hubb_d,iabsorig, &
-        icheck,igreq,iprabs_nonexc,isymeq,ip0,ip_max,is_g,jseuil,lmoins1,lplus1,lseuil,m_g,m_hubb, &
-        Moment_conservation,multi_run, &
-        Multipole,n_atom_proto,n_atom_uc,n_multi_run,n_oo,n_q_rixs,n_rel,n_shift_core,n_theta_in,n_two_theta,natomsym,nbseuil, &
-        nenerg_in_rixs,nenerg_s,neqm,ngamh,ninit1,ninit,ninitr,nlm_pot,nlm_probe,nlm_f,nomfich, &
-        nr,nrm,ns_dipmag,nseuil,nspin,nspino,nspinp,numat,Orthmati,Posn,Powder, &
-        psii,q_rixs,r,Relativiste,Renorm,RIXS_fast,Rmtg,Rmtsd,Rot_atom_abs,Rot_int,Shift_core,Spin_channel, &
-        Spinorbite,Step_loss,Theta_in,Two_theta,V_intmax,V_hubb,Vcato,Vhbdc,VxcbdcF,Vxcato,Ylm_comp)
+subroutine RIXS_DoubleConv(Classic_irreg,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fermi,E_cut_man,Eclie,Eneg, &
+        Energ_loss_rixs,Energ_out_rixs,Energ_rixs,Energ_s,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Estart,File_name_rixs, &
+        FDM_comp_m,Full_potential, &
+        Gamma_hole,Gamma_hole_man,Green,Green_int,Hubb_a,Hubb_d,iabsorig, &
+        icheck,isymeq,ip0,ip_max,is_g,jseuil,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
+        multi_run,msymdd,msymddi,msymdo,msymdoi,msymdq,msymdqi,msymoo,msymooi,msymqq,msymqqi, &
+        Multipole,n_atom_proto,n_atom_uc,n_multi_run,n_oo,n_q_rixs,n_rel,n_shift_core,n_theta_rixs,natomsym,nbseuil, &
+        nenerg_in_rixs,nenerg_loss_rixs,nenerg_out_rixs,nenerg_s,ngamh,ninit1,ninit,ninitr,nlm_pot,nlm_probe,nlmamax,nomfich, &
+        nr,nrm,ns_dipmag,nspin,nspino,nspinp,numat,Orthmati,Powder,psii,q_rixs, &
+        r,Relativiste,Renorm,Rmtg,Rmtsd,Rot_atom_abs,Rot_int,Shift_core,Solsing,Solsing_only, &
+        Spinorbite,Step_loss,Taull_tdd,Theta_rixs,V_intmax,V_hubb,Vcato,Vhbdc,VxcbdcF,Vxcato,Ylm_comp)
 
   use declarations
   implicit none
 
-  integer, parameter:: n_Ec = 2
+  integer, parameter:: mpirank = 0
+  integer, parameter:: mpinodes = 1
+  integer, parameter:: n_Ec = 1
+  integer, parameter:: n_V = 1
   integer, parameter:: ndim2 = 1
   integer, parameter:: nenerg_tddft = 0
-  integer, parameter:: nlmamax = 0
-
+  
   real(kind=db), parameter:: quatre_mc2 = 4 * 2 / alfa_sf**2  ! in Rydberg
   
-  integer:: iabsorig, i_q, i_Spin_channel, i_theta, i_theta_1, i_theta_2, ia, ich, icheck, ie, &
-     ie_in, ie_loss, ie_oc, ie_s, ii, ip0, ip_max, initr, iprabs_nonexc, iseuil, isp, isym, &
-     js, jseuil, Length, lmax_pot, lmax, lseuil, m_hubb, multi_run, n_atom_proto, n_atom_uc, n_isc, n_multi_run, &
-     n_oo, n_q_dim, n_q_rixs, n_rel, n_shift_core, n_Spin_channel, n_theta_in, n_two_theta, n_theta, natomsym, nbseuil, &
-     ne, ne_loss, nenerg_in, nenerg_in_rixs, nenerg_oc, nenerg_unoc, nenerg_s, neqm, ngamh, ninit, ninit1, ninitr, nlm_f, &
-     nlm_p_fp, nlm_pot, nlm_probe, npl, nr, nrm, &
-     ns_dipmag, nseuil, nspin, nspino, nspinp, numat
+  integer:: iabsorig, i_q, i_theta, ia, ich, icheck, ie, &
+     ie_in, ie_loss, ie_oc, ie_s, ip0, ip_max, initr, iseuil, iso1, iso2, isp, isp1, isp2, ispfg, iss1, iss2, isym, &
+     js, jseuil, Length, Lm1, Lm2, Lmax_pot, Lmax, Lmax_probe, Lms1, Lms2, Lseuil, m_hubb, multi_run, n_atom_proto, n_atom_uc, &
+     n_multi_run, n_oo, n_q_dim, n_q_rixs, n_rel, n_shift_core, n_theta_rixs, natomsym, nbseuil, &
+     ne, ne_loss, nenerg_in, nenerg_in_rixs, nenerg_loss_rixs, nenerg_oc, nenerg_out_rixs, nenerg_unoc, nenerg_s, ngamh, &
+     ninit, ninit1, ninitr, nlmamax, nlm_p_fp, nlm_pot, nlm_probe, npl, npl_out, nr, nrm, &
+     ns_dipmag, nspin, nspino, nspinp, numat
 
   integer, dimension(natomsym):: isymeq
   integer, dimension(ninit,2):: m_g
   integer, dimension(ninit):: is_g
-  integer, dimension(0:n_atom_proto,neqm):: igreq
+  integer, dimension(3):: ldip
+  integer, dimension(3,3):: lqua, msymdd, msymddi
+  integer, dimension(3,3,3):: loct, msymdq, msymdqi
+  integer, dimension(3,3,3,3):: msymdo, msymdoi, msymqq, msymqqi
+  integer, dimension(3,n_oo,3,n_oo):: msymoo, msymooi
 
-  character(len=9):: nomsym
   character(len=Length_name):: File_name_rixs, nomfich
 
-  complex(kind=db):: CFac, Lorentzian
-  complex(kind=db), dimension(nenerg_s,nlm_probe,nspinp,nlm_f,nspinp):: Ampl_abs
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
-  complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull, Taull_Spin_channel
-  complex(kind=db), dimension(3,3,2,ninitr):: secmd
-  complex(kind=db), dimension(3,3,ninitr):: secmm
-  complex(kind=db), dimension(3,3,3,2,ninitr):: secdq
-  complex(kind=db), dimension(3,3,3,3,2,ninitr):: secdo
-  complex(kind=db), dimension(3,3,3,3,ninitr):: secqq
-  complex(kind=db), dimension(3,3,n_rel,ninitr):: secdd
-  complex(kind=db), dimension(3,n_oo,3,n_oo,ninitr):: secoo
+  complex(kind=db), dimension(nenerg_s,nlmamax,nspinp,nlmamax,nspinp):: Taull_tdd
+  complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull_abs
+
   complex(kind=db), dimension(3,3):: RIXS_M1M1_tens_xtal
   complex(kind=db), dimension(3,3,2):: RIXS_E1M1_tens_xtal
   complex(kind=db), dimension(3,3,n_rel):: RIXS_E1E1_tens_xtal
@@ -4242,44 +4383,49 @@ subroutine RIXS_DoubleConv(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp
   complex(kind=db), dimension(3,3,3,3):: RIXS_E2E2_tens_xtal, RIXS_E3E3_tens_xtal
   complex(kind=db), dimension(3,3,3,3,2):: RIXS_E1E3_tens_xtal
 
+  complex(kind=db), dimension(3,3):: sec_dd
+  complex(kind=db), dimension(3,3,3):: sec_dq
+  complex(kind=db), dimension(3,3,3,3):: sec_qq
+  complex(kind=db), dimension(3,3,ninitr,0:mpinodes-1):: secmd, secmd_m, secmm, secmm_m
+  complex(kind=db), dimension(3,3,3,ninitr,0:mpinodes-1):: secdq, secdq_m
+  complex(kind=db), dimension(3,3,3,3,ninitr,0:mpinodes-1):: secdo, secdo_m, secqq, secqq_m
+  complex(kind=db), dimension(3,3,n_rel,ninitr,0:mpinodes-1):: secdd, secdd_m
+  complex(kind=db), dimension(3,n_oo,3,n_oo,ninitr,0:mpinodes-1):: secoo, secoo_m
+
+  complex(kind=db), dimension(:,:,:), allocatable:: Pol_i_s_g, Pol_i_p_g, Pol_s_s_g, Pol_s_p_g
+
   complex(kind=db), dimension(:), allocatable:: Amplitude
-  complex(kind=db), dimension(:,:,:,:,:), allocatable:: RIXS_E1M1_tens, RIXS_M1M1_tens
-  complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: RIXS_ampl, RIXS_E1E1_tens, RIXS_E1E2_tens, rof, rof_e
-  complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: RIXS_E1E3_tens, RIXS_E2E2_tens, RIXS_E3E3_tens
+  complex(kind=db), dimension(:,:,:), allocatable:: Secmm_xtal
+  complex(kind=db), dimension(:,:,:,:), allocatable:: Mu_unoc, Secdd_xtal, Secmd_xtal, Secdq_xtal, Secdq_xtal_m
+  complex(kind=db), dimension(:,:,:,:,:), allocatable:: Mu_ampl, rof0, Secdo_xtal, Secqq_xtal, Secoo_xtal 
 
-  complex(kind=db), dimension(:,:,:,:), allocatable:: secmm_xtal
-  complex(kind=db), dimension(:,:,:,:,:), allocatable:: secdd_xtal, secmd_xtal
-  complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: secdq_xtal, secqq_xtal, secoo_xtal
-  complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: secdo_xtal
-
-  logical:: Circular, Core_resolved, Dip_rel, E_cut_man, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, &
-            Epsii_ref_man, Extract_ten, Eneg, FDM_comp_m, Final_optic, Final_tddft, Full_potential, Gamma_hole_man, &
-            Hubb_a, Hubb_d, k_not_possible, lmoins1, lplus1, M1M1, Magn_sens, Moment_conservation, &
-            Monocrystal, Only_Intensity, &
-            Powder, Relativiste, Renorm, RIXS, RIXS_fast, Run_fast, Spin_channel, Spinorbite, Tddft, Time_reversal, Write_bav, &
-            Ylm_comp 
+  logical:: Circular, Classic_irreg, Core_resolved, Dip_rel, E_cut_man, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, &
+            Epsii_ref_man, Extract_ten, Eneg, Energ_emission, FDM_comp_m, Final_optic, Final_tddft, Full_potential, &
+            Gamma_hole_man, Green, Green_int, Hubb_a, Hubb_d, lmoins1, lplus1, M1M1, Magn_sens, &
+            Monocrystal, Only_Intensity, Powder, Relativiste, Renorm, RIXS, &
+            Run_fast, Solsing, Solsing_only, Spinorbite, Tddft, Ylm_comp 
 
   Logical, save:: Epsii_ref_RIXS_man
 
   logical, dimension(10):: Multipole
-  logical, dimension(:), allocatable:: Probed_L
 
-  logical, dimension(natomsym):: Atom_done
-  
   real(kind=db):: conv_mbarn_nelec, cst, Delta_E_inf, Delta_E_sup, Deltar, E_cut, E_cut_imp, E_cut_o, E_cut_rixs, E_Fermi, E_i, &
-            E_max, E_out, E_s, Ecinetic_i, Ecinetic_s, Eclie, Eimag, Energ_unoc, Energ_unoc_1, Ephoton, Epsii_ref, Estart, &
-            Gamma_hole_o, Gamma_max, k_elec_i, k_elec_s, Lorentzian_i, Lorentzian_r, Mod_Q, Omega_i, Omega_s, Pas, pds, &
-            Rmtg, Rmtsd, Rot_sample, Step_loss, Tab_width, Theta, Two_theta_L, V_intmax, V0, Vhbdc
+      E_loss_g, E_max, E_out, E_s, Eclie, Ei0, Eii, Eimag, Eimag_t, Em, Energ_unoc, Energ_unoc_1, Ephoton, Epsii_ref, Estart, &
+      Gamma_hole_o, Gamma_max, Lorentzian, Omega, Pas, pds, &
+      Rmtg, Rmtsd, Rot_sample, Step_loss, Tab_width, Theta, Two_theta, V_intmax, Vhbdc
   real(kind=db), dimension(3):: Pol_i_s, Pol_i_p, Pol_s_s, Pol_s_p, Q_vec, Vec_i, Vec_s
   real(kind=db), dimension(10):: Gamma_hole
+  real(kind=db), dimension(n_Ec):: Enervide_t
   real(kind=db), dimension(nenerg_s):: Energ_s
   real(kind=db), dimension(nbseuil):: Eseuil
   real(kind=db), dimension(ninitr):: Epsii
   real(kind=db), dimension(ninit,2):: coef_g
   real(kind=db), dimension(nspin):: dV0bdcF, V0bdc, VxcbdcF
   real(kind=db), dimension(nr):: r
-  real(kind=db), dimension(n_theta_in):: Theta_in
-  real(kind=db), dimension(n_two_theta):: Two_theta
+  real(kind=db), dimension(n_theta_rixs,2):: Theta_rixs
+  real(kind=db), dimension(nspin,n_Ec):: Ecinetic
+  real(kind=db), dimension(nenerg_loss_rixs):: Energ_loss_rixs
+  real(kind=db), dimension(nenerg_out_rixs):: Energ_out_rixs
   real(kind=db), dimension(nenerg_in_rixs):: Energ_rixs
   real(kind=db), dimension(n_shift_core):: Shift_core
   real(kind=db), dimension(3,3):: Mat_orth, matopsym , Orthmat, Orthmati, Rot_atom, Rot_atom_abs, Rot_int, &
@@ -4291,14 +4437,15 @@ subroutine RIXS_DoubleConv(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp
   real(kind=db), dimension(nr,nlm_pot,nspin):: Vrato, Vxcato
 
   real(kind=db), dimension(:), allocatable:: Conv_nelec, E_inf, E_loss, E_sup, Energ_in, Energ_oc, Gamma, Shift
-  real(kind=db), dimension(:,:), allocatable:: Angle
-  real(kind=db), dimension(:,:,:,:), allocatable:: Mod_k
+  real(kind=db), dimension(:,:,:), allocatable:: Vec_i_g, Vec_s_g
+  real(kind=db), dimension(:,:,:,:,:), allocatable:: RIXS_int
 
   if( icheck > 0 ) write(3,110)
   
 ! When no momentum transfer direction given, calculation is done for powder 
   Monocrystal = .not. Powder
 
+  Energ_emission = nenerg_out_rixs > 0
   Eimag = 0._db
   Extract_ten = .false.
   Final_optic = .false.
@@ -4306,8 +4453,10 @@ subroutine RIXS_DoubleConv(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp
   RIXS = .true.
   Tddft = .false.
   
+  Lmax_probe = nint( sqrt( real( nlm_probe ) ) ) - 1
+  
  ! With Run_fast, Tau_loss does not depend on incoming energy, and consequently the tensors
-  Run_fast = Powder .or. RIXS_fast .or. .not. Moment_conservation 
+  Run_fast = .not. Energ_emission 
   if( multi_run == 1 ) Epsii_ref_RIXS_man = Epsii_ref_man
 
   ich = max(icheck-1,1)
@@ -4339,6 +4488,12 @@ subroutine RIXS_DoubleConv(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp
   else
     npl = 4
   endif
+  if( Powder ) then
+    npl_out = 1
+  else
+    npl_out = npl
+  endif
+  
   allocate( Amplitude(npl) )
 
   if( Hubb_a .or. Full_potential ) then
@@ -4346,28 +4501,10 @@ subroutine RIXS_DoubleConv(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp
   else
     nlm_p_fp = 1
   endif
-  allocate( rof_e(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,nenerg_s)  )  
-  allocate( rof(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,n_Ec)  )  
 
   E1E1 = Multipole(1); E1E2 = Multipole(2); E1E3 = Multipole(3);
   E1M1 = Multipole(4); E2E2 = Multipole(6);
   E3E3 = Multipole(7); M1M1 = Multipole(8)
-
-  if( Spin_channel ) then
-    n_Spin_channel = 5
-  else
-    n_Spin_channel = 1
-  endif
-
-  allocate( secdd_xtal(3,3,n_rel,ninitr,n_spin_channel) )
-  allocate( secmd_xtal(3,3,2,ninitr,n_spin_channel) )
-  allocate( secmm_xtal(3,3,ninitr,n_spin_channel) )
-  allocate( secdq_xtal(3,3,3,2,ninitr,n_spin_channel) )
-  allocate( secdo_xtal(3,3,3,3,2,ninitr,n_spin_channel) )
-  allocate( secqq_xtal(3,3,3,3,ninitr,n_spin_channel) )
-  allocate( secoo_xtal(3,n_oo,3,n_oo,ninitr,n_spin_channel) )
-  
-  n_isc = ninitr * n_Spin_channel
 
   allocate( Shift(ninitr) )
   call Cal_shift(Epsii,Epsii_ref,Epsii_ref_RIXS_man,icheck,multi_run,n_shift_core,ninit,ninit1,ninitr,Shift,Shift_core)
@@ -4375,21 +4512,12 @@ subroutine RIXS_DoubleConv(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp
   lmax = nint( sqrt( real( nlm_probe ) ) ) - 1
   lmax_pot = nint( sqrt( real( nlm_pot ) ) ) - 1
 
-  allocate( Probed_L(0:Lmax) )
-  Probed_L(:) = .false.
-  if( E1M1 .or. M1M1 .or. ( ( E2E2 .or. E1E2 ) .and. Lseuil == 2 ) ) Probed_L(Lseuil) = .true.
-  if( E1E1 .or. E1M1 .or. E1E2 .or. E1E3 .or. E3E3 ) Probed_L(Lseuil+1) = .true.
-  if( ( E1E1 .or. E1E3 .or. E3E3 ) .and. ( Lseuil == 1 .or. Lseuil == 3 ) ) Probed_L(Lseuil-1) = .true. 
-  if( E1E2 .or. E2E2 ) Probed_L(Lseuil+2) = .true.
-  if( ( E1E2 .or. E2E2 ) .and. Lseuil == 2 ) Probed_L(Lseuil-2) = .true.
-  if( E1E3 .or. E3E3 ) Probed_L(Lseuil+3) = .true.
-
   if( E_cut_man ) then
     E_cut_rixs = E_cut_imp
-    E_cut_o = E_cut_imp
+    E_cut_o = E_cut_imp * rydb
   else
     E_cut_rixs = E_cut
-    E_cut_o = - 1001._db / rydb
+    E_cut_o = - 1001._db
   endif
 
   if( Gamma_hole_man ) then
@@ -4439,11 +4567,17 @@ subroutine RIXS_DoubleConv(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp
 
   if( Step_loss < 0._db ) Step_loss = Energ_s(2) - Energ_s(1) 
 
-  do ie = nenerg_s, 1, -1
-    if( Energ_s(ie) > E_max ) cycle
-    ne_loss = nint( ( Energ_s(ie) - Energ_s(1) ) / Step_loss )
-    exit
-  end do
+  if( Energ_emission ) then
+    ne_loss = nenerg_out_rixs
+  elseif( nenerg_loss_rixs > 0 ) then
+    ne_loss = nenerg_loss_rixs
+  else
+    do ie = nenerg_s, 1, -1
+      if( Energ_s(ie) > E_max ) cycle
+      ne_loss = nint( ( Energ_s(ie) - Energ_s(1) ) / Step_loss )
+      exit
+    end do
+  endif
 
   write(6,'(a30,i5)') ' Number of incoming energies =', nenerg_in
   write(6,'(a24,i5)') ' Number of energy loss =', ne_loss
@@ -4456,45 +4590,16 @@ subroutine RIXS_DoubleConv(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp
   allocate( E_loss(ne_loss) )
   allocate( Conv_nelec(nenerg_in) )
 
-  if( E1E1 ) then
-    allocate( RIXS_E1E1_tens(3,3,n_rel,n_isc,nenerg_in*ne_loss,natomsym) )
-    RIXS_E1E1_tens(:,:,:,:,:,:) = (0._db, 0._db)
-  endif
-  if( E1E2 ) then
-    allocate( RIXS_E1E2_tens(3,3,3,n_isc,nenerg_in*ne_loss,natomsym) )
-    RIXS_E1E2_tens(:,:,:,:,:,:) = (0._db, 0._db)
-  endif
-  if( E1E3 ) then
-    allocate( RIXS_E1E3_tens(3,n_oo,3,n_oo,n_isc,nenerg_in*ne_loss,natomsym) )
-    RIXS_E1E3_tens(:,:,:,:,:,:,:) = (0._db, 0._db)
-  endif
-  if( E1M1 ) then
-    allocate( RIXS_E1M1_tens(3,3,n_isc,nenerg_in*ne_loss,natomsym) )
-    RIXS_E1M1_tens(:,:,:,:,:) = (0._db, 0._db)
-  endif
-  if( E2E2 ) then
-    allocate( RIXS_E2E2_tens(3,3,3,3,n_isc,nenerg_in*ne_loss,natomsym) )
-    RIXS_E2E2_tens(:,:,:,:,:,:,:) = (0._db, 0._db)
-  endif
-  if( E3E3 ) then
-    allocate( RIXS_E3E3_tens(3,n_oo,3,n_oo,n_isc,nenerg_in*ne_loss,natomsym) )
-    RIXS_E1E3_tens(:,:,:,:,:,:,:) = (0._db, 0._db)
-  endif
-  if( M1M1 ) then
-    allocate( RIXS_M1M1_tens(3,3,n_isc,nenerg_in*ne_loss,natomsym) )
-    RIXS_M1M1_tens(:,:,:,:,:) = (0._db, 0._db)
-  endif
-
-  n_theta = max( n_two_theta, 1 ) *  max( n_theta_in, 1 ) 
   n_q_dim = max( n_q_rixs, 1 )
-  allocate( Angle(2,n_theta) )
-  allocate( Mod_k(nenerg_in,ne_loss,n_theta,n_q_dim) )
   
-  allocate( RIXS_ampl(ne_loss,nenerg_in,npl,n_theta,n_q_dim,n_isc) )
-  RIXS_ampl(:,:,:,:,:,:) = (0._db, 0._db) 
+  allocate( Mu_ampl(nenerg_s,npl,n_theta_rixs,n_q_dim,ninitr) )
+  allocate( Mu_unoc(npl,n_theta_rixs,n_q_dim,ninitr) )
+  allocate( RIXS_int(nenerg_in,ne_loss,npl_out,n_theta_rixs,n_q_dim) )
+  
+  Mu_ampl(:,:,:,:,:) = (0._db, 0._db) 
 
-  call Energy_Grid_RIXS(E_loss,Energ_in,Energ_oc,Energ_rixs,Energ_s,icheck,ne_loss,nenerg_in,nenerg_in_rixs,nenerg_oc, &
-                        nenerg_s,Step_loss)
+  call Energy_Grid_RIXS(E_loss,Energ_emission,Energ_in,Energ_loss_rixs,Energ_oc,Energ_out_rixs,Energ_rixs,Energ_s,icheck, &
+                        ne_loss,nenerg_in,nenerg_in_rixs,nenerg_loss_rixs,nenerg_oc,nenerg_out_rixs,nenerg_s,Step_loss)
 
   do initr = 1,ninitr       ! ----------> Loop over edges or core states
     if( Core_resolved ) then
@@ -4524,7 +4629,7 @@ subroutine RIXS_DoubleConv(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp
       Gamma(initr) = Gamma_hole(1)
     endif
     Gamma(initr) = 0.5_db * Gamma(initr)  ! It is in fact Gamma / 2 in the formula  
-
+    Gamma(initr) = max( Gamma(initr), 0.000001_db )  
   end do
 
 ! Conversion factor in number of electron
@@ -4546,24 +4651,12 @@ subroutine RIXS_DoubleConv(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp
     V0bdc(isp) = Vhbdc + VxcbdcF(isp) + dV0bdcF(isp)
   end do
 
-! Calculation of the radial matrices
-  call cal_rof(E_Fermi,Eclie,Energ_s,Eseuil,Full_potential,Hubb_a,Hubb_d,icheck,ip0,ip_max,lmax,lmax_pot, &
-                   m_hubb,n_Ec,nbseuil,nenerg_s,ninit1,nlm_pot,nlm_p_fp,nlm_probe,nr,nrm,nspin,nspino,nspinp,numat,psii,r, &
-                   Relativiste,Renorm,Rmtg,Rmtsd,rof_e,Spinorbite,V_hubb,V_intmax,V0bdc,Vrato,Ylm_comp)
-  
-  if( nenerg_oc == 1 ) then
-    E_sup(1) = Energ_oc(1) + 0.05_db / Rydb
-    E_inf(1) = Energ_oc(1) - 0.05_db / Rydb
-  else
-    E_inf(1) = 1.5_db * Energ_oc(1) - 0.5_db * Energ_oc(2) 
-    do ie_oc = 2,nenerg_oc
-      E_inf(ie_oc) = ( Energ_oc(ie_oc-1) + Energ_oc(ie_oc) ) / 2
-    end do
-    do ie_oc = 1,nenerg_oc-1
-      E_sup(ie_oc) = ( Energ_oc(ie_oc) + Energ_oc(ie_oc+1) ) / 2
-    end do
-    E_sup(nenerg_oc) = E_cut_Rixs 
-  endif
+  allocate( Pol_i_s_g(3,n_theta_rixs,n_q_dim) ) 
+  allocate( Pol_i_p_g(3,n_theta_rixs,n_q_dim) ) 
+  allocate( Pol_s_s_g(3,n_theta_rixs,n_q_dim) ) 
+  allocate( Pol_s_p_g(3,n_theta_rixs,n_q_dim) ) 
+  allocate( Vec_i_g(3,n_theta_rixs,n_q_dim) ) 
+  allocate( Vec_s_g(3,n_theta_rixs,n_q_dim) ) 
 
 ! Rotation to go from the local atom basis to the tensors R1 basis
   Rot_atom = matmul( Rot_int, transpose(Rot_atom_abs) )
@@ -4588,281 +4681,760 @@ subroutine RIXS_DoubleConv(Ampl_abs,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp
 
     call Cal_Mat_rot(icheck,Mat_orth,Q_vec,Rot_sample,Trans_Lab_Dir_Q,Trans_rec_dir,Trans_rec_lab)      
 
-    i_theta = 0
-    do i_theta_1 = 1,max( n_theta_in, 1 )
-    do i_theta_2 = 1,max( n_two_theta, 1 )
-      i_theta = i_theta + 1
+    do i_theta = 1,n_theta_rixs
+
+      Theta = Theta_rixs(i_theta,1)      
+      Two_theta = Theta_rixs(i_theta,2)   
       
-      if( n_two_theta == 0 .and. n_theta_in == 0) then
-        Theta = pi / 4._db
-        Two_theta_L = 2 * Theta   
-      elseif( n_theta_in == 0 ) then
-        Two_theta_L = Two_theta(i_theta_2)
-        Theta = Two_theta_L / 2   
-      elseif( n_two_theta == 0 ) then
-        Theta = Theta_in(i_theta_1)   
-        Two_theta_L = 2 * Theta   
-      else
-        Theta = Theta_in(i_theta_1)
-        Two_theta_L = Two_theta(i_theta_2)   
-      endif
-      Angle(1,i_theta) = Theta
-      Angle(2,i_theta) = Two_theta_L
-      
-      call Cal_Pol(icheck,Pol_i_s,Pol_i_p,Pol_s_s,Pol_s_p,Theta,Trans_Lab_Dir_Q,Two_theta_L,Vec_i,Vec_s)
+      call Cal_Pol(icheck,Pol_i_s,Pol_i_p,Pol_s_s,Pol_s_p,Theta,Trans_Lab_Dir_Q,Two_theta,Vec_i,Vec_s)
 
-      do ie_in = 1,nenerg_in  ! loop on incoming energy
+      Pol_i_s_g(:,i_theta,i_q) = Pol_i_s(:)     
+      Pol_i_p_g(:,i_theta,i_q) = Pol_i_p(:)     
+      Pol_s_s_g(:,i_theta,i_q) = Pol_s_s(:)     
+      Pol_s_p_g(:,i_theta,i_q) = Pol_s_p(:)     
+      Pol_i_s_g(:,i_theta,i_q) = Pol_i_s(:)     
+      Vec_i_g(:,i_theta,i_q) = Vec_i(:)     
+      Vec_s_g(:,i_theta,i_q) = Vec_s(:)
+           
+    end do
+  end do
 
-        write(6,'(a27,f8.3,a3)') ' Incoming energy - E_edge =', Energ_in(ie_in) * Rydb, ' eV' 
-        if( icheck > 1 ) then
-          write(3,'(/A)') ' ------------------------------------------------------------------------------------------ '
-          write(3,'(/a27,f8.3,a3)') ' Incoming energy - E_edge =', Energ_in(ie_in) * Rydb, ' eV'
-        endif 
-        E_i = Eseuil(nbseuil) + Energ_in(ie_in)
-      
-        Loop_loss: do ie_loss = 1,ne_loss
-          
-          E_out = Energ_in(ie_in) - E_loss(ie_loss)
-            
-          Loop_oc: do ie_oc = nenerg_oc,1,-1 ! Loop over occupied states
+  if( E1E1 ) allocate( Secdd_xtal(3,3,n_rel,ninitr) )
+  if( E1E3 ) allocate( Secdo_xtal(3,3,3,3,ninitr) )
+  if( E1E2 ) allocate( Secdq_xtal(3,3,3,ninitr) )
+  if( E1M1 ) allocate( Secmd_xtal(3,3,2,ninitr) )
+  if( M1M1 ) allocate( Secmm_xtal(3,3,ninitr) )
+  if( E3E3 ) allocate( Secoo_xtal(3,n_oo,3,n_oo,ninitr) )
+  if( E2E2 ) allocate( Secqq_xtal(3,3,3,3,ninitr) )
+  if( E1E2 .and. Magn_sens ) allocate( Secdq_xtal_m(3,3,3,ninitr) )
+  
+  allocate( rof0(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil) )
 
-            Energ_unoc = Energ_in(ie_in) + E_out - Energ_oc(ie_oc)
+  do ie = 1,nenerg_s
 
-            if( Energ_unoc < E_cut_RIXS - eps10 ) cycle
-            if( Energ_unoc > Energ_s(nenerg_s) + eps10 ) cycle
+    Omega = ( Eseuil(nbseuil) + Energ_s(ie) ) / quatre_mc2 
 
-            if( icheck > 1 ) then
-              write(3,130) ie_in, ie_oc, ie_loss, E_i*rydb
-              write(3,140) Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, E_loss(ie_loss)*rydb
-            endif 
-              
-            Write_bav = icheck > 1 .or. ( icheck == 1 .and. ie_in == 1 .and. ie_oc == 1 .and. ie_loss == 1 )
-                        
-            E_s = E_i - E_loss(ie_loss)
-            Mod_Q = 0.5_db * alfa_sf * sqrt( E_s**2 + E_i**2 - 2 * E_s * E_i * cos( pi - Two_theta_L ) )
-            if( Run_fast ) then
-              do ie = 1,nenerg_in
-                if( abs( Energ_in(ie) - Energ_unoc ) < eps10 ) then
-                  Mod_k(ie,ie_loss,i_theta,i_q) = Mod_Q
-                  if( abs( Energ_unoc - Energ_unoc_1 ) < eps10 ) Mod_k(1:ie-1,ie_loss,i_theta,i_q) = Mod_Q
-                  if( ie_oc == nenerg_oc ) Mod_k(ie+1:nenerg_in,ie_loss,i_theta,i_q) = Mod_Q 
-                  if( ie == nenerg_in .and. ie_oc == nenerg_oc ) Mod_k(1:nenerg_in,ie_loss,i_theta,i_q) = Mod_Q
-                elseif( Energ_in(ie) > Energ_unoc ) then
-                  exit
+    taull_abs(:,:,:,:,:,:,:) = (0._db,0._db)
+
+    Lms1 = 0
+    do Lm1 = 1,nlm_probe
+! For the atomic part, all signal is in the singular solution
+      do iso1 = 1,nspino
+        Lms1 = Lms1 + 1
+        Lms2 = 0
+        do Lm2 = 1,nlm_probe
+          do iso2 = 1,nspino
+            Lms2 = Lms2 + 1
+            do isp1 = 1,2
+              do isp2 = 1,2
+                if( Spinorbite ) then
+                  iss1 = iso1; iss2 = iso2
+                else
+                  if( isp1 /= isp2 ) cycle
+                  iss1 = min(isp1,nspin)
+                  iss2 = min(isp2,nspin)
                 endif
-              end do   
-            else
-              Mod_k(ie_in,ie_loss,i_theta,i_q) = Mod_Q
-            endif
-
-            V0 = sum( V0bdc(:) ) / nspin
-            Ecinetic_i = Energ_unoc + E_Fermi - V0
-            Ecinetic_s = Energ_oc(ie_oc) + E_Fermi - V0
-            if( .not. Eneg ) Ecinetic_i = max( Ecinetic_i, Eclie ) 
-            if( .not. Eneg ) Ecinetic_s = max( Ecinetic_s, Eclie ) 
-            k_elec_i = sqrt( Ecinetic_i )
-            k_elec_s = sqrt( Ecinetic_s )
-
- ! index 1: low energy, occupied              
-            rof(:,:,:,:,:,1) = rof_e(:,:,:,:,:,ie_oc)
-                               
- ! index 2: high energy, not occupied 
-            do ie_s = 1,nenerg_s
-              if( Energ_s(ie_s) > Energ_unoc - eps10 ) exit
+                Taull_abs(Lms1,Lms2,1,1,isp1,isp2,1) = Taull_tdd(ie,Lm1,iss1,Lm2,iss2)
+              end do
             end do
+          end do
+        end do
+      end do
+    end do
+ 
+    Enervide_t(1) = Energ_s(ie) + E_Fermi
+    Ecinetic(:,1) = Enervide_t(1) - V0bdc(:)
+
+    if( Eneg ) then
+! Numerical problem around 0.
+      Em = 0.01_db / rydb
+      Ei0 = 0.01_db / rydb
+      if( Ecinetic(1,1) < 0._db ) then
+        Eimag_t = max( Eimag, ei0 )
+      elseif( Ecinetic(1,1) < em ) then
+        Eii = Ei0 * ( 1 - Ecinetic(1,1) / em )
+        Eimag_t = max( Eimag, Eii )
+      endif
+    else
+      Eimag_t = Eimag
+      Ecinetic(:,1) = max( Ecinetic(:,1), Eclie )
+    endif
+
+    call Tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic,Eimag, &
+           Energ_s(ie),Enervide_t,Eseuil,FDM_comp_m,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
+           Hubb_d,icheck,ie,ip_max,ip0,is_g,Lmax_probe,Lmax_pot,ldip,lmoins1,loct,lplus1,lqua,Lseuil,m_g, &
+           m_hubb,mpinodes,mpirank,mpirank,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi, &
+           Multipole,n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninit,ninitr,nbseuil,nlm_pot, &
+           nlm_probe,nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Renorm, &
+           Rmtg,Rmtsd,rof0,rot_atom_abs,Rot_int,secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm, &
+           secmm_m,secoo,secoo_m,secqq,secqq_m,Solsing,Solsing_only,Spinorbite,Taull_abs,Tddft,V_hubb,V_intmax, &
+           V0bdc,Vrato,Ylm_comp)
+
+    if( E1E1 ) Secdd_xtal(:,:,:,:) = ( 0._db, 0._db )
+    if( E1E3 ) Secdo_xtal(:,:,:,:,:) = ( 0._db, 0._db )
+    if( E1E2 ) Secdq_xtal(:,:,:,:) = ( 0._db, 0._db )
+    if( E1M1 ) Secmd_xtal(:,:,:,:) = ( 0._db, 0._db )
+    if( M1M1 ) Secmm_xtal(:,:,:) = ( 0._db, 0._db )
+    if( E3E3 ) Secoo_xtal(:,:,:,:,:) = ( 0._db, 0._db )
+    if( E2E2 ) Secqq_xtal(:,:,:,:,:) = ( 0._db, 0._db )
+    if( E1E2 .and. Magn_sens ) Secdq_xtal_m(:,:,:,:) = ( 0._db, 0._db )
+
+    do ia = 1,natomsym
+
+      isym = abs( isymeq(ia) )
+      call opsym(isym,matopsym)
+
+      do initr = 1,ninitr
+
+        if( E1E1 ) then
+          do ispfg = 1,n_rel
+            sec_dd(:,:) = secdd(:,:,ispfg,initr,0) * cst
+            if( isym /= 1 ) call rot_tensor_2( sec_dd, matopsym )
+            if( isymeq(ia) < 0 ) sec_dd(:,:) = conjg( sec_dd(:,:) )
+            Secdd_xtal(:,:,ispfg,initr) = Secdd_xtal(:,:,ispfg,initr) + sec_dd(:,:)
+          end do
+        endif
+
+        if( E1E2 ) then
+          sec_dq(:,:,:) = secdq(:,:,:,initr,0) * cst
+          if( isym /= 1 ) call rot_tensor_3( sec_dq, matopsym )
+          if( isymeq(ia) < 0 ) sec_dq(:,:,:) = conjg( sec_dq(:,:,:) )
+          Secdq_xtal(:,:,:,initr) = Secdq_xtal(:,:,:,initr) + real( sec_dq(:,:,:), db)
+          if( Magn_sens ) Secdq_xtal_m(:,:,:,initr) = Secdq_xtal_m(:,:,:,initr) + img * aimag( sec_dq(:,:,:) )
+        endif
+
+        if( E2E2 ) then
+          sec_qq(:,:,:,:) = secqq(:,:,:,:,initr,0) * cst
+          if( isym /= 1 ) call rot_tensor_4( sec_qq, matopsym )
+          if( isymeq(ia) < 0 ) sec_qq(:,:,:,:) = conjg( sec_qq(:,:,:,:) )
+          Secqq_xtal(:,:,:,:,initr) = Secqq_xtal(:,:,:,:,initr) + sec_qq(:,:,:,:)
+        endif
+
+      end do
+
+    end do
+
+    do i_q = 1,n_q_dim
+      do i_theta = 1,n_theta_rixs
+        Theta = Theta_rixs(i_theta,1)
+
+        if( ie <= nenerg_oc ) then      
+          Pol_i_s(:) = Pol_s_s_g(:,i_theta,i_q)      
+          Pol_i_p(:) = Pol_s_p_g(:,i_theta,i_q)     
+          Pol_s_s(:) = Pol_s_s_g(:,i_theta,i_q)     
+          Pol_s_p(:) = Pol_s_p_g(:,i_theta,i_q)     
+          Pol_i_s(:) = Pol_s_s_g(:,i_theta,i_q)     
+          Vec_i(:) = Vec_s_g(:,i_theta,i_q)     
+          Vec_s(:) = Vec_s_g(:,i_theta,i_q)
+        else
+          Pol_i_s(:) = Pol_i_s_g(:,i_theta,i_q)      
+          Pol_i_p(:) = Pol_i_p_g(:,i_theta,i_q)     
+          Pol_s_s(:) = Pol_i_s_g(:,i_theta,i_q)     
+          Pol_s_p(:) = Pol_i_p_g(:,i_theta,i_q)     
+          Pol_i_s(:) = Pol_i_s_g(:,i_theta,i_q)     
+          Vec_i(:) = Vec_i_g(:,i_theta,i_q)     
+          Vec_s(:) = Vec_i_g(:,i_theta,i_q)
+        endif
+        
+        do initr = 1,ninitr
+          
+          if( E1E1 ) RIXS_E1E1_tens_xtal(:,:,:) = Secdd_xtal(:,:,:,initr)
+          if( E1E2 ) RIXS_E1E2_tens_xtal(:,:,:,1) = Secdq_xtal(:,:,:,initr)
+          if( E1E2 .and. Magn_sens ) RIXS_E1E2_tens_xtal(:,:,:,2) = Secdq_xtal_m(:,:,:,initr)   ! au pif
+          if( E2E2 ) RIXS_E2E2_tens_xtal(:,:,:,:) = Secqq_xtal(:,:,:,:,initr)
+             
+          call Cal_RIXS_ampl(Amplitude,Dip_rel,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,M1M1, &
+             Monocrystal,n_rel,npl,Omega,Omega,pol_i_s,pol_i_p,pol_s_s,pol_s_p, &
+             RIXS_E1E1_tens_xtal,RIXS_E1E2_tens_xtal,RIXS_E1E3_tens_xtal,&
+             RIXS_E2E2_tens_xtal,RIXS_E3E3_tens_xtal,RIXS_E1M1_tens_xtal,RIXS_M1M1_tens_xtal, &
+             Theta,Vec_i,Vec_s)
+      
+          Mu_ampl(ie,:,i_theta,i_q,initr) = Mu_ampl(ie,:,i_theta,i_q,initr) + Amplitude(:)   
+
+        end do
+      end do
+    end do
+  end do
+  
+  if( icheck > 0 ) then
+    Write(3,'(/A)') '    Mu_Rixs'
+    Write(3,'(/A)') '  Energy              pol_1    i        pol_2      i         pol_3     i      pol_4     i'
+     
+    do ie = 1,nenerg_s
+      Write(3,'(f10.3,1p,10(1x,2e13.5))') Energ_s(ie)*rydb, Mu_ampl(ie,:,1,1,1) 
+    end do
+  endif
+  
+  deallocate( rof0 )
+  if( E1E1 ) deallocate( Secdd_xtal )
+  if( E1E3 ) deallocate( Secdo_xtal )
+  if( E1E2 ) deallocate( Secdq_xtal )
+  if( E1M1 ) deallocate( Secmd_xtal )
+  if( M1M1 ) deallocate( Secmm_xtal )
+  if( E3E3 ) deallocate( Secoo_xtal )
+  if( E2E2 ) deallocate( Secqq_xtal )
+  if( E1E2 .and. Magn_sens ) deallocate( Secdq_xtal )
+    
+  if( nenerg_oc == 1 ) then
+    E_sup(1) = Energ_oc(1) + 0.05_db / Rydb
+    E_inf(1) = Energ_oc(1) - 0.05_db / Rydb
+  else
+    E_inf(1) = 1.5_db * Energ_oc(1) - 0.5_db * Energ_oc(2) 
+    do ie_oc = 2,nenerg_oc
+      E_inf(ie_oc) = ( Energ_oc(ie_oc-1) + Energ_oc(ie_oc) ) / 2
+    end do
+    do ie_oc = 1,nenerg_oc-1
+      E_sup(ie_oc) = ( Energ_oc(ie_oc) + Energ_oc(ie_oc+1) ) / 2
+    end do
+    E_sup(nenerg_oc) = E_cut_Rixs 
+  endif
+
+  Rixs_int(:,:,:,:,:) = 0._db
+  
+  do ie_in = 1,nenerg_in  ! loop on incoming energy
+
+    write(6,'(a7,f8.3)') ' E_in =', Energ_in(ie_in) * Rydb 
+
+    E_i = Eseuil(nbseuil) + Energ_in(ie_in)
+
+    Loop_loss: do ie_loss = 1,ne_loss
+
+      if( Energ_emission ) then
+        E_loss_g = Energ_in(ie_in) - E_loss(ie_loss) ! fake E_loss, it is the electron energy corresponding to the emission energy
+      else          
+        E_loss_g = E_loss(ie_loss) 
+      endif
+
+      E_out = Energ_in(ie_in) - E_loss_g  
+      E_s = E_i - E_loss_g
+
+      if( icheck > 1 ) then
+        write(3,'(/A)') ' ------------------------------------------------------------------------------------------ '
+        write(3,'(/a9,f8.3,a3)') ' E_loss =', E_loss_g * Rydb, ' eV'
+      endif 
+        
+      Loop_oc: do ie_oc = nenerg_oc,1,-1 ! Loop over occupied states
+
+        Energ_unoc = Energ_oc(ie_oc) + E_loss_g
+
+        if( Energ_unoc < E_cut_RIXS - eps10 ) cycle
+        if( Energ_unoc > Energ_s(nenerg_s) + eps10 ) cycle
+
+        if( icheck > 1 ) then
+          write(3,130) ie_in, ie_oc, ie_loss
+          write(3,140) Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, E_loss_g*rydb
+        endif 
+          
+ ! index of high energy, not occupied level 
+        do ie_s = 1,nenerg_s
+          if( Energ_s(ie_s) > Energ_unoc - eps10 ) exit
+        end do
 
  ! When energy step not uniform, the energy point can be between two points of the energy grid.             
-            if( abs( Energ_s(ie_s) - Energ_unoc ) > eps10 ) then
-              ie_s = max( ie_s - 1, 1 )
-              pds = ( Energ_s(ie_s+1) - Energ_unoc ) / ( Energ_s(ie_s+1) - Energ_s(ie_s) )  
-              rof(:,:,:,:,:,2) = pds * rof_e(:,:,:,:,:,ie_s) + ( 1 - pds ) * rof_e(:,:,:,:,:,ie_s+1)
-            else
-              rof(:,:,:,:,:,2) = rof_e(:,:,:,:,:,ie_s)
-            endif  
-
-            if( E1E1 ) secdd_xtal(:,:,:,:,:) = ( 0._db, 0._db )
-            if( E1E2 ) secdq_xtal(:,:,:,:,:,:) = ( 0._db, 0._db )
-            if( E1M1 ) secmd_xtal(:,:,:,:,:) = ( 0._db, 0._db )
-            if( E2E2 ) secqq_xtal(:,:,:,:,:,:) = ( 0._db, 0._db )
-            if( E1E3 ) secdo_xtal(:,:,:,:,:,:,:) = ( 0._db, 0._db )
-            if( E3E3 ) secoo_xtal(:,:,:,:,:,:) = ( 0._db, 0._db )
-            if( M1M1 ) secmm_xtal(:,:,:,:) = ( 0._db, 0._db )
-
-            Atom_done(:) = .false.
-
-            do ia = 1,natomsym
-            
-              isym = abs( isymeq(ia) )
-              call opsym(isym,matopsym)
-              Time_reversal = isymeq(ia) < 0 
-
-              if( Atom_done(ia) ) cycle 
-
-              if( icheck > 1 ) then
-                if( isym > 0 ) then
-                  write(3,150) ia, adjustl( nomsym( isym ) )
-                else
-                  write(3,160) ia, adjustl( nomsym( isym ) )
-                endif
-              endif
-              
-              call Cal_Tau_loss(Ampl_abs,Energ_oc(ie_oc),Energ_unoc,Energ_s,icheck,isymeq(ia),k_elec_i,k_elec_s, &
-                        k_not_possible,Lmax,matopsym,Mod_Q,Moment_conservation,Monocrystal,nenerg_s,ndim2,nlm_f, &
-                        nlm_probe,ns_dipmag,nspin,nspino,nspinp,Probed_L,Q_vec,Rot_atom, &
-                        Spinorbite,Taull_Spin_channel,Time_reversal,Ylm_comp)
-
-              if( k_not_possible ) cycle Loop_oc
-
-              do i_Spin_channel = 1,n_Spin_channel       ! ----------> Loop over spin transition channels
-      
-                select case(i_Spin_channel)
-                  case(1)
-                    Taull(:,:,:,:,:,:,:) = Taull_Spin_channel(:,:,:,:,:,:,:) 
-                  case(2)
-                    Taull(:,:,:,:,:,:,:) = (0._db,0._db)
-                    Taull(:,:,:,:,1,1,:) = Taull_Spin_channel(:,:,:,:,1,1,:)
-                  case(3)
-                    Taull(:,:,:,:,:,:,:) = (0._db,0._db)
-                    Taull(:,:,:,:,1,2,:) = Taull_Spin_channel(:,:,:,:,1,2,:)
-                  case(4)
-                    Taull(:,:,:,:,:,:,:) = (0._db,0._db)
-                    Taull(:,:,:,:,2,1,:) = Taull_Spin_channel(:,:,:,:,2,1,:)
-                  case(5)
-                    Taull(:,:,:,:,:,:,:) = (0._db,0._db)
-                    Taull(:,:,:,:,2,2,:) = Taull_Spin_channel(:,:,:,:,2,2,:)
-                end select    
-
-                call Tensor_rixs(coef_g,Core_resolved,FDM_comp_m,Final_optic,Final_tddft,Full_potential, &
-                  i_Spin_channel,ich,ip_max,ip0,is_g,lmax,lmoins1,lplus1,lseuil,m_g,Multipole, &
-                  n_Ec,n_oo,n_rel,ns_dipmag,ndim2,ninit1,ninit,ninitr,nlm_probe,nlm_p_fp,nspino,nspinp,numat,RIXS,rof, &
-                  Rot_atom,secdd,secdo,secdq,secmd,secmm,secoo, &
-                  secqq,Spinorbite,Taull,Time_reversal,Write_bav,Ylm_comp)
-                
-                call Tensor_xtal(Atom_done,i_spin_channel,ia,isymeq,Multipole,n_oo,n_rel, &
-                       n_spin_channel,natomsym,ninitr,secdd,secdd_xtal,secdq,secdq_xtal,secdo,secdo_xtal, &
-                       secmd,secmd_xtal,secmm,secmm_xtal,secoo,secoo_xtal,secqq,secqq_xtal,Write_bav)
-
-              end do   ! i_spin_channel
-              
-            end do  ! end of loop on ia
-              
-            do initr = 1,ninitr       ! ----------> Loop over edges or core states
+        if( abs( Energ_s(ie_s) - Energ_unoc ) > eps10 ) then
+          ie_s = max( ie_s - 1, 1 )
+          pds = ( Energ_s(ie_s+1) - Energ_unoc ) / ( Energ_s(ie_s+1) - Energ_s(ie_s) )  
+          Mu_unoc(:,:,:,:) = pds * Mu_ampl(ie_s,:,:,:,:) + ( 1 - pds ) * Mu_ampl(ie_s+1,:,:,:,:)
+        else
+          Mu_unoc(:,:,:,:) = Mu_ampl(ie_s,:,:,:,:)
+        endif  
+  
+        do initr = 1,ninitr       ! ----------> Loop over edges or core states
          
-! The factor CFac = Delta_E / (  Energ_in(ie_in) - Energ_unoc - Shift(initr) + img * Gamma(initr) )
-! is replaced by the corresponding integral over energy for this energy step
-!              Delta_E_sup = Energ_in(ie_in) + E_out - E_inf(ie_oc) - Energ_in(ie_in) - Shift(initr)
+          Delta_E_inf = E_out - E_inf(ie_oc) - Shift(initr)
+          Delta_E_sup = E_out - E_sup(ie_oc) - Shift(initr)
 
-              Delta_E_inf = E_out - E_sup(ie_oc) - Shift(initr)
-              Delta_E_sup = E_out - E_inf(ie_oc) - Shift(initr)
+          Lorentzian = - ( 1  / Gamma(initr) ) * ( atan( Delta_E_sup / Gamma(initr) ) - atan( Delta_E_inf / Gamma(initr) ) )
 
-              if( Gamma(initr) > eps10 ) then                 
-                Lorentzian_i = atan( Delta_E_inf / Gamma(initr) ) - atan( Delta_E_sup / Gamma(initr) )
-                Lorentzian_r = 0.5_db * log( ( Gamma(initr)**2 + Delta_E_inf**2 ) / ( Gamma(initr)**2 + Delta_E_sup**2 ) )
-              else
-                if( abs( Energ_in(ie_in) + Shift(initr) - Energ_unoc ) < eps10 ) then
-                  if( abs( Delta_E_inf + Delta_E_sup ) < eps10 ) then
-                    Lorentzian_r = 0._db
-                  elseif( abs( Delta_E_inf ) < eps10 ) then
-                    Lorentzian_r = - log( 4._db )   ! limitation on divergence
-                  else
-                    Lorentzian_r = log( - Delta_E_inf / Delta_E_sup )
-                  endif
-                else
-                  Lorentzian_r = log( Delta_E_inf / Delta_E_sup )
-                endif
-                if( Energ_in(ie_in) + Shift(initr) > Energ_unoc - eps10 ) then 
-                  Lorentzian_i = pi
-                else
-                  Lorentzian_i = 0._db
-                endif
-              endif  
-
-              Lorentzian = cmplx( Lorentzian_r, Lorentzian_i, db )                               
-
-              CFac = Lorentzian * Conv_nelec(ie_in)
-               
-              Omega_i = E_i / quatre_mc2 
-              Omega_s = E_s / quatre_mc2
-
-              do i_spin_channel = 1,n_spin_channel
-
-                if( E1E1 ) RIXS_E1E1_tens_xtal(:,:,:) = CFac * Secdd_xtal(:,:,:,initr,i_spin_channel)
-                if( E1E2 ) RIXS_E1E2_tens_xtal(:,:,:,:) = CFac * Secdq_xtal(:,:,:,:,initr,i_spin_channel)
-                if( E1M1 ) RIXS_E1M1_tens_xtal(:,:,:) = CFac * Secmd_xtal(:,:,:,initr,i_spin_channel)
-                if( E2E2 ) RIXS_E2E2_tens_xtal(:,:,:,:) = CFac * Secqq_xtal(:,:,:,:,initr,i_spin_channel)
-                if( E1E3 ) RIXS_E1E3_tens_xtal(:,:,:,:,:) = CFac * Secdo_xtal(:,:,:,:,:,initr,i_spin_channel)
-                if( E3E3 ) RIXS_E3E3_tens_xtal(:,:,:,:) = CFac * Secoo_xtal(:,:,:,:,initr,i_spin_channel)
-                if( M1M1 ) RIXS_M1M1_tens_xtal(:,:) = CFac * Secmm_xtal(:,:,initr,i_spin_channel)
-
-! Calculation of RIXS amplitude
-                call Cal_RIXS_ampl(Amplitude,Dip_rel,E1E1,E1E2,E1E3,E1M1,E2E2,E3E3,M1M1, &
-                       Monocrystal,n_rel,npl,Omega_i,Omega_s,pol_i_s,pol_i_p,pol_s_s,pol_s_p, &
-                       RIXS_E1E1_tens_xtal,RIXS_E1E2_tens_xtal,RIXS_E1E3_tens_xtal,&
-                       RIXS_E2E2_tens_xtal,RIXS_E3E3_tens_xtal,RIXS_E1M1_tens_xtal,RIXS_M1M1_tens_xtal, &
-                       Theta,Vec_i,Vec_s)
- 
-                ii = initr + ( i_Spin_channel - 1 ) * ninitr 
-                RIXS_ampl(ie_loss,ie_in,:,i_theta,i_q,ii) = RIXS_ampl(ie_loss,ie_in,:,i_theta,i_q,ii) + Amplitude(:)   
-
-                if( icheck > 1 ) then
-                  if( n_theta == 1 .and. n_q_dim == 1 .and. n_isc == 1 ) then
-                    if( ie_oc*ie_in*ie_oc == 1 ) open(99,file='RIXS_detail.txt')
-                    if( ie_oc == 1 ) write(99,165)  
-                    write(99,167) ie_loss, ie_in, ie_oc, Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, &
-                                 Cfac, RIXS_ampl(ie_loss,ie_in,:,i_theta,i_q,ii)
-                    if( ie_oc == nenerg_oc .and. ie_loss == ne_loss .and. ie_in == nenerg_in ) Close(99) 
-                    write(3,170) ie_loss, ie_in, ie_oc, Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, &
-                                 Cfac, RIXS_ampl(ie_loss,ie_in,:,i_theta,i_q,ii)
-                  else
-                    write(3,180) i_theta, i_q, ie_loss, ie_in, ie_oc, initr, i_spin_channel, &
-                                           Energ_oc(ie_oc)*rydb, Energ_unoc*rydb, Cfac, &
-                                           RIXS_ampl(ie_loss,ie_in,:,i_theta,i_q,ii)
-                  endif
-                endif
+          if( Powder ) then 
+            do i_theta = 1,n_theta_rixs
+              do i_q = 1,n_q_dim          
+                Rixs_int(ie_in,ie_loss,1,i_theta,i_q) = Rixs_int(ie_in,ie_loss,1,i_theta,i_q) &
+                      + Lorentzian * sum( real( Mu_unoc(:,i_theta,i_q,initr) * Mu_ampl(ie_oc,:,i_theta,i_q,initr), db ) ) / npl
               end do
-
-            end do  ! end of loop over initr      
+            end do
+          else
+            Rixs_int(ie_in,ie_loss,:,:,:) = Rixs_int(ie_in,ie_loss,:,:,:) &
+                                          + Lorentzian * real( Mu_unoc(:,:,:,initr) * Mu_ampl(ie_oc,:,:,:,initr), db )
+          endif
+             
+        end do  ! end of loop over initr      
  
-          end do Loop_oc ! end of loop over ie_oc
-      
-          write(6,'(a9,f8.3)') ' E_loss =', E_loss(ie_loss) * Rydb 
+      end do Loop_oc ! end of loop over ie_oc
 
-        end do Loop_loss ! end of loop over ie_loss
+      Rixs_int(ie_in,ie_loss,:,:,:) =  ( E_s / E_i ) * Rixs_int(ie_in,ie_loss,:,:,:) * Conv_nelec(ie_in)**2
+             
+    end do Loop_loss ! end of loop over ie_loss
 
-      end do ! end of loop over incoming energy ie_in
+  end do ! end of loop over incoming energy ie_in
               
-    end do ! end of loop over i_theta_2
-    end do ! end of loop over i_theta_1
-  end do ! end of loop over i_q 
-
 ! Writing
-  call Write_rixs(Angle,Deltar,E_cut_o,E_loss,Energ_in,Epsii,Eseuil(nbseuil),File_name_rixs,Gamma_hole_o,Gamma_max, &
-                  npl,jseuil,Mod_k,Monocrystal,n_q_dim,n_Spin_channel,n_theta,ne_loss,nenerg_in,ninit1,ninitr, &
-                  nseuil,numat,RIXS_ampl)
+  E_loss(:) = E_loss(:)*Rydb
+  Energ_in(:) = Energ_in(:)*Rydb
+  Theta_rixs(:,:) = Theta_rixs(:,:) / radian
   
-  deallocate( Amplitude, Angle, Conv_nelec, E_inf, E_sup, Energ_in, Energ_oc, E_loss, Gamma, Mod_k )
-  deallocate( Probed_L, RIXS_ampl, rof, rof_e, Shift )
-  deallocate( secdd_xtal, secmd_xtal, secmm_xtal, secdq_xtal, secdo_xtal, secqq_xtal, secoo_xtal )
+  call Write_db_rixs(Deltar,E_cut_o,E_loss,Energ_emission,Energ_in,File_name_rixs,Gamma_hole_o, &
+                  Gamma_max,n_q_dim,n_theta_rixs,ne_loss,nenerg_in,npl_out,Rixs_int,Theta_rixs)
   
-  if( E1E1 ) deallocate( RIXS_E1E1_tens )
-  if( E1E2 ) deallocate( RIXS_E1E2_tens )
-  if( E1E3 ) deallocate( RIXS_E1E3_tens )
-  if( E1M1 ) deallocate( RIXS_E1M1_tens )
-  if( E2E2 ) deallocate( RIXS_E2E2_tens )
-  if( E3E3 ) deallocate( RIXS_E3E3_tens )
-  if( M1M1 ) deallocate( RIXS_M1M1_tens )
-
+  deallocate( Amplitude, Conv_nelec, E_inf, E_sup, Energ_in, Energ_oc, E_loss, Gamma, Mu_ampl, Mu_unoc )
+  deallocate( RIXS_int, Shift )
+  deallocate( Pol_i_s_g, Pol_i_p_g, Pol_s_s_g, Pol_s_p_g, Vec_i_g, Vec_s_g ) 
+  
   return
   110 format(/150('-'),//' RIXS step')
-  130 format(/120('-'),//' ie_in =',i4,', ie_oc =',i4,', ie_loss =',i4,', E_in =',f9.3,' eV')
+  130 format(/120('-'),//' ie_in =',i4,', ie_oc =',i4,', ie_loss =',i4)
   140 format('    E_oc =',f7.3,', E_unoc =',f7.3,', E_loss =',f7.3,' eV')
   150 format(/2x,100('-'),//2x,'ia =',i3,', Sym = ',A) 
   160 format(/2x,100('-'),//2x,'ia =',i3,', Sym = ',A,' x Time reversal') 
-  165 format(/' i_L i_in i_oc  E_oc  E_unoc   Cfac_r       Cfac_i     RIXs_r_1     RIXs_i_1     RIXs_r_2     RIXs_i_2')
-  167 format(3i4,2f8.3,1p,2e13.5,20(1x,2e13.5))
-  170 format(/' ie_L, ie_in, ie_oc, E_oc, E_unoc, Cfac =',3i4,2f8.3,1p,2e13.5,', RIXS = ',20(1x,2e13.5))
-  180 format(/' i_t, i_q, ie_L, ie_in, ie_oc, initr, i_spin_channel, E_oc, E_unoc, Cfac = ',2i2,3i4,i2,2f8.3,1p,2e13.5, &
-              ', RIXS = ',20(1x,2e13.5))
+end
+
+!*****************************************************************************************************************
+
+subroutine Write_db_rixs(Deltar,E_cut,E_loss,Energ_emission,Energ_in,File_name_rixs,Gamma_hole, &
+                  Gamma_max,n_q_dim,n_theta_rixs,ne_loss,nenerg_in,npl,Rixs_int,Theta_rixs)
+                  
+  use declarations
+  implicit none
+ 
+  character(len=Length_name):: File_name_rixs
+  
+  integer:: i_Energ_emission, i_t, i_q, ie_loss, ipl, n_q_dim, n_theta_rixs, ne_loss, nenerg_in, npl  
+   
+  logical:: Energ_emission
+   
+  real(kind=db):: Deltar, E_cut, Gamma_hole, Gamma_max 
+  real(kind=db), dimension(nenerg_in):: Energ_in
+  real(kind=db), dimension(ne_loss):: E_loss
+  real(kind=db), dimension(n_theta_rixs,2):: Theta_rixs
+  real(kind=db), dimension(nenerg_in,ne_loss,npl,n_theta_rixs,n_q_dim):: RIXS_int
+  
+  if( Energ_emission ) then
+    i_Energ_emission = 1
+  else
+    i_Energ_emission = 0
+  endif
+
+  open(2, file = File_name_rixs )
+  write(2,110) i_Energ_emission, nenerg_in, ne_loss, npl, n_theta_rixs, n_q_dim
+  write(2,115) Gamma_hole, Gamma_max, E_cut, Deltar 
+  write(2,'(A)') ' Theta_in, 2.Theta'
+  write(2,120) ( Theta_rixs(i_t,:), i_t = 1,n_theta_rixs )
+  write(2,'(A)') ' Energy'
+  write(2,120) Energ_in(:)
+
+  do ie_loss = 1,ne_loss
+    if( abs( E_loss(ie_loss) ) < 9.999995_db ) then
+      write(2,165) E_loss(ie_loss), ((( RIXS_int(:,ie_loss,ipl,i_t,i_q), ipl = 1,npl), i_t = 1,n_theta_rixs), i_q = 1,n_q_dim )
+    elseif( abs( E_loss(ie_loss) ) < 99.99995_db ) then
+      write(2,175) E_loss(ie_loss), ((( RIXS_int(:,ie_loss,ipl,i_t,i_q), ipl = 1,npl), i_t = 1,n_theta_rixs), i_q = 1,n_q_dim )
+    elseif( abs( E_loss(ie_loss) ) < 999.9995_db ) then
+      write(2,185) E_loss(ie_loss), ((( RIXS_int(:,ie_loss,ipl,i_t,i_q), ipl = 1,npl), i_t = 1,n_theta_rixs), i_q = 1,n_q_dim )
+    else
+      write(2,195) E_loss(ie_loss), ((( RIXS_int(:,ie_loss,ipl,i_t,i_q), ipl = 1,npl), i_t = 1,n_theta_rixs), i_q = 1,n_q_dim )
+    endif 
+  end do
+  
+  Close(2)
+
+  return
+  110 format(6i6)
+  115 format(10x,4f12.5,' = Gamma_hole, Gamma_max, E_cut, Deltar')
+  120 format(10x,100000f15.5)
+  125 format(10x,1p,100000e13.5)
+  165 format(f10.5,1p,100000(1x,2e13.5))
+  175 format(f10.4,1p,100000(1x,2e13.5))
+  185 format(f10.3,1p,100000(1x,2e13.5))
+  195 format(f10.2,1p,100000(1x,2e13.5))
+end
+
+!*****************************************************************************************************************
+
+subroutine Write_int_db_rixs(Analyzer,File_name,n_File,Sum_rixs)
+
+  use declarations
+  implicit none
+ 
+  integer:: i, i_File, i_q, i_Energ_emission, i_t, ie, ie_loss, ii, ipl, ipr, &
+     istat, k, L, Length, n_File, n_theta_rixs, n_q_dim, ne, ne_loss, nenerg_in, npl, npl_out  
+ 
+  character(len=3):: mot3
+  character(len=8):: dat
+  character(len=10):: mot10, tim
+  character(len=13):: Word
+  character(len=19):: com_date
+  character(len=24):: com_time
+  character(len=2), dimension(4):: pol_suf_no_ana
+  character(len=13), dimension(4):: pol_name_in
+  character(len=13), dimension(8):: pol_name
+  character(len=13), dimension(8):: pol_suf
+  character(len=Length_name):: File_name_int, File_name_int_sum, File_name_o, File_name_out, mot
+  character(len=Length_name), dimension(n_File):: File_name
+  character(len=13), dimension(:), allocatable:: E_string, E_string_full
+    
+  logical:: Analyzer, E_cut_man, Energ_emission, Gamma_hole_man, Gamma_max_man, Sum_rixs
+  
+  real(kind=db):: E, Delta_E, Deltar, E_cut, Gamma_hole, Gamma_max, Range_E_in, Range_E_Loss, x, y 
+  real(kind=db), dimension(:), allocatable:: E_loss, Energ_in
+  real(kind=db), dimension(:,:), allocatable:: Theta_rixs
+  real(kind=db), dimension(:,:,:,:), allocatable:: Rixs_int, Sum_E_in, Sum_E_loss 
+  real(kind=db), dimension(:,:,:,:,:), allocatable:: RIXS_int_tot
+
+  data pol_name/ '  sigma-sigma', '    sigma-pi ', '    pi-sigma ', '     pi-pi   ','  right-sigma', '   left-sigma', &
+                 '    right-pi ', '    left-pi  ' /
+  data pol_name_in/ '     sigma   ', '       pi    ', '     right   ', '      left   '/
+  data pol_suf/ '_ss', '_sp', '_ps', '_pp','_rs', '_ls', '_rp', '_lp' /
+  data pol_suf_no_ana/ '_s', '_p', '_r', '_l' /
+
+! Check of input file names 
+  do i_File = 1,n_File
+    open(2, file = File_name(i_File), status='old', iostat=istat)
+    if( istat /= 0 ) then
+      mot = File_name(i_File)
+      Length = len_trim(mot)
+      if( mot(Length-3:Length) /= '.txt' ) then
+        mot(Length+1:Length+4) = '.txt'
+        Close(2) 
+        open(2, file = mot, status='old', iostat=istat)
+        if( istat == 0 ) File_name(i_File) = mot
+      endif  
+      if( istat /= 0 ) then
+        call write_error
+        do ipr = 6,9,3
+          write(ipr,110) File_name(i_File)
+        end do
+        stop
+      endif
+    endif
+    read(2,*) i_Energ_emission, nenerg_in, ne_loss, npl, n_theta_rixs, n_q_dim
+    Energ_emission = i_Energ_emission == 1
+    Close(2)
+  end do
+
+  if( nenerg_in > 1 .and. .not. Energ_emission ) then
+    ne = nenerg_in+1
+  else
+    ne = nenerg_in
+  endif
+  
+  if( npl == 1 ) Analyzer = .false.
+  if( Analyzer ) then
+    npl_out = npl
+  else
+    npl_out = npl / 2
+  endif 
+          
+  allocate( Energ_in(nenerg_in) )
+  allocate( E_string(ne) )
+  allocate( E_string_full(ne*npl_out*n_theta_rixs*n_q_dim) )
+  allocate( E_loss(ne_loss) )
+  allocate( RIXS_int_tot(nenerg_in,ne_loss,npl_out,n_theta_rixs,n_q_dim) )
+  allocate( RIXS_int(nenerg_in,npl,n_theta_rixs,n_q_dim) )
+  allocate( Theta_rixs(n_theta_rixs,2) )
+
+  open(2, file = File_name(1), status='old')
+  read(2,*)  
+  read(2,*) Gamma_hole, Gamma_max, E_cut, Deltar
+  read(2,*) 
+  read(2,*) ( Theta_rixs(i_t,:), i_t = 1,n_theta_rixs )
+  read(2,*) 
+  read(2,*) Energ_in(:)
+  Close(2)
+  
+  Gamma_hole_man = Gamma_hole > -1000._db
+  Gamma_max_man = Gamma_max > -1000._db
+  E_cut_man = E_cut > -1000._db
+
+! File_name out
+  call date_and_time( date = dat, time = tim ) 
+  com_date = ', date = ' // dat(7:8) // ' ' // dat(5:6) // ' ' // dat(1:4)
+  com_time = ', time = ' // tim(1:2)  // ' h ' // tim(3:4) // ' mn ' // tim(5:6) // ' s'
+  
+  File_name_o = File_name(1)
+  Length = len_trim(File_name_o)
+  if( n_file > 1 .and. File_name_o(Length-5:Length-4) == '_1') then
+    File_name_o(Length-5:Length) = '      '
+  else
+    File_name_o(Length-3:Length) = '    '
+  endif
+
+  File_name_int_sum = File_name_o
+ 
+  File_name_out = File_name_o
+  Length = len_trim(File_name_out)
+
+  do k = 1,4
+  
+    select case(k)
+      case(1)
+       if( .not. E_cut_man ) cycle
+       y = E_cut
+      case(2)
+       if( .not. Gamma_max_man ) cycle
+       y = Gamma_max
+      case(3)
+       if( .not. Gamma_hole_man ) cycle
+       y = Gamma_hole
+      case(4)
+       if( abs( Deltar ) < eps10 ) cycle
+       y = Deltar          
+   end select
+  
+    x = y / 10
+    do i = 0,4
+      x = 10 * x
+      if( abs( x - nint(x) ) < eps10 ) exit
+    end do
+  
+    select case(i)
+      case(0)
+        write(mot10,'(i10)') nint( y )
+      case(1)
+        write(mot10,'(f10.1)') y
+      case(2)
+        write(mot10,'(f10.2)') y
+      case(3)
+        write(mot10,'(f10.3)') y
+      case default
+        write(mot10,'(f10.4)') y
+    end select
+  
+    mot10 = adjustl( mot10 )   
+    L = len_trim( mot10 )
+    if( i > 0 ) mot10(L-i:L-i) = 'p'
+  
+    select case(k)
+      case(1)          
+        mot3 = '_EF'
+      case(2)
+        mot3 = '_Gm'
+      case(3)
+        mot3 = '_GH'
+      case(4)
+        mot3 = '_Ga'
+    end select
+  
+    Length = len_trim( File_name_out )
+    File_name_out(Length+1:Length+3) = mot3
+    Length = Length + 3
+    File_name_out(Length+1:Length+L) = mot10(1:L)
+
+    Length = len_trim( File_name_int_sum )
+    File_name_int_sum(Length+1:Length+3) = mot3
+    Length = Length + 3
+    File_name_int_sum(Length+1:Length+L) = mot10(1:L)
+        
+  end do
+
+  Length = len_trim(File_name_out)
+    
+  File_name_out(Length+1:Length+8) = '_int.txt'
+  File_name_int = File_name_out 
+  
+  Length = len_trim(File_name_int_sum)
+  File_name_int_sum(Length+1:Length+17) = '_int_sum_loss.txt'
+
+  i = 0
+  do i_t = 1,n_theta_rixs
+    do ipl = 1,npl_out
+      do ie = 1,ne
+        i = i + 1
+        Word = ' '
+        if( ie == nenerg_in+1 ) then 
+          Word = 'Av_on_Ei'
+        else
+          E = Energ_in(ie)
+          if( abs( nint( 10*E ) - 10*E ) < eps10 ) then
+            write(Word,'(f13.1)') E
+          elseif( abs( nint( 100*E ) - 100*E ) < eps10 ) then
+            write(Word,'(f13.2)') E
+          elseif( abs( nint( 1000*E ) - 1000*E ) < eps10 ) then
+            write(Word,'(f13.3)') E
+          elseif( abs( nint( 1000*E ) - 1000*E ) < eps10 ) then
+            write(Word,'(f13.4)') E
+          endif
+        endif
+
+        Word = adjustr(Word)
+        E_string(ie) = Word
+
+        if( npl_out > 1 ) then
+          Word = adjustl(Word)
+          Length = len_trim(Word)
+          if( Analyzer ) then
+            if( Length+3 < 13 ) Word(Length+1:Length+3) = pol_suf(ipl)
+          else
+            if( Length+2 < 13 ) Word(Length+1:Length+3) = pol_suf_no_ana(ipl)
+          endif
+        endif
+      
+        if( n_theta_rixs > 1 ) then
+          Word = adjustl(Word)
+          Length = len_trim(Word)
+          if( Length+3 < 13 ) then 
+            Word(Length+1:Length+2) = '_t'
+            call ad_number(i_t,Word,13)
+          elseif( Length+3 < 12 ) then 
+            Word(Length+1:Length+1) = '_'
+            call ad_number(i_t,Word,13)
+          endif
+        endif
+      
+        Word = adjustr(Word)
+        E_string_full(i) = Word
+      end do
+    end do
+  end do
+
+  allocate( Sum_E_in(ne_loss,npl_out,n_theta_rixs,n_q_dim) )
+  allocate( Sum_E_loss(nenerg_in,npl_out,n_theta_rixs,n_q_dim) )
+
+  RIXS_int_tot(:,:,:,:,:) = 0._db
+
+  do i_File = 1,n_File
+    open(2, file = File_name(i_File), status='old')
+    do i = 1,6
+      read(2,*)
+    end do
+    do ie_loss = 1,ne_loss
+      read(2,*) E_loss(ie_loss), ((( RIXS_int(:,ipl,i_t,i_q), ipl = 1,npl), i_t = 1,n_theta_rixs), i_q = 1,n_q_dim )
+      if( Analyzer ) then 
+        RIXS_int_tot(:,ie_loss,:,:,:) = RIXS_int_tot(:,ie_loss,:,:,:) + RIXS_int(:,:,:,:)
+      else
+        do ipl = 1,npl_out
+          RIXS_int_tot(:,ie_loss,ipl,:,:) = RIXS_int_tot(:,ie_loss,ipl,:,:) + RIXS_int(:,2*ipl-1,:,:) + RIXS_int(:,2*ipl,:,:)
+        end do
+      endif  
+    end do
+
+    close(2)
+  end do ! end of loop on files
+
+  Sum_E_loss(:,:,:,:) = 0._db
+  if( ne_loss > 1 ) &
+    Range_E_Loss = E_loss(ne_loss) - E_loss(1) + ( E_loss(2) - E_loss(1) + E_loss(ne_loss) - E_loss(ne_loss-1) ) / 2
+  if( nenerg_in > 1 .and. .not. Energ_emission ) &
+    Range_E_in = Energ_in(nenerg_in) - Energ_in(1) + ( Energ_in(2) - Energ_in(1) + Energ_in(nenerg_in) - Energ_in(nenerg_in-1) ) / 2
+
+  if( ne_loss > 1 ) then
+    do ie_loss = 1,ne_loss
+      if( ie_loss == 1 ) then
+        Delta_E = E_loss(2) - E_loss(1) 
+      elseif( ie_loss == ne_loss ) then
+        Delta_E = E_loss(ne_loss) - E_loss(ne_loss-1) 
+      else
+        Delta_E = ( E_loss(ie_loss + 1) - E_loss(ie_loss - 1) ) / 2 
+      endif 
+      Sum_E_loss(:,:,:,:) = Sum_E_loss(:,:,:,:) + RIXS_int_tot(:,ie_loss,:,:,:) * Delta_E / Range_E_Loss 
+    end do
+  endif
+      
+  if( nenerg_in > 1 .and. .not. Energ_emission ) then
+    Sum_E_in(:,:,:,:) = 0._db
+    do ie = 1,nenerg_in
+      if( ie == 1 ) then
+        Delta_E = Energ_in(2) - Energ_in(1) 
+      elseif( ie == nenerg_in ) then
+        Delta_E = Energ_in(nenerg_in) - Energ_in(nenerg_in-1) 
+      else
+        Delta_E = ( Energ_in(ie + 1) - Energ_in(ie - 1) ) / 2 
+      endif 
+      Sum_E_in(:,:,:,:) = Sum_E_in(:,:,:,:) + RIXS_int_tot(ie,:,:,:,:) * Delta_E / Range_E_in
+    end do
+  endif
+      
+! Writing
+    
+  open(2, file = File_name_int )
+  
+  write(2,'(a15,a19,a24)') ' RIXS intensity', com_date, com_time
+  write(2,120) nenerg_in, ne_loss, npl_out, n_theta_rixs, n_q_dim
+  
+  if( npl > 1 ) then
+    if( Analyzer ) then
+      write(2,130) ' Polariza:', ((( pol_name(ipl), ie = 1,ne ), ipl = 1,npl_out ), i_t = 1,n_theta_rixs )
+    else
+      write(2,130) ' Polariza:', ((( pol_name_in(ipl), ie = 1,ne ), ipl = 1,npl_out ), i_t = 1,n_theta_rixs )
+    endif
+  endif 
+  write(2,140) ' Theta_in:',(((( Theta_rixs(i_t,1), ie = 1,ne), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), i_q = 1,n_q_dim )
+  write(2,140) '  2.Theta:',(((( Theta_rixs(i_t,2), ie = 1,ne), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), i_q = 1,n_q_dim )
+  if( Energ_emission ) then
+    write(2,130) '   E_emis ', ( E_string(:), ii = 1, npl_out*n_theta_rixs*n_q_dim )
+    if( npl > 1 ) write(2,130) '   E_emis ', ( E_string_full(:), i_q = 1, n_q_dim )
+  else
+    write(2,130) '   E_loss ', ( E_string(:), ii = 1, npl_out*n_theta_rixs*n_q_dim )
+    if( npl > 1 ) write(2,130) '   E_loss ', ( E_string_full(:), i_q = 1, n_q_dim )
+  endif
+
+  do ie_loss = 1,ne_loss
+  
+    if( Energ_emission ) then
+      E = E_loss(ie_loss)
+    else
+      E = - E_loss(ie_loss)
+    endif 
+    if( nenerg_in > 1 .and. .not. Energ_emission ) then        
+      if( abs( E ) < 9.999995_db ) then
+        write(2,160) E, ((( RIXS_int_tot(:,ie_loss,ipl,i_t,i_q), Sum_E_in(ie_loss,ipl,i_t,i_q), ipl = 1,npl_out ), &
+                                                                                   i_t = 1,n_theta_rixs ), i_q = 1,n_q_dim ) 
+      elseif( abs( E ) < 99.99995_db ) then
+        write(2,170) E, ((( RIXS_int_tot(:,ie_loss,ipl,i_t,i_q), Sum_E_in(ie_loss,ipl,i_t,i_q), ipl = 1,npl_out ), &
+                                                                                   i_t = 1,n_theta_rixs ), i_q = 1,n_q_dim )
+      elseif( abs( E ) < 999.9995_db ) then
+        write(2,180) E, ((( RIXS_int_tot(:,ie_loss,ipl,i_t,i_q), Sum_E_in(ie_loss,ipl,i_t,i_q), ipl = 1,npl_out ), &
+                                                                                   i_t = 1,n_theta_rixs ), i_q = 1,n_q_dim )
+      else
+        write(2,190) E, ((( RIXS_int_tot(:,ie_loss,ipl,i_t,i_q), Sum_E_in(ie_loss,ipl,i_t,i_q), ipl = 1,npl_out ), &
+                                                                                   i_t = 1,n_theta_rixs ), i_q = 1,n_q_dim ) 
+      endif
+    else
+      if( abs( E ) < 9.999995_db ) then
+        write(2,160) E, ((( RIXS_int_tot(:,ie_loss,ipl,i_t,i_q), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), i_q = 1,n_q_dim ) 
+      elseif( abs( E ) < 99.99995_db ) then
+        write(2,170) E, ((( RIXS_int_tot(:,ie_loss,ipl,i_t,i_q), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), i_q = 1,n_q_dim )
+      elseif( abs( E ) < 999.9995_db ) then
+        write(2,180) E, ((( RIXS_int_tot(:,ie_loss,ipl,i_t,i_q), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), i_q = 1,n_q_dim )
+      else
+        write(2,190) E, ((( RIXS_int_tot(:,ie_loss,ipl,i_t,i_q), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), i_q = 1,n_q_dim ) 
+      endif
+    endif 
+
+  end do ! end of loop on ie_loss
+
+  Close(2)
+
+! Writing of the average over energy loss
+  if( ne_loss > 1 .and. Sum_rixs ) then
+    open(2, file = File_name_int_sum)
+    write(2,'(a38,a19,a24)') ' RIXS, average along loss energy range', com_date, com_time
+    write(2,'(A)') '  Energ_in Average_RIXS'
+    do ie = 1,nenerg_in
+      if( abs( Energ_in(ie) ) < 9.999995_db ) then
+        write(2,160) Energ_in(ie), ((( Sum_E_loss(ie,ipl,i_t,i_q), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), i_q = 1,n_q_dim )
+      elseif( abs( Energ_in(ie) ) < 99.99995_db ) then
+        write(2,170) Energ_in(ie), ((( Sum_E_loss(ie,ipl,i_t,i_q), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), i_q = 1,n_q_dim )
+      elseif( abs( Energ_in(ie) ) < 999.9995_db ) then
+        write(2,180) Energ_in(ie), ((( Sum_E_loss(ie,ipl,i_t,i_q), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), i_q = 1,n_q_dim )
+      else
+        write(2,190) Energ_in(ie), ((( Sum_E_loss(ie,ipl,i_t,i_q), ipl = 1,npl_out ), i_t = 1,n_theta_rixs ), i_q = 1,n_q_dim )
+      endif
+    end do
+    Close(2)
+  endif
+  
+  deallocate( E_loss, E_string, E_string_full, Energ_in, RIXS_int_tot, RIXS_int, Sum_E_in, Sum_E_loss, Theta_rixs )
+  
+  return
+  110 format(//' Error opening the file:',//3x,A,//)  
+  120 format(7i5,' / n_energy_in, n_energy_loss, npl, n_theta_rixs, n_q_dir')
+  130 format(a10,1000000a13)
+  140 format(a10,1000000f13.5)
+  150 format(a10,1p,1000000e13.5)
+  160 format(f10.5,1p,100000e13.5)
+  170 format(f10.4,1p,100000e13.5)
+  180 format(f10.3,1p,100000e13.5)
+  190 format(f10.2,1p,100000e13.5)
+  200 format(4i5,' / n_energy_in, n_energy_loss, n_theta_rixs, n_q_dir')
 end
 
 

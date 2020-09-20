@@ -2235,7 +2235,7 @@ end
 subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag,Full_atom, &
                     ia_coop,ia_eq,ia_rep, &
                     iaabsi,iaprotoi,iato,icheck,igroupi,igrph,iopsymr,irep_util,is_eq,ispin,karact,Lato,Lmaxa,Lmax_g,mato, &
-                    n_atom_0,n_atom_coop,n_atom_ind,n_atom_proto,nab_coop,natome,natomp,nb_eq,nb_rpr,nb_rep_t,nb_sym_op,nchemin, &
+                    n_atom_0,n_atom_coop,n_atom_ind,n_atom_proto,nab_coop,natome,natomp,nb_eq,nb_rpr,nb_rep_t,nb_sym_op, &
                     ngroup_m,ngrph,nlmagm,nlmsa,nlmsam,nlmsamax,Normaltau,nspin,nspino,nspinp,pos,posi,recop,Repres_comp, &
                     Rmtg,rot_atom,Solsing,Spinorbite,State_all_r,Sym_cubic,Tau_ato,Tau_nondiag,Tau_coop,Taull,Time_fill, &
                     Time_tria,Ylm_comp)
@@ -2248,7 +2248,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag,Ful
   integer:: i, I_rep_dim, i0, i1, i2, ia, iaabsi, iapr, icheck, ib, ib1, ibb, icolone, icolone0, iga, igr, igrph, &
     iligne, iligne0, ind, irep, is1, is2, isg, isp, isp1, ispin, its, j0, jligne, jligne0, jsp, L, L1, ll, lm0, &
     lm1, lm10, lm1p, L2, lm, lm01, lm01c, lm02, lm02c, lm2, lm20, lm2p, lma, lmax, Lmax_g, lmb, lmc, lmd1, lmd2, m, m1, m2, &
-    ms1, ms2, n_atom_0, n_atom_ind, n_atom_proto, n1, na, n_atom_coop, nab_coop, natome, natomp, nb_sym_op, nchemin, ndim, &
+    ms1, ms2, n_atom_0, n_atom_ind, n_atom_proto, n1, na, n_atom_coop, nab_coop, natome, natomp, nb_sym_op, ndim, &
     ngroup_m, ngrph, nlm, nlmabs, nlmagm, nlmc, nlmch, nlmr, nlmsam, nlmsamax, nlmsmax, nspin, nspino, nspinp, nspinr
 
   integer, dimension(n_atom_coop):: ia_coop
@@ -2323,11 +2323,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag,Ful
   allocate( taullp(nlmsmax,nlmsmax) )
   allocate( taullq(nlmsmax,nlmsmax) )
 
-  if( nchemin == 2 ) then
-    nlmch = nlmabs
-  else
-    nlmch = ndim
-  endif
+  nlmch = ndim
   Taup(:,:,:) = (0._db, 0._db)
 
   if( Tau_nondiag ) allocate( Taup_inv(nlmsmax,nlmsmax,natome) )
@@ -2426,11 +2422,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag,Ful
 
   iligne = 0
   icolone = 0
-  if( nchemin == 2 ) then
-    na = 1
-  else
-    na = natome
-  endif
+  na = natome
 
   do ia = 1,na   ! boucle sur la ligne
     iligne0 = sum( nlmsa(1:ia-1) )
@@ -2611,11 +2603,9 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag,Ful
 
 ! diagonal
   if( normaltau .or. Brouder ) then
-    if( nchemin == - 1 ) then
-      do iligne = 1,ndim
-        mat(iligne,iligne) = mat(iligne,iligne) + (1._db,0._db)
-      end do
-    endif
+    do iligne = 1,ndim
+      mat(iligne,iligne) = mat(iligne,iligne) + (1._db,0._db)
+    end do
   else
     iligne = 0
     do ia = 1,natome
@@ -2650,7 +2640,7 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag,Ful
     end do
   endif
 
-  if( ( normaltau .or. Brouder ) .and. nchemin /= 2 ) then
+  if( normaltau .or. Brouder ) then
     i0 = 0
     do ia = 1,natome
       j0 = 0
@@ -2737,12 +2727,6 @@ subroutine msm(Axe_atom_grn,Cal_xanes,Classic_irreg,Dist_coop,Ecinetic,Eimag,Ful
     end do
 
 ! Filling of matrix is done. Now come the resolution, suit la resolution.
-
-! path development ( not sure it works)
-  elseif( nchemin > -1 ) then
-
-    call dev_chemin(iaabsi,iato,igrph,Lato,mat,mato,natome,nchemin,ndim,ngrph,nlmabs,nlmch,nlmagm, &
-             nlmsa,nlmsam,nlmsmax,nspinp,Taull,taup)
 
   else
 
@@ -3596,9 +3580,13 @@ end
 function Dlmm_cal(isym,L,m,mp)
 
   use declarations
-  implicit real(kind=db) (a-h,o-z)
+  implicit none
+  
+  integer:: im, isym, L, m, m2, mm, mp
 
   logical:: pair
+
+  real(kind=db):: Dlmm_cal
 
   Dlmm_cal = 0._db
 
@@ -3644,89 +3632,6 @@ function Dlmm_cal(isym,L,m,mp)
   else
     Dlmm_cal = -1._db
   endif
-
-  return
-end
-
-!***********************************************************************
-
-! Path expansion
-
-subroutine dev_chemin(iaabsi,iato,igrph,Lato,mat,mato,natome,nchemin,ndim,ngrph,nlmabs,nlmch,nlmagm, &
-             nlmsa,nlmsam,nlmsmax,nspinp,Taull,taup)
-
-  use declarations
-  implicit real(kind=db) (a-h,o-z)
-
-  complex(kind=db), dimension(ndim,nlmch):: mat
-  complex(kind=db), dimension(nlmch,nlmch):: matp
-  complex(kind=db), dimension(nlmsmax,nlmsmax,natome):: taup
-  complex(kind=db), dimension(nlmagm,nspinp,nlmagm,nspinp,natome):: Taull
-
-  integer, dimension(natome):: nlmsa
-  integer, dimension(nlmsam,natome,ngrph):: Lato, mato, iato
-
-  iab = iaabsi
-
-  lm0 = 0
-  do ia = 1,natome
-    if( ia == iaabsi ) exit
-    lm0 = lm0 + nlmsa(ia)
-  end do
-
-  do lm1 = 1,nlmabs
-    L = Lato(lm1,iab,igrph)
-    m = mato(lm1,iab,igrph)
-    lm01 = L**2 + L + 1 + m
-    is1 = iato(lm1,iab,igrph)
-    do lm2 = 1,nlmabs
-      L = Lato(lm2,iab,igrph)
-      m = mato(lm2,iab,igrph)
-      lm02 = L**2 + L + 1 + m
-      is2 = iato(lm2,iab,igrph)
-      Taull(lm01,is1,lm02,is2,iab) = taup(lm1,lm2,iab)
-    end do
-  end do
-
-  if( nchemin /= 2 ) matp = - mat
-
-  do ichemin = 2,nchemin
-    if( nchemin == 2 ) then
-      do lm2 = 1,nlmabs
-        do lm1 = 1,lm2
-          i = nlmabs
-          do ia = 2,natome
-            do lm3 = 1,nlmsa(ia)    ! boucle sur la ligne
-              i = i + 1
-              matp(lm1,lm2) = matp(lm1,lm2) + taup(lm3,lm3,iab) * mat(i,lm1) * mat(i,lm2)
-            end do
-          end do
-          matp(lm1,lm2) = taup(lm1,lm1,iab) * matp(lm1,lm2)
-        end do
-      end do
-    else
-      matp = - matmul(mat,matp)
-    endif
-
-    do lm2 = 1,nlmabs
-      L = Lato(lm2,iab,igrph)
-      m = mato(lm2,iab,igrph)
-      lm02 = L**2 + L + 1 + m
-      is2 = iato(lm2,iab,igrph)
-      lmd2 = lm0 + lm2
-      Taull(lm02,is2,lm02,is2,iab) = Taull(lm02,is2,lm02,is2,iab) + matp(lmd2,lmd2) * taup(lm2,lm2,iab)
-      do lm1 = 1,lm2-1
-        L = Lato(lm1,iab,igrph)
-        m = mato(lm1,iab,igrph)
-        lm01 = L**2 + L + 1 + m
-        is1 = iato(lm1,iab,igrph)
-        lmd1 = lm0 + lm1
-        Taull(lm01,is1,lm02,is2,iab) = Taull(lm01,is1,lm02,is2,iab) + matp(lmd1,lmd2) * taup(lm2,lm2,iab)
-        Taull(lm02,is2,lm01,is1,iab) = Taull(lm01,is1,lm02,is2,iab)
-      end do
-    end do
-
-  end do
 
   return
 end

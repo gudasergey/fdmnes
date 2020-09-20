@@ -6,9 +6,9 @@
 !              L(x) = (1/(pi*b)) * 1 / ( 1 + ( (x-a)/b )**2 )
 !    Integration over energy for Dafs.
 
-subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
-        E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_max_man, &
-        ical,icheck,indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
+subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_out, &
+        Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man, &
+        Gamma_max,Gamma_max_man,ical,icheck,indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
         n_shift_core,ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,Shift_core,Typepar,ncal)
 
   use declarations
@@ -86,13 +86,11 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
   Abs_before = .false.
   Abs_in_bulk = .false.
   Abs_U_iso_inp = 0._db
-  Analyzer = .true.
   Arc = .true.
   Asea = 0.2_db  ! Slope of Gamma at the origin in Seah Dench model
   Check_birefringence = .false.
   chem = .false.
   Check_conv = .false.
-  Circular = .false.
   Convolution_out = ' '
   d_dead = 0._db
   Dafs = .false.
@@ -192,9 +190,9 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
       end do
     endif
 
-    if( keyword == 'circular' ) n_stokes = n_stokes + 4
-
   end do boucle_ii
+
+  if( Circular ) n_stokes = n_stokes + 4
 
   rewind(itape1)
 
@@ -615,7 +613,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
         endif
          
       case('s0_2')
-
         read(itape1,*,iostat=eof) S0_2
 
       case('XES')
@@ -630,9 +627,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
         n = nnombre(itape1,132)
         read(itape1,*,iostat=eof) hkl_S(:)
         if( eof > 0 ) call write_err_form(itape1,keyword)
-
-      case('circular')
-        Circular = .true.
 
       case('sample_th')
         n = nnombre(itape1,132)
@@ -674,9 +668,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
 
       case('double_co')
         Double_cor = .true.
-
-      case('no_analyz')
-        Analyzer = .false.
 
       case default
 
@@ -1020,7 +1011,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
 
   Stokes = n_stokes > 0
   Stokes_xan = Stokes .and. n_mat_pol > 0
-!  Stokes_Dafs = Circular .or. Full_self_abs
   Stokes_Dafs = Stokes .and. .not. Stokes_xan
 
   if( Circular ) then
@@ -1207,8 +1197,7 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
             endif
           else
             if( Full_self_abs ) then
-              Read(2,*) Energ(ie), ( ( fr(ipl), fi(ipl), ( mua_r(ipl,i), mua_i(ipl,i), &
-                i = 1,2), ipl = 1,npldafs ), j = 1,initl)
+              Read(2,*) Energ(ie), ( ( fr(ipl), fi(ipl), ( mua_r(ipl,i), mua_i(ipl,i), i = 1,2), ipl = 1,npldafs ), j = 1,initl)
             elseif( self_abs ) then
               Read(2,*) Energ(ie), ( ( fr(ipl), fi(ipl), ( mua_r(ipl,i), i = 1,2 ), ipl = 1,npldafs ), j = 1,initl)
             else
@@ -1283,6 +1272,16 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
       endif
 
       Energ(:) = Energ(:) / rydb
+
+      if( abs( S0_2 - 1._db ) > eps10 ) then
+        Xanes(:,:) = S0_2 * Xanes(:,:)
+        Mu_mat(:,:,:) = S0_2 * Mu_mat(:,:,:)
+        if( Dafs ) then
+          Adafs(:,:,:) = S0_2 * Adafs(:,:,:)
+          if( Cor_abs ) mua_r(:,:) = S0_2 * mua_r(:,:)
+          if( Full_self_abs ) mua_i(:,:) = S0_2 * mua_i(:,:)
+        endif
+      endif
 
       do ie = nsup(initl,ifich),1,-1
         Energ(ie) = Energ(ie+1) - pasdeb
@@ -1951,11 +1950,6 @@ subroutine Convolution(bav_open,Bormann,Conv_done,Convolution_out,Delta_edge, &
     
   endif
   
-  if( abs( S0_2 - 1._db ) > eps10 ) then
-    Xs(:,:) = S0_2 * Xs(:,:)
-    if( Dafs ) As(:,:,:) = S0_2 * As(:,:,:)
-  endif
-
   if( .not. Forbidden .and. Dafs .and. .not. Tenseur ) then
     do ipl = 1,npldafs
       do ip = 1,nphi(ipl)

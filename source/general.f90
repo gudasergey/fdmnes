@@ -2772,27 +2772,25 @@ subroutine natomp_cal(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bul
     natomp = natomr
   endif
 
-  if( mpirank0 == 0 ) then
+  if( icheck > 0 ) write(3,110)
 
-    if( icheck > 0 ) write(3,110)
-
-    do ipr = 3,6,3
-      if( icheck == 0 .and. ipr == 3 ) cycle
-      if( .not. self_cons .or. abs(rsorte_s(1) - r_self) < eps10 ) then
-        write(ipr,150) ( Rsorte_s(i_radius)*bohr, natomeq_s(i_radius), i_radius = 1,n_radius )
-      else
-        do i_radius = 1,n_radius
-          if( i_radius == 1 ) then
-            write(ipr,160) Rsorte_s(i_radius)*bohr, natomeq_s(i_radius)
-          else
-            write(ipr,165) Rsorte_s(i_radius)*bohr, natomeq_s(i_radius)
-          endif
-        end do
-        if( self_cons ) write(ipr,170) r_self*bohr, natomeq_coh
-      endif
-      if( ipr == 3 ) write(ipr,180) Rmax*bohr, natomp
-    end do
-  endif
+  do ipr = 3,6,3
+    if( icheck == 0 .and. ipr == 3 ) cycle
+    if( mpirank0 /= 0 .and. ipr == 6 ) cycle
+    if( .not. self_cons .or. abs(rsorte_s(1) - r_self) < eps10 ) then
+      write(ipr,150) ( Rsorte_s(i_radius)*bohr, natomeq_s(i_radius), i_radius = 1,n_radius )
+    else
+      do i_radius = 1,n_radius
+        if( i_radius == 1 ) then
+          write(ipr,160) Rsorte_s(i_radius)*bohr, natomeq_s(i_radius)
+        else
+          write(ipr,165) Rsorte_s(i_radius)*bohr, natomeq_s(i_radius)
+        endif
+      end do
+      if( self_cons ) write(ipr,170) r_self*bohr, natomeq_coh
+    endif
+    if( ipr == 3 ) write(ipr,180) Rmax*bohr, natomp
+  end do
 
   deallocate( posg )
 
@@ -3284,17 +3282,9 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
 
   endif
 
-  if( iaabs == 0 .and. mpirank0 == 0 ) then
-    call write_error
-    do ipr = 6,9,3
-      write(ipr,110)
-    end do
-    stop
-  endif
-
   if( First_run ) iaabsfirst = iaabs
 
-  if( .not. Bulk_step ) then
+  if( .not. Bulk_step .and. iaabsfirst /= 0 ) then
     if( Noncentre ) then
       pos(:,iaabsfirst) = pos(:,iaabsfirst) + dpos(:)
     elseif( Center_s ) then
@@ -3346,6 +3336,20 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
     end do
   end do
 
+  if( iaabs == 0 .and. mpirank0 == 0 ) then
+    call write_error
+    do ipr = 6,9,3
+      write(ipr,110)
+
+      write(ipr,'(/A)') '  ia igr  it      posx         posy         posz          dist'
+      do ia = 1,natomp
+        write(ipr,140) ia, igroup(ia), itypep(ia), pos(:,ia)*bohr, dista(ia)*bohr
+      end do
+
+    end do
+    stop
+  endif
+
   deallocate( posg )
 
   return
@@ -3356,6 +3360,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
                ' Two atoms in the bulk are too close with the sum of their occupancy > 1',/)
   125 format(' Possibly after a unit cell shift',/)
   130 format(' Atoms',i5,' at p =',3f11.7,' with occupancy =',f7.3,/'   and',i5,' at p =',3f11.7,' with occupancy =',f7.3)
+  140 format(3i4,4f13.7)
 end
 
 !*********************************************************************

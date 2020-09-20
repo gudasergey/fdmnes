@@ -5,9 +5,9 @@
 ! Reading subroutine giving the dimensions of the tables, necessary for the rest of the code, including the main reading routine 'lecture'
 
 subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_layer,Dafs_bio,Doping,Extract,Extract_ten,Film, &
-    Flapw,Full_self_abs,Hubbard,itape4,Length_line,Magnetic,Memory_save,mpinodes0,mpirank0,n_adimp,n_atom,n_atom_coop,  &
-    n_file_dafs_exp,n_mat_polar,n_multi_run_e,n_q_rixs,n_radius,n_range,n_theta_in,n_two_theta,n_Z_abs,nb_atom_conf_m,ncolm, &
-    neimagent,nenerg_in_rixs,nenerg_s,ngamme, &
+    Flapw,Full_self_abs,Hubbard,itape4,Length_line,Magnetic,Memory_save,mpinodes0,mpirank0,n_adimp,n_atom,n_atom_coop, &
+    n_file_dafs_exp,n_mat_polar,n_multi_run_e,n_q_rixs,n_radius,n_range,n_theta_in,n_theta_rixs,n_two_theta,n_Z_abs, &
+    nb_atom_conf_m,ncolm,neimagent,nenerg_in_rixs,nenerg_loss_rixs,nenerg_out_rixs,nenerg_s,ngamme, &
     ngroup,nhybm,nklapw,nlatm,nlmlapwm,nmatsym,norbdil,npldafs,npldafs_2d,npldafs_e,nple,nplrm,nq_nrixs, &
     NRIXS,nspin,nspino,nspinp,ntype,ntype_bulk,ntype_conf,Occupancy_first,Pdb,Readfast,Self_abs,Taux,Temp_B_iso,Use_FDMX,Xan_atom)
 
@@ -19,8 +19,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     jpl, k, l, Length, Length_line, lin_gam, lmax_nrixs, mpierr, mpinodes0, mpirank0, n, n_adimp, n_atom_bulk, n_atom_cap, &
     n_atom_coop, n_atom_int, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_uc, n_dic, n_file_dafs_exp, &
     n_fract_x, n_fract_y, n_fract_z, n_label, n_mat_polar, n_mu, n_multi_run_e, n_q_rixs, n_radius, n_range, n_symbol, &
-    n_theta_in, n_two_theta, n_Z_abs, &
-    nb, nb_atom_conf_m, ncolm, neimagent, nenerg_in_rixs, nenerg_s, ngamme, ngc, ngroup, n_atom_neq, nhybm, nklapw, nl, &
+    n_theta_in, n_theta_rixs, n_two_theta, n_Z_abs, nb, nb_atom_conf_m, ncolm, neimagent, &
+    nenerg_in_rixs, nenerg_loss_rixs, nenerg_out_rixs, nenerg_s, ngamme, ngc, ngroup, n_atom_neq, nhybm, nklapw, nl, &
     nlatm, nlmlapwm, nmatsym, nn, nnombre, norbdil, norbv, npldafs, npldafs_2d, npldafs_e, npldafs_t, &
     nple, nplm, nplrm, nq_nrixs, nspin, nspino, nspinp, ntype, ntype_bulk, numat_abs, ntype_conf, Wien_save, Z
 
@@ -37,8 +37,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
   logical:: Absauto, adimpin, Apostrophe, Atom_conf, Atom_conf_dop, Atom_nonsph, Atom_occ_hubb, Axe_loc, Bormann, Bulk, Fcif, &
      Cap_layer, Dafs_bio, Doping, Extract, Extract_ten, Film, Flapw, Full_self_abs, Hubbard, &
-     Magnetic, Matper, Memory_save, NRIXS, Occupancy_first, Pdb, Pol_dafs_in, Quadrupole, Readfast, RIXS_case, Screening, &
-     Self_abs, Taux, Temp_B_iso, Use_FDMX, Very_fast, Xan_atom
+     Magnetic, Matper, Memory_save, NRIXS, Occupancy_first, Pdb, Pol_dafs_in, Quadrupole, Readfast, RIXS, RIXS_case, &
+     RIXS_emission_case, RIXS_loss_case, Screening, Self_abs, Taux, Temp_B_iso, Use_FDMX, Very_fast, Xan_atom
 
   real(kind=db):: Adimp, Angz, de, def, number_from_text, E, r, Rsorte_s, Step, Theta_max, Theta_min
   real(kind=db), dimension(3):: p
@@ -85,11 +85,14 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   n_range = 1
   n_radius = 1
   n_theta_in = 0
+  n_theta_rixs = 0
   n_two_theta = 0
   n_Z_abs = 1
   nb_atom_conf_m = 0
   neimagent = 0
   nenerg_in_rixs = 0
+  nenerg_loss_rixs = 0
+  nenerg_out_rixs = 0
   nenerg_s = 125
   ngamme = 3
   nhybm = 0
@@ -116,6 +119,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   Pol_dafs_in = .false.
   Quadrupole = .false.
   Readfast = .false.
+  RIXS = .false.
   Screening = .false.
   Self_abs = .false.
   Space_Group = ' '
@@ -233,6 +237,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           read(itape4,*,iostat=ier) lmax_nrixs
 
         case('rixs')
+          RIXS = .true.
           do i = 1,100000
             read(itape4,*,iostat=ier) r
             if( ier > 0 ) then
@@ -316,8 +321,10 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             read(itape4,*,iostat=ier) ( adimp, E_adimp(i), i = 1,n_adimp-1 )
           endif
 
-        case('range','rangel','rixs_ener')
+        case('range','rangel','rixs_ener','rixs_emis','rixs_loss')
           RIXS_case = keyword(1:4) == 'rixs'
+          RIXS_emission_case = keyword(1:9) == 'rixs_emis'
+          RIXS_loss_case = keyword(1:9) == 'rixs_loss'
 
           n = nnombre(itape4,Length_line)
           if( .not. RIXS_case ) ngamme = n
@@ -355,13 +362,21 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
           E = Egamme(1)
           if( n == 1 ) then
-            if( RIXS_case ) then
+            if( RIXS_loss_case ) then
+              nenerg_loss_rixs = 1
+            elseif( RIXS_emission_case ) then
+              nenerg_out_rixs = 1
+            elseif( RIXS_case ) then
               nenerg_in_rixs = 1
             else
               nenerg_s = 1
             endif
           elseif( Egamme(3) <= Egamme(1) ) then
-            if( RIXS_case ) then
+            if( RIXS_loss_case ) then
+              nenerg_loss_rixs = 1
+            elseif( RIXS_emission_case ) then
+              nenerg_out_rixs = 1
+            elseif( RIXS_case ) then
               nenerg_in_rixs = 1
             else
               nenerg_s = 1
@@ -383,7 +398,11 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             do ie = 2,1000000
               E = E + Egamme(ngc)
               if( E > Egamme(n) - eps10 ) then
-                if( RIXS_case ) then
+                if( RIXS_loss_case ) then
+                  nenerg_loss_rixs = ie
+                elseif( RIXS_emission_case ) then
+                  nenerg_out_rixs = ie
+                elseif( RIXS_case ) then
                   nenerg_in_rixs = ie
                 else
                   nenerg_s = ie
@@ -444,6 +463,15 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             end do
             stop
           endif
+
+        case('theta_2th')
+          n_theta_rixs = 0
+          do
+            n = nnombre(itape4,132)
+            if( n == 0 ) exit
+            read(itape4,*)
+            n_theta_rixs = n_theta_rixs + 1
+          end do
 
         case('theta_in')
           n = nnombre(itape4,132)
@@ -825,7 +853,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
               igr = 0
               do
-                read(8,'(a4)',iostat=eoff) mot
+                read(8,'(A)',iostat=eoff) mot
                 mot = adjustl(mot)
                 mot4(1:4) = mot(1:4)
                 if( eoff /= 0 .or. mot4(1:1) == '_' .or. mot4 == 'loop' .or. mot4 == ' ' .or. mot4(1:1) == '#' ) exit
@@ -1099,6 +1127,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     n_atom(1) = n_atom_bulk; n_atom(2) = n_atom_cap; n_atom(3) = n_atom_int; n_atom(4) = n_atom_neq; n_atom(5) = n_atom_per
     n_atom(6) = n_atom_per_neq; n_atom(7) = n_atom_sur; n_atom(8) = n_atom_uc
 
+    if( n_theta_rixs == 0 .and. RIXS ) n_theta_rixs = max( n_theta_in, 1 ) * max( n_two_theta, 1 )
+
   endif   ! arrive mpirank0 /= 0
 
   if( mpinodes0 > 1 ) then
@@ -1131,11 +1161,14 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
     call MPI_Bcast(n_radius,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_range,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_theta_in,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(n_theta_rixs,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_two_theta,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_Z_abs,1,MPI_INTEGER,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nb_atom_conf_m,1,MPI_INTEGER,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(neimagent,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nenerg_in_rixs,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(nenerg_loss_rixs,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(nenerg_out_rixs,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(nenerg_s,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ngamme,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(ngroup,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
@@ -1670,12 +1703,12 @@ end
 subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rixs,Ang_borm,Ang_rotsup,Angle_mode,Angle_or, &
     Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk, &
-    axyz_cap,axyz_int,axyz_sur,Basereel,Bormann,Bulk,Bulk_roughness,Cap_B_iso,Cap_layer,Cap_roughness, &
-    Cap_shift,Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre,Charge_free,Check_extract,Classic_irreg,Clementi,Com,Comt, &
+    axyz_cap,axyz_int,axyz_sur,Basereel,Bormann,Bulk,Bulk_roughness,Cap_B_iso,Cap_layer,Cap_roughness,Cap_shift, &
+    Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre,Charge_free,Check_extract,Check_mpi,Classic_irreg,Clementi,Com,Comt, &
     COOP,COOP_z_along_bond,Core_energ_tot,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii, &
-    Delta_helm,Density, &
-    Density_comp,Dip_rel,Dipmag,Dist_coop,Doping,dpos,dyn_eg,dyn_g,E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient, &
-    Egamme,Eimagent,Eneg_i,Eneg_n_i,Energ_rixs,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film, &
+    Delta_helm,Density,Density_comp,Dip_rel,Dipmag,Dist_coop,Doping,dpos,dyn_eg,dyn_g, &
+    E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Eneg_i,Eneg_n_i, &
+    Energ_loss_rixs,Energ_out_rixs,Energ_rixs,Energphot,Ephot_min,Extract,Extract_ten,f_no_res,FDM_comp,FDMX_only,Film, &
     Film_roughness,Film_shift,Film_thickness,Fit_cal,Flapw,Flapw_new,Force_ecr,Full_atom_e,Full_potential,Full_self_abs, &
     Gamma_hole,Gamma_hole_imp,Gamma_max,Gamma_tddft,Green_bulk,Green_int,Green_s,Green_self,Harm_cubic,Helm_cos, &
     hkl_borm,hkl_dafs,hkl_film,hkl_ref,Hubb, &
@@ -1684,9 +1717,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     lmax_pot,lmax_tddft_inp,lmaxfree,lmaxso_max,lmaxso0,lmaxat0,lmoins1,lplus1,Lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB, &
     Matper,Moment_conservation,mpinodes,mpinodes0,mpirank,mpirank0,Muffintin,Multipole, &
     multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_coop,n_atom_uc,n_atom_proto,n_devide,n_file_dafs_exp,n_mat_polar, &
-    n_multi_run_e,n_q_rixs,n_radius,n_range,n_theta_in,n_two_theta,n_Z_abs,nb_atom_conf_m,nbseuil,nchemin,necrantage, &
-    neimagent,nenerg_in_rixs,nenerg_s,ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw,ngroup_m,ngroup_nonsph,ngroup_par,ngroup_pdb, &
-    ngroup_taux,ngroup_temp,nhybm,nlat,nlatm,No_DFT,No_solsing,nom_fich_Extract, &
+    n_multi_run_e,n_q_rixs,n_radius,n_range,n_theta_in,n_theta_rixs,n_two_theta,n_Z_abs,nb_atom_conf_m,nbseuil,necrantage, &
+    neimagent,nenerg_in_rixs,nenerg_loss_rixs,nenerg_out_rixs,nenerg_s,ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw,ngroup_m, &
+    ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux,ngroup_temp,nhybm,nlat,nlatm,No_DFT,No_solsing,nom_fich_Extract, &
     nomfich,nomfichbav,Noncentre, &
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
     nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
@@ -1694,11 +1727,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     nvval,occ_hubb_e,Occupancy_first,Octupole,Old_zero,One_run,One_SCF,Operation_mode,Operation_mode_used,Optic,Overad,Overlap, &
     p_self_max,p_self0,p_self0_bulk,param,Pas_SCF,pdpolar,phi_0,PointGroup,PointGroup_Auto,polar,Polarise,poldafsem,poldafssm, &
     pop_nonsph,popats,popval,posn,posn_bulk,posn_cap,Powder,q_nrixs,q_rixs,Quadmag,Quadrupole,R_rydb,R_self,R_self_bulk, &
-    r0_lapw,Ray_max_dirac,rchimp,Readfast,Relativiste,Renorm,RIXS,RIXS_core,RIXS_fast,Rlapw,Rmt,Rmtimp,Rot_Atom_gr,rotloc_lapw, &
-    roverad,RPALF,rpotmax,rydberg,rsorte_s,SCF_log,Self_abs, &
+    r0_lapw,Ray_max_dirac,rchimp,Readfast,Relativiste,Renorm,RIXS,RIXS_core,RIXS_db_conv,RIXS_fast,Rlapw,Rmt,Rmtimp,Rot_Atom_gr, &
+    rotloc_lapw,roverad,RPALF,rpotmax,rydberg,rsorte_s,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spin_channel,Spinorbite,State_all,State_all_out, &
     Step_loss,Sum_rixs,Supermuf,Surface_shift,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef,Temp_B_iso, &
-    Tensor_imp,Test_dist_min,Theta_in,Trace_format_wien,Trace_k,Trace_p,Two_theta,Typepar,Use_FDMX,V_helm,V_hubbard,V_intmax, &
+    Tensor_imp,Test_dist_min,Theta_rixs,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_helm,V_hubbard,V_intmax, &
     Vec_orig,Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Width_helm,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Write_modQ, &
     Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
 
@@ -1715,9 +1748,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     n_atom_neq,  n_atom_neq_min, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_proto, n_atom_uc, n_B_iso, n_rchimp_z, n_devide, &
     n_file_dafs_exp, n_fract_x, n_fract_y, n_fract_z, &
     n_hubbard_Z, n_label, n_mat_polar, n_multi_run_e, n_occupancy, n_q_rixs, n_radius, n_range, n_rmtg_Z, n_symbol, n_theta_in, &
-    n_two_theta, n_Z_abs, n1, n2, natomsym, nb_atom_conf_m, nb_atom_nsph, nbseuil, nchemin, &
-    necrantage, neimagent, nenerg_in_rixs, nenerg_s, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, ngroup_nonsph, &
-    ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, nhybm, nlatm, nn, nnombre, non_relat, norb, norbdil, normrmt, &
+    n_theta_rixs, n_two_theta, n_Z_abs, n1, n2, natomsym, nb_atom_conf_m, nb_atom_nsph, nbseuil, ne, necrantage, neimagent, &
+    nenerg_in_rixs, nenerg_loss_rixs, nenerg_out_rixs, nenerg_s, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, &
+    ngroup_nonsph, ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, nhybm, nlatm, nn, nnombre, non_relat, norb, norbdil, normrmt, &
     nparm, nphim, nphimt, npldafs, npldafs_2d, npldafs_e, npldafs_f, nple, nq_nrixs, nrato_dirac, nrm, nscan, nself, nself_bulk, &
     nseuil, nslapwm, nspin, ntype, ntype_bulk, ntype_conf, ntype_mod, Trace_k, Wien_save, Z_nospinorbite, Z
 
@@ -1775,9 +1808,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
   complex(kind=db), dimension(nhybm,16,ngroup_nonsph):: Hybrid
 
   logical:: Absauto, Absorber, adimpin, All_nrixs, All_site_rixs, Allsite, Ampl_rixs, Apostrophe, ATA, Atom, Atom_B_iso, &
-    Atom_conf, Atom_nonsph, &
-    Atom_occ_hubb, Atomic_scr, Atom_U_iso, Avoid, Axe_loc, Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, Centre_auto, &
-    Centre_auto_abs, Center_s, Check_extract, Classic_irreg, Clementi, COOP, Core_energ_tot, Core_resolved, COOP_z_along_bond, &
+    Atom_conf, Atom_nonsph, Atom_occ_hubb, Atomic_scr, &
+    Atom_U_iso, Avoid, Axe_loc, Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Center_s, &
+    Check_extract, Check_mpi, Classic_irreg, Clementi, COOP, Core_energ_tot, Core_resolved, COOP_z_along_bond, &
     Core_resolved_e, Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
     Dip_rel, Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Fcif, Film, &
     exc_imp, Extract, Extract_ten, FDM_comp, FDMX_only, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, &
@@ -1787,11 +1820,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     no_e1e3, no_e2e2, no_e3e3, No_renorm, No_SCF_bulk, No_solsing, noncentre, Nonexc, nonexc_imp, &
     normaltau, Occupancy_first, Octupole, Old_zero, One_run, One_SCF, Operation_mode_used, Optic, Overad, &
     Pas_SCF_imp, Pdb, Perdew, PointGroup_Auto, Polarise, Powder, quadmag, Quadrupole, r_self_imp, Readfast, Relativiste, &
-    Renorm, RIXS, RIXS_core, RIXS_fast, rpalf, rydberg, SCF, SCF_bulk, SCF_elecabs, SCF_mag_free, Self_abs, Self_cons, &
-    Self_cons_bulk, SCF_exc_imp, Self_nonexc, Self_nonexc_imp, &
+    Renorm, RIXS, RIXS_core, RIXS_db_conv, RIXS_fast, rpalf, rydberg, SCF, SCF_bulk, SCF_elecabs, SCF_mag_free, Self_abs, &
+    Self_cons, Self_cons_bulk, SCF_exc_imp, Self_nonexc, Self_nonexc_imp, &
     solsing_only, solsing_s, spherical_signal, spherical_tensor, spherique, Spin_channel, Spinorbite, &
     State_all, State_all_out, Sum_rixs, Supermuf, Surface_shift_given, Symauto, Symmol, Taux, Tddft, Temp_B_iso, &
-    Trace_format_wien, Use_FDMX, Write_modQ, Ylm_comp_inp
+    Theta_2theta, Trace_format_wien, Use_FDMX, Write_modQ, Ylm_comp_inp
 
   logical, dimension(7):: SCF_log
   logical, dimension(10):: Multipole
@@ -1803,7 +1836,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     D_max_pot, Delta_En_conv, Delta_Epsii, Delta_helm, Eclie, Eclie_out, Ephot_min, Film_roughness, Film_thickness, &
     Film_zero, g1, g2, Gamma_max, Kern_fac, number_from_text, Overlap, p_self_max, p_self0, p_self0_bulk, Pas_SCF, phi, phi_0, &
     pop_nsph, pp, q, r, r_self, R_self_bulk, R_rydb, Ray_max_dirac, rn, Roverad, Rpotmax, Step, Step_azim, Step_loss, t, tc, &
-    Temp, Test_dist_min, Theta, Theta_min, V_helm, V_intmax, vv, Width_helm, z_min
+    Temp, Test_dist_min, Theta, V_helm, V_intmax, vv, Width_helm, z_min
 
   real(kind=db), dimension(4,nq_nrixs):: q_nrixs
   real(kind=db), dimension(2):: Dist_coop, f_no_res
@@ -1824,7 +1857,10 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
   real(kind=db), dimension(n_radius):: E_radius
   real(kind=db), dimension(n_range):: E_max_range
   real(kind=db), dimension(nenerg_in_rixs):: Energ_rixs
+  real(kind=db), dimension(nenerg_loss_rixs):: Energ_loss_rixs
+  real(kind=db), dimension(nenerg_out_rixs):: Energ_out_rixs
   real(kind=db), dimension(n_theta_in):: Theta_in
+  real(kind=db), dimension(n_theta_rixs,2):: Theta_rixs
   real(kind=db), dimension(n_two_theta):: Two_theta
   real(kind=db), dimension(Z_Mendeleiev_max):: Rchimp_Z, Hubbard_Z, Rmtg_Z
   real(kind=db), dimension(3,nple):: polar, veconde
@@ -1854,7 +1890,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
   real(kind=db), dimension(0:ntype,nlatm,nspin):: popval
   real(kind=db), dimension(3,nslapwm):: Wien_taulap
 
-  real(kind=db), dimension(:), allocatable:: Eg, Hyb, x
+  real(kind=db), dimension(:), allocatable:: Eg, Energ, Hyb, x
   real(kind=db), dimension(:,:), allocatable:: pos
   real(kind=db), dimension(:,:,:), allocatable:: Hybrid_i, Hybrid_r
 
@@ -2013,7 +2049,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
   n_devide = 2
   n_hubbard_Z = 0
   n_rmtg_Z = 0
-  nchemin = - 1
   necrantage = 0
   nlat(:) = 0
   no_core_resolved = .false.
@@ -2080,6 +2115,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
   Renorm = .false.
   RIXS = .false.
   RIXS_core = .false.
+  RIXS_db_conv = .false.
   RIXS_fast = .false.
   rlapw(:) = 0._db
   Rmt(:) = 0._db
@@ -2124,6 +2160,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
   Tddft = .false.
   Temp = 0._db
   Test_dist_min = 0.7_db * bohr ! minimum distance between 2 atoms
+  Theta_2theta = .false.
   Trace_format_wien = .false.
   Trace_k = 0
   Trace_p(:) = 0._db
@@ -2425,7 +2462,16 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
           endif
           read(itape4,*,iostat=ier) Egamme(1:ngamme)
 
-        case('rixs_ener')
+        case('rixs_ener','rixs_emis','rixs_loss')
+
+          if( keyword == 'rixs_ener' ) then
+            ne = nenerg_in_rixs
+          elseif( keyword == 'rixs_emis' ) then
+            ne = nenerg_out_rixs
+          else
+            ne = nenerg_loss_rixs
+          endif
+          allocate( Energ(ne) )
 
           n = nnombre(itape4,Length_line)
           allocate( Eg(n) )
@@ -2435,16 +2481,16 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
           end do
           n = min(i,n)
 
-          Energ_rixs(1) = Eg(1)
-          if( nenerg_in_rixs > 1 ) then
+          Energ(1) = Eg(1)
+          if( ne > 1 ) then
             j = 2
-            do ie = 2,nenerg_in_rixs
-              Energ_rixs(ie) = Energ_rixs(ie-1) + Eg(j)
-              if( ie < nenerg_in_rixs ) then
+            do ie = 2,ne
+              Energ(ie) = Energ(ie-1) + Eg(j)
+              if( ie < ne ) then
                 do i = j, n - 3, 2
-                  if( Energ_rixs(ie) > Eg(i+1) - eps10 ) then
+                  if( Energ(ie) > Eg(i+1) - eps10 ) then
                     j = j + 2
-                    Energ_rixs(ie) = min( Eg(j-1), Energ_rixs(ie) )
+                    Energ(ie) = min( Eg(j-1), Energ(ie) )
                   else
                     exit
                   endif
@@ -2452,7 +2498,15 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
               endif
             end do
           endif
-          deallocate( Eg )
+          if( keyword == 'rixs_ener' ) then
+            Energ_rixs(:) = Energ(:)
+          elseif( keyword == 'rixs_emis' ) then
+            Energ_out_rixs(:) = Energ(:)
+          else
+            Energ_loss_rixs(:) = Energ(:)
+          endif
+
+          deallocate( Eg, Energ )
 
         case('energphot')
           energphot = .true.
@@ -2476,30 +2530,36 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
           supermuf = .true.
 
         case('two_theta')
-          n = nnombre(itape4,132)
-          n = min(n,3)
           if( n_two_theta == 1 ) then
             read(itape4,*) Two_theta(1)
           else
-            read(itape4,*) Theta_min, Step
-            Two_theta(1) = Theta_min
+            read(itape4,*) Two_theta(1), Step
             do i = 2,n_two_theta
               Two_theta(i) = Two_theta(i-1) + Step
             end do
           endif
 
         case('theta_in')
-          n = nnombre(itape4,132)
-          n = min(n,3)
           if( n_theta_in == 1 ) then
             read(itape4,*) Theta_in(1)
           else
-            read(itape4,*) Theta_min, Step
-            Theta_in(1) = Theta_min
+            read(itape4,*) Theta_in(1), Step
             do i = 2,n_theta_in
               Theta_in(i) = Theta_in(i-1) + Step
             end do
           endif
+
+        case('theta_2th')
+          Theta_2theta = .true.
+          do i = 1,n_theta_rixs
+            n = nnombre(itape4,132)
+            if( n == 1 ) then
+              read(itape4,*) Theta_rixs(i,1)
+              Theta_rixs(i,2) = 2 * Theta_rixs(i,1)
+            else
+              read(itape4,*) Theta_rixs(i,:)
+            endif
+          end do
 
         case('powder')
           Powder = .true.
@@ -2532,12 +2592,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
           Rydberg = .true.
           n = nnombre(itape4,132)
           if( n > 0 ) read(itape4,*) R_rydb
-
-        case('nchemin')
-          n = nnombre(itape4,132)
-          read(itape4,*,iostat=ier) nchemin
-          if( ier > 0 ) call write_err_form(itape4,keyword)
-          normaltau = .true.
 
         case('lmoins1')
           lmoins1 = .true.
@@ -4070,6 +4124,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
         case('rixs_fast')
           RIXS_fast = .true.
 
+        case('rixs_db_c')
+          RIXS_db_conv = .true.
+
         case('step_loss')
           n = nnombre(itape4,132)
           if( n > 0 ) read(itape4,*) Step_loss
@@ -5356,6 +5413,32 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
      end do
    endif
 
+   if( RIXS .and. .not. Theta_2theta ) then
+     if( n_theta_in == 0 .and. n_two_theta == 0 ) then
+       Theta_rixs(1,1) = 45._db
+       Theta_rixs(1,2) = 90._db
+     elseif( n_theta_in == 0 ) then
+       do i = 1,n_two_theta
+         Theta_rixs(i,2) = Two_theta(i)
+         Theta_rixs(i,1) = Theta_rixs(i,2) / 2
+       end do
+     elseif( n_two_theta == 0 ) then
+       do i = 1,n_theta_in
+         Theta_rixs(i,1) = Theta_in(i)
+         Theta_rixs(i,2) = 2 * Theta_rixs(i,1)
+       end do
+     else
+       k = 0
+       do i = 1,n_two_theta
+         do j = 1,n_theta_in
+           k = k + 1
+           Theta_rixs(k,1) = Theta_in(j)
+           Theta_rixs(k,2) = Two_theta(i)
+         end do
+       end do
+     endif
+   endif
+
 ! Writing of indata:
     if( icheck(1) > 0 ) then
 
@@ -5382,6 +5465,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
             write(3,'(a6,3f7.3,a9,f8.3)') '   q =', q_rixs(1:3,i), ', Angle =', q_rixs(4,i)
           end do
           if( RIXS_fast ) write(3,'(A)') '   Fast calculation mode'
+          if( RIXS_db_conv ) write(3,'(A)') '   Double convolution calculation mode'
           if( Moment_conservation )then
             write(3,'(A)') '   Conservation of the moment'
           else
@@ -5479,7 +5563,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
           write(3,'(A)') ' Multiple scattering calculation (Green)'
           if( Green_int ) write(3,'(A)') '    Full Green mode'
           if( supermuf ) write(3,'(A)') '    Continuous potential (Supermuf)'
-          if( nchemin /= - 1 ) write(3,410) nchemin
           if( normaltau ) write(3,'(A)') '    Tau normalization'
           select case(normrmt)
             case(1)
@@ -6082,6 +6165,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     if( neimagent > 0 ) call MPI_Bcast(eimagent,neimagent,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Eneg_i,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Eneg_n_i,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Energ_loss_rixs,nenerg_loss_rixs,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Energ_out_rixs,nenerg_out_rixs,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Energ_rixs,nenerg_in_rixs,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Energphot,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Ephot_min,1,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
@@ -6159,7 +6244,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     call MPI_Bcast(n_atom_proto,1,MPI_INTEGER,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(n_devide,1,MPI_INTEGER,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(nbseuil,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(nchemin,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(necrantage,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(No_dft,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(No_solsing,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
@@ -6249,8 +6333,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     call MPI_Bcast(Temp_coef,ngroup_temp,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Trace_k,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Trace_p,6,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Theta_in,n_theta_in,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
-    call MPI_Bcast(Two_theta,n_two_theta,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(Theta_rixs,n_theta_rixs,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Vecdafsem,3*npldafs_e,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Vecdafssm,3*npldafs_e,MPI_REAL8,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(PointGroup_Auto,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
@@ -6261,6 +6344,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     call MPI_Bcast(q_nrixs,4*nq_nrixs,MPI_REAL8,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(RIXS,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(RIXS_core,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(RIXS_db_conv,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(RIXS_fast,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Rpalf,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Sum_rixs,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
@@ -6321,8 +6405,35 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
       end do
     endif
 
+    if( Check_mpi .and. mpinodes0 > 1 ) then
+      do i = 1,Length_name
+        if( mpirank0 == 0 ) j = iachar( nomfich(i:i) )
+      call MPI_Bcast(j,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+        if( mpirank0 /= 0 ) nomfich(i:i) = achar( j )
+      end do
+    endif
 
-    if( mpirank0 /= 0 ) icheck(:) = 0
+    if( mpirank0 /= 0 ) then
+      if( Check_mpi ) then
+        i = sum( icheck(1:28) )
+        if( i > 0 ) then
+          nomfichbav = nomfich
+          Long = len_trim(nomfichbav)
+          nomfichbav(Long+1:Long+1) = '_'
+          call ad_number(mpirank0,nomfichbav,Length_name)
+          Long = len_trim(nomfichbav)
+          nomfichbav(Long+1:Long+8) = '_bav.txt'
+          if( FDMX_only ) then
+            open(3, file = nomfichbav, status='old',iostat=istat) !*** JDB March 2018 fix
+          else
+            open(3, file = nomfichbav, status='unknown',iostat=istat)
+          endif
+          if( istat /= 0 ) call write_open_error(nomfichbav,istat,1)
+        endif
+      else
+        icheck(:) = 0
+      endif
+    endif
 
   endif
 
@@ -6393,6 +6504,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
   Eeient(:) = Eeient(:) / Rydb
   Egamme(:) = Egamme(:) / Rydb
   Eimagent(:) = Eimagent(:) / Rydb
+  Energ_loss_rixs(:) = Energ_loss_rixs(:) / Rydb
+  Energ_out_rixs(:) = Energ_out_rixs(:) / Rydb
   Energ_rixs(:) = Energ_rixs(:) / Rydb
   Ephot_min = Ephot_min / Rydb
   Film_roughness = Film_roughness / bohr
@@ -6419,8 +6532,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
   Surface_shift(1:3) = Surface_shift(1:3) / bohr
   Surface_shift(4) = Surface_shift(4) * radian
   Test_dist_min = Test_dist_min / bohr
-  Two_theta(:) = Two_theta(:) * pi / 180_db
-  Theta_in(:) = Theta_in(:) * pi / 180_db
+  Theta_rixs(:,:) = Theta_rixs(:,:) * pi / 180_db
   V_helm = V_helm / Rydb
   V_intmax = V_intmax / Rydb
   if( Hubbard ) V_hubbard(:) = V_hubbard(:) / Rydb

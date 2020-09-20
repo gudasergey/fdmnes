@@ -153,6 +153,7 @@ subroutine spgroup(Cif,Cif_file,Do_exp,neq,ngroup,ngroup_neq,itype,posn,posout,S
       end do
       do ks = 1,js
         if( sum( abs(qq(:,ks)-q(:)) ) < 0.000001_db .and. itypeq(ks) == itype(ia) ) cycle boucle_is
+!        write(6,'(6i3,1p,7e13.5)') ia,is,ks,js,itypeq(ks), itype(ia), sum( abs(qq(:,ks)-q(:)) ), q(:), qq(:,ks) 
       end do
       js = js + 1
       ja = ja + 1

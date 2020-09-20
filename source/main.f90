@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 12th of June 2020, 24 Prairial, An 228
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 23th of July 2020, 5 Thermidor, An 228
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -11,7 +11,7 @@
 ! Need also :
 !   clemf0.f90, coabs.f90, convolution.f90, diffraction.f90, dirac.f90, fdm.f90, fprime.f90, frime_data.f90, general.f90,
 !   lecture.f90, mat.f90, metric.f90, minim.f90, optic.f90, potential.f90, rixs.f90, scf.f90 selec.f90,
-!   spgroup.f90, sphere.f90, tab_data.f90, tensor.f90, tddft.f90
+!   rixs.f90, spgroup.f90, sphere.f90, tab_data.f90, tensor.f90, tddft.f90
 
 ! When using the MUMPS library, one also needs:
 !   mat_solve_MUMPS.f and MUMPS (and associated SCOTCH and METIS), BLAS and LAPACK libraries.
@@ -48,7 +48,7 @@ module declarations
   integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic punctual groups (with other orientation)
   integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic punctual groups (with other orientation)
 
-  character(len=50), parameter:: Revision = 'FDMNES program, Revision 12th of June 2020'
+  character(len=50), parameter:: Revision = 'FDMNES program, Revision 23th of July 2020'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -260,13 +260,13 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   implicit none
   include 'mpif.h'
 
-  integer, parameter:: nkw_all = 42
-  integer, parameter:: nkw_fdm = 232
-  integer, parameter:: nkw_conv = 38
+  integer, parameter:: nkw_all = 45
+  integer, parameter:: nkw_fdm = 235
+  integer, parameter:: nkw_conv = 36
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_gaus = 1
   integer, parameter:: nkw_metric = 12
-  integer, parameter:: nkw_mult = 4
+  integer, parameter:: nkw_mult = 5
   integer, parameter:: nkw_selec = 5
   integer, parameter:: nmetricm = 4
   integer, parameter:: nparam_conv = 11
@@ -306,9 +306,10 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   integer, dimension(:), allocatable:: ifile_notskip, indparp, Length_block, npar, npbl, nparam
   integer, dimension(:,:), allocatable:: indice_par
 
-  logical:: bav_open, Bormann, Case_fdm, Check_file, Check_extract, Conv_done, Convolution_cal, Dafs_bio, &
-    E_cut_man, Epsii_ref_man, Fdmnes_cal, Fit_cal, Gamma_hole_man, Gamma_max_man, Gamma_tddft, Gaus_cal, Metric_cal, &
-    Minim_fdm_ok, minimok, Mult_cal, Only_rixs, Scan_a, Selec_cal, &
+  logical:: Analyzer, bav_open, Bormann, Case_fdm, Check_file, Check_extract, Check_mpi, Circular, Conv_done, &
+    Convolution_cal, &
+    Dafs_bio, E_cut_man, Epsii_ref_man, Fdmnes_cal, Fit_cal, Gamma_hole_man, Gamma_max_man, Gamma_tddft, Gaus_cal, &
+    Metric_cal, Minim_fdm_ok, minimok, Mult_cal, Only_rixs, Scan_a, Selec_cal, &
     Use_FDMX, FDMX_only, cm2g, nobg, nohole, nodw, noimfp, imfp_inp, elf_inp, dwfactor_inp, tdebye_inp, tmeas_inp, &
     expntl, victoreen
 
@@ -325,15 +326,15 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   real(kind=sg) time
 
 ! Keywords of the indata file
-  data kw_all /  'bormann  ','check    ','check_all','check_coa','check_con','check_pot','check_mat', &
-     'check_rix','check_sph','check_tdd','check_ten','comment  ','delta_edg','ecent    ','e_cut    ','elarg    ', &
+  data kw_all /  'bormann  ','check    ','check_all','check_coa','check_con','check_pot','check_mat','check_mpi', &
+     'check_rix','check_sph','check_tdd','check_ten','circular ','comment  ','delta_edg','ecent    ','e_cut    ','elarg    ', &
      'epsii    ','estart   ','file_in  ','filout   ','fprime_at','gamma_hol','gamma_max','length_li','no_check ','imfpin   ', &
      'elfin    ','dwfactor ','rixs_only','shift_cor','tdebye   ','tmeas    ','expntl   ','victoreen','mermin   ', &
-     'fdmx     ','fdmx_proc','cm2g     ','nobg     ','nohole   ','nodw     ','noimfp   '/
+     'fdmx     ','fdmx_proc','cm2g     ','no_analyz','nobg     ','nohole   ','nodw     ','noimfp   '/
 
-  data kw_conv / 'abs_b_iso','abs_befor','abs_u_iso','all_conv ','cal_tddft','calculati','check_bir','circular ','conv_out ', &
+  data kw_conv / 'abs_b_iso','abs_befor','abs_u_iso','all_conv ','cal_tddft','calculati','check_bir','conv_out ', &
      'convoluti','dafs_exp_','dead_laye','dec      ','directory','double_co','eintmax  ','forbidden','fprime   ', &
-     'gamma_fix','gamma_var','gaussian ','no_analyz','no_extrap','nxan_lib ','s0_2     ','selec_cor','sample_th','scan     ', &
+     'gamma_fix','gamma_var','gaussian ','no_extrap','nxan_lib ','s0_2     ','selec_cor','sample_th','scan     ', &
      'scan_conv','scan_file','seah     ','stokes   ','stokes_na','surface_p','table    ','thomson  ','transpose','XES      '/
 
   data kw_fdm/  &
@@ -351,16 +352,16 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'hedin    ','helm_cos ','helmholtz','hkl_film ','hubbard  ','hubbard_z','iord     ','kern_fac ','kern_fast', &
      'lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ','mat_ub   ', &
      'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar','molecule ','moment_co','no_e1e3  ', &
-     'molecule_','muffintin','multrmax ','n_self   ','nchemin  ','new_zero ','no_core_r','no_dft   ','no_e1e1  ','no_e1e2  ', &
+     'molecule_','muffintin','multrmax ','n_self   ','new_zero ','no_core_r','no_dft   ','no_e1e1  ','no_e1e2  ', &
      'no_e2e2  ','no_e3e3  ','no_fermi ','no_renorm','no_res_ma','no_res_mo','no_scf_bu','no_solsin','normaltau', &
      'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','nrixs_mon','occupancy','octupole ', &
      'old_zero ','one_run  ','one_scf  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ', &
      'pointgrou','polarized','powder   ','quadmag  ','quadrupol','radius   ','range    ','rangel   ','ray_max_d','rcharge  ', &
-     'rcharge_z','readfast ','relativis','rixs     ','rixs_ampl','rixs_core','rixs_ener', &
-     'rixs_fast','rixs_sum ','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ', &
+     'rcharge_z','readfast ','relativis','rixs     ','rixs_ampl','rixs_core','rixs_db_c','rixs_emis','rixs_ener', &
+     'rixs_fast','rixs_loss','rixs_sum ','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ', &
      'rpotmax  ','r_self   ','rydberg  ','self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
      'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spin_chan','spinorbit','step_loss','step_azim', &
-     'supermuf ','surface  ','surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','theta_in ', &
+     'supermuf ','surface  ','surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','theta_in ','theta_2th', &
      'trace    ','two_theta','vmax     ','v0imp    ','write_mod','xalpha   ','xan_atom ','ylm_comp ','z_absorbe','z_nospino', &
      'zero_azim'/
 
@@ -373,7 +374,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
   data kw_selec/ 'selec_inp','selec_out','energy   ','azimuth  ', 'reflectio'/
 
-  data kw_mult / 'mult_cell','unit_cell','atomic_nu','surf_cell'/
+  data kw_mult / 'atomic_nu','mat_mul  ','mult_cell','unit_cell','surf_cell'/
 
 ! First the convolution parameters, then the others
   data param_conv / &
@@ -384,10 +385,13 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   call CPU_TIME(time)
   tp_deb = real(time,db)
 
+  Analyzer = .true.
   Ang_borm = 0._db
   Bormann = .false.
   Check_extract = .false.
+  Check_mpi = .false.
   Check_file = .false.
+  Circular = .false.
   comt = ' '
   Convolution_cal = .false.
   Delta_edge = 0._db
@@ -679,6 +683,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
              icheck(30) = n
          end select
 
+        case('check_mpi')
+          Check_mpi = .true.
+
         case('fprime_at')
           n = nnombre(1,132)
           if( n == 0 ) then
@@ -699,6 +706,12 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
         case('no_check')
           icheck(:) = 0
+
+        case('no_analyz')
+          Analyzer = .false.
+
+        case('circular')
+          Circular = .true.
 
         case('e_cut','efermi')
           read(1,*) E_cut_imp
@@ -1194,6 +1207,10 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   endif   ! Arriving for parallel computing
 
   if( mpinodes0 > 1 ) then
+    call MPI_Bcast(Check_mpi,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    if( Check_mpi ) then
+    call MPI_Bcast(icheck,30,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
+    endif
     call MPI_Bcast(Mult_cal,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(n_shift_core,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
 
@@ -1562,8 +1579,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     if( Fdmnes_cal .and. ifdm == 1 ) then
       if( ical > 1 ) Close(3)
 
-      call fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg, &
-          Epsii_ref,Epsii_ref_man,Estart,Fit_cal, &
+      call fdm(Analyzer,Ang_borm,Bormann,Check_extract,Check_mpi,Circular,Comt,Convolution_cal,Delta_edge,E_cut_imp, &
+          E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal, &
           Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
           itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,n_shift_core,ngamh,ngroup_par,nnotskip,nnotskipm, &
           nomfich,nomfichbav,npar,nparm,Only_rixs,param,Scan_a,Shift_core,TypePar,Use_FDMX,FDMX_only, &
@@ -1579,9 +1596,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
     if( mpirank0 /= 0 ) cycle
 
-    if( Convolution_cal .and. .not. Only_rixs ) call Convolution(bav_open,Bormann,Conv_done,convolution_out,Delta_edge, &
-        E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max, &
-        Gamma_max_man,ical,icheck(30),indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
+    if( Convolution_cal .and. .not. Only_rixs ) call Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,convolution_out, &
+        Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man, &
+        Gamma_max,Gamma_max_man,ical,icheck(30),indice_par,iscratchconv,itape1,kw_conv,Length_line,n_col_max, &
         n_shift_core,ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,Shift_core,TypePar,ncal)
 
     if( Metric_cal ) then
@@ -1684,8 +1701,8 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
     if( Fdmnes_cal .and. Minim_fdm_ok .and. ncal /= ncal_nonfdm ) then
       Close(3)
-      call fdm(Ang_borm,Bormann,Check_extract,Comt,Convolution_cal,Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg, &
-        Epsii_ref,Epsii_ref_man,Estart,Fit_cal, &
+      call fdm(Analyzer,Ang_borm,Bormann,Check_extract,Check_mpi,Circular,Comt,Convolution_cal,Delta_edge,E_cut_imp, &
+        E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal, &
         Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,hkl_borm,icheck,ifile_notskip,indice_par,iscratch, &
         itape1,itape4,Length_line,mpinodes0,mpirank0,n_atom_proto_p,n_shift_core,ngamh,ngroup_par,nnotskip,nnotskipm, &
         nomfich,nomfichbav,npar,nparm,Only_rixs,param,Scan_a,Shift_core,TypePar,Use_FDMX,FDMX_only, &
@@ -1700,9 +1717,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
     endif
 
     if( mpirank0 == 0 ) then
-      if( Convolution_cal .and. .not. Only_rixs ) call Convolution(bav_open,Bormann, .false.,convolution_out,Delta_edge, &
-        E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man,Gamma_max, &
-        Gamma_max_man,ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,Length_line,n_col_max, &
+      if( Convolution_cal .and. .not. Only_rixs ) call Convolution(Analyzer,bav_open,Bormann,Circular,.false.,convolution_out, &
+        Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man, &
+        Gamma_max,Gamma_max_man,ical,icheck(30),indice_par,iscratchconv, itape1,kw_conv,Length_line,n_col_max, &
         n_shift_core,ngamh,ngroup_par,nkw_conv,nomfich,nomfichbav,npar,nparm,param,Scan_a,Shift_core,TypePar,ncal)
 
       call Metric(comt,convolution_out,Dafs_bio,Dist_min, Dist_min_g,fdmfit_out,Fit_cal,Gen_Shift_min,ical, &
@@ -1982,8 +1999,6 @@ function Traduction(keyword)
       traduction = 'muffintin'
     case('n_scf','nself','nscf')
       traduction = 'n_self'
-    case('chemin')
-      traduction = 'nchemin'
     case('notdipole','nondipole','nodipole','no_dipole','noe1e1')
       traduction = 'no_e1e1'
     case('notinterf','noninterf','nointerf','no_dipqua','nodipquad', 'nondipqua','no_interf','noe1e2')
@@ -2044,6 +2059,10 @@ function Traduction(keyword)
       traduction = 'rixs_sum'
     case('only_rixs')
       traduction = 'rixs_only'
+    case('rixs_dbl_','rixs_doub','rixs_db')
+      traduction = 'rixs_db_c'
+    case('energ_out','rixs_e_ou','energ_emi')
+      traduction = 'rixs_emis'
     case('energ_rix','energ_in_','ener_rixs','rixs_rang','range_rix')
       traduction = 'rixs_ener'
     case('rchimp_z','z_rcharge')
@@ -2096,6 +2115,8 @@ function Traduction(keyword)
       traduction = 'test_dist'
     case('theta_i','teta_i','teta_in','theta-i','theta-in','teta-i','teta-in')
       traduction = 'theta_in'
+    case('theta_two')
+      traduction = 'theta_2th'
     case('voimp','v0bdcfim','vmoyf','korigimp')
       traduction = 'v0imp'
     case('v_intmax','v_max')
@@ -2282,17 +2303,18 @@ subroutine mult_cell(itape,File_out)
   integer, parameter:: nam = 100000
   integer, parameter:: ntypem = 100
 
-  integer:: eof, eoff, i, igrdat, ipr, itape, ix, iy, iz, j, l, n, nnombre, ntype
+  integer:: eof, eoff, i, igrdat, ipr, itape, ix, iy, iz, j, l, n, na, nnombre, ntype
 
-  real(kind=db):: alfa, ax, ay, az, beta, gamma, Thickness
-  real(kind=db), dimension(3):: q
+  real(kind=db):: Thickness
+  real(kind=db), dimension(3):: A, abc, abc_new, Angle, Angle_new, B, C, CosAngle, q, V
+  real(kind=db), dimension(3,3):: Mat, Mat_i
   real(kind=db), dimension(3,nam):: p
 
   integer, dimension(3):: nm
   integer, dimension(nam):: itype, Z
   integer, dimension(ntypem):: Numat
 
-  Logical:: Ang, Surface, Typ
+  Logical:: Ang, Mat_mul, Surface, Typ
 
   character(len=2):: Chemical_Symbol
   character(len=9):: keyword
@@ -2300,6 +2322,7 @@ subroutine mult_cell(itape,File_out)
   character(len=Length_name):: File_out
 
   Ang = .false.
+  Mat_mul = .false.
   Surface = .false.
   Typ = .false.
   Thickness = 0._db
@@ -2333,6 +2356,14 @@ subroutine mult_cell(itape,File_out)
         n = min(n,3)
         read(itape,*) nm(1:n)
 
+      case('mat_mul')
+        Mat_mul = .true.
+        do i  = 1,3
+          n = nnombre(itape,132)
+          if( n < 3 ) call write_err_form(itape,keyword)
+          read(itape,*) Mat(i,:)
+        end do
+
       case('surf_cell')
         Surface = .true.
         n = nnombre(itape,132)
@@ -2360,10 +2391,10 @@ subroutine mult_cell(itape,File_out)
       case('unit_cell')
         n = nnombre(itape,132)
         if( n == 3 .or. n == 4 .or. n == 5 ) then
-          read(itape,*) ax, ay, az
+          read(itape,*) abc(:)
         elseif( n >= 6 ) then
           Ang = .true.
-          read(itape,*) ax, ay, az, alfa, beta, gamma
+          read(itape,*) abc(:), Angle(:)
         else
           call write_err_form(itape,keyword)
         endif
@@ -2395,7 +2426,7 @@ subroutine mult_cell(itape,File_out)
           stop
         endif
 
-        n = i-1
+        na = i-1
 
       case default
 
@@ -2412,47 +2443,111 @@ subroutine mult_cell(itape,File_out)
 
   end do
 
-  if( Surface ) then
+  if( Mat_mul ) then
+    do i = 1,3
+      A(i) = Mat(1,i) * abc(i)
+      B(i) = Mat(2,i) * abc(i)
+      C(i) = Mat(3,i) * abc(i)
+    end do
     if( Ang ) then
-      write(2,120) ax*nm(1), ay*nm(2), az, alfa, beta, gamma
-      write(6,120) ax*nm(1), ay*nm(2), az, alfa, beta, gamma
+      CosAngle(:) = cos( Angle(:) * pi / 180._db )
+      abc_new(1) = sqrt( sum( A(:)**2 ) + 2 * A(1)*A(2) * cosAngle(3) + 2 * A(1)*A(3) * cosAngle(2) &
+                                        + 2 * A(2)*A(3) * cosAngle(1) )
+      abc_new(2) = sqrt( sum( B(:)**2 ) + 2 * B(1)*B(2) * cosAngle(3) + 2 * B(1)*B(3) * cosAngle(2) &
+                                        + 2 * B(2)*B(3) * cosAngle(1) )
+      abc_new(3) = sqrt( sum( C(:)**2 ) + 2 * C(1)*C(2) * cosAngle(3) + 2 * C(1)*C(3) * cosAngle(2) &
+                                        + 2 * C(2)*C(3) * cosAngle(1) )
+      Angle_new(1) = sum( B(:)*C(:) ) + ( B(1)*C(2) + B(2)*C(1) ) * cosAngle(3) + ( B(1)*C(3) + B(3)*C(1) ) * cosAngle(2) &
+                                      + ( B(2)*C(3) + B(3)*C(2) ) * cosAngle(1)
+      Angle_new(1) = Angle_new(1) / ( abc_new(2) * abc_new(3) )
+
+      Angle_new(2) = sum( A(:)*C(:) ) + ( A(1)*C(2) + A(2)*C(1) ) * cosAngle(3) + ( A(1)*C(3) + A(3)*C(1) ) * cosAngle(2) &
+                                      + ( A(2)*C(3) + A(3)*C(2) ) * cosAngle(1)
+      Angle_new(2) = Angle_new(2) / ( abc_new(1) * abc_new(3) )
+
+      Angle_new(3) = sum( A(:)*B(:) ) + ( A(1)*B(2) + A(2)*B(1) ) * cosAngle(3) + ( A(1)*B(3) + A(3)*B(1) ) * cosAngle(2) &
+                                      + ( A(2)*B(3) + A(3)*B(2) ) * cosAngle(1)
+      Angle_new(3) = Angle_new(3) / ( abc_new(1) * abc_new(2) )
+
+      Angle_new(:) = acos( Angle_new(:) ) * 180._db / pi
     else
-      write(2,120) ax*nm(1), ay*nm(2), az
-      write(6,120) ax*nm(1), ay*nm(2), az
+      abc_new(1) = sqrt( sum( A(:)**2 ) )
+      abc_new(2) = sqrt( sum( B(:)**2 ) )
+      abc_new(3) = sqrt( sum( C(:)**2 ) )
     endif
+
   else
-    if( Ang ) then
-      write(2,120) ax*nm(1), ay*nm(2), az*nm(3), alfa, beta, gamma
-      write(6,120) ax*nm(1), ay*nm(2), az*nm(3), alfa, beta, gamma
-    else
-      write(2,120) ax*nm(1), ay*nm(2), az*nm(3)
-      write(6,120) ax*nm(1), ay*nm(2), az*nm(3)
-    endif
+
+    if( Surface ) nm(3) = 1
+    abc_new(:) = abc(:) * nm(:)
+    Angle_new(:) = Angle(:)
+
   endif
 
-  if( Surface ) nm(3) = int( Thickness / az ) + 1
-  j = 0
-  do ix = 0,nm(1)-1
-    do iy = 0,nm(2)-1
-      do iz = 0,nm(3)-1
-        write(2,*)
-        do i = 1,n
-          j = j + 1
-          q(1) = ( p(1,i) + ix ) / nm(1)
-          q(2) = ( p(2,i) + iy ) / nm(2)
-          if( Surface ) then
-            q(3) = p(3,i) + iz
-          else
-            q(3) = ( p(3,i) + iz ) / nm(3)
-          endif
-          if( Surface .and. q(3) > Thickness ) cycle
-          write(2,160) itype(i), q(:), j, Chemical_Symbol(Z(i))
-          write(6,160) itype(i), q(:), j, Chemical_Symbol(Z(i))
-        end do
+  if( Ang ) then
+    write(2,120) abc_new(:), Angle_new(:)
+    write(6,120) abc_new(:), Angle_new(:)
+  else
+    write(2,120) abc_new(:)
+    write(6,120) abc_new(:)
+  endif
 
+  if( Mat_mul ) then
+
+    call invermat(Mat,Mat_i)
+
+    j = 0
+    do i = 1,na
+
+      do ix = -10,10
+        v(1) = p(1,i) + ix
+        do iy = -10,10
+          v(2) = p(2,i) + iy
+          do iz = -10,10
+            v(3) = p(3,i) + iz
+
+            q = Matmul( Mat_i, v )
+
+            if( q(1) > 1._db - eps10 .or. q(2) > 1._db - eps10 .or. q(3) > 1._db - eps10 &
+             .or. q(1) < - eps10 .or. q(2) < - eps10 .or. q(3) < - eps10 ) cycle
+
+            j = j + 1
+
+            write(2,160) itype(i), q(:), j, Chemical_Symbol(Z(i))
+            write(6,160) itype(i), q(:), j, Chemical_Symbol(Z(i))
+
+          end do
+        end do
       end do
     end do
-  end do
+
+  else
+
+    if( Surface ) nm(3) = int( Thickness / abc(3) ) + 1
+    j = 0
+    do ix = 0,nm(1)-1
+      do iy = 0,nm(2)-1
+        do iz = 0,nm(3)-1
+          write(2,*)
+          do i = 1,na
+            j = j + 1
+            q(1) = ( p(1,i) + ix ) / nm(1)
+            q(2) = ( p(2,i) + iy ) / nm(2)
+            if( Surface ) then
+              q(3) = p(3,i) + iz
+            else
+              q(3) = ( p(3,i) + iz ) / nm(3)
+            endif
+            if( Surface .and. q(3) > Thickness ) cycle
+            write(2,160) itype(i), q(:), j, Chemical_Symbol(Z(i))
+            write(6,160) itype(i), q(:), j, Chemical_Symbol(Z(i))
+          end do
+
+        end do
+      end do
+    end do
+
+  endif
 
   Close(itape)
   Close(2)

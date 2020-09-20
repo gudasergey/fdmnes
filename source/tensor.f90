@@ -17,7 +17,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                 icheck,ie,ip_max,ip0,is_g,lmax,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
                 n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninit,ninitr,ninitv,nlm_pot,nlm_probe, &
-                nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Renorm,RIXS, &
+                nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Renorm, &
                 Rmtg,Rmtsd,rof0,rot_atom_abs,Rot_int, &
                 secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m, &
                 secqq,secqq_m,Solsing,Solsing_only,Spinorbite,Taull,Tddft,V_hubb,V_intmax,V0bd,Vrato,Ylm_comp)
@@ -61,7 +61,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
   logical:: Classic_irreg, Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, FDM_comp_m, Final_optic, &
     Final_tddft, Full_potential, Green, Green_int, Hubb_a, Hubb_d, lmoins1, lplus1, M_depend, M1M1, No_diag, NRIXS, Relativiste, &
-    Renorm, RIXS, Solsing, Solsing_only, Spinorbite, Tddft, Ylm_comp
+    Renorm, Solsing, Solsing_only, Spinorbite, Tddft, Ylm_comp
 
   logical, dimension(10):: Multipole
 
@@ -143,7 +143,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
     end do
     
     do initlt = 1,n_Ec
-      if( Final_tddft .or. RIXS ) then
+      if( Final_tddft ) then
         Ecinetic_e(:) = Ecinetic(:,initlt)
       else
         Ecinetic_e(:) = Ecinetic(:,1)
@@ -455,7 +455,7 @@ subroutine tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                               call tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full_potential,Green,Green_int, &
                                 icheck,ip_max, &
                                 ip0,irang,is_g,isp1,isp2,isp3,isp4,jrang,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil, &
-                                ns_dipmag,ndim2,ninit1,ninit,ninitv,ninitr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,RIXS,rof, &
+                                ns_dipmag,ndim2,ninit1,ninit,ninitv,ninitr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof, &
                                 Singul,Solsing,Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
                               if( numat == 1) then
                            ! For hydrogen there is only 1 core state
@@ -922,7 +922,7 @@ end
 
 subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full_potential,Green,Green_int,icheck,ip_max, &
                               ip0,irang,is_g,isp1,isp2,isp3,isp4,jrang,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil,ns_dipmag, &
-                              ndim2,ninit1,ninit,ninitv,ninitr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,RIXS,rof, &
+                              ndim2,ninit1,ninit,ninitv,ninitr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof, &
                               Singul,Solsing,Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
 
   use declarations
@@ -946,7 +946,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full_pote
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
   complex(kind=db), dimension(nlm_probe,nspinp,nlm_probe,nspinp,ip0:ip_max,ip0:ip_max,ninitv):: Singul
 
-  logical:: Core_resolved, Dip_rel, FDM_comp_m, Final_tddft, Full_potential, Green, Green_int, lmoins1, lplus1, NRIXS, RIXS, &
+  logical:: Core_resolved, Dip_rel, FDM_comp_m, Final_tddft, Full_potential, Green, Green_int, lmoins1, lplus1, NRIXS, &
             Solsing, Solsing_only, Spinorbite, Titre, Ylm_comp
 
   real(kind=db):: Ci_1, Ci_2, Ci2, J_initl1, J_initl2, Jz1, Jz2
@@ -989,8 +989,6 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full_pote
 
     if( ninitv == ninit .and. Final_tddft ) then
       is_r1 = i_g_1
-    elseif( RIXS ) then
-      is_r1 = 2
     else
       is_r1 = iseuil1
     endif
@@ -1030,8 +1028,6 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full_pote
 
         if( ninitv == ninit .and. Final_tddft ) then
           is_r2 = i_g_2
-        elseif( RIXS ) then
-          is_r2 = 1
         else
           is_r2 = iseuil2
         endif
@@ -1040,7 +1036,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full_pote
         do isping2 = 1,2  
         
 !          if( .not. Final_tddft .and. isping1 /= isping2 ) cycle
-          if( .not. ( RIXS .or. Final_tddft .or. li /= 0 ) .and. isping1 /= isping2 ) cycle
+          if( .not. ( Final_tddft .or. li /= 0 ) .and. isping1 /= isping2 ) cycle
           if( irang == 1 .and. jrang == 1 .and. Dip_rel .and. isp4 /= isping2 ) cycle
 
           mi2 = m_g(i_g_2,isping2)
@@ -1107,7 +1103,7 @@ subroutine tens_ab(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full_pote
                       if( ispinf2 /= isping2 .and. ( NRIXS .or. jrang > 1 .or. ( jrang == 1 &
                                                                              .and. ( .not. Dip_rel .or. irang /= 1 ) ) ) ) cycle 
 
-                      if( .not. ( RIXS .or. Final_tddft .or. Spinorbite ) .and. ispinf2 /= ispinf1 ) cycle
+                      if( .not. ( Final_tddft .or. Spinorbite ) .and. ispinf2 /= ispinf1 ) cycle
 
                       if( NRIXS ) then
                         Gaunt_i = Gaunt_nrixs(l_f2,m_f2,l_i,m_i,li,mi2,Ylm_comp)
@@ -3013,7 +3009,7 @@ subroutine S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
 
             call tens_ab(coef_g,Core_resolved,.false.,FDM_comp,Final_tddft,Full_potential,Green,Green_int,icheck,lmax_nrixs, &
                                 l0_nrixs,l_s,is_g,1,1,1,1,l_i,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil,ns_dipmag,ndim2, &
-                                ninit1,ninit,ninitv,ninitr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,RIXS,rof,Singul,Solsing, &
+                                ninit1,ninit,ninitv,ninitr,nlm_probe,nlm_p_fp,NRIXS,nspinp,nspino,rof,Singul,Solsing, &
                                 Solsing_only,Spinorbite,Taull,Ten,Ten_m,Ylm_comp)
 
             S_nrixs(iq,lm_s,lm_i,:,mpirank) = Ten(:) * dfac

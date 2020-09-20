@@ -222,22 +222,20 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     call gather_sm(smr,smi,nlmso,nligne,nlmso_i,nligne_i,MPI_host_num_for_mumps,mpirank_in_mumps_group,Cal_comp)
     nz = nzSum
   endif
-  if ( mpirank0 == 0 ) then
-    if ( icheck > 1 .or. ( icheck == 1 .and. ie == 1 ) ) then
-      if( ngrph == 1 ) then
-        write(3,100) nligne, nz
-      else
-        write(3,110) igrph, nligne, nz
-      endif
+  if ( icheck > 1 .or. ( icheck == 1 .and. ie == 1 ) ) then
+    if( ngrph == 1 ) then
+      write(3,100) nligne, nz
+    else
+      write(3,110) igrph, nligne, nz
     endif
-    if ( icheck > 2 ) then
-      nligne8 = nligne
-      write(6,'(" Sizes of linear equation system:")')
-      write(6,'(" nligne   =",I24)') nligne
-      write(6,'(" nligne^2 =",I24)') nligne8**2
-      p2 = 100 * real(nz, db) / ( nligne8**2 )
-      write(6,'(" not zero =",I24,5X,F6.3," %")') nz, p2
-    endif
+  endif
+  if ( icheck > 2 ) then
+    nligne8 = nligne
+    write(6,'(" Sizes of linear equation system:")')
+    write(6,'(" nligne   =",I24)') nligne
+    write(6,'(" nligne^2 =",I24)') nligne8**2
+    p2 = 100 * real(nz, db) / ( nligne8**2 )
+    write(6,'(" not zero =",I24,5X,F6.3," %")') nz, p2
   endif
 
   if( mpirank0 == 0 ) then

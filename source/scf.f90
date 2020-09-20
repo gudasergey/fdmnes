@@ -43,7 +43,7 @@ subroutine Starting_energ(Bulk_step,E_start,E_starta,Full_atom,iaprotoi,icheck,i
 ! Index 1 is for the top most core orbital
 ! Index 2 is for thelowest valence orbital
 
-  if( icheck > 0 ) write (3,110)
+  if( icheck > 0 ) write(3,110)
 
   E_marge = 10._db / rydb
   E_start = 10000._db
@@ -1753,10 +1753,14 @@ subroutine prep_next_iter(Bulk_step,chargat_self,chargat_self_s,Convergence,Delt
   real(kind=db), dimension(n_atom_0_self:n_atom_ind_self,nspin):: chargat_self, chargat_self_s, pop_orb_val
   real(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp,n_atom_0_self:n_atom_ind_self):: occ_hubb, occ_hubb_i
 
-  if( .not. Fermi .and. mpirank == 0 ) then
-    call write_error
+  if( .not. Fermi ) then
+    if( mpirank == 0 ) call write_error
     do ipr = 3,9,3
-      if( icheck > 0 .or. ipr > 3 ) write(ipr,110)
+      if( mpirank == 0 ) then
+        if( icheck > 0 .or. ipr > 3 ) write(ipr,110)
+      else
+        if( icheck > 0 .and. ipr == 3 ) write(ipr,110)
+      endif
     end do
     stop
   endif
@@ -1847,9 +1851,9 @@ subroutine prep_next_iter(Bulk_step,chargat_self,chargat_self_s,Convergence,Delt
       endif
       if( mpirank == 0 ) write(6,165) i_self, En_cluster*rydb, Delta_energ*rydb, '>', Delta_lim*rydb, p_self, Mod_p
 
-      if( i_self == nself .and. mpirank == 0 ) then
+      if( i_self == nself ) then
         if( icheck > 0 ) write(3,'(/A)') ' Calculation has not converged !'
-        write(6,'(/A)') ' Calculation has not converged !'
+        if( mpirank == 0 )write(6,'(/A)') ' Calculation has not converged !'
       else
         if( i_self == 1 .or. ( En_cluster - En_cluster_s ) > Delta_lim / 10 ) Mod_p = Mod_p + 1  
 ! When calculation is diverging, or with too much beating, one decreases the weight.
@@ -1893,7 +1897,7 @@ subroutine prep_next_iter(Bulk_step,chargat_self,chargat_self_s,Convergence,Delt
     Delta_energ_min = min( Delta_energ, Delta_energ_min )
   endif
 
-  if( icheck == 1 .and. ( Convergence .or. i_self == nself ) ) then
+  if( icheck > 0 .and. ( Convergence .or. i_self == nself ) ) then
     if( Full_atom ) then
       Atom_kind = ' ia'
     else

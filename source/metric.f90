@@ -794,7 +794,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
   else
     immax = nmetric
   endif
-  if( ng > 1 .and. Print_all ) then
+  if( Print_all ) then
     fac = 0_db
     do im = 1,immax
       fac = max( fac, abs( decalE(i_Shift_Met(im)) ) ) 
@@ -851,7 +851,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
     endif
   endif
 
-  if( ng > 1 .and. detail ) then
+  if( detail ) then
     do ig = 1,ng
       write(4,350) ig
       if( Dafs_bio ) then
@@ -925,7 +925,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
       end do
     end do
 
-    if( ng > 1 ) then
+!    if( ng > 1 ) then
       fac = 0._db
       do im = 1,immax
         fac = max( fac, abs( Gen_Shift_min(im) ) ) 
@@ -951,7 +951,7 @@ subroutine metric(comt,convolution_out,Dafs_bio,Dist_min,Dist_min_g,fdmfit_out,f
           end do
         endif
       end do
-    endif
+!    endif
 
   endif
 

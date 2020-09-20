@@ -4306,7 +4306,7 @@ subroutine Cal_Vmoy(Cal_xanes,i_range,i_self,icheck,imoy,imoy_out,korigimp,Magne
     rsbdc = sum( (1/rs(imoy(1:nptmoy))**2) * poidsov(1:nptmoy) )
     rsbdc = 1 / sqrt( rsbdc )
 
-    if( mpirank == 0 .and. ( i_self == 1 .or. .not. SCF ) ) then
+    if( i_self == 1 .or. .not. SCF ) then
       do ipr = 3,6,3
         if( ipr == 6 .and. i_range /= 1 ) cycle
         if( icheck == 0 .and. ipr == 3 ) cycle
@@ -4339,9 +4339,9 @@ subroutine Cal_Vmoy(Cal_xanes,i_range,i_self,icheck,imoy,imoy_out,korigimp,Magne
     rsbdc_out = sum( (1/rs(imoy_out(1:nptmoy_out))**2) * poidsov_out(1:nptmoy_out) )
     rsbdc_out = 1 / sqrt( rsbdc_out )
 
-    if( mpirank == 0 .and. ( i_self == 1 .or. .not. SCF ) ) then
+    if( i_self == 1 .or. .not. SCF ) then
       do ipr = 3,6,3
-        if( ipr == 6 .and. i_range /= 1 ) cycle
+        if( ipr == 6 .and. ( mpirank /= 0 .or. i_range /= 1 ) ) cycle
         if( icheck == 0 .and. ipr == 3 ) cycle
         if( .not. Cal_xanes .and. ipr == 6 ) cycle
         write(ipr,150) VmoyF_out(1) * rydb,  Vhbdc_out * rydb, rsbdc_out
@@ -4393,19 +4393,17 @@ end
 
   if( icheck > 0 ) write(3,110) Delta_V * rydb
 
-  if( mpirank == 0 ) then
-    do ipr = 3,6,3
-      if( ipr == 6 .and. i_range /= 1 ) cycle
-      if( icheck == 0 .and. ipr == 3 ) cycle
-      if( .not. Cal_xanes .and. ipr == 6 ) cycle
-      if( korigimp ) then
-        write(ipr,130) V0bdcFimp(1) * rydb, Vhbdc * rydb, rsbdc
-      else
-        write(ipr,130) VmoyF(1) * rydb, Vhbdc * rydb, rsbdc
-      endif
-      if( nptmoy_out > 0 ) write(ipr,150) VmoyF_out(1) * rydb,  Vhbdc_out * rydb, rsbdc_out
-    end do
-  endif
+  do ipr = 3,6,3
+    if( ipr == 6 .and. ( mpirank /= 0 .or. i_range /= 1 ) ) cycle
+    if( icheck == 0 .and. ipr == 3 ) cycle
+    if( .not. Cal_xanes .and. ipr == 6 ) cycle
+    if( korigimp ) then
+      write(ipr,130) V0bdcFimp(1) * rydb, Vhbdc * rydb, rsbdc
+    else
+      write(ipr,130) VmoyF(1) * rydb, Vhbdc * rydb, rsbdc
+    endif
+    if( nptmoy_out > 0 ) write(ipr,150) VmoyF_out(1) * rydb,  Vhbdc_out * rydb, rsbdc_out
+  end do
 
   return
   110 format(/' To keep the interstitial potential constant, potentials are shifted by:',f10.5,' eV')
@@ -4539,36 +4537,34 @@ subroutine Writing_atom_carac(Cal_xanes,Full_atom,iapot,icheck,ipr1,iaprotoi,ity
  !   charge_ion(ipr) = numat( itypepr(ipr) ) - charge_ion(ipr)
  ! end do
 
-  if( mpirank == 0 ) then
-    do iprt = 3,6,3
-      if( iprt == 6 .and. i_range /= 1 ) cycle
-      if( icheck == 0 .and. iprt == 3 ) cycle
-      if( .not. Cal_xanes .and. iprt == 6 ) cycle
-      if( nspin == 1 ) then
-        write(iprt,120)
-      else
-        write(iprt,130)
+  do iprt = 3,6,3
+    if( iprt == 6 .and. ( mpirank /= 0 .or. i_range /= 1 ) ) cycle
+    if( icheck == 0 .and. iprt == 3 ) cycle
+    if( .not. Cal_xanes .and. iprt == 6 ) cycle
+    if( nspin == 1 ) then
+      write(iprt,120)
+    else
+      write(iprt,130)
+    endif
+    do ipr = ipr1,n_atom_proto
+      if( iapot(ipr) == 0 .or. Rmtg0(ipr) < eps10 ) cycle
+      if( Full_atom ) then
+        do iapr = n_atom_0,n_atom_ind
+          if( ipr == iaprotoi(iapr) ) exit
+        end do
+        if( iapr > n_atom_ind ) cycle
       endif
-      do ipr = ipr1,n_atom_proto
-        if( iapot(ipr) == 0 .or. Rmtg0(ipr) < eps10 ) cycle
-        if( Full_atom ) then
-          do iapr = n_atom_0,n_atom_ind
-            if( ipr == iaprotoi(iapr) ) exit
-          end do
-          if( iapr > n_atom_ind ) cycle
-        endif
-        it = itypepr(ipr)
-        Z = numat( it )
-        if( it > 0 ) then
-          Star = ' '
-        else
-          Star = '*'
-        endif
-        write(iprt,140) ipr, Z, Star, Charge(ipr,1:nspin), Rchrg(ipr) * bohr, charge_ion(ipr),  Radius_ion(ipr) * bohr, &
-                          VmftF(ipr,1:nspin) * rydb
-      end do
+      it = itypepr(ipr)
+      Z = numat( it )
+      if( it > 0 ) then
+        Star = ' '
+      else
+        Star = '*'
+      endif
+      write(iprt,140) ipr, Z, Star, Charge(ipr,1:nspin), Rchrg(ipr) * bohr, charge_ion(ipr),  Radius_ion(ipr) * bohr, &
+                        VmftF(ipr,1:nspin) * rydb
     end do
-  endif
+  end do
 
   return
   120 format(/' ipr   Z     Atom-Charge  Atom-Radius Ionic-Charge Ionic-Radius     Vmft')
@@ -4601,9 +4597,10 @@ subroutine Check_Ecmax(Ecineticmax,Ecineticmax_out,Eclie,Eclie_out,Eneg,Energ_ma
     Ecineticmax = max( Ecineticmax, Eclie )
     Ecineticmax_out = max( Ecineticmax_out, Eclie_out )
   endif
-  if( ( Ecineticmax < eps10 .or. Ecineticmax_out < eps10 ) .and. .not. Eneg .and. mpirank == 0 ) then
+  if( ( Ecineticmax < eps10 .or. Ecineticmax_out < eps10 ) .and. .not. Eneg ) then
     call write_error
     do ipr = 3,9,3
+      if( mpirank /= 0 .and. ipr == 3 ) cycle
       write(ipr,110) Ecineticmax * rydb, Ecineticmax_out * rydb
     end do
     close(9)
