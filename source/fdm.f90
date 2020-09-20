@@ -17,7 +17,7 @@ subroutine fdm(Analyzer,Ang_borm,Bormann,Check_extract,Check_mpi,Circular,Comt,C
   integer, parameter:: nslapw_max = 48  ! Max number of symmetry matrix for the FLAPW data
 
   integer:: i, igr, igr_dop, iord, ipr, ipr_dop, ir, is, iscratch, istat, it, itape1, itape4, itph, itpm, itps, &
-    itype_dop, j, jgr, jseuil, l, lamstdens, lecrantage, Length_line, Lin_gam, Lmax_nrixs, Lmax_pot, &
+    itype_dop, j, jgr, jseuil, l, lecrantage, Length_line, Lin_gam, Lmax_DOSout, Lmax_nrixs, Lmax_pot, &
     Lmax_tddft_inp, Lmaxat0, Lmaxso_max, Lmaxso0, Lseuil, m_hubb_e, mermrank, mpierr, mpinodes, mpinodes0, mpirank, mpirank0, &
     multi_run, multi_run_e, multrmax, n, n_abs_rgh, n_atom_bulk, n_atom_cap, n_atom_coop, n_atom_int, n_atom_neq, n_atom_per, &
     n_atom_per_neq, n_atom_proto, n_atom_proto_bulk, n_atom_proto_p, n_atom_proto_uc, &
@@ -272,7 +272,7 @@ subroutine fdm(Analyzer,Ang_borm,Bormann,Check_extract,Check_mpi,Circular,Comt,C
     Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,Green_bulk,Green_int,Green_s,Green_self,Harm_cubic,Helm_cos, &
     hkl_borm,hkl_dafs,hkl_film,hkl_ref,Hubb, &
     Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_coop,igr_dop,indice_par,Interface_shift,iscratch,isigpi,itdil,its_lapw,iord, &
-    itape4,itype,itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,Lmax_nrixs,lamstdens,ldil,lecrantage,Length_line,Lin_gam, &
+    itape4,itype,itype_dop,jseuil,Kern_fac,Kern_fast,Kgroup,korigimp,Lmax_DOSout,Lmax_nrixs,ldil,lecrantage,Length_line,Lin_gam, &
     Lmax_pot,Lmax_tddft_inp,lmaxfree,Lmaxso_max,Lmaxso0,Lmaxat0,lmoins1,lplus1,Lseuil,lvval,m_hubb_e,Magnetic,Mat_or,Mat_UB, &
     Matper,Moment_conservation,mpinodes,mpinodes0,mpirank,mpirank0,Muffintin,Multipole, &
     multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_coop,n_atom_uc,n_atom_proto,n_devide,n_file_dafs_exp,n_mat_polar, &
@@ -677,7 +677,7 @@ subroutine fdm(Analyzer,Ang_borm,Bormann,Check_extract,Check_mpi,Circular,Comt,C
       Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,Green_bulk,Green_int, &
       Green_s,Green_self,Harm_cubic,Helm_cos,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_coop, &
       igr_dop,igreq,Interface_shift,ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype,itype_dop,jseuil, &
-      Kern_fac,Kern_fast,Kgroup,korigimp,Lmax_nrixs,lamstdens,ldil,lecrantage,Lin_gam, &
+      Kern_fac,Kern_fast,Kgroup,korigimp,ldil,lecrantage,Lin_gam,Lmax_DOSout,Lmax_nrixs, &
       Lmax_pot,Lmax_tddft_inp,lmaxfree,Lmaxso_max,Lmaxso0,Lmaxat0,lmoins1,lplus1,Lseuil,lvval,m_hubb_e, &
       Magnetic,Mat_or,Mat_UB,Matper,Moment_conservation,mpinodes,mpinodes0,mpirank,mpirank0,Muffintin,Multipole,multrmax, &
       n_abs_rgh,n_adimp,n_atom_bulk,n_atom_cap,n_atom_coop,n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc, &
@@ -885,7 +885,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_
       Force_ecr,Full_atom_e,Full_potential,Full_self_abs,Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,Green_bulk,Green_int, &
       Green_s,Green_self,Harm_cubic,Helm_cos,hkl_dafs,hkl_film,hkl_ref,Hubb,Hubbard,hybrid,iabsm,iabsorig,icheck,icom,igr_coop, &
       igr_dop,igreq,Interface_shift,ipr_dop,iscratch,isigpi,itdil,its_lapw,iord,isymqa,itype,itype_dop,jseuil, &
-      Kern_fac,Kern_fast,Kgroup,korigimp,Lmax_nrixs,lamstdens,ldil,lecrantage,Lin_gam, &
+      Kern_fac,Kern_fast,Kgroup,korigimp,ldil,lecrantage,Lin_gam,Lmax_DOSout,Lmax_nrixs, &
       Lmax_pot,Lmax_tddft_inp,lmaxfree,Lmaxso_max,Lmaxso0,Lmaxat0,lmoins1,lplus1,Lseuil,lvval,m_hubb_e, &
       Magnetic,Mat_or,Mat_UB,Matper,Moment_conservation,mpinodes,mpinodes0,mpirank,mpirank0,Muffintin,Multipole,multrmax, &
       n_abs_rgh,n_adimp,n_atom_bulk,n_atom_cap,n_atom_coop,n_atom_int,n_atom_per,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc, &
@@ -923,8 +923,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_
     iapr, ip0, ip00, ipr, iaprabs, iaprabs_nonexc, ich, ie, ie_computer, ie0, igr_dop, igrph, igrpt_nomag, igrpt0, &
     index_e, initl, iord, ip_max, ipr1, ipr_dop, iprabs, iprabs_nonexc, ir, iscratch, iso1, iso2, isp1, isp2, ispin, iss1, &
     iss2, it, itab, itabs, itabs_nonexc, itype_dop, j, j_comp, je, jseuil, l, l_hubbard, l0_nrixs, &
-    l1, l2, lamstdens, lecrantage, lh, Lin_gam, lla_state, lla2_state, Lm1, Lm2, Lmax, Lmax_abs, Lmax_abs_a, Lmax_abs_t, &
-    Lmax_comp, Lmax_g, Lmax_nrixs, Lmax_pot, Lmax_probe, Lmax_tddft, Lmax_tddft_inp, Lmax_max, Lmaxat0, Lmaxso, &
+    l1, l2, lecrantage, lh, Lin_gam, lla_state, lla2_state, Lm1, Lm2, Lmax, Lmax_abs, Lmax_abs_a, Lmax_abs_t, &
+    Lmax_comp, Lmax_DOSout, Lmax_g, Lmax_nrixs, Lmax_pot, Lmax_probe, Lmax_tddft, Lmax_tddft_inp, Lmax_max, Lmaxat0, Lmaxso, &
     Lmaxso_m, Lmaxso_max, Lmaxso0, Lms1, Lms2, Lseuil, m, m_hubb, m_hubb_e, m1, m2, &
     mpierr, mpinodee, mpinodee0, mpinodes, mpinodes0, mpirank, mpirank0, mpirank_in_mumps_group, &
     multi_0, multi_imp, multi_run, multi_run_e, multrmax, n, n_abs_bulk,n_abs_rgh, n_adimp, n_atom_0, n_atom_0_self, n_atom_bulk, &
@@ -2453,8 +2453,8 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_
 
               call Search_Fermi(Bulk_atom_done,Bulk_step,Chg_reference,chg_open_val,Chargat_self,Density,Doping,drho_self,E_cut, &
                 E_Open_val,E_Open_val_exc,E_starta,Energ,E_Fermi,Energ_self,Fermi,Full_atom,Hubb,Hubb_diag,iaabsi,iaprotoi, &
-                i_self,ich,ie,ie_computer,Int_statedens,ipr_dop,ispin_maj,itypei,itypepr,lamstdens, &
-                Level_val_abs,Level_val_exc,lla_state,lla2_state,Lmaxat,m_hubb,mpinodes,n_atom_0,n_atom_0_self, &
+                i_self,ich,ie,ie_computer,Int_statedens,ipr_dop,ispin_maj,itypei,itypepr, &
+                Level_val_abs,Level_val_exc,lla_state,lla2_state,Lmax_DOSout,Lmaxat,m_hubb,mpinodes,n_atom_0,n_atom_0_self, &
                 n_atom_ind,n_atom_ind_self,n_atom_proto,n_atom_proto_bulk,n_atom_proto_uc,natome,nb_eq,nb_eq_2D,nenerg,ngreq, &
                 nlm_pot,nomfich_s,nrato, &
                 nrm,nrm_self,nspin,nspinp,ntype,numat,Occ_hubb,Occ_hubb_i,pop_orb_val,Proto_calculated,Rato,rho_self,rho_self_t, &
@@ -3932,7 +3932,7 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_
 
           if( COOP ) call Cal_COOP(Coop_z_along_bond,Coverlap,Density_comp,Dist_coop,Ecinetic,Eimag(ie),Energ(ie),Enervide, &
             Full_atom,Full_potential,Harm_cubic,Hubb,Hubb_diag,Hubb_diag_abs,ia_coop,iaabsi,iaprotoi,icheck(28),ie,index_coop, &
-            iprabs,itypepr,Lmax_pot,Lmaxat,m_hubb,mpinodee,mpirank,n_atom_0,n_atom_0_self, &
+            iprabs,itypepr,Lmax_DOSout,Lmax_pot,Lmaxat,m_hubb,mpinodee,mpirank,n_atom_0,n_atom_0_self, &
             n_atom_coop,n_atom_ind,n_atom_ind_self,n_atom_proto,nab_coop,natome,nlm_pot,nlmagm,nrato,nrm, &
             nspin,nspino,nspinp,ntype,numat,Posi,Rato,Relativiste,Renorm,Rmtg,Rmtg0,Rmtsd,Rot_atom,Spinorbite,Tau_coop,V_hubb, &
             V_hubb_abs,V_intmax,V0bdc,Vrato,Ylm_comp,Z_nospinorbite)
@@ -4047,16 +4047,16 @@ subroutine Site_calculation(adimp_e,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_
 
             if( Density .and. i_range == 1 ) &
               call Write_Density(Energ,Density_comp,Full_atom,Harm_cubic,iaabsi,iaprotoi,icheck(28),ie,ie_computer,Int_statedens, &
-                itypei,itypepr,lamstdens,lla_state,lla2_state,Lmaxat,mpinodee,n_atom_0,n_atom_ind,n_atom_proto,natome,nenerg, &
+                itypei,itypepr,lla_state,lla2_state,Lmax_DOSout,Lmaxat,mpinodee,n_atom_0,n_atom_ind,n_atom_proto,natome,nenerg, &
                 nomfich_s,nonexc_g,nrato,nrm,nspin,nspinp,ntype,numat,Rato,Rmtsd,State_all_out,Statedens)
 
             if( COOP ) then
               if( Spinorbite ) then  ! because coop with real harmonics and spinorbit does not work
                 call Write_coop(Coverlap,.true.,Energ(ie),.false.,iaprotoi,ie,ie_computer,index_coop,itypepr, &
-                                       mpinodee,n_atom_proto,nab_coop,natome,nomfich_s,nspin,nspinp,ntype,numat)
+                                       Lmax_DOSout,mpinodee,n_atom_proto,nab_coop,natome,nomfich_s,nspin,nspinp,ntype,numat)
               else
                 call Write_coop(Coverlap,Density_comp,Energ(ie),Harm_cubic,iaprotoi,ie,ie_computer,index_coop,itypepr, &
-                                       mpinodee,n_atom_proto,nab_coop,natome,nomfich_s,nspin,nspinp,ntype,numat)
+                                       Lmax_DOSout,mpinodee,n_atom_proto,nab_coop,natome,nomfich_s,nspin,nspinp,ntype,numat)
               endif
             endif
 
