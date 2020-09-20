@@ -3,8 +3,8 @@
 ! Routine solving the system of linear equations by Gaussian elimination
 
 subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clapl, E_comp, Eimag, Enervide, gradvr, &
-        ianew, iato, ibord, icheck, ie, igrph, ii, isbord, iso, ispinin, isrt, isvois, ivois, Kar, Kari, lato, &
-        lb1, lb2, lmaxso, lso, mato, MPI_host_num_for_mumps, mpirank0, mso, natome, nbm, nbord, nbordf, nbtm, Neuman, Neumanr, &
+        ianew, iato, ibord, icheck, ie, igrph, ii, isbord, iso, ispinin, isrt, isvois, ivois, Kar, Kari, lato, lb1, lb2, &
+        lmaxso, lso, mato, MPI_host_num_for_mumps, mpirank0, mso, n_comp, natome, nbm, nbord, nbordf, nbtm, Neuman, Neumanr, &
         new, newinv, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmsam,  nlmagm, nlmmax, nlmomax, nlmsa, nlmso, nlmso_i, &
         nphiato1, nphiato7, npoint, npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
         numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, smi, smr, Spinorbite, Time_fill, Time_tria, Vr, &
@@ -14,8 +14,8 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
   implicit none
 
   integer:: i, i_newind, ia, ib, icheck, ie, igrph, ii, ipr, isp, ispin, ispinin, iv, j, jj, k, lb1i, lb1r, lb2i, lb2r, lm, &
-    lmaxso, lms, MPI_host_num_for_mumps, mpirank0, natome, nbm, nbtm, ngrph, nicm, nim, nligne, nligne_i, nligneso, nlmagm, &
-    nlmmax, nlmomax, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, & 
+    lmaxso, lms, MPI_host_num_for_mumps, mpirank0, n_comp, natome, nbm, nbtm, ngrph, nicm, nim, nligne, nligne_i, nligneso, &
+    nlmagm, nlmmax, nlmomax, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, & 
     npsom, nsm, nso1, nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, nvois
 
   integer(kind=db):: lk, nb_not_zero_tot
@@ -95,7 +95,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
           if( ia == 0 ) then
             ColNotZero(new(j)-nspino+1:new(j)) = .true.
           elseif( ia > 0 ) then
-            ColNotZero(ianew(ia)+1:ianew(ia)+nlmsa(ia)) = .true.
+            ColNotZero(ianew(ia)+1:ianew(ia)+n_comp*nlmsa(ia)) = .true.
           elseif( ia == -2 ) then
             ColNotZero(nligneso+1:nligneso+nlmso) = .true.
           endif
@@ -121,9 +121,10 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
         ia = -i
 
-        ColNotZero(ianew(ia)+1:ianew(ia)+nlmsa(ia)) = .true.
+        ColNotZero(ianew(ia)+1:ianew(ia)+n_comp*nlmsa(ia)) = .true.
 
         lm = ii - ianew(ia)
+        if( lm > nlmsa(ia) ) lm = lm - nlmsa(ia) 
         isp = iato(lm,ia,igrph)
 
         do ib = 1,nbordf(ia)
@@ -209,13 +210,13 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     abvi(:) = 0._db
 
     call calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clapl, E_comp, Eimag, &
-    Enervide, gradvr, ianew, iato, ibord, icheck, igrph, ii, isbord, iso, ispin, isrt, isvois, ivois, Kar, Kari, &
-    lato, lb1i, lb1r, lb2i, lb2r, lmaxso, lso, mato, mletl, mso, natome, nbm, nbord, &
-    nbordf, nbtm, Neuman, Neumanr, new, newinv, ngrph, nicm, nim, nligne, nligne_i, &
-    nligneso, nlmagm, nlmmax, nlmomax, nlmsa, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, npsom, nsm, nso1, &
-    nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
-    numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, Spinorbite,  &
-    smi, smr, Vr, Ylm_comp, Ylmato, Ylmso, .false. )
+      Enervide, gradvr, ianew, iato, ibord, icheck, igrph, ii, isbord, iso, ispin, isrt, isvois, ivois, Kar, Kari, &
+      lato, lb1i, lb1r, lb2i, lb2r, lmaxso, lso, mato, mletl, mso, n_comp, natome, nbm, nbord, &
+      nbordf, nbtm, Neuman, Neumanr, new, newinv, ngrph, nicm, nim, nligne, nligne_i, &
+      nligneso, nlmagm, nlmmax, nlmomax, nlmsa, nlmsam, nlmso, nlmso_i, nphiato1, nphiato7, npoint, npsom, nsm, nso1, &
+      nsort, nsort_c, nsort_r, nsortf, nspin, nspino, nspinp, nspinr, nstm, &
+      numia, nvois, phiato, poidsa, poidso, Relativiste, Repres_comp, rvol, Spinorbite,  &
+      smi, smr, Vr, Ylm_comp, Ylmato, Ylmso, .false. )
 
     call CPU_TIME(time)
     tp2 = real(time,db)

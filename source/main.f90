@@ -1,4 +1,4 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 23th of July 2020, 5 Thermidor, An 228
+! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 25th of August 2020, 8 Fructidor, An 228
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
@@ -48,7 +48,7 @@ module declarations
   integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic punctual groups (with other orientation)
   integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic punctual groups (with other orientation)
 
-  character(len=50), parameter:: Revision = 'FDMNES program, Revision 23th of July 2020'
+  character(len=50), parameter:: Revision = 'FDMNES program, Revision 25th of August 2020'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -353,7 +353,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ','mat_ub   ', &
      'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar','molecule ','moment_co','no_e1e3  ', &
      'molecule_','muffintin','multrmax ','n_self   ','new_zero ','no_core_r','no_dft   ','no_e1e1  ','no_e1e2  ', &
-     'no_e2e2  ','no_e3e3  ','no_fermi ','no_renorm','no_res_ma','no_res_mo','no_scf_bu','no_solsin','normaltau', &
+     'no_e2e2  ','no_e3e3  ','no_fermi ','no_interf','no_renorm','no_res_ma','no_res_mo','no_scf_bu','no_solsin','normaltau', &
      'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','nrixs_mon','occupancy','octupole ', &
      'old_zero ','one_run  ','one_scf  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ', &
      'pointgrou','polarized','powder   ','quadmag  ','quadrupol','radius   ','range    ','rangel   ','ray_max_d','rcharge  ', &
@@ -361,7 +361,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'rixs_fast','rixs_loss','rixs_sum ','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ', &
      'rpotmax  ','r_self   ','rydberg  ','self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
      'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spin_chan','spinorbit','step_loss','step_azim', &
-     'supermuf ','surface  ','surface_s','surface_t','symmol   ','symsite  ','tddft    ','test_dist','theta_in ','theta_2th', &
+     'supermuf ','surface  ','surface_s','symmol   ','symsite  ','tddft    ','test_dist','theta_in ','theta_2th', &
      'trace    ','two_theta','vmax     ','v0imp    ','write_mod','xalpha   ','xan_atom ','ylm_comp ','z_absorbe','z_nospino', &
      'zero_azim'/
 

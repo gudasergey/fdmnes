@@ -47,7 +47,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
   integer:: Cal_nenerge, i_range, iabsorig, icheck_s, ie, ie_computer, ie_e, init, iopsymc_25, ip_max, ip0, &
     ir, isp, je, jseuil, l, l0_nrixs, lmax, lmax_pot, lmax_probe, lmax_nrixs, lmaxabs_t, &
     lmaxat0, lseuil,m_hubb, mpinodes, mpirank, mpirank0, multi_0, multi_run, n_abs_rgh, n_bulk_sup, &
-    n_bulk_z, n_bulk_z_abs, n_bulk_z_max_abs, n_Ec, n_max, n_multi_run, n_oo, n_rel, n_rout, n_tens_max, &
+    n_bulk_z, n_bulk_z_abs, n_bulk_z_max_abs, n_comp, n_Ec, n_max, n_multi_run, n_oo, n_rel, n_rout, n_tens_max, &
     n_V, natomsym, nbseuil, &
     ncolm, ncolr, ncolt, nd3, nenerg, nenerg_s, nenerg_tddft, nenerge, ngamh, nge, ninit1, ninit, ninit_out, &
     ninitv, nlm, nlm_fp, nlm_pot, nlm_probe, nlm_p_fp, nlmamax, nlms_f, nlms_g, nlmsm_f, &
@@ -161,6 +161,8 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
   Final_tddft = .true.
   Green = .true.
   i_range = 1
+
+  n_comp = 1
 
   if( Dipmag ) then
     ns_dipmag = 2
@@ -393,7 +395,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
 
       icheck_s = max( icheck(18), icheck(22) )
 
-      allocate( rof_ph(nlm,nspinp,nspino,n_Ec) )
+      allocate( rof_ph(n_comp*nlm,nspinp,nspino,n_Ec) )
       rof_ph(:,:,:,:) = ( 0._db, 0._db )
 
       do ie_e = 1,n_Ec
@@ -409,7 +411,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
         V0bdc_t(:) = V0bdc(:,ie_e)
 
         call Radial_wave(Ecinetic_e,Eimag(ie),Energ_tt,Enervide_t,Full_potential,Hubb_a,Hubb_d,icheck_s,ie_e,lmax,lmax_pot, &
-          m_hubb,nbseuil,ninit1,n_Ec,nlm_pot,nlm,nlm_fp,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Radial_comp, &
+          m_hubb,n_comp,nbseuil,ninit1,n_Ec,nlm_pot,nlm,nlm_fp,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Radial_comp, &
           Relativiste,Renorm,Rmtg,Rmtsd,rof_ph,Spinorbite,V_hubb_t,V_intmax,V0bdc_t,Vrato_t,Ylm_comp,zet)
 
         deallocate( Vrato_t )
@@ -426,7 +428,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
 
 ! Calcul de Chi_0
       call Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,E_cut_tddft,Ecent,Elarg,Energ(ie),Energ_s, &
-         Eseuil(nbseuil),fppn,Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,icheck(23),ie,jseuil,lmax, &
+         Eseuil(nbseuil),fppn,Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,icheck(23),ie,jseuil,lmax,n_comp, &
          nbseuil,nenerge,nenerg_s,ngamh,ninit1,ninit,n_Ec,nlm,nlmamax,nlmsm_f,nlms_f,nlms_g,nomfich,ns_dipmag, &
          nseuil,nspino,nspinp,numat,rof_ph,rof0,Spinorbite,Taull_tdd)
       deallocate( rof_ph )
@@ -470,7 +472,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
       if( NRIXS ) call S_nrixs_cal(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
                     Eimag(ie),Energ(ie),Enervide,Eseuil,FDM_comp,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
                     Hubb_d,icheck_s,l0_nrixs,lmax_nrixs,is_g,lmax_probe,lmax_pot,lmoins1,lplus1,lseuil,m_g,m_hubb, &
-                    mpinodes,mpirank,n_Ec,n_V,nbseuil,ns_dipmag,nd3, &
+                    mpinodes,mpirank,n_comp,n_Ec,n_V,nbseuil,ns_dipmag,nd3, &
                     ninit1,ninit,ninit_out,ninitv,nlm_pot,nlm_probe,nlm_p_fp,nq_nrixs,nr,nrm,nspin,nspino,nspinp, &
                     numat,psii,q_nrixs,r,Relativiste,Renorm,Rmtg,Rmtsd, &
                     S_nrixs,S_nrixs_m,Solsing,Solsing_only,Spinorbite,Chi, &
@@ -480,7 +482,7 @@ subroutine main_tddft(Abs_in_Bulk_roughness,Abs_U_iso,alfpot,All_nrixs,angxyz,Al
                 Eimag(ie),Energ(ie),Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
                 Hubb_d,icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
-                n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,nd3,nenerg_tddft,ninit1,ninit,ninit_out,ninitv,nlm_pot,nlm_probe, &
+                n_comp,n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,nd3,nenerg_tddft,ninit1,ninit,ninit_out,ninitv,nlm_pot,nlm_probe, &
                 nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Renorm, &
                 Rmtg,Rmtsd,rof0_e,rot_atom_abs, &
                 Rot_int,secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm,secmm_m,secoo,secoo_m, &
@@ -918,7 +920,7 @@ end
 ! Calcul de Chi_0
 
 subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ecent,Elarg,Energ,Energ_s, &
-       Eseuil,fppn,Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,icheck,ie,jseuil,lmax, &
+       Eseuil,fppn,Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_tddft,icheck,ie,jseuil,lmax,n_comp, &
        nbseuil,nenerge,nenerg_s,ngamh,ninit1,ninit,n_Ec,nlm,nlmamax,nlmsm_f,nlms_f,nlms_g,nomfich,ns_dipmag, &
        nseuil,nspino,nspinp,numat,rof_ph,rof0,Spinorbite,Taull_tdd)
 
@@ -928,7 +930,7 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
 
   integer:: icheck, ie, ie_ph, ief, init, ipr, is_dipmag, iseuil, iso, iso1, iso2, isp, ispf, ispg, ispm, iss1, &
     iss2, je, jinitl, js, jseuil, l, l1, l2, lm, lm1, lm2, lmax, lms_g, lms1_g, lms2_g, lms1, lms2, lmv1, &
-    lmv2, m, m1,  m2, mv1, mv2, nbseuil, nenerge, nenerg_s, ngamh, ninit1, ninit, n_Ec, nlm, nlmamax, &
+    lmv2, m, m1,  m2, mv1, mv2, n_comp, nbseuil, nenerge, nenerg_s, ngamh, ninit1, ninit, n_Ec, nlm, nlmamax, &
     nlmsm_f, nlms_f, nlms_g, ns_dipmag, nseuil, nspinp, nspino, numat
 
   integer, dimension(nlms_f,2):: i_val, l_val, m_val
@@ -940,7 +942,7 @@ subroutine Chi_0_int(Chi_0,Coef_g,Core_resolved,Decal_initl,Delta_edge,EFermi,Ec
 
   complex(kind=db):: dch, y1_c
   complex(kind=db), dimension(nenerg_s,nlmamax,nspinp,nspino,nbseuil):: rof0
-  complex(kind=db), dimension(nlm,nspinp,nspino,n_Ec):: rof_ph
+  complex(kind=db), dimension(n_comp*nlm,nspinp,nspino,n_Ec):: rof_ph
 
   complex(kind=db), dimension(nenerg_s,nlmamax,nspinp,nlmamax,nspinp) :: Taull_tdd
   complex(kind=db), dimension(nlms_f,nlms_f,nlms_g,nlms_g,2,ns_dipmag):: Chi_0
@@ -2550,7 +2552,7 @@ subroutine main_tddft_optic(Abs_U_iso,alfpot,angxyz,Allsite,Atomic_scr,axyz,Brag
   integer:: i, i_range, iabsorig, icheck_s, ie, ie_computer, ie_e, ie_g, ief, ip_max, ip0, &
     iso1, iso2, isp, isp1, isp2, j, je, jef, jseuil, lm1, lm2, lmax, lmax_pot, &
     lmax_probe, lmaxabs_t, lseuil, m_hubb, multi_0, mpinodes, mpirank, mpirank0, &
-    n_bulk_sup, n_rel, n_Ec, n_multi_run, n_oo, n_rout, n_stk, n_tens_max, n_V, natomsym, nbseuil, &
+    n_bulk_sup, n_comp, n_rel, n_Ec, n_multi_run, n_oo, n_rout, n_stk, n_tens_max, n_V, natomsym, nbseuil, &
     ncolm, ncolr, ncolt, nd3, nenerg, nenerg_s, nenerg_tddft, nge, ninit1, ninit, ninit_out, &
     ninitv, nlm, nlm_fp, nlm_pot, nlm_probe, nlm_p_fp, nlmamax, nlms, nlms_g, nlms_f, &
     nphim, npldafs, nplr, nplrm, nr, nr_zet, nrm, ns_dipmag, &
@@ -2667,6 +2669,8 @@ subroutine main_tddft_optic(Abs_U_iso,alfpot,angxyz,Allsite,Atomic_scr,axyz,Brag
   Epsii(:) = 0._db
   n_tens_max = 0
   Surface_ref = 0._db
+
+  n_comp = 1
 
   E1E1 = Multipole(1); E1E2 = Multipole(2); E1E3 = Multipole(3);
   E1M1 = Multipole(4); E2E2 = Multipole(6);
@@ -3043,7 +3047,7 @@ subroutine main_tddft_optic(Abs_U_iso,alfpot,angxyz,Allsite,Atomic_scr,axyz,Brag
                 Eimag_t(1),Energ(ie),Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
                 Hubb_d,icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
-                n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,nd3,nenerg_tddft,ninit1,ninit,ninit_out,ninitv,nlm_pot,nlm_probe, &
+                n_comp,n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,nd3,nenerg_tddft,ninit1,ninit,ninit_out,ninitv,nlm_pot,nlm_probe, &
                 nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Renorm, &
                 Rmtg,Rmtsd,rof0_e,rot_atom_abs, &
                 Rot_int,secdd_t,secdd_m_t,secdo_t,secdo_m_t,secdq_t,secdq_m_t,secmd_t,secmd_m_t,secmm_t,secmm_m_t,secoo_t, &

@@ -30,7 +30,7 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
   integer:: i_range, iabsorig, icheck_s, ie, ie_computer, ie_q, ie_s, ie_t, ip_max, ip0, &
     iso1, iso2, isp, isp1, isp2, iss1, iss2, je, jseuil, l0_nrixs, lm1, lm2, lmax, lmax_pot, &
     lmax_probe, lmaxabs_t, lms1, lms2, lseuil, m_hubb, mpinodes, mpirank, mpirank0, &
-    lmax_nrixs, lmaxat0, multi_0, n_abs_rgh, n_bulk_sup, n_Ec, n_multi_run, n_oo, n_rel, n_rout, &
+    lmax_nrixs, lmaxat0, multi_0, n_abs_rgh, n_bulk_sup, n_comp, n_Ec, n_multi_run, n_oo, n_rel, n_rout, &
     n_tens_max, n_V, natomsym, nbseuil, ncolm, ncolr, ncolt, &
     ndim2, nenerg, nenerg_s, nenerg_tddft, nge, ninit1, ninit, ninitr, nlm_pot, nlm_probe, nlm_p_fp, &
     nlmamax, nphim, npldafs, nplr, nplrm, nq_nrixs, nr, nrm, ns_dipmag, nseuil, nspin, &
@@ -126,6 +126,8 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
   ns_dipmag = 2  ! corresponds here at the 2, occupied and non-occupied state, energies, not the spin-flip in the E1M1 transition 
   ndim2 = 1
   Surface_ref = 0._db
+  
+  n_comp = 1
   
   if( Hubb_a .or. Full_potential ) then
     nlm_p_fp = nlm_probe
@@ -287,7 +289,7 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
                 Eimag(ie),Energ(ie),Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
                 Hubb_d,icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
-                n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninit,ninitr,ninitr,nlm_pot,nlm_probe, &
+                n_comp,n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninit,ninitr,ninitr,nlm_pot,nlm_probe, &
                 nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat_abs,psii,r,Relativiste,Renorm, &  
                 Rmtg,Rmtsd,rof0,rot_atom_abs, &
                 Rot_int,secdd_t,secdd_m_t,secdo_t,secdo_m_t,secdq_t,secdq_m_t,secmd_t,secmd_m_t,secmm_t,secmm_m_t,secoo_t, &

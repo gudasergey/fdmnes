@@ -670,7 +670,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           end do
 
 ! Cluster, film or unit cell description
-        case('crystal','molecule','crystal_t','molecule_','film','film_t','surface','surface_t','interface','interfac_')
+        case('crystal','molecule','crystal_t','molecule_','film','film_t','surface','interface','interfac_')
           if( keyword(6:6) == 't' .or.keyword(9:9) == 't' .or. keyword(9:9) == '_' ) Taux = .true.
 
           if( keyword(1:8) /= 'molecule' ) Matper = .true.
@@ -1719,8 +1719,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     multrmax,n_adimp,n_atom,n_atom_bulk,n_atom_cap,n_atom_coop,n_atom_uc,n_atom_proto,n_devide,n_file_dafs_exp,n_mat_polar, &
     n_multi_run_e,n_q_rixs,n_radius,n_range,n_theta_in,n_theta_rixs,n_two_theta,n_Z_abs,nb_atom_conf_m,nbseuil,necrantage, &
     neimagent,nenerg_in_rixs,nenerg_loss_rixs,nenerg_out_rixs,nenerg_s,ngamh,ngamme,ngroup,ngroup_hubb,ngroup_lapw,ngroup_m, &
-    ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux,ngroup_temp,nhybm,nlat,nlatm,No_DFT,No_solsing,nom_fich_Extract, &
-    nomfich,nomfichbav,Noncentre, &
+    ngroup_nonsph,ngroup_par,ngroup_pdb,ngroup_taux,ngroup_temp,nhybm,nlat,nlatm,No_DFT,No_interference,No_solsing, &
+    nom_fich_Extract,nomfich,nomfichbav,Noncentre, &
     Nonexc,norbdil,norbv,Normaltau,normrmt,npar,nparm,nphi_dafs, &
     nphim,npl_2d,npldafs,npldafs_2d,npldafs_e,npldafs_f,nple,nposextract,nq_nrixs,nrato,nrato_dirac,nrato_lapw,nrm, &
     nself,nself_bulk,nseuil,nslapwm,nspin,nsymextract,ntype,ntype_bulk,ntype_conf,ntype_mod,numat,numat_abs, &
@@ -1817,7 +1817,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     Full_potential, Full_self_abs, Gamma_hole_imp, Gamma_tddft, Green_bulk, Green_s, Green_self, Green_int, Harm_cubic, Hedin, &
     Helm_cos, hkl_film, Hubbard, Interface_shift_given, Kern_fac_default, Kern_fast, korigimp, lmaxfree, lmoins1, lplus1, M1M1, &
     M1M2, M2M2, Magnetic, Matper, Moment_conservation, Monocrystal, muffintin, No_DFT, no_core_resolved, no_dipquad, &
-    no_e1e3, no_e2e2, no_e3e3, No_renorm, No_SCF_bulk, No_solsing, noncentre, Nonexc, nonexc_imp, &
+    no_e1e3, no_e2e2, no_e3e3, No_interference, No_renorm, No_SCF_bulk, No_solsing, noncentre, Nonexc, nonexc_imp, &
     normaltau, Occupancy_first, Octupole, Old_zero, One_run, One_SCF, Operation_mode_used, Optic, Overad, &
     Pas_SCF_imp, Pdb, Perdew, PointGroup_Auto, Polarise, Powder, quadmag, Quadrupole, r_self_imp, Readfast, Relativiste, &
     Renorm, RIXS, RIXS_core, RIXS_db_conv, RIXS_fast, rpalf, rydberg, SCF, SCF_bulk, SCF_elecabs, SCF_mag_free, Self_abs, &
@@ -2057,6 +2057,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
   no_e1e3 = .false.
   no_e3e3 = .false.
   no_e2e2 = .false.
+  No_interference = .false.
   No_renorm = .false.
   No_SCF_bulk = .false.
   No_solsing = .false.
@@ -2522,6 +2523,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
           Density = .true.
           State_all = .true.
           State_all_out = .true.
+
+        case('no_interf')
+          No_interference = .true.
 
         case('spin_chan')
           Spin_channel = .true.
@@ -3680,7 +3684,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
           Space_group = mot132(1:13)
 
 ! Cluster, film or unit cell description
-        case('crystal','molecule','crystal_t','molecule_','film','film_t','surface','surface_t','interface','interfac_')
+        case('crystal','molecule','crystal_t','molecule_','film','film_t','surface','interface','interfac_')
 
           if( keyword(1:8) /= 'molecule' ) Matper = .true.
 
@@ -4838,7 +4842,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
       State_all = .false.
       State_all_out = .false.
       COOP = .false.
-      call Extract_log(Core_resolved,Green_bulk,Green_s,nom_fich_extract,Optic,Renorm,Seuil)
+      call Extract_log(Core_resolved,FDM_comp,Green_bulk,Green_s,nom_fich_extract,Optic,Renorm,Seuil)
     endif
 
     if( Spinorbite .and. non_relat == 0 ) Relativiste = .true.
@@ -5584,6 +5588,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
           endif
         else
           write(3,'(A)') ' Finite difference method calculation'
+          if( FDM_comp ) write(3,'(A)') '   with complex energy'
           if( Bulk .and. Green_bulk ) write(3,'(3x,A)') ' but in the bulk where multiple scattering theory (Green) is used'
           if( n_adimp == 1 ) then
             write(3,440) iord, adimp(1)
@@ -5734,6 +5739,8 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
       if( Full_self_abs ) write(3,'(/A)') ' Self absorption taken into account with birefringence effect'
 
       if( Extract ) then
+
+        Rewind(1)
 
         Close(1)
 
@@ -5896,6 +5903,11 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
       if( abs( dpos(1) ) > epspos .or. abs( dpos(2) ) > epspos .or. abs( dpos(3) ) > epspos ) write(3,545) dpos(1:3)
 
       if( Film ) then
+        if( .not. dafs ) then
+          Film_roughness = 0._db
+          Bulk_roughness = 0._db
+          Cap_roughness = 0._db
+        endif
         write(3,*)
         if( n_atom_per > 0 ) then
           write(3,'(a17,f10.5)') ' Film thickness =', Film_thickness
@@ -6246,6 +6258,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     call MPI_Bcast(nbseuil,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(necrantage,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(No_dft,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
+    call MPI_Bcast(No_interference,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(No_solsing,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(noncentre,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Nonexc,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
@@ -6886,7 +6899,7 @@ end
 
 !***********************************************************************
 
-subroutine Extract_log(Core_resolved,Green_bulk,Green_s,nom_fich_extract,Optic,Renorm,Seuil)
+subroutine Extract_log(Core_resolved,FDM_comp,Green_bulk,Green_s,nom_fich_extract,Optic,Renorm,Seuil)
 
   use declarations
   implicit none
@@ -6897,7 +6910,7 @@ subroutine Extract_log(Core_resolved,Green_bulk,Green_s,nom_fich_extract,Optic,R
   character(len=132):: mot
   character(len=Length_name):: nom_fich_extract
 
-  logical:: Core_resolved, Green_bulk, Green_s, Optic, Renorm
+  logical:: Core_resolved, FDM_comp, Green_bulk, Green_s, Optic, Renorm
 
   open(1, file = nom_fich_extract, status='old', iostat=istat)
   if( istat /= 0 ) call write_open_error(nom_fich_extract,istat,1)
@@ -6939,7 +6952,15 @@ subroutine Extract_log(Core_resolved,Green_bulk,Green_s,nom_fich_extract,Optic,R
     elseif( mot(2:25) == 'Finite difference method' ) then
       Green_s = .false.
       read(1,'(A)' ) mot
-      if( mot(5:19) == 'but in the bulk' ) then
+      if( mot(4:22) == 'with complex energy' ) then
+        FDM_comp = .true.
+        read(1,'(A)' ) mot
+        if( mot(5:19) == 'but in the bulk' ) then
+          Green_bulk = .true.
+        else
+          backspace(1)
+        endif
+      elseif( mot(5:19) == 'but in the bulk' ) then
         Green_bulk = .true.
       else
         backspace(1)
