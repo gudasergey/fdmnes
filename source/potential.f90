@@ -4163,7 +4163,7 @@ subroutine Ptmoy(distai,Green,iaabs,iaproto,icheck,imoy,imoy_out,iopsymr,isrt,Mo
   else
     Rvmmax = Rsort + eps6
 ! Distai is the distance from the center for the farest atom
-    if( Distai > eps6 ) then
+    if( Distai > eps6 .and. natomp > 1 ) then
       R_centre = Distai + eps6
     else
       R_centre = Rsort + eps6

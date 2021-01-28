@@ -15,8 +15,8 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
   implicit none
   include 'mpif.h'
 
-  integer:: eof, eoff, i, iabsm_1, ie, ier, igamme, igc, igr, igrdat, io, ipr, ipl, istat, it, itape4, itype_dop, j, jgr, &
-    jpl, k, l, Length, Length_line, lin_gam, lmax_nrixs, mpierr, mpinodes0, mpirank0, n, n_adimp, n_atom_bulk, n_atom_cap, &
+  integer:: eof, eoff, i, iabsm_1, ie, ier, igamme, igc, igr, io, ipr, ipl, istat, it, itape4, itype_dop, j, jgr, &
+    k, l, Length, Length_line, lin_gam, lmax_nrixs, mpierr, mpinodes0, mpirank0, n, n_adimp, n_atom_bulk, n_atom_cap, &
     n_atom_coop, n_atom_int, n_atom_per, n_atom_per_neq, n_atom_sur, n_atom_uc, n_dic, n_file_dafs_exp, &
     n_fract_x, n_fract_y, n_fract_z, n_label, n_mat_polar, n_mu, n_multi_run_e, n_q_rixs, n_radius, n_range, n_symbol, &
     n_theta_in, n_theta_rixs, n_two_theta, n_Z_abs, nb, nb_atom_conf_m, ncolm, neimagent, &
@@ -150,11 +150,13 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
         case('bulk')
           Bulk = .true.
           read(itape4,*,iostat=ier) p(:)
-          do igr = 1,100000
+          igr = 0
+          do
             read(itape4,*,iostat=ier) i, p(:)
             if( ier /= 0 ) exit
+            igr = igr + 1
           end do
-          n_atom_bulk = igr - 1
+          n_atom_bulk = igr
 
           do igr = 1,n_atom_bulk+1
             Backspace(itape4)
@@ -174,12 +176,14 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
         case('cap_layer')
           Cap_layer = .true.
           read(itape4,*,iostat=ier) p(:)
-          do igr = 1,100000
+          igr = 0
+          do
             read(itape4,*,iostat=ier) i, p(:)
             if( ier /= 0 ) exit
+            igr = igr + 1
           end do
           Backspace(itape4)
-          n_atom_cap = igr - 1
+          n_atom_cap = igr
 
         case('coop')
           n_atom_coop = nnombre(itape4,132)
@@ -194,9 +198,11 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           Absauto = .false.
           n = nnombre(itape4,132)
           if( n > 0 ) n_multi_run_e = 0
-          do i = 1,100000
+          i = 0
+          do
             n = nnombre(itape4,132)
             if( n < 1 ) exit
+            i = i + 1
             n_multi_run_e = n_multi_run_e + n
             if( i == 1 ) then
               read(itape4,*) iabsm_1
@@ -208,9 +214,11 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
         case('z_absorbe')
           n = nnombre(itape4,132)
           n_Z_abs = 0
-          do i = 1,100000
+          i = 0
+          do
             n = nnombre(itape4,132)
             if( n < 1 ) exit
+            i = i + 1
             n_Z_abs = n_Z_abs + n
             if( i == 1 ) then
               read(itape4,*) numat_abs
@@ -238,14 +246,16 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
         case('rixs')
           RIXS = .true.
-          do i = 1,100000
+          i = 0
+          do
             read(itape4,*,iostat=ier) r
             if( ier > 0 ) then
               backspace(itape4)
               exit
             endif
+            i = i + 1
           end do
-          n_q_rixs = i - 1
+          n_q_rixs = i
 
         case('nrixs','nrixs_mon')
           NRIXS = .true.
@@ -383,7 +393,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             endif
           elseif( lin_gam == 1 ) then
             def = 10 / rydb
-            do ie = 2,10000000
+            ie = 1
+            do
+              ie = ie + 1
               r = 1 + ( E/rydb ) / def
               r = max( r, 0.25_db )
               de = sqrt( r ) * Egamme(2)
@@ -395,7 +407,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
             end do
           else
             ngc = 2
-            do ie = 2,1000000
+            ie = 1
+            do
+              ie = ie + 1
               E = E + Egamme(ngc)
               if( E > Egamme(n) - eps10 ) then
                 if( RIXS_loss_case ) then
@@ -423,12 +437,14 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           deallocate( Egamme )
 
         case('eimag')
-          do ie = 1,100000
+          ie = 0
+          do
             n = nnombre(itape4,132)
             if( n == 0 ) exit
+            ie = ie + 1
             read(itape4,*)
           end do
-          neimagent = ie - 1
+          neimagent = ie
 
         case('quadrupol')
           Quadrupole = .true.
@@ -498,7 +514,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           nspinp = 2
 
         case('dilatorb')
-          do i = 1,100000
+          do
             n = nnombre(itape4,132)
             if( n == 0 ) exit
             norbdil = norbdil + 1
@@ -506,17 +522,19 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           end do
 
         case('polarized')
-          do jpl = 1,100000
+          ipl = 0
+          do
             n = nnombre(itape4,132)
             if( n == 0 ) exit
+            ipl = ipl + 1
             read(itape4,*,iostat=ier) p(:)
             if( ier > 0 ) call write_err_form(itape4,keyword)
             if( sum( p(:) )**2 < eps10 ) n_dic = n_dic + 1
           end do
-          nple = jpl - 1
+          nple = ipl
 
         case('mat_polar')
-          do jpl = 1,100000
+          do
             n = nnombre(itape4,132)
             if( n == 0 ) exit
             read(itape4,*,iostat=ier) p(:), p(:)
@@ -525,9 +543,11 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           end do
 
         case('dafs','dafs_2d')
-          do ipl = 1,100000
+          ipl = 0
+          do
             n = nnombre(itape4,132)
             if( n == 0 ) exit
+            ipl = ipl + 1
             select case(n)
               case(3)
                 read(itape4,*)
@@ -556,7 +576,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
                 stop
             end select
           end do
-          npldafs = ipl - 1
+          npldafs = ipl
           if( keyword == 'dafs_2d' ) npldafs_2d = npldafs
 
         case('dafs_exp')
@@ -594,7 +614,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
         case('atom_conf')
 
           Atom_conf = .true.
-          do it = 1,100000
+          it = 0
+          do
+            it = it + 1
             n = nnombre(itape4,132)
             if( n == 0 ) exit
             ntype_conf = ntype_conf + 1
@@ -641,7 +663,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
         case('atom')
 
-          do it = 1,100000
+          it = 0
+          do
+            it = it + 1
             n = nnombre(itape4,132)
             select case(n)
               case(0)
@@ -694,13 +718,17 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
           endif
 
           if( Readfast .or. Taux .or. Temp_B_iso ) then
-            do igr = 1,100000
+            igr = 0
+            do
+              igr = igr + 1
               read(itape4,*,iostat=ier) i, p(:)
               if( ier /= 0 ) exit
             end do
             Backspace(itape4)
           else
-            do igr = 1,100000
+            igr = 0
+            do
+              igr = igr + 1
               n = nnombre(itape4,132)
               if( n == 0 ) exit
               if( n == 2 .or. n == 3 ) then
@@ -819,7 +847,9 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
               n_fract_x = -1; n_fract_y = -1; n_fract_z = -1
               n_label = -1; n_symbol = -1
 
-              do n = 1,100000
+              n = 0
+              do
+                n = n + 1
                 read(8,'(A)') mot
                 mot = adjustl(mot)
                 if( mot(1:1) /= '_' ) then
@@ -1014,7 +1044,7 @@ subroutine lectdim(Absauto,Atom_occ_hubb,Atom_nonsph,Axe_loc,Bormann,Bulk,Cap_la
 
     if( ( npldafs /= 0 .or. npldafs_2d /= 0 ) .and. .not. Dafs_bio ) then
       Rewind(itape4)
-      do igrdat = 1,100000
+      do
         read(itape4,'(A)') mot
         keyword = identmot(mot,9)
         if( keyword(1:4) /= 'dafs' ) cycle
@@ -1390,7 +1420,7 @@ subroutine Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichie
   use declarations
   implicit none
 
-  integer:: eof, i, ier, igr, igrdat, io, ipr, istat, it, itape4, itype_dop, jgr, kgr, ligne, n, n_atom_bulk, n_atom_neq, &
+  integer:: eof, i, ier, igr, io, ipr, istat, it, itape4, itype_dop, jgr, kgr, n, n_atom_bulk, n_atom_neq, &
     n_atom_int, n_atom_per, n_atom_per_neq, n_atom_sur, n_label, n_fract_x, n_fract_y, n_fract_z, na, n_symbol, nnombre, norbv, &
     ntype, ntype_conf
 
@@ -1417,7 +1447,7 @@ subroutine Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichie
 
     igr = 0
 
-    do ligne = 1,100000
+    do
 
       read(8,'(a6)') mot6
 
@@ -1532,7 +1562,7 @@ subroutine Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichie
 
     Rewind(itape4)
 
-    do igrdat = 1,100000
+    do
       read(itape4,'(A)',iostat=eof) mot
       if( eof /= 0 ) exit
       keyword = identmot(mot,9)
@@ -1600,7 +1630,7 @@ subroutine Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichie
       igra(:) = 0
       Rewind(itape4)
 
-      do igrdat = 1,100000
+      do
         read(itape4,'(A)') mot
         keyword = identmot(mot,9)
         if( keyword /= 'atom_conf' ) cycle
@@ -1617,7 +1647,7 @@ subroutine Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichie
 
       Rewind(itape4)
 
-      do igrdat = 1,100000
+      do
         read(itape4,'(A)') mot
         keyword = identmot(mot,9)
         if( keyword(1:7) == 'interfa' ) exit
@@ -1635,7 +1665,7 @@ subroutine Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichie
 
       Rewind(itape4)
 
-      do igrdat = 1,100000
+      do
         read(itape4,'(A)') mot
         keyword = identmot(mot,9)
         if( keyword(1:7) == 'surface' ) exit
@@ -1653,7 +1683,7 @@ subroutine Dim_reading(Angz,Atom_conf,Atom_conf_dop,Fcif,Doping,Fcif_file,Fichie
 
       Rewind(itape4)
 
-      do igrdat = 1,100000
+      do
         read(itape4,'(A)') mot
         keyword = identmot(mot,9)
         if( keyword(1:4) == 'bulk' ) exit
@@ -1704,7 +1734,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     Angpoldafs,Angxyz,Angxyz_bulk, &
     Angxyz_cap,Angxyz_int,Angxyz_sur,ATA,Atom_occ_hubb,Atom_nonsph,Atom_nsph_e,Atomic_scr,Axe_atom_gr,Axe_loc,axyz,axyz_bulk, &
     axyz_cap,axyz_int,axyz_sur,Basereel,Bormann,Bulk,Bulk_roughness,Cap_B_iso,Cap_layer,Cap_roughness,Cap_shift, &
-    Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre,Charge_free,Check_extract,Check_mpi,Classic_irreg,Clementi,Com,Comt, &
+    Cap_thickness,Cartesian_tensor,cdil,Center_s,Centre,Charge_free,Check_extract,Check_mpi,Clementi,Com,Comt, &
     COOP,COOP_z_along_bond,Core_energ_tot,Core_resolved,Coupelapw,D_max_pot,Dafs,Dafs_bio,Delta_En_conv,Delta_Epsii, &
     Delta_helm,Density,Density_comp,Dip_rel,Dipmag,Dist_coop,Doping,dpos,dyn_eg,dyn_g, &
     E_adimp,E_radius,E_max_range,Eclie,Eclie_out,Ecrantage,Eeient,Egamme,Eimagent,Eneg_i,Eneg_n_i, &
@@ -1731,7 +1761,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     rotloc_lapw,roverad,RPALF,rpotmax,rydberg,rsorte_s,SCF_log,Self_abs, &
     Solsing_s,Solsing_only,Spherical_signal,Spherical_tensor,Spin_channel,Spinorbite,State_all,State_all_out, &
     Step_loss,Sum_rixs,Supermuf,Surface_shift,Symauto,Symmol,Taux,Taux_cap,Taux_oc,Tddft,Temp,Temp_coef,Temp_B_iso, &
-    Tensor_imp,Test_dist_min,Theta_rixs,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_helm,V_hubbard,V_intmax, &
+    Tensor_imp,Test_dist_min,Test_reg,Theta_rixs,Trace_format_wien,Trace_k,Trace_p,Typepar,Use_FDMX,V_helm,V_hubbard,V_intmax, &
     Vec_orig,Vecdafsem,Vecdafssm,Veconde,V0bdcFimp,Width_helm,Wien_file,Wien_matsym,Wien_save,Wien_taulap,Write_modQ, &
     Ylm_comp_inp,Z_bulk,Z_cap,Z_nospinorbite)
 
@@ -1752,7 +1782,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     nenerg_in_rixs, nenerg_loss_rixs, nenerg_out_rixs, nenerg_s, ngamme, ngamh, ngroup, ngroup_hubb, ngroup_lapw, ngroup_m, &
     ngroup_nonsph, ngroup_par, ngroup_pdb, ngroup_taux, ngroup_temp, nhybm, nlatm, nn, nnombre, non_relat, norb, norbdil, normrmt, &
     nparm, nphim, nphimt, npldafs, npldafs_2d, npldafs_e, npldafs_f, nple, nq_nrixs, nrato_dirac, nrm, nscan, nself, nself_bulk, &
-    nseuil, nslapwm, nspin, ntype, ntype_bulk, ntype_conf, ntype_mod, Trace_k, Wien_save, Z_nospinorbite, Z
+    nseuil, nslapwm, nspin, ntype, ntype_bulk, ntype_conf, ntype_mod, Test_reg, Trace_k, Wien_save, Z_nospinorbite, Z
 
   character(len=1):: Let
   character(len=2):: Chemical_Symbol, Chemical_Symbol_c, Symbol
@@ -1810,7 +1840,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
   logical:: Absauto, Absorber, adimpin, All_nrixs, All_site_rixs, Allsite, Ampl_rixs, Apostrophe, ATA, Atom, Atom_B_iso, &
     Atom_conf, Atom_nonsph, Atom_occ_hubb, Atomic_scr, &
     Atom_U_iso, Avoid, Axe_loc, Basereel, Bormann, Bulk, Cartesian_tensor, Charge_free, Centre_auto, Centre_auto_abs, Center_s, &
-    Check_extract, Check_mpi, Classic_irreg, Clementi, COOP, Core_energ_tot, Core_resolved, COOP_z_along_bond, &
+    Check_extract, Check_mpi, Clementi, COOP, Core_energ_tot, Core_resolved, COOP_z_along_bond, &
     Core_resolved_e, Coupelapw, Cap_layer, Cylindre, Dafs, Dafs_bio, Density, Density_comp, Diagonal, &
     Dip_rel, Dipmag, Doping, dyn_eg, dyn_g, E1E1, E1E2e, E1E3, E1M1, E1M2, E2E2, E3E3, eneg_i, eneg_n_i, Energphot, Fcif, Film, &
     exc_imp, Extract, Extract_ten, FDM_comp, FDMX_only, Fermi_auto, Fit_cal, Flapw, Flapw_new, Force_ecr, Full_atom_e, &
@@ -1943,8 +1973,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
   Centre_auto = .false.
   Centre_auto_abs = .false.
   Center_s = .false.
- ! The irregular solution is taken by continuity with bessel if false.
-  Classic_irreg = .true.
   Clementi = .false.
   Fcif = .false.
   com(:) = ' Dirac'
@@ -2158,6 +2186,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
   Taux_cap(:) = 1._db
   Taux_oc(:) = 1._db
   Temp_coef(:) = 0._db
+  Test_reg = 0
   Tddft = .false.
   Temp = 0._db
   Test_dist_min = 0.7_db * bohr ! minimum distance between 2 atoms
@@ -2191,7 +2220,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
 
     write(6,*)
 
-    boucle_lect: do igrdat = 1,100000
+    igrdat = 0
+    boucle_lect: do
+      igrdat = igrdat + 1
 
       read(itape4,'(A)',iostat=eof) mot
       if( eof /= 0 ) exit boucle_lect
@@ -2203,9 +2234,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
 
         case('all_site_')
           All_site_rixs = .true.
-
-        case('rixs_ampl')
-          Ampl_rixs = .true.
 
         case('ata')
           ATA = .true.
@@ -2292,9 +2320,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
         case('cap_shift')
           read(itape4,*,iostat=ier) Cap_shift
           if( ier > 0 ) call write_err_form(itape4,keyword)
-
-        case('classic_i')
-          Classic_irreg = .false.
 
         case('coop')
           n = nnombre(itape4,132)
@@ -3003,10 +3028,20 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
             end do
           end do
 
+        case('test_reg')
+          n = nnombre(itape4,132)
+          if( n == 0 ) then
+            Test_reg = 1
+          else
+            read(itape4,*) Test_reg
+          endif
+
         case('dafs')
           Dafs = .true.
           ipl = 0
-          do jpl = 1,1000000000
+          jpl = 0
+          do
+            jpl = jpl + 1
             n = nnombre(itape4,132)
             if( n == 0 ) exit
             ipl = ipl + 1
@@ -3240,7 +3275,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
           if( ier > 0 ) call write_err_form(itape4,keyword)
 
         case('rcharge')
-          do it = 1,100000
+          it = 0
+          do
+            it = it + 1
             n = nnombre(itape4,132)
             if( n == 0 ) exit
             if( it <= ntype ) then
@@ -3479,7 +3516,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
         case('absorbeur')
           Absorber = .true.
           k = 0
-          do i = 1,100000
+          do
             n = nnombre(itape4,132)
             if( n < 1 ) exit
             read(itape4,*,iostat=ier) iabsm(k+1:k+n)
@@ -3533,7 +3570,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
         case('atom')
           atom = .true.
           it = 0
-          do jt = 1,100000
+          jt = 0
+          do
+            jt = jt + 1
             n = nnombre(itape4,132)
 
             if( n == 0 ) exit
@@ -3980,7 +4019,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
               n_label = 0
               n_symbol = 0
 
-              do n = 1,100000
+              n = 0
+              do
+                n = n + 1
                 read(8,'(A)') mot
                 mot = adjustl(mot)
                 if( mot(1:1) /= '_' ) then
@@ -4122,6 +4163,9 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
             endif
           end do
 
+        case('rixs_ampl')
+          Ampl_rixs = .true.
+
         case('rixs_core')
           RIXS_core = .true.
 
@@ -4142,7 +4186,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
           n = nnombre(itape4,132)
           if( Absauto ) then
             j = 0
-            do i = 1,100000
+            do
               n = nnombre(itape4,132)
               if( n < 1 ) exit
               read(itape4,*) numat_abs(j+1:j+n)
@@ -4819,7 +4863,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
       Density = .false.
       if( Quadrupole ) then
         open(1, file = nom_fich_Extract, status='old', iostat=istat)
-        do i = 1,100000
+        do
           read(1,'(A)') mot
           if( mot(2:6) == 'Dipol'  ) then
             read(1,'(A)') mot
@@ -5457,7 +5501,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
         endif
         open(1, file = nom_fich_Extract, status='old',iostat=istat)
         if( istat /= 0 ) call write_open_error(nom_fich_Extract,istat,1)
-        do i = 1,100000
+        do
           read(1,'(A)') mot
           write(3,'(A)') mot
           if( mot(2:6) == 'Dipol'  ) exit
@@ -5534,7 +5578,7 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
       if( Core_resolved ) write(3,'(A)') ' Core resolved in outputs'
 
       if( Extract_ten ) then
-        do i = 1,100000
+        do
           read(1,'(A)') mot
           if( mot(2:9) /= 'Molecule' .and. mot(2:8) /= 'Crystal' ) cycle
           write(3,'(A)') mot
@@ -6138,7 +6182,6 @@ subroutine lecture(Absauto,adimp,alfpot,All_nrixs,All_site_rixs,Allsite,Ampl_rix
     call MPI_Bcast(Centre_auto_abs,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Center_s,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
     call MPI_Bcast(Charge_free,1,MPI_LOGICAL,0,MPI_COMM_WORLD, mpierr)
-    call MPI_Bcast(Classic_irreg,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(Clementi,1,MPI_LOGICAL,0,MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(COOP,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
     call MPI_Bcast(COOP_z_along_bond,1,MPI_LOGICAL,0, MPI_COMM_WORLD,mpierr)
@@ -6904,7 +6947,7 @@ subroutine Extract_log(Core_resolved,FDM_comp,Green_bulk,Green_s,nom_fich_extrac
   use declarations
   implicit none
 
-  integer:: i, istat, Length, Line
+  integer:: i, istat, Length
 
   character(len=3):: Seuil
   character(len=132):: mot
@@ -6915,7 +6958,7 @@ subroutine Extract_log(Core_resolved,FDM_comp,Green_bulk,Green_s,nom_fich_extrac
   open(1, file = nom_fich_extract, status='old', iostat=istat)
   if( istat /= 0 ) call write_open_error(nom_fich_extract,istat,1)
 
-  do i = 1,100000
+  do
     read(1,'(A)') mot
     if( mot(2:10) == 'Threshold' ) then
       Length = len_trim(mot)
@@ -6944,7 +6987,7 @@ subroutine Extract_log(Core_resolved,FDM_comp,Green_bulk,Green_s,nom_fich_extrac
 
   Rewind(1)
 
-  do Line = 1,100000
+  do
     read(1,'(A)' ) mot
     if( mot(2:20) == 'Multiple scattering' ) then
       Green_s = .true.
@@ -6969,7 +7012,7 @@ subroutine Extract_log(Core_resolved,FDM_comp,Green_bulk,Green_s,nom_fich_extrac
     endif
   end do
 
-  do Line = 1,100000
+  do
     read(1,'(A)' ) mot
     if( mot(2:50) == 'Normalization of the atomic radial wave functions' ) then
       Renorm = .true.

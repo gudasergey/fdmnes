@@ -4,7 +4,7 @@
 
 !***********************************************************************
 
-subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,Classic_irreg, &
+subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor, &
           Core_resolved,Dafs,Dafs_bio,dv0bdcF,E_cut,E_cut_imp,E_cut_man,Eclie,Eneg,Energ_s,Ephot_min, &
           Extract_ten,Eseuil,Full_potential,Full_self_abs,Green,hkl_dafs,Hubb_a,Hubb_d,icheck, &
           iabsorig,ip_max,ip0,isigpi,isymeq, &
@@ -30,7 +30,7 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
   integer:: i_range, iabsorig, icheck_s, ie, ie_computer, ie_q, ie_s, ie_t, ip_max, ip0, &
     iso1, iso2, isp, isp1, isp2, iss1, iss2, je, jseuil, l0_nrixs, lm1, lm2, lmax, lmax_pot, &
     lmax_probe, lmaxabs_t, lms1, lms2, lseuil, m_hubb, mpinodes, mpirank, mpirank0, &
-    lmax_nrixs, lmaxat0, multi_0, n_abs_rgh, n_bulk_sup, n_comp, n_Ec, n_multi_run, n_oo, n_rel, n_rout, &
+    lmax_nrixs, lmaxat0, multi_0, n_abs_rgh, n_bulk_sup, n_Ec, n_multi_run, n_oo, n_rel, n_RI, n_rout, &
     n_tens_max, n_V, natomsym, nbseuil, ncolm, ncolr, ncolt, &
     ndim2, nenerg, nenerg_s, nenerg_tddft, nge, ninit1, ninit, ninitr, nlm_pot, nlm_probe, nlm_p_fp, &
     nlmamax, nphim, npldafs, nplr, nplrm, nq_nrixs, nr, nrm, ns_dipmag, nseuil, nspin, &
@@ -71,10 +71,10 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitr,0:mpinodes-1):: secoo, secoo_m, secoo_t, secoo_m_t
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
   complex(kind=db), dimension(nenerg_s,nlmamax,nspinp,nlmamax,nspinp):: Taull_tdd
-  complex(kind=db), dimension(:,:,:,:,:), allocatable:: rof0, S_nrixs
+  complex(kind=db), dimension(:,:,:,:,:), allocatable:: rof0, S_nrixs, Tau_RI_abs
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: Taull_abs
 
-  logical:: Allsite, Cartesian_tensor, Classic_irreg, Core_resolved, Dafs, Dafs_bio, E_cut_man, &
+  logical:: Allsite, Cartesian_tensor, Core_resolved, Dafs, Dafs_bio, E_cut_man, &
     E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, Eneg, Energphot, Extract_ten, FDM_comp, Final_optic, Final_tddft, First_E, &
     Full_potential, Full_self_abs, Green, Green_int, Hubb_a, Hubb_d, lmaxfree, lmoins1, lplus1, M1M1, Matper, &
     Moyenne, Relativiste, Renorm, Self_abs, Solsing, &
@@ -126,8 +126,6 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
   ns_dipmag = 2  ! corresponds here at the 2, occupied and non-occupied state, energies, not the spin-flip in the E1M1 transition 
   ndim2 = 1
   Surface_ref = 0._db
-  
-  n_comp = 1
   
   if( Hubb_a .or. Full_potential ) then
     nlm_p_fp = nlm_probe
@@ -284,17 +282,21 @@ subroutine main_optic(Abs_U_iso,angxyz,Allsite,axyz,Bragg_abs,Cartesian_tensor,C
  
         nenerg_tddft = 0
         allocate( rof0(nenerg_tddft,nlmamax,nspinp,nspino,nbseuil) )
+        n_RI = 0
+        allocate( Tau_RI_abs(nlm_probe,nspinp,nlm_probe,nspinp,n_RI) )
 
-        call tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic, &
+        call tenseur_car(coef_g,Core_resolved,Ecinetic, &
                 Eimag(ie),Energ(ie),Enervide,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
                 Hubb_d,icheck_s,ie,ip_max,ip0,is_g,lmax_probe,lmax_pot,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
                 mpinodes,mpirank,mpirank0,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi,Multipole, &
-                n_comp,n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninit,ninitr,ninitr,nlm_pot,nlm_probe, &
+                n_Ec,n_oo,n_rel,n_RI,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninit,ninitr,ninitr,nlm_pot,nlm_probe, &
                 nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat_abs,psii,r,Relativiste,Renorm, &  
                 Rmtg,Rmtsd,rof0,rot_atom_abs, &
                 Rot_int,secdd_t,secdd_m_t,secdo_t,secdo_m_t,secdq_t,secdq_m_t,secmd_t,secmd_m_t,secmm_t,secmm_m_t,secoo_t, &
-                secoo_m_t,secqq_t,secqq_m_t,Solsing,Solsing_only,Spinorbite,Taull_abs,Tddft,V_hubb,V_intmax,V0bdc,Vrato,Ylm_comp)
+                secoo_m_t,secqq_t,secqq_m_t,Solsing,Solsing_only,Spinorbite,Tau_RI_abs,Taull_abs,Tddft,V_hubb,V_intmax,V0bdc, &
+                Vrato,Ylm_comp)
 
+        deallocate( Tau_RI_abs )
         deallocate( rof0 )
 
         if( E1E1 ) secdd(:,:,:,:,mpirank) = secdd(:,:,:,:,mpirank) + secdd_t(:,:,:,:,mpirank)

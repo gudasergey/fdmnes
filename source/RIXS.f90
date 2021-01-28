@@ -8,10 +8,10 @@
 
 subroutine main_RIXS(Ampl_abs,Circular,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fermi,E_cut_man,Eclie,Eneg, &
         Energ_loss_rixs,Energ_out_rixs,Energ_rixs,Energ_s,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Estart,File_name_rixs, &
-        FDM_comp_m,Full_potential,Gamma_hole,Gamma_hole_man,Hubb_a,Hubb_d,iabsorig, &
+        FDM_comp,Full_potential,Gamma_hole,Gamma_hole_man,Hubb_a,Hubb_d,iabsorig, &
         icheck,igreq,iprabs_nonexc,isymeq,ip0,ip_max,is_g,jseuil,lmoins1,lplus1,lseuil,m_g,m_hubb, &
         Moment_conservation,multi_run, &
-        Multipole,n_atom_proto,n_atom_uc,n_comp,n_multi_run,n_oo,n_q_rixs,n_rel,n_shift_core,n_theta_rixs,natomsym,nbseuil, &
+        Multipole,n_atom_proto,n_atom_uc,n_multi_run,n_oo,n_q_rixs,n_rel,n_shift_core,n_theta_rixs,natomsym,nbseuil, &
         nenerg_in_rixs,nenerg_loss_rixs,nenerg_out_rixs,nenerg_s,neqm,ngamh,ninit1,ninit,ninitr,nlm_pot,nlm_probe,nlm_f, &
         nomfich,nr,nrm,ns_dipmag,nseuil,nspin,nspino,nspinp,numat,Orthmati,Posn,Powder, &
         psii,q_rixs,r,Relativiste,Renorm,RIXS_fast,Rmtg,Rmtsd,Rot_atom_abs,Rot_int,Shift_core,Spin_channel, &
@@ -29,7 +29,7 @@ subroutine main_RIXS(Ampl_abs,Circular,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_
   
   integer:: iabsorig, i_q, i_q_g, i_Spin_channel, i_theta, i_theta_g, ia, ich, icheck, ie, &
      ie_in, ie_loss, ie_oc, ie_s, ii, ip0, ip_max, initr, iprabs_nonexc, iseuil, isp, isym, &
-     js, jseuil, Length, lmax_pot, lmax, lseuil, m_hubb, multi_run, n_atom_proto, n_atom_uc, n_comp, n_isc, n_multi_run, &
+     js, jseuil, Length, lmax_pot, lmax, lseuil, m_hubb, multi_run, n_atom_proto, n_atom_uc, n_isc, n_multi_run, &
      n_oo, n_q_dim, n_q_rixs, n_rel, n_shift_core, n_Spin_channel, n_theta_rixs, natomsym, nbseuil, &
      ne, ne_loss, nenerg_in, nenerg_in_rixs, nenerg_loss_rixs, nenerg_oc, nenerg_out_rixs, nenerg_unoc, nenerg_s, neqm, ngamh, &
      ninit, ninit1, ninitr, nlm_f, nlm_p_fp, nlm_pot, nlm_probe, npl, nr, nrm, &
@@ -44,7 +44,7 @@ subroutine main_RIXS(Ampl_abs,Circular,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_
   character(len=Length_name):: File_name_rixs, nomfich
 
   complex(kind=db):: CFac, Lorentzian
-  complex(kind=db), dimension(nenerg_s,n_comp*nlm_probe,nspinp,nlm_f,nspinp):: Ampl_abs
+  complex(kind=db), dimension(nenerg_s,nlm_probe,nspinp,nlm_f,nspinp):: Ampl_abs
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull, Taull_Spin_channel
   complex(kind=db), dimension(3,3,2,ninitr):: secmd
@@ -73,7 +73,7 @@ subroutine main_RIXS(Ampl_abs,Circular,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_
   complex(kind=db), dimension(:,:,:,:,:,:,:), allocatable:: secdo_xtal
 
   logical:: Circular, Core_resolved, Dip_rel, E_cut_man, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, &
-            Epsii_ref_man, Extract_ten, Eneg, Energ_emission, FDM_comp_m, Final_optic, Final_tddft, Full_potential, &
+            Epsii_ref_man, Extract_ten, Eneg, Energ_emission, FDM_comp, Final_optic, Final_tddft, Full_potential, &
             Gamma_hole_man, Hubb_a, Hubb_d, k_not_possible, lmoins1, lplus1, M1M1, Magn_sens, Moment_conservation, &
             Monocrystal, Only_Intensity, &
             Powder, Relativiste, Renorm, RIXS, RIXS_fast, Run_fast, Spin_channel, Spinorbite, Tddft, Time_reversal, Write_bav, &
@@ -171,8 +171,8 @@ subroutine main_RIXS(Ampl_abs,Circular,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_
   else
     nlm_p_fp = 1
   endif
-  allocate( rof_e(n_comp*nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,nenerg_s)  )  
-  allocate( rof(n_comp*nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,n_Ec)  )  
+  allocate( rof_e(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,nenerg_s)  )  
+  allocate( rof(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,n_Ec)  )  
 
   E1E1 = Multipole(1); E1E2 = Multipole(2); E1E3 = Multipole(3);
   E1M1 = Multipole(4); E2E2 = Multipole(6);
@@ -384,7 +384,7 @@ subroutine main_RIXS(Ampl_abs,Circular,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_
 
 ! Calculation of the radial matrices
   call cal_rof(E_Fermi,Eclie,Eneg,Energ_s,Eseuil,Full_potential,Hubb_a,Hubb_d,icheck,ip0,ip_max,lmax,lmax_pot, &
-                   m_hubb,n_comp,n_Ec,nbseuil,nenerg_s,ninit1,nlm_pot,nlm_p_fp,nlm_probe,nr,nrm,nspin,nspino,nspinp,numat,psii,r, &
+                   m_hubb,n_Ec,nbseuil,nenerg_s,ninit1,nlm_pot,nlm_p_fp,nlm_probe,nr,nrm,nspin,nspino,nspinp,numat,psii,r, &
                    Relativiste,Renorm,Rmtg,Rmtsd,rof_e,Spinorbite,V_hubb,V_intmax,V0bdc,Vrato,Ylm_comp)
   
   if( nenerg_oc == 1 ) then
@@ -560,7 +560,7 @@ subroutine main_RIXS(Ampl_abs,Circular,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_
               endif
               
               call Cal_Tau_loss(Ampl_abs,Energ_oc(ie_oc),Energ_unoc,Energ_s,icheck,isymeq(ia),k_elec_i,k_elec_s, &
-                        k_not_possible,Lmax,matopsym,Mod_Q,Moment_conservation,Monocrystal,n_comp,nenerg_s,ndim2,nlm_f, &
+                        k_not_possible,Lmax,matopsym,Mod_Q,Moment_conservation,Monocrystal,nenerg_s,ndim2,nlm_f, &
                         nlm_probe,ns_dipmag,nspin,nspino,nspinp,Probed_L,Q_vec,Rot_atom, &
                         Spinorbite,Taull_Spin_channel,Time_reversal,Ylm_comp)
 
@@ -585,8 +585,8 @@ subroutine main_RIXS(Ampl_abs,Circular,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_
                     Taull(:,:,:,:,2,2,:) = Taull_Spin_channel(:,:,:,:,2,2,:)
                 end select    
 
-                call Tensor_rixs(coef_g,Core_resolved,FDM_comp_m,Final_optic,Final_tddft,Full_potential, &
-                  i_Spin_channel,ich,ip_max,ip0,is_g,lmax,lmoins1,lplus1,lseuil,m_g,Multipole,n_comp, &
+                call Tensor_rixs(coef_g,Core_resolved,FDM_comp,Final_optic,Final_tddft,Full_potential, &
+                  i_Spin_channel,ich,ip_max,ip0,is_g,lmax,lmoins1,lplus1,lseuil,m_g,Multipole, &
                   n_Ec,n_oo,n_rel,ns_dipmag,ndim2,ninit1,ninit,ninitr,nlm_probe,nlm_p_fp,nspino,nspinp,numat,RIXS,rof, &
                   Rot_atom,secdd,secdo,secdq,secmd,secmm,secoo, &
                   secqq,Spinorbite,Taull,Time_reversal,Write_bav,Ylm_comp)
@@ -876,17 +876,17 @@ end
 ! Calculation of the radial matrix rof
 
 subroutine Cal_rof(E_Fermi,Eclie,Eneg,Energ_s,Eseuil,Full_potential,Hubb_a,Hubb_d,icheck,ip0,ip_max,lmax,lmax_pot, &
-                   m_hubb,n_comp,n_Ec,nbseuil,nenerg_s,ninit1,nlm_pot,nlm_p_fp,nlm_probe,nr,nrm,nspin,nspino,nspinp,numat,psii,r, &
+                   m_hubb,n_Ec,nbseuil,nenerg_s,ninit1,nlm_pot,nlm_p_fp,nlm_probe,nr,nrm,nspin,nspino,nspinp,numat,psii,r, &
                    Relativiste,Renorm,Rmtg,Rmtsd,rof_e,Spinorbite,V_hubb,V_intmax,V0bdc,Vrato,Ylm_comp)
 
   use declarations
   implicit none
 
-  integer:: icheck, ie, ip, ip0, ip_max, lmax, lmax_pot, m_hubb, n_comp, n_Ec, nbseuil, nenerg_s, ninit1, nlm_pot, nlm_p_fp, &
+  integer:: icheck, ie, ip, ip0, ip_max, lmax, lmax_pot, m_hubb, n_Ec, nbseuil, nenerg_s, ninit1, nlm_pot, nlm_p_fp, &
             nlm_probe, nr, nrm, nspin, nspino, nspinp, numat
 
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
-  complex(kind=db), dimension(n_comp*nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,nenerg_s):: rof_e
+  complex(kind=db), dimension(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,nenerg_s):: rof_e
   complex(kind=db), dimension(:,:,:,:,:,:), allocatable:: rof
 
   logical:: Eneg, Final_tddft, Full_potential, Hubb_a, Hubb_d, NRIXS, Relativiste, Renorm, Spinorbite, Ylm_comp
@@ -908,7 +908,7 @@ subroutine Cal_rof(E_Fermi,Eclie,Eneg,Energ_s,Eseuil,Full_potential,Hubb_a,Hubb_
 
   if( icheck > 1 ) write(3,110)
 
-  allocate( rof(n_comp*nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,n_Ec) )
+  allocate( rof(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,n_Ec) )
 
   do ip = ip0,ip_max
     select case(ip)
@@ -930,7 +930,7 @@ subroutine Cal_rof(E_Fermi,Eclie,Eneg,Energ_s,Eseuil,Full_potential,Hubb_a,Hubb_
     rof(:,:,:,:,:,:) = (0._db, 0._db)
  
     call radial_RIXS(E_Fermi,Ecinetic,Eimag,Energ_s(ie),Enervide(1),Eseuil,Final_tddft,Full_potential,Hubb_a,Hubb_d,icheck, &
-         1,ip_max,ip0,lmax,lmax_pot,m_hubb,n_comp,nbseuil,ninit1,n_Ec,nlm_pot,nlm_probe,nlm_p_fp,nr,NRIXS,nrm,nspin,nspino, &
+         1,ip_max,ip0,lmax,lmax_pot,m_hubb,nbseuil,ninit1,n_Ec,nlm_pot,nlm_probe,nlm_p_fp,nr,NRIXS,nrm,nspin,nspino, &
          nspinp,numat,psii,r,r_or_bess,Relativiste,Renorm,Rmtg,Rmtsd,rof,Spinorbite,V_hubb,V_intmax,V0bdc,Vrato, &
          Ylm_comp)
 
@@ -949,7 +949,7 @@ end
 ! Calculation of radial integrals 
 
 subroutine radial_RIXS(E_Fermi,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft,Full_potential,Hubb_a,Hubb_d,icheck, &
-         initlv,ip_max,ip0,Lmax,lmax_pot,m_hubb,n_comp,nbseuil,ninit1,ninitv,nlm_pot,nlma,nlma2,nr,NRIXS,nrm,nspin,nspino, &
+         initlv,ip_max,ip0,Lmax,lmax_pot,m_hubb,nbseuil,ninit1,ninitv,nlm_pot,nlma,nlma2,nr,NRIXS,nrm,nspin,nspino, &
          nspinp,numat,psii,r,r_or_bess,Relativiste,Renorm,Rmtg,Rmtsd,rof,Spinorbite,V_hubb,V_intmax,V0bd,Vrato, &
          Ylm_comp)
 
@@ -957,18 +957,17 @@ subroutine radial_RIXS(E_Fermi,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft,
   implicit none
 
   integer:: i, ich, icheck, initl, initlv, ip, ip_max, ip0, iseuil, isp, L, l_hubbard, lfin, lm, lmax, &
-    lmax_pot, lmp, lp, m, m_hubb, nlm1, nlm2, mp, n_comp, nbseuil, ninit1, ninitv, nlm, nlm_pot, nlma, nlma2, nr, nrm, &
+    lmax_pot, lmp, lp, m, m_hubb, nlm1, nlm2, mp, nbseuil, ninit1, ninitv, nlm, nlm_pot, nlma, nlma2, nr, nrm, &
     nrmax, nrmtsd, nrmtg, nspin, nspino, nspinp, numat
 
   character(len=104):: mot
 
   complex(kind=db), dimension(nspin):: konde
-  complex(kind=db), dimension(n_comp*nlma,nlma2,nspinp,nspino,ip0:ip_max,ninitv):: rof
-  complex(kind=db), dimension(nlma,nlma2,nspinp,nspino,ip0:ip_max,ninitv):: rofb
+  complex(kind=db), dimension(nlma,nlma2,nspinp,nspino,ip0:ip_max,ninitv):: rof
   complex(kind=db), dimension(-m_hubb:m_hubb,-m_hubb:m_hubb,nspinp,nspinp):: V_hubb
   complex(kind=db), dimension(:,:,:,:), allocatable:: Tau
 
-  logical:: Classic_irreg, Ecomp, Final_tddft, Full_potential, Hubb_a, &
+  logical:: Ecomp, Final_tddft, Full_potential, Hubb_a, &
     Hubb_d, Hubb_m, NRIXS, Radial_comp, Relativiste, Renorm, Spinorbite, Ylm_comp
 
   real(kind=db):: E_Fermi, Eimag, Energ, Enervide, Ephoton, Rmtg, Rmtsd, V_intmax
@@ -984,7 +983,7 @@ subroutine radial_RIXS(E_Fermi,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft,
   real(kind=db), dimension(nspinp*(Lmax+1)**2):: E_kin, E_V
 
   real(kind=db), dimension(:,:,:,:), allocatable:: V
-  real(kind=db), dimension(:,:,:,:,:), allocatable:: ui, ur, usi, usr
+  real(kind=db), dimension(:,:,:,:,:), allocatable:: ui, ur
 
   E_kin = 0._db; E_V(:) = 0._db
   
@@ -1090,30 +1089,8 @@ subroutine radial_RIXS(E_Fermi,Ecinetic,Eimag,Energ,Enervide,Eseuil,Final_tddft,
 !                        nlm2,nr,nspin,nspino,nspinp,r,Rmtsd,Spinorbite,ur,V,Vc,numat)
 
 ! Radial integral for the golden rule
-    call radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,L,n_comp,nlm1,nlm2,nbseuil, &
+    call radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,L,nlm1,nlm2,nbseuil, &
            ninitv,nlma,nlma2,nr,NRIXS,nrm,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtsd,rof,ui,ur,Vecond)
-
-    nrmax = nrmtsd + 1
-    allocate( usi(nrmtg+1,nlm1,nlm2,nspinp,nspino) )
-    allocate( usr(nrmtg+1,nlm1,nlm2,nspinp,nspino) )
-
-! gm and gp reverse in subroutine
-    if( n_comp == 2 ) then
-      Classic_irreg = .false.
-      call Sch_radial_solsing(Classic_irreg,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a,Hubb_d,icheck,konde, &
-          L,Lmax,m_hubb,nlm,nlm1,nlm2,nr,nrmtg,nrmax,nspin,nspino,nspinp,numat,r,Radial_comp,Rmtg,Spinorbite,Tau,usi,usr,V,V_hubb)
-
-      ur(:,:,:,:,:) = 0._db
-      ui(:,:,:,:,:) = 0._db
-      ur(1:nrmtg+1,:,:,:,:) = usr(1:nrmtg+1,:,:,:,:) 
-      ui(1:nrmtg+1,:,:,:,:) = usi(1:nrmtg+1,:,:,:,:) 
-
-      call radial_matrix(Final_tddft,initlv,ip_max,ip0,iseuil,L,1,nlm1,nlm2,nbseuil, &
-           ninitv,nlma,nlma2,nr,NRIXS,nrm,nspino,nspinp,psii,r,r_or_bess,Radial_comp,Rmtg,rofb,ui,ur,Vecond)
-      do lm = 1,nlma
-        rof(lm+nlma,:,:,:,:,:) = rofb(nlma,:,:,:,:,:) 
-      end do
-    endif
 
     deallocate( Tau, ui, ur )
 
@@ -1646,7 +1623,7 @@ end
 ! Calculation of the pseudo inelastic scattering amplitude
 
 subroutine Cal_Tau_loss(Ampl_abs,Energ_oc,Energ_unoc,Energ_s,icheck,isym,k_elec_i,k_elec_s, &
-                        k_not_possible,Lmax,matopsym,Mod_Q,Moment_conservation,Monocrystal,n_comp,nenerg_s,ndim2,nlm_f, &
+                        k_not_possible,Lmax,matopsym,Mod_Q,Moment_conservation,Monocrystal,nenerg_s,ndim2,nlm_f, &
                         nlm_probe,ns_dipmag,nspin,nspino,nspinp,Probed_L,Q_vec,Rot_atom, &
                         Spinorbite,Taull,Time_reversal,Ylm_comp)
 
@@ -1655,11 +1632,11 @@ subroutine Cal_Tau_loss(Ampl_abs,Energ_oc,Energ_unoc,Energ_s,icheck,isym,k_elec_
 
   integer:: icheck, ie_unoc, ie_oc, iso1, iso2, isp, isp1, isp2, isp_f, ispp1, ispp2, iss1, iss2, isym, je, &
             je_unoc, L, L_f, L1, L2, Lm, Lm_f, Lm0, Lm1, Lm1_0, Lm2, Lm2_0, Lmax, Lmax_f, Lmax_u, &
-            Lmp, Lms1, Lms2, m, m_F, m1, m2, mp, mp1, mp2, n_comp, ndim2, ne, nenerg_s, nlm_f, nlm_probe, nlm_u, &
+            Lmp, Lms1, Lms2, m, m_F, m1, m2, mp, mp1, mp2, ndim2, ne, nenerg_s, nlm_f, nlm_probe, nlm_u, &
             ns_dipmag, nspin, nspino, nspinp
 
   complex(kind=db):: Cfac
-  complex(kind=db), dimension(nenerg_s,n_comp*nlm_probe,nspinp,nlm_f,nspinp):: Ampl_abs
+  complex(kind=db), dimension(nenerg_s,nlm_probe,nspinp,nlm_f,nspinp):: Ampl_abs
   complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
   complex(kind=db), dimension(:,:), allocatable:: Tau
   complex(kind=db), dimension(:,:,:), allocatable:: Dlmm
@@ -2247,8 +2224,8 @@ end
 
 ! < g_1 | o*( l_s m_s, k_s, j_s, l_s, irang ) | f_1 > < f_2 | o*( l_i, m_i, k_i, j_i, l_i, jrang  ) | g_2 >  
 
-subroutine Tensor_rixs(coef_g,Core_resolved,FDM_comp_m,Final_optic,Final_tddft,Full_potential, &
-                i_Spin_channel,icheck,ip_max,ip0,is_g,lmax,lmoins1,lplus1,Lseuil,m_g,Multipole,n_comp, &
+subroutine Tensor_rixs(coef_g,Core_resolved,FDM_comp,Final_optic,Final_tddft,Full_potential, &
+                i_Spin_channel,icheck,ip_max,ip0,is_g,lmax,lmoins1,lplus1,Lseuil,m_g,Multipole, &
                 n_Ec,n_oo,n_rel,ns_dipmag,ndim2,ninit1,ninit,ninitr,nlm_probe,nlm_p_fp,nspino,nspinp,numat,RIXS,rof, &
                 Rot_atom,secdd,secdo,secdq,secmd,secmm,secoo, &
                 secqq,Spinorbite,Taull,Time_reversal,Write_bav,Ylm_comp)
@@ -2258,7 +2235,7 @@ subroutine Tensor_rixs(coef_g,Core_resolved,FDM_comp_m,Final_optic,Final_tddft,F
 
   integer:: h_s, h_i, i, i_Spin_channel, icheck, index_cross, initr, ip_max, ip0, ipr, irang, irang1, &
     isp1, isp2, isp3, isp4, ispfg, j, j_i, j_s, jh_i, jh_s, jrang, k, k_i, k_s, &
-    l_i, l_s, lm_i, lm_s, lmax, lmomax, lomax, lseuil, m_i, m_s, n_comp, n_Ec, n_oo, n_rel, ndim2, ninit1, ninit, &
+    l_i, l_s, lm_i, lm_s, lmax, lmomax, lomax, lseuil, m_i, m_s, n_Ec, n_oo, n_rel, ndim2, ninit1, ninit, &
     ninitr, nh_i, nh_s, nj_i, nj_s, nlm_probe, nlm_p_fp, nrang, ns_dipmag, nspino, nspinp, numat
 
   parameter( lomax = 3, lmomax = ( lomax + 1 )**2 )
@@ -2276,13 +2253,13 @@ subroutine Tensor_rixs(coef_g,Core_resolved,FDM_comp_m,Final_optic,Final_tddft,F
   complex(kind=db), dimension(3,3,n_rel,ninitr):: secdd
   complex(kind=db), dimension(3,n_oo,3,n_oo,ninitr):: secoo
   complex(kind=db), dimension(lmomax,lmomax,n_rel,ninitr):: Tens_lm
-  complex(kind=db), dimension(n_comp*nlm_probe*nspino,n_comp*nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
-  complex(kind=db), dimension(n_comp*nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,n_Ec):: rof
+  complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
+  complex(kind=db), dimension(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,n_Ec):: rof
 
   integer, dimension(ninit,2):: m_g
   integer, dimension(ninit):: is_g
 
-  logical:: Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, FDM_comp_m, Final_optic, &
+  logical:: Core_resolved, Dip_rel, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, FDM_comp, Final_optic, &
     Final_tddft, Full_potential, lmoins1, lplus1, M1M1, RIXS, Spinorbite, Time_reversal, Ylm_comp
 
   logical, dimension(10):: Multipole
@@ -2537,9 +2514,9 @@ subroutine Tensor_rixs(coef_g,Core_resolved,FDM_comp_m,Final_optic,Final_tddft,F
 
                             if( icheck > 1 ) write(3,150) l_s, m_s, l_i, m_i, clm_s, clm_i
                             
-                            call tens_ab_rixs(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full_potential, &
+                            call tens_ab_rixs(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Full_potential, &
                                 icheck,ip_max,ip0,irang,is_g,isp1,isp2,isp3,isp4, &
-                                jrang,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil,n_comp,ns_dipmag, &
+                                jrang,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil,ns_dipmag, &
                                 ndim2,ninit1,ninit,n_Ec,ninitr,nlm_probe,nlm_p_fp,nspinp,nspino,RIXS,rof, &
                                 Spinorbite,Taull,Ten,Time_reversal,Ylm_comp)
 
@@ -2741,16 +2718,16 @@ end
 
 !***********************************************************************
 
-subroutine Tens_ab_rixs(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full_potential, &
+subroutine Tens_ab_rixs(coef_g,Core_resolved,Dip_rel,FDM_comp,Final_tddft,Full_potential, &
                                 icheck,ip_max,ip0,irang,is_g,isp1,isp2,isp3,isp4, &
-                                jrang,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil,n_comp,ns_dipmag, &
+                                jrang,l_s,m_s,l_i,m_g,m_i,lmax,lmoins1,lplus1,lseuil,ns_dipmag, &
                                 ndim2,ninit1,ninit,ninitv,ninitr,nlm_probe,nlm_p_fp,nspinp,nspino,RIXS,rof, &
                                 Spinorbite,Taull,Ten,Time_reversal,Ylm_comp)
 
   use declarations
   implicit none
 
-  integer, intent(in):: icheck, ip_max, ip0, irang, jrang, l_i, l_s, m_i, m_s, lseuil, n_comp, ndim2, ninit1, &
+  integer, intent(in):: icheck, ip_max, ip0, irang, jrang, l_i, l_s, m_i, m_s, lseuil, ndim2, ninit1, &
       ninit, ninitv, ninitr, nlm_probe, nlm_p_fp, ns_dipmag, nspinp, nspino
   integer, dimension(ninit,2), intent(in):: m_g
   integer, dimension(ninit), intent(in):: is_g
@@ -2764,10 +2741,10 @@ subroutine Tens_ab_rixs(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full
 
   complex(kind=db):: Gaunt_i, Gaunt_s, Gaunt_xrc, Gauntmag 
   complex(kind=db), dimension(ninitr):: Ten
-  complex(kind=db), dimension(n_comp*nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,ninitv):: rof
-  complex(kind=db), dimension(n_comp*nlm_probe*nspino,n_comp*nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
+  complex(kind=db), dimension(nlm_probe,nlm_p_fp,nspinp,nspino,ip0:ip_max,ninitv):: rof
+  complex(kind=db), dimension(nlm_probe*nspino,nlm_probe*nspino,ndim2,ndim2,2,2,ns_dipmag):: Taull
 
-  logical:: Core_resolved, Dip_rel, FDM_comp_m, Final_tddft, Full_potential, lmoins1, lplus1, RIXS, &
+  logical:: Core_resolved, Dip_rel, FDM_comp, Final_tddft, Full_potential, lmoins1, lplus1, RIXS, &
             Spinorbite, Time_reversal, Titre, Ylm_comp
 
   real(kind=db):: Ci_1, Ci_2, Ci2, J_initl1, J_initl2, Jz1, Jz2
@@ -3013,7 +2990,7 @@ subroutine Tens_ab_rixs(coef_g,Core_resolved,Dip_rel,FDM_comp_m,Final_tddft,Full
                         rof_2 = rof(lm_f2,lmp_f2,ispf2,iso2,jrang,is_r2)
                       endif
  
-                      if( FDM_comp_m ) then
+                      if( FDM_comp ) then
                         Tau_rad = rof_1 * rof_2 * Taull(lms_f1,lms_f2,initl1,initl2,ispinf1,ispinf2,is_dipmag)
                       else
 
@@ -4384,9 +4361,9 @@ end
 
 !**********************************************************************************************************************
 
-subroutine RIXS_DoubleConv(Classic_irreg,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fermi,E_cut_man,Eclie,Eneg, &
+subroutine RIXS_DoubleConv(Coef_g,Core_resolved,dV0bdcF,E_cut,E_cut_imp,E_Fermi,E_cut_man,Eclie,Eneg, &
         Energ_loss_rixs,Energ_out_rixs,Energ_rixs,Energ_s,Epsii,Epsii_ref,Epsii_ref_man,Eseuil,Estart,File_name_rixs, &
-        FDM_comp_m,Full_potential, &
+        FDM_comp,Full_potential, &
         Gamma_hole,Gamma_hole_man,Green,Green_int,Hubb_a,Hubb_d,iabsorig, &
         icheck,isymeq,ip0,ip_max,is_g,jseuil,ldip,lmoins1,loct,lplus1,lqua,lseuil,m_g,m_hubb, &
         multi_run,msymdd,msymddi,msymdo,msymdoi,msymdq,msymdqi,msymoo,msymooi,msymqq,msymqqi, &
@@ -4411,7 +4388,7 @@ subroutine RIXS_DoubleConv(Classic_irreg,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cu
   integer:: iabsorig, i_q, i_theta, ia, ich, icheck, ie, &
      ie_in, ie_loss, ie_oc, ie_s, ip0, ip_max, initr, iseuil, iso1, iso2, isp, isp1, isp2, ispfg, iss1, iss2, isym, &
      js, jseuil, Length, Lm1, Lm2, Lmax_pot, Lmax, Lmax_probe, Lms1, Lms2, Lseuil, m_hubb, multi_run, n_atom_proto, n_atom_uc, &
-     n_comp, n_multi_run, n_oo, n_q_dim, n_q_rixs, n_rel, n_shift_core, n_theta_rixs, natomsym, nbseuil, &
+     n_multi_run, n_oo, n_q_dim, n_q_rixs, n_rel, n_RI, n_shift_core, n_theta_rixs, natomsym, nbseuil, &
      ne, ne_loss, nenerg_in, nenerg_in_rixs, nenerg_loss_rixs, nenerg_oc, nenerg_out_rixs, nenerg_unoc, nenerg_s, ngamh, &
      ninit, ninit1, ninitr, nlmamax, nlm_p_fp, nlm_pot, nlm_probe, npl, npl_out, nr, nrm, &
      ns_dipmag, nspin, nspino, nspinp, numat
@@ -4452,10 +4429,10 @@ subroutine RIXS_DoubleConv(Classic_irreg,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cu
   complex(kind=db), dimension(:), allocatable:: Amplitude
   complex(kind=db), dimension(:,:,:), allocatable:: Secmm_xtal
   complex(kind=db), dimension(:,:,:,:), allocatable:: Mu_unoc, Secdd_xtal, Secmd_xtal, Secdq_xtal, Secdq_xtal_m
-  complex(kind=db), dimension(:,:,:,:,:), allocatable:: Mu_ampl, rof0, Secdo_xtal, Secqq_xtal, Secoo_xtal 
+  complex(kind=db), dimension(:,:,:,:,:), allocatable:: Mu_ampl, rof0, Secdo_xtal, Secqq_xtal, Secoo_xtal, Tau_RI_abs 
 
-  logical:: Circular, Classic_irreg, Core_resolved, Dip_rel, E_cut_man, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, &
-            Epsii_ref_man, Extract_ten, Eneg, Energ_emission, FDM_comp_m, Final_optic, Final_tddft, Full_potential, &
+  logical:: Circular, Core_resolved, Dip_rel, E_cut_man, E1E1, E1E2, E1E3, E1M1, E2E2, E3E3, &
+            Epsii_ref_man, Extract_ten, Eneg, Energ_emission, FDM_comp, Final_optic, Final_tddft, Full_potential, &
             Gamma_hole_man, Green, Green_int, Hubb_a, Hubb_d, lmoins1, lplus1, M1M1, Magn_sens, &
             Monocrystal, Only_Intensity, Powder, Relativiste, Renorm, RIXS, &
             Run_fast, Solsing, Solsing_only, Spinorbite, Tddft, Ylm_comp 
@@ -4507,8 +4484,6 @@ subroutine RIXS_DoubleConv(Classic_irreg,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cu
   Final_tddft = .false.
   RIXS = .true.
   Tddft = .false.
-  
-  n_comp = 1
   
   Lmax_probe = nint( sqrt( real( nlm_probe ) ) ) - 1
   
@@ -4817,15 +4792,20 @@ subroutine RIXS_DoubleConv(Classic_irreg,Coef_g,Core_resolved,dV0bdcF,E_cut,E_cu
       Ecinetic(:,1) = max( Ecinetic(:,1), Eclie )
     endif
 
-    call Tenseur_car(Classic_irreg,coef_g,Core_resolved,Ecinetic,Eimag, &
-           Energ_s(ie),Enervide_t,Eseuil,FDM_comp_m,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
+    n_RI = 0
+    allocate( Tau_RI_abs(nlm_probe,nspinp,nlm_probe,nspinp,n_RI) )
+    
+    call Tenseur_car(coef_g,Core_resolved,Ecinetic,Eimag, &
+           Energ_s(ie),Enervide_t,Eseuil,FDM_comp,Final_optic,Final_tddft,Full_potential,Green,Green_int,Hubb_a, &
            Hubb_d,icheck,ie,ip_max,ip0,is_g,Lmax_probe,Lmax_pot,ldip,lmoins1,loct,lplus1,lqua,Lseuil,m_g, &
            m_hubb,mpinodes,mpirank,mpirank,msymdd,msymddi,msymdq,msymdqi,msymdo,msymdoi,msymoo,msymooi,msymqq,msymqqi, &
-           Multipole,n_comp,n_Ec,n_oo,n_rel,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninit,ninitr,nbseuil,nlm_pot, &
+           Multipole,n_Ec,n_oo,n_rel,n_RI,n_V,nbseuil,ns_dipmag,ndim2,nenerg_tddft,ninit1,ninit,ninitr,nbseuil,nlm_pot, &
            nlm_probe,nlm_p_fp,nlmamax,nr,nrm,nspin,nspino,nspinp,numat,psii,r,Relativiste,Renorm, &
            Rmtg,Rmtsd,rof0,rot_atom_abs,Rot_int,secdd,secdd_m,secdo,secdo_m,secdq,secdq_m,secmd,secmd_m,secmm, &
-           secmm_m,secoo,secoo_m,secqq,secqq_m,Solsing,Solsing_only,Spinorbite,Taull_abs,Tddft,V_hubb,V_intmax, &
+           secmm_m,secoo,secoo_m,secqq,secqq_m,Solsing,Solsing_only,Spinorbite,Tau_RI_abs,Taull_abs,Tddft,V_hubb,V_intmax, &
            V0bdc,Vrato,Ylm_comp)
+     
+    deallocate( Tau_RI_abs )
 
     if( E1E1 ) Secdd_xtal(:,:,:,:) = ( 0._db, 0._db )
     if( E1E3 ) Secdo_xtal(:,:,:,:,:) = ( 0._db, 0._db )

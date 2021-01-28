@@ -2944,7 +2944,7 @@ subroutine Clust(angxyz,angxyz_bulk,angxyz_int,angxyz_sur,ATA,axyz,axyz_bulk,axy
   use declarations
   implicit none
 
-  integer:: ia, ia1, ia2, iaabs, iaabsfirst, iabsorbeur, iabsfirst, ib, igr, igr_b, igr_p, igr0, igr_dop, igr12, ipr, iprint, &
+  integer:: ia, ia1, ia2, iaabs, iaabsfirst, iabsorbeur, iabsfirst, ib, igr, igr_b, igr0, igr_dop, igr12, ipr, iprint, &
     itabs, ity12, ix, iy, iz, jgr, jgr_b, mpirank0, n_atom_bulk, n_atom_int, n_atom_per, n_atom_sur, n_atom_uc, n_igr, natomp, &
     ngroup, ngroup_pdb, ngroup_taux, nxmaille, nymaille, nzmaille
   integer, dimension(ngroup):: itype
