@@ -1,6 +1,7 @@
 Here are the different fdmnes routines:
    main.f90
    clemf0.f90
+   Cluster_approach.f90
    coabs.f90
    convolution.f90
    diffraction.f90
@@ -24,6 +25,7 @@ Here are the different fdmnes routines:
    tab_data.f90
    tddft.f90
    tensor.f90
+   tools.f90
 
 
 They must be compiled and linked together with the MUMPS, LAPACK and BLAS library.
@@ -35,14 +37,14 @@ mpif.h
 zmumps_root.h
 zmumps_struc.h
 
-If no MUMS library are avalable (calculation will be far more CPU and time demanding)
+If no MUMS library are avalable
    mat_solve_mumps.f90 must be replaced by mat_solve_gaussian.f90
    With sequential calculations not_mpi.f90 must also be compiled and linked.
 
    when no LAPAK and BLAS libraries are avalable, they can be replaced by
    sub_util.f (only without MUMPS)
 
-The makefile for sequential code using MUMPS library.
+le makefile for sequential code using MUMPS library.
 Makefile_gaussian is an example of very simple makefile for sequential code using
 Gaussian solver without any library.
 

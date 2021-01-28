@@ -4,7 +4,7 @@
 ! 1) Sommation with energy shift of varius spectra
 ! 2) Convolution by a lorentzienne for XANES
 !              L(x) = (1/(pi*b)) * 1 / ( 1 + ( (x-a)/b )**2 )
-!    Integration over energy for Dafs.
+! Integration over energy for Dafs
 
 subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_out, &
         Delta_edge,E_cut_imp,E_cut_man,Ecent,Elarg,Epsii_ref,Epsii_ref_man,Estart,Fit_cal,Gamma_hole,Gamma_hole_man, &
@@ -36,11 +36,12 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
   character(len=9):: keyword, mot9, Traduction
   character(len=132):: identmot, mot, mots
   character(len=Length_word):: nomab   
-  character(len=Length_name):: chemin, convolution_out, fichscanout, nomfich, nomfichbav
+  character(len=Length_name):: chemin, convolution_out, File_scan_out, nomfich, nomfichbav, File_name, Word
   character(len=9), dimension(nkw_conv) :: kw_conv
   character(len=9), dimension(ngroup_par,nparm) :: typepar
   character(len=Length_word), dimension(:), allocatable:: nom_col
-  character(len=Length_name), dimension(:), allocatable:: Convolution_out_all, fichin, fichscanin, fichscanout_all
+  character(len=Length_name), dimension(:), allocatable:: Convolution_out_all, File_in, File_name_temp, File_scan_in, &
+                                                          File_scan_out_all
   character(len=Length_word), dimension(:), allocatable:: Stokes_name
 
   complex(kind=db):: cf, zero_c
@@ -54,7 +55,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
     Check_conv, chem, Circular, Conv_done, Cor_abs, decferm, Deuxieme, Double_cor, &
     E_cut_man, E_cut_param, Energphot, Epsii_ref_man, Extrap, Fermip, First_E, Fit_cal, &
     Forbidden, fprim, fprime_atom, Full_self_abs, Gamma, Gamma_hole_man, Gamma_hole_param, Gamma_max_man, Gamma_var, &
-    Gaussian_default, Green_int, Just_total, Magn, no_extrap, nxan_lib, Scan_a, scan_true, Seah, Self_abs, &
+    Gaussian_default, Green_int, Just_total, Magn, Multi_file, no_extrap, nxan_lib, Scan_a, scan_true, Seah, Self_abs, &
     Signal_Sph, Stokes, Stokes_Dafs, Stokes_xan, Sup_sufix, Tenseur, Tenseur_car, Thomson, Transpose_file, U_iso_man, XES
   logical, dimension(:), allocatable:: run_done, Skip_run, Trunc
 
@@ -106,7 +107,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
   eintmax = 1000000._db
   f0_forward = 0._db
   Fermip = .false.
-  fichscanout = ' '
+  File_scan_out = ' '
   Forbidden = .false.
   fprim = .false.
   fprime_atom = .false.
@@ -119,6 +120,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
   jseuil = 1
   Just_total = .true.
   Magn = .false.
+  Multi_file = .false.
   n_bulk_z = 0
   n_Stokes = 0
   nelor = 0
@@ -166,11 +168,12 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
 
     if( keyword == 'calculati' ) then
       nfich = 0
+      n = nnombre(itape1,132)
       boucle_i: do i = 1,1000000
         n = nnombre(itape1,132)
-        read(itape1,'(A)',iostat=eof) mots
+        read(itape1,'(A)',iostat=eof) File_name
         if( eof /= 0 ) exit boucle_ii
-        mot9 = identmot(mots,9)
+        mot9 = identmot(File_name,9)
         do j = 1,nkw_conv
           if( mot9 /= kw_conv(j) ) cycle
           backspace(itape1)
@@ -179,6 +182,48 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
         if( mot9 == 'run_done' ) exit boucle_ii
         if( n == 0 ) nfich = nfich + 1
       end do boucle_i
+
+! looking for several indata files with same main name      
+      if( nfich == 1 ) then
+        Rewind( itape1 )
+        do
+          read(itape1,'(A)') mot
+          keyword = identmot(mot,9)
+          if( keyword /= 'calculati' ) cycle
+          n = nnombre(itape1,132)
+          read(itape1,'(A)',iostat=eof) File_name
+          Word = File_name
+          Length = len_trim( File_name )
+          if( Length > 4 ) then
+            if( File_name(Length-3:Length) == '.txt' ) exit
+            File_name(Length+1:Length+4) = '.txt'
+          endif
+          open(2, file = File_name, status='old',iostat=istat)
+          if( istat == 0 ) exit
+          Word(Length+1:Length+1) = '_'
+          ifich = 0
+          allocate( File_name_temp(1000) ) 
+          do i = 1,1000
+            File_name = Word
+            call ad_number(i,File_name,Length_name)
+            Length = len_trim( File_name )
+            File_name(Length+1:Length+4) = '.txt'
+            open(2, file = File_name, status='old',iostat=istat)
+            if( istat /= 0 ) cycle
+            Multi_file = .true.
+            ifich = ifich + 1 
+            File_name_temp(ifich) = File_name
+          end do
+          nfich = ifich
+          exit
+        end do
+        if( nfich == 0 ) then
+          Length = len_trim(Word)
+          Word(Length:Length) = ' '
+          call write_open_error(Word,istat,1)
+        endif
+      endif
+      
     endif
 
     if( keyword == 'stokes' ) then
@@ -250,21 +295,21 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
   if( nfich == 0 ) then
     nfich = 1
     mfich = 1
-    allocate( fichin(nfich) )
-    mot = ' '
-    mot = nomfich
-    Length = len_trim(mot)
-    mot(Length+1:Length+4) = '.txt'
-    fichin(1) = mot
+    allocate( File_in(nfich) )
+    Word = ' '
+    Word = nomfich
+    Length = len_trim(Word)
+    Word(Length+1:Length+4) = '.txt'
+    File_in(1) = Word
   else
-    allocate( fichin(nfich) )
+    allocate( File_in(nfich) )
   endif
 
   allocate( decal(nfich) )
   allocate( Efermip(nfich) )
   allocate( En_fermi(nfich) )
   allocate( Eseuil(nfich) )
-  allocate( fichscanin(nfich) )
+  allocate( File_scan_in(nfich) )
   allocate( fpp_avantseuil(nfich) )
   allocate( n_div_fpp(nfich) )
   allocate( ne(nfich) )
@@ -308,32 +353,50 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
 
       case('calculati')
 
-        ifich = 0
-        do i = 1,mfich
+        if( Multi_file ) then
+
           n = nnombre(itape1,132)
-          if( run_done(i) ) then
-            read(itape1,*)
+          read(itape1,*)
+
+          Pds(:) = 1._db
+          decal(:) = 0._db
+
+          do ifich = 1,nfich
+            File_in(ifich) = File_name_temp(ifich)
+          end do
+          deallocate( File_name_temp )
+        
+        else
+
+          ifich = 0
+          do i = 1,mfich
             n = nnombre(itape1,132)
-            if( n /= 0 ) read(itape1,*)
-            cycle
-          endif
-          ifich = ifich + 1
-          read(itape1,'(A)') fichin(ifich)
-          fichin(ifich) = adjustl( fichin(ifich) )
-          n = nnombre(itape1,132)
-          if( n == 0 ) then
-            Pds(ifich) = 1._db
-            decal(ifich) = 0._db
-          elseif( n == 1 ) then
-            read(itape1,*) Pds(ifich)
-            decal(ifich) = 0._db
-          elseif( n == 2 ) then
-            read(itape1,*) Pds(ifich), decal(ifich)
-          else
-            Fermip = .true.
-            read(itape1,*) Pds(ifich), decal(ifich), Efermip(ifich)
-          endif
-        end do
+           
+            if( run_done(i) ) then
+              read(itape1,*)
+              n = nnombre(itape1,132)
+              if( n /= 0 ) read(itape1,*)
+              cycle
+            endif
+            ifich = ifich + 1
+            read(itape1,'(A)') File_in(ifich)
+            File_in(ifich) = adjustl( File_in(ifich) )
+            n = nnombre(itape1,132)
+            if( n == 0 ) then
+              Pds(ifich) = 1._db
+              decal(ifich) = 0._db
+            elseif( n == 1 ) then
+              read(itape1,*) Pds(ifich)
+              decal(ifich) = 0._db
+            elseif( n == 2 ) then
+              read(itape1,*) Pds(ifich), decal(ifich)
+            else
+              Fermip = .true.
+              read(itape1,*) Pds(ifich), decal(ifich), Efermip(ifich)
+            endif
+          end do
+          
+        endif
 
       case('cal_tddft')
 
@@ -348,8 +411,8 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
           endif
           ifich = ifich + 1
           if( Another_one ) then
-            read(itape1,'(A)') fichin(ifich)
-            fichin(ifich) = adjustl( fichin(ifich) )
+            read(itape1,'(A)') File_in(ifich)
+            File_in(ifich) = adjustl( File_in(ifich) )
             Deuxieme = .true.
           else
             read(itape1,'(A)') mot
@@ -395,33 +458,33 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
         scan_true = .true.
         do ifich = 1,nfich
           n = nnombre(itape1,132)
-          read(itape1,'(A)') fichscanin(ifich)
-          fichscanin(ifich) = adjustl( fichscanin(ifich) )
+          read(itape1,'(A)') File_scan_in(ifich)
+          File_scan_in(ifich) = adjustl( File_scan_in(ifich) )
 
-          open(2, file = fichscanin(ifich), status='old',iostat=istat)
+          open(2, file = File_scan_in(ifich), status='old',iostat=istat)
           if( istat /= 0 ) then
-            mot = fichscanin(ifich)
-            Length = len_trim(mot)
-            if( mot(Length-3:Length) /= '.txt' ) then
-              mot(Length+1:Length+4) = '.txt'
+            Word = File_scan_in(ifich)
+            Length = len_trim(Word)
+            if( Word(Length-3:Length) /= '.txt' ) then
+              Word(Length+1:Length+4) = '.txt'
               Close(2) 
-              open(2, file = mot, status='old', iostat=istat)
+              open(2, file = Word, status='old', iostat=istat)
               if( istat /= 0 ) then
-                Length = len_trim(mot)
-                mot(Length-3:Length+2) = '_1.txt'
-                open(2, file = mot, status='old', iostat=istat)
+                Length = len_trim(Word)
+                Word(Length-3:Length+2) = '_1.txt'
+                open(2, file = Word, status='old', iostat=istat)
                 if( istat == 0 ) then
                   call write_error
                   do ipr = 6,9,3
-                    write(ipr,112) fichin(ifich), mot
+                    write(ipr,112) File_in(ifich), Word
                   end do
                   stop
                 else
-                  call write_open_error(fichin(ifich),istat,1)
+                  call write_open_error(File_in(ifich),istat,1)
                 endif
               endif
             endif
-            fichscanin(ifich) = mot
+            File_scan_in(ifich) = Word
           endif
         end do
 
@@ -432,8 +495,8 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
       case('scan_conv')
 
         n = nnombre(itape1,132)
-        read(itape1,'(A)') fichscanout
-        fichscanout = adjustl( fichscanout )
+        read(itape1,'(A)') File_scan_out
+        File_scan_out = adjustl( File_scan_out )
 
       case('directory')
 
@@ -683,77 +746,79 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
 
   if( Chem ) then
     L = len_trim(chemin)
-    mot = fichin(1)
-    if( Chemin(L:L) /= '/' .and. fichin(1)(1:1) /= '/' ) then
+    Word = File_in(1)
+    if( Chemin(L:L) /= '/' .and. File_in(1)(1:1) /= '/' ) then
       L = L + 1
       Chemin(L:L) = '/'
     endif
     do ifich = 1,nfich
-      mot = fichin(ifich)
-      Length = len_trim(mot)
-      fichin(ifich) = chemin(1:L) // mot(1:Length)
+      Word = File_in(ifich)
+      Length = len_trim(Word)
+      File_in(ifich) = chemin(1:L) // Word(1:Length)
     end do
   endif
   
 ! Test on input file names
   do ifich = 1,nfich
-    open(2, file = fichin(ifich), status='old', iostat=istat)
+    open(2, file = File_in(ifich), status='old', iostat=istat)
     if( istat /= 0 ) then
-      mot = fichin(ifich)
+      File_name = File_in(ifich)
 
-      Length = len_trim(mot)
-      if( mot(Length-3:Length) /= '.txt' ) then
-        mot(Length+1:Length+4) = '.txt'
+      Length = len_trim(File_name)
+      if( Length <= 4 ) call write_open_error(File_in(ifich),istat,1)
+
+      if( File_name(Length-3:Length) /= '.txt' ) then
+        File_name(Length+1:Length+4) = '.txt'
         Close(2) 
-        open(2, file = mot, status='old', iostat=istat)
+        open(2, file = File_name, status='old', iostat=istat)
         if( istat /= 0 ) then
-          Length = len_trim(mot)
-          mot(Length-3:Length+2) = '_1.txt'
-          open(2, file = mot, status='old', iostat=istat)
+          Length = len_trim(File_name)
+          File_name(Length-3:Length+2) = '_1.txt'
+          open(2, file = File_name, status='old', iostat=istat)
           if( istat == 0 ) then
            call write_error
            do ipr = 6,9,3
-             write(ipr,112) fichin(ifich), mot
+             write(ipr,112) File_in(ifich), File_name
            end do
            stop
          else
-           call write_open_error(fichin(ifich),istat,1)
+           call write_open_error(File_in(ifich),istat,1)
          endif
         endif
-        fichin(ifich) = mot
+        File_in(ifich) = File_name
       else
-       Length = len_trim(mot)
-       mot(Length-3:Length+2) = '_1.txt'
-       open(2, file = mot, status='old', iostat=istat)
-       if( istat == 0 ) then
-         call write_error
-         do ipr = 6,9,3
-           write(ipr,112) fichin(ifich), mot
-         end do
-         stop
-       else
-         call write_open_error(fichin(ifich),istat,1)
-       endif
+        Length = len_trim(File_name)
+        File_name(Length-3:Length+2) = '_1.txt'
+        open(2, file = File_name, status='old', iostat=istat)
+        if( istat == 0 ) then
+          call write_error
+          do ipr = 6,9,3
+            write(ipr,112) File_in(ifich), File_name
+          end do
+          stop
+        else
+          call write_open_error(File_in(ifich),istat,1)
+        endif
       endif
       Close(2)
     endif
   end do
 
-  allocate( fichscanout_all(nfich) ) 
+  allocate( File_scan_out_all(nfich) ) 
   allocate( Convolution_out_all(nfich) )
   Convolution_out_all(:) = ' ' 
-  fichscanout_all(:) = ' '
+  File_scan_out_all(:) = ' '
 
   call Conv_out_name(Abs_U_iso_inp,bav_open,check_conv,Chem,Chemin,convolution_out,Convolution_out_all,Dafs_bio,Deltar, &
-                        Deuxieme,E_cut,E_cut_man,Epsii_ref,Epsii_ref_man,fichin,fichscanin,fichscanout,fichscanout_all, &
+                        Deuxieme,E_cut,E_cut_man,Epsii_ref,Epsii_ref_man,File_in,File_scan_in,File_scan_out,File_scan_out_all, &
                         Gamma_hole(1),Gamma_hole_man,Gamma_max,Gamma_max_man,Length_line,nfich,nomfichbav,Scan_a,Scan_true, &
                         U_iso_man,XES)
 
   do ifich = 1,nfich
-    if( convolution_out /= fichin(ifich) ) cycle
+    if( convolution_out /= File_in(ifich) ) cycle
     call write_error
     do ipr = 6,9,3
-      write(ipr,120) fichin(ifich), mot
+      write(ipr,120) File_in(ifich), File_name
     end do
     stop
   end do
@@ -770,7 +835,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
 
   ninitm = 1
   do ifich = 1,nfich
-    open(2, file = fichin(ifich), status='old', iostat=istat)
+    open(2, file = File_in(ifich), status='old', iostat=istat)
     n = nnombre(2,Length_line)
     if( n > 8 ) read(2,*) Eseuil(ifich), numat(ifich), nseuil, jseuil, fpp_avantseuil(ifich), V0muf(ifich), En_fermi(ifich), ninit0
     if( n /= ninit0 + 11 .and. n /= ninit0 + 12 .and. n /= ninit0 + 13 .and. n /= ninit0 + 14 ) then
@@ -814,7 +879,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
   decal_initl(:,:) = 0._db
   Trunc(:) = .false.
 
-  call Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm,Epsii,f0_forward,Fichin,Fichscanin, &
+  call Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm,Epsii,f0_forward,File_in,File_scan_in, &
           fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_bulk_z,n_col_max,n_mat_pol,n_Trunc,natomsym_f,ne, &
           nfich,ninit1,ninit,ninitm,nphim,npldafs,nseuil,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph, &
           Surface_ref,Tenseur,Tenseur_car,Trunc,V0muf,Volume_maille,Volume_maille_bulk)
@@ -844,6 +909,9 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
     do igr = 2,ngroup_par
       do ipar = 1,npar(igr)
         select case( typepar(igr,ipar) )
+          case('abs_u_iso')
+            Abs_U_iso_inp = param(igr,ipar)
+            U_iso_man = .true.
           case('aseah')
             asea = param(igr,ipar)
           case('ecent')
@@ -927,8 +995,8 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
       do ifich = 1,nfich
         if( Trunc(ifich) ) i_trunc = i_trunc + 1
         if( Skip_run(ifich) ) cycle
-        open(2, file = fichin(ifich), status='old', iostat=istat)
-        if( istat /= 0) call write_open_error(fichin(ifich),istat,1)
+        open(2, file = File_in(ifich), status='old', iostat=istat)
+        if( istat /= 0) call write_open_error(File_in(ifich),istat,1)
         read(2,*)
         n = nnombre(2,Length_line)
         if( n > 0 ) then
@@ -975,7 +1043,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
   nes_in = 100000
   allocate( Es_temp(nes_in) )
    
-  call Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Estart,fichin,Length_line,n_selec_core, &
+  call Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Estart,File_in,Length_line,n_selec_core, &
                               ne,ne_initl,nes,nes_in,nfich,ninit,ninitm,nsup,num_core,pasdeb)  
   allocate( Es(nes) )
   Es(1:nes) = Es_temp(1:nes)
@@ -1064,7 +1132,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
 
   Sup_sufix = ninit(1) > 1
    
-  call Col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin(nfich),Fichscanin(nfich),fprim,Full_self_abs,hkl_dafs, &
+  call Col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,File_in(nfich),File_scan_in(nfich),fprim,Full_self_abs,hkl_dafs, &
       Length_line,n_bir,n_col,n_index_hk,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Self_abs,Signal_sph, &
       Stokes,Stokes_name,Stokes_param,Sup_sufix,Tenseur,XES)
 
@@ -1073,7 +1141,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
     if( i_conv > 0 ) then
       if ( Just_total .or. nfich == 1 ) exit
       Convolution_out = Convolution_out_all(i_conv)
-      fichscanout = fichscanout_all(i_conv)
+      File_scan_out = File_scan_out_all(i_conv)
     endif
 
   Xs(:,:) = 0._db
@@ -1129,7 +1197,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
 
 ! -- Lecture -----------------------------------------------------------
 
-      open(2, file = fichin(ifich), status='old', iostat=istat)
+      open(2, file = File_in(ifich), status='old', iostat=istat)
 
       read(2,*)
 
@@ -1225,7 +1293,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
       close(2)
 
       if( Scan_true ) then
-        open(2, file = fichscanin(ifich), status='old',iostat=istat)
+        open(2, file = File_scan_in(ifich), status='old',iostat=istat)
 
         do ipl = 1,npldafs
           read(2,*) nphi(ipl)
@@ -1440,7 +1508,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
         endif
   
   ! Temperature effect in the Debye model
-        if( ( U_iso_man .and. Abs_U_iso_inp > eps10 ) .or. Abs_U_iso(ifich) > eps10   ) then
+        if( ( U_iso_man .and. Abs_U_iso_inp > eps10 ) .or. ( Abs_U_iso(ifich) > eps10 .and. .not. U_iso_man ) ) then
 
         select case( ninit(ifich) )
           case(1)
@@ -1466,12 +1534,12 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
  ! natomsym is real
           fac = natomsym / n
 
-          call Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nef,nenerg,nfich, &
+          call Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,jseuil,n_col,nef,nenerg,nfich, &
                         nom_col,numat,nxan,Shift_U_iso,U_iso_man,V0muf,Xanes)
 
           fac = 1._db / n
 
-          if( Dafs ) call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
+          if( Dafs ) call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Ephoton,Eseuil,fac,ifich,jseuil, &
                         nenerg,nfich,.true.,nphim,npldafs,numat,Shift_U_iso,U_iso_man,V0muf) 
 
           fac = natomsym * 100 / ( n * Volume_maille )
@@ -1482,7 +1550,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
             dph_t(:) = ( 1._db, 0._db )
             do i = 1,2
               Mu_t(:,:,:) = Mu(:,:,:,i) 
-              call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Mu_t,dph_t,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
+              call Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Mu_t,dph_t,Energ,Energphot,Ephoton,Eseuil,fac,ifich,jseuil, &
                         nenerg,nfich,.false.,nphim,npldafs,numat,Shift_U_iso,U_iso_man,V0muf)
               Mu(:,:,:,i) = Mu_t(:,:,:) 
             end do
@@ -1493,7 +1561,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
             allocate( Mu_tt(nenerg,npldafs) )
             do i = 1,6,5
               Mu_tt(:,:) = Mu_mat(:,i,:) 
-              call Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nef,nenerg,nfich, &
+              call Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,jseuil,n_col,nef,nenerg,nfich, &
                         nom_col,numat,npldafs,Shift_U_iso,U_iso_man,V0muf,Mu_tt)
               Mu_mat(:,i,:) = Mu_tt(:,:)  
             end do  
@@ -2292,7 +2360,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
 
   if( Scan_true .and. .not. Dafs_bio ) then
 
-    Open(7, file = fichscanout)
+    Open(7, file = File_scan_out)
 
 ! One skips the '_0'
     do i = 1,n_col
@@ -2369,7 +2437,7 @@ subroutine Convolution(Analyzer,bav_open,Bormann,Circular,Conv_done,Convolution_
  
   deallocate( Abs_U_iso, angle, As, Convolution_out_all, decal, decal_initl, dph, dpht )
   deallocate( Efermip, En_fermi, Eph1, Ephm, Epsii, Es, Eseuil )
-  deallocate( f0, f0scan, fi, Fichin, Fichscanin, Fichscanout_all, fpp_avantseuil, fr )
+  deallocate( f0, f0scan, fi, File_in, File_scan_in, File_scan_out_all, fpp_avantseuil, fr )
   deallocate( hkl_dafs )
   deallocate( Icirc, Icirccor, Icircdcor, Icor, Idcor, indf )
   deallocate( Mu_mat_comp, Mus_mat, n_div_fpp, natomsym_f, ne, ne_initl, ninit, nom_col, nphi, nsup, numat )
@@ -2598,7 +2666,7 @@ end
 
 !********************************************************************************************************************
 
-subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Estart,fichin,Length_line,n_selec_core, &
+subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Estart,File_in,Length_line,n_selec_core, &
                               ne,ne_initl,nes,nes_in,nfich,ninit,ninitm,nsup,num_core,pasdeb)
 
   use declarations
@@ -2611,7 +2679,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
   integer, dimension(nfich):: ne, ninit
   integer, dimension(ninitm,nfich):: ne_initl, nsup
   
-  character(len=Length_name), dimension(nfich):: Fichin
+  character(len=Length_name), dimension(nfich):: File_in
   
   logical:: Energphot, File_change
   logical, dimension(:,:), allocatable:: Fichdone 
@@ -2679,7 +2747,7 @@ subroutine Output_Energy_Grid(decal_initl,Energphot,Eph1,Es_temp,Eseuil,Esmin,Es
 
     allocate( Energ( ne(ifich) ) )
     
-    open(2, file = fichin(ifich), status='old', iostat=istat)
+    open(2, file = File_in(ifich), status='old', iostat=istat)
 
     read(2,*)
     do
@@ -2861,7 +2929,7 @@ end
 ! Name of the output file
 
   subroutine Conv_out_name(Abs_U_iso_inp,bav_open,check_conv,Chem,Chemin,convolution_out,Convolution_out_all,Dafs_bio,Deltar, &
-                        Deuxieme,E_cut,E_cut_man,Epsii_ref,Epsii_ref_man,fichin,fichscanin,fichscanout,fichscanout_all, &
+                        Deuxieme,E_cut,E_cut_man,Epsii_ref,Epsii_ref_man,File_in,File_scan_in,File_scan_out,File_scan_out_all, &
                         Gamma_hole,Gamma_hole_man,Gamma_max,Gamma_max_man,Length_line,nfich,nomfichbav,Scan_a,Scan_true, &
                         U_iso_man,XES)
 
@@ -2873,8 +2941,8 @@ end
   character(len=8):: dat
   character(len=10):: mot10, tim
   character(len=50):: com_date, com_time
-  character(len=Length_name):: chemin, convolution_out, fichscanout, mot, mots, nomfichbav
-  character(len=Length_name), dimension(nfich):: convolution_out_all, fichin, fichscanin, fichscanout_all
+  character(len=Length_name):: chemin, convolution_out, File_scan_out, File_name, nomfichbav, Word
+  character(len=Length_name), dimension(nfich):: convolution_out_all, File_in, File_scan_in, File_scan_out_all
 
   logical:: bav_open, check_conv, Chem, Dafs_bio, Deuxieme, E_cut_man, Epsii_ref_man, Gamma_hole_man, Gamma_max_man, Scan_a, &
             Scan_true, U_iso_man, XES
@@ -2889,26 +2957,26 @@ end
       if( ifich == 0 ) then
         l_max = 10000
         do jfich = 1,nfich
-          long = len_trim( fichin(jfich) )
+          long = len_trim( File_in(jfich) )
           if( long < l_max ) then
             l_max = long
-            mot = fichin(jfich)
+            File_name = File_in(jfich)
           endif
         end do
       else 
-        mot = fichin(ifich)
+        File_name = File_in(ifich)
       endif
-      Length = len_trim( mot )
+      Length = len_trim( File_name )
       if( Length > 4 ) then
-        if( mot(Length-3:Length) == '.txt' )  mot(Length-3:Length) = '    '     
+        if( File_name(Length-3:Length) == '.txt' )  File_name(Length-3:Length) = '    '     
       endif
       
-      Length = len_trim( mot)
+      Length = len_trim( File_name )
       if( nfich > 1 .and. ifich == 0 .and. Length > 2 ) then
-        if( mot(Length-1:Length-1) == '_' ) then
-          mot(Length-1:Length) = '  '
-        elseif( mot(Length-2:Length-2) == '_' ) then
-          mot(Length-2:Length) = '   '
+        if( File_name(Length-1:Length-1) == '_' ) then
+          File_name(Length-1:Length) = '  '
+        elseif( File_name(Length-2:Length-2) == '_' ) then
+          File_name(Length-2:Length) = '   '
         endif
       endif
 
@@ -2958,39 +3026,39 @@ end
         L = len_trim( mot10 )
         if( i > 0 ) mot10(L-i:L-i) = 'p'
      
-        Length = len_trim( mot ) + 1
+        Length = len_trim( File_name ) + 1
 
         select case(k)
           case(1)          
-            mot(Length:Length+2) = '_EF'
+            File_name(Length:Length+2) = '_EF'
           case(2)
-            mot(Length:Length+2) = '_Gm'
+            File_name(Length:Length+2) = '_Gm'
           case(3)
-            mot(Length:Length+2) = '_GH'
+            File_name(Length:Length+2) = '_GH'
           case(4)
-            mot(Length:Length+2) = '_Ep'
+            File_name(Length:Length+2) = '_Ep'
           case(5)
-            mot(Length:Length+2) = '_Ga'
+            File_name(Length:Length+2) = '_Ga'
           case(6)
-            mot(Length:Length+2) = '_Ui'
+            File_name(Length:Length+2) = '_Ui'
         end select
         Length = Length + 2
         
-        mot(Length+1:Length+L) = mot10(1:L)
+        File_name(Length+1:Length+L) = mot10(1:L)
         
       end do
      
-      Length = len_trim( mot) + 1
+      Length = len_trim( File_name ) + 1
       if( XES ) then
-        mot(Length:Length+12) = '_xes_conv.txt'
+        File_name(Length:Length+12) = '_xes_conv.txt'
       else
-        mot(Length:Length+8) = '_conv.txt'
+        File_name(Length:Length+8) = '_conv.txt'
       endif
       
       if( ifich == 0 ) then
-        convolution_out = mot
+        convolution_out = File_name
       else
-        convolution_out_all(ifich) = mot
+        convolution_out_all(ifich) = File_name
       endif
 
     end do      
@@ -3011,28 +3079,28 @@ end
 
     do ifich = 1,nfich
       if( nfich == 1 ) exit
-      mot = convolution_out
+      File_name = convolution_out
       Length = len_trim( convolution_out )
       if( convolution_out(Length-8:Length) == '_conv.txt' ) then
-        mot(Length-7:Length) = '        '
-        call ad_number(ifich,mot,Length_name)
-        Length = len_trim( mot )
+        File_name(Length-7:Length) = '        '
+        call ad_number(ifich,File_name,Length_name)
+        Length = len_trim( File_name )
         if( XES ) then
-          mot(Length+1:Length+16) = '_xes_conv.txt'
+          File_name(Length+1:Length+16) = '_xes_conv.txt'
         else
-          mot(Length+1:Length+9) = '_conv.txt'
+          File_name(Length+1:Length+9) = '_conv.txt'
         endif 
       else
         if( XES ) then
-          mot(Length-3:Length+1) = '_xes_'
+          File_name(Length-3:Length+1) = '_xes_'
         else
-          mot(Length-3:Length) = '_   '
+          File_name(Length-3:Length) = '_   '
         endif
-        call ad_number(ifich,mot,Length_name)
-        Length = len_trim( mot )
-        mot(Length+1:Length+4) = '.txt'
+        call ad_number(ifich,File_name,Length_name)
+        Length = len_trim( File_name )
+        File_name(Length+1:Length+4) = '.txt'
       endif 
-      convolution_out_all(ifich) = mot
+      convolution_out_all(ifich) = File_name
     end do
     
   endif
@@ -3052,7 +3120,7 @@ end
     
     write(3,'(/A)') ' Convolution of the file(s):' 
     do ifich = 1,nfich
-      write(3,'(2x,A)') fichin(ifich)
+      write(3,'(2x,A)') File_in(ifich)
     end do
 
   endif
@@ -3061,32 +3129,32 @@ end
 
   if( Scan_a .and. .not. Scan_true ) then
     do ifich = 1,nfich
-      mots = ' '
-      mot = fichin(ifich)
-      Length = len_trim(mot) - 4
+      Word = ' '
+      File_name = File_in(ifich)
+      Length = len_trim(File_name) - 4
       if( nfich == 1 ) then
         ns = 0
       else
-        if( mot(Length-2:Length-2) == '_' ) then
+        if( File_name(Length-2:Length-2) == '_' ) then
           ns = 3
-        elseif( mot(Length-1:Length-1) == '_' ) then
+        elseif( File_name(Length-1:Length-1) == '_' ) then
           ns = 2
         else
           ns = 0
         endif
       endif
-      mots(1:Length-ns) = mot(1:Length-ns)
-      mots(Length-ns+1:Length-ns+5) = '_scan'
-      if( ns > 0 ) mots(Length-ns+6:Length+5) = mot(Length-ns+1:Length)
-      mots(Length+6:Length+9) = '.txt'
-      fichscanin(ifich) = mots
+      Word(1:Length-ns) = File_name(1:Length-ns)
+      Word(Length-ns+1:Length-ns+5) = '_scan'
+      if( ns > 0 ) Word(Length-ns+6:Length+5) = File_name(Length-ns+1:Length)
+      Word(Length+6:Length+9) = '.txt'
+      File_scan_in(ifich) = Word
     end do
     Scan_true = .true.
   endif
 
   Dafs_bio = .false.
   if( Scan_true ) then
-    open(2, file = fichscanin(1), status='old',iostat=istat)
+    open(2, file = File_scan_in(1), status='old',iostat=istat)
     n = nnombre(2,Length_line)
     read(2,*) n
     if( n == 4 ) Dafs_bio = .true.
@@ -3094,20 +3162,20 @@ end
   endif
 
   if( Scan_true .and. .not. Dafs_bio ) then
-    if( fichscanout /= ' ' ) then
-      Length = len_trim(fichscanout)
-      if( Fichscanout(Length-3:Length-3) /= '.' ) Fichscanout(Length+1:Length+4) = '.txt' 
+    if( File_scan_out /= ' ' ) then
+      Length = len_trim(File_scan_out)
+      if( File_scan_out(Length-3:Length-3) /= '.' ) File_scan_out(Length+1:Length+4) = '.txt' 
     else
-      mot = convolution_out
-      Length = len_trim(mot)
-      mot(Length-7:Length+5) = 'scan_conv.txt'
-      fichscanout = mot
+      File_name = convolution_out
+      Length = len_trim(File_name)
+      File_name(Length-7:Length+5) = 'scan_conv.txt'
+      File_scan_out = File_name
       do ifich = 1,nfich
         if( nfich == 1 ) exit
-        mot = convolution_out_all(ifich)
-        Length = len_trim(mot)
-        mot(Length-7:Length+5) = 'scan_conv.txt'
-        fichscanout_all(ifich) = mot
+        File_name = convolution_out_all(ifich)
+        Length = len_trim(File_name)
+        File_name(Length-7:Length+5) = 'scan_conv.txt'
+        File_scan_out_all(ifich) = File_name
       end do
     endif
   endif
@@ -3123,7 +3191,7 @@ end
 
 ! Reading of dimensions
 
-subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm, Epsii,f0_forward,Fichin,Fichscanin, &
+subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ephm, Epsii,f0_forward,File_in,File_scan_in, &
           fprim,Full_self_abs,Green_int,jseuil,Length_line,Magn,mu_0_bulk,n_bulk_z,n_col_max,n_mat_pol,n_Trunc,natomsym_f,ne, &
           nfich,ninit1,ninit,ninitm,nphim,npldafs,nseuil,nxan,nxan_lib,Sample_thickness,Scan_true,Self_abs,Signal_Sph, &
           Surface_ref,Tenseur,Tenseur_car,Trunc,V0muf,Volume_maille,Volume_maille_bulk)
@@ -3137,7 +3205,7 @@ subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ep
 
   character(len=15):: nomab
   character(len=132):: mot
-  character(len=Length_name), dimension(nfich):: fichin, Fichscanin
+  character(len=Length_name), dimension(nfich):: File_in, File_scan_in
   character(len=15), dimension(:), allocatable:: nomcol
 
   logical:: Cor_abs, fprim, Full_self_abs, Green_int, Magn, nxan_lib, Scan_true, Self_abs, Signal_Sph, Tenseur, Tenseur_car, &
@@ -3156,7 +3224,7 @@ subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ep
 
     n_mat_pol = 0
 
-    open(2, file = fichin(ifich), status='old', iostat=istat)
+    open(2, file = File_in(ifich), status='old', iostat=istat)
 
     n = nnombre(2,Length_line)
     if( n == 11 + ninit(ifich) ) then
@@ -3317,7 +3385,7 @@ subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ep
     if( ne(ifich) < 2 ) then
       call write_error
       do ipr = 6,9,3
-        write(ipr,140) fichin(ifich)
+        write(ipr,140) File_in(ifich)
       end do
       stop
     endif
@@ -3332,8 +3400,8 @@ subroutine Dimension_file(Abs_in_bulk,Abs_U_iso,Cor_abs,Eintmax,En_Fermi,Eph1,Ep
   endif
   if( Scan_true ) then
     do ifich = 1,nfich
-      open(2, file = fichscanin(ifich), status='old',iostat=istat)
-      if( istat /= 0 ) call write_open_error(fichscanin(ifich),istat,1)
+      open(2, file = File_scan_in(ifich), status='old',iostat=istat)
+      if( istat /= 0 ) call write_open_error(File_scan_in(ifich),istat,1)
       n = nnombre(2,Length_line)
       do ipl = 1,npldafs
         read(2,*) nphi
@@ -3373,7 +3441,7 @@ end
 
 !***********************************************************************
 
-subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscanin,fprim,Full_self_abs,hkl_dafs, &
+subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,File_in,File_scan_in,fprim,Full_self_abs,hkl_dafs, &
       Length_line,n_bir,n_col,n_index_hk,n_mat_pol,n_stokes,nom_col,npldafs,npldafs_b,nxan,Self_abs,Signal_sph, &
       Stokes,Stokes_name,Stokes_param,Sup_sufix,Tenseur,XES)
 
@@ -3384,7 +3452,7 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
     n_stokes, nc, nnombre, npldafs, npldafs_b, nxan
   integer, dimension(npldafs):: nphi
 
-  character(len=Length_name):: fichin, Fichscanin
+  character(len=Length_name):: File_in, File_scan_in
   character(len=Length_word):: nomab, nomac
   character(len=length_line):: motl
   character(len=Length_word), dimension(n_stokes):: Stokes_name
@@ -3400,8 +3468,8 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
 
   real(kind=db), dimension(5,n_stokes):: Stokes_param
 
-  open(2, file = fichin, status='old', iostat=istat)
-  if( istat /= 0 ) call write_open_error(fichin,istat,1)
+  open(2, file = File_in, status='old', iostat=istat)
+  if( istat /= 0 ) call write_open_error(File_in,istat,1)
 
   do i = 1,6
     n = nnombre(2,Length_line)
@@ -3512,7 +3580,7 @@ subroutine col_name(Analyzer,Bormann,Cor_abs,Dafs_bio,Double_cor,fichin,Fichscan
 
 ! When using Dafs_bio, there is necessarily a scan file with 4 polarizations value
 ! We use this file to get the hkl_dafs indexes
-    open(2, file = fichscanin, status='old',iostat=istat)
+    open(2, file = File_scan_in, status='old',iostat=istat)
 
     do ipl = 1,npldafs
       read(2,*) nphi(ipl)
@@ -4824,7 +4892,7 @@ end
 
 ! Effect of temperature using the Debye model
 
-subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,n_col,nef,nenerg,nfich, &
+subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,fac,ifich,jseuil,n_col,nef,nenerg,nfich, &
                         nom_col,numat,nxan,Shift_U_iso,U_iso_man,V0muf,Xanes)
 
   use declarations
@@ -4833,7 +4901,7 @@ subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,f
   character(len=Length_word):: nomab
   character(len=Length_word), dimension(n_col):: nom_col
 
-  integer:: i, ie, ie0, ifich, Length, n_col, nef, nenerg, nfich, nxan, Z
+  integer:: i, ie, ie0, ifich, jseuil, Length, n_col, nef, nenerg, nfich, nxan, Z
   integer, dimension(nfich):: numat
   
   logical:: Energphot, U_iso_man
@@ -4861,7 +4929,7 @@ subroutine Debye_effect(Abs_U_iso,Abs_U_iso_inp,Energ,Energphot,Ephoton,Eseuil,f
  ! Calculation of atomic spectra when not existing
   if( i > nxan ) then
 
-    call Shift_from_frime_binding_energy(Eseuil(ifich),fpp0,Shift,Z) 
+    call Shift_from_frime_binding_energy(Eseuil(ifich),fpp0,jseuil,Shift,Z) 
 
     do ie = 1,nenerg
       Eph = Ephoton(ie) - Shift_U_iso + Shift
@@ -4954,26 +5022,37 @@ end
 ! fprime.f90 has tabulated edge energy different from fdmnes (see frime_data).
 ! This routine calculate the shift between them
 
-subroutine Shift_from_frime_binding_energy(Eseuil,fpp0,Shift,Z) 
+subroutine Shift_from_frime_binding_energy(Eseuil,fpp0,jseuil,Shift,Z) 
 
   use declarations
   implicit none
 
-  integer:: i, j, Z
+  integer:: i, is, j, jseuil, Z
+  
+  logical:: Special
   
   real(kind=db):: Binding_energy, Delta, Eph, Eseuil, fp, fpp0, fpp1, Shift 
 
-  Eph = Eseuil - 1
+! This edge is special because between M5 and M4, fpp is increasing
+  Special = ( Z == 91 .or. Z == 92 ) .and. jseuil == 4 
+  Special = .false.
+  if( Special ) then
+    is = - 1
+  else
+    is = 1
+  endif
+  
+  Eph = Eseuil - is
   Eph = max( Eph,  0.5_db )
   call fprime(Z,Eph,fpp0,fp)
-  
+
   Delta = 0.8_db / Rydb
   do j = 1,3
     Loop_i: do i = 1,100
-      Eph = Eph + Delta
+      Eph = Eph + is * Delta
       call fprime(Z,Eph,fpp1,fp)
-      if( fpp1 > fpp0 ) then
-        Eph = Eph - Delta
+      if( ( fpp1 > fpp0 .and. .not. Special ) .or. ( fpp1 < fpp0 .and. Special ) ) then
+        Eph = Eph - is * Delta
         Delta = Delta / 2
         exit Loop_i
       else
@@ -4982,7 +5061,7 @@ subroutine Shift_from_frime_binding_energy(Eseuil,fpp0,Shift,Z)
       endif
     end do Loop_i
   end do
-  
+    
   Shift = Binding_energy - Eseuil
    
   return
@@ -4990,12 +5069,12 @@ end
 
 !***********************************************************************
 
-subroutine Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Ephoton,Eseuil,fac,ifich, &
+subroutine Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Ephoton,Eseuil,fac,ifich,jseuil, &
                         nenerg,nfich,Dafs_cal,nphim,npldafs,numat,Shift_U_iso,U_iso_man,V0muf) 
   use declarations
   implicit none
 
-  integer:: i, icheck, ie, ifich, nenerg, nfich, nphim, npldafs, Z
+  integer:: i, icheck, ie, ifich, jseuil, nenerg, nfich, nphim, npldafs, Z
   integer, dimension(nfich):: numat
 
   complex(kind=db), dimension(nenerg,nphim,npldafs):: Adafs 
@@ -5015,7 +5094,7 @@ subroutine Debye_effect_a(Abs_U_iso,Abs_U_iso_inp,Adafs,dph,Energ,Energphot,Epho
 
  ! Calculation of atomic spectra when not existing
 
-  call Shift_from_frime_binding_energy(Eseuil(ifich),fpp0,Shift,Z) 
+  call Shift_from_frime_binding_energy(Eseuil(ifich),fpp0,jseuil,Shift,Z) 
 
   f = fac / pi
   

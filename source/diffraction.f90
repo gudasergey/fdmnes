@@ -1509,7 +1509,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
       x = Q_mod(ipl) / ( 2 * konde )
       if( x > 1._db ) then
         call write_error
-        do ipr = 3,9,3
+        do ipr = 6,9,3
           if( ipr == 3 .and. icheck == 0 ) cycle
           write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
           write(ipr,'(/A//)') ' The reflexion does not exist at this energy !'
@@ -1538,7 +1538,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
       Q_par_n = abs( sin_tau_ref ) < eps10
       if( Q_par_n .and. .not. Specular ) then
         call write_error
-        do ipr = 3,9,3
+        do ipr = 6,9,3
           if( ipr == 3 .and. icheck == 0 ) cycle
           write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
           write(ipr,'(/a15,3i3)') ' Reference axis =', hkl_ref(:)
@@ -1554,7 +1554,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
         .or. ( Delta_fixed .and. abs( sin(delta) ) < eps10 .and.  Eta_fixed .and. abs( sin(eta) ) < eps10 &
                                                                                                   .and.  Psi_fixed ) ) ) then
         call write_error
-        do ipr = 3,9,3
+        do ipr = 6,9,3
           if( ipr == 3 .and. icheck == 0 ) cycle
           write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
           write(ipr,'(/a15,3i3)') ' Reference axis =', hkl_ref(:)
@@ -1605,7 +1605,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
           if( abs( cos_n ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,cos_n,'cos(nu) ')
         else
           call write_error
-          do ipr = 3,9,3
+          do ipr = 6,9,3
             if( ipr == 3 .and. icheck == 0 ) cycle
             write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
             write(ipr,'(/A//)') '   eta cannot be fixed at +/- 90 !'
@@ -1621,7 +1621,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
           if( abs( cos_d ) > 1._db ) call Error_angle(icheck,jpl,Q,Operation_m,Angle_m,cos_d,'cos(del)')
         else
           call write_error
-          do ipr = 3,9,3
+          do ipr = 6,9,3
             if( ipr == 3 .and. icheck == 0 ) cycle
             write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
             write(ipr,'(/A//)') '    nu cannot be fixed at +/- 90 !'
@@ -1892,7 +1892,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 
             if( x < 0._db ) then
               call write_error
-              do ipr = 3,9,3
+              do ipr = 6,9,3
                 if( ipr == 3 .and. icheck == 0 ) cycle
                 write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
                 write(ipr,125) x
@@ -1917,7 +1917,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 
             if( abs( cos_c ) < eps10 .and. abs( sin_e ) < eps10 ) then
               call write_error
-              do ipr = 3,9,3
+              do ipr = 6,9,3
               if( ipr == 3 .and. icheck == 0 ) cycle
                 write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
                 write(ipr,'(/A//)') '   chi = +/- 90 with eta = 0, is not possible !'
@@ -1931,7 +1931,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 
               if( abs( cos_m ) < eps10 ) then
                 call write_error
-                do ipr = 3,9,3
+                do ipr = 6,9,3
                   if( ipr == 3 .and. icheck == 0 ) cycle
                   write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
                   write(ipr,'(/A//)') '   One gets, mu = +/- 90 with chi = 0 or eta = 0, what is not possible !'
@@ -1957,7 +1957,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
 
               if( x < 0._db ) then
                 call write_error
-                do ipr = 3,9,3
+                do ipr = 6,9,3
                   if( ipr == 3 .and. icheck == 0 ) cycle
                   write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
                   write(ipr,125) x
@@ -1985,7 +1985,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
             if( abs( sin_c ) < eps10 .or. abs( cos_m ) < eps10 ) then
 !            if( abs( sin_c ) < eps10 .or. abs( sin_m ) < eps10 .or. abs( cos_c ) < eps10 .or. abs( cos_m ) < eps10 ) then
               call write_error
-              do ipr = 3,9,3
+              do ipr = 6,9,3
               if( ipr == 3 .and. icheck == 0 ) cycle
                 write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
                 write(ipr,'(/A//)') &
@@ -2083,7 +2083,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
           x = b**2 - a * c
           if( x < 0._db ) then
             call write_error
-            do ipr = 3,9,3
+            do ipr = 6,9,3
               if( ipr == 3 .and. icheck == 0 ) cycle
               write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
               write(ipr,125) x
@@ -2657,7 +2657,7 @@ subroutine SRXD(Angle_mode,angpoldafs,angxyz,angxyz_bulk,axyz,axyz_bulk,Bulk,Bul
       endif
       if( abs( x - 1 ) > eps10 .or. alfa < 0._db .or. beta < 0 ) then
         call write_error
-        do ipr = 3,9,3
+        do ipr = 6,9,3
           if( ipr == 3 .and. icheck == 0 ) cycle
           write(ipr,120) jpl, hkl_dafs(:,ipl), Operation_m(:), Angle_m(:) / radian
           if( abs( x - 1 ) > eps10 ) write(ipr,180) x
@@ -2775,7 +2775,7 @@ end
             Angle_name(n_a) = '  Naz'
           case default
             call write_error
-            do ipr = 3,9,3
+            do ipr = 6,9,3
               if( ipr == 3 .and. icheck == 0 ) cycle
               write(ipr,100) Operation_m(:), Angle_m(:) / radian
               write(ipr,120) ' Detector', i, 4
@@ -2803,7 +2803,7 @@ end
             Angle_name(n_a) = '  psi'
           case default
             call write_error
-            do ipr = 3,9,3
+            do ipr = 6,9,3
               if( ipr == 3 .and. icheck == 0 ) cycle
               write(ipr,100) Operation_m(:), Angle_m(:) / radian
               write(ipr,120) 'Reference', j, Operation_m(j), 4
@@ -2841,7 +2841,7 @@ end
           case(5)
             if( n_op /= 3 ) then
               call write_error
-              do ipr = 3,9,3
+              do ipr = 6,9,3
                 if( ipr == 3 .and. icheck == 0 ) cycle
                 write(ipr,100) Operation_m(:), Angle_m(:) / radian
                 write(ipr,110) ' eta = delta / 2'
@@ -2853,7 +2853,7 @@ end
           case(6)
             if( n_op /= 3 ) then
               call write_error
-              do ipr = 3,9,3
+              do ipr = 6,9,3
                 if( ipr == 3 .and. icheck == 0 ) cycle
                 write(ipr,100) Operation_m(:), Angle_m(:) / radian
                 write(ipr,110) '     mu = nu / 2'
@@ -2864,7 +2864,7 @@ end
             Mu_half_nu = .true.
           case default
             call write_error
-            do ipr = 3,9,3
+            do ipr = 6,9,3
               if( ipr == 3 .and. icheck == 0 ) cycle
               write(ipr,100) Operation_m(:), Angle_m(:) / radian
               if( n_op == 3 ) then
@@ -2878,7 +2878,7 @@ end
 
         if( Operation_m_error ) then
           call write_error
-          do ipr = 3,9,3
+          do ipr = 6,9,3
             if( ipr == 3 .and. icheck == 0 ) cycle
             write(ipr,100) Operation_m(:), Angle_m(:) / radian
             write(ipr,130) mot3
@@ -2892,7 +2892,7 @@ end
 
   if( n_op /= 3 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       if( ipr == 3 .and. icheck == 0 ) cycle
       write(ipr,100) Operation_m(:), Angle_m(:) / radian
       write(ipr,140) n_op
@@ -2914,7 +2914,7 @@ end
   if( ( Naz_fixed .and. .not. Column_reference ) .or. &
       ( Detector_known .and. Eta_fixed .and. ( Chi_fixed .or. Phi_fixed ) ) ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       if( ipr == 3 .and. icheck == 0 ) cycle
       write(ipr,100) Operation_m(:), ( Angle_name(i), Angle_m(i) / radian, i = 1,n_a )
       if( Naz_fixed ) then
@@ -2990,7 +2990,7 @@ subroutine Error_angle(icheck,jpl,Q,Operation_m,Angle_m,Argument,Angle_name)
   endif
 
   call write_error
-  do ipr = 3,9,3
+  do ipr = 6,9,3
     if( ipr == 3 .and. icheck == 0 ) cycle
     write(ipr,110) jpl, Q(:), Operation_m(:), Angle_m(:) / radian, Angle_name, Argument, Angle_name(1:3)
   end do
@@ -3107,7 +3107,7 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
 
       if( fac > 1._db .and. mpirank0 == 0 ) then
         if( istop == 0 ) call write_error
-        do ipr = 3,9,3
+        do ipr = 6,9,3
           if( ipr == 3 .and. icheck == 0 ) cycle
           if( Film ) then
             write(ipr,120) ipl, hkl_dafs(:,ipl)
@@ -3382,7 +3382,7 @@ subroutine Pol_dafs(Angle_or,Angpoldafs,Angxyz,Angxyz_bulk,axyz,axyz_bulk,Borman
         w(:) = Vecdafss(:,ipl,1)
         if( mpirank0 == 0 .and. ( sum(abs(v(:))) < eps10 .or. sum(abs(w(:))) < eps10 ) ) then
           call write_error
-          do ipr = 3,9,3
+          do ipr = 6,9,3
             write(ipr,160)
           end do
           stop
@@ -4269,7 +4269,7 @@ subroutine Col_dafs_name(Angpoldafs,Bormann,Full_self_abs,hkl_dafs,isigpi,mpiran
   ncolt = icol
   if( ncolt > ncolm .and. mpirank0 == 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,105) ncolt, ncolm
     end do
     stop

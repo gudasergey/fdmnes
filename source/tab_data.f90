@@ -167,7 +167,7 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,mpirank)
                293.2,   308.2,   320.2,   332.6,   339.7,   359.2,   380.7,   400.9,   423.6,   446.8, &
                470.7,   495.8,   519.4,   546.3,   576.6,   609.5,   643.5,   678.8,   705.0,   740.0, &
                768.0,   810.0,   879.0,   890.0,   966.4, &
-              1007.0,  1043.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,   &
+              1007.0,  1043.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0, &
                  0.0,     0.0,     0.0/
 
   data en4/                       11.7,    17.7,    24.9,    33.3,    41.9,    50.6,    69.5,    79.8, &
@@ -190,14 +190,14 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,mpirank)
                  8.0,     8.6,     0.0,     0.0,     2.5,     8.9,    15.9,    23.5,    33.6,    42.9, &
                 53.4,    63.8,    74.5,    87.6,   104.0,   122.2,   141.7,   162.3,   184.0,   210.0, &
                238.0,   268.0,   299.0,   319.0,   342.4, &
-               371.0,   388.2,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,   &
+               371.0,   388.2,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0, &
                  0.0,     0.0,     0.0/
 
   data en7/                        0.1,     2.0,     1.5,     0.0,     5.2,     0.0,     8.6,     2.4, &
                  4.3,     5.2,     4.7,     4.6,     1.3,     7.5,    14.2,    21.6,    31.4,    40.5, &
                 50.7,    60.8,    71.2,    83.9,    99.9,   117.8,   136.9,   157.0,   184.0,   210.0, &
                238.0,   268.0,   299.0,   319.0,   333.1, &
-               360.0,   377.4,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,   &
+               360.0,   377.4,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0,     0.0, &
                  0.0,     0.0,     0.0/
 
   data eo1/                            23.3,   22.7,  30.3,    34.3,   37.8,   37.4,   37.5, &
@@ -247,7 +247,7 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,mpirank)
 
   if( ( numat > Z_Mendeleiev_max .or. numat <= 0 ) .and. mpirank == 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,105) numat, Z_Mendeleiev_max
     end do
     stop
@@ -398,7 +398,7 @@ subroutine esdata(Eseuil,icheck,jseuil,nbseuil,nseuil,numat,mpirank)
   
   if( nseuil /= 0 .and. Eseuil(1) < eps10 .and. mpirank == 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,120)
     end do
     stop
@@ -965,7 +965,7 @@ function n_orb_rel(Z)
 
   if( Z < 1 .or. Z > 118 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,'(/A)') ' Z not possible in function n_orb_rel (in tab_data.f90) !'
     end do
     stop
@@ -995,40 +995,11 @@ function n_orb_coeur(Z)
            3, 3,                               3, 3, 3, 3, 3, 3, &
            4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, &
            7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, &
-          10,10, 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10, &
+           9, 9, 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10, &
                  12,12,12,12,12,12,12,12,12, 12,12,12,13,13,13, &
           14,14, 14,14,14,14,14,15,15,15,15,15,15,15,15,15,15/
 
   n_orb_coeur = nc(Z)
-
-  return
-end
-
-!*********************************************************************
-
-! Not used: for test
-! Index of the last core orbital. Called by dirgen.
-! Order of the occupancy orbital: 1s[He]2s2p[Ne]3s3p[Ar]4s3d4p[Kr]5s4d5p[Xe]6s4f5d6p[Rn]7s6d5f
-! inversion: 6s2 4f0 5d1, then one fills the 4f, then the 6p
-
-function n_orb_coeur_test(Z)
-
-  use declarations
-  implicit none
-  
-  integer:: n_orb_coeur_test, Z
-  integer, dimension(Z_Mendeleiev_max):: nc
-
-  data nc/ 0,                                                 0, &
-           1, 1,                               1, 1, 1, 1, 1, 2, &
-           3, 3,                               3, 3, 3, 3, 3, 3, &
-           5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, &
-           8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, &
-          11,11, 11,11,11,11,11,11,11,11,11,11,11,11,11,11, &
-                 11,11,11,11,11,11,11,11,11,11, 12,12,12,12,12,12, &
-          15,15, 15,15,15,15,15,15,15,15,15,15,15,15,15,15,15/
-
-  n_orb_coeur_test = nc(Z)
 
   return
 end
@@ -1184,7 +1155,7 @@ function Debye_temperature(Z)
 
   if( Z <= 0 .or. Z > Z_Mendeleiev_max ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,110) Z, Z_Mendeleiev_max
     end do
     stop
@@ -1218,7 +1189,7 @@ function Lmax_pDOS(Z)
 
   if( Z <= 0 .or. Z > Z_Mendeleiev_max ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,110) Z, Z_Mendeleiev_max
     end do
     stop
@@ -1252,7 +1223,7 @@ function Lmax_print(Z)
 
   if( Z <= 0 .or. Z > Z_Mendeleiev_max ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,110) Z, Z_Mendeleiev_max
     end do
     stop

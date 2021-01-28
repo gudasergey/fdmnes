@@ -1,5 +1,6 @@
-! FDMNES II program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 8th of October 2020, Jour des récompenses, 17 Vendemiaire, An 229
+! FDMNES program, Yves Joly, Oana Bunau, Yvonne Soldo-Olivier, 21st of January 2021, 2 Pluviose, An 229
 !                 Institut Neel, CNRS - Universite Grenoble Alpes, Grenoble, France.
+! Inter Deposit Digital Number: IDDN.FR.001.200018.000.S.P.2010.000.31235
 ! MUMPS solver inclusion by S. Guda, A. Guda, M. Soldatov et al., University of Rostov-on-Don, Russia
 ! FDMX extension by J. Bourke and Ch. Chantler, University of Melbourne, Australia
 
@@ -9,9 +10,9 @@
 
 ! Main routines of the FDMNES package
 ! Need also :
-!   clemf0.f90, coabs.f90, convolution.f90, diffraction.f90, dirac.f90, fdm.f90, fprime.f90, frime_data.f90, general.f90,
+!   clemf0.f90, coabs.f90, Cluster_approach.f90, convolution.f90, diffraction.f90, dirac.f90, fdm.f90, fprime.f90, frime_data.f90,
 !   lecture.f90, mat.f90, metric.f90, minim.f90, optic.f90, potential.f90, rixs.f90, scf.f90 selec.f90,
-!   rixs.f90, spgroup.f90, sphere.f90, tab_data.f90, tensor.f90, tddft.f90, tools.f90
+!   general.f90, rixs.f90, spgroup.f90, sphere.f90, tab_data.f90, tensor.f90, tddft.f90, tools.f90
 
 ! When using the MUMPS library, one also needs:
 !   mat_solve_MUMPS.f and MUMPS (and associated SCOTCH and METIS), BLAS and LAPACK libraries.
@@ -48,7 +49,7 @@ module declarations
   integer, parameter:: ngrpt_compm = 11 ! Additional number of non magnetic punctual groups (with other orientation)
   integer, parameter:: ngrptmag_compm = 10 ! Additional number of magnetic punctual groups (with other orientation)
 
-  character(len=50), parameter:: Revision = 'FDMNES program, Revision 8th of October 2020'
+  character(len=50), parameter:: Revision = 'FDMNES program, Revision 21st of January 2021'
   character(len=16), parameter:: fdmnes_error = 'fdmnes_error.txt'
 
   complex(kind=db), parameter:: img = ( 0._db, 1._db )
@@ -261,7 +262,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   include 'mpif.h'
 
   integer, parameter:: nkw_all = 45
-  integer, parameter:: nkw_fdm = 234
+  integer, parameter:: nkw_fdm = 239
   integer, parameter:: nkw_conv = 36
   integer, parameter:: nkw_fit = 1
   integer, parameter:: nkw_gaus = 1
@@ -269,7 +270,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
   integer, parameter:: nkw_mult = 5
   integer, parameter:: nkw_selec = 5
   integer, parameter:: nmetricm = 4
-  integer, parameter:: nparam_conv = 11
+  integer, parameter:: nparam_conv = 12
   integer, parameter:: nparam_fdm = 17
 
   integer, parameter:: nparam_tot = nparam_conv + nparam_fdm
@@ -341,7 +342,7 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'absorbeur','adimp    ','all_nrixs','all_site_','allsite  ','ata      ','atom     ','atom_b_is','atom_conf', &
      'atom_nsph','ang_spin ','atomic_sc','axe_spin ','atom_u_is', &
      'base_comp','base_reel','bond     ','bulk     ','bulk_roug','cap_b_iso','cap_layer','cap_rough','cap_shift', &
-     'cap_thick','cap_u_iso','cartesian','center   ','center_ab','center_s ','chfree   ','cif_file ','clementi ', &
+     'cap_thick','cap_u_iso','cartesian','center   ','center_ab','center_s ','chfree   ','cif_file ','clementi ','cluster_a', &
      'coop     ','coop_dist','coop_z_ax','core_ener','core_reso','crystal  ', &
      'crystal_c','crystal_t','d_max_pot','dafs     ','dafs_2d  ','dafs_exp ','debye    ','delta_en_','dip_rel  ','e1e1     ', &
      'delta_eps','density  ','density_a','density_c','dilatorb ','dipmag   ','doping   ','dpos     ','dyn_g    ','dyn_eg   ', &
@@ -349,15 +350,16 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
      'ephot_min','e_out_min','excited  ','extract  ','extract_t','extractpo','extractsy','fdm_comp ','film     ','film_cif_', &
      'film_pdb_','film_t   ','film_roug','film_shif','film_zero','flapw    ','flapw_n  ','flapw_n_p','flapw_psi','flapw_r  ', &
      'flapw_s  ','flapw_s_p','full_atom','full_pote','full_self','gamma_tdd','green    ','green_bul','green_int','harm_tess', &
-     'hedin    ','helm_cos ','helmholtz','hkl_film ','hubbard  ','hubbard_z','iord     ','kern_fac ','kern_fast', &
-     'lmax     ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ','lplus1   ','mat_ub   ', &
-     'memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar','molecule ','moment_co','no_e1e3  ', &
-     'molecule_','muffintin','multrmax ','n_self   ','new_zero ','no_core_r','no_dft   ','no_e1e1  ','no_e1e2  ', &
+     'hedin    ','helm_cos ','helm_lin ','helm_mix ','helmholtz','hkl_film ','hubbard  ','hubbard_z','iord     ','kern_fac ', &
+     'kern_fast','lmax     ','lmax_pot ','lmax_nrix','lmax_tddf','lmaxfree ','lmaxso   ','lmaxstden','ldipimp  ','lmoins1  ', &
+     'lplus1   ','mat_ub   ','memory_sa','lquaimp  ','m1m1     ','m1m2     ','m2m2     ','magnetism','mat_polar','molecule ', &
+     'moment_co','no_e1e3  ','molecule_','muffintin','multrmax ','n_self   ','new_zero ','no_core_r','no_dft   ','no_e1e1  ', &
+     'no_e1e2  ', &
      'no_e2e2  ','no_e3e3  ','no_fermi ','no_interf','no_renorm','no_res_ma','no_res_mo','no_scf_bu','no_solsin','normaltau', &
-     'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','nrixs_mon','occupancy','octupole ', &
-     'old_zero ','one_run  ','one_scf  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ','perdew   ', &
-     'pointgrou','polarized','powder   ','quadmag  ','quadrupol','radius   ','range    ','rangel   ','ray_max_d','rcharge  ', &
-     'rcharge_z','readfast ','relativis','rixs     ','rixs_ampl','rixs_core','rixs_db_c','rixs_emis','rixs_ener', &
+     'norman   ','noncentre','non_relat','nonexc   ','not_eneg ','nrato    ','nrixs    ','nrixs_mon','numerov  ','occupancy', &
+     'octupole ','old_zero ','one_run  ','one_scf  ','optic    ','over_rad ','overlap  ','p_self   ','p_self_ma','pdb_file ', &
+     'perdew   ','pointgrou','polarized','powder   ','quadmag  ','quadrupol','radius   ','range    ','rangel   ','ray_max_d', &
+     'rcharge  ','rcharge_z','readfast ','relativis','rixs     ','rixs_ampl','rixs_core','rixs_db_c','rixs_emis','rixs_ener', &
      'rixs_fast','rixs_loss','rixs_sum ','rmt      ','rmtg     ','rmtg_z   ','rmtv0    ','rot_sup  ','rpalf    ', &
      'rpotmax  ','r_self   ','rydberg  ','self_abs ','scf      ','scf_abs  ','scf_exc  ','scf_mag_f','scf_non_e','scf_step ', &
      'screening','setaz    ','solsing  ','spgroup  ','sphere_al','spherical','spin_chan','spinorbit','step_loss','step_azim', &
@@ -378,9 +380,9 @@ subroutine Fit(fdmnes_inp,mpirank0,mpinodes0)
 
 ! First the convolution parameters, then the others
   data param_conv / &
-     'ecent    ','e_cut    ','elarg    ','gamma_hol','gamma_max','gaussian ','shift    ','aseah    ','bseah    ','vibr     ', &
-     'weight   ','a        ','abc      ','anga     ','angb     ','angc     ','b        ','c        ','dposx    ','dposy    ', &
-     'dposz    ','occup    ','phi      ','poporb   ','posx     ','posy     ','posz     ','theta    '/
+     'ecent    ','e_cut    ','elarg    ','gamma_hol','gamma_max','gaussian ','shift    ','abs_u_iso','aseah    ','bseah    ', &
+     'vibr     ','weight   ','a        ','abc      ','anga     ','angb     ','angc     ','b        ','c        ','dposx    ', &
+     'dposy    ','dposz    ','occup    ','phi      ','poporb   ','posx     ','posy     ','posz     ','theta    '/
 
   call CPU_TIME(time)
   tp_deb = real(time,db)
@@ -1969,7 +1971,7 @@ function Traduction(keyword)
       traduction = 'fprime_at'
     case('hedin_lun','hedinlund')
       traduction = 'hedin'
-    case('helm','helmoltz','helmhotz','helmotz')
+    case('helm','helmoltz','helmhotz','helmotz','helmolz')
       traduction = 'helmholtz'
     case('hubard')
       traduction = 'hubbard'

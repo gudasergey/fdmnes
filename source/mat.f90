@@ -47,7 +47,7 @@ subroutine mat(Adimp,Ampl_dft,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xane
   complex(kind=db), dimension(:,:,:,:), allocatable:: taull_tem
 
   logical:: Base_hexa, Basereel, Basereelt, Cal_xanes, Cal_comp, E_comp, Eneg, FDM_comp, Full_atom, irregular, &
-    recop, Relativiste, Repres_comp, RIXS, Rydberg, Scat_ampl, Spinorbite, Solsing, State_all_r, Stop_job, Sym_cubic, Ylm_comp
+    recop, Relativiste, Repres_comp, RIXS, Rydberg, Spinorbite, Solsing, State_all_r, Stop_job, Sym_cubic, Ylm_comp
   logical, dimension(natome):: Atom_axe
 
   real(kind=db):: adimp, Dist, Eclie_out, Eimag, Enervide, R_rydb, Rsort, Time_fill, Time_tria 
@@ -139,34 +139,27 @@ subroutine mat(Adimp,Ampl_dft,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xane
     
     if( irregular ) then
 ! Cluster irregular solution case
-      if( Test_reg == 0 .or. Test_reg == - 4 .or. Test_reg == - 14 ) then
+      if( Test_reg == 0 ) then
         n_ato_RI = n_RI  ! Atomic solutions are regular and irregular
       else
         n_ato_RI = 1
       endif
       nligne = nspino * npr + n_ato_RI * sum( nlmsa(1:natome) )
-      if( Test_reg < 0 ) then
-        nligne = nligne + nlmso
-        Scat_ampl = .true.
-      else
-        Scat_ampl = .false.
-      endif
     else
       n_ato_RI = 1   ! Atomic solution is only regular 
       nligne = nspino * npr + nlmso + sum( nlmsa(1:natome) )
-      Scat_ampl = .true.
     endif
 
     allocate( lb1(nligne) ); allocate( lb2(nligne) )
     allocate( newinv(nligne) )
 
     if( icheck == 2 .and. i_RI == 2 ) then
-      ich = icheck -1
+      ich = icheck - 1
     else
       ich = icheck
     endif
-    call newind(distai,ianew,ibord,ich,isrt,ivois,lb1,lb2,mpirank0,n_ato_RI,natome,nbordf,nbtm,new,newinv, &
-                nligne,nlmsa,nlmso,npoint,nsortf,nspino,npsom,nstm,numia,nvois,Scat_ampl,xyz)
+    call newind(distai,ianew,ibord,ich,irregular,isrt,ivois,lb1,lb2,mpirank0,n_ato_RI,natome,nbordf,nbtm,new,newinv, &
+                nligne,nlmsa,nlmso,npoint,nsortf,nspino,npsom,nstm,numia,nvois,xyz)
 
     if( Cal_comp ) then
       nligne_i = nligne
@@ -183,11 +176,7 @@ subroutine mat(Adimp,Ampl_dft,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xane
     if( ( icheck > 1 .and. i_RI == 1 ) .or. icheck > 2 ) write(3,110)
 
     if( irregular ) then
-      if( Test_reg < 0 ) then
-        nligneso = nligne - nlmso
-      else
-        nligneso = nligne
-      endif
+      nligneso = nligne
     else
       ianew_reg(:) = ianew(:)
       nligneso = nligne - nlmso
@@ -252,11 +241,9 @@ subroutine mat(Adimp,Ampl_dft,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xane
       else
         do Lm = 1,nlmsa(ia)
           ii = ianew(ia) + Lm
-          if( Test_reg == 1 .or. Test_reg == -1 .or. Test_reg == -11 .or. &
-            ( ( Test_reg == 2 .or. Test_reg == -2 .or. Test_reg == -12 ) .and. ia /= 1 ) ) then
+          if( Test_reg == 1 .or. ( Test_reg == 2 .and. ia /= 1 ) ) then
             Ampl_I(:,Lm) = cmplx(smr(:,ii), smi(:,ii), db)
-          elseif( Test_reg == 3 .or. Test_reg == -3 .or. Test_reg == -13 .or. &
-            ( ( Test_reg == 2 .or. Test_reg == -2 .or. Test_reg == -12 ) .and. ia == 1 ) ) then
+          elseif( Test_reg == 3  .or. ( Test_reg == 2 .and. ia == 1 ) ) then
             Ampl_I(:,Lm+nlmsa(ia)) = cmplx(smr(:,ii), smi(:,ii), db)
           endif  
         end do
@@ -322,7 +309,7 @@ subroutine mat(Adimp,Ampl_dft,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xane
     allocate( norm(nlmso,nlmso) )
     allocate( norm_t(nlmso,nlmso) )
 
-    if( Basereel ) then
+    if( Basereel .and. nlmso > 0  ) then
 ! When simulation is done using real basis, one must renormalize.
 
       do Lm = 1,nlmso
@@ -435,7 +422,6 @@ subroutine mat(Adimp,Ampl_dft,Atom_axe,Axe_atom_grn,Base_hexa,Basereelt,Cal_xane
             m2 = mato(Lm2,ia,igrph)
             
             Lm02 = L2**2 + L2 + 1 + m2
-            Lm02 = Lm02 + nlmagm
             lm02c = Lm02 - 2 * m2
             is2 = ispinin
             isg = (-1)**(m1+m2)
@@ -796,7 +782,7 @@ subroutine phiso(Adimp,Bessel,Besselr,E_comp,Ecinetic_out,Eclie_out,Eimag, &
     konde = cmplx( konder, 0._db, db )
     if( konder < eps10 .and. mpirank0 == 0 ) then
       call write_error
-      do ipr = 3,9,3
+      do ipr = 6,9,3
         write(ipr,120)
       end do
       stop
@@ -875,7 +861,7 @@ subroutine phiso(Adimp,Bessel,Besselr,E_comp,Ecinetic_out,Eclie_out,Eimag, &
     endif
     if( konder < eps10 .and. mpirank0 == 0 ) then
       call write_error
-      do ipr = 3,9,3
+      do ipr = 6,9,3
         write(ipr,120)
       end do
       stop
@@ -1114,13 +1100,13 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   data let/ ' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z', &
                 'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'/
 
-  if( Test_reg == 0 .or. Test_reg == -4 .or. Test_reg == -14 ) then
+  if( Test_reg == 0 ) then
     Test_irreg_only = .false.
     Test_reg_only = .false.
-  elseif( Test_reg == 1 .or. Test_reg == -1 .or. Test_reg == -11 ) then
+  elseif( Test_reg == 1 ) then
     Test_irreg_only = .false.
     Test_reg_only = .true.
-  elseif( Test_reg == 3 .or. Test_reg == -3 .or. Test_reg == -13 ) then
+  elseif( Test_reg == 3 ) then
     Test_irreg_only = .true.
     Test_reg_only = .false.
   endif
@@ -1249,7 +1235,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 
 ! Neighbor is in atom ia :
 
-        if( Test_reg == 2 .or. Test_reg == -2 .or. Test_reg == -12 ) then
+        if( Test_reg == 2 ) then
           Test_irreg_only_L = ia == 1
           Test_reg_only_L = ia /= 1
         else
@@ -1330,7 +1316,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
         end do
       
 ! for irregular solution there is no scattered wave in the outer sphere
-        if( ( .not. irregular )  .or. Test_reg < 0 ) then
+        if( .not. irregular ) then
         
           do Lm = 1,nlmso
             L = Lso(Lm,igrph)
@@ -1352,11 +1338,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
                   cfac = cmplx( Neumanr(ib,L,ispq), 0._db, db ) 
                 endif
               elseif( irregular ) then
-                if( Test_reg > - 10 .and. Test_reg < 0 ) then
-                  cfac = Bessel(ib,L,ispq) + img * Neuman(ib,L,ispq)
-                else
-                  cfac = Bessel(ib,L,ispq) - img * Neuman(ib,L,ispq)
-                endif
+                cfac = Bessel(ib,L,ispq) - img * Neuman(ib,L,ispq)
               else
                 if( E_comp ) then
                   cfac = Bessel(ib,L,ispq) + img * Neuman(ib,L,ispq)
@@ -1464,11 +1446,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
             endif
           else
             if( irregular ) then
-              if( Test_reg > - 10 .and. Test_reg < 0 ) then
-                charmc = charmc + cfac * ( Bessel(ib,L,ispq) + img * Neuman(ib,L,ispq) )
-              else
-                charmc = charmc + cfac * ( Bessel(ib,L,ispq) - img * Neuman(ib,L,ispq) )
-              endif
+              charmc = charmc + cfac * ( Bessel(ib,L,ispq) - img * Neuman(ib,L,ispq) )
             elseif( E_comp ) then
               charmc = charmc + cfac * ( Bessel(ib,L,ispq) + img * Neuman(ib,L,ispq) )
             else
@@ -1517,9 +1495,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
           else
             cfad = cfac * cmplx( Ylmso(ib,lmf0), 0._db, db )
           endif
-          if( irregular .and. Test_reg < 0 ) then
-            cfad = cfad * ( - img * Bessel(ib,L,ispq) + Neuman(ib,L,ispq) ) 
-          elseif( E_comp ) then
+          if( E_comp ) then
             cfad = cfad * Bessel(ib,L,ispq)
           else
             cfad = cfad * Besselr(ib,L,ispq)
@@ -1540,7 +1516,7 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
 
     ia = -i
 
-    if( Test_reg == 2 .or. Test_reg == -2 .or. Test_reg == -12 ) then
+    if( Test_reg == 2 ) then
       Test_irreg_only_L = ia == 1
       Test_reg_only_L = ia /= 1
     else
@@ -1610,10 +1586,6 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       endif
 
       do Lmp = 1,nlmsa(ia)
-!        if( irregular ) then
-!          if( Test_irreg_only .and. i_RI == 1 .and. Lm /= Lmp ) cycle
-!          if( Test_reg_only .and. i_RI == 2 .and. Lm /= Lmp ) cycle
-!        endif
         Lp = Lato(Lmp,ia,igrph)
         isol = iato(Lmp,ia,igrph)
         mp = mato(Lmp,ia,igrph) + ispt - isol
@@ -1703,8 +1675,10 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
         endif
       endif
     end do boucle_jj
+
     write(3,130) ii, i, lb1r, lb2r
     write(3,140) (mletl(j), j = 1,lb2r - lb1r + 1)
+
     if( icheck > 3 ) then
       allocate( jnzero(lb2r - lb1r + 1) )
       n = 0
@@ -1725,7 +1699,6 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
       deallocate( jnzero )
     endif
     if( sum( abs(smr(:,ii)) ) > eps10 ) then
-      write(3,'(A)') ' sm ='
       if( Cal_comp ) then
         write(3,150) ( smr(lms,ii), smi(lms,ii), lms = 1,nlmso )
       else
@@ -1744,11 +1717,11 @@ subroutine calcMatRow( abvr, abvi, Base_hexa, Basereel, Bessel, Besselr, Cal_com
   endif
     
   return
-  120 format(/'  FDM Matrix :',/'  ii     i   lb1   lb2   / abr(i = lb1,lb2)')
-  130 format(4i6)
+  120 format(/'  FDM Matrix:')
+  130 format(/' Line =',i5,', i =',i5,', Lb1, Lb2 =',2i5)
   140 format(500a2)
-  150 format(1p,250(1x,2e11.3))
-  155 format(1p,500e11.3)
+  150 format('   sm =',1p,250(1x,2e11.3))
+  155 format('   sm =',1p,500e11.3)
   160 format(8(a2,' =',1pe10.3,1x))
   165 format(1p,4(a2,' =',2e10.3,1x))
   end
@@ -1785,8 +1758,8 @@ end
 
 ! Calculation of the new indexation of the FDM points, that is their line number in the general FDM matrix.
 
-subroutine newind(distai,ianew,ibord,icheck,isrt,ivois,lb1,lb2,mpirank0,n_ato_RI,natome,nbordf,nbtm,new,newinv, &
-               nligne,nlmsa,nlmso,npoint,nsortf,nspino,npsom,nstm,numia,nvois,Scat_ampl,xyz)
+subroutine newind(distai,ianew,ibord,icheck,irregular,isrt,ivois,lb1,lb2,mpirank0,n_ato_RI,natome,nbordf,nbtm,new,newinv, &
+               nligne,nlmsa,nlmso,npoint,nsortf,nspino,npsom,nstm,numia,nvois,xyz)
 
   use declarations
   implicit none
@@ -1803,8 +1776,8 @@ subroutine newind(distai,ianew,ibord,icheck,isrt,ivois,lb1,lb2,mpirank0,n_ato_RI
   integer, dimension(nbtm,natome):: ibord
   integer, dimension(npsom,nvois):: ivois
   
-  logical:: Scat_ampl
-
+  logical:: irregular
+  
   real(kind=db), dimension(natome):: distai
   real(kind=db), dimension(4,npsom):: xyz
 
@@ -1850,7 +1823,7 @@ subroutine newind(distai,ianew,ibord,icheck,isrt,ivois,lb1,lb2,mpirank0,n_ato_RI
       j = ivois(i,iv)
       if( j == 0 .and. mpirank0 == 0 ) then
         call write_error
-        do ipr = 3,9,3
+        do ipr = 6,9,3
           write(ipr,105) i, iv
         end do
         stop
@@ -1887,7 +1860,7 @@ subroutine newind(distai,ianew,ibord,icheck,isrt,ivois,lb1,lb2,mpirank0,n_ato_RI
   end do
 
 ! There is no scattered amplitude for irregular solution
-  if( Scat_ampl ) then
+  if( .not. irregular ) then
     lb11 = nligne - nlmso + 1
     do ib = 1,nsortf
       lb11 = min(lb11,new(isrt(ib))-n)
@@ -1949,7 +1922,7 @@ end
 
 !***********************************************************************
 
-! Sub routine for inversion of complex general matrix
+! Subroutine for inversion of complex general matrix
 
 subroutine invcomp(n,mat,nm,lwork,is,Stop_job)
 
@@ -1977,7 +1950,7 @@ subroutine invcomp(n,mat,nm,lwork,is,Stop_job)
 
   if( info /= 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,110) info
     end do
     if( Stop_job ) stop
@@ -2006,7 +1979,7 @@ subroutine invcomp(n,mat,nm,lwork,is,Stop_job)
 
   if( info /= 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,120) info
     end do
     if( Stop_job ) stop
@@ -2038,7 +2011,7 @@ subroutine invreel(n,mat,nm,lwork)
 
   if( info /= 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,110) info
     end do
     stop
@@ -2053,7 +2026,7 @@ subroutine invreel(n,mat,nm,lwork)
 
   if( info /= 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,120) info
     end do
     stop
@@ -4102,15 +4075,17 @@ Subroutine DJMN(beta,R,LMAX)
     S1 = S * SQR2
     C1 = 0.5_db + C
     R(0,0,0) = 1._db
-    R(-1,-1,1) = C1
-    R(0,-1,1) = S1
-    R(1,-1,1) = 1._db - C1
-    R(-1,0,1) = -S1
-    R(0,0,1) = CC
-    R(1,0,1) = S1
-    R(-1,1,1) = 1._db - C1
-    R(0,1,1) = -S1
-    R(1,1,1) = C1
+    if( Lmax > 0 ) then
+      R(-1,-1,1) = C1
+      R(0,-1,1) = S1
+      R(1,-1,1) = 1._db - C1
+      R(-1,0,1) = -S1
+      R(0,0,1) = CC
+      R(1,0,1) = S1
+      R(-1,1,1) = 1._db - C1 
+      R(0,1,1) = -S1
+      R(1,1,1) = C1
+    endif
 
     PRODL = -S
     COEF = -S / C1
@@ -4421,7 +4396,7 @@ subroutine Data_one_run(First_run,iabsm,icheck,igreq,index_e,igroupi,ipr1,lmax_p
 
     if( .not. Found ) then
       call write_error
-      do ipr = 3,9,3
+      do ipr = 6,9,3
         write(ipr,100) mu
       end do
       stop
@@ -4765,7 +4740,7 @@ subroutine Ampl_reading(Ampl_dft,icheck,ie,lmaxso,mpinodee,mpirank0,nenerg,nlm_p
   lmax_probe = nint( sqrt( real( nlm_probe ) ) ) - 1
   if( lmax_probe > lmax ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,110) lmax_probe, lmax
     end do
     stop

@@ -1,6 +1,6 @@
 # Makefile to compile FDMNES with call to MUMPS, LAPACK and BLAS libraries, for sequential calculations
 # MUMPS comes with associated other libraries.
-# Works with the gfortran Linux Compiler (for other compiler change the FC command)
+# Works with the gfortran Linux Compiler (for other compiler change the FC command) 
 
 FC = gfortran-mp-6
 OPTLVL = 3 
@@ -16,9 +16,9 @@ INCDIR = include
 
 FFLAGS = -c  -O$(OPTLVL) -I$(INCDIR)
 
-OBJ = main.o clemf0.o coabs.o convolution.o diffraction.o dirac.o fdm.o fdmx.o fprime.o fprime_data.o general.o lecture.o mat.o metric.o \
-      minim.o optic.o potential.o selec.o scf.o spgroup.o sphere.o tab_data.o tddft.o tensor.o \
-      mat_solve_mumps.o RIXS.o
+OBJ = main.o clemf0.o Cluster_approach.o coabs.o convolution.o diffraction.o dirac.o fdm.o fdmx.o fprime.o fprime_data.o general.o lecture.o mat.o metric.o \
+      minim.o optic.o potential.o selec.o scf.o spgroup.o sphere.o tab_data.o tddft.o tensor.o tools.o \
+      mat_solve_mumps.o
 
 all: $(EXEC)
 

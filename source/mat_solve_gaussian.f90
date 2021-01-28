@@ -97,7 +97,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
             ColNotZero(new(j)-nspino+1:new(j)) = .true.
           elseif( ia > 0 ) then
             ColNotZero(ianew(ia)+1:ianew(ia)+n_ato_RI*nlmsa(ia)) = .true.
-          elseif( ia == -2 .and. .not. ( irregular .and. Test_reg >= 0 ) ) then
+          elseif( ia == -2 .and. .not. irregular ) then
             ColNotZero(nligneso+1:nligneso+nlmso) = .true.
           endif
         
@@ -106,7 +106,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 ! Developpement en sortie
       elseif( i == 0 ) then
 
-        if( .not. ( irregular .and. Test_reg >= 0 ) ) then
+        if( .not. irregular ) then
           ColNotZero(nligneso+1:nligneso+nlmso) = .true.
 
           lm = ii - nligneso
@@ -233,7 +233,8 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
 
         facr = abvr(j)
         faci = abvi(j)
-        if( abs( facr ) > eps10 .or. abs( faci ) > eps10 ) then
+!        if( abs( facr ) > eps10 .or. abs( faci ) > eps10 ) then
+        if( abs( facr ) > eps15 .or. abs( faci ) > eps15 ) then
 !CDIR NODEP
           do lk =  lbz(j)+1, lbz(j)+nb_not_zero(j)
             k = IndColNotZero(lk)
@@ -248,7 +249,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
       else
 
         fac = abvr(j)
-        if( abs( fac ) > eps10 ) then
+        if( abs( fac ) > eps15 ) then
 !CDIR NODEP
           do lk =  lbz(j)+1, lbz(j)+nb_not_zero(j)
             k = IndColNotZero(lk)
@@ -265,7 +266,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
       den = abvr(ii)**2 + abvi(ii)**2
       if( den < 1.e-20_db .and. mpirank0 == 0 ) then
         call write_error
-        do ipr = 3,9,3
+        do ipr = 6,9,3
           write(ipr,140) ii, i, ispin, ia, lm
         end do
         stop
@@ -287,7 +288,7 @@ subroutine mat_solve(Base_hexa, Basereel, Bessel, Besselr, Cal_comp, cgrad, clap
     else
       if( abs( abvr(ii) ) < 1.e-10_db .and. mpirank0 == 0 ) then
         call write_error
-        do ipr = 3,9,3
+        do ipr = 6,9,3
           write(ipr,140) ii, i, ispin, ia, lm
         end do
         stop

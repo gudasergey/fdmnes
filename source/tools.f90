@@ -240,6 +240,342 @@ end
 
 !***********************************************************************
 
+! Calculation of the integral of f(r), from 0 to Radius
+! Integral is calculated using a second order polynomia
+! nr: number of points
+
+  function f_integr(r,fct,nr,ir0,nrm,Radius)
+
+  use declarations
+  implicit none
+
+  integer:: i, ir0, nr, nrm
+
+  real(kind=db):: a, b, c, d0m, dp0, dpm, f_integr, f0, fm, fp, r0, Radius, rm, rp, tiers, x1, x2
+  real(kind=db), dimension(ir0:nrm):: fct, r
+
+  tiers = 1._db / 3
+
+  f_integr = 0._db
+
+  do i = 2,nr-1
+    rm = r(i-1)
+    r0 = r(i)
+    rp = r(i+1)
+    if( i == 2 ) then
+      x1 = 0._db
+    else
+      x1 = 0.5_db * ( rm + r0 )
+    endif
+    if( rp > Radius ) then
+      x2 = Radius
+    else
+      if( i == nr - 1 ) then
+        x2 = rp
+      else
+        x2 = 0.5_db * ( rp + r0 )
+      endif
+      fm = fct(i-1)
+      f0 = fct(i)
+      fp = fct(i+1)
+      if( abs(fp) < 1e-20_db .and. abs(f0) < 1e-20_db .and. abs(fm) < 1e-20_db ) cycle
+
+      dp0 = rp - r0
+      dpm = rp - rm
+      d0m = r0 - rm
+      a = ( fm * dp0 - f0 * dpm + fp * d0m ) / ( d0m * dp0 * dpm )
+      b = ( f0 - fm ) / d0m - a * ( r0 + rm )
+      c = f0 - a * r0**2 - b * r0
+    endif
+
+    f_integr = f_integr + ( tiers * a * ( x1**2 + x1 * x2  + x2**2 ) + 0.5_db * b * ( x1 + x2 ) + c ) * ( x2 - x1 )
+
+    if( rp > Radius ) exit
+
+  end do
+
+  return
+end
+
+!***********************************************************************
+
+! Calcul de L'integrale de 0 a Radius de f.
+! L'integrale est calculee avec un polynome d'interpolation d'ordre 3
+! r: contient les valeurs des rayons pour les points qu'on integre
+! On considere que seule les valeurs jusqu'à L'indice n tel que
+! r(i) > Radius > Radius(i-1) sont sures.
+
+  real(kind=db) function f_integr3(r,fct,ir0,nrm,Radius)
+
+  use declarations
+  implicit none
+
+  integer:: i, ipr, ir0, nrm
+
+  logical:: This_is_the_end
+
+  real(kind=db):: a, b, c, d, d0m, dp0, dpm, f0, f1, f2, f3, f4, fac1, fac2, fm, fp, r0, Radius, r1, r2, r3, r4, rap14, rap24, &
+                  rap34, rm, rp, Tiers
+  real(kind=db), dimension(ir0:nrm):: fct, r
+
+  f_integr3 = 0._db
+
+  if( Radius < eps10 ) return
+
+  if( nrm < 4 ) then
+    call write_error
+    do ipr = 6,9,3
+      write(ipr,110) nrm
+    end do
+    stop
+  endif
+
+  Tiers = 1._db / 3
+  This_is_the_end = .false.
+
+  do i = 1,nrm-1
+    if( i == 1 ) then
+      if( ir0 == 1 ) then
+ ! Construction de L'ordonnée par extrapolation du second degre
+        rm = r(1)
+        r0 = r(2)
+        rp = r(3)
+        fm = fct(1)
+        f0 = fct(2)
+        fp = fct(3)
+        if( abs(fp) < 1e-20_db .and. abs(f0) < 1e-20_db .and. abs(fm) < 1e-20_db ) cycle
+        dp0 = rp - r0
+        dpm = rp - rm
+        d0m = r0 - rm
+        a = ( fm * dp0 - f0 * dpm + fp * d0m ) / ( d0m * dp0 * dpm )
+        b = ( f0 - fm ) / d0m - a * ( r0 + rm )
+        c = f0 - a * r0**2 - b * r0
+        f1 = c
+      else
+        f1 = fct(i-1)
+      endif
+      r1 = 0._db
+      r2 = r(i)
+      f2 = fct(i)
+      r3 = r(i+1)
+      f3 = fct(i+1)
+      r4 = r(i+2)
+      f4 = fct(i+2)
+      rm = 0._db
+      rp = r3
+    elseif( i == nrm-1 .or. r(i+1) > Radius ) then
+      rm = r(i)
+      rp = r(nrm)
+      if( i < 3 ) then
+        r1 = r(i-1)
+        f1 = fct(i-1)
+        r2 = r(i)
+        f2 = fct(i)
+        r3 = r(i+1)
+        f3 = fct(i+1)
+        r4 = r(i+2)
+        f4 = fct(i+2)
+      endif
+    else
+      r1 = r(i-1)
+      f1 = fct(i-1)
+      r2 = r(i)
+      f2 = fct(i)
+      r3 = r(i+1)
+      f3 = fct(i+1)
+      r4 = r(i+2)
+      f4 = fct(i+2)
+      rm = r2
+      rp = r3
+    endif
+    if( rp > Radius ) then
+      rp = Radius
+      This_is_the_end = .true.
+    endif
+    if( abs(f2) < 1e-20_db .and. abs(f3) < 1e-20_db ) cycle
+
+    rap14 = (f1 - f4) / (r1 - r4)
+    rap24 = (f2 - f4) / (r2 - r4)
+    rap34 = (f3 - f4) / (r3 - r4)
+    fac1 = ( rap14 - rap34 ) / (r1 - r3)
+    fac2 = ( rap24 - rap34 ) / (r2 - r3)
+    a = ( fac1 - fac2 ) / ( r1 - r2 )
+    b = fac1 - a * ( r1 + r3 + r4 )
+    c = rap14 - a * ( r1**2 + r1 * r4 + r4**2 ) - b * ( r1 + r4 )
+    d = f1 - ( a * r1**2 + b * r1 + c ) * r1
+
+    f_integr3 = f_integr3 + ( 0.25_db * ( rm + rp ) * ( rm**2 + rp**2 ) * a + tiers * ( rm**2 + rm*rp + rp**2 ) * b &
+              + 0.5_db * ( rm + rp ) * c + d ) * ( rp - rm )
+
+    if( This_is_the_end ) exit
+
+  end do
+
+  return
+  110 format(/' Call to function f_integr3 needs a number of point higher than 3, here it is =',i2,' !')
+end
+
+!***********************************************************************
+
+! Calcul de L'integrale de 0 a Radius de f. f(0) = 0.
+! L'integrale est calculee avec un polynome d'interpolation d'ordre 3
+! r: contient les valeurs des rayons pour les points qu'on integre
+! nr: nombre de points qu'on integre
+
+  real(kind=db) function f_integr32(r,fct,ir0,nr,R0,Radius)
+
+  use declarations
+  implicit none
+
+  integer:: i, ir0, ir1, nr
+
+  logical This_is_the_end
+
+  real(kind=db):: a, b, c, d, f1, f2, f3, f4, fac1, fac2, R0, r1, r2, r3, r4, rap14, rap24, rap34, rm, rp, Radius, tiers
+  real(kind=db), dimension(ir0:nr):: fct, r
+
+  tiers = 1._db / 3
+  This_is_the_end = .false.
+  f_integr32 = 0._db
+  ir1 = ir0 + 1
+
+  do i = ir1,nr-2
+    if( r(i) < R0 ) cycle
+    r1 = r(i-1)
+    f1 = fct(i-1)
+    r2 = r(i)
+    f2 = fct(i)
+    r3 = r(i+1)
+    f3 = fct(i+1)
+    r4 = r(i+2)
+    f4 = fct(i+2)
+    if( i == ir1 .or. r1 < R0 ) then
+      rm = R0
+    else
+      rm = r2
+    endif
+    if( i == nr-2 .or. r4 > Radius ) then
+      rp = Radius
+      This_is_the_end = .true.
+    else
+      rp = r3
+    endif
+
+    if( abs(f2) < 1e-20_db .and. abs(f3) < 1e-20_db ) cycle
+
+    rap14 = (f1 - f4) / (r1 - r4)
+    rap24 = (f2 - f4) / (r2 - r4)
+    rap34 = (f3 - f4) / (r3 - r4)
+    fac1 = ( rap14 - rap34 ) / (r1 - r3)
+    fac2 = ( rap24 - rap34 ) / (r2 - r3)
+    a = ( fac1 - fac2 ) / ( r1 - r2 )
+    b = fac1 - a * ( r1 + r3 + r4 )
+    c = rap14 - a * ( r1**2 + r1 * r4 + r4**2 ) - b * ( r1 + r4 )
+    d = f1 - ( a * r1**2 + b * r1 + c ) * r1
+
+    f_integr32 = f_integr32 + ( 0.25_db * ( rm + rp ) * ( rm**2 + rp**2 ) * a + tiers * ( rm**2 + rm*rp + rp**2 ) * b &
+               + 0.5_db * ( rm + rp ) * c + d ) * ( rp - rm )
+
+    if( This_is_the_end ) exit
+
+  end do
+
+  return
+end
+
+!***********************************************************************
+
+  real(kind=db) function f_interp1(x,x1,x2,y1,y2)
+
+  use declarations
+  implicit none
+
+  real(kind=db),intent(in):: x, x1, x2, y1, y2
+  real(kind=db):: p
+
+  p = (x - x1) / (x2 - x1)
+  f_interp1 = p*y2 + (1-p)*y1
+
+  return
+end
+
+!***********************************************************************
+
+  real(kind=db) function f_interp2(r,rm,r0,rp,fm,f0,fp)
+
+  use declarations
+  implicit none
+
+  real(kind=db):: a, b, c, d0m, dp0, dpm, f0, fm, fp, r0, rm, rp, r
+
+  dp0 = rp - r0
+  dpm = rp - rm
+  d0m = r0 - rm
+
+  a = ( fm * dp0 - f0 * dpm + fp * d0m ) / ( d0m * dp0 * dpm )
+  b = ( f0 - fm ) / d0m - a * ( r0 + rm )
+  c = f0 - a * r0**2 - b * r0
+
+  f_interp2 = a * r**2 + b * r + c
+
+  return
+end
+
+!**********************************************************************
+
+! Interpolation d'ordre 3, pour obtenir fonction et derivee
+
+subroutine interp3(f,fp,r,r1,r2,r3,r4,f1,f2,f3,f4)
+
+  use declarations
+  implicit none
+
+  real(kind=db):: a, b, c, d, f, f1, f2, f3, f4, fac1, fac2, fp, r, r1, r2, r3, r4, rap14, rap24, rap34
+
+  rap14 = (f1 - f4) / (r1 - r4)
+  rap24 = (f2 - f4) / (r2 - r4)
+  rap34 = (f3 - f4) / (r3 - r4)
+  fac1 = ( rap14 - rap34 ) / (r1 - r3)
+  fac2 = ( rap24 - rap34 ) / (r2 - r3)
+  a = ( fac1 - fac2 ) / ( r1 - r2 )
+  b = fac1 - a * ( r1 + r3 + r4 )
+  c = rap14 - a * ( r1**2 + r1 * r4 + r4**2 ) - b * ( r1 + r4 )
+  d = f1 - ( a * r1**2 + b * r1 + c ) * r1
+
+  f = a * r**3 + b * r**2 + c * r + d
+  fp = 3 * a * r**2 + 2 * b * r + c
+
+  return
+end
+
+!**********************************************************************
+
+! Interpolation d'ordre 3
+
+  real(kind=db) function f_interp3(r,r1,r2,r3,r4,f1,f2,f3,f4)
+
+  use declarations
+  implicit none
+
+  real(kind=db):: a, b, c, d, f1, f2, f3, f4, fac1, fac2, r, r1, r2, r3, r4, rap14, rap24, rap34
+
+  rap14 = (f1 - f4) / (r1 - r4)
+  rap24 = (f2 - f4) / (r2 - r4)
+  rap34 = (f3 - f4) / (r3 - r4)
+  fac1 = ( rap14 - rap34 ) / (r1 - r3)
+  fac2 = ( rap24 - rap34 ) / (r2 - r3)
+  a = ( fac1 - fac2 ) / ( r1 - r2 )
+  b = fac1 - a * ( r1 + r3 + r4 )
+  c = rap14 - a * ( r1**2 + r1 * r4 + r4**2 ) - b * ( r1 + r4 )
+  d = f1 - ( a * r1**2 + b * r1 + c ) * r1
+
+  f_interp3 = a * r**3 + b * r**2 + c * r + d
+
+  return
+end
+
+!***********************************************************************
+
 subroutine mult_cell(itape,File_out)
 
   use declarations

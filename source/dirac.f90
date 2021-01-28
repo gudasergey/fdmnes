@@ -45,7 +45,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
   
   if( Z <= 0 .or. Z > Z_Mendeleiev_max ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,115)
     end do
     stop
@@ -62,7 +62,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
 
   if( n_ray > nrm .and. mpirank == 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,120) n_ray, nrm
     end do
     stop
@@ -107,7 +107,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
     n_orb = n_orb + 1
     if( n_orb > nnlm ) then
       call write_error
-      do ipr = 3,9,3
+      do ipr = 6,9,3
         write(ipr,130)
       end do
       stop
@@ -128,7 +128,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
         n_orb = n_orb + 1
         if( n_orb > nnlm ) then
           call write_error
-          do ipr = 3,9,3
+          do ipr = 6,9,3
             write(ipr,130)
           end do
           stop
@@ -160,7 +160,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
           nlat(it) = nlat(it) + 1
           if( nlat(it) > nlatm ) then
             call write_error
-            do ipr = 3,9,3
+            do ipr = 6,9,3
               write(ipr,140) nlat(it), nlatm
             end do
             stop
@@ -187,7 +187,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
           nlat(it) = nlat(it) + 1
           if( nlat(it) > nlatm ) then
             call write_error
-            do ipr = 3,9,3
+            do ipr = 6,9,3
               write(ipr,140) nlat(it), nlatm
             end do
             stop
@@ -226,7 +226,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
       n_orb = n_orb + 1
       if( n_orb > nnlm ) then
         call write_error
-        do ipr = 3,9,3
+        do ipr = 6,9,3
           write(ipr,130)
         end do
         stop
@@ -247,7 +247,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
           n_orb = n_orb + 1
           if( n_orb > nnlm ) then
             call write_error
-            do ipr = 3,9,3
+            do ipr = 6,9,3
               write(ipr,130)
             end do
             stop
@@ -261,7 +261,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
       nlat(it) = nlat(it) + 1
       if( nlat(it) > nlatm ) then
         call write_error
-        do ipr = 3,9,3
+        do ipr = 6,9,3
           write(ipr,140) nlat(it), nlatm
         end do
         stop
@@ -285,7 +285,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
         nlat(it) = nlat(it) + 1
         if( nlat(it) > nlatm ) then
           call write_error
-          do ipr = 3,9,3
+          do ipr = 6,9,3
             write(ipr,140) nlat(it), nlatm
           end do
           stop
@@ -449,7 +449,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
 
     if( ko > nnlm ) then
       call write_error
-      do ipr = 3,9,3
+      do ipr = 6,9,3
         write(ipr,130)
       end do
       stop
@@ -493,7 +493,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
           n_orb = n_orb + 1
           if( n_orb > nnlm ) then
             call write_error
-            do ipr = 3,9,3
+            do ipr = 6,9,3
               write(ipr,130)
             end do
             stop
@@ -514,7 +514,7 @@ subroutine dirgen(icheck,it,itabs,jseuil,lcoeur,lqnexc,lseuil,lvval,mpirank,n_or
             n_orb = n_orb + 1
             if( n_orb > nnlm ) then
               call write_error
-              do ipr = 3,9,3
+              do ipr = 6,9,3
                 write(ipr,130)
               end do
               stop
@@ -764,7 +764,7 @@ subroutine config(Z,Dirac_eq,n_coeur,n_orb,nnlm,nqn,lqn,rqn,nel)
 
   if( Z > Z_Mendeleiev_max .or. Z <= 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,110) Z_Mendeleiev_max, Z
     end do
     stop
@@ -1192,7 +1192,7 @@ subroutine dinpt(Delta_rv,h_ray,ibav,icheck,Dirac_eq,lqn,n_orb,n_ray, nnlm,nqn,p
   io = i
   if( io <= n_orb ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       write(ipr,220) nint(Zn), io
       if( Dirac_eq ) then
         write(ipr,225) xn(io), xl(io), xj(io), xz(io)
@@ -2244,7 +2244,7 @@ subroutine didif(a,b,e,ibav,icheck,last,lq,n_ray,nq,ray,vr,y,Zn,npts,ha,rn,h,eps
 ! da and dbb are calculated in didf1
     call didf1(a,b,e,ki,lq,n_ray,nb_nodes,ray,vr, ha,da,dbb,a0,b0,voc,fk,cs,g,q11,q22,tcs)
 
-!  nb_nodes = Number of nodes + l + 1. nb_nodes SHOULD EQUAL nq.
+!  nb_nodes = Number of nodes + L + 1. nb_nodes SHOULD EQUAL nq.
     if( icheck > 3 ) write(ibav,10) nq, lq, fj, emin, e, emax
 
 !  TOO MANY NODES.
@@ -2273,7 +2273,7 @@ subroutine didif(a,b,e,ibav,icheck,last,lq,n_ray,nq,ray,vr,y,Zn,npts,ha,rn,h,eps
 
       if( ntest /= 0 ) then
         call write_error
-        do ipr = 3,9,3
+        do ipr = 6,9,3
           write(ipr,60)
         end do
       stop
@@ -2284,6 +2284,19 @@ subroutine didif(a,b,e,ibav,icheck,last,lq,n_ray,nq,ray,vr,y,Zn,npts,ha,rn,h,eps
       e = 0.5_db * (e + emax)
 
       cycle
+    endif
+    
+    if( icheck > 1 .and. Lq == 1 .and. nq == 5 .and. Zn == 56 .and. abs(fj - 0.5_db) < eps10 ) then
+      if( icheck == 2 ) then
+        write(3,'(/A)') ' From Dirac'
+      else
+        write(3,'(/A)') ' From En_dep'
+      endif
+      write(3,'(a4,f13.5)') ' E =', E * 3 * Rydb
+      write(3,'(/A)') ' Radius    psi_step1'
+      do i = 1,n_ray
+        write(3,'(f11.7,1p,e15.7)') ray(i)*bohr, a(i)
+      end do
     endif
 
 !  Correct number of nodes
@@ -2300,7 +2313,7 @@ subroutine didif(a,b,e,ibav,icheck,last,lq,n_ray,nq,ray,vr,y,Zn,npts,ha,rn,h,eps
 
     if( kk1 > n_ray ) then
       call write_error
-      do ipr = 3,9,3
+      do ipr = 6,9,3
         write(ipr,70) ki, n_ray
       end do
       stop
@@ -2324,7 +2337,7 @@ subroutine didif(a,b,e,ibav,icheck,last,lq,n_ray,nq,ray,vr,y,Zn,npts,ha,rn,h,eps
     p = - 2 * ( e + rz ) + rl * rl
     if( p < 0._db ) then
       call write_error
-      do ipr = 3,9,3
+      do ipr = 6,9,3
         write(ipr,19) rn * bohr
       end do
       stop

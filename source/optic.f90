@@ -392,7 +392,7 @@ subroutine dim_grille_optic(E_cut,Energ_s,icheck,mpirank0,nenerg,nenerg_s)
 
   if( E_cut < Energ_s(1) .and. mpirank0 == 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       if( ipr == 3 .and. icheck == 0 ) cycle
       write(ipr,110) E_cut*rydb, Energ_s(1)*rydb
     end do
@@ -401,7 +401,7 @@ subroutine dim_grille_optic(E_cut,Energ_s,icheck,mpirank0,nenerg,nenerg_s)
 
   if( E_cut > Energ_s(nenerg_s) .and. mpirank0 == 0 ) then
     call write_error
-    do ipr = 3,9,3
+    do ipr = 6,9,3
       if( ipr == 3 .and. icheck == 0 ) cycle
       write(ipr,120) E_cut*rydb, Energ_s(nenerg_s)*rydb
     end do

@@ -333,7 +333,7 @@ subroutine gatherINT(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
     do rank = 1,mpinodes-1
       sendCount = (nzGather(rank)+sz-1)/sz
       do isend = 1,sendCount
-        n = MIN(sz, nzGather(rank)-nzSent(rank))
+        n = MIN(sz, INT( nzGather(rank) - nzSent(rank) ) )
         call MPI_recv(xGath(1+displs(rank)+nzSent(rank)), n, MPI_INTEGER, rank, 123, MPI_COMM_MUMPS, status, mpierr)
         nzSent(rank) = nzSent(rank) + n
       end do
@@ -342,7 +342,7 @@ subroutine gatherINT(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
     rank = mpirank
     sendCount = (nz+sz-1)/sz
     do isend = 1,sendCount
-      n = MIN(sz, nz-nzSent(rank))
+      n = MIN( sz, INT( nz - nzSent(rank) ) )
       call MPI_send(x(1+nzSent(rank)), n, MPI_INTEGER, 0, 123, MPI_COMM_MUMPS, mpierr)
       nzSent(rank) = nzSent(rank) + n
     end do
@@ -382,7 +382,7 @@ subroutine gatherREAL(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
     do rank = 1,mpinodes-1
       sendCount = (nzGather(rank)+sz-1)/sz
       do isend = 1,sendCount
-        n = MIN(sz, nzGather(rank)-nzSent(rank))
+        n = MIN( sz, INT( nzGather(rank) - nzSent(rank) ) )
         call MPI_recv(xGath(1+displs(rank)+nzSent(rank)), n, MPI_DOUBLE_PRECISION, rank, 123, MPI_COMM_MUMPS, status, mpierr)
         nzSent(rank) = nzSent(rank) + n
       end do
@@ -391,7 +391,7 @@ subroutine gatherREAL(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
     rank = mpirank
     sendCount = (nz+sz-1)/sz
     do isend = 1,sendCount
-      n = MIN(sz, nz-nzSent(rank))
+      n = MIN( sz, INT( nz - nzSent(rank) ) )
       call MPI_send(x(1+nzSent(rank)), n, MPI_DOUBLE_PRECISION, 0, 123, MPI_COMM_MUMPS, mpierr)
       nzSent(rank) = nzSent(rank) + n
     end do
@@ -431,7 +431,7 @@ subroutine gatherCOMPLEX(xGath, nzSum, x, nz, nzGather, mpirank, mpinodes)
     do rank = 1,mpinodes-1
       sendCount = (nzGather(rank)+sz-1)/sz
       do isend = 1,sendCount
-        n = MIN(sz, nzGather(rank)-nzSent(rank))
+        n = MIN(sz, INT( nzGather(rank) - nzSent(rank) ) )
         call MPI_recv(xGath(1+displs(rank)+nzSent(rank)), n, MPI_DOUBLE_COMPLEX, rank, 123, MPI_COMM_MUMPS, status, mpierr)
         nzSent(rank) = nzSent(rank) + n
       end do
@@ -472,6 +472,7 @@ subroutine gather_sm(smr,smi,nlmso,nligne,nlmso_i,nligne_i,mpinodes,mpirank,Cal_
 ! Test on number higher that what is allowed by the number of digit for integer
   if( nligne2 .gt. Z'7FFFFFFF' ) then
     call write_error
+    write(6,'(" gather_sm: nligne2 =",i12," (> positive integer)")') nligne2
     write(9,'(" gather_sm: nligne2 =",i12," (> positive integer)")') nligne2
     stop
   endif
@@ -723,7 +724,7 @@ subroutine getSolverParams(MPI_host_num_for_mumps,mpinodes0,Solver)
   mpi_split = mod( mpinodes0, MPI_host_num_for_mumps ) 
   if( mpi_split /= 0 ) then
     call write_error
-    do ipr = 3,6,3
+    do ipr = 6,9,3
       write(ipr,100) mpinodes0, MPI_host_num_for_mumps
     end do
     stop 1

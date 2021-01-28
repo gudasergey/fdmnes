@@ -421,7 +421,7 @@ subroutine Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a
     n, nlm, nlm1, nlm2, np, nr, nrmtg, nsol, nspin, nspino, nspinp, numat
 
   logical:: Ecomp, Failed, Full_potential, Full_potential_loc, Hubb_a, Hubb_d, Hubb_m, Hubb_nd, &
-    Radial_comp, Renorm, Relativiste, Spino_simple, Spinorbite
+    Normal_tau, Radial_comp, Renorm, Relativiste, Spino_simple, Spinorbite
 
   complex(kind=db):: V_h
   complex(kind=db), dimension(nspin):: konde
@@ -439,6 +439,7 @@ subroutine Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a
 
   Full_potential_loc = Full_potential
   Failed = .false.
+  Normal_tau = .true.
 
 ! Point de retour si La normalisation en cas de full-potential a les elements non diagonaux plus grands que les diagonaux
   do
@@ -694,7 +695,7 @@ subroutine Sch_radial(Ecinetic,Ecomp,Eimag,f2,Full_potential,g0,gm,gp,gso,Hubb_a
 
   if( .not. Renorm ) return
 
-  call Renormal(Radial_comp,Full_potential,icheck,konde,LL,Lmax,nlm1,nlm2,nr,nrmtg,nspin,nspino,nspinp,r,Rmtg, &
+  call Renormal(Radial_comp,Full_potential,icheck,konde,LL,Lmax,nlm1,nlm2,Normal_tau,nr,nrmtg,nspin,nspino,nspinp,r,Rmtg, &
                 Tau,ui,ur,Failed)
 
     if( Failed ) then
@@ -907,19 +908,19 @@ subroutine write_ur(Full_potential,li,lf,nlm1,nlm2,nr,nspinp,nspinpo,numat,r,Rad
   end do
 
   return
-  110 format(/' Radial wave function time r:  Z =',i3,', L =',i2,/)
-  120 format(/' Radial wave function, time r, after normalization:', '  Z =',i3,', L =',i2,/)
-  130 format(/' Radial singular function time r:  Z =',i3,', L =',i2,/)
-  140 format(/' Radial wave function time r:  Z =',i3,', L =',i2, ', m =',i2,/)
-  150 format(/' Radial wave function, time r, after normalization:', '  Z =',i3,', L =',i2,', m =',i2,/)
-  160 format(/' Radial singular function time r:  Z =',i3,', L =',i2, ', m =',i2,/)
+  110 format(/' Radial regular wave function time r:  Z =',i3,', L =',i2,/)
+  120 format(/' Radial regular wave function, time r, after normalization:', '  Z =',i3,', L =',i2,/)
+  130 format(/' Radial irregular wave function time r:  Z =',i3,', L =',i2,/)
+  140 format(/' Radial regular wave function time r:  Z =',i3,', L =',i2, ', m =',i2,/)
+  150 format(/' Radial regular wave function, time r, after normalization:', '  Z =',i3,', L =',i2,', m =',i2,/)
+  160 format(/' Radial irregular wave function time r:  Z =',i3,', L =',i2, ', m =',i2,/)
   170 format(37x,' Solution 1',46x,' Solution 2')
   180 format(23x,' Solution 1',18x,' Solution 2')
-  190 format('     Radius    ',392a14)
-  200 format(1p,491e14.6)
-  210 format(/' Radial wave function time r:  Z =',i3,', L =',i2, ', m =',i2,', Solution',i2,/)
-  220 format(/' Radial wave function, time r, after normalization:', '  Z =',i3,', L =',i2,', m =',i2,', Solution',i2,/)
-  230 format(/' Radial singular function time r:  Z =',i3,', L =',i2, ', m =',i2,', Solution',i2,/)
+  190 format('    Radius  ',392a14)
+  200 format(f11.7,1p,491e14.6)
+  210 format(/' Radial regular wave function time r:  Z =',i3,', L =',i2, ', m =',i2,', Solution',i2,/)
+  220 format(/' Radial regular wave function, time r, after normalization:', '  Z =',i3,', L =',i2,', m =',i2,', Solution',i2,/)
+  230 format(/' Radial irregular wave function time r:  Z =',i3,', L =',i2, ', m =',i2,', Solution',i2,/)
 end
 
 !***********************************************************************
@@ -927,7 +928,7 @@ end
 ! Normalisation of radial functions using continuity at muffin-tin radius with solutions in vaccum
 ! Called by Sch_radial
 
-subroutine Renormal(Radial_comp,Full_potential,icheck,konde,LL,Lmax,nlm1,nlm2,nr,nrmtg,nspin,nspino,nspinp,r, &
+subroutine Renormal(Radial_comp,Full_potential,icheck,konde,LL,Lmax,nlm1,nlm2,Normal_tau,nr,nrmtg,nspin,nspino,nspinp,r, &
                   Rmtg,Tau,ui,ur,Failed)
 
   use declarations
@@ -942,7 +943,7 @@ subroutine Renormal(Radial_comp,Full_potential,icheck,konde,LL,Lmax,nlm1,nlm2,nr
   complex(kind=db), dimension(nlm1,nlm2,nspinp,nspino):: Ampl, u1, u2, Wronske, Wronsks
   complex(kind=db), dimension(2,0:Lmax,nspin):: bs, hs
 
-  logical:: Failed, Full_potential, Radial_comp
+  logical:: Failed, Full_potential, Normal_tau, Radial_comp
 
   real(kind=db):: a, ai, b, bi, c, ci, d0, d01, d02, d1, d2, d12, Rmtg, Wronskout
   real(kind=db), dimension(nr):: r
@@ -1061,7 +1062,7 @@ subroutine Renormal(Radial_comp,Full_potential,icheck,konde,LL,Lmax,nlm1,nlm2,nr
     end do
   endif
 
-  call cal_ampl(Ampl,Full_potential,icheck,LL,Lmax,nlm1,nlm2,nspino,nspinp,Tau,Wronske,Wronsks,Wronskout,Failed)
+  call cal_ampl(Ampl,Full_potential,icheck,LL,Lmax,nlm1,nlm2,Normal_tau,nspino,nspinp,Tau,Wronske,Wronsks,Wronskout,Failed)
 
   if( Failed ) return
 
@@ -1153,7 +1154,7 @@ end
 
 ! Calculation of the amplitudes of the radial functions
 
-subroutine cal_ampl(Ampl,Full_potential,icheck,LL,Lmax,nlm1,nlm2,nspino,nspinp,Tau,Wronske,Wronsks,Wronskout,Failed)
+subroutine cal_ampl(Ampl,Full_potential,icheck,LL,Lmax,nlm1,nlm2,Normal_tau,nspino,nspinp,Tau,Wronske,Wronsks,Wronskout,Failed)
 
   use declarations
   implicit none
@@ -1165,7 +1166,7 @@ subroutine cal_ampl(Ampl,Full_potential,icheck,LL,Lmax,nlm1,nlm2,nspino,nspinp,T
   complex(kind=db), dimension(nlm1,nlm2,nspinp,nspino):: Amp, Ampl, Wronske, Wronsks
   complex(kind=db), dimension(:,:), allocatable:: Mat_A, Mat_e, Mat_s, Mat_T
 
-  logical:: Failed, Full_potential, Stop_job
+  logical:: Failed, Full_potential, Normal_tau, Stop_job
 
   real(kind=db):: Wronskout
 
@@ -1180,7 +1181,11 @@ subroutine cal_ampl(Ampl,Full_potential,icheck,LL,Lmax,nlm1,nlm2,nspino,nspinp,T
     if( nspino == 1 ) then
       do isp = 1,nspinp
         do n = 1,nlm1
-          Ampl(n,1,isp,1) = Wronskout / Wronske(n,1,isp,1)
+          if( Normal_tau ) then
+            Ampl(n,1,isp,1) = Wronskout / Wronske(n,1,isp,1)
+          else
+            Ampl(n,1,isp,1) = Wronskout / Wronsks(n,1,isp,1)
+          endif
           Tau(n,isp,n,isp) = - Wronske(n,1,isp,1) / Wronsks(n,1,isp,1)
         end do
       end do
@@ -1193,14 +1198,22 @@ subroutine cal_ampl(Ampl,Full_potential,icheck,LL,Lmax,nlm1,nlm2,nspino,nspinp,T
           isol = 2
           mq = m + isp - 1
           n = LL + 1 + mq
-          Ampl(n,1,isp,isol) = Wronskout / Wronske(n,1,isp,isol)
+          if( Normal_tau ) then
+            Ampl(n,1,isp,isol) = Wronskout / Wronske(n,1,isp,isol)
+          else
+            Ampl(n,1,isp,isol) = Wronskout / Wronsks(n,1,isp,isol)
+          endif
           Tau(n,isp,n,isp) = - Wronske(n,1,isp,isol) / Wronsks(n,1,isp,isol)
         elseif( m == LL ) then
           isp = 1
           isol = 1
           mq = m + isp - 1
           n = LL + 1 + mq
-          Ampl(n,1,isp,isol) = Wronskout / Wronske(n,1,isp,isol)
+          if( Normal_tau ) then
+            Ampl(n,1,isp,isol) = Wronskout / Wronske(n,1,isp,isol)
+          else
+            Ampl(n,1,isp,isol) = Wronskout / Wronsks(n,1,isp,isol)
+          endif
           Tau(n,isp,n,isp) = - Wronske(n,1,isp,isol) / Wronsks(n,1,isp,isol)
         else
           nu = LL + 1 + m
@@ -1222,11 +1235,13 @@ subroutine cal_ampl(Ampl,Full_potential,icheck,LL,Lmax,nlm1,nlm2,nspino,nspinp,T
             end do
           end do
 
-          Det = Wronske(nu,1,1,1) * Wronske(nd,1,2,2) - Wronske(nd,1,2,1) * Wronske(nu,1,1,2)
-          Ampl(nu,1,1,1) = Wronskout * Wronske(nd,1,2,2) / Det
-          Ampl(nu,1,1,2) = - Wronskout * Wronske(nd,1,2,1) / Det
-          Ampl(nd,1,2,1) = - Wronskout * Wronske(nu,1,1,2) / Det
-          Ampl(nd,1,2,2) = Wronskout * Wronske(nu,1,1,1) / Det
+          if( Normal_tau ) then
+            Det = Wronske(nu,1,1,1) * Wronske(nd,1,2,2) - Wronske(nd,1,2,1) * Wronske(nu,1,1,2)
+            Ampl(nu,1,1,1) = Wronskout * Wronske(nd,1,2,2) / Det
+            Ampl(nu,1,1,2) = - Wronskout * Wronske(nd,1,2,1) / Det
+            Ampl(nd,1,2,1) = - Wronskout * Wronske(nu,1,1,2) / Det
+            Ampl(nd,1,2,2) = Wronskout * Wronske(nu,1,1,1) / Det
+          endif
         endif
       end do
     endif
@@ -1311,9 +1326,13 @@ subroutine cal_ampl(Ampl,Full_potential,icheck,LL,Lmax,nlm1,nlm2,nspino,nspinp,T
 
       Mat_T = - matmul( Mat_s, Mat_e )
 
-      call invcomp(ndim,Mat_e,ndim,ndim,0,Stop_job)
+      if( Normal_tau ) then
+        call invcomp(ndim,Mat_e,ndim,ndim,0,Stop_job)
 ! le signe est plus car Wronske est en fait "- Wronskien"
-      Mat_A = Wronskout * Mat_e
+        Mat_A = Wronskout * Mat_e
+      else
+        Mat_A = Wronskout * Mat_s
+      endif
 
       if( nspino == 1 ) then
         Ampl(:,:,isp,1) = Mat_A(:,:)
@@ -2517,6 +2536,8 @@ Subroutine Cal_Solsing(Ecomp,Eimag,f2,Final_tddft,Full_potential,g0,gm,gp,gso,Hu
                         ms1 = m1
                         ms2 = m2
                       endif
+                      
+                      if( icheck > 3 ) write(3,110) L, ip1, ip2
             
                       if( Radial_comp ) then
                         f_reg(1:nrmtsd) = r(1:nrmtsd) * cmplx( ur(1:nrmtsd,n1,np,isp1,isol), ui(1:nrmtsd,n1,np,isp1,isol), db )
@@ -2556,6 +2577,7 @@ Subroutine Cal_Solsing(Ecomp,Eimag,f2,Final_tddft,Full_potential,g0,gm,gp,gso,Hu
   deallocate( usi, usr )
   
   return
+  110 format(/' L =',i2,', ip1 =',i2,', ip2 =',i2)
 end
 
 !***********************************************************************
@@ -2762,8 +2784,13 @@ subroutine Sch_radial_solsing(Classic_irreg,Ecomp,Eimag,f2,Full_potential,g0,gp,
     allocate( ui(n,nlm1,nlm2,nspinp,nspino) )
     allocate( ur(n,nlm1,nlm2,nspinp,nspino) )
     allocate( rr(n) )
-    ur(1:n,:,:,:,:) = Real( us(1:n,:,:,:,:), db )
-    ui(1:n,:,:,:,:) = aimag( us(1:n,:,:,:,:) )
+    if( .not. classic_irreg .and. nlm2 == 1 .and. .not. full_potential ) then
+      ur(1:n,:,:,:,:) = Real( us(1:n,:,:,:,:)/tau(1,1,1,1), db )
+      ui(1:n,:,:,:,:) = aimag( us(1:n,:,:,:,:)/tau(1,1,1,1) )
+    else
+      ur(1:n,:,:,:,:) = Real( us(1:n,:,:,:,:), db )
+      ui(1:n,:,:,:,:) = aimag( us(1:n,:,:,:,:) )
+    endif
     rr(1:n) = r(1:n)
     call write_ur(Full_potential,li,lf,nlm1,nlm2,n,nspinp,nspino,numat,rr,Radial_comp,Rmtsd,ui,ur,3)
     deallocate( rr, ui, ur )
@@ -6540,18 +6567,18 @@ function integr_sing(n,phi1,phi2,f_reg,f_irg,Rmtsd,r,icheck)
 
   integr_sing = - cmplx(fr,fi,db)
 
-  if( icheck > 3 ) then
+  if( icheck > 3 .and. abs( integr_sing ) > eps10 ) then
     write(3,110)
     do ir = 1,n
-      write(3,120) r(ir)*bohr, f_reg(ir), phi_reg(ir),s_phi_reg(ir), phi_irg(ir), s_phi_irg(ir), fct(ir)
+      write(3,120) r(ir)*bohr, f_reg(ir), phi_reg(ir),s_phi_reg(ir), f_irg(ir), phi_irg(ir), s_phi_irg(ir), fct(ir)
       if( r(ir) > Rmtsd ) exit
     end do
     write(3,130) integr_sing
   endif
 
   return
-  110 format(/5x,'Radius',15x,'f_reg',23x,'phi_reg',19x,'s_phi_reg',19x, 'phi_irg',21x,'s_phi_irg',22x,'fct')
-  120 format(1p,13e14.6)
+  110 format(/5x,'Radius',15x,'f_reg',23x,'phi_reg',19x,'s_phi_reg',19x,'f_irg',23x,'phi_irg',21x,'s_phi_irg',22x,'fct')
+  120 format(1p,15e14.6)
   130 format(/' Integr_sing =',1p,2e14.6)
 end
 
